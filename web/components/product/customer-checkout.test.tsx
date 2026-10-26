@@ -97,7 +97,7 @@ it("keeps payment instructions hidden for expired and refunded orders", () => {
 
 it("keeps the order page and posts Gkash into a separate window", () => {
   const change = vi.fn();
-  mount(<PaymentAction onChangeMethod={change} order={{ ...order, payment_action: { kind: "form", url: "https://api.gkash.my/api/PaymentForm.aspx", currency: "MYR", amount: "4.18", fields: { CID: "merchant", v_amount: "4.18" }, instructions: "请在 Gkash 完成付款。" } }} />);
+  mount(<PaymentAction onChangeMethod={change} order={{ ...order, method_change_allowed: true, payment_action: { kind: "form", url: "https://api.gkash.my/api/PaymentForm.aspx", currency: "MYR", amount: "4.18", fields: { CID: "merchant", v_amount: "4.18" }, instructions: "请在 Gkash 完成付款。" } }} />);
   const form = document.querySelector("form");
   expect(form?.getAttribute("target")).toBe("tokpath-gkash");
   expect(form?.getAttribute("method")?.toLowerCase()).toBe("post");

@@ -312,6 +312,7 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 			return nil, e
 		}
 		if e == nil && intent.Checkout != nil {
+			dto["method_change_allowed"] = intent.State == "failed" && o.Status == "pending" && o.ExternalAllocatedUSD.IsZero()
 			ch := intent.Checkout
 			action := gin.H{}
 			switch {
@@ -386,6 +387,9 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 	id := subject(c)
 	ctx := c.Request.Context()
 	raw, e := a.command(c, "payment-method:"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
+		if e := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "checkout:"+c.Param("id")).Error; e != nil {
+			return nil, e
+		}
 		o, e := a.Commerce.GetOrder(ctx, tx, id.Customer.Customer.ID, c.Param("id"))
 		if e != nil {
 			return nil, e
@@ -407,9 +411,19 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		}
 		if cr.MerchantID != nil && *cr.MerchantID != m.ID {
 			intent, err := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
-			if err == nil && intent.State == "verified" {
-				return nil, payments.ErrConflict
+			if err != nil || intent.State != "failed" {
+				return nil, commerce.ErrPaymentUnknown
 			}
+			var facts int64
+			if err := tx.Table("payments_verified_facts").Where("operator_id=? AND order_id=? AND kind='receipt'", o.OperatorID, o.ID).Count(&facts).Error; err != nil {
+				return nil, err
+			}
+			if facts > 0 {
+				return nil, commerce.ErrPaymentUnknown
+			}
+		}
+		if cr.MerchantID != nil && *cr.MerchantID == m.ID {
+			return gin.H{"id": o.ID}, nil
 		}
 		if e = tx.Exec("UPDATE portal_order_checkout SET merchant_id=?, payment_order=NULL WHERE order_id=? AND customer_id=?", m.ID, o.ID, o.CustomerID).Error; e != nil {
 			return nil, e
@@ -820,8 +834,11 @@ func (a *Application) deliverReceipt(ctx context.Context, op, receiptID, orderID
 		if e != nil {
 			return e
 		}
-		due := o.DueUSD.Sub(o.InternalUSD).Sub(o.CommissionUSD).Sub(o.ExternalAllocatedUSD)
 		amount := r.GrossUSD.Sub(r.AllocatedUSD)
+		due := o.DueUSD.Sub(o.InternalUSD).Sub(o.CommissionUSD).Sub(o.ExternalAllocatedUSD)
+		if amount.Sign() > 0 && due.Sign() <= 0 {
+			return commerce.ErrWholePayment
+		}
 		if amount.Cmp(due) > 0 {
 			amount = due
 		}

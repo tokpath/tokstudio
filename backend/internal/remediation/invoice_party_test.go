@@ -8,7 +8,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 )
 
-func TestPostgresSharedReceiptRefundAdjustsOnlyActualCustomerInvoiceAndReportsUnknownFee(t *testing.T) {
+func TestPostgresSeparateReceiptsFromSamePayerKeepCustomerInvoiceRefundsIsolated(t *testing.T) {
 	f := setup(t)
 	op, e := f.s.Organization.GetOperator(f.ctx, nil, f.operator)
 	if e != nil {
@@ -25,13 +25,19 @@ func TestPostgresSharedReceiptRefundAdjustsOnlyActualCustomerInvoiceAndReportsUn
 	if e != nil {
 		t.Fatal(e)
 	}
-	r := f.receipt(t, "shared-bank-payment", "100")
+	var r commerce.Receipt
+	receipts := map[string]commerce.Receipt{}
 	for _, party := range []struct{ id, amount, key string }{{f.customer, "40", "party-a"}, {other.Customer.ID, "60", "party-b"}} {
+		receipt := f.receipt(t, party.key+"-bank-payment", party.amount)
+		receipts[party.id] = receipt
+		if party.id == f.customer {
+			r = receipt
+		}
 		o, e := f.s.Commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{OperatorID: f.operator, CustomerID: party.id, BusinessKey: party.key, ExpectedOwnershipVersion: 1, AmountUSD: d(party.amount)})
 		if e != nil {
 			t.Fatal(e)
 		}
-		if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: party.key, AmountUSD: d(party.amount)}); e != nil {
+		if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: receipt.ID, OrderID: o.ID, BusinessKey: party.key, AmountUSD: d(party.amount)}); e != nil {
 			t.Fatal(e)
 		}
 		if _, e = f.s.Commerce.Fulfill(f.ctx, nil, o.ID, f.owner); e != nil {
@@ -44,7 +50,7 @@ func TestPostgresSharedReceiptRefundAdjustsOnlyActualCustomerInvoiceAndReportsUn
 		t.Fatal(e)
 	}
 	for _, party := range []struct{ id, removed string }{{f.customer, "20"}, {other.Customer.ID, "0"}} {
-		rows, e := f.s.InvoicePartyReceiptAdjustments(f.ctx, nil, f.operator, party.id, []string{r.ID})
+		rows, e := f.s.InvoicePartyReceiptAdjustments(f.ctx, nil, f.operator, party.id, []string{receipts[party.id].ID})
 		if e != nil || len(rows) != 1 || rows[0].RemovedUSD.Cmp(d(party.removed)) != 0 || rows[0].ReviewRequired {
 			t.Fatal("one payer refund reduced another customer's basis", rows, e)
 		}

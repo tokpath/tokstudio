@@ -400,6 +400,15 @@ func (a *Application) refundStaffAction(c *gin.Context, op organization.Operator
 			return
 		}
 		in.BusinessKey, _ = key(c)
+		in.Currency = strings.ToUpper(strings.TrimSpace(in.Currency))
+		if in.Currency == "USD" {
+			amount, err := ledger.ParseDecimal(in.Amount)
+			if err != nil {
+				handleError(c, err)
+				return
+			}
+			in.ActualUSD = amount
+		}
 		_, e = a.Remediation.RecordManualRefund(ctx, actor, op.ID, c.Param("id"), in)
 	case "execute_api", "query_api":
 		var leg remediation.RefundLeg

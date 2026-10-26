@@ -198,7 +198,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.receipt) {
       await oem.goto(`/manage/${f.oem_id}/payments`);
-      save("receipt", await operation(oem, "登记人工核实收款", { provider_receipt_id: "synthetic-operator-ui-" + randomUUID(), gross_usd: "80", fee_status: "pending", currency: "USD", original_amount: "80", recipient_reference: "synthetic OEM recipient", payer_reference: "synthetic channel payer", valuation_evidence: "synthetic USD no FX", verification_evidence: "SYNTHETIC bank fact for actual browser simulation", paid_at: localTime(), observed_at: localTime() }, `${oemBase}/payments`));
+      save("receipt", await operation(oem, "登记人工核实收款", { provider_receipt_id: "synthetic-operator-ui-" + randomUUID(), gross_usd: "80", fee_status: "pending", currency: "USD", recipient_reference: "synthetic OEM recipient", payer_reference: "synthetic channel payer", verification_evidence: "SYNTHETIC bank fact for actual browser simulation", paid_at: localTime() }, `${oemBase}/payments`));
     }
     if (!journal.funded) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
@@ -272,7 +272,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.topup_receipt) {
       await channel.goto(`/manage/${f.channel_id}/payments`);
-      save("topup_receipt", await operation(channel, "登记人工核实收款", { provider_receipt_id: "synthetic-channel-topup-" + randomUUID(), gross_usd: "50", fee_status: "pending", currency: "USD", original_amount: "50", recipient_reference: "synthetic channel recipient", payer_reference: "synthetic customer original payer", valuation_evidence: "synthetic USD no FX", verification_evidence: "SYNTHETIC customer topup bank fact", paid_at: localTime(), observed_at: localTime() }, `${channelBase}/payments`));
+      save("topup_receipt", await operation(channel, "登记人工核实收款", { provider_receipt_id: "synthetic-channel-topup-" + randomUUID(), gross_usd: "50", fee_status: "pending", currency: "USD", recipient_reference: "synthetic channel recipient", payer_reference: "synthetic customer original payer", verification_evidence: "SYNTHETIC customer topup bank fact", paid_at: localTime() }, `${channelBase}/payments`));
     }
     if (!journal.topup_allocated) {
       await channel.goto(`/manage/${f.channel_id}/orders`);
@@ -280,9 +280,9 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       await channel.getByRole("link", { name: "查看并办理", exact: true }).click();
       await expect(channel.getByRole("heading", { name: "订单与收款办理", exact: true })).toBeVisible();
       await expect(channel.getByRole("dialog")).toHaveCount(0);
-      await channel.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
-      const panel = channel.getByRole("dialog").last(); await field(panel, "receipt_id", journal.topup_receipt.id); await field(panel, "amount_usd", "50");
-      save("topup_allocated", await submit(channel, "将已核实收款分配到此单", `${channelBase}/order-context/${journal.topup.id}/allocate`));
+      await channel.getByRole("button", { name: "关联已核实收款", exact: true }).click();
+      const panel = channel.getByRole("dialog").last(); await field(panel, "receipt_id", journal.topup_receipt.id);
+      save("topup_allocated", await submit(channel, "关联已核实收款", `${channelBase}/order-context/${journal.topup.id}/allocate`));
     }
     if (!journal.topup_delivered) {
       await channel.goto(`/manage/${f.channel_id}/orders`);

@@ -199,6 +199,9 @@ func (s *Service) AllocateReceipt(ctx context.Context, tx *gorm.DB, in AllocateR
 		if receipt.GrossUSD.Sub(receipt.AllocatedUSD).Cmp(in.AmountUSD) < 0 || externalDue(o).Sub(o.ExternalAllocatedUSD).Cmp(in.AmountUSD) < 0 {
 			return ErrExcessAllocation
 		}
+		if !receipt.AllocatedUSD.IsZero() || !o.ExternalAllocatedUSD.IsZero() || in.AmountUSD.Cmp(externalDue(o)) != 0 {
+			return ErrWholePayment
+		}
 		timingProof := "actual_provider_time"
 		if receipt.PaidAt == nil {
 			timingProof = "observed_before_expiry"
@@ -226,10 +229,8 @@ func (s *Service) AllocateReceipt(ctx context.Context, tx *gorm.DB, in AllocateR
 		if o.Status == "closed" || o.CoverageStatus == "released" || o.InternalStatus == "released" {
 			o.Status = "exception"
 			o.ExceptionReason = "timely_payment_requires_commitment_restoration"
-		} else if o.ExternalAllocatedUSD.Cmp(externalDue(o)) == 0 {
-			o.Status = "paid"
 		} else {
-			o.Status = "partial"
+			o.Status = "paid"
 		}
 		if err = tx.Model(&row).Updates(map[string]any{"status": o.Status, "exception_reason": o.ExceptionReason}).Error; err != nil {
 			return err

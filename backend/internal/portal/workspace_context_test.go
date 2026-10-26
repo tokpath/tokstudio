@@ -165,7 +165,7 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 	if actions, ok := out["subject_operations"].([]any); ok && len(actions) != 0 {
 		t.Fatal("finance received sales delivery action", actions)
 	}
-	if len(find(out, "payments")["operations"].([]any)) != 1 {
+	if len(find(out, "payments")["operations"].([]any)) != 2 {
 		t.Fatal("finance cannot allocate original receipt", out)
 	}
 	amount := ledger.MustDecimal("10.123456789123456789")
@@ -173,7 +173,7 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	input := map[string]any{"receipt_id": receipt.ID, "amount_usd": amount.String()}
+	input := map[string]any{"receipt_id": receipt.ID}
 	commandKey := uuid.NewString()
 	for range 2 {
 		status, out, _ = f.call(t, "POST", scope+"/order-context/"+order.ID+"/allocate", input, commandKey)

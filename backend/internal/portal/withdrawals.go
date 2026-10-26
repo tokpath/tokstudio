@@ -2,6 +2,7 @@ package portal
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -171,6 +172,11 @@ func (a *Application) withdrawalStaffAction(c *gin.Context, op organization.Oper
 		if json.Unmarshal(raw, &in) != nil {
 			handleError(c, incentives.ErrInvalidInput)
 			return
+		}
+		in.Currency = strings.ToUpper(strings.TrimSpace(in.Currency))
+		if in.Currency == "USD" {
+			in.OriginalAmount = in.PaidUSD.String()
+			in.ValuationEvidence = "Native USD bank payment; no currency conversion"
 		}
 		out, e = a.Incentives.VerifyWithdrawalPaid(ctx, nil, actor, op.ID, c.Param("id"), in)
 	case "fail":

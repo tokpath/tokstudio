@@ -11,28 +11,30 @@ import (
 	"gorm.io/gorm"
 )
 
-func (f fixture) splitTopup(t *testing.T) (Order, []Receipt) {
+func (f fixture) separatelyFundedTopups(t *testing.T) ([]Order, []Receipt) {
 	t.Helper()
-	o, err := f.s.CreateTopUpOrder(f.ctx, nil, CreateTopUpInput{CustomerID: f.customer, OperatorID: f.operator, BusinessKey: "split-topup", ExpectedOwnershipVersion: 1, AmountUSD: d("100")})
-	if err != nil {
-		t.Fatal(err)
-	}
+	var orders []Order
 	var receipts []Receipt
 	for _, amount := range []string{"30", "70"} {
 		key := uuid.NewString()
+		o, err := f.s.CreateTopUpOrder(f.ctx, nil, CreateTopUpInput{CustomerID: f.customer, OperatorID: f.operator, BusinessKey: key, ExpectedOwnershipVersion: 1, AmountUSD: d(amount)})
+		if err != nil {
+			t.Fatal(err)
+		}
 		r := f.receipt(t, key, amount, "0", o.CreatedAt)
 		f.allocate(t, key, r, o, amount)
 		receipts = append(receipts, r)
+		orders = append(orders, o)
+		if _, err = f.s.Fulfill(f.ctx, nil, o.ID, "test:delivery"); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if _, err = f.s.Fulfill(f.ctx, nil, o.ID, "test:delivery"); err != nil {
-		t.Fatal(err)
-	}
-	return o, receipts
+	return orders, receipts
 }
 
 func TestPostgresWalletFundingPreservesReceiptsAcrossCloseRestoreAndPartialRefund(t *testing.T) {
 	f := setup(t)
-	topup, receipts := f.splitTopup(t)
+	topups, receipts := f.separatelyFundedTopups(t)
 	o := f.order(t, "source-purchase", "60", "0")
 	sources, err := f.s.OrderWalletFunding(f.ctx, nil, f.operator, f.customer, o.ID)
 	if err != nil || len(sources) != 2 {
@@ -94,7 +96,11 @@ func TestPostgresWalletFundingPreservesReceiptsAcrossCloseRestoreAndPartialRefun
 	restored := ledger.Zero()
 	for _, a := range sources {
 		restored = restored.Add(a.RestoredUSD)
-		if a.TopUpOrderID != topup.ID || a.SourceOperatorID != f.operator {
+		want := topups[0].ID
+		if a.ReceiptID == receipts[1].ID {
+			want = topups[1].ID
+		}
+		if a.TopUpOrderID != want || a.SourceOperatorID != f.operator {
 			t.Fatal(a)
 		}
 	}
@@ -181,7 +187,7 @@ func TestPostgresWalletFundingPreservesReceiptsAcrossCloseRestoreAndPartialRefun
 
 func TestPostgresWalletFundingConcurrentOrderAndRefundCannotUseSameSource(t *testing.T) {
 	f := setup(t)
-	f.splitTopup(t)
+	f.separatelyFundedTopups(t)
 	wallet := f.balance(t, "customer:usd")
 	start := make(chan struct{})
 	results := make(chan error, 2)
@@ -246,7 +252,7 @@ func TestPostgresWalletFundingRejectsCashWithoutVerifiedOrigin(t *testing.T) {
 
 func TestPostgresWalletReceiptFreezeNeverFallsBackToUnrelatedFunding(t *testing.T) {
 	f := setup(t)
-	_, receipts := f.splitTopup(t)
+	_, receipts := f.separatelyFundedTopups(t)
 	reservationID := uuid.NewString()
 	err := f.db.Transaction(func(tx *gorm.DB) error {
 		_, e := f.s.ReserveWalletReceipt(f.ctx, tx, f.operator, f.customer, reservationID, receipts[0].ID, d("31"))

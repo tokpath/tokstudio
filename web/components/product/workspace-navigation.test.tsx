@@ -35,7 +35,7 @@ it("expands authorized operator links vertically and leaves notifications out of
   const business = screen.getByRole("navigation", { name: "工作台", exact: true });
   const finance = within(business).getByRole("navigation", { name: "资金办理内导航" });
   expect(within(finance).getAllByRole("link")).toHaveLength(2);
-  expect(within(finance).getByRole("link", { name: "收款与分配" }).getAttribute("aria-current")).toBe("page");
+  expect(within(finance).getByRole("link", { name: "收款办理" }).getAttribute("aria-current")).toBe("page");
   expect(within(business).queryByRole("link", { name: "订单与交付" })).toBeNull();
   expect(within(business).queryByRole("link", { name: "通知管理" })).toBeNull();
   expect(screen.queryByRole("navigation", { name: "工作台工具", exact: true })).toBeNull();

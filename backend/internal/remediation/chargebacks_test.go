@@ -29,17 +29,24 @@ func (f fixture) chargeback(t *testing.T, r commerce.Receipt, key, amount string
 }
 func (f fixture) packageReceipts(t *testing.T) (commerce.Order, ledger.Grant, []commerce.Receipt) {
 	t.Helper()
-	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "source-package", ExpectedOwnershipVersion: 1})
-	if e != nil {
-		t.Fatal(e)
-	}
 	var receipts []commerce.Receipt
 	for _, key := range []string{"source-a", "source-b"} {
-		r := f.receipt(t, key, "40")
-		receipts = append(receipts, r)
-		if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: key, AmountUSD: d("40")}); e != nil {
+		topup, e := f.s.Commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "topup:" + key, ExpectedOwnershipVersion: 1, AmountUSD: d("40")})
+		if e != nil {
 			t.Fatal(e)
 		}
+		r := f.receipt(t, key, "40")
+		receipts = append(receipts, r)
+		if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: topup.ID, BusinessKey: key, AmountUSD: d("40")}); e != nil {
+			t.Fatal(e)
+		}
+		if _, e = f.s.Commerce.Fulfill(f.ctx, nil, topup.ID, f.owner); e != nil {
+			t.Fatal(e)
+		}
+	}
+	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "source-package", ExpectedOwnershipVersion: 1, InternalUSD: d("80")})
+	if e != nil {
+		t.Fatal(e)
 	}
 	delivery, e := f.s.Commerce.Fulfill(f.ctx, nil, o.ID, f.owner)
 	if e != nil {

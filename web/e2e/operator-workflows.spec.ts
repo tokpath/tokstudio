@@ -22,7 +22,7 @@ async function businessAPI(page: Page, financeOnly = false, uncertainAllocation 
     else if (req.method() === "POST") {
       const body = req.postDataJSON();
       mutations.push({ path, body, key: req.headers()["idempotency-key"] });
-      if (path === `${base}/order-context/order-one/allocate`) { expect(body).toEqual({ receipt_id: "receipt-one", amount_usd: due }); allocated = true; if (uncertainAllocation && mutations.filter(item => item.path === path).length === 1) { await route.abort("failed"); return; } data = { id: "receipt-one", status: "allocated", message: "原收款已分配，请查看当前订单交付状态。" }; }
+      if (path === `${base}/order-context/order-one/allocate`) { expect(body).toEqual({ receipt_id: "receipt-one" }); allocated = true; if (uncertainAllocation && mutations.filter(item => item.path === path).length === 1) { await route.abort("failed"); return; } data = { id: "receipt-one", status: "allocated", message: "原收款已分配，请查看当前订单交付状态。" }; }
       else if (path === `${base}/orders/order-one/fulfill`) { expect(allocated).toBe(true); expect(body).toEqual({}); delivered = true; data = { id: "order-one", status: "fulfilled", message: "原订单已完成权益交付。" }; }
       else throw new Error(`Unexpected mutation ${path}`);
     }
@@ -36,11 +36,11 @@ async function businessAPI(page: Page, financeOnly = false, uncertainAllocation 
       { resource: "refunds", title: "退款与异常", page: resource("退款与异常", [{ id: "case-one", status: "pending_review", values: { manage_url: "/manage/operator-one/refunds?record=case-one" } }], { columns: [{ key: "id", label: "原申请", kind: "text" }, { key: "manage_url", label: "办理", kind: "link" }] }) },
     ] };
     else if (path === `${base}/order-context/order-one`) data = { subject: order(), subject_operations: [fulfill], next_actions: [delivered ? "权益已交付，查看原订单额度来源。" : allocated ? "客户已足额付款，核实可售空间并完成原订单交付。" : "核实收款并分配到此订单，足额后交付。"], sections: [
-      { resource: "payments", title: "关联收款", page: resource("关联收款", allocated ? [{ id: "receipt-one", status: "confirmed", values: { provider: "manual", gross_usd: due, order_allocated_usd: due, verification_evidence: "bank-evidence-one" } }] : [], { columns: [{ key: "provider", label: "通道", kind: "text" }, { key: "order_allocated_usd", label: "分配至此单", kind: "usd" }, { key: "verification_evidence", label: "核实证据", kind: "text" }], operations: [{ name: "allocate_existing", label: "将已核实收款分配到此单", method: "POST", path: `${base}/order-context/order-one/allocate`, permission: "payments.manage", confirmation: "只分配已经核实的原收款，不新建收付款事实。", fields: [{ name: "receipt_id", label: "选择已核实收款", kind: "text", lookup_url: `${base}/references/receipts`, required: true }, { name: "amount_usd", label: "本次分配 USD", kind: "decimal", required: true }] }] }) },
+      { resource: "payments", title: "关联收款", page: resource("关联收款", allocated ? [{ id: "receipt-one", status: "confirmed", values: { provider: "manual", gross_usd: due, order_allocated_usd: due, verification_evidence: "bank-evidence-one" } }] : [], { columns: [{ key: "provider", label: "通道", kind: "text" }, { key: "order_allocated_usd", label: "分配至此单", kind: "usd" }, { key: "verification_evidence", label: "核实证据", kind: "text" }], operations: [{ name: "allocate_existing", label: "关联已核实收款", method: "POST", path: `${base}/order-context/order-one/allocate`, permission: "payments.manage", confirmation: "只分配已经核实的原收款，不新建收付款事实。", fields: [{ name: "receipt_id", label: "选择已核实收款", kind: "text", lookup_url: `${base}/references/receipts`, required: true }] }] }) },
       { resource: "receipt-valuations", title: "原币待核实", page: resource("原币待核实") },
       { resource: "assets", title: "交付权益", page: resource("交付权益", delivered ? [{ id: "grant-one", status: "issued", values: { total: quantity, consumed: "0", effective_at: "2026-10-17T01:00:00Z" } }] : [], { columns: [{ key: "total", label: "已发放 ATG", kind: "atg" }, { key: "effective_at", label: "生效时间", kind: "datetime" }] }) },
     ] };
-    else if (path === `${base}/references/receipts`) data = { items: [{ value: "receipt-one", label: "已核实银行收款 · 原流水 bank-one", defaults: { receipt_id: "receipt-one", amount_usd: due, currency: "USD" } }] };
+    else if (path === `${base}/references/receipts`) data = { items: [{ value: "receipt-one", label: "已核实银行收款 · 原流水 bank-one", defaults: { receipt_id: "receipt-one", currency: "USD" } }] };
     else if (path === `${base}/refunds`) { exactRecords.push(url.searchParams.get("record") || ""); data = resource("退款与原路执行", [{ id: "case-one", status: "pending_review", values: { record_kind: "case" } }, { id: "leg-one", presentation: {title:"原银行付款退款 · 10 USD",labels:{}}, status: "pending", values: { record_kind: "leg", case_id: "case-one" } }]); }
     else throw new Error(`Unexpected read ${path}`);
     await route.fulfill({ json: data });
@@ -67,12 +67,11 @@ test("operator handles customer, original receipt, delivery and precise refund c
   expect(new URL(page.url()).searchParams.get("returnTo")).toContain("/customers?record=customer-one");
   await expect(workspace.getByRole("heading", { name: "订单与收款办理", exact: true })).toBeVisible();
   await expect(workspace.getByLabel(`${due} USD`, { exact: true }).filter({ visible: true })).toBeVisible();
-  await workspace.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
+  await workspace.getByRole("button", { name: "关联已核实收款", exact: true }).click();
   const allocation = page.getByRole("dialog");
   await chooseControl(allocation.getByRole("combobox", { name: "选择已核实收款", exact: true }), "receipt-one");
-  await expect(allocation.getByRole("textbox", { name: /^本次分配 USD/ })).toHaveValue(due);
   await allocation.getByRole("checkbox").check();
-  await allocation.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
+  await allocation.getByRole("button", { name: "关联已核实收款", exact: true }).click();
   await expect(allocation.getByText("原收款已分配，请查看当前订单交付状态。", { exact: false })).toBeVisible();
   await allocation.getByRole("button", { name: "关闭办理面板", exact: true }).click();
   await expect(workspace.getByText("bank-evidence-one", { exact: true })).toBeVisible();
@@ -102,7 +101,7 @@ test("finance can allocate on an order without being offered sales delivery auth
   await page.getByRole("link", { name: "查看并办理", exact: true }).click();
   await expect(page).toHaveURL(/\/orders\?record=order-one/);
   await expect(page.getByRole("heading", { name: "订单与收款办理", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "将已核实收款分配到此单", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "关联已核实收款", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "核实资金并重试交付", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "公开模型", exact: true })).toHaveCount(0);
 });
@@ -117,11 +116,11 @@ test("uncertain receipt allocation keeps its original order and customer return 
   await expect(page).toHaveURL(/\/orders\?record=order-one/);
   const orderURL = page.url();
   expect(new URL(orderURL).searchParams.get("returnTo")).toContain("/customers?record=customer-one");
-  await page.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
+  await page.getByRole("button", { name: "关联已核实收款", exact: true }).click();
   const allocation = page.getByRole("dialog");
   await chooseControl(allocation.getByRole("combobox", { name: "选择已核实收款", exact: true }), "receipt-one");
   await allocation.getByRole("checkbox").check();
-  await allocation.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
+  await allocation.getByRole("button", { name: "关联已核实收款", exact: true }).click();
   await expect(allocation.getByRole("button", { name: "重试本次操作", exact: true })).toBeVisible();
   await expect(allocation.getByRole("button", { name: "关闭办理面板", exact: true })).toBeDisabled();
   const back = page.getByRole("button", { name: "返回原列表与筛选", exact: true, includeHidden: true });
@@ -131,7 +130,6 @@ test("uncertain receipt allocation keeps its original order and customer return 
   await expect(page.getByRole("dialog", { includeHidden: true })).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "订单与收款办理", exact: true, includeHidden: true })).toHaveCount(1);
   await expect(page).toHaveURL(orderURL);
-  await expect(allocation.getByRole("textbox", { name: /^本次分配 USD/ })).toBeDisabled();
   await allocation.getByRole("button", { name: "重试本次操作", exact: true }).click();
   await expect(allocation.getByText("原收款已分配，请查看当前订单交付状态。", { exact: false })).toBeVisible();
   await expect(allocation.getByRole("button", { name: "关闭办理面板", exact: true })).toBeEnabled();
@@ -139,7 +137,7 @@ test("uncertain receipt allocation keeps its original order and customer return 
   await expect(back).toBeEnabled();
   await expect(page.getByText("bank-evidence-one", { exact: true })).toBeVisible();
   expect(mutations).toHaveLength(2); expect(mutations[0]).toEqual(mutations[1]);
-  expect(mutations[0].body).toEqual({ receipt_id: "receipt-one", amount_usd: due });
+  expect(mutations[0].body).toEqual({ receipt_id: "receipt-one" });
   await back.click();
   await expect(page).toHaveURL(/\/customers\?record=customer-one/);
   await expect(page.getByRole("heading", { name: "林同学", exact: true })).toBeVisible();

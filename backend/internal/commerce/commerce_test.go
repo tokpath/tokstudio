@@ -303,16 +303,18 @@ func TestPostgresDirectReceiptDeliveryFailureRetryAndImmutableQuote(t *testing.T
 	f.s.now = func() time.Time { return base }
 	o := f.order(t, "direct", "0", "0")
 	r1 := f.receipt(t, "first", "30", "3", base)
-	r2 := f.receipt(t, "second", "50", "0", base)
-	f.allocate(t, "first-allocation", r1, o, "30")
+	r2 := f.receipt(t, "second", "80", "0", base)
+	if _, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, BusinessKey: "first-allocation", ReceiptID: r1.ID, OrderID: o.ID, AmountUSD: d("30")}); !errors.Is(err, ErrWholePayment) {
+		t.Fatalf("partial payment accepted: %v", err)
+	}
 	partial, err := f.s.GetOrder(f.ctx, nil, f.customer, o.ID)
-	if err != nil || partial.Status != "partial" {
+	if err != nil || partial.Status != "pending" || !partial.ExternalAllocatedUSD.IsZero() {
 		t.Fatalf("partial=%+v %v", partial, err)
 	}
 	if _, err = f.s.Fulfill(f.ctx, nil, o.ID, "worker:delivery"); !errors.Is(err, ErrNotPaid) {
 		t.Fatalf("partial order delivered: %v", err)
 	}
-	f.allocate(t, "second-allocation", r2, o, "50")
+	f.allocate(t, "second-allocation", r2, o, "80")
 	f.coverage.failFulfill.Store(true)
 	if _, err = f.s.Fulfill(f.ctx, nil, o.ID, "worker:delivery"); err == nil {
 		t.Fatal("injected delivery failure ignored")
@@ -415,9 +417,8 @@ func TestPostgresReceiptAllocationConservationAndScope(t *testing.T) {
 	b := f.order(t, "b", "0", "0")
 	r := f.receipt(t, "split", "100", "0", a.CreatedAt)
 	f.allocate(t, "a-80", r, a, "80")
-	f.allocate(t, "b-20", r, b, "20")
-	if _, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "over", ReceiptID: r.ID, OrderID: b.ID, AmountUSD: d("1")}); !errors.Is(err, ErrExcessAllocation) {
-		t.Fatalf("receipt overallocated: %v", err)
+	if _, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "b-20", ReceiptID: r.ID, OrderID: b.ID, AmountUSD: d("20")}); !errors.Is(err, ErrWholePayment) {
+		t.Fatalf("one receipt split across orders: %v", err)
 	}
 	replay, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "a-80", ReceiptID: r.ID, OrderID: a.ID, AmountUSD: d("80")})
 	if err != nil || replay.AmountUSD.Cmp(d("80")) != 0 {
@@ -455,7 +456,7 @@ func TestPostgresReceiptAllocationConservationAndScope(t *testing.T) {
 	}
 	shared := f.receipt(t, "shared-procurement", "80", "0", a.CreatedAt)
 	destination := uuid.NewString()
-	reserve := ReceiptFundsInput{OperatorID: f.operator, ReceiptID: shared.ID, DestinationID: destination, BusinessKey: "procurement-shared", ActorID: "system:procurement", AmountUSD: d("40"), Deadline: a.ExpiresAt}
+	reserve := ReceiptFundsInput{OperatorID: f.operator, ReceiptID: shared.ID, DestinationID: destination, BusinessKey: "procurement-shared", ActorID: "system:procurement", AmountUSD: d("80"), Deadline: a.ExpiresAt}
 	injected := errors.New("procurement update failed")
 	err = f.db.Transaction(func(tx *gorm.DB) error {
 		if _, err := f.s.ReserveReceiptFunds(f.ctx, tx, reserve); err != nil {
@@ -473,19 +474,21 @@ func TestPostgresReceiptAllocationConservationAndScope(t *testing.T) {
 	if err = f.db.Transaction(func(tx *gorm.DB) error { _, err := f.s.ReserveReceiptFunds(f.ctx, tx, reserve); return err }); err != nil {
 		t.Fatal(err)
 	}
-	f.allocate(t, "shared-customer", shared, b, "40")
+	if _, err = f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "shared-customer", ReceiptID: shared.ID, OrderID: b.ID, AmountUSD: d("80")}); !errors.Is(err, ErrExcessAllocation) {
+		t.Fatal("procurement receipt reused by retail", err)
+	}
 	counted, err := f.s.GetReceipt(f.ctx, nil, f.operator, shared.ID)
 	if err != nil || counted.AllocatedUSD.Cmp(d("80")) != 0 {
 		t.Fatalf("external then retail shared receipt total=%+v %v", counted, err)
 	}
 	reverse := f.receipt(t, "retail-first-shared", "80", "0", a.CreatedAt)
 	reverseOrder := f.order(t, "retail-first-destination", "0", "0")
-	f.allocate(t, "retail-first-40", reverse, reverseOrder, "40")
+	f.allocate(t, "retail-first-80", reverse, reverseOrder, "80")
 	reverseReserve := reserve
 	reverseReserve.ReceiptID = reverse.ID
 	reverseReserve.BusinessKey = "retail-first-external"
-	if err = f.db.Transaction(func(tx *gorm.DB) error { _, e := f.s.ReserveReceiptFunds(f.ctx, tx, reverseReserve); return e }); err != nil {
-		t.Fatal(err)
+	if err = f.db.Transaction(func(tx *gorm.DB) error { _, e := f.s.ReserveReceiptFunds(f.ctx, tx, reverseReserve); return e }); !errors.Is(err, ErrExcessAllocation) {
+		t.Fatal("retail receipt reused by procurement", err)
 	}
 	counted, err = f.s.GetReceipt(f.ctx, nil, f.operator, reverse.ID)
 	if err != nil || counted.AllocatedUSD.Cmp(d("80")) != 0 {

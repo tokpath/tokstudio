@@ -407,8 +407,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 	case "takeovers":
 		a.takeoverResource(c, op, actor)
 		return
-	case "evidence":
-		a.evidenceResource(c, op, actor, p, base)
+	case "evidence", "assets":
+		fail(c, 404, "not_found", "页面不存在", false)
 		return
 	case "procurement-invoices":
 		a.procurementInvoicesResource(c, op, actor, p, base)
@@ -532,11 +532,20 @@ func (a *Application) operatorResource(c *gin.Context) {
 			p["next_cursor"] = rows[49].ID
 		}
 		for _, row := range rows {
-			items = append(items, entity(row.ID, row.FeeStatus, 1, row))
+			item := entity(row.ID, row.FeeStatus, 1, row)
+			actions := []string{}
+			if row.AllocatedUSD.IsZero() {
+				actions = append(actions, "allocate")
+			}
+			if row.FeeStatus == "pending" || row.SettledAt == nil {
+				actions = append(actions, "accounting")
+			}
+			item["allowed_actions"] = actions
+			items = append(items, item)
 		}
 		p["columns"] = []gin.H{col("id", "收款", "text"), col("provider", "通道", "text"), col("gross_usd", "实收总额", "usd"), col("allocated_usd", "已分配", "usd"), col("fee_status", "手续费证据", "status"), col("paid_at", "实际付款时间", "datetime")}
 		p["operations"] = []operation{{Name: "receipt", Label: "登记人工核实收款", Method: "POST", Path: base, Fields: []field{jsonField("provider、provider_receipt_id、gross_usd、currency、original_amount、recipient_reference、payer_reference、verification_evidence、paid_at 等原始事实。")}}}
-		p["row_operations"] = []operation{{Name: "allocate", Label: "分配至原订单", Method: "POST", Path: base + "/{id}/allocate", Fields: []field{f("order_id", "订单 ID", "text"), f("amount_usd", "分配金额 USD", "decimal")}}}
+		p["row_operations"] = []operation{{Name: "allocate", Label: "关联原订单", Method: "POST", Path: base + "/{id}/allocate", Fields: []field{f("order_id", "原订单", "text")}, Description: "整笔收款关联一个金额一致的订单，足额后自动交付。"}, {Name: "accounting", Label: "核实手续费与结算", Method: "POST", Path: base + "/{id}/accounting", Fields: []field{f("fee_usd", "已核实手续费 USD", "decimal"), optional("settled_at", "通道结算到账时间（可选）", "datetime"), f("evidence", "费用与结算核实依据", "textarea")}}}
 	case "valuations":
 		var rows []valuationRow
 		if e := a.DB.WithContext(ctx).Where("operator_id=?", op.ID).Order("created_at DESC,id DESC").Limit(100).Find(&rows).Error; e != nil {
@@ -548,7 +557,16 @@ func (a *Application) operatorResource(c *gin.Context) {
 		}
 		p["columns"] = []gin.H{col("Currency", "币种", "text"), col("USDPerUnit", "每单位 USD 估值", "decimal"), col("Source", "来源依据", "text"), col("ExpiresAt", "有效截止", "datetime")}
 		p["operations"] = []operation{{Name: "publish", Label: "发布收款估值依据", Method: "POST", Path: base, Fields: []field{f("currency", "币种", "text"), f("usd_per_unit", "每单位 USD", "decimal"), f("source", "授权依据/汇率来源", "text"), f("effective_at", "生效时间", "datetime"), f("expires_at", "失效时间", "datetime")}}}
-	case "assets", "ledger":
+	case "ledger":
+		p["views"] = []gin.H{{"value": "accounts", "label": "资产账户"}, {"value": "journals", "label": "记账流水"}}
+		if c.Query("view") == "journals" {
+			a.ledgerJournalsResource(c, op, p)
+			return
+		}
+		if c.Query("view") != "" && c.Query("view") != "accounts" {
+			handleError(c, organization.ErrInvalidInput)
+			return
+		}
 		p["search_supported"], p["status_supported"] = true, true
 		rows, e := a.Ledger.ListOperatorAccounts(ctx, nil, op.ID, "", c.Query("cursor"), c.Query("q"), 51, c.Query("status"))
 		if e != nil {

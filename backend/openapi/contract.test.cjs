@@ -183,3 +183,31 @@ test('procurement uses progressive bonus bands and one whole external payment pe
   assert.deepEqual(Object.keys(schemas.Operator_procurement_offline_purchase.properties), ['receipt_id']);
   assert.ok(schemas.Operator_procurement_authorization.required.includes('amount_usd'));
 });
+
+test('finance commands derive native USD and net values instead of requiring repeated inputs',()=>{
+ const schemas=document.components.schemas,receipt=schemas.Operator_payments_receipt;
+ for(const key of ['provider','net_usd','observed_at'])assert.equal(receipt.properties[key],undefined);
+ assert.ok(receipt.properties.order_id);
+ assert.equal(receipt.required.includes('original_amount'),false);
+ assert.equal(receipt.required.includes('valuation_evidence'),false);
+ assert.ok(receipt.allOf.some(rule=>rule.then.required?.includes('original_amount')));
+ assert.ok(receipt.allOf.some(rule=>rule.then.required?.includes('fee_usd')));
+ const refund=schemas.Operator_refunds_verify_manual;
+ assert.equal(refund.required.includes('actual_usd'),false);
+ const withdrawal=schemas.Operator_withdrawals_verify_paid;
+ assert.equal(withdrawal.required.includes('original_amount'),false);
+ assert.equal(withdrawal.required.includes('valuation_evidence'),false);
+ const execution=schemas.Operator_refunds_execute_api;
+ for(const rule of execution.allOf||[]){assert.equal(rule.then.properties?.refund_valuation?.additionalProperties,undefined);assert.equal(rule.if.not?.properties?.money?.additionalProperties,undefined)}
+});
+
+test('finance exposes one account workspace and allocates full order amounts server-side',()=>{
+ assert.equal(document.paths['/v1/operators/{operatorId}/assets'],undefined);
+ assert.equal(document.paths['/v1/operators/{operatorId}/evidence']?.get,undefined);
+ assert.ok(document.paths['/v1/operators/{operatorId}/evidence']?.post);
+ assert.ok(document.paths['/v1/operators/{operatorId}/payments/{id}/accounting']);
+ const allocate=document.components.schemas.Operator_payments_allocate;
+ assert.equal(allocate.properties.amount_usd,undefined);
+ const context=document.paths['/v1/operators/{operatorId}/order-context/{id}/allocate'].post.requestBody.content['application/json'].schema;
+ assert.equal(context.properties.amount_usd,undefined);
+});

@@ -164,12 +164,19 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			}
 			return gin.H{"id": out.PackageID, "status": "published", "version": out.Version}, e
 		case "payments":
-			var in commerce.VerifiedReceipt
+			var in manualReceiptInput
 			if e := json.Unmarshal(config, &in); e != nil {
 				return nil, commerce.ErrInvalidInput
 			}
-			in.OperatorID = op.ID
-			out, e := a.Commerce.RecordManualReceipt(ctx, tx, actor, in)
+			fact, e := in.verified(op.ID)
+			if e != nil {
+				return nil, e
+			}
+			out, e := a.Commerce.RecordManualReceipt(ctx, tx, actor, fact)
+			if e == nil && in.OrderID != "" {
+				businessKey, _ := key(c)
+				_, e = a.allocateWholeRetailReceipt(ctx, tx, actor, op.ID, out.ID, in.OrderID, "manual:"+businessKey)
+			}
 			return commandResult(out.ID, "recorded"), e
 		case "payment-methods":
 			var in payments.MerchantInput
@@ -434,18 +441,19 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 		jsonResponse(c, raw, e)
 	case resource == "payments" && action == "allocate":
 		var in struct {
-			OrderID string         `json:"order_id"`
-			Amount  ledger.Decimal `json:"amount_usd"`
+			OrderID string `json:"order_id"`
 		}
 		if !body(c, &in) {
 			return
 		}
 		businessKey, _ := key(c)
 		raw, e := a.command(c, "allocate:"+op.ID, in, func(tx *gorm.DB) (any, error) {
-			out, e := a.Commerce.AllocateReceipt(ctx, tx, commerce.AllocateReceiptInput{ActorStaffID: actor, OperatorID: op.ID, BusinessKey: businessKey, ReceiptID: c.Param("id"), OrderID: in.OrderID, AmountUSD: in.Amount})
+			out, e := a.allocateWholeRetailReceipt(ctx, tx, actor, op.ID, c.Param("id"), in.OrderID, businessKey)
 			return commandResult(out.ID, "allocated"), e
 		})
 		jsonResponse(c, raw, e)
+	case resource == "payments" && action == "accounting":
+		a.receiptAccountingCommand(c, op, actor)
 	default:
 		fail(c, 404, "not_found", "经营命令不存在", false)
 	}

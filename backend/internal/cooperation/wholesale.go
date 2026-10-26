@@ -270,7 +270,7 @@ func (s *Service) fundPurchase(ctx context.Context, tx *gorm.DB, collector *comm
 		if out.Status != "awaiting_payment" || !out.AllocatedUSD.IsZero() || amount.Cmp(out.DueUSD) != 0 {
 			return ErrConflict
 		}
-		reservation, e := collector.ReserveReceiptFunds(ctx, t, commerce.ReceiptFundsInput{OperatorID: out.SupplierID, ReceiptID: receiptID, DestinationID: out.ID, BusinessKey: "wholesale:" + out.ID + ":" + key, ActorID: actor, AmountUSD: amount, WholeReceipt: true, Deadline: out.ExpiresAt})
+		reservation, e := collector.ReserveReceiptFunds(ctx, t, commerce.ReceiptFundsInput{OperatorID: out.SupplierID, ReceiptID: receiptID, DestinationID: out.ID, BusinessKey: "wholesale:" + out.ID + ":" + key, ActorID: actor, AmountUSD: amount, Deadline: out.ExpiresAt})
 		if e != nil {
 			return e
 		}

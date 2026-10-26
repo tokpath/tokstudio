@@ -8930,14 +8930,10 @@
                   "receipt_id": {
                     "type": "string",
                     "format": "uuid"
-                  },
-                  "amount_usd": {
-                    "$ref": "#/components/schemas/LedgerDecimal"
                   }
                 },
                 "required": [
-                  "receipt_id",
-                  "amount_usd"
+                  "receipt_id"
                 ],
                 "additionalProperties": false
               }
@@ -11490,300 +11486,6 @@
         "x-required-permission": "payments.manage"
       }
     },
-    "/v1/operators/{operatorId}/evidence": {
-      "get": {
-        "operationId": "get__v1_operators_operatorId_evidence",
-        "summary": "Read exact operator evidence workspace",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "Opaque page cursor",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "view",
-            "in": "query",
-            "required": false,
-            "description": "Only workspace-provided view values are accepted.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "record",
-            "in": "query",
-            "required": false,
-            "description": "Exact refund case context when following an authorized business record.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResourcePage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
-      },
-      "post": {
-        "operationId": "post__v1_operators_operatorId_evidence",
-        "summary": "上传私有银行/收款凭据",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Operator_evidence_upload"
-              }
-            }
-          }
-        },
-        "description": " Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "payments.manage"
-      }
-    },
     "/v1/operators/{operatorId}/pricing": {
       "get": {
         "operationId": "get__v1_operators_operatorId_pricing",
@@ -12674,168 +12376,6 @@
         },
         "description": "修改只影响规则指定的后续事实，已成立责任按原快照执行。 Requires marketing.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "marketing.manage"
-      }
-    },
-    "/v1/operators/{operatorId}/assets": {
-      "get": {
-        "operationId": "get__v1_operators_operatorId_assets",
-        "summary": "Read exact operator assets workspace",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "Opaque page cursor",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "view",
-            "in": "query",
-            "required": false,
-            "description": "Only workspace-provided view values are accepted.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "record",
-            "in": "query",
-            "required": false,
-            "description": "Exact refund case context when following an authorized business record.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResourcePage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
       }
     },
     "/v1/operators/{operatorId}/ledger": {
@@ -25143,7 +24683,7 @@
     "/v1/operators/{operatorId}/payments/{id}/allocate": {
       "post": {
         "operationId": "post__v1_operators_operatorId_payments_id_allocate",
-        "summary": "分配至原订单",
+        "summary": "关联原订单",
         "tags": [
           "Operator browser API"
         ],
@@ -25274,6 +24814,140 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/Operator_payments_allocate"
+              }
+            }
+          }
+        },
+        "description": "整笔收款关联一个金额一致的订单，足额后自动交付。 Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
+      }
+    },
+    "/v1/operators/{operatorId}/evidence": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_evidence",
+        "summary": "上传私有银行/收款凭据",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_evidence_upload"
               }
             }
           }
@@ -30534,8 +30208,8 @@
             }
           }
         },
-        "description": " Required explicit review: 确认本次执行汇率与费用依据；只执行已批准原退款leg，不会重提未知退款。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "refunds.manage"
+        "description": " Required explicit review: 确认本次执行汇率与费用依据；只执行已批准原退款leg，不会重提未知退款。 Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/query_api": {
@@ -30676,8 +30350,8 @@
             }
           }
         },
-        "description": " Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "refunds.manage"
+        "description": " Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/authorize_destination": {
@@ -33939,6 +33613,148 @@
           }
         },
         "description": "选择一笔尚未分配的收款，系统按该笔 USD 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。 Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
+      }
+    },
+    "/v1/operators/{operatorId}/payments/{id}/accounting": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_payments_id_accounting",
+        "summary": "核实手续费与结算",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_payments_accounting"
+              }
+            }
+          }
+        },
+        "description": " Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "payments.manage"
       }
     },
@@ -37258,6 +37074,9 @@
           "order": {
             "type": "object",
             "properties": {
+              "method_change_allowed": {
+                "type": "boolean"
+              },
               "id": {
                 "type": "string",
                 "minLength": 1
@@ -37867,6 +37686,9 @@
       "Order": {
         "type": "object",
         "properties": {
+          "method_change_allowed": {
+            "type": "boolean"
+          },
           "id": {
             "type": "string",
             "minLength": 1
@@ -46689,14 +46511,10 @@
                 "receipt_id": {
                   "type": "string",
                   "format": "uuid"
-                },
-                "amount_usd": {
-                  "$ref": "#/components/schemas/LedgerDecimal"
                 }
               },
               "required": [
-                "receipt_id",
-                "amount_usd"
+                "receipt_id"
               ],
               "additionalProperties": false
             }
@@ -47520,34 +47338,88 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "field": "currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "field": "currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "field": "currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "field": "currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "field": "currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "paid_at": {
@@ -47565,7 +47437,6 @@
           }
         },
         "required": [
-          "valuation",
           "evidence_reference"
         ],
         "additionalProperties": false
@@ -47795,7 +47666,16 @@
           },
           "renewal_enabled": {
             "type": "boolean",
-            "description": "允许到期续费 — 仅允许客户自行授权续费，不会替客户开启。停止新购与停止续费分别控制，已购权益保持原条款。"
+            "description": "允许到期续费 — 仅允许客户自行授权续费，不会替客户开启。停止新购与停止续费分别控制，已购权益保持原条款。",
+            "x-visible-when": {
+              "field": "period",
+              "values": [
+                "month",
+                "quarter",
+                "year"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "expected_version": {
             "type": "integer",
@@ -47810,10 +47690,35 @@
           "gift_atg",
           "period",
           "new_purchase_enabled",
-          "renewal_enabled",
           "expected_version"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "period": {
+                  "enum": [
+                    "month",
+                    "quarter",
+                    "year"
+                  ]
+                }
+              },
+              "required": [
+                "period"
+              ]
+            },
+            "then": {
+              "properties": {
+                "renewal_enabled": {}
+              },
+              "required": [
+                "renewal_enabled"
+              ]
+            }
+          }
+        ]
       },
       "Operator_orders_fulfill": {
         "type": "object",
@@ -47824,45 +47729,45 @@
       "Operator_payments_receipt": {
         "type": "object",
         "properties": {
-          "provider": {
+          "order_id": {
             "type": "string",
-            "description": "人工核实通道"
+            "description": "关联订单（可选）"
           },
           "provider_receipt_id": {
             "type": "string",
             "description": "外部唯一收款流水"
           },
-          "gross_usd": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "实际入账总额USD"
-          },
-          "fee_status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "confirmed"
-            ],
-            "description": "手续费证据"
-          },
-          "fee_usd": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "已核实手续费USD"
-          },
-          "net_usd": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "已核实净入账USD"
-          },
           "currency": {
             "type": "string",
             "description": "实际入账币种"
           },
+          "gross_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "实际入账总额USD"
+          },
           "original_amount": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "原币种实收金额"
+            "description": "原币种实收金额",
+            "x-visible-when": {
+              "field": "currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           },
-          "network": {
+          "valuation_evidence": {
             "type": "string",
-            "description": "原网络（链上收款必填）"
+            "description": "本次USD估值依据",
+            "x-visible-when": {
+              "field": "currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "recipient_reference": {
             "type": "string",
@@ -47872,61 +47777,145 @@
             "type": "string",
             "description": "实际付款人账号证明"
           },
-          "valuation_evidence": {
-            "type": "string",
-            "description": "本次USD估值依据"
-          },
-          "verification_evidence": {
-            "type": "string",
-            "description": "真实银行核实凭证"
-          },
           "paid_at": {
             "type": "string",
             "format": "date-time",
             "description": "真实付款时刻"
           },
-          "observed_at": {
+          "verification_evidence": {
             "type": "string",
-            "format": "date-time",
-            "description": "核实时刻"
+            "description": "真实银行核实凭证"
+          },
+          "fee_status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "confirmed"
+            ],
+            "description": "手续费"
+          },
+          "fee_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "已核实手续费 USD",
+            "x-visible-when": {
+              "field": "fee_status",
+              "values": [
+                "confirmed"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "settled_at": {
             "type": "string",
             "format": "date-time",
-            "description": "费用结算时刻（已确认必填）"
+            "description": "通道结算到账时间（可选）",
+            "x-visible-when": {
+              "field": "fee_status",
+              "values": [
+                "confirmed"
+              ]
+            },
+            "x-required-when-visible": false
+          },
+          "network": {
+            "type": "string",
+            "description": "原网络（链上收款时填写）"
           }
         },
         "required": [
-          "provider",
           "provider_receipt_id",
-          "gross_usd",
-          "fee_status",
           "currency",
-          "original_amount",
+          "gross_usd",
           "recipient_reference",
           "payer_reference",
-          "valuation_evidence",
-          "verification_evidence",
           "paid_at",
-          "observed_at"
+          "verification_evidence",
+          "fee_status"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "currency": {
+                    "enum": [
+                      "USD"
+                    ]
+                  }
+                },
+                "required": [
+                  "currency"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "original_amount": {}
+              },
+              "required": [
+                "original_amount"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "currency": {
+                    "enum": [
+                      "USD"
+                    ]
+                  }
+                },
+                "required": [
+                  "currency"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation_evidence": {}
+              },
+              "required": [
+                "valuation_evidence"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "fee_status": {
+                  "enum": [
+                    "confirmed"
+                  ]
+                }
+              },
+              "required": [
+                "fee_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "fee_usd": {}
+              },
+              "required": [
+                "fee_usd"
+              ]
+            }
+          }
+        ]
       },
       "Operator_payments_allocate": {
         "type": "object",
         "properties": {
           "order_id": {
             "type": "string",
-            "description": "订单 ID"
-          },
-          "amount_usd": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "分配金额 USD"
+            "description": "原订单"
           }
         },
         "required": [
-          "order_id",
-          "amount_usd"
+          "order_id"
         ],
         "additionalProperties": false
       },
@@ -47960,97 +47949,247 @@
           },
           "asset_network_version_id": {
             "type": "string",
-            "description": "平台已发布的准确资产与网络"
+            "description": "平台已发布的准确资产与网络",
+            "x-visible-when": {
+              "field": "driver",
+              "values": [
+                "evm_wallet",
+                "nowpayments"
+              ]
+            },
+            "x-required-when-visible": false
           },
           "credentials": {
             "type": "object",
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "收款币种（大写，例如USD/CNY）"
+                "description": "收款币种（大写，例如USD/CNY）",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "stripe",
+                    "manual"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "recipient_reference": {
                 "type": "string",
-                "description": "实际收款银行账号/凭证"
+                "description": "实际收款银行账号/凭证",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "manual"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "instructions": {
                 "type": "string",
-                "description": "对付款人展示的付款说明"
+                "description": "对付款人展示的付款说明",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "manual"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "secret_key": {
                 "type": "string",
                 "description": "Stripe服务端密钥",
-                "writeOnly": true
+                "writeOnly": true,
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "stripe"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "publishable_key": {
                 "type": "string",
-                "description": "Stripe可发布密钥"
+                "description": "Stripe可发布密钥",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "stripe"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "webhook_secret": {
                 "type": "string",
                 "description": "Stripe回调签名密钥",
-                "writeOnly": true
+                "writeOnly": true,
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "stripe"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "app_id": {
                 "type": "string",
-                "description": "商户应用App ID"
+                "description": "商户应用App ID",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "alipay",
+                    "wechat"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "mch_id": {
                 "type": "string",
-                "description": "微信支付商户号"
+                "description": "微信支付商户号",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "wechat"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "merchant_api_private_key": {
                 "type": "string",
                 "description": "微信商户API私钥PEM",
-                "writeOnly": true
+                "writeOnly": true,
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "wechat"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "cert_serial": {
                 "type": "string",
-                "description": "微信商户证书序列号"
+                "description": "微信商户证书序列号",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "wechat"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "api_v3_key": {
                 "type": "string",
                 "description": "微信API v3加密密钥",
-                "writeOnly": true
+                "writeOnly": true,
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "wechat"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "wechat_public_key": {
                 "type": "string",
-                "description": "微信平台验签公钥PEM"
+                "description": "微信平台验签公钥PEM",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "wechat"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "public_key_id": {
                 "type": "string",
-                "description": "微信平台公钥ID"
+                "description": "微信平台公钥ID",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "wechat"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "app_private_key": {
                 "type": "string",
                 "description": "支付宝应用RSA2私钥PEM",
-                "writeOnly": true
+                "writeOnly": true,
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "alipay"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "alipay_public_key": {
                 "type": "string",
-                "description": "支付宝验签公钥PEM"
+                "description": "支付宝验签公钥PEM",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "alipay"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "seller_id": {
                 "type": "string",
-                "description": "支付宝签约卖家ID"
+                "description": "支付宝签约卖家ID",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "alipay"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "api_key": {
                 "type": "string",
                 "description": "NOWPayments API密钥",
-                "writeOnly": true
+                "writeOnly": true,
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "nowpayments"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "ipn_secret": {
                 "type": "string",
                 "description": "NOWPayments IPN签名密钥",
-                "writeOnly": true
+                "writeOnly": true,
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "nowpayments"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "rpc_url": {
                 "type": "string",
-                "description": "EVM只读节点RPC URL"
+                "description": "EVM只读节点RPC URL",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "evm_wallet"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "wallet_address": {
                 "type": "string",
-                "description": "本商户收款钱包地址"
+                "description": "本商户收款钱包地址",
+                "x-visible-when": {
+                  "field": "driver",
+                  "values": [
+                    "evm_wallet"
+                  ]
+                },
+                "x-required-when-visible": false
               }
             },
             "required": [],
@@ -48367,7 +48506,14 @@
           },
           "brand_name": {
             "type": "string",
-            "description": "OEM品牌名称"
+            "description": "OEM品牌名称",
+            "x-visible-when": {
+              "field": "kind",
+              "values": [
+                "oem"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "supply_terms": {
             "type": "string",
@@ -48381,10 +48527,33 @@
         "required": [
           "kind",
           "name",
-          "legal_name",
-          "brand_name"
+          "legal_name"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "oem"
+                  ]
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "brand_name": {}
+              },
+              "required": [
+                "brand_name"
+              ]
+            }
+          }
+        ]
       },
       "Operator_operators_invite_owner": {
         "type": "object",
@@ -48409,7 +48578,14 @@
           "initial_password": {
             "type": "string",
             "description": "新账号初始密码",
-            "writeOnly": true
+            "writeOnly": true,
+            "x-visible-when": {
+              "field": "delivery_mode",
+              "values": [
+                "manual"
+              ]
+            },
+            "x-required-when-visible": false
           },
           "role": {
             "type": "string",
@@ -48536,7 +48712,14 @@
           },
           "merchant_id": {
             "type": "string",
-            "description": "真实供货收款商户配置编号"
+            "description": "真实供货收款商户配置编号",
+            "x-visible-when": {
+              "field": "mode",
+              "values": [
+                "automatic"
+              ]
+            },
+            "x-required-when-visible": false
           },
           "payment": {
             "type": "object",
@@ -48544,12 +48727,26 @@
               "payment_method": {
                 "type": "string",
                 "description": "Stripe已授权pm_编号",
-                "writeOnly": true
+                "writeOnly": true,
+                "x-visible-when": {
+                  "field": "mode",
+                  "values": [
+                    "automatic"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "customer_ref": {
                 "type": "string",
                 "description": "Stripe已授权cus_编号",
-                "writeOnly": true
+                "writeOnly": true,
+                "x-visible-when": {
+                  "field": "mode",
+                  "values": [
+                    "automatic"
+                  ]
+                },
+                "x-required-when-visible": false
               }
             },
             "required": [],
@@ -48633,7 +48830,14 @@
           },
           "merchant_id": {
             "type": "string",
-            "description": "真实供货收款商户配置编号"
+            "description": "真实供货收款商户配置编号",
+            "x-visible-when": {
+              "field": "mode",
+              "values": [
+                "automatic"
+              ]
+            },
+            "x-required-when-visible": false
           },
           "payment": {
             "type": "object",
@@ -48641,12 +48845,26 @@
               "payment_method": {
                 "type": "string",
                 "description": "Stripe已授权pm_编号 — 修订同一收款配置的自动授权时，两项同时留空沿用原加密付款资料；更换收款配置或任一项时须重新填写完整资料。",
-                "writeOnly": true
+                "writeOnly": true,
+                "x-visible-when": {
+                  "field": "mode",
+                  "values": [
+                    "automatic"
+                  ]
+                },
+                "x-required-when-visible": false
               },
               "customer_ref": {
                 "type": "string",
                 "description": "Stripe已授权cus_编号 — 修订同一收款配置的自动授权时，两项同时留空沿用原加密付款资料；更换收款配置或任一项时须重新填写完整资料。",
-                "writeOnly": true
+                "writeOnly": true,
+                "x-visible-when": {
+                  "field": "mode",
+                  "values": [
+                    "automatic"
+                  ]
+                },
+                "x-required-when-visible": false
               }
             },
             "required": [],
@@ -49118,7 +49336,14 @@
           },
           "approval_id": {
             "type": "string",
-            "description": "供货失约批准编号（失约退出必填）"
+            "description": "供货失约批准编号（失约退出必填）",
+            "x-visible-when": {
+              "field": "mode",
+              "values": [
+                "supply_failure"
+              ]
+            },
+            "x-required-when-visible": false
           },
           "evidence": {
             "type": "string",
@@ -49237,53 +49462,450 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "field": "proof.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "field": "proof.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "field": "proof.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "field": "proof.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "field": "proof.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "valued_at": {
             "type": "string",
             "format": "date-time",
-            "description": "实际估值时刻"
+            "description": "实际估值时刻",
+            "x-visible-when": {
+              "field": "proof.money.currency",
+              "values": [
+                "USD"
+              ],
+              "not": true,
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fx_execution_reference": {
             "type": "string",
-            "description": "本次执行凭证/原币种结算依据"
+            "description": "本次执行凭证/原币种结算依据",
+            "x-visible-when": {
+              "field": "proof.money.currency",
+              "values": [
+                "USD"
+              ],
+              "not": true,
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
-          "proof",
-          "valuation",
-          "valued_at",
-          "fx_execution_reference"
+          "proof"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "proof": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "proof"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {}
+                  },
+                  "required": [
+                    "currency"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "proof": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "proof"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "usd_per_unit": {}
+                  },
+                  "required": [
+                    "usd_per_unit"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "proof": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "proof"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "source": {}
+                  },
+                  "required": [
+                    "source"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "proof": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "proof"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "effective_at": {}
+                  },
+                  "required": [
+                    "effective_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "proof": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "proof"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "expires_at": {}
+                  },
+                  "required": [
+                    "expires_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "proof": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "proof"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valued_at": {}
+              },
+              "required": [
+                "valued_at"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "proof": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "proof"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "fx_execution_reference": {}
+              },
+              "required": [
+                "fx_execution_reference"
+              ]
+            }
+          }
+        ]
       },
       "Operator_exits_execute_refund": {
         "type": "object",
@@ -49311,53 +49933,394 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "field": "money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "field": "money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "field": "money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "field": "money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "field": "money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "valued_at": {
             "type": "string",
             "format": "date-time",
-            "description": "实际估值时刻"
+            "description": "实际估值时刻",
+            "x-visible-when": {
+              "field": "money.currency",
+              "values": [
+                "USD"
+              ],
+              "not": true,
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fx_execution_reference": {
             "type": "string",
-            "description": "本次执行凭证/原币种结算依据"
+            "description": "本次执行凭证/原币种结算依据",
+            "x-visible-when": {
+              "field": "money.currency",
+              "values": [
+                "USD"
+              ],
+              "not": true,
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
-          "money",
-          "valuation",
-          "valued_at",
-          "fx_execution_reference"
+          "money"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {}
+                  },
+                  "required": [
+                    "currency"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "usd_per_unit": {}
+                  },
+                  "required": [
+                    "usd_per_unit"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "source": {}
+                  },
+                  "required": [
+                    "source"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "effective_at": {}
+                  },
+                  "required": [
+                    "effective_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "expires_at": {}
+                  },
+                  "required": [
+                    "expires_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valued_at": {}
+              },
+              "required": [
+                "valued_at"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "fx_execution_reference": {}
+              },
+              "required": [
+                "fx_execution_reference"
+              ]
+            }
+          }
+        ]
       },
       "Operator_exits_release_refund": {
         "type": "object",
@@ -49538,52 +50501,448 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "field": "external.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "field": "external.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "field": "external.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "field": "external.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "field": "external.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "valued_at": {
             "type": "string",
             "format": "date-time",
-            "description": "实际估值时刻"
+            "description": "实际估值时刻",
+            "x-visible-when": {
+              "field": "external.money.currency",
+              "values": [
+                "USD"
+              ],
+              "not": true,
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fx_execution_reference": {
             "type": "string",
-            "description": "本次执行凭证/原币种结算依据"
+            "description": "本次执行凭证/原币种结算依据",
+            "x-visible-when": {
+              "field": "external.money.currency",
+              "values": [
+                "USD"
+              ],
+              "not": true,
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
-        "required": [
-          "valuation",
-          "valued_at",
-          "fx_execution_reference"
-        ],
-        "additionalProperties": false
+        "required": [],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {}
+                  },
+                  "required": [
+                    "currency"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "usd_per_unit": {}
+                  },
+                  "required": [
+                    "usd_per_unit"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "source": {}
+                  },
+                  "required": [
+                    "source"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "effective_at": {}
+                  },
+                  "required": [
+                    "effective_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "expires_at": {}
+                  },
+                  "required": [
+                    "expires_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valued_at": {}
+              },
+              "required": [
+                "valued_at"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "fx_execution_reference": {}
+              },
+              "required": [
+                "fx_execution_reference"
+              ]
+            }
+          }
+        ]
       },
       "Operator_exits_propose_destination": {
         "type": "object",
@@ -49670,51 +51029,126 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "field": "asset",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "field": "asset",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "field": "asset",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "field": "asset",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "field": "asset",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "valued_at": {
             "type": "string",
             "format": "date-time",
-            "description": "实际估值时刻"
+            "description": "实际估值时刻",
+            "x-visible-when": {
+              "field": "asset",
+              "values": [
+                "USD"
+              ],
+              "not": true,
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fx_execution_reference": {
             "type": "string",
-            "description": "本次执行凭证/原币种结算依据"
+            "description": "本次执行凭证/原币种结算依据",
+            "x-visible-when": {
+              "field": "asset",
+              "values": [
+                "USD"
+              ],
+              "not": true,
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
-          "evm",
-          "valuation",
-          "valued_at",
-          "fx_execution_reference"
+          "evm"
         ],
         "additionalProperties": false
       },
@@ -49769,53 +51203,450 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "field": "external.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "field": "external.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "field": "external.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "field": "external.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "field": "external.money.currency",
+                  "values": [
+                    "USD"
+                  ],
+                  "not": true,
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "valued_at": {
             "type": "string",
             "format": "date-time",
-            "description": "实际估值时刻"
+            "description": "实际估值时刻",
+            "x-visible-when": {
+              "field": "external.money.currency",
+              "values": [
+                "USD"
+              ],
+              "not": true,
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fx_execution_reference": {
             "type": "string",
-            "description": "本次执行凭证/原币种结算依据"
+            "description": "本次执行凭证/原币种结算依据",
+            "x-visible-when": {
+              "field": "external.money.currency",
+              "values": [
+                "USD"
+              ],
+              "not": true,
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
-          "external",
-          "valuation",
-          "valued_at",
-          "fx_execution_reference"
+          "external"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {}
+                  },
+                  "required": [
+                    "currency"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "usd_per_unit": {}
+                  },
+                  "required": [
+                    "usd_per_unit"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "source": {}
+                  },
+                  "required": [
+                    "source"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "effective_at": {}
+                  },
+                  "required": [
+                    "effective_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "expires_at": {}
+                  },
+                  "required": [
+                    "expires_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valued_at": {}
+              },
+              "required": [
+                "valued_at"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "fx_execution_reference": {}
+              },
+              "required": [
+                "fx_execution_reference"
+              ]
+            }
+          }
+        ]
       },
       "Operator_branding_upload_logo": {
         "type": "object",
@@ -50044,7 +51875,14 @@
           "initial_password": {
             "type": "string",
             "description": "新账号初始密码",
-            "writeOnly": true
+            "writeOnly": true,
+            "x-visible-when": {
+              "field": "delivery_mode",
+              "values": [
+                "manual"
+              ]
+            },
+            "x-required-when-visible": false
           },
           "role": {
             "type": "string",
@@ -50503,7 +52341,7 @@
           },
           "customer_id": {
             "type": "string",
-            "description": "客户编号"
+            "description": "客户"
           },
           "order_id": {
             "type": "string",
@@ -50540,7 +52378,7 @@
           },
           "receipt_id": {
             "type": "string",
-            "description": "原收款编号"
+            "description": "原收款"
           },
           "amount_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -50659,7 +52497,15 @@
           },
           "actual_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "本次折合USD"
+            "description": "本次折合USD",
+            "x-visible-when": {
+              "field": "currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fee_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -50679,12 +52525,37 @@
           "reference",
           "currency",
           "amount",
-          "actual_usd",
           "fee_usd",
           "occurred_at",
           "evidence"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "currency": {
+                    "enum": [
+                      "USD"
+                    ]
+                  }
+                },
+                "required": [
+                  "currency"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "actual_usd": {}
+              },
+              "required": [
+                "actual_usd"
+              ]
+            }
+          }
+        ]
       },
       "Operator_refunds_unknown": {
         "type": "object",
@@ -50725,53 +52596,394 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "valued_at": {
             "type": "string",
             "format": "date-time",
-            "description": "实际估值时刻"
+            "description": "实际估值时刻",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "money.currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fx_execution_reference": {
             "type": "string",
-            "description": "本次执行凭证/原币种结算依据"
+            "description": "本次执行凭证/原币种结算依据",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "money.currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
-          "money",
-          "refund_valuation",
-          "valued_at",
-          "fx_execution_reference"
+          "money"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "refund_valuation": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {}
+                  },
+                  "required": [
+                    "currency"
+                  ]
+                }
+              },
+              "required": [
+                "refund_valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "refund_valuation": {
+                  "type": "object",
+                  "properties": {
+                    "usd_per_unit": {}
+                  },
+                  "required": [
+                    "usd_per_unit"
+                  ]
+                }
+              },
+              "required": [
+                "refund_valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "refund_valuation": {
+                  "type": "object",
+                  "properties": {
+                    "source": {}
+                  },
+                  "required": [
+                    "source"
+                  ]
+                }
+              },
+              "required": [
+                "refund_valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "refund_valuation": {
+                  "type": "object",
+                  "properties": {
+                    "effective_at": {}
+                  },
+                  "required": [
+                    "effective_at"
+                  ]
+                }
+              },
+              "required": [
+                "refund_valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "refund_valuation": {
+                  "type": "object",
+                  "properties": {
+                    "expires_at": {}
+                  },
+                  "required": [
+                    "expires_at"
+                  ]
+                }
+              },
+              "required": [
+                "refund_valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valued_at": {}
+              },
+              "required": [
+                "valued_at"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "money": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currency"
+                    ]
+                  }
+                },
+                "required": [
+                  "money"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "fx_execution_reference": {}
+              },
+              "required": [
+                "fx_execution_reference"
+              ]
+            }
+          }
+        ]
       },
       "Operator_refunds_query_api": {
         "type": "object",
@@ -50896,52 +53108,127 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "asset",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "asset",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "asset",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "asset",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "asset",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "valued_at": {
             "type": "string",
             "format": "date-time",
-            "description": "实际估值时刻"
+            "description": "实际估值时刻",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "asset",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fx_execution_reference": {
             "type": "string",
-            "description": "本次执行凭证/原币种结算依据"
+            "description": "本次执行凭证/原币种结算依据",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "asset",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
           "evm",
-          "verification_evidence",
-          "valuation",
-          "valued_at",
-          "fx_execution_reference"
+          "verification_evidence"
         ],
         "additionalProperties": false
       },
@@ -51000,54 +53287,451 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "valued_at": {
             "type": "string",
             "format": "date-time",
-            "description": "实际估值时刻"
+            "description": "实际估值时刻",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "external.money.currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fx_execution_reference": {
             "type": "string",
-            "description": "本次执行凭证/原币种结算依据"
+            "description": "本次执行凭证/原币种结算依据",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "external.money.currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
           "external",
-          "verification_evidence",
-          "valuation",
-          "valued_at",
-          "fx_execution_reference"
+          "verification_evidence"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {}
+                  },
+                  "required": [
+                    "currency"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "usd_per_unit": {}
+                  },
+                  "required": [
+                    "usd_per_unit"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "source": {}
+                  },
+                  "required": [
+                    "source"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "effective_at": {}
+                  },
+                  "required": [
+                    "effective_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "expires_at": {}
+                  },
+                  "required": [
+                    "expires_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valued_at": {}
+              },
+              "required": [
+                "valued_at"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "fx_execution_reference": {}
+              },
+              "required": [
+                "fx_execution_reference"
+              ]
+            }
+          }
+        ]
       },
       "Operator_refunds_verify_responsible_evm": {
         "type": "object",
@@ -51083,53 +53767,128 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "valued_at": {
             "type": "string",
             "format": "date-time",
-            "description": "实际估值时刻"
+            "description": "实际估值时刻",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "external.money.currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fx_execution_reference": {
             "type": "string",
-            "description": "本次执行凭证/原币种结算依据"
+            "description": "本次执行凭证/原币种结算依据",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "external.money.currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
           "merchant_id",
           "evm",
-          "verification_evidence",
-          "valuation",
-          "valued_at",
-          "fx_execution_reference"
+          "verification_evidence"
         ],
         "additionalProperties": false
       },
@@ -51192,55 +53951,452 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "valued_at": {
             "type": "string",
             "format": "date-time",
-            "description": "实际估值时刻"
+            "description": "实际估值时刻",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "external.money.currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fx_execution_reference": {
             "type": "string",
-            "description": "本次执行凭证/原币种结算依据"
+            "description": "本次执行凭证/原币种结算依据",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "external.money.currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
           "merchant_id",
           "external",
-          "verification_evidence",
-          "valuation",
-          "valued_at",
-          "fx_execution_reference"
+          "verification_evidence"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {}
+                  },
+                  "required": [
+                    "currency"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "usd_per_unit": {}
+                  },
+                  "required": [
+                    "usd_per_unit"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "source": {}
+                  },
+                  "required": [
+                    "source"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "effective_at": {}
+                  },
+                  "required": [
+                    "effective_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "expires_at": {}
+                  },
+                  "required": [
+                    "expires_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valued_at": {}
+              },
+              "required": [
+                "valued_at"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "fx_execution_reference": {}
+              },
+              "required": [
+                "fx_execution_reference"
+              ]
+            }
+          }
+        ]
       },
       "Operator_refunds_verify_responsible_bank": {
         "type": "object",
@@ -51301,55 +54457,452 @@
             "properties": {
               "currency": {
                 "type": "string",
-                "description": "本次估值币种"
+                "description": "本次估值币种",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "usd_per_unit": {
                 "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "本次真实每单位USD"
+                "description": "本次真实每单位USD",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "source": {
                 "type": "string",
-                "description": "本次授权汇率/实际换汇依据"
+                "description": "本次授权汇率/实际换汇依据",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "effective_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值生效"
+                "description": "本次估值生效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               },
               "expires_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "本次估值失效"
+                "description": "本次估值失效",
+                "x-visible-when": {
+                  "fallback_fields": [
+                    "asset",
+                    "currency"
+                  ],
+                  "field": "external.money.currency",
+                  "not": true,
+                  "values": [
+                    "USD"
+                  ]
+                },
+                "x-required-when-visible": true
               }
             },
-            "required": [
-              "currency",
-              "usd_per_unit",
-              "source",
-              "effective_at",
-              "expires_at"
-            ],
+            "required": [],
             "additionalProperties": false
           },
           "valued_at": {
             "type": "string",
             "format": "date-time",
-            "description": "实际估值时刻"
+            "description": "实际估值时刻",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "external.money.currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "fx_execution_reference": {
             "type": "string",
-            "description": "本次执行凭证/原币种结算依据"
+            "description": "本次执行凭证/原币种结算依据",
+            "x-visible-when": {
+              "fallback_fields": [
+                "asset",
+                "currency"
+              ],
+              "field": "external.money.currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
           "merchant_id",
           "external",
-          "verification_evidence",
-          "valuation",
-          "valued_at",
-          "fx_execution_reference"
+          "verification_evidence"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {}
+                  },
+                  "required": [
+                    "currency"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "usd_per_unit": {}
+                  },
+                  "required": [
+                    "usd_per_unit"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "source": {}
+                  },
+                  "required": [
+                    "source"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "effective_at": {}
+                  },
+                  "required": [
+                    "effective_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation": {
+                  "type": "object",
+                  "properties": {
+                    "expires_at": {}
+                  },
+                  "required": [
+                    "expires_at"
+                  ]
+                }
+              },
+              "required": [
+                "valuation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valued_at": {}
+              },
+              "required": [
+                "valued_at"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "money": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "enum": [
+                              "USD"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "currency"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "money"
+                    ]
+                  }
+                },
+                "required": [
+                  "external"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "fx_execution_reference": {}
+              },
+              "required": [
+                "fx_execution_reference"
+              ]
+            }
+          }
+        ]
       },
       "Operator_refunds_confirm_fee": {
         "type": "object",
@@ -51490,7 +55043,7 @@
               "expected_version": {
                 "type": "integer",
                 "minimum": 0,
-                "description": "当前版本（首次填写0）"
+                "description": "当前规则版本"
               }
             },
             "required": [
@@ -51551,11 +55104,27 @@
           },
           "original_amount": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "实际付款金额"
+            "description": "实际付款金额",
+            "x-visible-when": {
+              "field": "currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "valuation_evidence": {
             "type": "string",
-            "description": "本次真实换汇依据"
+            "description": "本次真实换汇依据",
+            "x-visible-when": {
+              "field": "currency",
+              "not": true,
+              "values": [
+                "USD"
+              ]
+            },
+            "x-required-when-visible": true
           },
           "paid_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -51571,12 +55140,60 @@
           "payment_reference",
           "evidence",
           "currency",
-          "original_amount",
-          "valuation_evidence",
           "paid_usd",
           "paid_at"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "currency": {
+                    "enum": [
+                      "USD"
+                    ]
+                  }
+                },
+                "required": [
+                  "currency"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "original_amount": {}
+              },
+              "required": [
+                "original_amount"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "currency": {
+                    "enum": [
+                      "USD"
+                    ]
+                  }
+                },
+                "required": [
+                  "currency"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "valuation_evidence": {}
+              },
+              "required": [
+                "valuation_evidence"
+              ]
+            }
+          }
+        ]
       },
       "Operator_withdrawals_fail": {
         "type": "object",
@@ -51601,11 +55218,7 @@
         "properties": {
           "receipt_id": {
             "type": "string",
-            "description": "原收款编号"
-          },
-          "provider": {
-            "type": "string",
-            "description": "外部通道"
+            "description": "原收款"
           },
           "provider_case_id": {
             "type": "string",
@@ -51626,7 +55239,6 @@
         },
         "required": [
           "receipt_id",
-          "provider",
           "provider_case_id",
           "amount_usd",
           "reason",
@@ -52117,6 +55729,29 @@
         },
         "required": [
           "receipt_id"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_payments_accounting": {
+        "type": "object",
+        "properties": {
+          "fee_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "已核实手续费 USD"
+          },
+          "settled_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "通道结算到账时间（可选）"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "费用与结算核实依据"
+          }
+        },
+        "required": [
+          "fee_usd",
+          "evidence"
         ],
         "additionalProperties": false
       },

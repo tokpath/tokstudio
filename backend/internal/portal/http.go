@@ -128,6 +128,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 409, "receipt_awaiting_valuation", "原币实际款已保留，等待财务核实真实付款时点估值；请勿重复付款", false
 	case errors.Is(err, remediation.ErrReview):
 		status, code, msg, retry = 409, "independent_review_required", "此事项需要另一位有权限的人员独立复核", false
+	case errors.Is(err, commerce.ErrWholePayment):
+		status, code, msg, retry = 409, "whole_payment_required", "一个订单只关联一笔足额外部付款；金额不符的款项请单独登记并按异常处理", false
 	case errors.Is(err, cooperation.ErrLiability), errors.Is(err, cooperation.ErrCoverage), errors.Is(err, remediation.ErrState), errors.Is(err, commerce.ErrOrderState), errors.Is(err, commerce.ErrNotPaid), errors.Is(err, incentives.ErrWithdrawalState):
 		status, code, msg, retry = 409, "state_restricted", "当前业务状态或资金条件不允许此操作，请查询原记录", false
 	case errors.Is(err, ledger.ErrInsufficient):
@@ -140,6 +142,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 409, "receipt_restricted", "原收款存在限制，真实收款事实已保留，不能继续新分配或重复支付", false
 	case errors.Is(err, payments.ErrOutcomeUnknown):
 		status, code, msg, retry = 409, "payment_outcome_unknown", "原支付结果尚待核实，请查询原交易，重试将沿用原业务编号", true
+	case errors.Is(err, commerce.ErrPaymentUnknown):
+		status, code, msg, retry = 409, "original_payment_pending", "原订单付款尚待核实，本次操作未执行；请先查询原交易，避免重复付款", false
 	case errors.Is(err, organization.ErrFrozen):
 		status, code, msg, retry = 403, "action_frozen", "当前范围的此项操作已冻结，请联系经营方核实", false
 	case errors.Is(err, organization.ErrBusinessClosed):

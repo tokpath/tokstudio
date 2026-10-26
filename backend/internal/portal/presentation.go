@@ -109,7 +109,7 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				}
 				if lookup != "" && f.Kind != "hidden" {
 					f.LookupURL = scope + "/references/" + lookup
-					if resource == "procurement" && lookup == "receipts" {
+					if (resource == "procurement" || resource == "payments" || resource == "order-context") && lookup == "receipts" {
 						f.LookupURL += "?whole=true"
 					}
 					f.Label = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(f.Label, " ID", ""), "ID", ""), "编号", "")

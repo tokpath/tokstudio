@@ -273,7 +273,10 @@ func (a *Application) orderContext(c *gin.Context) {
 				v["order_id"] = orderID
 				return entity(r.ID, r.FeeStatus, 1, v)
 			})
-			p["operations"] = []operation{{Name: "allocate_existing", Label: "将已核实收款分配到此单", Method: "POST", Path: "/api/v1/operators/" + op.ID + "/order-context/" + orderID + "/allocate", Fields: []field{f("receipt_id", "选择已核实收款", "text"), f("amount_usd", "本次分配 USD", "decimal")}, Permission: "payments.manage", Confirmation: "仅分配已经核实的原收款，不新建付款或收款事实。系统核对未分配余额与当前订单责任。"}}
+			p["operations"] = []operation{}
+			if order.Status == "pending" && order.ExternalAllocatedUSD.IsZero() {
+				p["operations"] = []operation{{Name: "receipt", Label: "登记本单线下收款", Method: "POST", Path: "/api/v1/operators/" + op.ID + "/payments", Fields: manualReceiptFields(), Permission: "payments.manage", Description: "核实到账后登记本单收款，系统自动关联并跟进交付。"}, {Name: "allocate_existing", Label: "关联已核实收款", Method: "POST", Path: "/api/v1/operators/" + op.ID + "/order-context/" + orderID + "/allocate", Fields: []field{f("receipt_id", "选择已核实收款", "text")}, Permission: "payments.manage", Description: "整笔关联一笔与本单外部应付金额相同的收款。"}}
+			}
 			a.appendContextSection(c, &out, "payments", "关联收款", p)
 			facts, err := a.Payments.PendingReceiptObligations(ctx, tx, op.ID, []string{orderID})
 			if err != nil {
@@ -283,7 +286,7 @@ func (a *Application) orderContext(c *gin.Context) {
 			fi := []any{}
 			for _, r := range facts {
 				v := values(r)
-				v["manage_url"] = "/manage/" + op.ID + "/receipt-valuations"
+				v["manage_url"] = "/manage/" + op.ID + "/payments?section=pending"
 				fi = append(fi, entity(r.FactID, r.State, 0, v))
 			}
 			fp["items"] = fi
@@ -332,8 +335,7 @@ func (a *Application) allocateOrderReceipt(c *gin.Context) {
 		return
 	}
 	var input struct {
-		ReceiptID string         `json:"receipt_id"`
-		AmountUSD ledger.Decimal `json:"amount_usd"`
+		ReceiptID string `json:"receipt_id"`
 	}
 	if !body(c, &input) {
 		return
@@ -342,7 +344,12 @@ func (a *Application) allocateOrderReceipt(c *gin.Context) {
 	if !ok {
 		return
 	}
-	result, err := a.Commerce.AllocateReceipt(c.Request.Context(), nil, commerce.AllocateReceiptInput{ActorStaffID: actor, OperatorID: op.ID, BusinessKey: businessKey, ReceiptID: input.ReceiptID, OrderID: c.Param("id"), AmountUSD: input.AmountUSD})
+	var result commerce.Allocation
+	err := a.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+		var err error
+		result, err = a.allocateWholeRetailReceipt(c.Request.Context(), tx, actor, op.ID, input.ReceiptID, c.Param("id"), businessKey)
+		return err
+	})
 	if err != nil {
 		handleError(c, err)
 		return

@@ -44,7 +44,7 @@ async function submit(page: Page, label: string, path: string, values: Record<st
 }
 function localNow() { const now = new Date(); return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
 
-test("finance and customer reconcile partial receipts, independently review a refund, retain unknown-payment holds and settle once", async ({ browser }, info) => {
+test("finance records one whole payment, links private evidence, reviews a refund and retains unknown-payment holds", async ({ browser }, info) => {
   const customerContext = await browser.newContext(), financeContext = await browser.newContext(), reviewerContext = await browser.newContext();
   const customer = await customerContext.newPage(), finance = await financeContext.newPage(), reviewer = await reviewerContext.newPage();
   const base = `/api/v1/operators/${persona.operator_id}`, manage = `/manage/${persona.operator_id}`;
@@ -62,32 +62,30 @@ test("finance and customer reconcile partial receipts, independently review a re
     const orderID = order.id || order.order?.id;
     expect(orderID).toBeTruthy();
     const receipts: string[] = [];
-    for (const [amount, fee] of [["60", "2"], ["40", "1"]]) {
-      await finance.goto(`${manage}/payments`);
-      await finance.getByRole("button", { name: "登记人工核实收款", exact: true }).click();
-      const receipt = await submit(finance, "登记人工核实收款", `${base}/payments`, {
-        provider_receipt_id: `simulation-bank-${randomUUID()}`, gross_usd: amount, currency: "USD", original_amount: amount,
-        recipient_reference: "SYNTHETIC finance merchant", payer_reference: "SYNTHETIC customer bank", valuation_evidence: "Actual synthetic USD; no FX",
-        verification_evidence: "SYNTHETIC local acceptance bank fact", fee_status: "confirmed", fee_usd: fee, net_usd: String(Number(amount) - Number(fee)), paid_at: localNow(), observed_at: localNow(),
-      });
-      receipts.push(receipt.id);
-      await finance.goto(`${manage}/orders?record=${orderID}`);
-      await expect(finance.getByRole("heading", { name: "订单与收款办理", exact: true })).toBeVisible();
-      await expect(finance.getByRole("dialog")).toHaveCount(0);
-      await expect(finance.getByRole("button", { name: "核实资金并重试交付" })).toHaveCount(0);
-      await finance.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
-      await submit(finance, "将已核实收款分配到此单", `${base}/order-context/${orderID}/allocate`, { receipt_id: receipt.id, amount_usd: amount });
-      if (amount === "60") {
-        const credits = await (await customer.request.get("/api/v1/me/credits")).json();
-        expect(credits.usd_balance.available).toBe(String(startingBalance));
-        const snapshot = await (await finance.request.get(`${base}/order-context/${orderID}`)).json();
-        expect(snapshot.subject.values.external_allocated_usd).toBe("60");
-      }
-    }
+    await finance.goto(`${manage}/orders?record=${orderID}`);
+    await expect(finance.getByRole("heading", { name: "订单与收款办理", exact: true })).toBeVisible();
+    await finance.getByRole("button", { name: "登记本单线下收款", exact: true }).click();
+    const receiptPanel=finance.getByRole("dialog").last();
+    for(const name of ["original_amount","net_usd","observed_at","valuation_evidence"]) await expect(receiptPanel.locator(`[data-command-field="${name}"]`)).toHaveCount(0);
+    await receiptPanel.getByText("附加付款凭据（可选）",{exact:true}).click();
+    await receiptPanel.getByLabel("选择付款凭据").setInputFiles({name:"synthetic-bank.png",mimeType:"image/png",buffer:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+cWZkAAAAASUVORK5CYII=","base64")});
+    await receiptPanel.getByRole("button",{name:"上传并关联凭据",exact:true}).click();
+    await expect(receiptPanel.getByText("凭据已关联",{exact:false})).toBeVisible();
+    const marker=await receiptPanel.locator('[data-command-field="verification_evidence"] textarea').inputValue();
+    const receipt = await submit(finance, "登记本单线下收款", `${base}/payments`, {
+      provider_receipt_id: `simulation-bank-${randomUUID()}`, gross_usd: "100", currency: "USD",
+      recipient_reference: "SYNTHETIC finance merchant", payer_reference: "SYNTHETIC customer bank",
+      verification_evidence: "SYNTHETIC local acceptance bank fact\n"+marker, fee_status: "pending", paid_at: localNow(),
+    });
+    receipts.push(receipt.id);
+    await finance.goto(`${manage}/payments?q=${receipt.id}`);
+    await finance.getByRole("button",{name:"核实手续费与结算",exact:true}).click();
+    await submit(finance,"核实手续费与结算",`${base}/payments/${receipt.id}/accounting`,{fee_usd:"3",evidence:"Independent synthetic bank fee statement"});
     // Finance allocates verified receipts; the durable worker delivers the
     // funded order. Allow its discovery interval and the shared queue backlog.
     await expect.poll(async () => (await (await customer.request.get("/api/v1/me/credits")).json()).usd_balance.available, { timeout: 60_000 }).toBe(String(startingBalance + 100));
     await finance.goto(`${manage}/refunds`);
+    await finance.getByText("办理设置",{exact:true}).click();
     await finance.getByRole("button", { name: "设置独立复核阈值", exact: true }).click();
     await submit(finance, "设置独立复核阈值", `${base}/refunds`, { second_review_above: "10" });
     await customer.goto("/workspace/refunds");
@@ -114,7 +112,7 @@ test("finance and customer reconcile partial receipts, independently review a re
     const held = await (await customer.request.get("/api/v1/me/credits")).json();
     expect(held.usd_balance.available).toBe(String(startingBalance + 80)); expect(held.usd_balance.held).toBe("20");
     await finance.getByRole("button", { name: "核实实际银行退款", exact: true }).click();
-    await submit(finance, "核实实际银行退款", `${base}/refunds/${legID}/verify_manual`, { reference: `simulation-refund-${randomUUID()}`, currency: "USD", amount: "20", actual_usd: "20", fee_usd: "0.5", occurred_at: localNow(), evidence: "SYNTHETIC settled bank statement; original payer; actual USD" });
+    await submit(finance, "核实实际银行退款", `${base}/refunds/${legID}/verify_manual`, { reference: `simulation-refund-${randomUUID()}`, currency: "USD", amount: "20", fee_usd: "0.5", occurred_at: localNow(), evidence: "SYNTHETIC settled bank statement; original payer; actual USD" });
     const settled = await readCase();
     expect(settled.find(row => row.id === refund.id)?.status).toBe("completed");
     const credits = await (await customer.request.get("/api/v1/me/credits")).json();
@@ -125,6 +123,7 @@ test("finance and customer reconcile partial receipts, independently review a re
     expect(report.costs.payment_fees_usd, "default current report must include the just-confirmed fees").toBe(String(startingFees + 3.5));
 
     await finance.goto(`${manage}/invoices`);
+    await finance.getByText("办理设置",{exact:true}).click();
     await finance.getByRole("button", { name: "设置零售客户开票规则", exact: true }).click();
     await submit(finance, "设置零售客户开票规则", `${base}/invoices`, { enabled: true, stage: "top_up", maximum_ratio: "1", rules_reference: "Synthetic original receipt invoice policy" });
     await customer.goto("/workspace/invoices");

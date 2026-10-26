@@ -18,6 +18,7 @@ import { Empty, ErrorPanel, Heading, Loading, Money, Notice, Stat, Status, Table
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PurchaseTierSummary } from "./purchase-tiers";
+import { FinanceEvidenceLinks } from "./finance-evidence";
 import { ProcurementCards } from "./procurement-cards";
 import { ModelPricingCard, PackageCard, priceDraft } from "./pricing-cards";
 import { Card } from "@/components/ui/card";
@@ -155,6 +156,8 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const resourceName = resource.split("/")[0];
   const canOperate = (operation: Operation) => !operation.permission || !!workspace?.permissions.includes("*") || !!workspace?.permissions.includes(operation.permission);
   const operations = page.operations.filter(operation => canOperate(operation) && (resourceName !== "procurement" || (operation.name === "quote" ? procurementTab === "quotes" : operation.name === "authorization" ? procurementTab === "automatic" : true)));
+  const settings = operations.filter(operation => ["refunds","withdrawals","invoices"].includes(resourceName) && (operation.name === "policy" || operation.name.startsWith("invoice_policy_")));
+  const primaryOperations = operations.filter(operation => !settings.includes(operation));
   const editable = editableOperations[resourceName];
   const editOperation = editable && operations.find(operation => operation.name === editable.name);
   const rowOperations = (row: Entity) => page.row_operations.filter(operation => canOperate(operation) && (!row.allowed_actions || row.allowed_actions.includes(operation.name)));
@@ -192,7 +195,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   </div>;
   return <>
     {!embedded && <Heading title={page.title === resourceName ? resourceLabel(resourceName) : page.title} description={page.description} />}
-    {page.summary && (resourceName !== "procurement" || procurementTab === "orders") && <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{page.summary.map((item, index) => <div key={index}><Stat {...item} detail={undefined} help={item.detail} /></div>)}
+    {page.summary && !["refunds","invoices"].includes(resourceName) && (resourceName !== "procurement" || procurementTab === "orders") && <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{page.summary.map((item, index) => <div key={index}><Stat {...item} detail={undefined} help={item.detail} /></div>)}
     </div>}
     {page.availability?.filter(item => !item.enabled).map(item => <div key={item.capability} className="mb-4">
       <Notice>{t(item.reason || "相应业务暂未开放")}{item.next_action && <p>{t(item.next_action)}
@@ -202,8 +205,9 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     {resourceName === "procurement" && <div className="mb-5"><div className="flex flex-wrap items-center justify-between gap-3"><div role="tablist" aria-label={t("采购办理事项")} className="flex flex-wrap gap-2">{[["orders", businessView === "supplier" ? "供货订单" : "采购订单"], ["quotes", businessView === "supplier" ? "供货报价" : "采购报价"], ["automatic", "自动补货"]].filter(([key]) => key !== "automatic" || businessView !== "supplier").map(([key, title]) => <Button key={key} role="tab" aria-selected={procurementTab === key} variant={procurementTab === key ? "default" : "outline"} onClick={() => setProcurementTab(key)}>{t(title)}</Button>)}</div>{businessView !== "supplier" && <Button variant="outline" onClick={() => setProcurementTab("quotes")}>{t("立即补货")}</Button>}</div><p className="mt-3 text-xs leading-6 text-ink-mute">{t(businessView === "supplier" ? "供货订单列出每一笔采购占用的库存。未付款订单不限时，直到付清或取消后才释放。" : procurementTab === "quotes" ? "选择已生效报价创建采购订单。创建后即占用供货库存，付款并交付后才增加采购余额。" : procurementTab === "automatic" ? "在此管理有限补货授权和原执行结果。结果未知时只查询原付款。" : "每一行显示这笔订单占用的供货库存。未付款不限时，直到付清或取消。需要新增采购时选择立即补货。")}</p></div>}
     {operatorID && ["procurement", "operators"].includes(resourceName) && workspace?.permissions.some(permission => ["*", "cooperation.manage"].includes(permission)) && <p className="mb-4 text-sm"><Link className="text-brand-emphasis underline" href={`/manage/${encodeURIComponent(operatorID)}/contracts`}>{t("上传或查看可选合作合同")}</Link></p>}
     {resourceName !== "providers" && (toolbar || operations.length > 0) && <div className="th-toolbar">{toolbar}
-      <div className="flex flex-wrap gap-2">{operations.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
+      <div className="flex flex-wrap gap-2">{primaryOperations.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
       </Button>)}
+      {settings.length>0 && <details className="relative"><summary className="cursor-pointer rounded-control border border-hairline bg-canvas-raised px-4 py-3 text-sm">{t("办理设置")}</summary><div className="absolute right-0 z-20 mt-2 min-w-56 space-y-1 rounded-control border border-hairline bg-canvas-raised p-2 shadow-lg">{settings.map(operation => <Button key={operation.name} type="button" variant="ghost" className="w-full justify-start" onClick={() => selectOperation(operation)}>{t(operation.label)}</Button>)}</div></details>}
       </div>
     </div>}
     {resourceName === "providers" && toolbar && <div className="th-toolbar">{toolbar}</div>}
@@ -252,7 +256,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
       <details className="mt-7 border-t border-hairline pt-5">
         <summary className="cursor-pointer text-sm text-brand-emphasis">{t("完整保存记录与证据")}</summary>
         <div className="mt-4">
-          <ReadFacts value={facts.values} />
+          <FinanceEvidenceLinks value={facts.values} operatorID={operatorID} /><ReadFacts value={facts.values} />
         </div>
       </details>
       <div className="mt-6 flex flex-wrap gap-2">{rowOperations(facts).map(operation => <Button key={operation.name} variant="outline" onClick={() => { setFacts(undefined); setSelection({ operation, row: facts }); }}>{t(operation.label)}

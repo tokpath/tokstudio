@@ -23,6 +23,7 @@ var (
 	ErrLatePayment       = errors.New("commerce: actual payment occurred after order expiry; receipt remains unallocated")
 	ErrTimingUnverified  = errors.New("commerce: timely payment cannot be proven; receipt remains unallocated")
 	ErrExcessAllocation  = errors.New("commerce: allocation exceeds receipt or order remainder")
+	ErrWholePayment      = errors.New("commerce: one whole external receipt is required per order")
 	ErrPaymentUnknown    = errors.New("commerce: verified unpaid payment status is required before closure")
 	ErrRenewalNotDue     = errors.New("commerce: renewal is not due")
 	ErrReceiptRestricted = errors.New("commerce: original receipt needs dispute or refund review before a new allocation")

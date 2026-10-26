@@ -33,27 +33,6 @@ type financeEvidence struct {
 }
 
 func (financeEvidence) TableName() string { return "portal_finance_evidence" }
-func (a *Application) evidenceResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
-	rows := []financeEvidence{}
-	if e := a.DB.WithContext(c.Request.Context()).Where("operator_id=?", op.ID).Order("created_at DESC,id DESC").Limit(100).Find(&rows).Error; e != nil {
-		handleError(c, e)
-		return
-	}
-	items := []any{}
-	for _, row := range rows {
-		v := values(row)
-		if row.Status == "ready" {
-			v["download_url"] = base + "/" + row.ID + "/content"
-		}
-		items = append(items, entity(row.ID, row.Status, 0, v))
-	}
-	p["title"] = "私有金融凭据"
-	p["description"] = "银行与原付款人凭据加密写入私有对象存储。上传文件本身不是付款或退款成功证明，办理事项仍需核实真实资金事实。"
-	p["items"] = items
-	p["columns"] = []gin.H{col("id", "证据引用ID", "text"), col("filename", "原文件名", "text"), col("content_type", "格式", "text"), col("created_by", "登记人", "text"), col("created_at", "登记时间", "datetime"), col("download_url", "授权下载", "link")}
-	p["operations"] = []operation{{Name: "upload", Label: "上传私有银行/收款凭据", Method: "POST", Path: base, Fields: []field{f("file", "PDF/PNG/JPEG凭据（不超过10MiB）", "file")}}}
-	a.resourceResponse(c, p)
-}
 func (a *Application) uploadEvidence(c *gin.Context, op organization.Operator, actor string) {
 	if a.ObjectStore == nil {
 		handleError(c, objectstore.ErrUnavailable)

@@ -223,7 +223,14 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			if party == "procurement" {
 				label = "经营方采购"
 			}
-			invoiceOps = append(invoiceOps, operation{Name: "invoice_policy_" + party, Label: "设置" + label + "开票规则", Method: "POST", Path: base, Fields: []field{defaultField("party_kind", "办理对象", "hidden", party), defaultField("enabled", "开放申请", "boolean", current.Enabled), selectField("stage", "允许开票阶段", "receipt|原始收款", "top_up|充值完成", "purchase|完成购买", "consumption|实际消费"), f("maximum_ratio", "最高原收款比例（0到1）", "decimal"), f("rules_reference", "公开办理规则依据", "text"), defaultField("expected_version", "版本", "hidden", current.Version)}})
+			stage := selectField("stage", "允许开票阶段", "receipt|原始收款", "top_up|充值完成", "purchase|完成购买", "consumption|实际消费")
+			stage.Default = current.Stage
+			ratio := current.MaximumRatio
+			if current.Version == 0 {
+				stage.Default = "receipt"
+				ratio = ledger.FromInt64(1)
+			}
+			invoiceOps = append(invoiceOps, operation{Name: "invoice_policy_" + party, Label: "设置" + label + "开票规则", Method: "POST", Path: base, Fields: []field{defaultField("party_kind", "办理对象", "hidden", party), defaultField("enabled", "开放申请", "boolean", current.Enabled), stage, defaultField("maximum_ratio", "最高原收款比例（0到1）", "decimal", ratio), defaultField("rules_reference", "公开办理规则依据", "text", current.RulesReference), defaultField("expected_version", "版本", "hidden", current.Version)}})
 		}
 		p["operations"] = invoiceOps
 		p["row_operations"] = []operation{{Name: "register", Label: "登记实际开票结果", Method: "POST", Path: base + "/{id}/register", Fields: []field{selectField("state", "实际办理状态", "issued|外部开具已完成", "rejected|不予办理并说明原因", "voided|原票据已依法作废"), f("invoice_reference", "发票凭证编号", "text"), f("evidence", "证据引用", "text"), f("reason", "说明", "textarea")}}}

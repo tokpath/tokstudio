@@ -8,7 +8,7 @@ import (
 
 func TestPostgresInvoiceStagesFollowOriginalWalletFundingAndActualConsumption(t *testing.T) {
 	f := setup(t)
-	_, receipts := f.splitTopup(t)
+	_, receipts := f.separatelyFundedTopups(t)
 	o := f.order(t, "invoice-funded-package", "60", "0")
 	direct := f.receipt(t, "invoice-direct-part", "20", "0", o.CreatedAt)
 	f.allocate(t, "invoice-direct-part", direct, o, "20")

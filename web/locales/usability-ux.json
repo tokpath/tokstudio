@@ -2103,5 +2103,195 @@
     "en": "Complete the model prices at every supply level so procurement and service obligations can be verified.",
     "ja": "仕入と履行責任を確認できるよう、各供給階層の有効なモデル価格を設定してください。",
     "ru": "Укажите действующие цены моделей на каждом уровне поставки, чтобы система могла проверить закупочные и сервисные обязательства."
+  },
+  "收款办理": {
+    "en": "Receipts",
+    "ja": "入金処理",
+    "ru": "Обработка поступлений"
+  },
+  "核实到账、关联订单并跟进交付。原币尚未核实的款项在同一处继续办理。": {
+    "en": "Verify receipts, link orders and follow delivery. Review unverified currency receipts here as well.",
+    "ja": "入金を確認し、注文に関連付けて提供状況を確認します。原通貨の未確認入金もここで処理できます。",
+    "ru": "Подтверждайте поступления, связывайте заказы и отслеживайте исполнение. Здесь же проверяются поступления в исходной валюте."
+  },
+  "收款视图": {
+    "en": "Receipt views",
+    "ja": "入金表示",
+    "ru": "Представления поступлений"
+  },
+  "已入账收款": {
+    "en": "Recorded receipts",
+    "ja": "記帳済み入金",
+    "ru": "Учтённые поступления"
+  },
+  "待核实收款": {
+    "en": "Receipts to verify",
+    "ja": "確認待ち入金",
+    "ru": "Поступления на проверке"
+  },
+  "配置实际收款通道。外币付款金额需要报价依据时，再展开下方设置。": {
+    "en": "Configure payment providers. Expand the settings below when foreign currency checkout needs a reference rate.",
+    "ja": "実際の決済サービスを設定します。外貨の請求額に参考レートが必要な場合は、下の設定を開いてください。",
+    "ru": "Настройте платёжные каналы. Разверните настройки ниже, если для оплаты в иностранной валюте нужен справочный курс."
+  },
+  "外币收款报价依据": {
+    "en": "Foreign currency checkout rates",
+    "ja": "外貨決済の参考レート",
+    "ru": "Курсы для оплаты в иностранной валюте"
+  },
+  "用于向付款人展示外币应付金额。实际收款仍按真实付款时点核实入账，不锁汇。USD 收款不需要此配置。": {
+    "en": "Used to display the amount due in foreign currency. Receipts are valued at the actual payment time; exchange rates are not locked. USD payments need no rate configuration.",
+    "ja": "支払者に外貨の請求額を表示するために使用します。実際の入金は支払時点で評価し、為替レートは固定しません。USD入金には設定不要です。",
+    "ru": "Используется для отображения суммы к оплате в иностранной валюте. Поступления оцениваются на момент фактического платежа, курс не фиксируется. Для USD настройка не нужна."
+  },
+  "附加付款凭据（可选）": {
+    "en": "Attach payment evidence (optional)",
+    "ja": "支払証憑を添付（任意）",
+    "ru": "Приложить платёжный документ (необязательно)"
+  },
+  "上传 PDF、PNG 或 JPEG，最多 10 MiB。上传成功后自动关联本次核实依据；仍须核实真实到账。": {
+    "en": "Upload PDF, PNG or JPEG up to 10 MiB. The file is linked to this verification automatically. Actual receipt of funds still needs verification.",
+    "ja": "PDF、PNG、JPEGを10 MiBまで添付できます。アップロード後、この確認記録に自動で関連付けます。実際の入金確認は別途必要です。",
+    "ru": "Загрузите PDF, PNG или JPEG до 10 МиБ. Файл автоматически добавляется к текущему подтверждению. Фактическое поступление денег всё равно нужно проверить."
+  },
+  "选择付款凭据": {
+    "en": "Choose payment evidence",
+    "ja": "支払証憑を選択",
+    "ru": "Выбрать платёжный документ"
+  },
+  "重试原附件上传": {
+    "en": "Retry original upload",
+    "ja": "同じ添付を再送",
+    "ru": "Повторить исходную загрузку"
+  },
+  "上传并关联凭据": {
+    "en": "Upload and attach",
+    "ja": "アップロードして関連付け",
+    "ru": "Загрузить и прикрепить"
+  },
+  "放弃本次附件": {
+    "en": "Discard this attachment",
+    "ja": "この添付を取り消す",
+    "ru": "Отказаться от этого вложения"
+  },
+  "凭据已关联": {
+    "en": "Evidence attached",
+    "ja": "証憑を関連付けました",
+    "ru": "Документ прикреплён"
+  },
+  "查看付款凭据 {number}": {
+    "en": "View payment evidence {number}",
+    "ja": "支払証憑 {number} を表示",
+    "ru": "Открыть платёжный документ {number}"
+  },
+  "办理设置": {
+    "en": "Processing settings",
+    "ja": "処理設定",
+    "ru": "Настройки обработки"
+  },
+  "资产与账本": {
+    "en": "Assets and ledger",
+    "ja": "資産と台帳",
+    "ru": "Активы и реестр"
+  },
+  "Gkash 付款页在新窗口打开，本页会留下来。请核实原通道结果；只有原付款已确认失败且没有收款时，才能更换付款方式。": {
+    "en": "Gkash opens in a new window and this page stays open. Check the original payment first. You may change methods only after failure is confirmed and no money was received.",
+    "ja": "Gkash決済は新しいウィンドウで開き、このページは残ります。元の決済結果を確認してください。支払いの失敗と未入金が確認された場合のみ、方法を変更できます。",
+    "ru": "Gkash открывается в новом окне, эта страница остаётся открытой. Сначала проверьте исходный платёж. Сменить способ можно лишь после подтверждённого отказа и отсутствия поступлений."
+  },
+  "一个订单只关联一笔足额外部付款；金额不符的款项请单独登记并按异常处理": {
+    "en": "An order accepts one fully funded external payment. Record mismatched amounts separately for exception handling.",
+    "ja": "1つの注文には全額を満たす外部支払いを1件だけ関連付けます。金額が一致しない入金は別途記録し、例外として処理してください。",
+    "ru": "К заказу привязывается один внешний платёж на полную сумму. Несоответствующие суммы регистрируйте отдельно для обработки исключений."
+  },
+  "关联订单（可选）": {
+    "en": "Link order (optional)",
+    "ja": "注文を関連付け（任意）",
+    "ru": "Связать заказ (необязательно)"
+  },
+  "已核实手续费 USD": {
+    "en": "Verified fee USD",
+    "ja": "確認済み手数料 USD",
+    "ru": "Подтверждённая комиссия USD"
+  },
+  "通道结算到账时间（可选）": {
+    "en": "Provider settlement time (optional)",
+    "ja": "決済事業者の精算入金時刻（任意）",
+    "ru": "Время зачисления от провайдера (необязательно)"
+  },
+  "稍后核实": {
+    "en": "Verify later",
+    "ja": "後で確認",
+    "ru": "Проверить позже"
+  },
+  "金额已核实": {
+    "en": "Amount verified",
+    "ja": "金額確認済み",
+    "ru": "Сумма подтверждена"
+  },
+  "原网络（链上收款时填写）": {
+    "en": "Network (for on-chain receipts)",
+    "ja": "ネットワーク（オンチェーン入金のみ）",
+    "ru": "Сеть (для поступлений в блокчейне)"
+  },
+  "关联原订单": {
+    "en": "Link original order",
+    "ja": "元の注文を関連付け",
+    "ru": "Связать исходный заказ"
+  },
+  "核实手续费与结算": {
+    "en": "Verify fees and settlement",
+    "ja": "手数料と精算を確認",
+    "ru": "Подтвердить комиссию и расчёты"
+  },
+  "费用与结算核实依据": {
+    "en": "Fee and settlement evidence",
+    "ja": "手数料・精算の確認根拠",
+    "ru": "Документы о комиссии и расчётах"
+  },
+  "记账流水": {
+    "en": "Ledger transactions",
+    "ja": "記帳履歴",
+    "ru": "Проводки"
+  },
+  "账务事项": {
+    "en": "Transaction type",
+    "ja": "記帳事項",
+    "ru": "Тип операции"
+  },
+  "入账说明": {
+    "en": "Posting description",
+    "ja": "記帳内容",
+    "ru": "Описание проводки"
+  },
+  "入账时间": {
+    "en": "Posting time",
+    "ja": "記帳時刻",
+    "ru": "Время проводки"
+  },
+  "账户分录": {
+    "en": "Account entries",
+    "ja": "口座別仕訳",
+    "ru": "Записи по счетам"
+  },
+  "登记本单线下收款": {
+    "en": "Record this order's offline payment",
+    "ja": "この注文のオフライン入金を記録",
+    "ru": "Зарегистрировать офлайн-платёж по заказу"
+  },
+  "关联已核实收款": {
+    "en": "Link a verified receipt",
+    "ja": "確認済み入金を関連付け",
+    "ru": "Связать подтверждённое поступление"
+  },
+  "保存后可查看最新办理结果。": {
+    "en": "View the updated processing result after saving.",
+    "ja": "保存後に最新の処理結果を確認できます。",
+    "ru": "После сохранения можно посмотреть обновлённый результат."
+  },
+  "原订单付款尚待核实，本次操作未执行；请先查询原交易，避免重复付款": {
+    "en": "The original payment is awaiting verification. This action was not performed. Check the original transaction first to avoid duplicate payments.",
+    "ja": "元の支払いは確認待ちです。この操作は実行していません。二重払いを防ぐため、先に元の取引を確認してください。",
+    "ru": "Исходный платёж ожидает проверки. Это действие не выполнено. Сначала проверьте исходную операцию, чтобы избежать повторной оплаты."
   }
 }

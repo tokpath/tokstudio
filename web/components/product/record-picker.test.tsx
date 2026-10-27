@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import { OperatorPanel } from "./operator-resources";
 import { OperationForm } from "./operation-form";
+import { RecordPicker } from "./record-picker";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
@@ -33,4 +34,18 @@ it("stores the clicked record and keeps the dialog open", async () => {
   fireEvent.click(screen.getByRole("button", { name: "向直属采购方发布供货报价", exact: true }));
   await waitFor(() => expect(fetch.mock.calls.some(call => call[1]?.method === "POST")).toBe(true));
   expect(JSON.parse(String(fetch.mock.calls.find(call => call[1]?.method === "POST")?.[1]?.body))).toEqual({ buyer_id: "buyer-one" });
+});
+
+it("keeps a wheel on the open menu from scrolling the page", async () => {
+  const options = Array.from({ length: 12 }, (_, index) => ({ value: `buyer-${index}`, label: `采购方 ${index}` }));
+  render(<RecordPicker label="直属采购方" value="" displayLabel="" options={options} placeholder="按名称或编号搜索" emptyLabel="请选择实际业务记录" onQuery={() => undefined} onChoose={() => undefined} />);
+  fireEvent.focus(screen.getByRole("combobox", { name: "直属采购方" }));
+  const option = await screen.findByRole("option", { name: "采购方 11" });
+  const menu = option.closest("[data-record-picker-menu]");
+  expect(menu).toBeTruthy();
+  const blockPageWheel = vi.fn((event: Event) => event.preventDefault());
+  document.addEventListener("wheel", blockPageWheel);
+  fireEvent.wheel(option, { deltaY: 80, cancelable: true });
+  expect(blockPageWheel).not.toHaveBeenCalled();
+  document.removeEventListener("wheel", blockPageWheel);
 });

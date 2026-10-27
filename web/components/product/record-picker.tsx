@@ -60,7 +60,9 @@ export function RecordPicker({ label, required, invalid, disabled, ready = true,
 
   useEffect(() => {
     if (!open) return;
-    const place = () => {
+    const place = (event?: Event) => {
+      const target = event?.target;
+      if (target instanceof Node && list.current?.contains(target)) return;
       const rect = root.current?.getBoundingClientRect();
       if (rect) setBox({ top: rect.bottom + 4, left: rect.left, width: rect.width });
     };
@@ -81,6 +83,20 @@ export function RecordPicker({ label, required, invalid, disabled, ready = true,
     };
   }, [open]);
 
+  // The menu is portaled onto document.body, outside the dialog. A modal dialog
+  // cancels wheel and touch moves that reach document, so this list could not scroll.
+  useEffect(() => {
+    const node = list.current;
+    if (!open || !node) return;
+    const keepScroll = (event: Event) => event.stopPropagation();
+    node.addEventListener("wheel", keepScroll);
+    node.addEventListener("touchmove", keepScroll);
+    return () => {
+      node.removeEventListener("wheel", keepScroll);
+      node.removeEventListener("touchmove", keepScroll);
+    };
+  }, [open, box]);
+
   function reveal() {
     if (inactive) return;
     setDraft("");
@@ -100,7 +116,7 @@ export function RecordPicker({ label, required, invalid, disabled, ready = true,
     setOpen(false);
   }
 
-  const menu = open && box ? <ul ref={list} id={listId} role="listbox" aria-label={label} data-record-picker-menu="" style={{ top: box.top, left: box.left, width: box.width, pointerEvents: "auto" }} className="pointer-events-auto fixed z-[80] max-h-60 overflow-auto rounded-control border border-hairline bg-canvas-raised py-1 text-sm shadow-lg">
+  const menu = open && box ? <ul ref={list} id={listId} role="listbox" aria-label={label} data-record-picker-menu="" style={{ top: box.top, left: box.left, width: box.width, pointerEvents: "auto" }} className="pointer-events-auto fixed z-[80] max-h-60 overflow-auto overscroll-contain rounded-control border border-hairline bg-canvas-raised py-1 text-sm shadow-lg">
     <li><button type="button" role="option" aria-selected={value === ""} className="block min-h-11 w-full px-3 text-left text-ink-secondary hover:bg-canvas" onMouseDown={event => event.preventDefault()} onClick={() => choose(null)}>{emptyLabel}</button></li>
     {rows.map(item => <li key={item.value}><button type="button" role="option" aria-selected={item.value === value} className="block min-h-11 w-full px-3 text-left hover:bg-canvas" onMouseDown={event => event.preventDefault()} onClick={() => choose(item)}>{item.label}</button></li>)}
     {loading && <li className="px-3 py-2 text-xs text-ink-mute">{placeholder}</li>}

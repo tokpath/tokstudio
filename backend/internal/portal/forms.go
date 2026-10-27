@@ -35,7 +35,7 @@ func businessFields(o operation) []field {
 		confirmation.Help = "按整天填写，默认 30 天。等待期满且相关消费没有未结争议后，才计入资格，对应佣金才能使用或提现。已经开始等待的记录仍按原来的到期时间，不会因为后来改政策而延长。"
 		reward := defaultField("reward_validity_days", "注册奖励有效天数", "integer", 30)
 		reward.Help = "注册赠送额度从注册成功起按整天计算，默认 30 天。到期后尚未使用的注册奖励不再可用。"
-		return []field{f("threshold_usd", "终身资格累计净消费门槛 USD", "decimal"), f("direct_rate", "直接推荐分佣比例（0到1）", "decimal"), f("indirect_rate", "间接推荐分佣比例（0到1）", "decimal"), confirmation, f("invitee_atg", "受邀人注册赠送 ATG", "decimal"), f("inviter_atg", "邀请人注册赠送 ATG", "decimal"), reward, f("kol_cross_activity_limit", "KOL跨活动限制次数", "integer"), version}
+		return []field{f("threshold_usd", "分佣资格门槛 USD", "decimal"), f("direct_percent", "直接邀请佣金 %", "decimal"), f("indirect_percent", "间接邀请佣金 %", "decimal"), confirmation, f("invitee_atg", "受邀人注册赠送 ATG", "decimal"), f("inviter_atg", "邀请人注册赠送 ATG", "decimal"), reward, defaultField("kol_cross_activity_limit", "同一 KOL 跨活动每人限次", "integer", 0), version}
 	case "activities":
 		return campaignFields(true, version)
 	case "marketing":
@@ -97,11 +97,19 @@ func businessFields(o operation) []field {
 }
 
 func campaignFields(kol bool, version field) []field {
-	fields := []field{optional("campaign_id", "现有活动编号（新建留空）", "text"), f("package_id", "适用套餐编号", "text"), selectField("eligibility", "参与对象", "any|符合当前活动资格", "first_order|首购客户", "existing|已有成交客户"), optional("final_price_usd", "最终成交价 USD（无折扣留空）", "decimal"), defaultField("gift_atg", "本活动额外赠送 ATG", "decimal", "0")}
+	fields := []field{optional("campaign_id", "活动", "hidden"), optional("name", "活动名称（留空使用套餐名称）", "text"), f("package_id", "适用套餐", "text")}
 	if kol {
-		fields = append(fields, defaultField("concession_rate", "本人佣金让利比例（0到1）", "decimal", "0"))
+		fields = append(fields, f("concession_rate", "本人佣金让利比例", "decimal"))
+	} else {
+		price := optional("final_price_usd", "活动售价 USD（留空使用套餐售价）", "decimal")
+		price.Help = "可以只降价、只加赠或同时使用。活动售价不得高于下单时的套餐售价；不会修改套餐基础额度。"
+		fields = append(fields, price, defaultField("gift_atg", "额外赠送 ATG", "decimal", "0"))
 	}
-	return append(fields, f("starts_at", "开始时间", "datetime"), f("ends_at", "结束时间", "datetime"), defaultField("per_customer_limit", "每位客户限次", "integer", 1), defaultField("total_use_limit", "活动总次数上限", "integer", 100), defaultField("gift_budget_atg", "赠送总预算 ATG", "decimal", "0"), defaultField("discount_budget_usd", "折扣总预算 USD", "decimal", "0"), defaultField("enabled", "启用活动", "boolean", true), version)
+	audience := selectField("eligibility", "适用客户", "any|所有符合条件的客户", "first_order|首次购买客户", "existing|已有购买记录客户")
+	audience.Default = "any"
+	total := defaultField("total_use_limit", "活动总名额", "integer", 0)
+	total.Help = "0 表示不单独限制总名额。待付款订单先占用名额，成交后计入已用，关闭订单后释放。每位客户限次和实际履约能力仍同时生效。"
+	return append(fields, audience, f("starts_at", "开始时间", "datetime"), f("ends_at", "结束时间", "datetime"), defaultField("per_customer_limit", "每位客户限次", "integer", 1), total, defaultField("enabled", "启用活动", "boolean", true), version)
 }
 func supplyExitPolicyField() field {
 	v := selectField("exit_policy", "主动退出时的余额处理", "non_refundable|剩余采购余额不退", "remaining_paid_proportional|清算存量责任后，剩余购买额度按原实付比例退；赠送不退")

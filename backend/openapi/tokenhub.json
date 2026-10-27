@@ -9693,7 +9693,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_gifts",
-        "summary": "核实并发放独立赠送",
+        "summary": "发放赠送额度",
         "tags": [
           "Operator browser API"
         ],
@@ -9820,7 +9820,7 @@
             }
           }
         },
-        "description": " Required explicit review: 确认独立发放本次赠送，不改原正确交易，不将赠送视作有偿消费或分佣基数。新增责任受真实覆盖检查。 Requires marketing.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": " Required explicit review: 确认向所选客户发放这笔赠送额度？ Requires marketing.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "marketing.manage"
       }
     },
@@ -11943,7 +11943,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_marketing",
-        "summary": "发布经营活动",
+        "summary": "创建套餐活动",
         "tags": [
           "Operator browser API"
         ],
@@ -12247,7 +12247,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_commissions",
-        "summary": "发布资格与奖励政策",
+        "summary": "设置邀请与分佣规则",
         "tags": [
           "Operator browser API"
         ],
@@ -12374,7 +12374,7 @@
             }
           }
         },
-        "description": "修改只影响规则指定的后续事实，已成立责任按原快照执行。 Requires marketing.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "注册赠送、资格门槛与两级佣金在此统一设置。比例填写百分数，例如 15 表示 15%。提高门槛不影响已取得的资格，已有订单保留成交规则。 Requires marketing.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "marketing.manage"
       }
     },
@@ -35236,7 +35236,63 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Operator_marketing_publish"
+                "type": "object",
+                "properties": {
+                  "campaign_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "package_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "concession_rate": {
+                    "$ref": "#/components/schemas/LedgerDecimal"
+                  },
+                  "eligibility": {
+                    "enum": [
+                      "any",
+                      "first_order",
+                      "existing"
+                    ]
+                  },
+                  "starts_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "ends_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "per_customer_limit": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "total_use_limit": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "expected_version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "package_id",
+                  "concession_rate",
+                  "eligibility",
+                  "starts_at",
+                  "ends_at",
+                  "per_customer_limit",
+                  "enabled"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -47599,7 +47655,7 @@
               "compensation",
               "targeted_gift"
             ],
-            "description": "明确赠送原因"
+            "description": "赠送原因"
           },
           "amount_atg": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -47612,7 +47668,7 @@
           },
           "evidence": {
             "type": "string",
-            "description": "授权、事实和原事项关联依据"
+            "description": "赠送说明"
           }
         },
         "required": [
@@ -48281,11 +48337,23 @@
         "properties": {
           "campaign_id": {
             "type": "string",
-            "description": "现有活动编号（新建留空）"
+            "description": "活动"
+          },
+          "name": {
+            "type": "string",
+            "description": "活动名称（留空使用套餐名称）"
           },
           "package_id": {
             "type": "string",
-            "description": "适用套餐编号"
+            "description": "适用套餐"
+          },
+          "final_price_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "活动售价 USD（留空使用套餐售价） — 可以只降价、只加赠或同时使用。活动售价不得高于下单时的套餐售价；不会修改套餐基础额度。"
+          },
+          "gift_atg": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "额外赠送 ATG"
           },
           "eligibility": {
             "type": "string",
@@ -48294,19 +48362,7 @@
               "first_order",
               "existing"
             ],
-            "description": "参与对象"
-          },
-          "final_price_usd": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "最终成交价 USD（无折扣留空）"
-          },
-          "gift_atg": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "本活动额外赠送 ATG"
-          },
-          "concession_rate": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "本人佣金让利比例（0到1）"
+            "description": "适用客户"
           },
           "starts_at": {
             "type": "string",
@@ -48326,15 +48382,7 @@
           "total_use_limit": {
             "type": "integer",
             "minimum": 0,
-            "description": "活动总次数上限"
-          },
-          "gift_budget_atg": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "赠送总预算 ATG"
-          },
-          "discount_budget_usd": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "折扣总预算 USD"
+            "description": "活动总名额 — 0 表示不单独限制总名额。待付款订单先占用名额，成交后计入已用，关闭订单后释放。每位客户限次和实际履约能力仍同时生效。"
           },
           "enabled": {
             "type": "boolean",
@@ -48343,20 +48391,17 @@
           "expected_version": {
             "type": "integer",
             "minimum": 0,
-            "description": "当前版本（首次填写0）"
+            "description": "当前版本"
           }
         },
         "required": [
           "package_id",
-          "eligibility",
           "gift_atg",
-          "concession_rate",
+          "eligibility",
           "starts_at",
           "ends_at",
           "per_customer_limit",
           "total_use_limit",
-          "gift_budget_atg",
-          "discount_budget_usd",
           "enabled",
           "expected_version"
         ],
@@ -48409,20 +48454,19 @@
           },
           "merchant_campaign_id": {
             "type": "string",
-            "description": "经营方活动"
+            "description": "当前经营方活动"
           },
           "kol_campaign_id": {
             "type": "string",
-            "description": "KOL活动"
+            "description": "同套餐 KOL 活动"
           },
           "enabled": {
             "type": "boolean",
-            "description": "允许此明确配对组合"
+            "description": "允许与此 KOL 活动组合"
           }
         },
         "required": [
           "action",
-          "merchant_campaign_id",
           "kol_campaign_id",
           "enabled"
         ],
@@ -48433,20 +48477,20 @@
         "properties": {
           "threshold_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "终身资格累计净消费门槛 USD"
+            "description": "分佣资格门槛 USD"
           },
-          "direct_rate": {
+          "direct_percent": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "直接推荐分佣比例（0到1）"
+            "description": "直接邀请佣金 %"
           },
-          "indirect_rate": {
+          "indirect_percent": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "间接推荐分佣比例（0到1）"
+            "description": "间接邀请佣金 %"
           },
           "confirmation_days": {
             "type": "integer",
             "minimum": 0,
-            "description": "消费确认等待天数"
+            "description": "消费确认等待天数 — 按整天填写，默认 30 天。等待期满且相关消费没有未结争议后，才计入资格，对应佣金才能使用或提现。已经开始等待的记录仍按原来的到期时间，不会因为后来改政策而延长。"
           },
           "invitee_atg": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -48459,23 +48503,23 @@
           "reward_validity_days": {
             "type": "integer",
             "minimum": 0,
-            "description": "注册奖励有效天数"
+            "description": "注册奖励有效天数 — 注册赠送额度从注册成功起按整天计算，默认 30 天。到期后尚未使用的注册奖励不再可用。"
           },
           "kol_cross_activity_limit": {
             "type": "integer",
             "minimum": 0,
-            "description": "KOL跨活动限制次数"
+            "description": "同一 KOL 跨活动每人限次"
           },
           "expected_version": {
             "type": "integer",
             "minimum": 0,
-            "description": "当前版本（首次填写0）"
+            "description": "当前版本"
           }
         },
         "required": [
           "threshold_usd",
-          "direct_rate",
-          "indirect_rate",
+          "direct_percent",
+          "indirect_percent",
           "confirmation_days",
           "invitee_atg",
           "inviter_atg",

@@ -100,12 +100,12 @@ it("updates the campaign preview and retries original terms after an unknown pub
   const calls: RequestInit[] = [], published = vi.fn();
   vi.stubGlobal("fetch", vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => { calls.push(init!); if (calls.length === 1) throw new TypeError("lost connection"); return response({ id: "original-campaign", status: "published" }); }));
   show(<ActivityForm item={null} plans={[plan]} maximum="0.3" close={vi.fn()} published={published} />);
+  expect(screen.queryByLabelText("活动赠送预算 ATG", { exact: true })).toBeNull();
   fireEvent.change(screen.getByLabelText("本人让利百分点", { exact: true }), { target: { value: "10" } });
   const preview = screen.getByLabelText("活动效果预览");
   expect(preview.textContent).toContain("120 ATG");
   expect(preview.textContent).toContain("+12 ATG");
   expect(preview.textContent).toContain("20%");
-  fireEvent.change(screen.getByLabelText("活动赠送预算 ATG", { exact: true }), { target: { value: "12.000000000000000001" } });
   fireEvent.click(screen.getByLabelText("我确认活动让利、期限和使用上限，发布后仅对有效直属受邀客户生效。"));
   fireEvent.click(screen.getByRole("button", { name: "确认发布活动" }));
   await screen.findByRole("button", { name: "重试原活动发布" });
@@ -113,7 +113,7 @@ it("updates the campaign preview and retries original terms after an unknown pub
   expect((screen.getByRole("button", { name: "取消编辑" }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "重试原活动发布" }));
   await waitFor(() => expect(published).toHaveBeenCalledWith("original-campaign", "plan-one"));
-  expect(JSON.parse(String(calls[0].body)).configuration).toMatchObject({ concession_rate: "0.1", gift_atg: "0", gift_budget_atg: "12.000000000000000001", package_id: "plan-one" });
+  expect(JSON.parse(String(calls[0].body)).configuration).toMatchObject({ concession_rate: "0.1", package_id: "plan-one" });
   expect(calls[1].body).toBe(calls[0].body);
   expect((calls[1].headers as Headers).get("Idempotency-Key")).toBe((calls[0].headers as Headers).get("Idempotency-Key"));
 });
@@ -128,7 +128,6 @@ it("provides a share link after publication without changing the original invita
   show(<CustomerActivities />);
   fireEvent.click(await screen.findByRole("button", { name: "创建推广活动" }));
   fireEvent.change(screen.getByLabelText("本人让利百分点", { exact: true }), { target: { value: "10" } });
-  fireEvent.change(screen.getByLabelText("活动赠送预算 ATG", { exact: true }), { target: { value: "100" } });
   fireEvent.click(screen.getByLabelText("我确认活动让利、期限和使用上限，发布后仅对有效直属受邀客户生效。"));
   fireEvent.click(screen.getByRole("button", { name: "确认发布活动" }));
   await screen.findByText("活动已发布，可以分享给直属受邀客户。");

@@ -316,11 +316,11 @@ func TestPostgresCampaignCombinationLocksOriginalRatiosAndTwoHopScope(t *testing
 	f.qualify(t, a.Customer.ID, "qualify-a")
 	f.qualify(t, b.Customer.ID, "qualify-b")
 	now := time.Now().UTC()
-	merchant, err := f.s.PublishCampaign(f.ctx, nil, CampaignInput{ActorStaffID: f.owner, OperatorID: f.operator, Kind: "merchant", PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), FinalPriceUSD: func() *ledger.Decimal { v := d("80"); return &v }(), GiftATG: d("20"), PerCustomerLimit: 2, GiftBudgetATG: d("100"), DiscountBudgetUSD: d("100")})
+	merchant, err := f.s.PublishCampaign(f.ctx, nil, CampaignInput{ActorStaffID: f.owner, OperatorID: f.operator, Kind: "merchant", PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), FinalPriceUSD: func() *ledger.Decimal { v := d("80"); return &v }(), GiftATG: d("20"), PerCustomerLimit: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
-	kol, err := f.s.PublishKOLCampaign(f.ctx, nil, b.Customer.ID, CampaignInput{OperatorID: f.operator, PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), ConcessionRate: d("0.10"), PerCustomerLimit: 2, GiftBudgetATG: d("100")})
+	kol, err := f.s.PublishKOLCampaign(f.ctx, nil, b.Customer.ID, CampaignInput{OperatorID: f.operator, PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), ConcessionRate: d("0.10"), PerCustomerLimit: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -622,13 +622,13 @@ func TestPostgresRegistrationRewardsPromiseOutageAndKOLHistory(t *testing.T) {
 	}
 }
 
-func TestPostgresCampaignConcurrentCountAndGiftBudget(t *testing.T) {
+func TestPostgresCampaignConcurrentCountAndGiftAccounting(t *testing.T) {
 	f := setup(t)
 	kol := f.register(t, "kol@example.test", "")
 	customer := f.register(t, "customer@example.test", kol.InviteCode)
 	f.qualify(t, kol.Customer.ID, "qualify")
 	now := time.Now().UTC()
-	campaign, err := f.s.PublishKOLCampaign(f.ctx, nil, kol.Customer.ID, CampaignInput{OperatorID: f.operator, PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), ConcessionRate: d("0.1"), PerCustomerLimit: 1, GiftBudgetATG: d("10")})
+	campaign, err := f.s.PublishKOLCampaign(f.ctx, nil, kol.Customer.ID, CampaignInput{OperatorID: f.operator, PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), ConcessionRate: d("0.1"), PerCustomerLimit: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -663,7 +663,51 @@ func TestPostgresCampaignConcurrentCountAndGiftBudget(t *testing.T) {
 	}
 	var saved campaignRow
 	if err = f.db.First(&saved, "id=?", campaign.CampaignID).Error; err != nil || saved.ReservedGiftATG.Cmp(d("10")) != 0 || saved.ReservedUses != 1 {
-		t.Fatalf("campaign budget=%+v %v", saved, err)
+		t.Fatalf("campaign reservation=%+v %v", saved, err)
+	}
+}
+
+func TestPostgresCampaignTotalPlacesReleaseWithoutBudgetCaps(t *testing.T) {
+	f := setup(t)
+	first := f.register(t, "first@example.test", "")
+	second := f.register(t, "second@example.test", "")
+	now := time.Now().UTC()
+	price := d("80")
+	input := CampaignInput{ActorStaffID: f.owner, OperatorID: f.operator, Kind: "merchant", Name: "  Summer bonus  ", PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), FinalPriceUSD: &price, GiftATG: d("1000"), PerCustomerLimit: 2, TotalUseLimit: 1}
+	bad := input
+	tooHigh := d("101")
+	bad.FinalPriceUSD = &tooHigh
+	if _, err := f.s.PublishCampaign(f.ctx, nil, bad); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("activity price above package price accepted: %v", err)
+	}
+	bad.FinalPriceUSD, bad.GiftATG = nil, ledger.Zero()
+	if _, err := f.s.PublishCampaign(f.ctx, nil, bad); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("enabled activity without a benefit accepted: %v", err)
+	}
+	campaign, err := f.s.PublishCampaign(f.ctx, nil, input)
+	if err != nil || campaign.Name != "Summer bonus" {
+		t.Fatalf("named campaign: %+v %v", campaign, err)
+	}
+	raw, _ := json.Marshal(ActivitySelection{MerchantCampaignID: campaign.CampaignID})
+	create := func(customer, key string) (commerce.Order, error) {
+		return f.commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{CustomerID: customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: key, ExpectedOwnershipVersion: 1, ActivitySelection: raw})
+	}
+	order, err := create(first.Customer.ID, "first-reserves-place")
+	if err != nil || order.MerchantGiftATG.Cmp(d("1000")) != 0 || order.DueUSD.Cmp(d("80")) != 0 {
+		t.Fatalf("gift or discount blocked without budget: %+v %v", order, err)
+	}
+	if _, err = create(second.Customer.ID, "second-no-place"); !errors.Is(err, ErrLimit) {
+		t.Fatalf("total places bypassed by a different customer: %v", err)
+	}
+	if _, err = f.commerce.CloseOrder(f.ctx, nil, first.Customer.ID, order.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "isolated unpaid order"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = create(second.Customer.ID, "second-reuses-released-place"); err != nil {
+		t.Fatalf("closed order did not release place: %v", err)
+	}
+	var saved campaignRow
+	if err = f.db.First(&saved, "id=?", campaign.CampaignID).Error; err != nil || saved.ReservedUses != 1 || saved.ReservedGiftATG.Cmp(d("1000")) != 0 || saved.ReservedDiscountUSD.Cmp(d("20")) != 0 {
+		t.Fatalf("reservation accounting after close: %+v %v", saved, err)
 	}
 }
 

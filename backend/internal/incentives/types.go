@@ -20,7 +20,7 @@ var (
 	ErrConflict        = errors.New("incentives: conflicting command or version")
 	ErrNotEligible     = errors.New("incentives: customer or campaign is not eligible")
 	ErrNotReady        = errors.New("incentives: policy or coverage adapter is not configured")
-	ErrLimit           = errors.New("incentives: activity count or budget is exhausted")
+	ErrLimit           = errors.New("incentives: activity use limit is exhausted")
 	ErrCombination     = errors.New("incentives: activity combination is not explicitly authorized")
 	ErrBlocked         = errors.New("incentives: commission release or use is blocked")
 	ErrWithdrawalState = errors.New("incentives: withdrawal state does not permit this action")
@@ -76,25 +76,24 @@ type FunctionState struct {
 	BusinessSequence   int64     `json:"business_sequence"`
 }
 type CampaignInput struct {
-	Evidence          string          `json:"evidence"`
-	ActorStaffID      string          `json:"actor_staff_id"`
-	OwnerCustomerID   string          `json:"owner_customer_id"`
-	OperatorID        string          `json:"operator_id"`
-	CampaignID        string          `json:"campaign_id"`
-	Kind              string          `json:"kind"`
-	PackageID         string          `json:"package_id"`
-	Eligibility       string          `json:"eligibility"`
-	ExpectedVersion   int64           `json:"expected_version"`
-	Enabled           bool            `json:"enabled"`
-	StartsAt          time.Time       `json:"starts_at"`
-	EndsAt            time.Time       `json:"ends_at"`
-	FinalPriceUSD     *ledger.Decimal `json:"final_price_usd"`
-	GiftATG           ledger.Decimal  `json:"gift_atg"`
-	ConcessionRate    ledger.Decimal  `json:"concession_rate"`
-	PerCustomerLimit  int64           `json:"per_customer_limit"`
-	TotalUseLimit     int64           `json:"total_use_limit"`
-	GiftBudgetATG     ledger.Decimal  `json:"gift_budget_atg"`
-	DiscountBudgetUSD ledger.Decimal  `json:"discount_budget_usd"`
+	Name             string          `json:"name"`
+	Evidence         string          `json:"evidence"`
+	ActorStaffID     string          `json:"actor_staff_id"`
+	OwnerCustomerID  string          `json:"owner_customer_id"`
+	OperatorID       string          `json:"operator_id"`
+	CampaignID       string          `json:"campaign_id"`
+	Kind             string          `json:"kind"`
+	PackageID        string          `json:"package_id"`
+	Eligibility      string          `json:"eligibility"`
+	ExpectedVersion  int64           `json:"expected_version"`
+	Enabled          bool            `json:"enabled"`
+	StartsAt         time.Time       `json:"starts_at"`
+	EndsAt           time.Time       `json:"ends_at"`
+	FinalPriceUSD    *ledger.Decimal `json:"final_price_usd"`
+	GiftATG          ledger.Decimal  `json:"gift_atg"`
+	ConcessionRate   ledger.Decimal  `json:"concession_rate"`
+	PerCustomerLimit int64           `json:"per_customer_limit"`
+	TotalUseLimit    int64           `json:"total_use_limit"`
 }
 type Campaign struct {
 	OriginalOperatorID  string         `json:"original_operator_id" gorm:"default:(-)"`
@@ -111,22 +110,21 @@ type Campaign struct {
 	UsedUses            int64          `json:"used_uses"`
 }
 type CampaignVersion struct {
-	ID                string          `json:"id"`
-	CampaignID        string          `json:"campaign_id"`
-	PackageID         string          `json:"package_id"`
-	Eligibility       string          `json:"eligibility"`
-	Version           int64           `json:"version"`
-	Enabled           bool            `json:"enabled"`
-	StartsAt          time.Time       `json:"starts_at"`
-	EndsAt            time.Time       `json:"ends_at"`
-	FinalPriceUSD     *ledger.Decimal `json:"final_price_usd"`
-	GiftATG           ledger.Decimal  `json:"gift_atg"`
-	ConcessionRate    ledger.Decimal  `json:"concession_rate"`
-	PerCustomerLimit  int64           `json:"per_customer_limit"`
-	TotalUseLimit     int64           `json:"total_use_limit"`
-	GiftBudgetATG     ledger.Decimal  `json:"gift_budget_atg"`
-	DiscountBudgetUSD ledger.Decimal  `json:"discount_budget_usd"`
-	CreatedAt         time.Time       `json:"created_at"`
+	Name             string          `json:"name"`
+	ID               string          `json:"id"`
+	CampaignID       string          `json:"campaign_id"`
+	PackageID        string          `json:"package_id"`
+	Eligibility      string          `json:"eligibility"`
+	Version          int64           `json:"version"`
+	Enabled          bool            `json:"enabled"`
+	StartsAt         time.Time       `json:"starts_at"`
+	EndsAt           time.Time       `json:"ends_at"`
+	FinalPriceUSD    *ledger.Decimal `json:"final_price_usd"`
+	GiftATG          ledger.Decimal  `json:"gift_atg"`
+	ConcessionRate   ledger.Decimal  `json:"concession_rate"`
+	PerCustomerLimit int64           `json:"per_customer_limit"`
+	TotalUseLimit    int64           `json:"total_use_limit"`
+	CreatedAt        time.Time       `json:"created_at"`
 }
 type ActivitySelection struct {
 	MerchantCampaignID string `json:"merchant_campaign_id"`

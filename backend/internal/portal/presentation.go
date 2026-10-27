@@ -109,6 +109,9 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				}
 				if lookup != "" && f.Kind != "hidden" {
 					f.LookupURL = scope + "/references/" + lookup
+					if f.Name == "kol_campaign_id" {
+						f.LookupURL += "?campaign_kind=kol"
+					}
 					if (resource == "procurement" || resource == "payments" || resource == "order-context") && lookup == "receipts" {
 						f.LookupURL += "?whole=true"
 					}

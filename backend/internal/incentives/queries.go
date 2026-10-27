@@ -13,7 +13,7 @@ import (
 )
 
 // PreviewQuote uses a savepoint to exercise the same eligibility calculations
-// as an order and then rolls back all trial counters, budgets and snapshots.
+// as an order and then rolls back all trial counters and snapshots.
 // The returned Reference is empty: a preview is never a reward promise.
 func (s *Service) PreviewQuote(ctx context.Context, tx *gorm.DB, customer, operator, quoteID string, selection json.RawMessage) (out commerce.MarketingQuote, err error) {
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
@@ -52,6 +52,7 @@ func (s *Service) PreviewQuote(ctx context.Context, tx *gorm.DB, customer, opera
 }
 
 type ActivityOffer struct {
+	Name                  string          `json:"name"`
 	ID                    string          `json:"id"`
 	Kind                  string          `json:"kind"`
 	OwnerCustomerID       *string         `json:"owner_customer_id"`
@@ -123,7 +124,7 @@ func (s *Service) EligibleActivities(ctx context.Context, tx *gorm.DB, operator,
 			}
 			b, _ := json.Marshal(selection)
 			_, previewErr := s.PreviewQuote(ctx, tx, customer, operator, *p.CurrentQuoteID, b)
-			offer := ActivityOffer{ID: c.ID, Kind: c.Kind, OwnerCustomerID: c.OwnerCustomerID, PackageID: v.PackageID, FinalPriceUSD: v.FinalPriceUSD, GiftATG: v.GiftATG, ConcessionRate: v.ConcessionRate, StartsAt: v.StartsAt, EndsAt: v.EndsAt, PerCustomerLimit: v.PerCustomerLimit, Eligible: previewErr == nil}
+			offer := ActivityOffer{Name: v.Name, ID: c.ID, Kind: c.Kind, OwnerCustomerID: c.OwnerCustomerID, PackageID: v.PackageID, FinalPriceUSD: v.FinalPriceUSD, GiftATG: v.GiftATG, ConcessionRate: v.ConcessionRate, StartsAt: v.StartsAt, EndsAt: v.EndsAt, PerCustomerLimit: v.PerCustomerLimit, Eligible: previewErr == nil}
 			if previewErr != nil {
 				offer.Reason = previewErr.Error()
 			}
@@ -210,6 +211,23 @@ type PromotionOverview struct {
 	HeldUSD               ledger.Decimal `json:"held_usd"`
 	PendingConsumptionUSD ledger.Decimal `json:"pending_consumption_usd"`
 	PendingCorrectionUSD  ledger.Decimal `json:"pending_correction_usd"`
+}
+
+// FunctionStateForOperator is a read projection. Unlike PromotionOverview it
+// neither advances qualification nor creates ledger accounts, so it is safe in
+// the operator's repeatable-read customer workspace.
+func (s *Service) FunctionStateForOperator(ctx context.Context, tx *gorm.DB, actor, operator, customer string) (FunctionState, error) {
+	if err := s.org.RequirePermission(ctx, tx, actor, operator, "marketing.manage"); err != nil {
+		return FunctionState{}, err
+	}
+	own, err := s.org.CurrentOwnership(ctx, tx, customer)
+	if err != nil {
+		return FunctionState{}, err
+	}
+	if own.OperatorID != operator {
+		return FunctionState{}, ErrNotEligible
+	}
+	return s.stateAt(s.dbFor(ctx, tx), operator, customer, time.Now().UTC())
 }
 
 func (s *Service) PromotionOverview(ctx context.Context, tx *gorm.DB, operator, customer string) (out PromotionOverview, err error) {

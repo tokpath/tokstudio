@@ -2303,5 +2303,350 @@
     "en": "The receipt is insufficient, already used, or exceeds the order amount. Check the original receipt and order.",
     "ja": "入金額が不足している、既に使用済み、または注文金額を超えています。元の入金と注文を確認してください。",
     "ru": "Сумма поступления недостаточна, уже использована или превышает сумму заказа. Проверьте исходное поступление и заказ."
+  },
+  "活动名称（可选）": {
+    "en": "Activity name (optional)",
+    "ja": "活動名（任意）",
+    "ru": "Название акции (необязательно)"
+  },
+  "仅为活动预览，最终权益、次数与组合资格由购买报价核实。": {
+    "en": "Preview only. Credits, use limits and combination eligibility are checked in the purchase quote.",
+    "ja": "これはプレビューです。付与残高、利用回数、併用資格は購入見積で確認されます。",
+    "ru": "Это предварительный расчёт. Кредиты, лимиты и совместимость проверяются при расчёте покупки."
+  },
+  "KOL 推广": {
+    "en": "KOL promotion",
+    "ja": "KOL プロモーション",
+    "ru": "Продвижение KOL"
+  },
+  "所有符合条件的客户": {
+    "en": "All eligible customers",
+    "ja": "条件を満たすすべての顧客",
+    "ru": "Все подходящие клиенты"
+  },
+  "共 {count} 个名额": {
+    "en": "{count} uses in total",
+    "ja": "合計 {count} 枠",
+    "ru": "Всего {count} использований"
+  },
+  "不单独限制总名额": {
+    "en": "No separate total-use limit",
+    "ja": "総枠数の個別制限なし",
+    "ru": "Без отдельного общего лимита"
+  },
+  "已用 {used}，待付款占用 {reserved}": {
+    "en": "Used: {used}; reserved for payment: {reserved}",
+    "ja": "利用済み {used}、支払待ち予約 {reserved}",
+    "ru": "Использовано: {used}; ожидают оплаты: {reserved}"
+  },
+  "已开放组合：{names}": {
+    "en": "Can combine with: {names}",
+    "ja": "併用可能：{names}",
+    "ru": "Можно сочетать с: {names}"
+  },
+  "未开放与 KOL 优惠组合": {
+    "en": "Cannot combine with KOL offers",
+    "ja": "KOL 特典との併用は不可",
+    "ru": "Нельзя сочетать с предложениями KOL"
+  },
+  "注册赠送": {
+    "en": "Registration gifts",
+    "ja": "登録特典",
+    "ru": "Подарки за регистрацию"
+  },
+  "受邀客户": {
+    "en": "Invited customer",
+    "ja": "招待された顧客",
+    "ru": "Приглашённый клиент"
+  },
+  "普通邀请人": {
+    "en": "Ordinary inviter",
+    "ja": "通常の招待者",
+    "ru": "Обычный пригласивший"
+  },
+  "有效 {days} 天；KOL 邀请人不再获得注册赠送。": {
+    "en": "Valid for {days} days. KOL inviters no longer receive registration gifts.",
+    "ja": "有効期間は {days} 日です。KOL 招待者には登録特典は付与されません。",
+    "ru": "Действуют {days} дней. Пригласившие KOL больше не получают подарки за регистрацию."
+  },
+  "成为 KOL": {
+    "en": "Become a KOL",
+    "ja": "KOL 資格",
+    "ru": "Стать KOL"
+  },
+  "本人已确认的真实支出达标后自动取得资格，赠送不计入。提高门槛保留已有资格。": {
+    "en": "Qualification is granted automatically when confirmed personal spending reaches the threshold. Gifts do not count; raising the threshold preserves existing qualification.",
+    "ja": "本人の確定済み実支出が基準に達すると自動的に資格を取得します。特典は対象外で、基準引き上げ後も取得済み資格は維持されます。",
+    "ru": "Статус присваивается автоматически при достижении порога подтверждённых личных расходов. Подарки не учитываются; повышение порога сохраняет полученный статус."
+  },
+  "两级佣金": {
+    "en": "Two-level commissions",
+    "ja": "2段階コミッション",
+    "ru": "Двухуровневые комиссии"
+  },
+  "直接邀请佣金 %": {
+    "en": "Direct referral commission %",
+    "ja": "直接紹介コミッション %",
+    "ru": "Комиссия за прямое приглашение, %"
+  },
+  "间接邀请佣金 %": {
+    "en": "Indirect referral commission %",
+    "ja": "間接紹介コミッション %",
+    "ru": "Комиссия за косвенное приглашение, %"
+  },
+  "有偿调用确认等待 {days} 天，确认后计入资格并解冻佣金。": {
+    "en": "Paid usage is confirmed after {days} days, then counts toward qualification and releases commissions.",
+    "ja": "有料利用は {days} 日の確認待ち後に資格へ加算され、コミッションの凍結が解除されます。",
+    "ru": "Платное использование подтверждается через {days} дней, после чего учитывается для статуса и разблокирует комиссию."
+  },
+  "同一 KOL 跨活动每人最多 {count} 次": {
+    "en": "At most {count} uses per customer across the same KOL's activities",
+    "ja": "同じ KOL の活動を通じて1人最大 {count} 回",
+    "ru": "Не более {count} использований на клиента во всех акциях одного KOL"
+  },
+  "同一 KOL 跨活动不单独限次": {
+    "en": "No separate limit across the same KOL's activities",
+    "ja": "同じ KOL の活動間の個別回数制限なし",
+    "ru": "Без отдельного лимита между акциями одного KOL"
+  },
+  "还没有套餐活动，选择已发布套餐即可创建。": {
+    "en": "No package activities yet. Choose a published package to create one.",
+    "ja": "活動はまだありません。公開済みプランを選択して作成できます。",
+    "ru": "Акций пакетов пока нет. Для создания выберите опубликованный пакет."
+  },
+  "活动名称（留空使用套餐名称）": {
+    "en": "Activity name (defaults to package name)",
+    "ja": "活動名（空欄でプラン名を使用）",
+    "ru": "Название акции (по умолчанию название пакета)"
+  },
+  "活动售价 USD（留空使用套餐售价）": {
+    "en": "Activity price USD (defaults to package price)",
+    "ja": "活動価格 USD（空欄でプラン価格を使用）",
+    "ru": "Цена акции USD (по умолчанию цена пакета)"
+  },
+  "可以只降价、只加赠或同时使用。活动售价不得高于下单时的套餐售价；不会修改套餐基础额度。": {
+    "en": "Offer a discount, extra credits, or both. The activity price cannot exceed the package price at checkout. Base package credits stay unchanged.",
+    "ja": "値下げ、追加特典、または両方を設定できます。活動価格は注文時のプラン価格を超えられず、基本残高は変更されません。",
+    "ru": "Можно предложить скидку, дополнительные кредиты или оба варианта. Цена акции не может превышать цену пакета при заказе; базовые кредиты не меняются."
+  },
+  "活动总名额": {
+    "en": "Total activity uses",
+    "ja": "活動の総枠数",
+    "ru": "Общее число использований акции"
+  },
+  "0 表示不单独限制总名额。待付款订单先占用名额，成交后计入已用，关闭订单后释放。每位客户限次和实际履约能力仍同时生效。": {
+    "en": "0 means no separate total limit. Unpaid orders reserve uses; completed orders consume them and closed orders release them. Per-customer limits and fulfilment capacity still apply.",
+    "ja": "0 は総枠数の個別制限なしを意味します。未払い注文は枠を予約し、成立時に利用済み、終了時に解放します。顧客別制限と履行能力も適用されます。",
+    "ru": "0 означает отсутствие отдельного общего лимита. Неоплаченные заказы резервируют места; завершённые используют их, закрытые освобождают. Лимиты клиента и возможность исполнения сохраняются."
+  },
+  "分佣资格门槛 USD": {
+    "en": "Commission qualification threshold USD",
+    "ja": "コミッション資格基準 USD",
+    "ru": "Порог получения комиссий USD"
+  },
+  "同一 KOL 跨活动每人限次": {
+    "en": "Per-customer limit across one KOL's activities",
+    "ja": "同じ KOL の活動を通じた1人あたりの制限",
+    "ru": "Лимит на клиента во всех акциях одного KOL"
+  },
+  "套餐营销活动": {
+    "en": "Package promotions",
+    "ja": "プラン販促活動",
+    "ru": "Акции пакетов"
+  },
+  "选择套餐，设置活动价或加赠、时间与名额。KOL 活动由客户自行创建，默认不能与经营方优惠组合。": {
+    "en": "Choose a package and set a promotional price or bonus, dates and use limits. Customers create KOL activities; combining them with operator offers is disabled by default.",
+    "ja": "プランを選び、活動価格や特典、期間、枠数を設定します。KOL 活動は顧客自身が作成し、事業者特典との併用は初期状態ではできません。",
+    "ru": "Выберите пакет, укажите цену акции или бонус, сроки и лимиты. Акции KOL создают клиенты; сочетание с предложениями оператора по умолчанию запрещено."
+  },
+  "创建套餐活动": {
+    "en": "Create package activity",
+    "ja": "プラン活動を作成",
+    "ru": "Создать акцию пакета"
+  },
+  "组合 KOL 优惠": {
+    "en": "Combine KOL offer",
+    "ja": "KOL 特典の併用",
+    "ru": "Сочетание с предложением KOL"
+  },
+  "同套餐 KOL 活动": {
+    "en": "KOL activity for this package",
+    "ja": "同じプランの KOL 活動",
+    "ru": "Акция KOL для этого пакета"
+  },
+  "允许与此 KOL 活动组合": {
+    "en": "Allow combination with this KOL activity",
+    "ja": "この KOL 活動との併用を許可",
+    "ru": "Разрешить сочетание с этой акцией KOL"
+  },
+  "只开放所选活动这一对组合。已开放的活动列在当前活动详情中；选择同一活动并关闭允许，即可取消组合。": {
+    "en": "Only this pair is authorized. Current combinations are listed on the activity. Select the same KOL activity and turn permission off to revoke it.",
+    "ja": "選択した組み合わせのみを許可します。許可済み活動は活動内に表示されます。同じ KOL 活動を選び許可を解除すると併用を取り消せます。",
+    "ru": "Разрешается только эта пара. Действующие сочетания указаны в акции. Выберите ту же акцию KOL и отключите разрешение для отмены."
+  },
+  "管理推广功能": {
+    "en": "Manage referral access",
+    "ja": "紹介機能を管理",
+    "ru": "Управление продвижением"
+  },
+  "后续分佣": {
+    "en": "Future commissions",
+    "ja": "今後のコミッション",
+    "ru": "Будущие комиссии"
+  },
+  "正常应计": {
+    "en": "Accrue normally",
+    "ja": "通常どおり計上",
+    "ru": "Начислять как обычно"
+  },
+  "暂停应计（可恢复）": {
+    "en": "Pause accrual (reversible)",
+    "ja": "計上を一時停止（再開可能）",
+    "ru": "Приостановить начисление (можно возобновить)"
+  },
+  "永久停止（不可恢复）": {
+    "en": "Stop permanently (irreversible)",
+    "ja": "永久停止（再開不可）",
+    "ru": "Прекратить навсегда (необратимо)"
+  },
+  "暂缓佣金解冻与使用": {
+    "en": "Hold commission release and use",
+    "ja": "コミッションの解除と利用を保留",
+    "ru": "Приостановить разблокировку и использование комиссий"
+  },
+  "风险审查可只暂缓解冻与使用，继续正确应计。暂停或永久停止才会阻止后续分佣。": {
+    "en": "During review you may hold release and use while preserving valid accrual. Only pausing or stopping commissions prevents future accrual.",
+    "ja": "審査中は正しい計上を続けながら、解除と利用のみを保留できます。今後の計上を止めるには一時停止または永久停止を選びます。",
+    "ru": "При проверке можно заблокировать использование, сохранив корректное начисление. Только приостановка или прекращение останавливают будущие начисления."
+  },
+  "确认处理所选客户的推广功能？已取得的资格、正确佣金和邀请关系保留；永久停止后不能恢复。": {
+    "en": "Update this customer's referral access? Earned qualification, valid commissions and referral relationships are preserved. Permanent termination cannot be reversed.",
+    "ja": "この顧客の紹介機能を変更しますか？取得済み資格、正当なコミッション、紹介関係は維持されます。永久停止は取り消せません。",
+    "ru": "Изменить доступ клиента к продвижению? Полученный статус, правильные комиссии и связи приглашения сохраняются. Постоянное прекращение необратимо."
+  },
+  "设置邀请与分佣规则": {
+    "en": "Set referral and commission rules",
+    "ja": "招待とコミッションのルールを設定",
+    "ru": "Настроить правила приглашений и комиссий"
+  },
+  "注册赠送、资格门槛与两级佣金在此统一设置。比例填写百分数，例如 15 表示 15%。提高门槛不影响已取得的资格，已有订单保留成交规则。": {
+    "en": "Configure registration gifts, qualification and two-level commissions here. Enter percentages: 15 means 15%. Raising the threshold preserves existing qualification; placed orders keep their agreed rules.",
+    "ja": "登録特典、資格基準、2段階コミッションをここで設定します。割合は百分率で、15 は 15% です。基準を引き上げても取得済み資格は維持され、既存注文には成立時の規則が適用されます。",
+    "ru": "Здесь задаются подарки за регистрацию, порог и двухуровневые комиссии. Укажите проценты: 15 означает 15%. Повышение порога не отменяет статус; заказы сохраняют согласованные правила."
+  },
+  "发放赠送额度": {
+    "en": "Grant gift credits",
+    "ja": "特典残高を付与",
+    "ru": "Выдать подарочные кредиты"
+  },
+  "赠送说明": {
+    "en": "Gift note",
+    "ja": "付与の説明",
+    "ru": "Комментарий к подарку"
+  },
+  "选择客户，填写赠送额度、有效期和说明即可发放。赠送不计入分佣资格或佣金基数，系统自动核对履约能力。": {
+    "en": "Select a customer and enter credits, expiry and a note. Gifts do not count toward qualification or commission. Fulfilment capacity is checked automatically.",
+    "ja": "顧客を選び、付与額、有効期限、説明を入力します。特典は資格やコミッションの対象外で、履行能力は自動確認されます。",
+    "ru": "Выберите клиента, укажите кредиты, срок и пояснение. Подарки не учитываются для статуса и комиссии. Возможность исполнения проверяется автоматически."
+  },
+  "确认向所选客户发放这笔赠送额度？": {
+    "en": "Grant these gift credits to the selected customer?",
+    "ja": "選択した顧客にこの特典残高を付与しますか？",
+    "ru": "Выдать эти подарочные кредиты выбранному клиенту?"
+  },
+  "已用名额": {
+    "en": "Used places",
+    "ja": "利用済み枠",
+    "ru": "Использованные места"
+  },
+  "待付款占用": {
+    "en": "Reserved for payment",
+    "ja": "支払待ち予約",
+    "ru": "Ожидают оплаты"
+  },
+  "已开放组合的 KOL 活动": {
+    "en": "Authorized KOL combinations",
+    "ja": "併用許可済み KOL 活動",
+    "ru": "Разрешённые сочетания KOL"
+  },
+  "让利百分点": {
+    "en": "Concession percentage points",
+    "ja": "還元ポイント数",
+    "ru": "Процентные пункты уступки"
+  },
+  "填写百分数，例如 15 表示 15%。佣金按受邀客户实际有偿调用对应的已确认实付金额计算，不按充值或赠送计算。": {
+    "en": "Enter percentages: 15 means 15%. Commissions use confirmed paid spending from invitees' actual paid usage, excluding top-ups and gifts.",
+    "ja": "百分率で入力します。15 は 15% です。コミッションは招待顧客の有料利用に対応する確定済み実払額が対象で、入金や特典は対象外です。",
+    "ru": "Укажите проценты: 15 означает 15%. Комиссии рассчитываются по подтверждённой оплате фактических платных вызовов приглашённых, без пополнений и подарков."
+  },
+  "本人已确认且不会退回的真实支出达到此值后，自动取得分佣资格。包含已确认的有偿调用和到期未用购买额度对应实付，不含赠送；已有资格不会因提高门槛而撤销。": {
+    "en": "Qualification is granted when confirmed non-refundable personal spending reaches this amount, including paid usage and expired unused purchased credits at their paid value. Gifts are excluded; raising the threshold preserves earned qualification.",
+    "ja": "返金されない本人の確定済み実支出がこの額に達すると資格を取得します。確定済み有料利用と期限切れ購入残高の実払相当額が対象で、特典は除外されます。基準引き上げでも取得済み資格は維持されます。",
+    "ru": "Статус присваивается при достижении суммы подтверждённых невозвратных личных расходов: платных вызовов и стоимости истёкших купленных кредитов. Подарки исключены; повышение порога не отменяет статус."
+  },
+  "套餐活动与 KOL 推广": {
+    "en": "Package activities and KOL referrals",
+    "ja": "プラン活動と KOL 紹介",
+    "ru": "Акции пакетов и продвижение KOL"
+  },
+  "设置套餐活动价或加赠，按时间、客户范围和名额生效。需要与 KOL 优惠同享时，在对应活动上开放组合。": {
+    "en": "Set promotional package prices or bonus credits, dates, customer eligibility and use limits. Authorize KOL combinations on the relevant activity.",
+    "ja": "プランの活動価格や特典、期間、対象顧客、枠数を設定します。KOL 特典との併用は対象活動で許可します。",
+    "ru": "Задайте цену акции или бонус, сроки, круг клиентов и лимиты. Разрешайте сочетание с KOL в соответствующей акции."
+  },
+  "规则与赠送履约能力须就绪": {
+    "en": "Rules and gift fulfilment capacity must be ready",
+    "ja": "ルールと特典の履行能力の準備が必要です",
+    "ru": "Правила и возможность выдачи подарков должны быть готовы"
+  },
+  "未开始": {
+    "en": "Not started",
+    "ja": "開始前",
+    "ru": "Не началось"
+  },
+  "已结束": {
+    "en": "Ended",
+    "ja": "終了",
+    "ru": "Завершено"
+  },
+  "活动价 {amount} USD": {
+    "en": "Activity price {amount} USD",
+    "ja": "活動価格 {amount} USD",
+    "ru": "Цена акции {amount} USD"
+  },
+  "按套餐基础额度加赠 {amount}%": {
+    "en": "Bonus of {amount}% of base package credits",
+    "ja": "プラン基本残高の {amount}% を追加",
+    "ru": "Бонус {amount}% от базовых кредитов пакета"
+  },
+  "额外赠送 {amount} ATG": {
+    "en": "Extra {amount} ATG",
+    "ja": "追加特典 {amount} ATG",
+    "ru": "Дополнительно {amount} ATG"
+  },
+  "活动时间": {
+    "en": "Activity dates",
+    "ja": "活動期間",
+    "ru": "Сроки акции"
+  },
+  "参与范围与名额": {
+    "en": "Eligibility and places",
+    "ja": "対象者と枠数",
+    "ru": "Участники и лимиты"
+  },
+  "优惠内容": {
+    "en": "Offer details",
+    "ja": "特典内容",
+    "ru": "Условия предложения"
+  },
+  "在此设置注册赠送和 KOL 规则；客户的推广收益与功能状态，在客户工作台查看和办理。": {
+    "en": "Set registration gifts and KOL rules here. View customer earnings and manage referral access in the customer workspace.",
+    "ja": "登録特典と KOL ルールを設定します。顧客の紹介収益と機能状態は顧客ワークスペースで確認・管理します。",
+    "ru": "Здесь задаются подарки за регистрацию и правила KOL. Доходы и доступ к продвижению клиента доступны в его рабочей области."
+  },
+  "活动名额或客户使用次数已达上限": {
+    "en": "The activity capacity or customer use limit has been reached.",
+    "ja": "活動の枠数または顧客の利用回数が上限に達しています。",
+    "ru": "Достигнут общий лимит акции или лимит использований клиента."
   }
 }

@@ -21,11 +21,11 @@ func (a *Application) manualGiftsResource(c *gin.Context, op organization.Operat
 	}
 	p["search_supported"], p["status_supported"] = true, true
 	p["title"] = "定向赠送与服务补偿"
-	p["description"] = "独立赠送来源，PaidUSD为0，不修改正确原交易、现金或佣金。必须有明确原因、凭据和真实销售覆盖。列表可按客户编号查询。"
+	p["description"] = "选择客户，填写赠送额度、有效期和说明即可发放。赠送不计入分佣资格或佣金基数，系统自动核对履约能力。"
 	p["items"] = items
 	p["next_cursor"] = next
-	p["columns"] = []gin.H{col("customer_id", "当前服务客户", "text"), col("amount_atg", "独立赠送ATG", "atg"), col("reason", "原因", "text"), col("evidence", "关联事实与依据", "text"), col("effective_at", "本次生效", "datetime"), col("expires_at", "到期（空为不限期）", "datetime"), col("grant_id", "独立权益来源", "text")}
-	p["operations"] = []operation{{Name: "issue", Label: "核实并发放独立赠送", Method: "POST", Path: base, Fields: []field{f("customer_id", "本经营方当前客户", "text"), selectField("reason", "明确赠送原因", "compensation|独立服务补偿", "targeted_gift|受权定向赠送"), f("amount_atg", "本次新增赠送ATG", "decimal"), optional("expires_at", "到期时刻（留空不限期）", "datetime"), f("evidence", "授权、事实和原事项关联依据", "textarea")}, Confirmation: "确认独立发放本次赠送，不改原正确交易，不将赠送视作有偿消费或分佣基数。新增责任受真实覆盖检查。"}}
+	p["columns"] = []gin.H{col("customer_id", "当前服务客户", "text"), col("amount_atg", "独立赠送ATG", "atg"), col("reason", "原因", "text"), col("evidence", "赠送说明", "text"), col("effective_at", "本次生效", "datetime"), col("expires_at", "到期（空为不限期）", "datetime")}
+	p["operations"] = []operation{{Name: "issue", Label: "发放赠送额度", Method: "POST", Path: base, Fields: []field{f("customer_id", "本经营方当前客户", "text"), selectField("reason", "赠送原因", "compensation|服务补偿", "targeted_gift|定向赠送"), f("amount_atg", "本次新增赠送ATG", "decimal"), optional("expires_at", "到期时刻（留空不限期）", "datetime"), f("evidence", "赠送说明", "textarea")}, Confirmation: "确认向所选客户发放这笔赠送额度？"}}
 	a.resourceResponse(c, p)
 }
 func (a *Application) issueManualGift(c *gin.Context, op organization.Operator, actor string) {

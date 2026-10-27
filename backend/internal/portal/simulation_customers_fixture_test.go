@@ -65,7 +65,7 @@ func (f *testApp) seedCustomerSimulation(t *testing.T, lab string) map[string]an
 			if scope.Kind == "supply" {
 				actor = platform
 			}
-			p := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: model, Layer: "regular", EffectiveAt: time.Now().Add(-time.Minute), Published: true, NoticeID: "explicit synthetic simulation pricing", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "output", Unit: "token", Per: "1", Rate: "0.001"}}}}
+			p := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: model, Layer: "regular", EffectiveAt: time.Now().Add(-time.Minute), Published: true, NoticeID: "explicit synthetic simulation pricing", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "output", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "cache", Unit: "token", Per: "1", Rate: "0.001"}}}}
 			if e = f.a.Catalog.PublishPrice(ctx, actor, p, f.a.pricePublished); e != nil {
 				t.Fatal(e)
 			}
@@ -154,13 +154,13 @@ func (f *testApp) seedCustomerSimulation(t *testing.T, lab string) map[string]an
 	}
 	seedMoney(b.created.Operator.ID, foreign.Customer.ID, "customer:usd", "240")
 	price := d("80")
-	merchant, e := f.a.Incentives.PublishCampaign(ctx, nil, incentives.CampaignInput{ActorStaffID: owner, OperatorID: a.created.Operator.ID, Kind: "merchant", PackageID: a.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: time.Now().Add(-time.Hour), EndsAt: time.Now().Add(24 * time.Hour), FinalPriceUSD: &price, GiftATG: d("20"), PerCustomerLimit: 10, TotalUseLimit: 100, GiftBudgetATG: d("2000"), DiscountBudgetUSD: ledger.Zero(), Evidence: "synthetic operator gift campaign"})
+	merchant, e := f.a.Incentives.PublishCampaign(ctx, nil, incentives.CampaignInput{ActorStaffID: owner, OperatorID: a.created.Operator.ID, Kind: "merchant", PackageID: a.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: time.Now().Add(-time.Hour), EndsAt: time.Now().Add(24 * time.Hour), FinalPriceUSD: &price, GiftATG: d("20"), PerCustomerLimit: 10, TotalUseLimit: 100, Evidence: "synthetic operator gift campaign"})
 	if e != nil {
 		t.Fatal(e)
 	}
 	// Existing other-KOL activity is a negative fixture. The direct KOL creates
 	// their own activity through the customer UI during browser acceptance.
-	otherActivity, e := f.a.Incentives.PublishKOLCampaign(ctx, nil, other.Customer.ID, incentives.CampaignInput{OperatorID: a.created.Operator.ID, PackageID: a.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: time.Now().Add(-time.Hour), EndsAt: time.Now().Add(24 * time.Hour), ConcessionRate: d("0.1"), PerCustomerLimit: 10, TotalUseLimit: 100, GiftBudgetATG: d("1000"), Evidence: "negative other KOL activity fixture"})
+	otherActivity, e := f.a.Incentives.PublishKOLCampaign(ctx, nil, other.Customer.ID, incentives.CampaignInput{OperatorID: a.created.Operator.ID, PackageID: a.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: time.Now().Add(-time.Hour), EndsAt: time.Now().Add(24 * time.Hour), ConcessionRate: d("0.1"), PerCustomerLimit: 10, TotalUseLimit: 100, Evidence: "negative other KOL activity fixture"})
 	if e != nil {
 		t.Fatal(e)
 	}

@@ -293,52 +293,52 @@
   },
   {
     "resource": "gifts",
-    "confirmation": "确认独立发放本次赠送，不改原正确交易，不将赠送视作有偿消费或分佣基数。新增责任受真实覆盖检查。",
+    "confirmation": "确认向所选客户发放这笔赠送额度？",
     "description": "",
     "fields": [
       {
+        "kind": "text",
+        "label": "本经营方当前客户",
         "lookup_url": "/api/v1/operators/{operatorId}/references/customers",
         "name": "customer_id",
-        "label": "本经营方当前客户",
-        "kind": "text",
         "required": true
       },
       {
-        "name": "reason",
-        "label": "明确赠送原因",
         "kind": "select",
-        "required": true,
+        "label": "赠送原因",
+        "name": "reason",
         "options": [
           {
-            "label": "独立服务补偿",
+            "label": "服务补偿",
             "value": "compensation"
           },
           {
-            "label": "受权定向赠送",
+            "label": "定向赠送",
             "value": "targeted_gift"
           }
-        ]
-      },
-      {
-        "name": "amount_atg",
-        "label": "本次新增赠送ATG",
-        "kind": "decimal",
+        ],
         "required": true
       },
       {
-        "name": "expires_at",
-        "label": "到期时刻（留空不限期）",
-        "kind": "datetime"
+        "kind": "decimal",
+        "label": "本次新增赠送ATG",
+        "name": "amount_atg",
+        "required": true
       },
       {
-        "name": "evidence",
-        "label": "授权、事实和原事项关联依据",
+        "kind": "datetime",
+        "label": "到期时刻（留空不限期）",
+        "name": "expires_at"
+      },
+      {
         "kind": "textarea",
+        "label": "赠送说明",
+        "name": "evidence",
         "required": true
       }
     ],
     "include_version": false,
-    "label": "核实并发放独立赠送",
+    "label": "发放赠送额度",
     "method": "POST",
     "name": "issue",
     "path": "/v1/operators/{operatorId}/gifts",
@@ -1044,113 +1044,100 @@
     "description": "",
     "fields": [
       {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/campaigns",
-        "name": "campaign_id",
-        "label": "现有活动编号（新建留空）",
-        "kind": "text"
+        "kind": "hidden",
+        "label": "活动",
+        "name": "campaign_id"
       },
       {
+        "kind": "text",
+        "label": "活动名称（留空使用套餐名称）",
+        "name": "name"
+      },
+      {
+        "kind": "text",
+        "label": "适用套餐",
         "lookup_url": "/api/v1/operators/{operatorId}/references/plans",
         "name": "package_id",
-        "label": "适用套餐编号",
-        "kind": "text",
         "required": true
       },
       {
-        "name": "eligibility",
-        "label": "参与对象",
+        "help": "可以只降价、只加赠或同时使用。活动售价不得高于下单时的套餐售价；不会修改套餐基础额度。",
+        "kind": "decimal",
+        "label": "活动售价 USD（留空使用套餐售价）",
+        "name": "final_price_usd"
+      },
+      {
+        "default_value": "0",
+        "kind": "decimal",
+        "label": "额外赠送 ATG",
+        "name": "gift_atg",
+        "required": true
+      },
+      {
+        "default_value": "any",
         "kind": "select",
-        "required": true,
+        "label": "适用客户",
+        "name": "eligibility",
         "options": [
           {
-            "label": "符合当前活动资格",
+            "label": "所有符合条件的客户",
             "value": "any"
           },
           {
-            "label": "首购客户",
+            "label": "首次购买客户",
             "value": "first_order"
           },
           {
-            "label": "已有成交客户",
+            "label": "已有购买记录客户",
             "value": "existing"
           }
-        ]
+        ],
+        "required": true
       },
       {
-        "name": "final_price_usd",
-        "label": "最终成交价 USD（无折扣留空）",
-        "kind": "decimal"
-      },
-      {
-        "name": "gift_atg",
-        "label": "本活动额外赠送 ATG",
-        "kind": "decimal",
-        "required": true,
-        "default_value": "0"
-      },
-      {
-        "name": "concession_rate",
-        "label": "本人佣金让利比例（0到1）",
-        "kind": "decimal",
-        "required": true,
-        "default_value": "0"
-      },
-      {
-        "name": "starts_at",
+        "kind": "datetime",
         "label": "开始时间",
-        "kind": "datetime",
+        "name": "starts_at",
         "required": true
       },
       {
-        "name": "ends_at",
+        "kind": "datetime",
         "label": "结束时间",
-        "kind": "datetime",
+        "name": "ends_at",
         "required": true
       },
       {
-        "name": "per_customer_limit",
+        "default_value": 1,
+        "kind": "integer",
         "label": "每位客户限次",
-        "kind": "integer",
-        "required": true,
-        "default_value": 1
+        "name": "per_customer_limit",
+        "required": true
       },
       {
+        "default_value": 0,
+        "help": "0 表示不单独限制总名额。待付款订单先占用名额，成交后计入已用，关闭订单后释放。每位客户限次和实际履约能力仍同时生效。",
+        "kind": "integer",
+        "label": "活动总名额",
         "name": "total_use_limit",
-        "label": "活动总次数上限",
-        "kind": "integer",
-        "required": true,
-        "default_value": 100
+        "required": true
       },
       {
-        "name": "gift_budget_atg",
-        "label": "赠送总预算 ATG",
-        "kind": "decimal",
-        "required": true,
-        "default_value": "0"
-      },
-      {
-        "name": "discount_budget_usd",
-        "label": "折扣总预算 USD",
-        "kind": "decimal",
-        "required": true,
-        "default_value": "0"
-      },
-      {
-        "name": "enabled",
-        "label": "启用活动",
+        "default_value": true,
         "kind": "boolean",
-        "required": true,
-        "default_value": true
+        "label": "启用活动",
+        "name": "enabled",
+        "required": true
       },
       {
-        "name": "expected_version",
-        "label": "当前版本（首次填写0）",
+        "default_value": 0,
         "kind": "hidden",
+        "label": "当前版本",
+        "name": "expected_version",
         "required": true
       }
     ],
     "include_version": false,
-    "label": "发布经营活动",
+    "label": "创建套餐活动",
     "method": "POST",
     "name": "publish",
     "path": "/v1/operators/{operatorId}/marketing",
@@ -1159,7 +1146,7 @@
   {
     "resource": "marketing",
     "confirmation": "请核实客户和处理依据。审查时保持active并暂缓解冻和新使用，继续正确应计；暂停/终止才停止后续本人分佣。恢复不重新累计资格，永久终止不可恢复，已成立合法佣金不删除。",
-    "description": "",
+    "description": "在所选客户的推广收益页管理推广功能，客户由系统带入。",
     "fields": [
       {
         "name": "action",
@@ -1172,7 +1159,7 @@
         "lookup_url": "/api/v1/operators/{operatorId}/references/customers",
         "name": "customer_id",
         "label": "当前经营方客户",
-        "kind": "text",
+        "kind": "hidden",
         "required": true
       },
       {
@@ -1210,7 +1197,7 @@
       }
     ],
     "include_version": false,
-    "label": "管理客户推广功能",
+    "label": "管理推广功能",
     "method": "POST",
     "name": "function",
     "path": "/v1/operators/{operatorId}/marketing",
@@ -1219,38 +1206,37 @@
   {
     "resource": "marketing",
     "confirmation": "",
-    "description": "默认不允许组合，仅这一对活动可组合；并不放开所有活动。提交仍逐资格、次数、预算与覆盖核实。",
+    "description": "只开放所选活动这一对组合。已开放的活动列在当前活动详情中；选择同一活动并关闭允许，即可取消组合。",
     "fields": [
       {
-        "name": "action",
-        "label": "办理类型",
+        "default_value": "combination",
         "kind": "hidden",
-        "required": true,
-        "default_value": "combination"
-      },
-      {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/campaigns",
-        "name": "merchant_campaign_id",
-        "label": "经营方活动",
-        "kind": "text",
+        "label": "办理类型",
+        "name": "action",
         "required": true
       },
       {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/campaigns",
+        "kind": "hidden",
+        "label": "当前经营方活动",
+        "name": "merchant_campaign_id"
+      },
+      {
+        "kind": "text",
+        "label": "同套餐 KOL 活动",
+        "lookup_url": "/api/v1/operators/{operatorId}/references/campaigns?campaign_kind=kol",
         "name": "kol_campaign_id",
-        "label": "KOL活动",
-        "kind": "text",
         "required": true
       },
       {
-        "name": "enabled",
-        "label": "允许此明确配对组合",
+        "default_value": true,
         "kind": "boolean",
+        "label": "允许与此 KOL 活动组合",
+        "name": "enabled",
         "required": true
       }
     ],
     "include_version": false,
-    "label": "配置一对活动明确组合",
+    "label": "组合 KOL 优惠",
     "method": "POST",
     "name": "combination",
     "path": "/v1/operators/{operatorId}/marketing",
@@ -1259,65 +1245,71 @@
   {
     "resource": "commissions",
     "confirmation": "",
-    "description": "修改只影响规则指定的后续事实，已成立责任按原快照执行。",
+    "description": "注册赠送、资格门槛与两级佣金在此统一设置。比例填写百分数，例如 15 表示 15%。提高门槛不影响已取得的资格，已有订单保留成交规则。",
     "fields": [
       {
+        "kind": "decimal",
+        "label": "分佣资格门槛 USD",
         "name": "threshold_usd",
-        "label": "终身资格累计净消费门槛 USD",
-        "kind": "decimal",
         "required": true
       },
       {
-        "name": "direct_rate",
-        "label": "直接推荐分佣比例（0到1）",
         "kind": "decimal",
+        "label": "直接邀请佣金 %",
+        "name": "direct_percent",
         "required": true
       },
       {
-        "name": "indirect_rate",
-        "label": "间接推荐分佣比例（0到1）",
         "kind": "decimal",
+        "label": "间接邀请佣金 %",
+        "name": "indirect_percent",
         "required": true
       },
       {
-        "name": "confirmation_days",
+        "default_value": 30,
+        "help": "按整天填写，默认 30 天。等待期满且相关消费没有未结争议后，才计入资格，对应佣金才能使用或提现。已经开始等待的记录仍按原来的到期时间，不会因为后来改政策而延长。",
+        "kind": "integer",
         "label": "消费确认等待天数",
-        "kind": "integer",
+        "name": "confirmation_days",
         "required": true
       },
       {
-        "name": "invitee_atg",
+        "kind": "decimal",
         "label": "受邀人注册赠送 ATG",
-        "kind": "decimal",
+        "name": "invitee_atg",
         "required": true
       },
       {
-        "name": "inviter_atg",
+        "kind": "decimal",
         "label": "邀请人注册赠送 ATG",
-        "kind": "decimal",
+        "name": "inviter_atg",
         "required": true
       },
       {
-        "name": "reward_validity_days",
+        "default_value": 30,
+        "help": "注册赠送额度从注册成功起按整天计算，默认 30 天。到期后尚未使用的注册奖励不再可用。",
+        "kind": "integer",
         "label": "注册奖励有效天数",
-        "kind": "integer",
+        "name": "reward_validity_days",
         "required": true
       },
       {
+        "default_value": 0,
+        "kind": "integer",
+        "label": "同一 KOL 跨活动每人限次",
         "name": "kol_cross_activity_limit",
-        "label": "KOL跨活动限制次数",
-        "kind": "integer",
         "required": true
       },
       {
-        "name": "expected_version",
-        "label": "当前版本（首次填写0）",
+        "default_value": 0,
         "kind": "hidden",
+        "label": "当前版本",
+        "name": "expected_version",
         "required": true
       }
     ],
     "include_version": false,
-    "label": "发布资格与奖励政策",
+    "label": "设置邀请与分佣规则",
     "method": "POST",
     "name": "policy",
     "path": "/v1/operators/{operatorId}/commissions",

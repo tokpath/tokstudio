@@ -173,6 +173,21 @@ func (a *Application) customerContext(c *gin.Context) {
 				state = "已正式取得"
 			}
 			p["summary"] = []gin.H{{"label": "已确认真实支出", "value": qualification.ConfirmedUSD.String(), "unit": "USD"}, {"label": "分佣资格", "value": state, "detail": "资格累计包含确认的到期购买价值；佣金仅来自实际有偿调用。"}}
+			promotion, err := a.Incentives.FunctionStateForOperator(ctx, tx, actor, op.ID, customerID)
+			if err != nil {
+				return err
+			}
+			function := promotionFunctionOperation("/api/v1/operators/"+op.ID+"/marketing", customerID)
+			for i := range function.Fields {
+				if function.Fields[i].Name == "status" {
+					function.Fields[i].Default = promotion.Status
+				}
+				if function.Fields[i].Name == "release_blocked" {
+					function.Fields[i].Default = promotion.ReleaseBlocked
+				}
+			}
+			p["operations"] = []operation{function}
+			p["summary"] = append(p["summary"].([]gin.H), gin.H{"label": "推广功能", "value": map[string]string{"active": "正常应计", "suspended": "暂停应计（可恢复）", "terminated": "永久停止（不可恢复）"}[promotion.Status]})
 			a.appendContextSection(c, &out, "commissions", "推广收益", p)
 		}
 		if a.contextSection(c, tx, actor, op.ID, "withdrawals") {

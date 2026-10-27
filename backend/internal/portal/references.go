@@ -571,10 +571,16 @@ func (a *Application) references(c *gin.Context) {
 				return
 			}
 			for _, r := range rows {
+				if kindFilter := c.Query("campaign_kind"); kindFilter != "" && r.Campaign.Kind != kindFilter {
+					continue
+				}
+				if packageFilter := c.Query("package_id"); packageFilter != "" && r.Version.PackageID != packageFilter {
+					continue
+				}
 				defaults := values(r.Version)
 				defaults["campaign_id"] = r.Campaign.ID
 				defaults["expected_version"] = r.Version.Version
-				add(r.Campaign.ID, "KOL · "+r.Version.GiftATG.String()+" ATG", defaults)
+				add(r.Campaign.ID, r.Version.Name, defaults)
 			}
 		} else {
 			if !require("marketing.manage") {
@@ -586,10 +592,25 @@ func (a *Application) references(c *gin.Context) {
 				return
 			}
 			for _, r := range rows {
+				if kindFilter := c.Query("campaign_kind"); kindFilter != "" && r.Campaign.Kind != kindFilter {
+					continue
+				}
+				if packageFilter := c.Query("package_id"); packageFilter != "" && r.Version.PackageID != packageFilter {
+					continue
+				}
 				defaults := values(r.Version)
 				defaults["campaign_id"] = r.Campaign.ID
 				defaults["expected_version"] = r.Version.Version
-				add(r.Campaign.ID, r.Campaign.Kind+" · "+r.Version.GiftATG.String()+" ATG", defaults)
+				label := r.Version.Name
+				if r.Campaign.OwnerCustomerID != nil {
+					email, err := a.Organization.CustomerEmail(ctx, nil, *r.Campaign.OwnerCustomerID)
+					if err != nil {
+						handleError(c, err)
+						return
+					}
+					label = humanJoin(label, email)
+				}
+				add(r.Campaign.ID, label, defaults)
 			}
 		}
 	default:

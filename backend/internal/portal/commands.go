@@ -293,10 +293,12 @@ func (a *Application) operatorCommand(c *gin.Context) {
 		case "commissions":
 			var in struct {
 				incentives.PolicyInput
-				ConfirmationDays   *int64 `json:"confirmation_days"`
-				RewardValidityDays *int64 `json:"reward_validity_days"`
+				ConfirmationDays   *int64          `json:"confirmation_days"`
+				RewardValidityDays *int64          `json:"reward_validity_days"`
+				DirectPercent      *ledger.Decimal `json:"direct_percent"`
+				IndirectPercent    *ledger.Decimal `json:"indirect_percent"`
 			}
-			if json.Unmarshal(config, &in) != nil || in.ConfirmationDays == nil || in.RewardValidityDays == nil {
+			if json.Unmarshal(config, &in) != nil || in.ConfirmationDays == nil || in.RewardValidityDays == nil || in.DirectPercent == nil || in.IndirectPercent == nil {
 				return nil, incentives.ErrInvalidInput
 			}
 			confirmation, ok := policySecondsFromDays(*in.ConfirmationDays, 0, 365)
@@ -304,6 +306,12 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			if !ok || !rewardOK {
 				return nil, incentives.ErrInvalidInput
 			}
+			direct, rateErr := percentageRate(*in.DirectPercent)
+			indirect, indirectErr := percentageRate(*in.IndirectPercent)
+			if rateErr != nil || indirectErr != nil {
+				return nil, incentives.ErrInvalidInput
+			}
+			in.DirectRate, in.IndirectRate = direct, indirect
 			in.ConfirmationSeconds = confirmation
 			in.RewardValiditySeconds = reward
 			out, e := a.Incentives.SetPolicy(ctx, tx, actor, op.ID, in.PolicyInput)

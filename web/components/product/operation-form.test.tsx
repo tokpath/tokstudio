@@ -65,19 +65,20 @@ it("renames a supplier key without showing its ids or requiring a new secret", a
   expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({ name: "OpenAI 备用", enabled: true, id: "credential-one", provider_id: "provider-one", expected_version: 4 });
 });
 
-it("keeps confirmation and reward periods in the time section", () => {
+it("groups registration validity with gifts and confirmation with commissions", () => {
   show({ name: "policy", label: "发布资格与奖励政策", method: "POST", path: "/api/v1/operators/operator-one/commissions", fields: [
     { name: "threshold_usd", label: "终身资格累计净消费门槛 USD", kind: "decimal", required: true },
     { name: "confirmation_days", label: "消费确认等待天数", kind: "integer", required: true, default_value: 30 },
     { name: "invitee_atg", label: "受邀人注册赠送 ATG", kind: "decimal", required: true },
     { name: "reward_validity_days", label: "注册奖励有效天数", kind: "integer", required: true, default_value: 30 },
   ] });
-  const time = screen.getByRole("heading", { name: "时间与有效期" }).closest("section");
-  const money = screen.getByRole("heading", { name: "金额、额度与办理规则" }).closest("section");
-  expect(time?.textContent).toContain("消费确认等待天数");
-  expect(time?.textContent).toContain("注册奖励有效天数");
-  expect(money?.textContent).not.toContain("消费确认等待天数");
-  expect(time?.textContent?.indexOf("消费确认等待天数")).toBeLessThan(time?.textContent?.indexOf("注册奖励有效天数") ?? 0);
+  const gifts = screen.getByRole("heading", { name: "注册赠送" }).closest("section");
+  const commissions = screen.getByRole("heading", { name: "两级佣金" }).closest("section");
+  const qualification = screen.getByRole("heading", { name: "成为 KOL" }).closest("section");
+  expect(gifts?.textContent).toContain("注册奖励有效天数");
+  expect(gifts?.textContent).toContain("受邀人注册赠送 ATG");
+  expect(commissions?.textContent).toContain("消费确认等待天数");
+  expect(qualification?.textContent).not.toContain("消费确认等待天数");
 });
 
 function mount(operation:Operation,props:Partial<React.ComponentProps<typeof OperationForm>>={}){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><OperationForm operatorID={operation.path.startsWith("/api/v1/me/")?undefined:"operator-one"} operation={operation} {...props}/></QueryClientProvider>)}

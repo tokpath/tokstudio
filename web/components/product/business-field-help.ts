@@ -25,10 +25,10 @@ export function businessFieldHelp(name: string, existing?: string, lookup?: stri
   if (["hostname"].includes(key)) return "将该域名解析到平台指定入口，再按页面提示添加验证记录。填写不代表立即生效；必须完成域名所有权和 TLS 检查。";
   if (["instructions"].includes(key)) return "这是实际发送给付款人的收款指引。说明收款账户、汇款备注和核实方式；测试环境请明确标注“测试，请勿转入真实资金”。";
   if (key === "per_customer_limit") return "每位客户使用本活动的次数上限。KOL 活动还受同一 KOL 的跨活动累计次数限制，只对有效直属受邀客户生效；单笔最多一个 KOL 活动，不自动延续至后续购买或续费。";
-  if (key === "gift_budget_atg") return "限制本活动累计额外赠送的 ATG 总量，包含已用及待成交占用，不包含套餐原有额度。待付款订单先占用，成交核销，失败或关闭释放；0 不表示无限赠送。预算、次数及销售承载能力须同时满足，已成交承诺继续履约。";
   if (["trigger_available_atg", "period_limit_usd"].includes(key)) return "达到触发条件后按已授权报价补货，受单次金额及 UTC 自然月、季、年累计金额上限约束，同一采购账户不重复发起未完成的自动补货。线下模式只生成待付款订单；实际核实足额收款并交付后才增加采购余额，不能先授信。";
+  if (["direct_percent", "indirect_percent"].includes(key)) return "填写百分数，例如 15 表示 15%。佣金按受邀客户实际有偿调用对应的已确认实付金额计算，不按充值或赠送计算。";
+  if (key === "threshold_usd") return "本人已确认且不会退回的真实支出达到此值后，自动取得分佣资格。包含已确认的有偿调用和到期未用购买额度对应实付，不含赠送；已有资格不会因提高门槛而撤销。";
   if (key === "kol_cross_activity_limit") return "同一客户在同一 KOL 的不同活动中累计可用次数上限，0 表示不单独限制这项累计次数。各活动自身的每人及总次数限制仍同时适用；待成交名额先占用，成交核销，失败或关闭释放。";
-  if (key === "discount_budget_usd") return "限制本活动累计 USD 降价总额，包含已用及待成交占用，与 ATG 赠送预算分别核实。待付款订单先占用，成交核销，失败或关闭释放；0 不表示无限折扣。降价后的有偿消费基数按本单实付分摊，优惠额不重复扣作成本。";
   if (["warning_buffer", "warning_buffer_atg", "warning_atg"].includes(key) || name === "coverage.warning") return "当可用采购余额减去已承诺责任和待交付责任后的余量，小于或等于此值时，系统提示提前补货。例如采购可用 100、已承诺 60、待交付 10、缓冲 30，就会进入提前补货提醒。超卖额度不计入这项余量；采购余额不足仍不能受理新调用。若已出现更严重的缺货或覆盖不足，优先显示更严重状态。";
   if (["space", "sales_space"].includes(key)) return "剩余销售空间＝可用采购余额＋销售超卖额度−已承诺责任−待交付责任。空间不足会限制新增销售，超卖不会增加真实采购余额。";
   if (["required", "required_atg"].includes(key)) return "覆盖已经售出和赠送、仍需履约的权益，按开放模型最大采购成本核算。它是履约责任，不等于客户实际已经消耗的金额。";

@@ -18,6 +18,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
+	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 	"gorm.io/gorm"
 )
 
@@ -63,7 +64,7 @@ func (a *Application) offers(c *gin.Context) {
 		if o.Kind == "kol" {
 			kind = "kol"
 		}
-		items = append(items, gin.H{"id": o.ID, "name": fmt.Sprintf("%s 活动 %s", kind, o.ID[:8]), "kind": kind, "description": "赠送 " + o.GiftATG.String() + " ATG；组合资格以确认报价为准", "allow_combination": o.AllowCombination, "compatible_campaign_ids": o.CompatibleCampaignIDs})
+		items = append(items, gin.H{"id": o.ID, "name": o.Name, "kind": kind, "description": activityOfferDescription(o, httpx.RequestLocale(c.Request)), "allow_combination": o.AllowCombination, "compatible_campaign_ids": o.CompatibleCampaignIDs})
 	}
 	c.JSON(200, gin.H{"items": items})
 }

@@ -137,7 +137,7 @@ func handleError(c *gin.Context, err error) {
 	case errors.Is(err, ledger.ErrInsufficient):
 		status, code, msg, retry = 409, "insufficient_asset", "可用资产不足；占用与各类资产不能互相替代", false
 	case errors.Is(err, incentives.ErrLimit):
-		status, code, msg, retry = 409, "activity_limit", "活动次数、预算或让利额度已达到限制", false
+		status, code, msg, retry = 409, "activity_limit", "活动名额或客户使用次数已达上限", false
 	case errors.Is(err, payments.ErrSettlementReview):
 		status, code, msg, retry = 409, "refund_valuation_mismatch", "真实退款事实已保留，本次换汇或金额差异需要核实；未清偿责任仍保留占用", false
 	case errors.Is(err, commerce.ErrReceiptRestricted):

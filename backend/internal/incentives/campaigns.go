@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"io"
 	"math/big"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
@@ -25,7 +27,7 @@ func (s *Service) PublishKOLCampaign(ctx context.Context, tx *gorm.DB, customer 
 	return s.publishCampaign(ctx, tx, in, true)
 }
 func (s *Service) publishCampaign(ctx context.Context, tx *gorm.DB, in CampaignInput, asCustomer bool) (out CampaignVersion, err error) {
-	if !validID(in.OperatorID) || !validID(in.PackageID) || (in.Kind != "merchant" && in.Kind != "kol") || (in.Eligibility != "any" && in.Eligibility != "first_order" && in.Eligibility != "existing") || !in.EndsAt.After(in.StartsAt) || in.PerCustomerLimit <= 0 || in.TotalUseLimit < 0 || in.GiftATG.Sign() < 0 || !in.GiftATG.Valid() || !rateValid(in.ConcessionRate) || in.GiftBudgetATG.Sign() < 0 || !in.GiftBudgetATG.Valid() || in.DiscountBudgetUSD.Sign() < 0 || !in.DiscountBudgetUSD.Valid() {
+	if !validID(in.OperatorID) || !validID(in.PackageID) || (in.Kind != "merchant" && in.Kind != "kol") || (in.Eligibility != "any" && in.Eligibility != "first_order" && in.Eligibility != "existing") || !in.EndsAt.After(in.StartsAt) || in.PerCustomerLimit <= 0 || in.TotalUseLimit < 0 || in.GiftATG.Sign() < 0 || !in.GiftATG.Valid() || !rateValid(in.ConcessionRate) || utf8.RuneCountInString(strings.TrimSpace(in.Name)) > 100 {
 		return out, ErrInvalidInput
 	}
 	if in.FinalPriceUSD != nil && (in.FinalPriceUSD.Sign() <= 0 || !in.FinalPriceUSD.Valid()) {
@@ -54,8 +56,30 @@ func (s *Service) publishCampaign(ctx context.Context, tx *gorm.DB, in CampaignI
 		if err != nil {
 			return err
 		}
-		if _, err = s.commerce.GetPackage(ctx, tx, in.OperatorID, in.PackageID); err != nil {
+		p, err := s.commerce.GetPackage(ctx, tx, in.OperatorID, in.PackageID)
+		if err != nil {
 			return err
+		}
+		in.Name = strings.TrimSpace(in.Name)
+		if in.Name == "" {
+			in.Name = p.Name
+		}
+		if in.Kind == "merchant" && in.Enabled {
+			if in.FinalPriceUSD == nil && in.GiftATG.IsZero() {
+				return ErrInvalidInput
+			}
+			if in.FinalPriceUSD != nil {
+				if p.CurrentQuoteID == nil {
+					return ErrNotReady
+				}
+				quote, err := s.commerce.GetQuote(ctx, tx, *p.CurrentQuoteID)
+				if err != nil {
+					return err
+				}
+				if in.FinalPriceUSD.Cmp(quote.PriceUSD) > 0 {
+					return ErrInvalidInput
+				}
+			}
 		}
 		if in.Kind == "kol" {
 			if _, err = s.eligibleKOL(ctx, tx, in.OperatorID, in.OwnerCustomerID, instant.At); err != nil {
@@ -100,7 +124,7 @@ func (s *Service) publishCampaign(ctx context.Context, tx *gorm.DB, in CampaignI
 			}
 			before = CampaignVersion(previous)
 		}
-		r := campaignVersionRow{ID: uuid.NewString(), CampaignID: campaign.ID, PackageID: in.PackageID, Version: campaign.CurrentVersion + 1, Enabled: in.Enabled, StartsAt: in.StartsAt.UTC(), EndsAt: in.EndsAt.UTC(), Eligibility: in.Eligibility, FinalPriceUSD: in.FinalPriceUSD, GiftATG: in.GiftATG, ConcessionRate: in.ConcessionRate, PerCustomerLimit: in.PerCustomerLimit, TotalUseLimit: in.TotalUseLimit, GiftBudgetATG: in.GiftBudgetATG, DiscountBudgetUSD: in.DiscountBudgetUSD, CreatedAt: instant.At}
+		r := campaignVersionRow{Name: in.Name, ID: uuid.NewString(), CampaignID: campaign.ID, PackageID: in.PackageID, Version: campaign.CurrentVersion + 1, Enabled: in.Enabled, StartsAt: in.StartsAt.UTC(), EndsAt: in.EndsAt.UTC(), Eligibility: in.Eligibility, FinalPriceUSD: in.FinalPriceUSD, GiftATG: in.GiftATG, ConcessionRate: in.ConcessionRate, PerCustomerLimit: in.PerCustomerLimit, TotalUseLimit: in.TotalUseLimit, CreatedAt: instant.At}
 		if err = tx.Create(&r).Error; err != nil {
 			return err
 		}
@@ -140,6 +164,17 @@ func (s *Service) AllowCombination(ctx context.Context, tx *gorm.DB, actor, oper
 			}
 		}
 		if enabled {
+			var versions []campaignVersionRow
+			for _, r := range rows {
+				var v campaignVersionRow
+				if err := tx.First(&v, "campaign_id=? AND version=?", r.ID, r.CurrentVersion).Error; err != nil {
+					return err
+				}
+				versions = append(versions, v)
+			}
+			if versions[0].PackageID != versions[1].PackageID {
+				return ErrNotEligible
+			}
 			return tx.Exec(`INSERT INTO incentives_combinations(operator_id,merchant_campaign_id,kol_campaign_id) VALUES(?,?,?) ON CONFLICT DO NOTHING`, operator, merchant, kol).Error
 		}
 		return tx.Exec(`DELETE FROM incentives_combinations WHERE operator_id=? AND merchant_campaign_id=? AND kol_campaign_id=?`, operator, merchant, kol).Error
@@ -170,7 +205,7 @@ func (s *Service) eligibleKOL(ctx context.Context, tx *gorm.DB, operator, custom
 	return q, nil
 }
 
-// Quote implements commerce.Marketing, reserving activity counts and budgets
+// Quote implements commerce.Marketing, reserving activity places and recording gifts and discounts
 // alongside the order and preserving the original two-hop identities/rates.
 func (s *Service) Quote(ctx context.Context, tx *gorm.DB, o commerce.Order, selection json.RawMessage) (out commerce.MarketingQuote, err error) {
 	if tx == nil {
@@ -331,7 +366,7 @@ func (s *Service) Quote(ctx context.Context, tx *gorm.DB, o commerce.Order, sele
 }
 
 func (s *Service) reserveCampaign(tx *gorm.DB, c Campaign, v CampaignVersion, customer string, gift, discount ledger.Decimal) error {
-	if c.ReservedGiftATG.Add(c.UsedGiftATG).Add(gift).Cmp(v.GiftBudgetATG) > 0 || c.ReservedDiscountUSD.Add(c.UsedDiscountUSD).Add(discount).Cmp(v.DiscountBudgetUSD) > 0 || (v.TotalUseLimit > 0 && c.ReservedUses+c.UsedUses+1 > v.TotalUseLimit) {
+	if v.TotalUseLimit > 0 && c.ReservedUses+c.UsedUses+1 > v.TotalUseLimit {
 		return ErrLimit
 	}
 	if err := tx.Exec(`INSERT INTO incentives_campaign_customer_counts(campaign_id,customer_id) VALUES(?,?) ON CONFLICT DO NOTHING`, c.ID, customer).Error; err != nil {

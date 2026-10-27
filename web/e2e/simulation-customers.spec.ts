@@ -59,7 +59,6 @@ async function playground(page: Page, model: string) {
   await page.getByRole("combobox", { name: "公开模型", exact: true }).selectOption(model);
   await page.getByRole("combobox", { name: "能力", exact: true }).selectOption("chat");
   await page.getByLabel("本次输入", { exact: true }).fill("Synthetic customer simulation, count actual HTTP model usage.");
-  await page.getByLabel("最大输出 token（必填）", { exact: true }).fill("20");
   const response = page.waitForResponse(response => response.url().endsWith("/api/v1/me/playground") && response.request().method() === "POST");
   await page.getByRole("button", { name: "确认计费并发送", exact: true }).click();
   const http = await response; expect(http.status()).toBe(200); const result = await http.json();
@@ -142,7 +141,6 @@ test("KOL activity, explicit combination, paid entitlement, shared Key budget, t
     await kol.getByRole("button", { name: "创建推广活动", exact: true }).click();
     await kol.getByLabel("适用套餐", { exact: true }).selectOption(f.plan_id);
     await kol.getByRole("textbox", { name: "本人让利百分点", exact: true }).fill("16");
-    await kol.getByRole("textbox", { name: "活动赠送预算 ATG", exact: true }).fill("1000");
     await kol.getByLabel("每位客户最多使用次数", { exact: true }).fill("10");
     await kol.getByLabel("我确认活动让利", { exact: false }).check();
     await kol.getByRole("button", { name: "确认发布活动", exact: true }).click();
@@ -151,7 +149,7 @@ test("KOL activity, explicit combination, paid entitlement, shared Key budget, t
     const publishing = kol.waitForResponse(response => response.url().endsWith("/api/v1/me/activities") && response.request().method() === "POST");
     await kol.getByRole("button", { name: "确认发布活动", exact: true }).click();
     const published = await publishing; expect(published.status()).toBe(200); const activity = await published.json();
-    await expect(kol.getByText("让利 10 个百分点 · 已启用", { exact: true })).toBeVisible();
+    await expect(kol.getByText("让利 10 个百分点", { exact: true })).toBeVisible();
     await kol.screenshot({ path: testInfo.outputPath("kol-created-activity.png"), fullPage: true });
     await buyer.goto(`/workspace/plans?plan=${f.plan_id}`);
     await buyer.getByLabel("经营方套餐活动", { exact: false }).selectOption(f.merchant_campaign_id);
@@ -159,7 +157,15 @@ test("KOL activity, explicit combination, paid entitlement, shared Key budget, t
     await expect(buyer.getByText("所选活动未开放组合，请只保留一种。", { exact: true })).toBeVisible();
     await expect(buyer.getByRole("button", { name: "继续，核对成交条款" })).toBeDisabled();
     await staff.goto(`/manage/${f.operator_id}/marketing`);
-    expect((await resourceAction(staff, "配置一对活动明确组合", { "经营方活动": f.merchant_campaign_id, "KOL活动": activity.id }, `/api/v1/operators/${f.operator_id}/marketing`)).status).toBe(200);
+    const kolCard = staff.locator(`[data-campaign-id="${activity.id}"]`);
+    await expect(kolCard.getByRole("button", { name: "修订活动", exact: true })).toHaveCount(0);
+    await staff.locator(`[data-campaign-id="${f.merchant_campaign_id}"]`).getByRole("button", { name: "组合 KOL 优惠", exact: true }).click();
+    await expect(staff.getByRole("combobox", { name: "同套餐 KOL 活动" })).toBeEnabled();
+    await staff.getByRole("combobox", { name: "同套餐 KOL 活动" }).fill(activity.id);
+    const combination = staff.waitForResponse(response => response.url().endsWith(`/operators/${f.operator_id}/marketing`) && response.request().method() === "POST");
+    await staff.getByRole("button", { name: "组合 KOL 优惠", exact: true }).last().click();
+    expect((await combination).status()).toBe(200);
+    await staff.getByRole("button", { name: "关闭办理面板", exact: true }).click();
     const wrongKOL = await post(buyer, "/me/orders/quotes", { plan_id: f.plan_id, kol_activity_id: f.other_kol_campaign_id });
     expect([403, 409]).toContain(wrongKOL.status());
     const wrongChannel = await post(buyer, "/me/orders/quotes", { plan_id: f.other_plan_id });
@@ -241,8 +247,9 @@ test("KOL activity, explicit combination, paid entitlement, shared Key budget, t
     await staff.getByRole("button", { name: "发送业务通知", exact: true }).click();
     const noticePanel = staff.getByRole("dialog").last();
     const recipient = noticePanel.locator('[data-command-field="recipient_id"]');
-    await recipient.getByRole("textbox").fill(f.buyer.email);
-    await recipient.getByRole("combobox").selectOption(f.buyer.id);
+    await expect(recipient.getByRole("combobox")).toBeEnabled();
+    await recipient.getByRole("combobox").fill(f.buyer.email);
+    await staff.getByRole("option").filter({ hasText: f.buyer.email }).click();
     await noticePanel.getByLabel("通知类别", { exact: false }).and(noticePanel.locator("input,select,textarea")).selectOption("mandatory");
     await noticePanel.getByLabel("级别", { exact: false }).and(noticePanel.locator("input,select,textarea")).selectOption("info");
     const necessaryTitle = "已退订营销后仍收到的必要履约通知 " + randomUUID().slice(0,8);
@@ -286,7 +293,7 @@ test("ordinary inviter cannot publish KOL promotion and gets no commission from 
     await ordinary.goto("/workspace/activities");
     await expect(ordinary.getByText("当前尚未取得可用的 KOL 推广资格。", { exact: false })).toBeVisible();
     await expect(ordinary.getByRole("button", { name: "创建推广活动", exact: true })).toHaveCount(0);
-    const invalid = await post(ordinary, "/me/activities", { configuration: { package_id: f.plan_id, concession_rate: "0.1", gift_atg: "0", eligibility: "any", starts_at: new Date(Date.now()-60000).toISOString(), ends_at: new Date(Date.now()+3600000).toISOString(), per_customer_limit: 1, gift_budget_atg: "10", enabled: true } });
+    const invalid = await post(ordinary, "/me/activities", { configuration: { package_id: f.plan_id, concession_rate: "0.1", gift_atg: "0", eligibility: "any", starts_at: new Date(Date.now()-60000).toISOString(), ends_at: new Date(Date.now()+3600000).toISOString(), per_customer_limit: 1, enabled: true } });
     expect([403, 409]).toContain(invalid.status());
     const { quote } = await purchase(child, f.plan_id);
     expect(quote.total_atg).toBe("100");

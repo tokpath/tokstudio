@@ -11,6 +11,21 @@ const resolve = value => value.$ref ? document.components.schemas[value.$ref.spl
 const operation = (resource, method = 'post') => document.paths[`/v1/operators/{operatorId}/${resource}`][method];
 const body = resource => resolve(operation(resource).requestBody.content['application/json'].schema);
 
+test('marketing uses named offers and usage limits while KOL only concedes commission', () => {
+  const merchant = document.components.schemas.Operator_marketing_publish;
+  assert.ok(merchant.properties.name);
+  assert.ok(merchant.properties.total_use_limit);
+  assert.equal(merchant.properties.gift_budget_atg, undefined);
+  assert.equal(merchant.properties.discount_budget_usd, undefined);
+  const kol = resolve(document.paths['/v1/me/activities'].post.requestBody.content['application/json'].schema);
+  assert.ok(kol.properties.concession_rate);
+  assert.equal(kol.properties.final_price_usd, undefined);
+  assert.equal(kol.properties.gift_atg, undefined);
+  const policy = document.components.schemas.Operator_commissions_policy;
+  assert.ok(policy.properties.direct_percent);
+  assert.equal(policy.properties.direct_rate, undefined);
+});
+
 test('workflow target templates become query parameters without inventing path parameters', () => {
   for (const resource of ['branding', 'channel-themes', 'branding/logo', 'coverage']) {
     const action = operation(resource);

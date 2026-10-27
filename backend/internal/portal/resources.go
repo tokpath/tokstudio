@@ -3,7 +3,6 @@ package portal
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -146,7 +145,8 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		for _, row := range rows {
 			v := values(row.Version)
 			v["kind"] = row.Campaign.Kind
-			items = append(items, entity(row.Campaign.ID, fmt.Sprint(v["enabled"]), row.Version.Version, v))
+			v["used_uses"], v["reserved_uses"] = row.Campaign.UsedUses, row.Campaign.ReservedUses
+			items = append(items, entity(row.Campaign.ID, campaignStatus(row.Version, time.Now()), row.Version.Version, v))
 		}
 		p["title"] = "我的 KOL 活动"
 		p["items"] = items
@@ -635,19 +635,10 @@ func (a *Application) operatorResource(c *gin.Context) {
 		a.coverageResource(c, op, base, p)
 		return
 	case "marketing":
-		rows, e := a.Incentives.CampaignsForOperator(ctx, nil, actor, op.ID)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		for _, row := range rows {
-			items = append(items, entity(row.Campaign.ID, fmt.Sprint(row.Version.Enabled), row.Version.Version, row.Version))
-		}
-		p["columns"] = []gin.H{col("package_id", "套餐", "text"), col("gift_atg", "赠送", "atg"), col("used_count", "使用次数", "text"), col("used_gift_atg", "累计赠送", "atg"), col("enabled", "启用", "boolean"), col("ends_at", "结束", "datetime")}
-		p["operations"] = []operation{{Name: "publish", Label: "发布经营活动", Method: "POST", Path: base, Fields: []field{jsonField("campaign_id、package_id、final_price_usd、gift_atg、starts_at、ends_at、per_customer_limit、total_limit、gift_budget_atg、allow_combination、enabled、expected_version 等")}}}
-
-		p["operations"] = append(p["operations"].([]operation), operation{Name: "function", Label: "管理客户推广功能", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "function"), f("customer_id", "当前经营方客户", "text"), selectField("status", "推广功能状态", "active|保持或恢复后续正确应计（保留历史资格）", "suspended|明确暂停本人后续分佣", "terminated|永久终止本人后续分佣，不可恢复"), defaultField("release_blocked", "可疑审查：暂缓解冻与新使用", "boolean", false), f("evidence", "真实处理与告知依据", "textarea")}, Confirmation: "请核实客户和处理依据。审查时保持active并暂缓解冻和新使用，继续正确应计；暂停/终止才停止后续本人分佣。恢复不重新累计资格，永久终止不可恢复，已成立合法佣金不删除。"}, operation{Name: "combination", Label: "配置一对活动明确组合", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "combination"), f("merchant_campaign_id", "经营方活动", "text"), f("kol_campaign_id", "KOL活动", "text"), f("enabled", "允许此明确配对组合", "boolean")}, Description: "默认不允许组合，仅这一对活动可组合；并不放开所有活动。提交仍逐资格、次数、预算与覆盖核实。"})
+		a.marketingResource(c, op, actor, base, p)
+		return
 	case "commissions":
+		p["search_supported"], p["status_supported"] = false, false
 		policy, e := a.Incentives.CurrentPolicy(ctx, nil, op.ID)
 		if e != nil && !errors.Is(e, incentives.ErrNotReady) {
 			handleError(c, e)
@@ -655,12 +646,16 @@ func (a *Application) operatorResource(c *gin.Context) {
 		}
 		if e == nil {
 			shown := values(policy)
+			delete(shown, "direct_rate")
+			delete(shown, "indirect_rate")
+			shown["direct_percent"] = ratePercentage(policy.DirectRate)
+			shown["indirect_percent"] = ratePercentage(policy.IndirectRate)
 			shown["confirmation_days"] = policyDays(policy.ConfirmationSeconds)
 			shown["reward_validity_days"] = policyDays(policy.RewardValiditySeconds)
 			items = append(items, entity(policy.ID, "effective", policy.Version, shown))
 		}
-		p["columns"] = []gin.H{col("threshold_usd", "资格门槛", "usd"), col("direct_rate", "直属比例", "decimal"), col("indirect_rate", "间接比例", "decimal"), col("confirmation_days", "确认等待天数", "text"), col("reward_validity_days", "注册奖励有效天数", "text"), col("invitee_atg", "受邀奖励", "atg"), col("inviter_atg", "邀请奖励", "atg")}
-		p["operations"] = []operation{{Name: "policy", Label: "发布资格与奖励政策", Method: "POST", Path: base, Fields: []field{jsonField("threshold_usd、direct_rate、indirect_rate、confirmation_days、invitee_atg、inviter_atg、reward_validity_days、kol_cross_activity_limit、expected_version")}, Description: "修改只影响规则指定的后续事实，已成立责任按原快照执行。等待和奖励有效期按整天填写，默认 30 天。"}}
+		p["columns"] = []gin.H{col("threshold_usd", "资格门槛", "usd"), col("direct_percent", "直接邀请佣金 %", "decimal"), col("indirect_percent", "间接邀请佣金 %", "decimal"), col("confirmation_days", "确认等待天数", "text"), col("reward_validity_days", "注册奖励有效天数", "text"), col("invitee_atg", "受邀奖励", "atg"), col("inviter_atg", "邀请奖励", "atg"), col("kol_cross_activity_limit", "同一 KOL 跨活动每人限次", "text")}
+		p["operations"] = []operation{{Name: "policy", Label: "设置邀请与分佣规则", Method: "POST", Path: base, Fields: []field{jsonField("threshold_usd、direct_percent、indirect_percent、confirmation_days、invitee_atg、inviter_atg、reward_validity_days、kol_cross_activity_limit、expected_version")}, Description: "注册赠送、资格门槛与两级佣金在此统一设置。比例填写百分数，例如 15 表示 15%。提高门槛不影响已取得的资格，已有订单保留成交规则。"}}
 	case "business-status":
 		row, e := a.Organization.GetBusinessStatus(ctx, nil, op.ID)
 		if e != nil {

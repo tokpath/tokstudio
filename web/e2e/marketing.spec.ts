@@ -1,0 +1,68 @@
+import { test, expect } from "@playwright/test";
+import { readFileSync } from "node:fs";
+
+const ready = process.env.TOKENHUB_FRONTEND_ACCEPTANCE_FILE;
+test.skip(!ready, "Requires the real isolated application and PostgreSQL");
+
+test("operator configures readable commissions, publishes a named offer without budgets and revises it in place", async ({ page }, testInfo) => {
+  const fixture = JSON.parse(readFileSync(ready!, "utf8"));
+  const customerFixture = fixture.personas.customers;
+  const op = customerFixture.other_operator_id;
+  await page.goto("/login");
+  await page.getByLabel("邮箱", { exact: true }).fill(fixture.owner_email);
+  await page.getByLabel("密码", { exact: true }).fill(fixture.owner_password);
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await page.waitForURL(/\/manage\//);
+  await page.goto(`/manage/${op}/commissions`);
+  await expect(page.getByRole("heading", { name: "注册赠送", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "设置邀请与分佣规则", exact: true }).click();
+  let panel = page.getByRole("dialog").last();
+  await expect(panel.getByLabel("直接邀请佣金 %", { exact: true })).toHaveValue("15");
+  await expect(panel.getByLabel("间接邀请佣金 %", { exact: true })).toHaveValue("5");
+  const savePolicy = page.waitForResponse(response => response.url().endsWith(`/operators/${op}/commissions`) && response.request().method() === "POST");
+  await panel.getByRole("button", { name: "设置邀请与分佣规则", exact: true }).click();
+  const policyResult = await savePolicy;
+  expect(policyResult.status()).toBe(200);
+  expect(policyResult.request().postDataJSON()).toMatchObject({ direct_percent: "15", indirect_percent: "5" });
+  await panel.getByRole("button", { name: "关闭办理面板", exact: true }).click();
+
+  await page.goto(`/manage/${op}/marketing`);
+  await expect(page.getByRole("button", { name: "管理客户推广功能", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "创建套餐活动", exact: true }).click();
+  panel = page.getByRole("dialog").last();
+  await panel.getByLabel("活动名称（留空使用套餐名称）", { exact: true }).fill("Browser simple offer");
+  await expect(panel.getByLabel("适用套餐", { exact: true })).toBeEnabled();
+  await panel.getByLabel("适用套餐", { exact: true }).fill(customerFixture.other_plan_id);
+  await panel.getByLabel("活动售价 USD（留空使用套餐售价）", { exact: true }).fill("75");
+  await panel.getByLabel("额外赠送 ATG", { exact: true }).fill("7");
+  await panel.getByLabel("开始时间", { exact: true }).fill(new Date(Date.now() - 60_000).toISOString().slice(0, 16));
+  await panel.getByLabel("结束时间", { exact: true }).fill(new Date(Date.now() + 86400_000).toISOString().slice(0, 16));
+  await expect(panel.getByLabel("赠送总预算 ATG", { exact: true })).toHaveCount(0);
+  await expect(panel.getByLabel("折扣总预算 USD", { exact: true })).toHaveCount(0);
+  const publish = page.waitForResponse(response => response.url().endsWith(`/operators/${op}/marketing`) && response.request().method() === "POST");
+  await panel.getByRole("button", { name: "创建套餐活动", exact: true }).click();
+  const published = await publish;
+  expect(published.status()).toBe(200);
+  const result = await published.json();
+  await panel.getByRole("button", { name: "关闭办理面板", exact: true }).click();
+  const card = page.locator(`[data-campaign-id="${result.id}"]`);
+  await expect(card.getByRole("heading", { name: "Browser simple offer" })).toBeVisible();
+  await card.getByRole("button", { name: "修订活动", exact: true }).click();
+  panel = page.getByRole("dialog").last();
+  await expect(panel.getByLabel("活动名称（留空使用套餐名称）", { exact: true })).toHaveValue("Browser simple offer");
+  await expect(panel.getByLabel("额外赠送 ATG", { exact: true })).toHaveValue("7");
+  await panel.getByLabel("额外赠送 ATG", { exact: true }).fill("9");
+  const revise = page.waitForResponse(response => response.url().endsWith(`/operators/${op}/marketing`) && response.request().method() === "POST");
+  await panel.getByRole("button", { name: "修订活动", exact: true }).click();
+  const revised = await revise;
+  expect(revised.status()).toBe(200);
+  expect(await revised.json()).toMatchObject({ id: result.id, version: 2 });
+  await panel.getByRole("button", { name: "关闭办理面板", exact: true }).click();
+  await page.screenshot({ path: testInfo.outputPath("marketing-named-offer.png"), fullPage: true });
+
+  await page.goto(`/manage/${op}/gifts`);
+  await page.getByRole("button", { name: "发放赠送额度", exact: true }).click();
+  panel = page.getByRole("dialog").last();
+  await expect(panel.getByLabel("赠送说明", { exact: true })).toBeVisible();
+  await expect(panel.getByLabel("授权、事实和原事项关联依据", { exact: true })).toHaveCount(0);
+});

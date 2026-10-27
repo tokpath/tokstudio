@@ -317,10 +317,10 @@ func (s *demoBuilder) run(in DemoOptions) error {
 			s.out.Accounts[i].Role = "kol"
 		}
 	}
-	if _, e = a.Incentives.PublishKOLCampaign(s.ctx, s.tx, kol.Customer.ID, incentives.CampaignInput{OperatorID: platform, PackageID: quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: time.Now().Add(-time.Minute), EndsAt: time.Now().AddDate(1, 0, 0), ConcessionRate: ledger.MustDecimal("0.1"), PerCustomerLimit: 2, TotalUseLimit: 100, GiftBudgetATG: ledger.MustDecimal("1000"), Evidence: demoEvidence}); e != nil {
+	if _, e = a.Incentives.PublishKOLCampaign(s.ctx, s.tx, kol.Customer.ID, incentives.CampaignInput{OperatorID: platform, PackageID: quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: time.Now().Add(-time.Minute), EndsAt: time.Now().AddDate(1, 0, 0), ConcessionRate: ledger.MustDecimal("0.1"), PerCustomerLimit: 2, TotalUseLimit: 100, Evidence: demoEvidence}); e != nil {
 		return e
 	}
-	if _, e = a.Incentives.PublishCampaign(s.ctx, s.tx, incentives.CampaignInput{ActorStaffID: owner, OperatorID: platform, Kind: "merchant", PackageID: quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: time.Now().Add(-time.Minute), EndsAt: time.Now().AddDate(1, 0, 0), GiftATG: ledger.MustDecimal("5"), PerCustomerLimit: 2, TotalUseLimit: 100, GiftBudgetATG: ledger.MustDecimal("500"), DiscountBudgetUSD: ledger.Zero(), Evidence: demoEvidence}); e != nil {
+	if _, e = a.Incentives.PublishCampaign(s.ctx, s.tx, incentives.CampaignInput{ActorStaffID: owner, OperatorID: platform, Kind: "merchant", PackageID: quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: time.Now().Add(-time.Minute), EndsAt: time.Now().AddDate(1, 0, 0), GiftATG: ledger.MustDecimal("5"), PerCustomerLimit: 2, TotalUseLimit: 100, Evidence: demoEvidence}); e != nil {
 		return e
 	}
 	for _, f := range flags {

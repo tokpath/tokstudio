@@ -26,6 +26,10 @@ import (
 )
 
 func operationsDB(t *testing.T) *gorm.DB {
+	return operationsDBBefore(t, "")
+}
+
+func operationsDBBefore(t *testing.T, before string) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("TOKENHUB_TEST_DATABASE_URL")
 	if dsn == "" {
@@ -55,6 +59,9 @@ func operationsDB(t *testing.T) *gorm.DB {
 	t.Cleanup(func() { sqlDB, _ := db.DB(); _ = sqlDB.Close() })
 	files, _ := fs.ReadDir(migrations, "migrate")
 	for _, file := range files {
+		if before != "" && file.Name() >= before {
+			continue
+		}
 		data, e := migrations.ReadFile("migrate/" + file.Name())
 		if e != nil {
 			t.Fatal(e)
@@ -365,22 +372,15 @@ func TestRealLedgerReconciliationExportAuthorizationAndRetention(t *testing.T) {
 		t.Fatal("revoked permission retained download")
 	}
 	a.deny.Store(false)
-	item, e := s.StoreTemporary(ctx, nil, operator, "technical_record", "debug:case", json.RawMessage(`{"request_id":"safe-id"}`), time.Now().Add(time.Second))
-	if e != nil {
-		t.Fatal(e)
-	}
-	_ = s.DB.Model(&RetentionItem{}).Where("id=?", item.ID).Update("expires_at", time.Now().Add(-time.Hour)).Error
-	if e = s.HoldTemporary(ctx, a.actor, operator, item.ID, "unsettled dispute", time.Now().Add(time.Hour)); e != nil {
+	if e = s.DB.Model(&Export{}).Where("id=?", export.ID).Update("expires_at", time.Now().Add(-time.Hour)).Error; e != nil {
 		t.Fatal(e)
 	}
 	result, e := s.RunRetention(ctx, time.Now(), 100)
-	if e != nil || result.TemporaryPurged != 0 {
-		t.Fatalf("retention result %+v error %v", result, e)
+	if e != nil || result.ExportsPurged != 1 {
+		t.Fatalf("expired export retained: %+v %v", result, e)
 	}
-	_ = s.DB.Model(&RetentionItem{}).Where("id=?", item.ID).Update("legal_hold_until", time.Now().Add(-time.Second)).Error
-	result, e = s.RunRetention(ctx, time.Now(), 100)
-	if e != nil || result.TemporaryPurged != 1 {
-		t.Fatal("expired technical data retained")
+	if _, e = s.DownloadExport(ctx, a.actor, operator, export.ID); !errors.Is(e, ErrExpired) {
+		t.Fatal("expired export remained readable", e)
 	}
 	var journals int64
 	_ = s.DB.Model(&ledger.Journal{}).Count(&journals).Error

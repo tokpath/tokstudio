@@ -352,7 +352,7 @@ it("accepts the ledger's exact eighteenth decimal place and rejects a nineteenth
 
 it("permits signed ledger thresholds for actual risk metrics",async()=>{
   const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"rule",status:"saved"}),{status:200}));vi.stubGlobal("fetch",fetch);
-  mount({name:"risk_rule",label:"保存风险阈值",method:"POST",path:"/api/v1/operators/operator-one/risk",fields:[{name:"warning",label:"预警阈值",kind:"decimal",required:true,default_value:"-1.000000000000000001"},{name:"critical",label:"严重阈值",kind:"decimal",required:true,default_value:"-2.000000000000000001"}]});
+  mount({name:"risk_rule",label:"保存风险阈值",method:"POST",path:"/api/v1/operators/operator-one/alerts",fields:[{name:"warning",label:"预警阈值",kind:"decimal",required:true,default_value:"-1.000000000000000001"},{name:"critical",label:"严重阈值",kind:"decimal",required:true,default_value:"-2.000000000000000001"}]});
   fireEvent.click(screen.getByRole("button",{name:"保存风险阈值",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
   expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({warning:"-1.000000000000000001",critical:"-2.000000000000000001"});
 });

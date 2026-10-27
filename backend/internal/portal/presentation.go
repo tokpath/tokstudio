@@ -44,6 +44,16 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 			}
 			for j := range ops[i].Fields {
 				f := &ops[i].Fields[j]
+				if f.Name == "delivery_mode" && !a.Mail.Available() {
+					options := []gin.H{}
+					for _, option := range f.Options {
+						if option["value"] == "manual" {
+							options = append(options, option)
+						}
+					}
+					f.Options = options
+					f.Help = "当前未配置邮件服务，请手动交付登录信息或邀请链接。"
+				}
 				if f.Name == "action" && f.Kind == "text" && f.Default != nil {
 					f.Kind = "hidden"
 				}
@@ -182,7 +192,7 @@ var _ fmt.Stringer
 // equivalent to a database predicate before pagination. Bounded or paged sources
 // must declare their own capabilities only after applying predicates in SQL.
 func prepareResourceFilters(c *gin.Context, p gin.H, resource string) {
-	complete := c.Param("operatorId") != "" && contains([]string{"plans", "payment-methods", "operators", "marketing", "commissions", "business-status", "staff", "catalog", "providers", "routes", "pricing", "coverage", "mail", "branding", "channel-themes", "domains", "risk", "alerts", "overview"}, resource)
+	complete := c.Param("operatorId") != "" && contains([]string{"plans", "payment-methods", "operators", "marketing", "commissions", "business-status", "staff", "catalog", "providers", "routes", "pricing", "coverage", "mail", "branding", "channel-themes", "domains", "alerts", "overview"}, resource)
 	if _, exists := p["search_supported"]; !exists {
 		p["search_supported"] = complete
 	}

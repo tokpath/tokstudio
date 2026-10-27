@@ -171,19 +171,16 @@ test("technical administrator configures a real provider, verified model and rou
     await owner.goto(`/manage/${p.operator_id}/business-status`);
     const business = await (await owner.request.get(`${base}/business-status`)).json();
     if (!business.items[0].values.activity) {
-      dialog = await panel(owner, "提交开业配置检查");
-      await dialog.getByRole("combobox", { name: "营业项目", exact: false }).selectOption("activity");
-      await dialog.getByRole("radiogroup", { name: "通过真实依赖检查后开放" }).getByRole("radio", { name: "是", exact: true }).check();
-      await control(dialog, "检查及授权依据", false).fill("合成仿真：独立赠送的活动规则、真实覆盖及已配置邮件已核实");
-      await submit(owner, dialog, "提交开业配置检查", `${base}/business-status`); await close(dialog);
+      await owner.getByRole("button", { name: "开启 营销活动", exact: true }).click();
+      await expect(owner.getByRole("button", { name: "暂停 营销活动", exact: true })).toBeEnabled();
     }
     await owner.goto(`/manage/${p.operator_id}/gifts`);
-    dialog = await panel(owner, "核实并发放独立赠送");
+    dialog = await panel(owner, "发放赠送额度");
     await chooseControl(dialog.getByRole("combobox", { name: "本经营方当前客户", exact: false }), p.customer.id);
-    await dialog.getByRole("combobox", { name: "明确赠送原因", exact: false }).selectOption("targeted_gift");
+    await dialog.getByRole("combobox", { name: "赠送原因", exact: false }).selectOption("targeted_gift");
     await control(dialog, "本次新增赠送ATG", false).fill("10");
-    await control(dialog, "授权、事实和原事项关联依据", false).fill("合成仿真：为真实模型协议调用发放独立赠送，不涉及现金或佣金");
-    await submit(owner, dialog, "核实并发放独立赠送", `${base}/gifts`); await close(dialog);
+    await control(dialog, "赠送说明", false).fill("合成仿真：为真实模型协议调用发放独立赠送，不涉及现金或佣金");
+    await submit(owner, dialog, "发放赠送额度", `${base}/gifts`); await close(dialog);
 
     await login(customer, p.customer, "customer");
     await expect.poll(async () => {
@@ -340,7 +337,7 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     await expect(employee.getByRole("button", { name: "调整当前成员角色", exact: true })).toHaveCount(0);
     await expect(employee.getByRole("button", { name: "开通或邀请经营人员", exact: true })).toHaveCount(0);
 
-    await page.goto(`/manage/${p.operator_id}/risk`);
+    await page.goto(`/manage/${p.operator_id}/alerts?view=rules`);
     dialog = await panel(page, "新增预警规则");
     const rule = `仿真请求积压提醒-${randomUUID()}`;
     await expect(control(dialog, "规则编号", false)).toHaveCount(0);
@@ -349,13 +346,13 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     await control(dialog, "预警阈值", false).fill("1"); await control(dialog, "严重阈值", false).fill("3");
     await dialog.getByRole("combobox", { name: "触发方向", exact: false }).selectOption("above");
     await dialog.locator('[data-command-field="recipients"] label').filter({ hasText: fixture.owner_email }).getByRole("checkbox").check();
-    const createdRule = await (await submit(page, dialog, "新增预警规则", `${base}/risk`)).json();
+    const createdRule = await (await submit(page, dialog, "新增预警规则", `${base}/alerts`)).json();
     expect(createdRule.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     await close(dialog);
     dialog = await panel(page, "修订此预警规则", page.getByRole("row").filter({ hasText: rule }));
     await expect(control(dialog, "预警阈值", false)).toHaveValue("1");
     await control(dialog, "预警阈值", false).fill("2");
-    const revised = await submit(page, dialog, "修订此预警规则", `${base}/risk`); await close(dialog);
+    const revised = await submit(page, dialog, "修订此预警规则", `${base}/alerts`); await close(dialog);
     expect((await replay(page, revised)).status()).toBe(200); expect((await replay(page, revised, true)).status()).toBe(409);
 
     await page.goto(`/manage/${p.operator_id}/notifications`);
@@ -364,9 +361,7 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     const recipient = dialog.locator('[data-command-field="recipient_id"]');
     await chooseControl(recipient.getByRole("combobox"), p.customer.id);
     await dialog.getByRole("combobox", { name: "通知类别", exact: false }).selectOption("mandatory");
-    await dialog.getByRole("combobox", { name: "级别", exact: false }).selectOption("info");
     await control(dialog, "标题", false).fill(title); await control(dialog, "通知正文", false).fill("平台模型和品牌配置实际仿真完成，本通知关联真实业务记录。");
-    await control(dialog, "业务关联依据", false).fill(rule);
     await submit(page, dialog, "发送业务通知", `${base}/notifications`); await close(dialog);
     await login(customer, p.customer, "customer"); await customer.goto("/workspace/notifications");
     await expect(customer.getByText(title, { exact: true })).toBeVisible();

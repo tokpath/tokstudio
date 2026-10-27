@@ -2,6 +2,7 @@ package portal
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
@@ -11,10 +12,36 @@ import (
 
 func (a *Application) auditResource(c *gin.Context, op organization.Operator, actor string, p gin.H) {
 	ctx := c.Request.Context()
-	view := c.Query("view")
-	if view == "" {
-		view = "organization"
+	choices := []gin.H{}
+	allowed := map[string]bool{}
+	addView := func(key, label string) {
+		allowed[key] = true
+		choices = append(choices, gin.H{"value": key, "label": label})
 	}
+	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "reports.view") == nil {
+		addView("organization", "组织与账号")
+	}
+	brandingAllowed := a.Organization.RequireBrandBranding(ctx, nil, actor, op.BrandID)
+	if op.Kind == organization.Channel {
+		brandingAllowed = a.Organization.RequireChannelBranding(ctx, nil, actor, op.ID)
+	}
+	if brandingAllowed == nil {
+		addView("branding", "品牌外观")
+	}
+	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "ledger.read") == nil {
+		addView("commerce", "订单与交付")
+		addView("incentives", "推广与佣金")
+		addView("remediation", "退款、纠错与接管")
+	}
+	view := c.Query("view")
+	if view == "" && len(choices) > 0 {
+		view = choices[0]["value"].(string)
+	}
+	if !allowed[view] {
+		handleError(c, organization.ErrForbidden)
+		return
+	}
+
 	var rows []organization.AuditEvent
 	var next string
 	var e error
@@ -49,30 +76,33 @@ func (a *Application) auditResource(c *gin.Context, op organization.Operator, ac
 	for _, r := range rows {
 		items = append(items, entity(r.ID, "recorded", 0, r))
 	}
-	p["title"] = "领域审计事实"
+	p["title"] = "操作审计"
+	p["summary"] = []gin.H{{"label": "请求内容", "value": "不长期保存"}, {"label": "异步结果暂存", "value": fmt.Sprint(int64(a.Usage.ResultRetention / time.Hour)), "unit": "小时"}, {"label": "导出文件有效期", "value": "24", "unit": "小时"}}
 	p["description"] = "只显示各领域实际保存的操作主体、依据与前后记录。空白代表原事件未记录此字段。每个领域独立分页。"
 	p["items"] = items
 	p["next_cursor"] = next
-	p["views"] = []gin.H{{"value": "organization", "label": "组织与账号"}, {"value": "branding", "label": "品牌外观"}, {"value": "commerce", "label": "订单与交付"}, {"value": "incentives", "label": "推广与佣金"}, {"value": "remediation", "label": "退款、纠错与接管"}}
+	p["views"] = choices
 	p["columns"] = []gin.H{col("action", "操作事实", "text"), col("subject_id", "关联主体", "text"), col("actor_id", "实际操作者", "text"), col("evidence", "依据", "text"), col("before", "变更前记录", "details"), col("after", "变更后记录", "details"), col("data", "原始业务事实", "details"), col("created_at", "记录时间", "datetime")}
 	a.resourceResponse(c, p)
 }
 func (a *Application) approvalsResource(c *gin.Context, op organization.Operator, actor string, p gin.H) {
 	ctx := c.Request.Context()
 	items := []any{}
-	cases, e := a.Remediation.Cases(ctx, op.ID, "")
-	if e != nil {
-		handleError(c, e)
-		return
-	}
-	for _, r := range cases {
-		if r.State == "pending_review" {
-			items = append(items, entity(r.ID, r.State, 1, gin.H{"kind": "客户退款", "amount_usd": r.AmountUSD, "requested_by": r.RequestedBy, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + "/refunds"}))
+	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "refunds.manage") == nil {
+		cases, e := a.Remediation.Cases(ctx, op.ID, "")
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		for _, r := range cases {
+			if r.State == "pending_review" {
+				items = append(items, entity(r.ID, r.State, 1, gin.H{"kind": "客户退款", "amount_usd": r.AmountUSD, "requested_by": r.RequestedBy, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + "/refunds?record=" + r.ID}))
+			}
 		}
 	}
 	// The combined review page points to each authoritative workflow. It cannot
 	// bypass the domain's independent reviewer and version requirements.
-	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "cooperation.manage") == nil {
+	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "cooperation.manage") == nil && a.Organization.RequirePermission(ctx, nil, actor, op.ID, "refunds.manage") == nil {
 		cases, e := a.Remediation.Takeovers(ctx, actor, op.ID)
 		if e != nil {
 			handleError(c, e)
@@ -80,7 +110,7 @@ func (a *Application) approvalsResource(c *gin.Context, op organization.Operator
 		}
 		for _, r := range cases {
 			if r.State == "awaiting_approval" {
-				items = append(items, entity(r.ID, r.State, 1, gin.H{"kind": "渠道接管", "amount_usd": r.SettlementDueUSD, "requested_by": r.RequestedBy, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + "/takeovers"}))
+				items = append(items, entity(r.ID, r.State, 1, gin.H{"kind": "渠道接管", "amount_usd": r.SettlementDueUSD, "requested_by": r.RequestedBy, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + "/takeovers?record=" + r.ID}))
 			}
 		}
 	}
@@ -91,13 +121,13 @@ func (a *Application) approvalsResource(c *gin.Context, op organization.Operator
 			return
 		}
 		for _, r := range rows {
-			if r.Status == "requested" || r.Status == "approved" {
-				items = append(items, entity(r.ID, r.Status, 1, gin.H{"kind": "佣金提现", "amount_usd": r.AmountUSD, "requested_by": r.CustomerID, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + "/withdrawals"}))
+			if r.Status == "requested" {
+				items = append(items, entity(r.ID, r.Status, 1, gin.H{"kind": "佣金提现", "amount_usd": r.AmountUSD, "requested_by": r.CustomerID, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + "/withdrawals?record=" + r.ID}))
 			}
 		}
 	}
 	p["title"] = "待复核事项"
-	p["description"] = "到原业务页核对来源、条款和证据。复核不会跳过申请人与执行人分离规则。"
+	p["description"] = "集中查看需要审核的事项，进入对应记录办理。是否需要独立复核，按各业务规则执行。"
 	p["items"] = items
 	p["columns"] = []gin.H{col("kind", "事项", "text"), col("amount_usd", "责任USD", "usd"), col("requested_by", "申请人", "text"), col("created_at", "申请时间", "datetime"), col("workspace", "进入原业务复核", "link")}
 	a.resourceResponse(c, p)

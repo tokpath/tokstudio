@@ -19,7 +19,7 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	var out map[string]any
 	createdID := ""
 	for i := 0; i < 2; i++ {
-		status, out, _ = f.call(t, "POST", base+"/risk", input, creationKey)
+		status, out, _ = f.call(t, "POST", base+"/alerts", input, creationKey)
 		mustOK(t, status, out)
 		id, _ := out["id"].(string)
 		if _, err := uuid.Parse(id); err != nil || out["version"] != float64(1) || (createdID != "" && id != createdID) {
@@ -68,7 +68,7 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 			}
 		}
 	}
-	assertRule(read("/risk"), 1, input["warning"].(string))
+	assertRule(read("/alerts?view=rules"), 1, input["warning"].(string))
 	if len(read("/alerts")["items"].([]any)) != 0 {
 		t.Fatal("an enabled rule was presented as an active risk")
 	}
@@ -76,7 +76,7 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	if err := f.a.DB.Create(&state).Error; err != nil {
 		t.Fatal(err)
 	}
-	for _, view := range []string{"/alerts", "/risk?view=observations"} {
+	for _, view := range []string{"/alerts", "/alerts?view=observations"} {
 		page := read(view)
 		rows := page["items"].([]any)
 		if len(rows) != 1 {
@@ -91,14 +91,14 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 		}
 	}
 	assertRule(read("/alerts?view=rules"), 1, input["warning"].(string))
-	status, _, _ = f.call(t, "GET", base+"/risk?view=unknown", nil, "")
+	status, _, _ = f.call(t, "GET", base+"/alerts?view=unknown", nil, "")
 	if status != 400 {
 		t.Fatal("unrecognized view accepted", status)
 	}
 	input["expected_version"], input["warning"] = 1, "11.000000000000000001"
 	key := uuid.NewString()
 	for i := 0; i < 2; i++ {
-		status, out, _ = f.call(t, "POST", base+"/risk", input, key)
+		status, out, _ = f.call(t, "POST", base+"/alerts", input, key)
 		mustOK(t, status, out)
 		if out["version"] != float64(2) {
 			t.Fatal("same original action did not replay the saved rule version", out)
@@ -108,7 +108,7 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	if status != 409 || out["error"].(map[string]any)["code"] != "version_conflict" {
 		t.Fatal("stale rule did not require review", status, out)
 	}
-	assertRule(read("/risk"), 2, input["warning"].(string))
+	assertRule(read("/alerts?view=rules"), 2, input["warning"].(string))
 	// A custom operator with only the exact rule-management permission must be
 	// able to use both views without inheriting financial report permissions.
 	var membership string
@@ -121,7 +121,7 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	if err := f.a.DB.Exec("INSERT INTO organization_staff_grants(membership_id,action) VALUES (?,?)", membership, "operations.manage").Error; err != nil {
 		t.Fatal(err)
 	}
-	assertRule(read("/risk"), 2, input["warning"].(string))
+	assertRule(read("/alerts?view=rules"), 2, input["warning"].(string))
 	read("/alerts")
 	input["expected_version"], input["enabled"] = 2, false
 	status, out, _ = f.call(t, "POST", base+"/alerts", input, uuid.NewString())
@@ -129,7 +129,7 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	if out["version"] != float64(3) {
 		t.Fatal("custom operations permission could not revise rule", out)
 	}
-	for _, path := range []string{"/v1/operators/" + uuid.NewString() + "/risk", base + "/reports/financial?from=2026-10-01T00:00:00Z&to=2026-10-02T00:00:00Z"} {
+	for _, path := range []string{"/v1/operators/" + uuid.NewString() + "/alerts", base + "/reports/financial?from=2026-10-01T00:00:00Z&to=2026-10-02T00:00:00Z"} {
 		status, _, _ = f.call(t, "GET", path, nil, "")
 		if status == 200 {
 			t.Fatal("rule management granted another scope or financial reports", path)

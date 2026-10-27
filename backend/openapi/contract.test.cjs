@@ -11,6 +11,23 @@ const resolve = value => value.$ref ? document.components.schemas[value.$ref.spl
 const operation = (resource, method = 'post') => document.paths[`/v1/operators/{operatorId}/${resource}`][method];
 const body = resource => resolve(operation(resource).requestBody.content['application/json'].schema);
 
+test('settings remove unused workspaces and avoid duplicate human evidence inputs', () => {
+  for (const resource of ['risk', 'retention']) {
+    assert.equal(document.paths[`/v1/operators/{operatorId}/${resource}`], undefined);
+    assert.equal(metadata.some(entry => entry.resource === resource), false);
+  }
+  const business = document.components.schemas.Operator_business_status_set;
+  assert.equal(business.properties.evidence_reference, undefined);
+  assert.ok(business.properties.expected_version);
+  const notice = metadata.find(entry => entry.resource === 'notifications' && entry.name === 'announce');
+  assert.ok(notice.fields.find(field => field.name === 'recipient_id').lookup_url);
+  assert.notEqual(notice.fields.find(field => field.name === 'reference').required, true);
+  const restriction = metadata.find(entry => entry.resource === 'restrictions' && entry.name === 'freeze');
+  assert.equal(restriction.fields.find(field => field.name === 'scope_kind').kind, 'hidden');
+  assert.equal(restriction.fields.some(field => field.name === 'evidence'), false);
+  assert.ok(restriction.fields.find(field => field.name === 'scope_id').lookup_url);
+});
+
 test('marketing uses named offers and usage limits while KOL only concedes commission', () => {
   const merchant = document.components.schemas.Operator_marketing_publish;
   assert.ok(merchant.properties.name);
@@ -122,7 +139,7 @@ test('ledger inputs retain 18-place precision while price inputs and output read
 });
 
 test('risk rules use current rule CAS and operations permission while observations remain a separate read view', () => {
-  for (const resource of ['risk', 'alerts']) {
+  for (const resource of ['alerts']) {
     assert.equal(operation(resource)['x-required-permission'], 'operations.manage');
     const revise = document.components.schemas[`Operator_${resource}_revise_rule`];
     assert.ok(revise.required.includes('id'));

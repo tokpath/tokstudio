@@ -1,9 +1,6 @@
 package portal
 
 import (
-	"encoding/json"
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
@@ -51,44 +48,3 @@ func (a *Application) redrive(c *gin.Context, op organization.Operator) {
 	})
 	jsonResponse(c, raw, e)
 }
-func (a *Application) retentionResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
-	rows, e := a.Operations.ListRetention(c.Request.Context(), actor, op.ID)
-	if e != nil {
-		handleError(c, e)
-		return
-	}
-	items := []any{}
-	for _, r := range rows {
-		status := "retained"
-		if r.PurgedAt != nil {
-			status = "purged"
-		}
-		items = append(items, entity(r.ID, status, 1, r))
-	}
-	policy := a.Operations.RetentionPolicy()
-	p["title"] = "临时数据保留与保护"
-	p["description"] = "临时内容最长保留30天，私有导出24小时；合法复核保护有90天上限。账本、履约与审计事实不随临时内容删除。"
-	p["items"] = items
-	p["summary"] = []gin.H{{"label": "临时内容上限", "value": "30", "unit": "天"}, {"label": "合法保护上限", "value": "90", "unit": "天"}}
-	p["columns"] = []gin.H{col("kind", "内容类型", "text"), col("reference", "事实引用", "text"), col("expires_at", "到期", "datetime"), col("legal_hold_until", "保护截至", "datetime"), col("state", "状态", "status")}
-	p["row_operations"] = []operation{{Name: "hold", Label: "记录必要复核保护", Method: "POST", Path: base + "/{id}/hold", Fields: []field{f("reason", "复核/保留依据", "textarea"), f("until", "保护截止时间", "datetime")}}}
-	_ = policy
-	a.resourceResponse(c, p)
-}
-func (a *Application) holdTemporary(c *gin.Context, op organization.Operator, actor string) {
-	var in struct {
-		Reason string
-		Until  time.Time
-	}
-	if !body(c, &in) {
-		return
-	}
-	e := a.Operations.HoldTemporary(c.Request.Context(), actor, op.ID, c.Param("id"), in.Reason, in.Until)
-	if e != nil {
-		handleError(c, e)
-		return
-	}
-	c.JSON(200, commandResult(c.Param("id"), "held"))
-}
-
-var _ json.RawMessage

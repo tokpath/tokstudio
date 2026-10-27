@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 	"gorm.io/gorm"
 )
 
@@ -153,16 +154,33 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		p["columns"] = []gin.H{col("metric", "事实指标", "text"), col("value", "精确值", "decimal")}
 		p["description"] = "来自当前经营方真实账本、采购和请求事实；未知供应商成本单列，不作为零成本。"
 	case "notifications":
-		rows, e := a.Operations.ListDeliveries(ctx, actor, op.ID, 100)
+		rows, next, e := a.Operations.ListOperatorNotifications(ctx, actor, op.ID, c.Query("cursor"), c.Query("q"), c.Query("status"), 50)
 		if e != nil {
 			handleError(c, e)
 			return true
 		}
 		for _, row := range rows {
-			items = append(items, entity(row.NotificationID, row.State, 1, row))
+			v := values(row)
+			v["read_status"] = "unread"
+			if row.ReadAt != nil {
+				v["read_status"] = "read"
+			}
+			if row.SystemGenerated() {
+				v["title"] = httpx.LocalizedText(httpx.RequestLocale(c.Request), row.Title)
+				v["body"] = httpx.LocalizedText(httpx.RequestLocale(c.Request), row.Body)
+			}
+			r := entity(row.ID, row.State, 1, v)
+			r["allowed_actions"] = []string{}
+			if row.State == "needs_attention" {
+				r["allowed_actions"] = []string{"retry"}
+			}
+			items = append(items, r)
 		}
-		p["columns"] = []gin.H{col("notification_id", "通知", "text"), col("state", "邮件状态", "status"), col("attempts", "尝试次数", "text"), col("error_code", "原因", "text"), col("next_attempt_at", "下次尝试", "datetime")}
-		p["operations"] = []operation{{Name: "announce", Label: "发送业务通知", Method: "POST", Path: base, Fields: []field{jsonField("recipient_id、category(mandatory/usage/marketing)、severity(info/warning/critical)、title、body、reference；营销邮件须先取得客户授权。")}}}
+		p["title"] = "通知管理"
+		p["description"] = "按标题、正文或关联事项查找通知。站内通知始终保留，邮件状态和阅读状态分别显示。"
+		p["search_supported"], p["status_supported"], p["next_cursor"] = true, true, next
+		p["columns"] = []gin.H{col("recipient_id", "收件人", "text"), col("category", "通知类别", "text"), col("state", "邮件状态", "status"), col("read_status", "阅读状态", "status"), col("created_at", "发送时间", "datetime")}
+		p["operations"] = []operation{{Name: "announce", Label: "发送业务通知", Method: "POST", Path: base, Fields: []field{jsonField("收件人、通知类别、标题和正文")}}}
 		p["row_operations"] = []operation{{Name: "retry", Label: "重试原通知", Method: "POST", Path: base + "/{id}/retry", Fields: []field{}}}
 	case "reconciliation":
 		rows, e := a.Operations.ListDiscrepancies(ctx, actor, op.ID, 100)
@@ -191,7 +209,7 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		}
 		p["columns"] = []gin.H{col("kind", "类型", "text"), col("state", "状态", "status"), col("row_count", "记录数", "text"), col("expires_at", "失效", "datetime"), col("download_url", "私有下载地址", "link")}
 		p["operations"] = []operation{{Name: "export", Label: "创建私有导出", Method: "POST", Path: base, Fields: []field{jsonField("kind(ledger/requests/procurement)、owner_id(可选)、from、to；选择有限时间范围。")}}}
-	case "risk", "alerts":
+	case "alerts":
 		a.riskWorkspace(c, op, actor, resource, base, p)
 		return true
 	case "invoices":
@@ -287,6 +305,12 @@ func (a *Application) operatorOperationsCommand(c *gin.Context, op organization.
 		}
 		in.OperatorID = op.ID
 		in.BusinessKey, _ = key(c)
+		if in.Reference == "" {
+			in.Reference = "staff-notice:" + in.BusinessKey
+		}
+		if in.Severity == "" {
+			in.Severity = "info"
+		}
 		out, e := a.Operations.Announce(ctx, actor, in)
 		if e != nil {
 			handleError(c, e)
@@ -311,7 +335,7 @@ func (a *Application) operatorOperationsCommand(c *gin.Context, op organization.
 		}
 		c.JSON(200, commandResult(out.ID, "queued"))
 		return true
-	case "risk", "alerts":
+	case "alerts":
 		raw, ok := decodeConfiguration(c)
 		if !ok {
 			return true

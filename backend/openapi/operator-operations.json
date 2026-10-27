@@ -2101,38 +2101,38 @@
         "name": "name",
         "label": "规则名称（留空按指标命名）",
         "kind": "text",
-        "required": false
+        "help": "用于风险观察与通知，最多100字；留空时按所选指标自动命名。"
       },
       {
         "name": "id",
         "label": "规则编号",
-        "kind": "hidden",
-        "required": false
+        "kind": "hidden"
       },
       {
         "name": "metric",
         "label": "真实指标",
         "kind": "select",
         "required": true,
+        "help": "ATG指标使用ATG阈值；在途及待结算请求统计已受理、执行中、已提交及待补用量的请求。规则仅作用于当前经营方；待核实上游成本数仅供平台选择。",
         "options": [
           {
             "label": "剩余销售空间ATG",
             "value": "sales_space_atg"
           },
           {
-            "label": "采购可用ATG",
+            "label": "采购可用余额 ATG",
             "value": "procurement_available_atg"
           },
           {
-            "label": "已用超卖ATG",
+            "label": "已用超卖额度 ATG",
             "value": "oversell_used_atg"
           },
           {
-            "label": "待结请求数",
+            "label": "在途及待结算请求数",
             "value": "pending_usage"
           },
           {
-            "label": "未知成本数",
+            "label": "待核实上游成本数",
             "value": "unverified_costs"
           }
         ]
@@ -2141,13 +2141,15 @@
         "name": "warning",
         "label": "预警阈值",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "help": "达到阈值即触发。低于方向的严重阈值不能高于预警阈值；高于方向则相反。"
       },
       {
         "name": "critical",
         "label": "严重阈值",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "help": "达到阈值即触发。低于方向的严重阈值不能高于预警阈值；高于方向则相反。"
       },
       {
         "name": "direction",
@@ -2156,11 +2158,11 @@
         "required": true,
         "options": [
           {
-            "label": "低于阈值",
+            "label": "达到或低于阈值",
             "value": "below"
           },
           {
-            "label": "高于阈值",
+            "label": "达到或高于阈值",
             "value": "above"
           }
         ]
@@ -2169,26 +2171,30 @@
         "name": "recipients",
         "label": "通知负责人",
         "kind": "csv",
-        "required": true
+        "required": true,
+        "help": "选择本经营方在岗人员，站内通知始终保留；邮箱已验证时同时发送邮件。"
       },
       {
         "name": "escalation_recipients",
         "label": "升级负责人",
-        "kind": "csv"
+        "kind": "csv",
+        "help": "选择本经营方在岗人员，站内通知始终保留；邮箱已验证时同时发送邮件。"
       },
       {
         "name": "reminder_seconds",
         "label": "持续风险提醒间隔秒数",
         "kind": "integer",
         "required": true,
-        "default_value": 3600
+        "default_value": 3600,
+        "help": "风险持续时重复提醒的间隔，单位为秒；至少60秒，最多30天。"
       },
       {
         "name": "escalate_seconds",
         "label": "升级等待秒数",
         "kind": "integer",
         "required": true,
-        "default_value": 86400
+        "default_value": 86400,
+        "help": "预警从本次风险开始持续达到此时长后升为严重并通知升级负责人，单位为秒；至少60秒，最多30天。严重阈值可直接触发严重通知。"
       },
       {
         "name": "enabled",
@@ -2199,9 +2205,10 @@
       },
       {
         "name": "expected_version",
-        "label": "当前版本（首次填写0）",
+        "label": "当前版本",
         "kind": "hidden",
-        "required": true
+        "required": true,
+        "default_value": 0
       }
     ],
     "include_version": false,
@@ -2220,7 +2227,7 @@
         "name": "name",
         "label": "规则名称（留空按指标命名）",
         "kind": "text",
-        "required": false
+        "help": "用于风险观察与通知，最多100字；留空时按所选指标自动命名。"
       },
       {
         "name": "id",
@@ -2233,25 +2240,26 @@
         "label": "真实指标",
         "kind": "select",
         "required": true,
+        "help": "ATG指标使用ATG阈值；在途及待结算请求统计已受理、执行中、已提交及待补用量的请求。规则仅作用于当前经营方；待核实上游成本数仅供平台选择。",
         "options": [
           {
             "label": "剩余销售空间ATG",
             "value": "sales_space_atg"
           },
           {
-            "label": "采购可用ATG",
+            "label": "采购可用余额 ATG",
             "value": "procurement_available_atg"
           },
           {
-            "label": "已用超卖ATG",
+            "label": "已用超卖额度 ATG",
             "value": "oversell_used_atg"
           },
           {
-            "label": "待结请求数",
+            "label": "在途及待结算请求数",
             "value": "pending_usage"
           },
           {
-            "label": "未知成本数",
+            "label": "待核实上游成本数",
             "value": "unverified_costs"
           }
         ]
@@ -2260,13 +2268,15 @@
         "name": "warning",
         "label": "预警阈值",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "help": "达到阈值即触发。低于方向的严重阈值不能高于预警阈值；高于方向则相反。"
       },
       {
         "name": "critical",
         "label": "严重阈值",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "help": "达到阈值即触发。低于方向的严重阈值不能高于预警阈值；高于方向则相反。"
       },
       {
         "name": "direction",
@@ -2275,11 +2285,11 @@
         "required": true,
         "options": [
           {
-            "label": "低于阈值",
+            "label": "达到或低于阈值",
             "value": "below"
           },
           {
-            "label": "高于阈值",
+            "label": "达到或高于阈值",
             "value": "above"
           }
         ]
@@ -2288,26 +2298,30 @@
         "name": "recipients",
         "label": "通知负责人",
         "kind": "csv",
-        "required": true
+        "required": true,
+        "help": "选择本经营方在岗人员，站内通知始终保留；邮箱已验证时同时发送邮件。"
       },
       {
         "name": "escalation_recipients",
         "label": "升级负责人",
-        "kind": "csv"
+        "kind": "csv",
+        "help": "选择本经营方在岗人员，站内通知始终保留；邮箱已验证时同时发送邮件。"
       },
       {
         "name": "reminder_seconds",
         "label": "持续风险提醒间隔秒数",
         "kind": "integer",
         "required": true,
-        "default_value": 3600
+        "default_value": 3600,
+        "help": "风险持续时重复提醒的间隔，单位为秒；至少60秒，最多30天。"
       },
       {
         "name": "escalate_seconds",
         "label": "升级等待秒数",
         "kind": "integer",
         "required": true,
-        "default_value": 86400
+        "default_value": 86400,
+        "help": "预警从本次风险开始持续达到此时长后升为严重并通知升级负责人，单位为秒；至少60秒，最多30天。严重阈值可直接触发严重通知。"
       },
       {
         "name": "enabled",
@@ -2318,9 +2332,10 @@
       },
       {
         "name": "expected_version",
-        "label": "当前版本（首次填写0）",
+        "label": "当前版本",
         "kind": "hidden",
-        "required": true
+        "required": true,
+        "default_value": 0
       }
     ],
     "include_version": false,
@@ -3679,12 +3694,12 @@
         "default_value": "manual",
         "options": [
           {
-            "value": "manual",
-            "label": "手动开通并交付"
+            "label": "手动开通并交付",
+            "value": "manual"
           },
           {
-            "value": "email",
-            "label": "发送邮件邀请"
+            "label": "发送邮件邀请",
+            "value": "email"
           }
         ]
       },
@@ -3697,14 +3712,12 @@
       {
         "name": "display_name",
         "label": "人员姓名",
-        "kind": "text",
-        "required": false
+        "kind": "text"
       },
       {
         "name": "initial_password",
         "label": "新账号初始密码",
         "kind": "password",
-        "required": false,
         "visible_when": {
           "field": "delivery_mode",
           "values": [
@@ -3719,24 +3732,24 @@
         "required": true,
         "options": [
           {
-            "value": "owner",
-            "label": "负责人"
+            "label": "负责人",
+            "value": "owner"
           },
           {
-            "value": "operations",
-            "label": "运营"
+            "label": "运营",
+            "value": "operations"
           },
           {
-            "value": "finance",
-            "label": "财务"
+            "label": "财务",
+            "value": "finance"
           },
           {
-            "value": "support",
-            "label": "客服"
+            "label": "客服",
+            "value": "support"
           },
           {
-            "value": "readonly",
-            "label": "只读"
+            "label": "只读",
+            "value": "readonly"
           }
         ]
       }
@@ -3803,9 +3816,119 @@
       },
       {
         "name": "grants",
-        "label": "自定义权限",
+        "label": "额外权限（可选）",
         "kind": "text",
-        "help": "勾选当前经营范围明确授予的权限。角色自带权限仍按所选角色生效；这里只显示本人可授予的权限。"
+        "help": "勾选当前经营范围明确授予的权限。角色自带权限仍按所选角色生效；这里只显示本人可授予的权限。",
+        "options": [
+          {
+            "label": "查看合作主体",
+            "value": "organization.read"
+          },
+          {
+            "label": "开通合作主体",
+            "value": "organization.create"
+          },
+          {
+            "label": "管理采购与合作",
+            "value": "cooperation.manage"
+          },
+          {
+            "label": "调整营业设置",
+            "value": "business.manage"
+          },
+          {
+            "label": "查看人员",
+            "value": "staff.read"
+          },
+          {
+            "label": "邀请及调整人员",
+            "value": "staff.manage"
+          },
+          {
+            "label": "管理本品牌外观",
+            "value": "branding.manage"
+          },
+          {
+            "label": "配置直属OEM外观",
+            "value": "branding.manage_oem"
+          },
+          {
+            "label": "配置直属渠道外观",
+            "value": "branding.manage_channels"
+          },
+          {
+            "label": "查看客户服务",
+            "value": "customers.read"
+          },
+          {
+            "label": "管理套餐与模型定价",
+            "value": "sales.manage"
+          },
+          {
+            "label": "管理活动与赠送",
+            "value": "marketing.manage"
+          },
+          {
+            "label": "客户支持",
+            "value": "support.manage"
+          },
+          {
+            "label": "管理风险与通知",
+            "value": "operations.manage"
+          },
+          {
+            "label": "查看经营汇总",
+            "value": "reports.summary"
+          },
+          {
+            "label": "查看经营报表",
+            "value": "reports.view"
+          },
+          {
+            "label": "查看财务报表",
+            "value": "reports.financial"
+          },
+          {
+            "label": "导出私有经营记录",
+            "value": "reports.export"
+          },
+          {
+            "label": "查看资产和账本",
+            "value": "ledger.read"
+          },
+          {
+            "label": "管理收款",
+            "value": "payments.manage"
+          },
+          {
+            "label": "管理退款及复核",
+            "value": "refunds.manage"
+          },
+          {
+            "label": "管理提现",
+            "value": "withdrawals.manage"
+          },
+          {
+            "label": "管理发票",
+            "value": "invoices.manage"
+          },
+          {
+            "label": "管理安全限制",
+            "value": "security.manage"
+          },
+          {
+            "label": "维护平台模型与路由",
+            "value": "catalog.manage"
+          },
+          {
+            "label": "维护支付资产网络",
+            "value": "providers.manage"
+          },
+          {
+            "label": "平台技术运营",
+            "value": "platform.manage"
+          }
+        ]
       }
     ],
     "include_version": false,
@@ -3816,274 +3939,22 @@
     "permission": "staff.manage"
   },
   {
-    "resource": "risk",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "name": "name",
-        "label": "规则名称（留空按指标命名）",
-        "kind": "text",
-        "required": false
-      },
-      {
-        "name": "id",
-        "label": "规则编号",
-        "kind": "hidden",
-        "required": false
-      },
-      {
-        "name": "metric",
-        "label": "真实指标",
-        "kind": "select",
-        "required": true,
-        "options": [
-          {
-            "label": "剩余销售空间ATG",
-            "value": "sales_space_atg"
-          },
-          {
-            "label": "采购可用ATG",
-            "value": "procurement_available_atg"
-          },
-          {
-            "label": "已用超卖ATG",
-            "value": "oversell_used_atg"
-          },
-          {
-            "label": "待结请求数",
-            "value": "pending_usage"
-          },
-          {
-            "label": "未知成本数",
-            "value": "unverified_costs"
-          }
-        ]
-      },
-      {
-        "name": "warning",
-        "label": "预警阈值",
-        "kind": "decimal",
-        "required": true
-      },
-      {
-        "name": "critical",
-        "label": "严重阈值",
-        "kind": "decimal",
-        "required": true
-      },
-      {
-        "name": "direction",
-        "label": "触发方向",
-        "kind": "select",
-        "required": true,
-        "options": [
-          {
-            "label": "低于阈值",
-            "value": "below"
-          },
-          {
-            "label": "高于阈值",
-            "value": "above"
-          }
-        ]
-      },
-      {
-        "name": "recipients",
-        "label": "通知负责人",
-        "kind": "csv",
-        "required": true
-      },
-      {
-        "name": "escalation_recipients",
-        "label": "升级负责人",
-        "kind": "csv"
-      },
-      {
-        "name": "reminder_seconds",
-        "label": "持续风险提醒间隔秒数",
-        "kind": "integer",
-        "required": true,
-        "default_value": 3600
-      },
-      {
-        "name": "escalate_seconds",
-        "label": "升级等待秒数",
-        "kind": "integer",
-        "required": true,
-        "default_value": 86400
-      },
-      {
-        "name": "enabled",
-        "label": "启用规则",
-        "kind": "boolean",
-        "required": true,
-        "default_value": true
-      },
-      {
-        "name": "expected_version",
-        "label": "当前版本（首次填写0）",
-        "kind": "hidden",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "新增预警规则",
-    "method": "POST",
-    "name": "risk_rule",
-    "path": "/v1/operators/{operatorId}/risk",
-    "permission": "operations.manage"
-  },
-  {
-    "resource": "risk",
-    "confirmation": "",
-    "description": "沿用此规则真实版本，修改通知阈值、负责人、提醒、升级或启停；不会把风险观察记录当作规则保存。",
-    "fields": [
-      {
-        "name": "name",
-        "label": "规则名称（留空按指标命名）",
-        "kind": "text",
-        "required": false
-      },
-      {
-        "name": "id",
-        "label": "规则编号",
-        "kind": "hidden",
-        "required": true
-      },
-      {
-        "name": "metric",
-        "label": "真实指标",
-        "kind": "select",
-        "required": true,
-        "options": [
-          {
-            "label": "剩余销售空间ATG",
-            "value": "sales_space_atg"
-          },
-          {
-            "label": "采购可用ATG",
-            "value": "procurement_available_atg"
-          },
-          {
-            "label": "已用超卖ATG",
-            "value": "oversell_used_atg"
-          },
-          {
-            "label": "待结请求数",
-            "value": "pending_usage"
-          },
-          {
-            "label": "未知成本数",
-            "value": "unverified_costs"
-          }
-        ]
-      },
-      {
-        "name": "warning",
-        "label": "预警阈值",
-        "kind": "decimal",
-        "required": true
-      },
-      {
-        "name": "critical",
-        "label": "严重阈值",
-        "kind": "decimal",
-        "required": true
-      },
-      {
-        "name": "direction",
-        "label": "触发方向",
-        "kind": "select",
-        "required": true,
-        "options": [
-          {
-            "label": "低于阈值",
-            "value": "below"
-          },
-          {
-            "label": "高于阈值",
-            "value": "above"
-          }
-        ]
-      },
-      {
-        "name": "recipients",
-        "label": "通知负责人",
-        "kind": "csv",
-        "required": true
-      },
-      {
-        "name": "escalation_recipients",
-        "label": "升级负责人",
-        "kind": "csv"
-      },
-      {
-        "name": "reminder_seconds",
-        "label": "持续风险提醒间隔秒数",
-        "kind": "integer",
-        "required": true,
-        "default_value": 3600
-      },
-      {
-        "name": "escalate_seconds",
-        "label": "升级等待秒数",
-        "kind": "integer",
-        "required": true,
-        "default_value": 86400
-      },
-      {
-        "name": "enabled",
-        "label": "启用规则",
-        "kind": "boolean",
-        "required": true,
-        "default_value": true
-      },
-      {
-        "name": "expected_version",
-        "label": "当前版本（首次填写0）",
-        "kind": "hidden",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "修订此预警规则",
-    "method": "POST",
-    "name": "revise_rule",
-    "path": "/v1/operators/{operatorId}/risk",
-    "permission": "operations.manage"
-  },
-  {
     "resource": "restrictions",
     "confirmation": "只对明确范围与动作生效，不转移或删除客户资产。设置限制必须有复核到期。",
     "description": "",
     "fields": [
       {
         "name": "scope_kind",
-        "label": "范围类型",
-        "kind": "select",
-        "required": true,
-        "options": [
-          {
-            "label": "本经营方",
-            "value": "operator"
-          },
-          {
-            "label": "本品牌（仅品牌负责人）",
-            "value": "brand"
-          },
-          {
-            "label": "当前服务归属客户",
-            "value": "customer"
-          }
-        ]
+        "label": "对象类型",
+        "kind": "hidden",
+        "required": true
       },
       {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/scope-subjects",
         "name": "scope_id",
-        "label": "范围主体编号",
+        "label": "限制对象",
         "kind": "text",
-        "required": true
+        "required": true,
+        "lookup_url": "/api/v1/operators/{operatorId}/references/scope-subjects"
       },
       {
         "name": "action",
@@ -4131,36 +4002,33 @@
       },
       {
         "name": "enabled",
-        "label": "启用限制（取消勾选解除）",
-        "kind": "boolean",
-        "required": true
+        "label": "启用限制",
+        "kind": "hidden",
+        "required": true,
+        "default_value": true
       },
       {
         "name": "expected_version",
         "label": "当前范围动作版本（首次0）",
         "kind": "hidden",
-        "required": true
-      },
-      {
-        "name": "evidence",
-        "label": "核实与处理依据",
-        "kind": "textarea",
-        "required": true
+        "required": true,
+        "default_value": 0
       },
       {
         "name": "explanation",
-        "label": "对客户明确说明",
+        "label": "处理说明（向客户展示）",
         "kind": "textarea",
         "required": true
       },
       {
         "name": "review_due_at",
-        "label": "限制复核到期（启用必填）",
-        "kind": "datetime"
+        "label": "复核时间",
+        "kind": "datetime",
+        "required": true
       }
     ],
     "include_version": false,
-    "label": "记录或解除明确业务限制",
+    "label": "新增业务限制",
     "method": "POST",
     "name": "freeze",
     "path": "/v1/operators/{operatorId}/restrictions",
@@ -4178,7 +4046,6 @@
         "required": true
       },
       {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/scope-subjects",
         "name": "scope_id",
         "label": "原范围主体",
         "kind": "hidden",
@@ -4194,30 +4061,32 @@
         "name": "expected_version",
         "label": "当前版本",
         "kind": "hidden",
-        "required": true
+        "required": true,
+        "default_value": 0
       },
       {
         "name": "enabled",
-        "label": "继续限制（取消勾选解除）",
+        "label": "继续限制",
         "kind": "boolean",
         "required": true
       },
       {
-        "name": "evidence",
-        "label": "本次真实核实依据",
-        "kind": "textarea",
-        "required": true
-      },
-      {
         "name": "explanation",
-        "label": "对客户说明",
+        "label": "处理说明（向客户展示）",
         "kind": "textarea",
         "required": true
       },
       {
         "name": "review_due_at",
-        "label": "新的复核到期（继续限制必填）",
-        "kind": "datetime"
+        "label": "复核时间",
+        "kind": "datetime",
+        "required": true,
+        "visible_when": {
+          "field": "enabled",
+          "values": [
+            "true"
+          ]
+        }
       }
     ],
     "include_version": false,
@@ -4234,9 +4103,10 @@
     "fields": [
       {
         "name": "recipient_id",
-        "label": "本经营范围收件人编号",
+        "label": "本经营范围收件人",
         "kind": "text",
-        "required": true
+        "required": true,
+        "lookup_url": "/api/v1/operators/{operatorId}/references/recipients"
       },
       {
         "name": "category",
@@ -4263,6 +4133,7 @@
         "label": "级别",
         "kind": "select",
         "required": true,
+        "default_value": "info",
         "options": [
           {
             "label": "一般",
@@ -4292,9 +4163,8 @@
       },
       {
         "name": "reference",
-        "label": "业务关联依据",
-        "kind": "text",
-        "required": true
+        "label": "关联事项（可选）",
+        "kind": "text"
       }
     ],
     "include_version": false,
@@ -4361,48 +4231,18 @@
       },
       {
         "name": "expected_version",
-        "label": "当前版本（首次填写0）",
+        "label": "当前版本",
         "kind": "hidden",
-        "required": true
-      },
-      {
-        "name": "evidence_reference",
-        "label": "检查及授权依据",
-        "kind": "text",
-        "required": true
+        "required": true,
+        "default_value": 1
       }
     ],
     "include_version": false,
-    "label": "提交开业配置检查",
+    "label": "调整营业开关",
     "method": "POST",
     "name": "set",
     "path": "/v1/operators/{operatorId}/business-status",
     "permission": "business.manage"
-  },
-  {
-    "resource": "retention",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "name": "reason",
-        "label": "复核/保留依据",
-        "kind": "textarea",
-        "required": true
-      },
-      {
-        "name": "until",
-        "label": "保护截止时间",
-        "kind": "datetime",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "记录必要复核保护",
-    "method": "POST",
-    "name": "hold",
-    "path": "/v1/operators/{operatorId}/retention/{id}/hold",
-    "permission": "security.manage"
   },
   {
     "resource": "refunds",

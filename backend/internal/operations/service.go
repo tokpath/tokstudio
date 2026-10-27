@@ -1,5 +1,5 @@
-// Package operations owns business notifications, operational review and temporary
-// records. It cannot mutate financial balances or silently resolve discrepancies.
+// Package operations owns business notifications, operational review and automatic expiry
+// of model results and exports. It cannot mutate financial balances or silently resolve discrepancies.
 package operations
 
 import (

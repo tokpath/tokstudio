@@ -16291,307 +16291,6 @@
         "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
       }
     },
-    "/v1/operators/{operatorId}/risk": {
-      "get": {
-        "operationId": "get__v1_operators_operatorId_risk",
-        "summary": "Read exact operator risk workspace",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "Opaque page cursor",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "view",
-            "in": "query",
-            "required": false,
-            "description": "Only workspace-provided view values are accepted.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "record",
-            "in": "query",
-            "required": false,
-            "description": "Exact refund case context when following an authorized business record.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResourcePage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
-      },
-      "post": {
-        "operationId": "post__v1_operators_operatorId_risk",
-        "summary": "新增预警规则",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/Operator_risk_risk_rule"
-                  },
-                  {
-                    "$ref": "#/components/schemas/Operator_risk_revise_rule"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "description": " Requires operations.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "operations.manage"
-      }
-    },
     "/v1/operators/{operatorId}/restrictions": {
       "get": {
         "operationId": "get__v1_operators_operatorId_restrictions",
@@ -16755,7 +16454,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_restrictions",
-        "summary": "记录或解除明确业务限制",
+        "summary": "新增业务限制",
         "tags": [
           "Operator browser API"
         ],
@@ -17350,7 +17049,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_business_status",
-        "summary": "提交开业配置检查",
+        "summary": "调整营业开关",
         "tags": [
           "Operator browser API"
         ],
@@ -17485,168 +17184,6 @@
       "get": {
         "operationId": "get__v1_operators_operatorId_audit",
         "summary": "Read exact operator audit workspace",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "Opaque page cursor",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "view",
-            "in": "query",
-            "required": false,
-            "description": "Only workspace-provided view values are accepted.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "record",
-            "in": "query",
-            "required": false,
-            "description": "Exact refund case context when following an authorized business record.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResourcePage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
-      }
-    },
-    "/v1/operators/{operatorId}/retention": {
-      "get": {
-        "operationId": "get__v1_operators_operatorId_retention",
-        "summary": "Read exact operator retention workspace",
         "tags": [
           "Operator browser API"
         ],
@@ -29216,148 +28753,6 @@
         },
         "description": " Requires operations.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "operations.manage"
-      }
-    },
-    "/v1/operators/{operatorId}/retention/{id}/hold": {
-      "post": {
-        "operationId": "post__v1_operators_operatorId_retention_id_hold",
-        "summary": "记录必要复核保护",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Operator_retention_hold"
-              }
-            }
-          }
-        },
-        "description": " Requires security.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "security.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/review": {
@@ -49194,7 +48589,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "规则名称（留空按指标命名）"
+            "description": "规则名称（留空按指标命名） — 用于风险观察与通知，最多100字；留空时按所选指标自动命名。"
           },
           "id": {
             "type": "string",
@@ -49209,15 +48604,15 @@
               "pending_usage",
               "unverified_costs"
             ],
-            "description": "真实指标"
+            "description": "真实指标 — ATG指标使用ATG阈值；在途及待结算请求统计已受理、执行中、已提交及待补用量的请求。规则仅作用于当前经营方；待核实上游成本数仅供平台选择。"
           },
           "warning": {
             "$ref": "#/components/schemas/SignedLedgerDecimal",
-            "description": "预警阈值"
+            "description": "预警阈值 — 达到阈值即触发。低于方向的严重阈值不能高于预警阈值；高于方向则相反。"
           },
           "critical": {
             "$ref": "#/components/schemas/SignedLedgerDecimal",
-            "description": "严重阈值"
+            "description": "严重阈值 — 达到阈值即触发。低于方向的严重阈值不能高于预警阈值；高于方向则相反。"
           },
           "direction": {
             "type": "string",
@@ -49232,24 +48627,24 @@
             "items": {
               "type": "string"
             },
-            "description": "通知负责人"
+            "description": "通知负责人 — 选择本经营方在岗人员，站内通知始终保留；邮箱已验证时同时发送邮件。"
           },
           "escalation_recipients": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "升级负责人"
+            "description": "升级负责人 — 选择本经营方在岗人员，站内通知始终保留；邮箱已验证时同时发送邮件。"
           },
           "reminder_seconds": {
             "type": "integer",
             "minimum": 0,
-            "description": "持续风险提醒间隔秒数"
+            "description": "持续风险提醒间隔秒数 — 风险持续时重复提醒的间隔，单位为秒；至少60秒，最多30天。"
           },
           "escalate_seconds": {
             "type": "integer",
             "minimum": 0,
-            "description": "升级等待秒数"
+            "description": "升级等待秒数 — 预警从本次风险开始持续达到此时长后升为严重并通知升级负责人，单位为秒；至少60秒，最多30天。严重阈值可直接触发严重通知。"
           },
           "enabled": {
             "type": "boolean",
@@ -49258,7 +48653,7 @@
           "expected_version": {
             "type": "integer",
             "minimum": 0,
-            "description": "当前版本（首次填写0）"
+            "description": "当前版本"
           }
         },
         "required": [
@@ -49279,7 +48674,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "规则名称（留空按指标命名）"
+            "description": "规则名称（留空按指标命名） — 用于风险观察与通知，最多100字；留空时按所选指标自动命名。"
           },
           "id": {
             "type": "string",
@@ -49294,15 +48689,15 @@
               "pending_usage",
               "unverified_costs"
             ],
-            "description": "真实指标"
+            "description": "真实指标 — ATG指标使用ATG阈值；在途及待结算请求统计已受理、执行中、已提交及待补用量的请求。规则仅作用于当前经营方；待核实上游成本数仅供平台选择。"
           },
           "warning": {
             "$ref": "#/components/schemas/SignedLedgerDecimal",
-            "description": "预警阈值"
+            "description": "预警阈值 — 达到阈值即触发。低于方向的严重阈值不能高于预警阈值；高于方向则相反。"
           },
           "critical": {
             "$ref": "#/components/schemas/SignedLedgerDecimal",
-            "description": "严重阈值"
+            "description": "严重阈值 — 达到阈值即触发。低于方向的严重阈值不能高于预警阈值；高于方向则相反。"
           },
           "direction": {
             "type": "string",
@@ -49317,24 +48712,24 @@
             "items": {
               "type": "string"
             },
-            "description": "通知负责人"
+            "description": "通知负责人 — 选择本经营方在岗人员，站内通知始终保留；邮箱已验证时同时发送邮件。"
           },
           "escalation_recipients": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "升级负责人"
+            "description": "升级负责人 — 选择本经营方在岗人员，站内通知始终保留；邮箱已验证时同时发送邮件。"
           },
           "reminder_seconds": {
             "type": "integer",
             "minimum": 0,
-            "description": "持续风险提醒间隔秒数"
+            "description": "持续风险提醒间隔秒数 — 风险持续时重复提醒的间隔，单位为秒；至少60秒，最多30天。"
           },
           "escalate_seconds": {
             "type": "integer",
             "minimum": 0,
-            "description": "升级等待秒数"
+            "description": "升级等待秒数 — 预警从本次风险开始持续达到此时长后升为严重并通知升级负责人，单位为秒；至少60秒，最多30天。严重阈值可直接触发严重通知。"
           },
           "enabled": {
             "type": "boolean",
@@ -49343,7 +48738,7 @@
           "expected_version": {
             "type": "integer",
             "minimum": 0,
-            "description": "当前版本（首次填写0）"
+            "description": "当前版本"
           }
         },
         "required": [
@@ -51973,7 +51368,7 @@
           },
           "grants": {
             "type": "string",
-            "description": "自定义权限 — 勾选当前经营范围明确授予的权限。角色自带权限仍按所选角色生效；这里只显示本人可授予的权限。"
+            "description": "额外权限（可选） — 勾选当前经营范围明确授予的权限。角色自带权限仍按所选角色生效；这里只显示本人可授予的权限。"
           }
         },
         "required": [
@@ -51982,192 +51377,16 @@
         ],
         "additionalProperties": false
       },
-      "Operator_risk_risk_rule": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "规则名称（留空按指标命名）"
-          },
-          "id": {
-            "type": "string",
-            "description": "规则编号"
-          },
-          "metric": {
-            "type": "string",
-            "enum": [
-              "sales_space_atg",
-              "procurement_available_atg",
-              "oversell_used_atg",
-              "pending_usage",
-              "unverified_costs"
-            ],
-            "description": "真实指标"
-          },
-          "warning": {
-            "$ref": "#/components/schemas/SignedLedgerDecimal",
-            "description": "预警阈值"
-          },
-          "critical": {
-            "$ref": "#/components/schemas/SignedLedgerDecimal",
-            "description": "严重阈值"
-          },
-          "direction": {
-            "type": "string",
-            "enum": [
-              "below",
-              "above"
-            ],
-            "description": "触发方向"
-          },
-          "recipients": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "通知负责人"
-          },
-          "escalation_recipients": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "升级负责人"
-          },
-          "reminder_seconds": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "持续风险提醒间隔秒数"
-          },
-          "escalate_seconds": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "升级等待秒数"
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "启用规则"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "当前版本（首次填写0）"
-          }
-        },
-        "required": [
-          "metric",
-          "warning",
-          "critical",
-          "direction",
-          "recipients",
-          "reminder_seconds",
-          "escalate_seconds",
-          "enabled",
-          "expected_version"
-        ],
-        "additionalProperties": false
-      },
-      "Operator_risk_revise_rule": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "规则名称（留空按指标命名）"
-          },
-          "id": {
-            "type": "string",
-            "description": "规则编号"
-          },
-          "metric": {
-            "type": "string",
-            "enum": [
-              "sales_space_atg",
-              "procurement_available_atg",
-              "oversell_used_atg",
-              "pending_usage",
-              "unverified_costs"
-            ],
-            "description": "真实指标"
-          },
-          "warning": {
-            "$ref": "#/components/schemas/SignedLedgerDecimal",
-            "description": "预警阈值"
-          },
-          "critical": {
-            "$ref": "#/components/schemas/SignedLedgerDecimal",
-            "description": "严重阈值"
-          },
-          "direction": {
-            "type": "string",
-            "enum": [
-              "below",
-              "above"
-            ],
-            "description": "触发方向"
-          },
-          "recipients": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "通知负责人"
-          },
-          "escalation_recipients": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "升级负责人"
-          },
-          "reminder_seconds": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "持续风险提醒间隔秒数"
-          },
-          "escalate_seconds": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "升级等待秒数"
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "启用规则"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "当前版本（首次填写0）"
-          }
-        },
-        "required": [
-          "id",
-          "metric",
-          "warning",
-          "critical",
-          "direction",
-          "recipients",
-          "reminder_seconds",
-          "escalate_seconds",
-          "enabled",
-          "expected_version"
-        ],
-        "additionalProperties": false
-      },
       "Operator_restrictions_freeze": {
         "type": "object",
         "properties": {
           "scope_kind": {
             "type": "string",
-            "enum": [
-              "operator",
-              "brand",
-              "customer"
-            ],
-            "description": "范围类型"
+            "description": "对象类型"
           },
           "scope_id": {
             "type": "string",
-            "description": "范围主体编号"
+            "description": "限制对象"
           },
           "action": {
             "type": "string",
@@ -52186,25 +51405,21 @@
           },
           "enabled": {
             "type": "boolean",
-            "description": "启用限制（取消勾选解除）"
+            "description": "启用限制"
           },
           "expected_version": {
             "type": "integer",
             "minimum": 0,
             "description": "当前范围动作版本（首次0）"
           },
-          "evidence": {
-            "type": "string",
-            "description": "核实与处理依据"
-          },
           "explanation": {
             "type": "string",
-            "description": "对客户明确说明"
+            "description": "处理说明（向客户展示）"
           },
           "review_due_at": {
             "type": "string",
             "format": "date-time",
-            "description": "限制复核到期（启用必填）"
+            "description": "复核时间"
           }
         },
         "required": [
@@ -52213,8 +51428,8 @@
           "action",
           "enabled",
           "expected_version",
-          "evidence",
-          "explanation"
+          "explanation",
+          "review_due_at"
         ],
         "additionalProperties": false
       },
@@ -52240,20 +51455,23 @@
           },
           "enabled": {
             "type": "boolean",
-            "description": "继续限制（取消勾选解除）"
-          },
-          "evidence": {
-            "type": "string",
-            "description": "本次真实核实依据"
+            "description": "继续限制"
           },
           "explanation": {
             "type": "string",
-            "description": "对客户说明"
+            "description": "处理说明（向客户展示）"
           },
           "review_due_at": {
             "type": "string",
             "format": "date-time",
-            "description": "新的复核到期（继续限制必填）"
+            "description": "复核时间",
+            "x-visible-when": {
+              "field": "enabled",
+              "values": [
+                "true"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
@@ -52262,17 +51480,40 @@
           "action",
           "expected_version",
           "enabled",
-          "evidence",
           "explanation"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "enabled": {
+                  "enum": [
+                    "true"
+                  ]
+                }
+              },
+              "required": [
+                "enabled"
+              ]
+            },
+            "then": {
+              "properties": {
+                "review_due_at": {}
+              },
+              "required": [
+                "review_due_at"
+              ]
+            }
+          }
+        ]
       },
       "Operator_notifications_announce": {
         "type": "object",
         "properties": {
           "recipient_id": {
             "type": "string",
-            "description": "本经营范围收件人编号"
+            "description": "本经营范围收件人"
           },
           "category": {
             "type": "string",
@@ -52302,7 +51543,7 @@
           },
           "reference": {
             "type": "string",
-            "description": "业务关联依据"
+            "description": "关联事项（可选）"
           }
         },
         "required": [
@@ -52310,8 +51551,7 @@
           "category",
           "severity",
           "title",
-          "body",
-          "reference"
+          "body"
         ],
         "additionalProperties": false
       },
@@ -52343,37 +51583,13 @@
           "expected_version": {
             "type": "integer",
             "minimum": 0,
-            "description": "当前版本（首次填写0）"
-          },
-          "evidence_reference": {
-            "type": "string",
-            "description": "检查及授权依据"
+            "description": "当前版本"
           }
         },
         "required": [
           "feature",
           "enabled",
-          "expected_version",
-          "evidence_reference"
-        ],
-        "additionalProperties": false
-      },
-      "Operator_retention_hold": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "description": "复核/保留依据"
-          },
-          "until": {
-            "type": "string",
-            "format": "date-time",
-            "description": "保护截止时间"
-          }
-        },
-        "required": [
-          "reason",
-          "until"
+          "expected_version"
         ],
         "additionalProperties": false
       },

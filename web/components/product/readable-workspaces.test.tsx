@@ -52,7 +52,7 @@ it("restores a chosen reference beyond the first result page and reviews its nam
 
 it("selects risk recipients by name and submits their real IDs as an array",async()=>{
  const fetch=vi.fn(async()=>response({id:rowID,status:"saved"}));vi.stubGlobal("fetch",fetch);
- const op:Operation={name:"save",label:"保存提醒",method:"POST",path:"/api/v1/operators/workspace/risk",fields:[{name:"recipients",label:"通知负责人",kind:"csv",required:true,options:[{value:supplierID,label:"林负责人 · lin@example.test"},{value:rowID,label:"陈财务 · chen@example.test"}]}]};
+ const op:Operation={name:"save",label:"保存提醒",method:"POST",path:"/api/v1/operators/workspace/alerts",fields:[{name:"recipients",label:"通知负责人",kind:"csv",required:true,options:[{value:supplierID,label:"林负责人 · lin@example.test"},{value:rowID,label:"陈财务 · chen@example.test"}]}]};
  show(<OperationForm operation={op} operatorID="workspace" />);
  fireEvent.click(screen.getByRole("checkbox",{name:"林负责人 · lin@example.test"}));
  expect(screen.queryByText(supplierID)).toBeNull();fireEvent.click(screen.getByRole("button",{name:"保存提醒",exact:true}));

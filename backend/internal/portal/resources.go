@@ -305,7 +305,7 @@ func permissionFor(resource string) string {
 		return "providers.manage"
 	case "requests", "jobs", "mail", "supplier-costs":
 		return "platform.manage"
-	case "notifications", "alerts", "risk":
+	case "notifications", "alerts":
 		return "operations.manage"
 	case "exports":
 		return "reports.export"
@@ -313,7 +313,7 @@ func permissionFor(resource string) string {
 		return "invoices.manage"
 	case "reconciliation":
 		return "reports.view"
-	case "retention", "restrictions":
+	case "restrictions":
 		return "security.manage"
 	case "withdrawals":
 		return "withdrawals.manage"
@@ -352,6 +352,12 @@ func (a *Application) staffScope(c *gin.Context, resource string) (organization.
 	// channel execution is likewise a payment action inside the refund workspace.
 	if e != nil && resource == "exits" {
 		e = a.permitAny(c, actor, op.ID, "payments.manage", "refunds.manage")
+	}
+	if e != nil && resource == "audit" {
+		e = a.permitAny(c, actor, op.ID, "ledger.read", "branding.manage")
+	}
+	if e != nil && resource == "approvals" {
+		e = a.permitAny(c, actor, op.ID, "withdrawals.manage")
 	}
 	if e != nil && resource == "refunds" {
 		e = a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, "payments.manage")
@@ -686,15 +692,13 @@ func (a *Application) operatorResource(c *gin.Context) {
 		v["readiness"] = readiness
 		items = append(items, entity(op.ID, op.Lifecycle, row.Version, v))
 		p["columns"] = []gin.H{col("registration", "注册", "boolean"), col("new_purchase", "新购", "boolean"), col("renewal", "续费", "boolean"), col("model_usage", "调用", "boolean"), col("activity", "营销", "boolean"), col("settlement", "结算", "boolean")}
-		p["operations"] = []operation{{Name: "set", Label: "提交开业配置检查", Method: "POST", Path: base, Fields: []field{jsonField("feature(registration/new_purchase/renewal/model_usage/activity/settlement)、enabled、expected_version、evidence_reference；只有通过真实依赖检查才会开放。")}}}
+		p["search_supported"], p["status_supported"] = false, false
+		p["operations"] = []operation{{Name: "set", Label: "调整营业开关", Method: "POST", Path: base, Fields: []field{jsonField("feature(registration/new_purchase/renewal/model_usage/activity/settlement)、enabled、expected_version；只有通过真实依赖检查才会开放。")}}}
 	case "branding", "channel-themes":
 		a.brandingResource(c, op, actor, resource, base, p)
 		return
 	case "jobs":
 		a.jobsResource(c, p, base)
-		return
-	case "retention":
-		a.retentionResource(c, op, actor, p, base)
 		return
 	case "domains":
 		a.domainResource(c, op, actor, p, base)
@@ -721,7 +725,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 			v["grants"] = strings.Join(grants, ",")
 			items = append(items, entity(row.ID, row.Status, 1, v))
 		}
-		p["columns"] = []gin.H{col("display_name", "人员", "text"), col("email", "邮箱", "text"), col("staff_id", "人员编号", "text"), col("role", "角色", "text"), col("status", "状态", "status")}
+		p["columns"] = []gin.H{col("display_name", "人员", "text"), col("email", "邮箱", "text"), col("role", "角色", "text"), col("status", "状态", "status")}
 		grants, e := a.staffGrantField(c, actor, op)
 		if e != nil {
 			handleError(c, e)

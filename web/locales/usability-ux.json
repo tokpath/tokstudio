@@ -2648,5 +2648,180 @@
     "en": "The activity capacity or customer use limit has been reached.",
     "ja": "活動の枠数または顧客の利用回数が上限に達しています。",
     "ru": "Достигнут общий лимит акции или лимит использований клиента."
+  },
+  "营业状态尚未读取，请刷新后重试。": {
+    "en": "Business status has not loaded. Refresh and try again.",
+    "ja": "営業状態を取得できていません。更新して再試行してください。",
+    "ru": "Статус работы не загружен. Обновите страницу и повторите."
+  },
+  "正在核实营业设置，请重试原操作或刷新查看最新状态。": {
+    "en": "The settings update is being verified. Retry the original action or refresh to check its status.",
+    "ja": "営業設定の更新を確認中です。同じ操作を再試行するか、更新して最新状態を確認してください。",
+    "ru": "Изменение настроек проверяется. Повторите исходное действие или обновите страницу."
+  },
+  "允许新客户注册和建立邀请关系。": {
+    "en": "Allow new customer registrations and referral attribution.",
+    "ja": "新規登録と紹介関係の作成を許可します。",
+    "ru": "Разрешить регистрацию клиентов и создание связей приглашения."
+  },
+  "允许客户购买新套餐，暂停不会取消已经购买的权益。": {
+    "en": "Allow new package purchases. Pausing preserves purchased benefits.",
+    "ja": "新しいプランの購入を許可します。一時停止しても購入済み権益は維持されます。",
+    "ru": "Разрешить покупку пакетов. Приостановка сохраняет купленные права."
+  },
+  "允许执行客户已授权的续费，客户仍可自行取消。": {
+    "en": "Allow customer-authorized renewals. Customers can still cancel them.",
+    "ja": "顧客が承認した更新を許可します。顧客は引き続き自分で停止できます。",
+    "ru": "Разрешить продления, одобренные клиентами. Клиенты могут их отменить."
+  },
+  "允许使用 API 和网页体验，已受理请求继续按原规则处理。": {
+    "en": "Allow API calls and web trials. Accepted requests keep their original rules.",
+    "ja": "API とウェブ体験を許可します。受付済みリクエストには元のルールを適用します。",
+    "ru": "Разрешить API и веб-тестирование. Принятые запросы обрабатываются по исходным правилам."
+  },
+  "允许客户参加活动，已有订单保留成交优惠。": {
+    "en": "Allow activity participation. Existing orders keep their agreed offers.",
+    "ja": "活動への参加を許可します。既存注文の特典は維持されます。",
+    "ru": "Разрешить участие в акциях. Действующие заказы сохраняют скидки и бонусы."
+  },
+  "办理存量退款与佣金等资金责任，和新增销售分别控制。": {
+    "en": "Process existing refunds, commissions and other financial obligations separately from new sales.",
+    "ja": "既存の返金やコミッションなどの支払い責任を、新規販売とは別に管理します。",
+    "ru": "Обрабатывать возвраты, комиссии и другие обязательства отдельно от новых продаж."
+  },
+  "去配置": {
+    "en": "Configure",
+    "ja": "設定へ",
+    "ru": "Настроить"
+  },
+  "请联系负责人": {
+    "en": "Contact the owner",
+    "ja": "責任者に連絡",
+    "ru": "Обратитесь к ответственному"
+  },
+  "完成所需配置后可开启": {
+    "en": "Complete the required setup to enable",
+    "ja": "必要な設定を完了すると有効化できます",
+    "ru": "Сначала завершите необходимые настройки"
+  },
+  "暂停前请留意正在使用此服务的客户。": {
+    "en": "Consider customers currently using this service before pausing.",
+    "ja": "一時停止前に、利用中の顧客への影響を確認してください。",
+    "ru": "Перед приостановкой учитывайте клиентов, использующих услугу."
+  },
+  "所需配置已就绪": {
+    "en": "Required setup is ready",
+    "ja": "必要な設定が完了しています",
+    "ru": "Необходимые настройки готовы"
+  },
+  "系统自动检查依赖并记录操作者和变更，无需填写检查编号或证明。": {
+    "en": "The system checks prerequisites and records the actor and changes automatically. No check IDs or proof fields are needed.",
+    "ja": "システムが前提条件を確認し、操作担当者と変更を自動記録します。確認番号や証明の入力は不要です。",
+    "ru": "Система проверяет условия и записывает автора и изменения автоматически. Номера проверок и подтверждения вводить не нужно."
+  },
+  "直接开启或暂停各项业务，系统会自动核对所需配置。暂停新增业务后仍需处理已有权益和资金责任。": {
+    "en": "Enable or pause each service directly. The system checks prerequisites. Existing benefits and financial obligations remain after pausing new business.",
+    "ja": "各業務を直接有効化・一時停止できます。必要な設定は自動確認されます。新規業務の停止後も既存権益と支払い責任の対応が必要です。",
+    "ru": "Включайте или приостанавливайте услуги. Система проверит необходимые настройки. Обязательства перед клиентами сохраняются."
+  },
+  "调整营业开关": {
+    "en": "Change service availability",
+    "ja": "営業の有効・停止を変更",
+    "ru": "Изменить доступность услуг"
+  },
+  "额外权限（可选）": {
+    "en": "Additional permissions (optional)",
+    "ja": "追加権限（任意）",
+    "ru": "Дополнительные права (необязательно)"
+  },
+  "当前未配置邮件服务，请手动交付登录信息或邀请链接。": {
+    "en": "Email is not configured. Share the login details or invitation link manually.",
+    "ja": "メールが未設定です。ログイン情報または招待リンクを手動で渡してください。",
+    "ru": "Почта не настроена. Передайте данные для входа или ссылку приглашения вручную."
+  },
+  "限制对象": {
+    "en": "Restricted account or business",
+    "ja": "制限対象",
+    "ru": "Объект ограничения"
+  },
+  "新增业务限制": {
+    "en": "Add business restriction",
+    "ja": "業務制限を追加",
+    "ru": "Добавить ограничение"
+  },
+  "处理说明（向客户展示）": {
+    "en": "Explanation shown to the customer",
+    "ja": "顧客に表示する説明",
+    "ru": "Пояснение для клиента"
+  },
+  "复核时间": {
+    "en": "Review time",
+    "ja": "再確認日時",
+    "ru": "Время пересмотра"
+  },
+  "关联事项（可选）": {
+    "en": "Related matter (optional)",
+    "ja": "関連事項（任意）",
+    "ru": "Связанное дело (необязательно)"
+  },
+  "按标题、正文或关联事项查找通知。站内通知始终保留，邮件状态和阅读状态分别显示。": {
+    "en": "Find notifications by title, body or related matter. In-app notices are retained; email and read status are shown separately.",
+    "ja": "件名、本文、関連事項で通知を検索できます。アプリ内通知は保持され、メール送信状況と既読状況は別に表示されます。",
+    "ru": "Ищите уведомления по заголовку, тексту или связанному делу. Внутренние уведомления сохраняются; статусы почты и прочтения показываются отдельно."
+  },
+  "集中查看需要审核的事项，进入对应记录办理。是否需要独立复核，按各业务规则执行。": {
+    "en": "View matters needing review and open the exact record. Independent review follows each workflow's rules.",
+    "ja": "確認が必要な事項を一覧で表示し、対象レコードから処理します。独立した再確認の要否は各業務ルールに従います。",
+    "ru": "Откройте конкретную запись для проверки. Независимое согласование требуется по правилам соответствующего процесса."
+  },
+  "请求内容": {
+    "en": "Request content",
+    "ja": "リクエスト内容",
+    "ru": "Содержимое запросов"
+  },
+  "不长期保存": {
+    "en": "No long-term storage",
+    "ja": "長期保存なし",
+    "ru": "Без долгосрочного хранения"
+  },
+  "异步结果暂存": {
+    "en": "Temporary asynchronous results",
+    "ja": "非同期結果の一時保存",
+    "ru": "Временное хранение асинхронных результатов"
+  },
+  "导出文件有效期": {
+    "en": "Export availability",
+    "ja": "エクスポートの有効期限",
+    "ru": "Срок доступности экспорта"
+  },
+  "待复核事项": {
+    "en": "Pending reviews",
+    "ja": "確認待ち事項",
+    "ru": "Ожидают согласования"
+  },
+  "正在保存…": {
+    "en": "Saving…",
+    "ja": "保存中…",
+    "ru": "Сохранение…"
+  },
+  "需要处理": {
+    "en": "Needs attention",
+    "ja": "対応が必要",
+    "ru": "Требуется обработка"
+  },
+  "阅读状态": {
+    "en": "Read status",
+    "ja": "既読状態",
+    "ru": "Статус прочтения"
+  },
+  "继续限制": {
+    "en": "Keep restriction active",
+    "ja": "制限を継続",
+    "ru": "Сохранить ограничение"
+  },
+  "搜索通知标题、正文或关联事项": {
+    "en": "Search notification title, content or reference",
+    "ja": "通知の件名・本文・関連事項を検索",
+    "ru": "Поиск по заголовку, тексту или связанному событию"
   }
 }

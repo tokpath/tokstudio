@@ -251,11 +251,9 @@ test("KOL activity, explicit combination, paid entitlement, shared Key budget, t
     await recipient.getByRole("combobox").fill(f.buyer.email);
     await staff.getByRole("option").filter({ hasText: f.buyer.email }).click();
     await noticePanel.getByLabel("通知类别", { exact: false }).and(noticePanel.locator("input,select,textarea")).selectOption("mandatory");
-    await noticePanel.getByLabel("级别", { exact: false }).and(noticePanel.locator("input,select,textarea")).selectOption("info");
     const necessaryTitle = "已退订营销后仍收到的必要履约通知 " + randomUUID().slice(0,8);
     await noticePanel.getByLabel("标题", { exact: false }).and(noticePanel.locator("input,select,textarea")).fill(necessaryTitle);
     await noticePanel.getByLabel("通知正文", { exact: false }).and(noticePanel.locator("input,select,textarea")).fill("合成订单履约核对通知，必要业务授权保留。");
-    await noticePanel.getByLabel("业务关联依据", { exact: false }).and(noticePanel.locator("input,select,textarea")).fill(order.id);
     const noticed = staff.waitForResponse(response => response.url().endsWith(`/api/v1/operators/${f.operator_id}/notifications`) && response.request().method() === "POST");
     await noticePanel.getByRole("button", { name: "发送业务通知", exact: true }).click();
     const noticedHTTP = await noticed; expect(noticedHTTP.status()).toBe(200); const notice = await noticedHTTP.json();

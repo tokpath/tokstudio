@@ -348,6 +348,9 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			if json.Unmarshal(config, &in) != nil {
 				return nil, organization.ErrInvalidInput
 			}
+			if strings.TrimSpace(in.Evidence) == "" {
+				in.Evidence = "business settings: " + string(in.Feature)
+			}
 			out, e := a.Organization.SetBusinessStatus(ctx, tx, organization.SetBusinessStatusInput{ActorStaffID: actor, OperatorID: op.ID, Feature: in.Feature, Enabled: in.Enabled, ExpectedVersion: in.ExpectedVersion, EvidenceReference: in.Evidence}, a)
 			return gin.H{"id": op.ID, "status": "updated", "version": out.Version}, e
 		case "catalog", "providers", "routes", "pricing":
@@ -401,10 +404,7 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 		a.redrive(c, op)
 		return
 	}
-	if resource == "retention" && action == "hold" {
-		a.holdTemporary(c, op, actor)
-		return
-	}
+
 	if resource == "domains" {
 		a.domainAction(c, op, actor, action)
 		return

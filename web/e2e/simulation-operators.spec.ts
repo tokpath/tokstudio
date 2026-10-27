@@ -250,7 +250,10 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     if (!journal.business_open) {
       for (const feature of ["new_purchase", "model_usage"]) {
         await channel.goto(`/manage/${f.channel_id}/business-status`);
-        await operation(channel, "提交开业配置检查", { feature, enabled: true, evidence_reference: "UI readiness verified inventory model prices package merchant" }, `${channelBase}/business-status`);
+        const label = ({ registration: "新客户注册", new_purchase: "套餐新购", model_usage: "模型调用" } as Record<string,string>)[feature];
+        const enable = channel.getByRole("button", { name: "开启 " + label, exact: true });
+        if (await enable.count()) await enable.click();
+        await expect(channel.getByRole("button", { name: "暂停 " + label, exact: true })).toBeEnabled();
       }
       save("business_open", true);
     }
@@ -261,7 +264,10 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     if (!journal.oem_business_open) {
       for (const feature of ["registration", "new_purchase", "model_usage"]) {
         await oem.goto(`/manage/${f.oem_id}/business-status`);
-        await operation(oem, "提交开业配置检查", { feature, enabled: true, evidence_reference: "OEM independent retail operation and takeover fulfillment readiness" }, `${oemBase}/business-status`);
+        const label = ({ registration: "新客户注册", new_purchase: "套餐新购", model_usage: "模型调用" } as Record<string,string>)[feature];
+        const enable = oem.getByRole("button", { name: "开启 " + label, exact: true });
+        if (await enable.count()) await enable.click();
+        await expect(oem.getByRole("button", { name: "暂停 " + label, exact: true })).toBeEnabled();
       }
       save("oem_business_open", true);
     }

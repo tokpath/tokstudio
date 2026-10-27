@@ -41,14 +41,14 @@ func businessFields(o operation) []field {
 	case "marketing":
 		return campaignFields(false, version)
 	case "business-status":
-		return []field{selectField("feature", "营业项目", "registration|注册", "new_purchase|新购", "renewal|续费", "model_usage|模型调用", "activity|营销活动", "settlement|结算"), f("enabled", "通过真实依赖检查后开放", "boolean"), version, f("evidence_reference", "检查及授权依据", "text")}
+		return []field{selectField("feature", "营业项目", "registration|注册", "new_purchase|新购", "renewal|续费", "model_usage|模型调用", "activity|营销活动", "settlement|结算"), f("enabled", "通过真实依赖检查后开放", "boolean"), version}
 	case "branding", "channel-themes":
 		return []field{version, optional("values.primary_color", "主色（留空继承，#RRGGBB）", "text"), optional("values.background_color", "背景色（留空继承）", "text"), optional("values.text_color", "文字色（留空继承）", "text"), optional("values.logo_url", "已上传Logo地址（留空继承）", "text"), optional("values.support_url", "客户支持URL（留空继承）", "text")}
 	case "notifications":
-		return []field{f("recipient_id", "本经营范围收件人编号", "text"), selectField("category", "通知类别", "mandatory|必要业务通知", "usage|用量提醒", "marketing|已获授权营销"), selectField("severity", "级别", "info|一般", "warning|预警", "critical|紧急"), f("title", "标题", "text"), f("body", "通知正文", "textarea"), f("reference", "业务关联依据", "text")}
+		return []field{f("recipient_id", "本经营范围收件人编号", "text"), selectField("category", "通知类别", "mandatory|必要业务通知", "usage|用量提醒", "marketing|已获授权营销"), notificationSeverityField(), f("title", "标题", "text"), f("body", "通知正文", "textarea"), optional("reference", "关联事项（可选）", "text")}
 	case "exports":
 		return []field{selectField("kind", "导出业务", "ledger|账本", "requests|请求", "procurement|采购"), optional("owner_id", "限定客户或合作方（留空导出当前范围）", "text"), f("from", "起始时间", "datetime"), f("to", "截至时间", "datetime")}
-	case "risk", "alerts":
+	case "alerts":
 		return []field{optional("name", "规则名称（留空按指标命名）", "text"), optional("id", "规则编号", "hidden"), selectField("metric", "真实指标", "sales_space_atg|剩余销售空间ATG", "procurement_available_atg|采购可用余额 ATG", "oversell_used_atg|已用超卖额度 ATG", "pending_usage|在途及待结算请求数", "unverified_costs|待核实上游成本数"), f("warning", "预警阈值", "decimal"), f("critical", "严重阈值", "decimal"), selectField("direction", "触发方向", "below|达到或低于阈值", "above|达到或高于阈值"), f("recipients", "通知负责人", "csv"), optional("escalation_recipients", "升级负责人", "csv"), defaultField("reminder_seconds", "持续风险提醒间隔秒数", "integer", 3600), defaultField("escalate_seconds", "升级等待秒数", "integer", 86400), defaultField("enabled", "启用规则", "boolean", true), version}
 	case "payments":
 		return manualReceiptFields()
@@ -152,4 +152,10 @@ func policyDays(seconds int64) int64 {
 		days++
 	}
 	return days
+}
+
+func notificationSeverityField() field {
+	v := selectField("severity", "级别", "info|一般", "warning|预警", "critical|紧急")
+	v.Default = "info"
+	return v
 }

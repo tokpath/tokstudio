@@ -2,6 +2,8 @@ package operations
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/platform/mail"
 	"gorm.io/gorm"
@@ -188,18 +190,54 @@ type Delivery struct {
 	LeaseUntil     *time.Time `json:"lease_until,omitempty"`
 }
 
-func (s *Service) ListDeliveries(ctx context.Context, actor, operator string, limit int) ([]Delivery, error) {
+type ManagedNotification struct {
+	Notification
+	State         string     `json:"state"`
+	Attempts      int        `json:"attempts"`
+	ErrorCode     string     `json:"error_code,omitempty"`
+	AcceptedAt    *time.Time `json:"accepted_at,omitempty"`
+	NextAttemptAt time.Time  `json:"next_attempt_at"`
+}
+
+func (s *Service) ListOperatorNotifications(ctx context.Context, actor, operator, cursor, search, state string, limit int) ([]ManagedNotification, string, error) {
 	if limit < 1 || limit > 100 {
 		limit = 30
 	}
-	out := []Delivery{}
+	var position notificationCursor
+	if cursor != "" {
+		b, err := base64.RawURLEncoding.DecodeString(cursor)
+		if err != nil || json.Unmarshal(b, &position) != nil || position.At.IsZero() || !validID(position.ID) {
+			return nil, "", ErrInvalid
+		}
+	}
+	out := []ManagedNotification{}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
 		if e := s.require(ctx, t, actor, operator, "operations.manage"); e != nil {
 			return e
 		}
-		return t.Table("operations_deliveries d").Select("d.notification_id,d.state,d.attempts,d.error_code,d.accepted_at,d.next_attempt_at,d.lease_until").Joins("JOIN operations_notifications n ON n.id=d.notification_id").Where("n.operator_id=?", operator).Order("n.created_at DESC").Limit(limit).Scan(&out).Error
+		q := t.Table("operations_notifications n").Select("n.*,d.state,d.attempts,d.error_code,d.accepted_at,d.next_attempt_at").Joins("JOIN operations_deliveries d ON d.notification_id=n.id").Where("n.operator_id=?", operator)
+		if cursor != "" {
+			q = q.Where("(n.created_at,n.id)<(?,?::uuid)", position.At, position.ID)
+		}
+		if state != "" {
+			q = q.Where("d.state=?", state)
+		}
+		if term := strings.ToLower(strings.TrimSpace(search)); term != "" {
+			q = q.Where("strpos(lower(n.title||' '||n.body||' '||n.reference),?)>0", term)
+		}
+		return q.Order("n.created_at DESC,n.id DESC").Limit(limit + 1).Scan(&out).Error
 	})
-	return out, e
+	if e != nil {
+		return nil, "", e
+	}
+	next := ""
+	if len(out) > limit {
+		out = out[:limit]
+		last := out[len(out)-1]
+		b, _ := json.Marshal(notificationCursor{At: last.CreatedAt, ID: last.ID})
+		next = base64.RawURLEncoding.EncodeToString(b)
+	}
+	return out, next, nil
 }
 
 // RunNotifications uses at-least-once SMTP submission. A server can accept DATA

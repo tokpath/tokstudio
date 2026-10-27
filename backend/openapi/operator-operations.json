@@ -461,6 +461,18 @@
     "permission": "sales.manage"
   },
   {
+    "resource": "orders",
+    "confirmation": "",
+    "description": "",
+    "fields": [],
+    "include_version": false,
+    "label": "重试供货交付",
+    "method": "POST",
+    "name": "fulfill_supply",
+    "path": "/v1/operators/{operatorId}/orders/{id}/fulfill_supply",
+    "permission": "payments.manage"
+  },
+  {
     "resource": "payments",
     "confirmation": "",
     "description": "",
@@ -468,7 +480,7 @@
       {
         "kind": "text",
         "label": "关联订单（可选）",
-        "lookup_url": "/api/v1/operators/{operatorId}/references/orders",
+        "lookup_url": "/api/v1/operators/{operatorId}/references/orders?purpose=collection",
         "name": "order_id"
       },
       {
@@ -601,7 +613,7 @@
       {
         "kind": "text",
         "label": "原订单",
-        "lookup_url": "/api/v1/operators/{operatorId}/references/orders",
+        "lookup_url": "/api/v1/operators/{operatorId}/references/orders?purpose=collection",
         "name": "order_id",
         "required": true
       }

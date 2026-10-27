@@ -243,3 +243,14 @@ test('finance exposes one account workspace and allocates full order amounts ser
  const context=document.paths['/v1/operators/{operatorId}/order-context/{id}/allocate'].post.requestBody.content['application/json'].schema;
  assert.equal(context.properties.amount_usd,undefined);
 });
+
+test('collection references include supplier sales without widening retail refund or delivery authority',()=>{
+ for(const action of ['receipt','allocate']){
+  const entry=metadata.find(op=>op.resource==='payments'&&op.name===action);
+  assert.ok(entry.fields.find(field=>field.name==='order_id').lookup_url.endsWith('/orders?purpose=collection'));
+ }
+ const refund=metadata.find(op=>op.resource==='refunds'&&op.fields.some(field=>field.name==='order_id'));
+ assert.ok(refund.fields.find(field=>field.name==='order_id').lookup_url.endsWith('/orders'));
+ assert.equal(document.paths['/v1/operators/{operatorId}/orders/{id}/fulfill_supply'].post['x-required-permission'],'payments.manage');
+ assert.equal(document.paths['/v1/operators/{operatorId}/orders/{id}/fulfill'].post['x-required-permission'],'sales.manage');
+});

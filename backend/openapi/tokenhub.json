@@ -24217,6 +24217,148 @@
         "x-required-permission": "sales.manage"
       }
     },
+    "/v1/operators/{operatorId}/orders/{id}/fulfill_supply": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_orders_id_fulfill_supply",
+        "summary": "重试供货交付",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_orders_fulfill_supply"
+              }
+            }
+          }
+        },
+        "description": " Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
+      }
+    },
     "/v1/operators/{operatorId}/payments/{id}/allocate": {
       "post": {
         "operationId": "post__v1_operators_operatorId_payments_id_allocate",
@@ -47172,6 +47314,12 @@
         ]
       },
       "Operator_orders_fulfill": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "Operator_orders_fulfill_supply": {
         "type": "object",
         "properties": {},
         "required": [],

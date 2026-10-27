@@ -2,11 +2,13 @@ package portal
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
+	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
@@ -120,6 +122,82 @@ func (a *Application) allocateWholeRetailReceipt(ctx context.Context, tx *gorm.D
 		}
 	}
 	return a.Commerce.AllocateReceipt(ctx, tx, commerce.AllocateReceiptInput{ActorStaffID: actor, OperatorID: operator, BusinessKey: businessKey, ReceiptID: receiptID, OrderID: orderID, AmountUSD: order.DueUSD.Sub(order.InternalUSD).Sub(order.CommissionUSD)})
+}
+
+// Receipt selection spans both types of sales order, but settlement always
+// delegates to the original domain and its single-payment/idempotency checks.
+type salesReceiptAllocation struct {
+	ID              string
+	DeliveryPending bool
+}
+
+func (r salesReceiptAllocation) result(status string) gin.H {
+	out := commandResult(r.ID, status)
+	if r.DeliveryPending {
+		out["message"] = "收款已关联，采购额度待交付；请在原订单重试交付。"
+	}
+	return out
+}
+
+func (a *Application) allocateWholeSalesReceipt(ctx context.Context, tx *gorm.DB, actor, operator, receiptID, orderID, businessKey string) (salesReceiptAllocation, error) {
+	var retail commerce.Order
+	err := tx.WithContext(ctx).Table("commerce_orders").Where("id=? AND operator_id=?", orderID, operator).Take(&retail).Error
+	if err == nil {
+		allocation, err := a.allocateWholeRetailReceipt(ctx, tx, actor, operator, receiptID, orderID, businessKey)
+		return salesReceiptAllocation{ID: allocation.ID}, err
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return salesReceiptAllocation{}, err
+	}
+	var order cooperation.PurchaseOrder
+	if err = tx.WithContext(ctx).Where("id=? AND supplier_id=?", orderID, operator).Take(&order).Error; err != nil {
+		return salesReceiptAllocation{}, err
+	}
+	if err = a.Organization.RequirePermission(ctx, tx, actor, operator, "payments.manage"); err != nil {
+		return salesReceiptAllocation{}, err
+	}
+	if err = tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "procurement-checkout:"+orderID).Error; err != nil {
+		return salesReceiptAllocation{}, err
+	}
+	var checkout procurementCheckout
+	found := tx.Where("order_id=?", orderID).Limit(1).Find(&checkout)
+	if found.Error != nil {
+		return salesReceiptAllocation{}, found.Error
+	}
+	if found.RowsAffected > 0 {
+		var merchant struct{ Driver string }
+		if err = tx.Table("payments_merchants").Select("driver").Where("id=? AND operator_id=?", checkout.MerchantID, operator).Take(&merchant).Error; err != nil {
+			return salesReceiptAllocation{}, err
+		}
+		if merchant.Driver != "manual" {
+			return salesReceiptAllocation{}, commerce.ErrPaymentUnknown
+		}
+	}
+	automatic, err := a.AutoReplenishments.UsesAutomaticPayment(ctx, tx, orderID)
+	if err != nil {
+		return salesReceiptAllocation{}, err
+	}
+	if automatic {
+		return salesReceiptAllocation{}, commerce.ErrPaymentUnknown
+	}
+	receipt, err := a.Commerce.GetReceipt(ctx, tx, operator, receiptID)
+	if err != nil {
+		return salesReceiptAllocation{}, err
+	}
+	if _, err = a.Cooperation.FundPurchase(ctx, tx, a.Commerce, actor, orderID, receiptID, businessKey, receipt.GrossUSD); err != nil {
+		return salesReceiptAllocation{}, err
+	}
+	// The payment remains allocated even if stock cannot be delivered now.
+	// Retrying delivery must never require recording or allocating another payment.
+	deliveryErr := tx.Transaction(func(delivery *gorm.DB) error {
+		_, err := a.Cooperation.FulfillPurchase(ctx, delivery, orderID, actor)
+		return err
+	})
+	var allocation cooperation.PurchaseAllocation
+	if err := tx.Where("order_id=? AND receipt_id=?", orderID, receiptID).Take(&allocation).Error; err != nil {
+		return salesReceiptAllocation{}, err
+	}
+	return salesReceiptAllocation{ID: allocation.ID, DeliveryPending: deliveryErr != nil}, nil
 }
 
 func (a *Application) ledgerJournalsResource(c *gin.Context, op organization.Operator, p gin.H) {

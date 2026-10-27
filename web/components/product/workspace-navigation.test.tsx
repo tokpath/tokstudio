@@ -56,7 +56,7 @@ it("collapses an open operator group on a second click and expands it again", ()
   const business = screen.getByRole("navigation", { name: "工作台", exact: true });
   const group = within(business).getByRole("link", { name: "采购与合作" });
   const items = within(business).getByRole("navigation", { name: "采购与合作内导航" });
-  expect(within(items).getAllByRole("link").map(link => link.textContent)).toEqual(["下属经营方", "采购与补货"]);
+  expect(within(items).getAllByRole("link").map(link => link.textContent)).toEqual(["下属经营方", "采购与供货"]);
   fireEvent.click(group);
   expect(within(business).queryByRole("navigation", { name: "采购与合作内导航" })).toBeNull();
   expect(group.getAttribute("aria-expanded")).toBe("false");

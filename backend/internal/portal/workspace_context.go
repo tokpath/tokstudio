@@ -2,6 +2,7 @@ package portal
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -256,6 +257,9 @@ func (a *Application) orderContext(c *gin.Context) {
 	err := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var order commerce.Order
 		if err := tx.Table("commerce_orders").Where("id=? AND operator_id=?", orderID, op.ID).Take(&order).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return a.supplyOrderContext(c, tx, actor, op.ID, orderID, &out)
+			}
 			return err
 		}
 		out.Subject = orderContextRow(order)
@@ -359,15 +363,19 @@ func (a *Application) allocateOrderReceipt(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var result commerce.Allocation
+	var result salesReceiptAllocation
 	err := a.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
 		var err error
-		result, err = a.allocateWholeRetailReceipt(c.Request.Context(), tx, actor, op.ID, input.ReceiptID, c.Param("id"), businessKey)
+		result, err = a.allocateWholeSalesReceipt(c.Request.Context(), tx, actor, op.ID, input.ReceiptID, c.Param("id"), businessKey)
 		return err
 	})
 	if err != nil {
 		handleError(c, err)
 		return
 	}
-	c.JSON(200, gin.H{"id": result.ID, "status": "allocated", "message": "原收款已分配，请查看当前订单交付状态。"})
+	out := result.result("allocated")
+	if !result.DeliveryPending {
+		out["message"] = "原收款已分配，请查看当前订单交付状态。"
+	}
+	c.JSON(200, out)
 }

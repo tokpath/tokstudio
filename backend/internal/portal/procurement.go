@@ -279,7 +279,7 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 		}
 	}
 	p["search_supported"], p["status_supported"], p["next_cursor"] = true, true, result.Next
-	p["title"] = "采购、供货与自动补货"
+	p["title"] = "采购与供货"
 	p["description"] = "每 1 USD 购买 1 ATG，赠送按本单金额分段累加。每单一笔线上或线下付款，足额核实后自动交付。待付款订单持续占用供货库存，取消后释放。"
 	p["summary"] = []gin.H{
 		{"label": "未付款占用", "value": unpaidHold.String(), "unit": "ATG", "detail": "这些订单没有付款截止时间。付清并交付，或取消尚未分配收款的订单后释放。"},

@@ -899,10 +899,10 @@
     "ja": "仕入と提携",
     "ru": "Закупки и партнёрство"
   },
-  "采购与补货": {
-    "en": "Procurement & replenishment",
-    "ja": "仕入と補充",
-    "ru": "Закупки и пополнение"
+  "采购与供货": {
+    "en": "Purchasing & supply",
+    "ja": "仕入と供給",
+    "ru": "Закупки и поставки"
   },
   "下属经营方": {
     "en": "Downstream operators",

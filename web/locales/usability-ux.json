@@ -1,4 +1,6 @@
 {
+  "赠送权益": {"en":"Gift credits","ja":"特典残高","ru":"Подарочные кредиты"},
+  "收款已关联，采购额度待交付；请在原订单重试交付。": {"en":"Payment linked; procurement credits await delivery. Retry delivery from the original order.","ja":"入金は関連付け済みですが、仕入残高は提供待ちです。元の注文から提供を再試行してください。","ru":"Платёж привязан; закупочные кредиты ожидают выдачи. Повторите поставку из исходного заказа."},
   "通用ATG额度可用于当前经营方已上架模型，模型价格按调用时生效报价计算。购买与套餐赠送额度按成交期限有效，到期余量不结转。套餐不支持一般性退款，可停止未来续费；重复或错误交易、未正确交付及无法履约按异常流程办理。": {
     "en": "General ATG credits can be used for models listed by your current operator, at the prices effective when each call is made. Purchased and package gift credits remain valid for the agreed term; unused credits do not carry over after expiry. Packages do not allow ordinary refunds, and future renewals can be stopped. Duplicate or incorrect transactions, delivery errors and inability to fulfil service follow the exception process.",
     "ja": "共通ATG残高は、現在の運営事業者が公開しているモデルに、呼び出し時点の価格で利用できます。購入分とプラン特典分は契約期間中のみ有効で、期限後の残高は繰り越されません。通常の返金はできませんが、今後の更新は停止できます。重複・誤取引、提供不備、履行不能は例外手続きで対応します。",
@@ -2858,5 +2860,55 @@
     "en": "Some models are not configured. Related obligations reserve at least 1:1 provisionally, retaining any higher known fulfilment ratio. Coverage is recalculated when configuration is complete.",
     "ja": "一部のモデルが未設定のため、関連する義務を暫定的に最低1対1で確保しています。既知の履行比率が高い場合は維持し、設定完了後に再計算します。",
     "ru": "Часть моделей не настроена. По связанным обязательствам временно резервируется как минимум 1:1 с сохранением более высокого известного коэффициента. После настройки покрытие пересчитывается."
+  },
+  "客户或采购方": {
+    "en": "Customer or buyer",
+    "ja": "顧客・購入事業者",
+    "ru": "Клиент или покупатель"
+  },
+  "供货采购": {
+    "en": "Wholesale purchase",
+    "ja": "卸売仕入",
+    "ru": "Оптовая закупка"
+  },
+  "供货采购订单": {
+    "en": "Wholesale sales order",
+    "ja": "卸売注文",
+    "ru": "Заказ оптовой продажи"
+  },
+  "重试供货交付": {
+    "en": "Retry wholesale delivery",
+    "ja": "卸売の提供を再試行",
+    "ru": "Повторить оптовую поставку"
+  },
+  "核实供货订单的一笔足额收款，关联后自动交付采购额度。": {
+    "en": "Verify one full payment for this wholesale order. Linking it automatically delivers the procurement credits.",
+    "ja": "卸売注文の全額入金を1件確認してください。関連付け後、仕入残高を自動的に付与します。",
+    "ru": "Подтвердите один полный платёж по этому оптовому заказу. После привязки закупочные кредиты будут выданы автоматически."
+  },
+  "采购方已足额付款，保留原收款并重试供货交付。": {
+    "en": "The buyer has paid in full. Keep the original payment and retry delivery.",
+    "ja": "仕入事業者は全額支払済みです。元の入金を維持して提供を再試行してください。",
+    "ru": "Покупатель оплатил заказ полностью. Сохраните исходный платёж и повторите поставку."
+  },
+  "采购额度已交付，下方可核对原收款。": {
+    "en": "Procurement credits have been delivered. Verify the original payment below.",
+    "ja": "仕入残高は付与済みです。以下で元の入金を確認できます。",
+    "ru": "Закупочные кредиты выданы. Исходный платёж можно проверить ниже."
+  },
+  "按原订单状态办理，避免重复收款。": {
+    "en": "Follow the original order status to avoid collecting twice.",
+    "ja": "二重入金を避けるため、元の注文状況に従って処理してください。",
+    "ru": "Действуйте в соответствии со статусом исходного заказа, чтобы не принять оплату дважды."
+  },
+  "核实一笔足额到账后登记，自动关联本单并交付采购额度。": {
+    "en": "Record one verified full payment. It will be linked to this order and procurement credits delivered automatically.",
+    "ja": "全額入金を1件確認して登録すると、この注文に関連付けて仕入残高を自動付与します。",
+    "ru": "Зарегистрируйте один подтверждённый полный платёж. Он будет привязан к заказу, а закупочные кредиты выданы автоматически."
+  },
+  "选择金额与本单应付一致的整笔收款，关联后自动交付。": {
+    "en": "Select a whole payment matching this order's amount due. Delivery follows automatically.",
+    "ja": "この注文の請求額と一致する入金を1件選択してください。関連付け後に自動提供します。",
+    "ru": "Выберите один платёж, точно совпадающий с суммой заказа. После привязки поставка выполняется автоматически."
   }
 }

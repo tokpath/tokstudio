@@ -93,7 +93,7 @@ test("staff notification entry is a bell beside the signed-in account", async ({
 });
 
 test("staff sees only granted workspace resources; customer cannot open management", async ({ page }) => {
-  await api(page, { kind: "staff", staff: { id: "staff-1", email: "finance@example.test", display_name: "财务" }, workspaces: [{ operator, permissions: ["invoices.read"] }], active_operator_id: operator.id }); await page.goto(`/manage/${operator.id}/invoices`); await expect(page.getByRole("heading", { name: "票据办理" })).toBeVisible(); await expect(page.getByRole("link", { name: "供应商与密钥" })).toHaveCount(0); await expect(page.getByRole("link", { name: "采购与补货" })).toHaveCount(0); await page.screenshot({ path: "test-results/management-contract.png", fullPage: true }); await api(page, customer); await page.goto(`/manage/${operator.id}/invoices`); await expect(page.getByText("当前登录身份无法访问此空间。", { exact: false })).toBeVisible();
+  await api(page, { kind: "staff", staff: { id: "staff-1", email: "finance@example.test", display_name: "财务" }, workspaces: [{ operator, permissions: ["invoices.read"] }], active_operator_id: operator.id }); await page.goto(`/manage/${operator.id}/invoices`); await expect(page.getByRole("heading", { name: "票据办理" })).toBeVisible(); await expect(page.getByRole("link", { name: "供应商与密钥" })).toHaveCount(0); await expect(page.getByRole("link", { name: "采购与供货" })).toHaveCount(0); await page.screenshot({ path: "test-results/management-contract.png", fullPage: true }); await api(page, customer); await page.goto(`/manage/${operator.id}/invoices`); await expect(page.getByText("当前登录身份无法访问此空间。", { exact: false })).toBeVisible();
 });
 
 test("mobile workspace exposes all customer flows without horizontal overflow", async ({ page }) => {

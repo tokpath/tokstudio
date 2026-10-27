@@ -97,7 +97,7 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
 // selectable when every matching record is beyond the currently loaded page.
 const resourceFilterStatuses: Record<string, readonly string[]> = {
   customers: ["active", "stopped", "closing", "closed", "anonymized", "suspended"],
-  orders: ["pending", "partial", "paid", "completed", "closed", "exception"],
+  orders: ["pending", "awaiting_payment", "partial", "paid", "completed", "closed", "exception"],
   payments: ["pending", "confirmed"],
   notifications: ["pending", "processing", "accepted", "needs_attention", "suppressed"],
   procurement: ["quote","disabled","expired","archived","awaiting_payment","paid","completed","closed","exception","authorization","prepared","awaiting_manual_payment","outcome_unknown","verified_payment_delivery_pending","failed_unpaid","cancelled_unpaid"],
@@ -830,6 +830,7 @@ const enumLabelsByField: Record<string, Record<string, string>> = {
     "year": "年"
   },
   "kind": {
+    "supply": "供货采购",
     "oem": "独立OEM品牌",
     "channel": "同品牌渠道",
     "ledger": "账本",

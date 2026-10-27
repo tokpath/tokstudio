@@ -119,6 +119,9 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				}
 				if lookup != "" && f.Kind != "hidden" {
 					f.LookupURL = scope + "/references/" + lookup
+					if lookup == "orders" && (strings.HasSuffix(ops[i].Path, "/payments") || strings.HasSuffix(ops[i].Path, "/allocate") && strings.Contains(ops[i].Path, "/payments/")) {
+						f.LookupURL += "?purpose=collection"
+					}
 					if f.Name == "kol_campaign_id" {
 						f.LookupURL += "?campaign_kind=kol"
 					}

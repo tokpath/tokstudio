@@ -175,12 +175,17 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			out, e := a.Commerce.RecordManualReceipt(ctx, tx, actor, fact)
 			if e == nil && in.OrderID != "" {
 				businessKey, _ := key(c)
+				var allocation salesReceiptAllocation
 				matching := tx.Transaction(func(match *gorm.DB) error {
-					_, err := a.allocateWholeRetailReceipt(ctx, match, actor, op.ID, out.ID, in.OrderID, "manual:"+businessKey)
+					var err error
+					allocation, err = a.allocateWholeSalesReceipt(ctx, match, actor, op.ID, out.ID, in.OrderID, "manual:"+businessKey)
 					return err
 				})
 				if matching != nil {
 					return gin.H{"id": out.ID, "status": "recorded", "message": "真实收款已登记，订单尚未关联；请在收款记录核对金额和原订单，原付款未知时先核实原交易"}, nil
+				}
+				if allocation.DeliveryPending {
+					return gin.H{"id": out.ID, "status": "recorded", "message": "收款已关联，采购额度待交付；请在原订单重试交付。"}, nil
 				}
 			}
 			return commandResult(out.ID, "recorded"), e
@@ -362,7 +367,11 @@ func (a *Application) operatorCommand(c *gin.Context) {
 }
 func (a *Application) operatorRowCommand(c *gin.Context) {
 	resource := c.Param("resource")
-	op, actor, ok := a.staffScope(c, resource)
+	scopeResource := resource
+	if resource == "orders" && c.Param("action") == "fulfill_supply" {
+		scopeResource = "payments"
+	}
+	op, actor, ok := a.staffScope(c, scopeResource)
 	if !ok {
 		return
 	}
@@ -430,6 +439,20 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 		return
 	}
 	switch {
+	case resource == "orders" && action == "fulfill_supply":
+		var empty struct{}
+		if !body(c, &empty) {
+			return
+		}
+		raw, e := a.command(c, "supply-fulfill:"+op.ID+":"+c.Param("id"), empty, func(tx *gorm.DB) (any, error) {
+			var supply cooperation.PurchaseOrder
+			if err := tx.Where("id=? AND supplier_id=?", c.Param("id"), op.ID).Take(&supply).Error; err != nil {
+				return nil, err
+			}
+			_, err := a.Cooperation.FulfillPurchase(ctx, tx, supply.ID, actor)
+			return commandResult(supply.ID, "completed"), err
+		})
+		jsonResponse(c, raw, e)
 	case resource == "orders" && action == "fulfill":
 		var empty struct{}
 		if !body(c, &empty) {
@@ -462,8 +485,8 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 		}
 		businessKey, _ := key(c)
 		raw, e := a.command(c, "allocate:"+op.ID, in, func(tx *gorm.DB) (any, error) {
-			out, e := a.allocateWholeRetailReceipt(ctx, tx, actor, op.ID, c.Param("id"), in.OrderID, businessKey)
-			return commandResult(out.ID, "allocated"), e
+			out, e := a.allocateWholeSalesReceipt(ctx, tx, actor, op.ID, c.Param("id"), in.OrderID, businessKey)
+			return out.result("allocated"), e
 		})
 		jsonResponse(c, raw, e)
 	case resource == "payments" && action == "accounting":

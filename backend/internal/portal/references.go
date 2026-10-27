@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
@@ -362,6 +363,25 @@ func (a *Application) references(c *gin.Context) {
 		}
 		if !require("sales.manage", "refunds.manage", "payments.manage") {
 			return
+		}
+		if c.Query("purpose") == "collection" {
+			if !require("payments.manage") {
+				return
+			}
+			rows, e := a.salesOrders(ctx, operator, c.Query("cursor"), query, "", 51, true)
+			if e != nil {
+				handleError(c, e)
+				return
+			}
+			if len(rows) > 50 {
+				rows = rows[:50]
+				next = rows[49].cursor()
+			}
+			for _, r := range rows {
+				v := r.row()["values"].(gin.H)
+				add(r.ID, humanJoin(map[string]string{"topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费", "supply": "供货采购"}[r.Kind], r.Counterparty, fmt.Sprint(v["due_usd"])+" USD", r.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC")), gin.H{"order_id": r.ID})
+			}
+			break
 		}
 		rows, e := a.Commerce.ListOperatorOrders(ctx, nil, operator, c.Query("cursor"), query, 51)
 		if e != nil {

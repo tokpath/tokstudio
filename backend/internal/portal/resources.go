@@ -494,20 +494,21 @@ func (a *Application) operatorResource(c *gin.Context) {
 		p["operations"] = []operation{{Name: "publish", Label: "创建套餐", Method: "POST", Path: base, Description: "填写售价、购买与赠送额度和有效期，分别控制新购与续费。保存即发布，已有订单仍按成交时条款履约。", Fields: []field{jsonField("name、package_id、price_usd、paid_atg、gift_atg、period、terms_summary、new_purchase_enabled、renewal_enabled、expected_version")}}}
 	case "orders":
 		p["search_supported"], p["status_supported"] = true, true
-		rows, e := a.Commerce.ListOperatorOrders(ctx, nil, op.ID, c.Query("cursor"), c.Query("q"), 51, c.Query("status"))
+		rows, e := a.salesOrders(ctx, op.ID, c.Query("cursor"), c.Query("q"), c.Query("status"), 51, false)
 		if e != nil {
 			handleError(c, e)
 			return
 		}
 		if len(rows) > 50 {
 			rows = rows[:50]
-			p["next_cursor"] = commerce.NextOrderCursor(rows[49])
+			p["next_cursor"] = rows[49].cursor()
 		}
 		for _, row := range rows {
-			items = append(items, entity(row.ID, row.Status, 1, row))
+			items = append(items, row.row())
 		}
-		p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("due_usd", "应付", "usd"), col("external_allocated_usd", "外部已分配", "usd"), col("paid_atg", "购买权益", "atg"), col("created_at", "创建", "datetime")}
+		p["columns"] = []gin.H{col("kind", "业务类型", "text"), col("counterparty_name", "客户或采购方", "text"), col("due_usd", "应付", "usd"), col("external_allocated_usd", "外部已分配", "usd"), col("paid_atg", "购买权益", "atg"), col("created_at", "创建", "datetime")}
 		p["row_operations"] = []operation{{Name: "fulfill", Label: "重试交付", Permission: "sales.manage", Method: "POST", Path: base + "/{id}/fulfill", Fields: []field{}, Confirmation: "核实原订单资金、覆盖及资格后重试，不能跳过付款条件。"}}
+		p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "fulfill_supply", Label: "重试供货交付", Permission: "payments.manage", Method: "POST", Path: base + "/{id}/fulfill_supply", Fields: []field{}})
 	case "payment-methods":
 		rows, e := a.Payments.ListMerchantConfigs(ctx, actor, op.ID)
 		if e != nil {

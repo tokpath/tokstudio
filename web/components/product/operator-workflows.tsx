@@ -47,7 +47,7 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
   const sources = useQueries({ queries: resources.map((resource, index) => ({ queryKey: ["operator-home", operatorID, resource], queryFn: ({ signal }: { signal: AbortSignal }) => request(`/api/v1/operators/${encodeURIComponent(operatorID)}/${resource}`, ResourcePageSchema, { signal }), enabled: canReadResource(workspace, resource) && (index < 4 || ["owner", "finance", "support"].includes(focus)) })) });
   const overview = sources[0], business = sources[1], risks = sources[2], approvals = sources[3];
   const businessTasks = [
-    { resource: "orders", source: sources[4], title: "跟进订单收款与交付", detail: "从原订单核对收款、分配和交付状态。", rows: (sources[4].data?.items || []).filter(row => ["pending", "partial", "paid", "exception", "pending_payment", "partially_paid", "paid_pending_delivery"].includes(row.status || "")) },
+    { resource: "orders", source: sources[4], title: "跟进订单收款与交付", detail: "从原订单核对收款、分配和交付状态。", rows: (sources[4].data?.items || []).filter(row => ["pending", "awaiting_payment", "partial", "paid", "exception", "pending_payment", "partially_paid", "paid_pending_delivery"].includes(row.status || "")) },
     { resource: "refunds", source: sources[5], title: "跟进未结退款事项", detail: "先核对审批与原退款结果，再按已授权动作办理。", rows: (sources[5].data?.items || []).filter(row => row.values.record_kind === "case" && !["completed", "rejected", "cancelled", "canceled"].includes(row.status || "")) },
     { resource: "withdrawals", source: sources[6], title: "跟进佣金提现", detail: "独立复核与实际付款分别核实，未知结果继续查询原操作。", rows: (sources[6].data?.items || []).filter(row => !["paid", "paid_out", "completed", "rejected", "cancelled", "canceled", "closed"].includes(row.status || "")) },
   ].filter(task => canReadResource(workspace, task.resource) && ["owner", "finance", "support"].includes(focus) && task.rows.length > 0);
@@ -179,8 +179,7 @@ function OperatorSubjectContent({ operatorID, resource, row, close, fullPage = f
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
             <AmountFact label={t("订单应付")} value={subject.values.due_usd} />
             <AmountFact label={t("外部款已分配")} value={subject.values.external_allocated_usd} />
-            <AmountFact label={t("USD 余额支付")} value={subject.values.internal_usd} />
-            <AmountFact label={t("佣金支付")} value={subject.values.commission_usd} />
+            {subject.values.kind === "supply" ? <><div><p className="mb-1 text-xs text-ink-mute">{t("采购方")}</p><p className="text-sm">{String(subject.values.counterparty_name || "—")}</p></div><AmountFact label={t("赠送权益")} value={subject.values.gift_atg} unit="ATG" /></> : <><AmountFact label={t("USD 余额支付")} value={subject.values.internal_usd} /><AmountFact label={t("佣金支付")} value={subject.values.commission_usd} /></>}
             <AmountFact label={t("购买权益")} value={subject.values.paid_atg} unit="ATG" />
             <div>
               <p className="mb-1 text-xs text-ink-mute">{t("实际交付")}</p>
@@ -251,7 +250,7 @@ function OrderProgress({ subject }: { subject: Entity }) {
     </div>
   </div>;
 }
-function orderKindLabel(kind?: JSONValue) { return ({ package: "套餐购买订单", topup: "USD 余额充值订单", renewal: "套餐续费订单", package_purchase: "套餐购买订单", package_renewal: "套餐续费订单", customer_usd_topup: "USD 余额充值订单" } as Record<string, string>)[String(kind)] || "原始订单"; }
+function orderKindLabel(kind?: JSONValue) { return ({ supply: "供货采购订单", package: "套餐购买订单", topup: "USD 余额充值订单", renewal: "套餐续费订单", package_purchase: "套餐购买订单", package_renewal: "套餐续费订单", customer_usd_topup: "USD 余额充值订单" } as Record<string, string>)[String(kind)] || "原始订单"; }
 function TaskRow({ title, description, count, href }: { title: string; description: string; count: string; href?: string }) {
   const { t } = useI18n();
   const body = <>

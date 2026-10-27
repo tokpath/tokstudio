@@ -87,7 +87,13 @@ func (s stockFixture) buy(t *testing.T, amount int64) (int, map[string]any) {
 }
 func (s stockFixture) coverage(t *testing.T, required, pending, space string, provisional bool) {
 	t.Helper()
-	v, err := s.f.a.Cooperation.Coverage(context.Background(), nil, s.oem, time.Now())
+	// These assertions also persist current price observations. Use the same
+	// database clock as that observation guard, rather than the host/VM clock.
+	var now time.Time
+	if err := s.f.a.DB.Raw("SELECT clock_timestamp()").Scan(&now).Error; err != nil {
+		t.Fatal(err)
+	}
+	v, err := s.f.a.Cooperation.Coverage(context.Background(), nil, s.oem, now)
 	if err != nil || v.Required.String() != required || v.Pending.String() != pending || v.Space.String() != space || v.Provisional != provisional {
 		t.Fatal("coverage mismatch", v, err)
 	}

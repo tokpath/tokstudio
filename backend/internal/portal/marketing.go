@@ -111,7 +111,7 @@ func (a *Application) marketingResource(c *gin.Context, op organization.Operator
 	p["columns"] = []gin.H{col("package_id", "适用套餐", "text"), col("final_price_usd", "活动售价", "usd"), col("gift_atg", "额外赠送", "atg"), col("used_uses", "已用名额", "text"), col("reserved_uses", "待付款占用", "text"), col("ends_at", "结束时间", "datetime")}
 	p["operations"] = []operation{{Name: "publish", Label: "创建套餐活动", Method: "POST", Path: base, Fields: []field{jsonField("活动名称、套餐、优惠、时间与名额")}}}
 	p["row_operations"] = []operation{{Name: "combination", Label: "组合 KOL 优惠", Method: "POST", Path: base, Fields: []field{
-		defaultField("action", "办理类型", "hidden", "combination"), optional("merchant_campaign_id", "当前经营方活动", "hidden"), f("kol_campaign_id", "同套餐 KOL 活动", "text"), defaultField("enabled", "允许与此 KOL 活动组合", "boolean", true),
+		defaultField("action", "办理类型", "hidden", "combination"), f("merchant_campaign_id", "当前经营方活动", "hidden"), f("kol_campaign_id", "同套餐 KOL 活动", "text"), defaultField("enabled", "允许与此 KOL 活动组合", "boolean", true),
 	}, Description: "只开放所选活动这一对组合。已开放的活动列在当前活动详情中；选择同一活动并关闭允许，即可取消组合。"}}
 	a.resourceResponse(c, p)
 }

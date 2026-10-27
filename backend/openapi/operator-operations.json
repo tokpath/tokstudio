@@ -1218,7 +1218,8 @@
       {
         "kind": "hidden",
         "label": "当前经营方活动",
-        "name": "merchant_campaign_id"
+        "name": "merchant_campaign_id",
+        "required": true
       },
       {
         "kind": "text",

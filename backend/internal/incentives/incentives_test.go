@@ -37,6 +37,10 @@ func TestWithdrawalFeeAndRateBoundaries(t *testing.T) {
 	}
 }
 func integrationDB(t *testing.T) *gorm.DB {
+	return integrationDBBefore(t, "")
+}
+
+func integrationDBBefore(t *testing.T, before string) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("TOKENHUB_TEST_DATABASE_URL")
 	if dsn == "" {
@@ -81,7 +85,7 @@ func integrationDB(t *testing.T) *gorm.DB {
 	_, l := ledger.Migrations()
 	_, c := commerce.Migrations()
 	_, i := Migrations()
-	for _, m := range []fs.FS{o, l, c, i} {
+	for moduleIndex, m := range []fs.FS{o, l, c, i} {
 		entries, err := fs.ReadDir(m, ".")
 		if err != nil {
 			t.Fatal(err)
@@ -94,6 +98,9 @@ func integrationDB(t *testing.T) *gorm.DB {
 		}
 		sort.Strings(names)
 		for _, name := range names {
+			if moduleIndex == 3 && before != "" && name >= before {
+				continue
+			}
 			body, err := fs.ReadFile(m, name)
 			if err != nil {
 				t.Fatal(err)
@@ -151,8 +158,11 @@ type fixture struct {
 }
 
 func setup(t *testing.T) fixture {
+	return setupOnDB(t, integrationDB(t))
+}
+
+func setupOnDB(t *testing.T, db *gorm.DB) fixture {
 	t.Helper()
-	db := integrationDB(t)
 	ctx := context.Background()
 	org := organization.New(db)
 	owner := uuid.NewString()

@@ -357,7 +357,7 @@ func (a *Application) projectResourceLabels(c *gin.Context, p gin.H, resource st
 	}
 	if len(refs["campaign"]) > 0 {
 		var found []humanLabelRow
-		q := db.Table("incentives_campaigns c").Select("c.id,concat_ws(' · ',v.name,p.name) AS label").Joins("JOIN incentives_campaign_versions v ON v.campaign_id=c.id AND v.version=c.current_version").Joins("JOIN commerce_packages p ON p.id=v.package_id").Where("c.operator_id=? AND c.id IN ?", op, refs["campaign"])
+		q := db.Table("incentives_campaigns c").Select("c.id,concat_ws(' · ',NULLIF(NULLIF(v.name,''),p.name),p.name) AS label").Joins("JOIN incentives_campaign_versions v ON v.campaign_id=c.id AND v.version=c.current_version").Joins("JOIN commerce_packages p ON p.id=v.package_id").Where("c.operator_id=? AND c.id IN ?", op, refs["campaign"])
 		if customer != "" {
 			q = q.Where("c.owner_customer_id=?", customer)
 		}

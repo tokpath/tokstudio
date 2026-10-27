@@ -124,7 +124,11 @@ func (s *Service) EligibleActivities(ctx context.Context, tx *gorm.DB, operator,
 			}
 			b, _ := json.Marshal(selection)
 			_, previewErr := s.PreviewQuote(ctx, tx, customer, operator, *p.CurrentQuoteID, b)
-			offer := ActivityOffer{Name: v.Name, ID: c.ID, Kind: c.Kind, OwnerCustomerID: c.OwnerCustomerID, PackageID: v.PackageID, FinalPriceUSD: v.FinalPriceUSD, GiftATG: v.GiftATG, ConcessionRate: v.ConcessionRate, StartsAt: v.StartsAt, EndsAt: v.EndsAt, PerCustomerLimit: v.PerCustomerLimit, Eligible: previewErr == nil}
+			name := v.Name
+			if name == "" {
+				name = p.Name
+			}
+			offer := ActivityOffer{Name: name, ID: c.ID, Kind: c.Kind, OwnerCustomerID: c.OwnerCustomerID, PackageID: v.PackageID, FinalPriceUSD: v.FinalPriceUSD, GiftATG: v.GiftATG, ConcessionRate: v.ConcessionRate, StartsAt: v.StartsAt, EndsAt: v.EndsAt, PerCustomerLimit: v.PerCustomerLimit, Eligible: previewErr == nil}
 			if previewErr != nil {
 				offer.Reason = previewErr.Error()
 			}
@@ -195,6 +199,11 @@ func (s *Service) managedCampaigns(tx *gorm.DB, rows []campaignRow) ([]ManagedCa
 		var version campaignVersionRow
 		if err := tx.First(&version, "campaign_id=? AND version=?", r.ID, r.CurrentVersion).Error; err != nil {
 			return nil, err
+		}
+		if version.Name == "" {
+			if err := tx.Table("commerce_packages").Select("name").Where("id=?", version.PackageID).Scan(&version.Name).Error; err != nil {
+				return nil, err
+			}
 		}
 		out = append(out, ManagedCampaign{Campaign: Campaign(r), Version: CampaignVersion(version)})
 	}

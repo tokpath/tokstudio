@@ -155,15 +155,15 @@ func TestPostgresCoverageWorkspaceParentScopeAndPolicyCAS(t *testing.T) {
 	if policy.Version != 3 || policy.Allowance.String() == "999" || policy.WarningBuffer.String() != "2.000000000000000001" {
 		t.Fatal("rejected mutations changed the stored authorization", policy)
 	}
-	// A genuine stored obligation without a fulfillable model/price must remain
-	// unknown. It must not turn into zero responsibility or hide every sibling.
+	// Existing rights without complete model configuration retain a provisional
+	// reservation; they cannot turn into zero responsibility or hide siblings.
 	_, err := f.a.Ledger.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: channel.ID, CustomerID: uuid.NewString(), OrderID: uuid.NewString(), BusinessKey: "coverage-price-not-ready", ActorID: owner, Reason: "existing service responsibility", PaidUSD: ledger.MustDecimal("1"), Sources: []ledger.GrantSource{{Kind: "paid", Amount: ledger.MustDecimal("5")}}, EffectiveAt: time.Now().Add(-time.Minute)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	rows = read(platform)
 	unknown := rows[channel.ID]
-	if len(rows) != 4 || unknown["status"] != "pending_configuration" || unknown["version"] != float64(3) || unknown["values"].(map[string]any)["required"] != nil || unknown["values"].(map[string]any)["space"] != nil || unknown["values"].(map[string]any)["coverage_reason"] == nil {
+	if len(rows) != 4 || unknown["version"] != float64(3) || unknown["values"].(map[string]any)["required"] != "5" || unknown["values"].(map[string]any)["provisional"] != true || unknown["values"].(map[string]any)["coverage_reason"] == nil {
 		t.Fatal("unpriced responsibility was treated as zero or swallowed the risk page", rows)
 	}
 }

@@ -14,9 +14,12 @@ import (
 )
 
 type CoverageRates struct {
-	Version  int64
-	Direct   *big.Rat
-	Children map[string]*big.Rat
+	Version             int64
+	Direct              *big.Rat
+	Children            map[string]*big.Rat
+	DirectLiability     *big.Rat
+	DirectProvisional   bool
+	ChildrenProvisional map[string]bool
 }
 
 // CoverageRates takes a catalog revision lock in tx. Rates express the maximum
@@ -46,6 +49,7 @@ type CoverageSnapshot struct {
 	WarningBuffer        ledger.Decimal `json:"warning_buffer"`
 	CatalogVersion       int64          `json:"catalog_version"`
 	Status               string         `json:"status"`
+	Provisional          bool           `json:"provisional"`
 }
 type SalesCommitment struct {
 	ID, OperatorID, OrderID string
@@ -165,7 +169,12 @@ func (s *Service) coverage(ctx context.Context, t *gorm.DB, operator string, at 
 	if e != nil {
 		return out, rates, e
 	}
-	out.Required, e = conservative(liability, rates.Direct)
+	directLiability := rates.DirectLiability
+	if directLiability == nil {
+		directLiability = rates.Direct
+	}
+	out.Required, e = conservative(liability, directLiability)
+	out.Provisional = liability.Sign() > 0 && rates.DirectProvisional
 	if e != nil {
 		return out, rates, e
 	}
@@ -183,15 +192,19 @@ func (s *Service) coverage(ctx context.Context, t *gorm.DB, operator string, at 
 			return out, rates, e
 		}
 		out.Required = out.Required.Add(demand)
+		out.Provisional = out.Provisional || a.Available().Sign() > 0 && rates.ChildrenProvisional[child.BuyerID]
 	}
 	var pending []SalesCommitment
 	if e = t.Where("operator_id=? AND status='active'", operator).Find(&pending).Error; e != nil {
 		return out, rates, e
 	}
 	for _, row := range pending {
-		factor := rates.Direct
+		factor := directLiability
 		if row.BuyerID != nil {
 			factor = rates.Children[*row.BuyerID]
+			out.Provisional = out.Provisional || rates.ChildrenProvisional[*row.BuyerID]
+		} else {
+			out.Provisional = out.Provisional || rates.DirectProvisional
 		}
 		demand, e := conservative(row.ATG, factor)
 		if e != nil {

@@ -6,6 +6,7 @@ import { useI18n } from "@/components/i18n";
 import { Card } from "@/components/ui/card";
 import { Empty, Money, Status, When } from "./shared";
 import { PurchaseTierSummary } from "./purchase-tiers";
+import { Button } from "@/components/ui/button";
 
 export function ProcurementCards({rows, title, actions}: {rows: Entity[]; title: (row: Entity) => string; actions: (row: Entity) => ReactNode}) {
   const {t} = useI18n();
@@ -25,7 +26,11 @@ export function ProcurementCards({rows, title, actions}: {rows: Entity[]; title:
       {row.status === "awaiting_payment" && <p className="mt-4 text-sm text-hold">{t("付款后自动发放采购额度；未付款订单可取消。")}</p>}
       {row.status === "paid" && <p className="mt-4 text-sm text-hold">{t("款项已确认，正在完成额度交付。")}</p>}
       {(v.terms_summary || v.contract_url) && <details className="mt-4 border-t border-hairline pt-3 text-sm"><summary className="cursor-pointer text-ink-secondary">{t("补充约定与合同")}</summary>{v.terms_summary && <p className="mt-3 whitespace-pre-wrap leading-7">{String(v.terms_summary)}</p>}{v.contract_url && <a className="mt-3 inline-block text-brand-emphasis underline" href={String(v.contract_url)} target="_blank" rel="noreferrer">{t("查看合同")}</a>}</details>}
-      <div className="mt-5 border-t border-hairline pt-3">{actions(row)}</div>
+      <div className="mt-5 space-y-3 border-t border-hairline pt-3">
+        {(!quote || v.purchase_available !== false) && v.purchase_notice && <p role="status" className="rounded-control bg-canvas p-3 text-sm leading-7 text-ink-secondary">{t(String(v.purchase_notice))}</p>}
+        {quote && v.purchase_available === false && <div className="space-y-2"><Button disabled variant="outline">{t("按金额采购")}</Button><p className="text-sm text-hold">{t(String(v.purchase_block_reason || "该报价当前不可采购，请联系供货方。"))}</p></div>}
+        {actions(row)}
+      </div>
     </Card>;
   })}</div>;
 }

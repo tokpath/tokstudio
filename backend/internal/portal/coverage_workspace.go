@@ -58,6 +58,9 @@ func (a *Application) coverageResource(c *gin.Context, op organization.Operator,
 		v := values(snapshot)
 		v["name"], v["kind"], v["target_operator_id"] = target.Name, target.Kind, target.ID
 		v["allowance"], v["warning"] = policy.Allowance, policy.WarningBuffer
+		if snapshot.Provisional {
+			v["coverage_reason"] = "部分模型尚未配置，相关责任按至少 1∶1 暂估预留；已有较高履约比例继续保留，配置完成后自动重算。"
+		}
 		if coverageUnavailable {
 			snapshot.Status = "pending_configuration"
 			v["status"], v["catalog_version"] = snapshot.Status, nil

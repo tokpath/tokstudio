@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
@@ -45,15 +46,51 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 		return
 	}
 	quotes, orders, authorizations, attempts := result.Quotes, result.Orders, result.Authorizations, result.Attempts
-	purchaseReady := true
-	if view == "buyer" && len(quotes) > 0 {
-		err := a.Cooperation.CheckPurchaseConfiguration(ctx, nil, actor, op.ID)
-		if reason := procurementConfigurationReason(err); reason != "" {
-			purchaseReady = false
-			p["availability"] = []gin.H{{"capability": "purchase", "enabled": false, "reason": reason}}
-		} else if err != nil {
+	purchaseNotice, partnershipOpen := "", true
+	if view == "buyer" && (len(quotes) > 0 || len(orders) > 0) {
+		agreement, err := a.Organization.GetSupplyAgreement(ctx, nil, op.ID)
+		if err != nil {
 			handleError(c, err)
 			return
+		}
+		partnershipOpen = agreement.Status == "active"
+		models, err := a.Catalog.PublicCatalog(ctx, op.ID, time.Now())
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		state, err := a.Organization.GetBusinessStatus(ctx, nil, op.ID)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		usable := false
+		for _, model := range models {
+			if model.Status != "available" {
+				continue
+			}
+			configured := true
+			for current := op; current.ParentOperatorID != nil; {
+				_, err := (catalog.PriceResolver{Source: a.Catalog}).Resolve(ctx, catalog.PriceScope{Kind: "supply", SellerID: *current.ParentOperatorID, BuyerID: current.ID}, model.ID, time.Now())
+				if errors.Is(err, catalog.ErrPriceUnavailable) || errors.Is(err, catalog.ErrUnboundedCoverage) {
+					configured = false
+					break
+				}
+				if err != nil {
+					handleError(c, err)
+					return
+				}
+				parent, err := a.Organization.GetOperator(ctx, nil, *current.ParentOperatorID)
+				if err != nil {
+					handleError(c, err)
+					return
+				}
+				current = parent
+			}
+			usable = usable || configured
+		}
+		if !usable || !state.ModelUsage {
+			purchaseNotice = "可先采购备货；当前暂不能调用模型。完成模型授权、上架和调用定价，并开放模型调用后即可使用。"
 		}
 	}
 	for _, q := range quotes {
@@ -82,8 +119,24 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 				actions = []string{"enable_quote"}
 			}
 		}
-		if view == "buyer" && purchaseReady && len(q.GiftTiers) > 0 && q.Enabled && (q.ValidUntil == nil || time.Now().Before(*q.ValidUntil)) {
+		if view == "buyer" && partnershipOpen && len(q.GiftTiers) > 0 && q.Enabled && (q.ValidUntil == nil || time.Now().Before(*q.ValidUntil)) {
 			actions = []string{"purchase"}
+		}
+		if view == "buyer" {
+			if len(actions) > 0 {
+				v["purchase_notice"] = purchaseNotice
+			}
+			v["purchase_available"] = len(actions) > 0
+			switch {
+			case !q.Enabled:
+				v["purchase_block_reason"] = "该报价已停用，请联系供货方确认。"
+			case status == "expired":
+				v["purchase_block_reason"] = "该报价已过期，请联系供货方更新报价。"
+			case status == "archived":
+				v["purchase_block_reason"] = "该报价已归档，请使用新的阶梯报价。"
+			case !partnershipOpen:
+				v["purchase_block_reason"] = "供货合作尚未开通或已暂停，请联系供货方确认合作状态。"
+			}
 		}
 		row := entity(q.ID, status, 0, v)
 		row["allowed_actions"] = actions
@@ -92,6 +145,9 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 	unpaidHold, deliveryHold, holdingOrders := result.Unpaid, result.Delivery, result.Holding
 	for _, o := range orders {
 		v := values(o)
+		if view == "buyer" {
+			v["purchase_notice"] = purchaseNotice
+		}
 		delete(v, "expires_at")
 		v["record_kind"] = "order"
 		v["exit_policy_summary"] = cooperation.ProcurementExitTermsSummary(o.ExitTerms)
@@ -287,19 +343,6 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 	a.resourceResponse(c, p)
 }
 
-func procurementConfigurationReason(err error) string {
-	switch {
-	case errors.Is(err, cooperation.ErrPurchaseModels):
-		return "采购方尚未获得可用模型授权。请由供货方在“模型定价”中授权模型并设置供货价，再发起采购。"
-	case errors.Is(err, cooperation.ErrPurchasePrices):
-		return "模型调用价格尚未配置完整。请由供货方补齐对采购方的供货价，以及该供货方自己的上级采购价。"
-	case errors.Is(err, organization.ErrBusinessClosed):
-		return "供货合作尚未开通或已暂停，请联系供货方确认合作状态。"
-	case errors.Is(err, cooperation.ErrCoverage):
-		return "供货方现有履约责任暂时无法核实，请联系供货方检查模型授权和价格配置。"
-	}
-	return ""
-}
 func (a *Application) procurementCommand(c *gin.Context, op organization.Operator, actor string) {
 	raw, ok := decodeConfiguration(c)
 	if !ok {

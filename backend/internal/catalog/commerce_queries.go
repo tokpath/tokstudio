@@ -54,31 +54,51 @@ func (s CommerceCatalog) availableModels(ctx context.Context, operator string, r
 }
 
 // MaximumLiabilityRate returns nil when no model can fulfill the obligation.
-// Callers must refuse new ATG commitments in that state instead of treating
-// missing prices as zero procurement cost.
+// Retail callers must refuse new commitments in that state. Wholesale callers
+// can use PreparedLiabilityRate to reserve stock while configuration is pending.
 func (s CommerceCatalog) MaximumLiabilityRate(ctx context.Context, operator string, downstream, upstream PriceScope, at time.Time) (*big.Rat, error) {
+	maximum, _, err := s.liabilityRate(ctx, operator, downstream, upstream, at, false)
+	return maximum, err
+}
+
+// PreparedLiabilityRate retains every known component while distinguishing
+// absent models/prices from zero cost. Invalid or unbounded prices still fail.
+func (s CommerceCatalog) PreparedLiabilityRate(ctx context.Context, operator string, downstream, upstream PriceScope, at time.Time) (*big.Rat, bool, error) {
+	return s.liabilityRate(ctx, operator, downstream, upstream, at, true)
+}
+
+func (s CommerceCatalog) liabilityRate(ctx context.Context, operator string, downstream, upstream PriceScope, at time.Time, partial bool) (*big.Rat, bool, error) {
 	models, e := s.AvailableModels(ctx, operator, downstream.Kind == "retail")
 	if e != nil {
-		return nil, e
+		return nil, false, e
 	}
+	complete := len(models) > 0
 	resolver := PriceResolver{Source: s}
 	var maximum *big.Rat
 	for _, m := range models {
 		lower, e := resolver.Resolve(ctx, downstream, m.ID, at)
+		if partial && errors.Is(e, ErrPriceUnavailable) {
+			complete = false
+			continue
+		}
 		if e != nil {
-			return nil, e
+			return nil, false, e
 		}
 		higher, e := resolver.Resolve(ctx, upstream, m.ID, at)
+		if partial && errors.Is(e, ErrPriceUnavailable) {
+			complete = false
+			continue
+		}
 		if e != nil {
-			return nil, e
+			return nil, false, e
 		}
 		factor, e := CoverageFactor(lower, higher)
 		if e != nil {
-			return nil, e
+			return nil, false, e
 		}
 		if maximum == nil || factor.Cmp(maximum) > 0 {
 			maximum = new(big.Rat).Set(factor)
 		}
 	}
-	return maximum, nil
+	return maximum, complete, nil
 }

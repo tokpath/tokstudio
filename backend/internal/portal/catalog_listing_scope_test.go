@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
@@ -27,7 +28,18 @@ func TestPostgresListingCoverageDoesNotTraverseUnrelatedOperators(t *testing.T) 
 	if err = f.a.Catalog.SetListing(ctx, child.Operator.ID, model, true, 0); err != nil {
 		t.Fatal(err)
 	}
-	// An incomplete channel cannot pass its own coverage check, but its setup
+	// A configured free retail price with positive upstream cost is unbounded;
+	// this is distinct from a new operator preparing unpriced stock.
+	for _, pair := range []struct {
+		scope catalog.PriceScope
+		rate  string
+	}{{catalog.PriceScope{Kind: "supply", SellerID: f.a.Installation.OperatorID, BuyerID: child.Operator.ID}, "1"}, {catalog.PriceScope{Kind: "retail", SellerID: child.Operator.ID}, "0"}} {
+		v := catalog.PriceVersion{ID: uuid.NewString(), Scope: pair.scope, ModelID: model, Layer: "regular", Published: true, EffectiveAt: time.Now().Add(-time.Hour), Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: pair.rate}, {Key: "output", Unit: "token", Per: "1", Rate: pair.rate}, {Key: "cache", Unit: "token", Per: "1", Rate: pair.rate}}}}
+		if err = f.a.Catalog.PublishPrice(ctx, pair.scope.SellerID, v, func(context.Context, *gorm.DB, catalog.PriceVersion) error { return nil }); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// An unbounded channel cannot pass its own coverage check, but its setup
 	// must not gate a listing used only by the platform's direct customers.
 	payload, _ := json.Marshal(map[string]any{"enabled": true, "model_id": model})
 	change := catalog.CatalogChange{Kind: "listing", EffectiveAt: time.Now().UTC(), Payload: payload}

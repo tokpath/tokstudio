@@ -166,13 +166,16 @@ func (a *Application) validateCatalogChange(ctx context.Context, tx *gorm.DB, ch
 				return e
 			}
 		}
-		snapshot, e := a.Cooperation.Coverage(ctx, tx, op, change.EffectiveAt)
+		_, e := a.Cooperation.Coverage(ctx, tx, op, change.EffectiveAt)
 		if e != nil {
 			return e
 		}
-		if snapshot.HasUpstream && snapshot.Space.Sign() < 0 {
-			return catalog.ErrChangeNotice
-		}
+	}
+	// Configuration may reveal a coverage gap after stock was purchased. Keep
+	// paid rights, allow setup to finish, alert the responsible operator and let
+	// admission/new-sale checks enforce real balances and remaining capacity.
+	if change.ID != "" {
+		return a.pricePublished(ctx, tx, catalog.PriceVersion{ID: "catalog:" + change.ID, EffectiveAt: change.EffectiveAt})
 	}
 	return nil
 }

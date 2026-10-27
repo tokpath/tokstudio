@@ -83,7 +83,8 @@ it("separates procurement quotes, orders, authorizations and attempts", () => {
     { id: "quote-a", values: { record_kind: "quote" } }, { id: "purchase-a", values: { record_kind: "order" } }, { id: "authorization-a", values: { record_kind: "authorization" } }, { id: "attempt-a", values: { record_kind: "replenishment_attempt" } },
   ])} />);
   expect(screen.getByText("purchase-a")).toBeTruthy(); expect(screen.queryByText("quote-a")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "立即补货" }));
+  expect(screen.queryByRole("button", { name: "立即补货" })).toBeNull();
+  fireEvent.click(screen.getByRole("tab", { name: "采购报价" }));
   expect(screen.getByText("quote-a")).toBeTruthy(); expect(screen.queryByText("purchase-a")).toBeNull();
   fireEvent.click(screen.getByRole("tab", { name: "自动补货" }));
   expect(screen.getByRole("heading", { name: "补货授权" })).toBeTruthy(); expect(screen.getByRole("heading", { name: "补货执行记录" })).toBeTruthy();

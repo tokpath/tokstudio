@@ -185,7 +185,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.purchase) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
-      await channel.getByRole("button", { name: "立即补货", exact: true }).click();
+      await channel.getByRole("tab", { name: "采购报价", exact: true }).click();
       await (await recordRow(channel, journal.quote.id)).getByRole("button", { name: "按金额采购", exact: true }).click();
       await field(channel.getByRole("dialog").last(),"amount_usd","80");
       save("purchase", await submit(channel, "按金额采购", `${channelBase}/procurement/${journal.quote.id}/purchase`));

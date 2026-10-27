@@ -217,5 +217,10 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
-      - run: npx playwright install --with-deps chromium
+      # Hosted Ubuntu runners already include the Chromium runtime libraries.
+      # Avoid apt upgrades/font downloads on every run; retain the lockfile's
+      # exact browser version and the full browser test suite.
+      - name: Ensure pinned Chromium headless shell
+        run: npx playwright install --only-shell chromium
+        timeout-minutes: 5
       - run: npx playwright test

@@ -45,6 +45,17 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 		return
 	}
 	quotes, orders, authorizations, attempts := result.Quotes, result.Orders, result.Authorizations, result.Attempts
+	purchaseReady := true
+	if view == "buyer" && len(quotes) > 0 {
+		err := a.Cooperation.CheckPurchaseConfiguration(ctx, nil, actor, op.ID)
+		if reason := procurementConfigurationReason(err); reason != "" {
+			purchaseReady = false
+			p["availability"] = []gin.H{{"capability": "purchase", "enabled": false, "reason": reason}}
+		} else if err != nil {
+			handleError(c, err)
+			return
+		}
+	}
 	for _, q := range quotes {
 		v := values(q)
 		v["record_kind"] = "quote"
@@ -71,7 +82,7 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 				actions = []string{"enable_quote"}
 			}
 		}
-		if view == "buyer" && len(q.GiftTiers) > 0 && q.Enabled && (q.ValidUntil == nil || time.Now().Before(*q.ValidUntil)) {
+		if view == "buyer" && purchaseReady && len(q.GiftTiers) > 0 && q.Enabled && (q.ValidUntil == nil || time.Now().Before(*q.ValidUntil)) {
 			actions = []string{"purchase"}
 		}
 		row := entity(q.ID, status, 0, v)
@@ -274,6 +285,20 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 		p["row_operations"] = append(p["row_operations"].([]operation), revise)
 	}
 	a.resourceResponse(c, p)
+}
+
+func procurementConfigurationReason(err error) string {
+	switch {
+	case errors.Is(err, cooperation.ErrPurchaseModels):
+		return "采购方尚未获得可用模型授权。请由供货方在“模型定价”中授权模型并设置供货价，再发起采购。"
+	case errors.Is(err, cooperation.ErrPurchasePrices):
+		return "模型调用价格尚未配置完整。请由供货方补齐对采购方的供货价，以及该供货方自己的上级采购价。"
+	case errors.Is(err, organization.ErrBusinessClosed):
+		return "供货合作尚未开通或已暂停，请联系供货方确认合作状态。"
+	case errors.Is(err, cooperation.ErrCoverage):
+		return "供货方现有履约责任暂时无法核实，请联系供货方检查模型授权和价格配置。"
+	}
+	return ""
 }
 func (a *Application) procurementCommand(c *gin.Context, op organization.Operator, actor string) {
 	raw, ok := decodeConfiguration(c)

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
@@ -20,6 +21,44 @@ import (
 // Receipt checks still need a concrete time, and any real payment falls before it.
 // The inventory reservation stays until the order is paid and delivered, or cancelled.
 var openPurchaseDeadline = time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
+
+var ErrPurchaseModels = errors.New("procurement buyer has no authorized fulfillment models")
+var ErrPurchasePrices = errors.New("procurement coverage prices are incomplete")
+
+// CheckPurchaseConfiguration uses the same configuration checks as order
+// creation, without creating an order or reserving inventory. It deliberately
+// does not decide whether an unspecified purchase amount can fit the stock.
+func (s *Service) CheckPurchaseConfiguration(ctx context.Context, tx *gorm.DB, actor, buyer string) error {
+	return s.within(ctx, tx, func(t *gorm.DB) error {
+		if err := s.Organization.RequirePermission(ctx, t, actor, buyer, "cooperation.manage"); err != nil {
+			return err
+		}
+		agreement, err := s.Organization.GetSupplyAgreement(ctx, t, buyer)
+		if err != nil {
+			return err
+		}
+		if agreement.Status != "active" {
+			return organization.ErrBusinessClosed
+		}
+		now, err := businessTime(ctx, t)
+		if err != nil {
+			return err
+		}
+		_, _, err = s.purchaseCoverage(ctx, t, agreement.SupplierID, buyer, now)
+		return err
+	})
+}
+
+func (s *Service) purchaseCoverage(ctx context.Context, tx *gorm.DB, supplier, buyer string, at time.Time) (CoverageSnapshot, CoverageRates, error) {
+	snapshot, rates, err := s.coverage(ctx, tx, supplier, at)
+	if errors.Is(err, catalog.ErrPriceUnavailable) || errors.Is(err, catalog.ErrUnboundedCoverage) {
+		return snapshot, rates, ErrPurchasePrices
+	}
+	if err == nil && snapshot.HasUpstream && rates.Children[buyer] == nil {
+		return snapshot, rates, ErrPurchaseModels
+	}
+	return snapshot, rates, err
+}
 
 type PurchaseQuote struct {
 	Name                 string             `json:"name"`
@@ -189,7 +228,7 @@ func (s *Service) createPurchaseOrder(ctx context.Context, tx *gorm.DB, actor, b
 		if agreement.Status != "active" || agreement.SupplierID != q.SupplierID {
 			return organization.ErrBusinessClosed
 		}
-		snapshot, rates, e := s.coverage(ctx, t, q.SupplierID, now)
+		snapshot, rates, e := s.purchaseCoverage(ctx, t, q.SupplierID, buyer, now)
 		if e != nil {
 			return e
 		}

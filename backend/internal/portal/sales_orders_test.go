@@ -21,6 +21,29 @@ func receiptForSalesOrder(order, amount string) map[string]any {
 	return map[string]any{"order_id": order, "provider_receipt_id": uuid.NewString(), "gross_usd": amount, "currency": "USD", "recipient_reference": "synthetic OEM bank", "payer_reference": "synthetic channel bank", "paid_at": time.Now().UTC(), "verification_evidence": "isolated verified bank statement"}
 }
 
+func TestPostgresWholesaleReceiptMerchantFeeDoesNotReduceDelivery(t *testing.T) {
+	s := stockSetup(t)
+	status, out := s.buy(t, 1000)
+	mustOK(t, status, out)
+	orderID := out["id"].(string)
+	input := receiptForSalesOrder(orderID, "1000")
+	input["fee_status"], input["fee_usd"] = "confirmed", "10"
+	status, out, _ = s.f.call(t, "POST", "/v1/operators/"+s.oem+"/payments", input, uuid.NewString())
+	mustOK(t, status, out)
+	receipt, err := s.f.a.Commerce.GetReceipt(context.Background(), nil, s.oem, out["id"].(string))
+	if err != nil || receipt.NetUSD == nil || receipt.NetUSD.String() != "990" || receipt.GrossUSD.String() != "1000" || receipt.AllocatedUSD.String() != "1000" || receipt.FeeUSD.String() != "10" {
+		t.Fatal("incorrect gross/fee/net receipt", receipt, err)
+	}
+	var order cooperation.PurchaseOrder
+	if err = s.f.a.DB.First(&order, "id=?", orderID).Error; err != nil || order.Status != "completed" || order.AllocatedUSD.String() != "1000" {
+		t.Fatal("merchant fee reduced order payment", order, err)
+	}
+	position, err := s.f.a.Cooperation.Position(context.Background(), nil, s.channel)
+	if err != nil || position.Quantity.String() != "1000" {
+		t.Fatal("merchant fee reduced buyer credits", position, err)
+	}
+}
+
 func TestPostgresCashCollectionWithoutAccountOrReceiptEvidence(t *testing.T) {
 	s := stockSetup(t)
 	status, out := s.buy(t, 1000)

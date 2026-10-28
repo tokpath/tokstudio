@@ -11,6 +11,16 @@ const resolve = value => value.$ref ? document.components.schemas[value.$ref.spl
 const operation = (resource, method = 'post') => document.paths[`/v1/operators/{operatorId}/${resource}`][method];
 const body = resource => resolve(operation(resource).requestBody.content['application/json'].schema);
 
+test('receipt inputs distinguish gross value and merchant fee while net is derived',()=>{
+ const receipt=body('payments');
+ assert.equal(receipt.properties.net_usd,undefined);
+ assert.match(receipt.properties.gross_usd.description,/扣手续费前/);
+ assert.match(receipt.properties.fee_usd.description,/己方承担/);
+ assert.match(receipt.properties.fee_usd.description,/付款人另付/);
+ const accounting=resolve(document.paths['/v1/operators/{operatorId}/payments/{id}/accounting'].post.requestBody.content['application/json'].schema);
+ assert.match(accounting.properties.fee_usd.description,/己方承担/);
+});
+
 test('reports export only content and dates and download a private CSV', () => {
   const input = body('exports');
   assert.deepEqual(Object.keys(input.properties).sort(), ['from','kind','to']);

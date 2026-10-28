@@ -1,11 +1,49 @@
 // @vitest-environment jsdom
-import {render,fireEvent,screen,waitFor,cleanup} from "@testing-library/react";
+import {render,fireEvent,screen,waitFor,cleanup,within} from "@testing-library/react";
 import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
 import {afterEach,expect,it,vi} from "vitest";
 import {OperationForm} from "./operation-form";
 import type {Operation,Entity,JSONValue} from "@/lib/contracts";
 afterEach(()=>{cleanup();vi.unstubAllGlobals()});
 function show(operation:Operation,row?:Entity){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><OperationForm operatorID={operation.path.startsWith("/api/v1/me/")?undefined:"operator-one"} operation={operation} row={row}/></QueryClientProvider>)}
+
+const receiptOperation: Operation = {name:"receipt",label:"登记人工核实收款",method:"POST",path:"/api/v1/operators/operator-one/payments",fields:[
+  {name:"gross_usd",label:"收款总额（扣手续费前） USD",kind:"decimal",required:true},
+  {name:"fee_status",label:"收款手续费核实状态",kind:"select",required:true,default_value:"pending",options:[{value:"pending",label:"稍后核实"},{value:"confirmed",label:"金额已核实"}]},
+  {name:"fee_usd",label:"己方承担的收款手续费 USD",kind:"decimal",required:true,visible_when:{field:"fee_status",values:["confirmed"]}},
+]};
+it("shows exact net receipt after merchant fees without submitting the derived amount",async()=>{
+  const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"receipt-one",status:"confirmed"}),{status:200}));vi.stubGlobal("fetch",fetch);
+  show(receiptOperation);
+  fireEvent.change(screen.getByLabelText("收款总额（扣手续费前） USD",{exact:true}),{target:{value:"1000.000000000000000001"}});
+  expect(screen.getByText("手续费待核实，净到账金额暂不确定。")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("收款手续费核实状态",{exact:true}),{target:{value:"confirmed"}});
+  fireEvent.change(screen.getByLabelText("己方承担的收款手续费 USD",{exact:true}),{target:{value:"10"}});
+  expect(within(screen.getByRole("region",{name:"收款金额核对"})).getByLabelText("990.000000000000000001 USD")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:"登记人工核实收款",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({gross_usd:"1000.000000000000000001",fee_status:"confirmed",fee_usd:"10"});
+});
+it("does not treat an unverified fee as zero or submit a stale hidden fee",async()=>{
+  const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"receipt-two",status:"confirmed"}),{status:200}));vi.stubGlobal("fetch",fetch);
+  show(receiptOperation);
+  fireEvent.change(screen.getByLabelText("收款总额（扣手续费前） USD",{exact:true}),{target:{value:"1000"}});
+  fireEvent.change(screen.getByLabelText("收款手续费核实状态",{exact:true}),{target:{value:"confirmed"}});
+  fireEvent.change(screen.getByLabelText("己方承担的收款手续费 USD",{exact:true}),{target:{value:"0"}});
+  expect(within(screen.getByRole("region",{name:"收款金额核对"})).getAllByLabelText("1000 USD")).toHaveLength(2);
+  fireEvent.change(screen.getByLabelText("收款手续费核实状态",{exact:true}),{target:{value:"pending"}});
+  expect(screen.getByText("手续费待核实，净到账金额暂不确定。")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:"登记人工核实收款",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({gross_usd:"1000",fee_status:"pending"});
+});
+it("uses the original gross receipt for later fee verification and blocks a negative net",async()=>{
+  const fetch=vi.fn();vi.stubGlobal("fetch",fetch);
+  show({name:"accounting",label:"核实手续费与结算",method:"POST",path:"/api/v1/operators/operator-one/payments/{id}/accounting",fields:[{name:"fee_usd",label:"己方承担的收款手续费 USD",kind:"decimal",required:true}]},{id:"receipt-one",values:{gross_usd:"100"}});
+  fireEvent.change(screen.getByLabelText("己方承担的收款手续费 USD",{exact:true}),{target:{value:"1"}});
+  expect(screen.getByLabelText("99 USD")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("己方承担的收款手续费 USD",{exact:true}),{target:{value:"101"}});
+  fireEvent.click(screen.getByRole("button",{name:"核实手续费与结算",exact:true}));
+  expect(screen.getByRole("alert").textContent).toContain("己方收款手续费不能超过收款总额。");expect(fetch).not.toHaveBeenCalled();
+});
 it("selects named staff permissions and preserves existing extension grants",async()=>{
   const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"membership",status:"saved"}),{status:200}));vi.stubGlobal("fetch",fetch);
   show({name:"membership",label:"保存成员权限",method:"POST",path:"/api/v1/operators/operator-one/staff/{id}/membership",fields:[{name:"grants",label:"自定义权限",kind:"text",options:[{value:"catalog.manage",label:"维护平台模型与路由"},{value:"payments.manage",label:"管理收款"}]}]},{id:"membership",values:{grants:"catalog.manage,extension.inspect"}});

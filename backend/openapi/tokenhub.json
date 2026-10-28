@@ -47554,15 +47554,15 @@
           },
           "currency": {
             "type": "string",
-            "description": "实际入账币种"
+            "description": "收款币种"
           },
           "gross_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "实际入账总额USD"
+            "description": "收款总额（扣手续费前） USD — 填写用于支付订单的收款总额，尚未扣除己方收款手续费。例如订单1000 USD、己方手续费10 USD、净到账990 USD，此处填1000；订单仍按1000 USD交付。付款人另付的转账费或链上手续费不计入。"
           },
           "original_amount": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "原币种实收金额",
+            "description": "原币收款总额（扣手续费前） — 填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合USD的收款总额与本次估值依据分别填写。",
             "x-visible-when": {
               "field": "currency",
               "not": true,
@@ -47607,11 +47607,11 @@
               "pending",
               "confirmed"
             ],
-            "description": "手续费"
+            "description": "收款手续费核实状态 — 尚不清楚己方收款手续费时选“稍后核实”，净到账金额暂不确定；确实没有手续费时，选“金额已核实”并填写0。"
           },
           "fee_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "已核实手续费 USD",
+            "description": "己方承担的收款手续费 USD — 只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。",
             "x-visible-when": {
               "field": "fee_status",
               "values": [
@@ -55354,7 +55354,7 @@
         "properties": {
           "fee_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "已核实手续费 USD"
+            "description": "己方承担的收款手续费 USD — 只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。"
           },
           "settled_at": {
             "type": "string",

@@ -491,19 +491,20 @@
       {
         "default_value": "USD",
         "kind": "text",
-        "label": "实际入账币种",
+        "label": "收款币种",
         "name": "currency",
         "required": true
       },
       {
         "kind": "decimal",
-        "label": "实际入账总额USD",
+        "label": "收款总额（扣手续费前） USD",
         "name": "gross_usd",
-        "required": true
+        "required": true,
+        "help": "填写用于支付订单的收款总额，尚未扣除己方收款手续费。例如订单1000 USD、己方手续费10 USD、净到账990 USD，此处填1000；订单仍按1000 USD交付。付款人另付的转账费或链上手续费不计入。"
       },
       {
         "kind": "decimal",
-        "label": "原币种实收金额",
+        "label": "原币收款总额（扣手续费前）",
         "name": "original_amount",
         "required": true,
         "visible_when": {
@@ -512,7 +513,8 @@
           "values": [
             "USD"
           ]
-        }
+        },
+        "help": "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合USD的收款总额与本次估值依据分别填写。"
       },
       {
         "kind": "text",
@@ -551,7 +553,7 @@
       {
         "default_value": "pending",
         "kind": "select",
-        "label": "手续费",
+        "label": "收款手续费核实状态",
         "name": "fee_status",
         "options": [
           {
@@ -563,11 +565,12 @@
             "value": "confirmed"
           }
         ],
-        "required": true
+        "required": true,
+        "help": "尚不清楚己方收款手续费时选“稍后核实”，净到账金额暂不确定；确实没有手续费时，选“金额已核实”并填写0。"
       },
       {
         "kind": "decimal",
-        "label": "已核实手续费 USD",
+        "label": "己方承担的收款手续费 USD",
         "name": "fee_usd",
         "required": true,
         "visible_when": {
@@ -575,7 +578,8 @@
           "values": [
             "confirmed"
           ]
-        }
+        },
+        "help": "只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。"
       },
       {
         "kind": "datetime",
@@ -6786,9 +6790,10 @@
     "fields": [
       {
         "kind": "decimal",
-        "label": "已核实手续费 USD",
+        "label": "己方承担的收款手续费 USD",
         "name": "fee_usd",
-        "required": true
+        "required": true,
+        "help": "只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。"
       },
       {
         "kind": "datetime",

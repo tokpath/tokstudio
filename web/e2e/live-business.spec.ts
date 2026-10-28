@@ -47,7 +47,7 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     const receiptPanel = staff.getByRole("dialog").last();
     for (const details of await receiptPanel.locator("details:not([open]) > summary").all()) await details.click();
     const reference = "synthetic-browser-" + randomUUID();
-    for (const [label, value] of [["收款流水或收据号（可选）", reference], ["实际入账总额USD", "100"], ["实际入账币种", "USD"], ["收款方资料（可选）", "isolated synthetic recipient"], ["付款方资料（可选）", "isolated synthetic payer"], ["收款说明或凭证（可选）", "SYNTHETIC ACCEPTANCE FACT ONLY: " + reference]]) {
+    for (const [label, value] of [["收款流水或收据号（可选）", reference], ["收款总额（扣手续费前） USD", "100"], ["收款币种", "USD"], ["收款方资料（可选）", "isolated synthetic recipient"], ["付款方资料（可选）", "isolated synthetic payer"], ["收款说明或凭证（可选）", "SYNTHETIC ACCEPTANCE FACT ONLY: " + reference]]) {
       await receiptPanel.getByLabel(label, { exact: false }).and(receiptPanel.locator("input,textarea,select")).fill(value);
     }
     await receiptPanel.getByRole("combobox", { name: "手续费" }).selectOption("pending");

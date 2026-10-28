@@ -24,6 +24,7 @@ import { PurchaseTiersEditor, PurchaseTierSummary, PurchasePreview, purchaseTier
 import { ConfigurationEditor } from "./operation-config-editor";
 import { PriceRates } from "./pricing-cards";
 import { FinanceEvidenceUpload } from "./finance-evidence";
+import { ReceiptAmounts } from "./receipt-amounts";
 
 function nested(value: unknown, path: string): unknown { return path.split(".").reduce<unknown>((current, key) => current !== null && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined, value); }
 function assign(target: Record<string, JSONValue>, path: string, value: JSONValue) {
@@ -139,6 +140,9 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   const groups = Array.from(new Set(fields.map(fieldGroup)));
   const schema = configurationSchema(operation, operatorID);
   const objectName = row?.presentation?.title || row && ["display_name", "name", "plan_name", "customer_name", "title"].map(key => row.values[key]).find(value => typeof value === "string" && value);
+  const receiptAmounts = /\/payments(?:\/[^/]+\/accounting)?$/.test(operation.path) && operation.fields.some(field => field.name === "fee_usd");
+  const receiptGross = values.gross_usd ?? String(row?.values.gross_usd ?? "");
+  const receiptFeeConfirmed = operation.fields.some(field => field.name === "fee_status") ? values.fee_status === "confirmed" : true;
 
   useEffect(() => { onBlockedChange?.(dismissLocked); }, [dismissLocked, onBlockedChange]);
   useEffect(() => {
@@ -198,6 +202,10 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
         assign(payload, field.name, parsed);
       }
       if (operation.name === "purchase" && /\/procurement\//.test(operation.path)) calculatePurchase(row?.values.gift_tiers,values.amount_usd);
+      if (receiptAmounts && receiptFeeConfirmed && Decimal.safeParse(receiptGross).success && Decimal.safeParse(values.fee_usd).success && compareDecimal(values.fee_usd, receiptGross) > 0) {
+        currentField = "fee_usd";
+        throw new Error("己方收款手续费不能超过收款总额。");
+      }
       if (operation.include_version && row?.version !== undefined) payload.version = row.version;
       const kvoucher = operation.fields.some(field => {
         if (field.name !== "merchant_id" && field.name !== "external_method_id") return false;
@@ -220,7 +228,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
         {field.name === "gift_tiers" ? <PurchaseTiersEditor value={values[field.name] || ""} disabled={disabled} change={value => change(field.name,value)} /> : field.kind === "json" && schema ? <ConfigurationEditor onPendingChange={setConfigurationPending} schema={schema} allowFollow={workspace?.operator.kind !== "platform"} allowDownstream={workspace?.operator.kind !== "channel"} modelProfiles={row?.values.billing} operatorID={operatorID} value={values[field.name] || ""} disabled={disabled || configurationPending || lockedFields.includes(field.name)} change={value => change(field.name, value)} /> : <Field field={{ ...field, lookup_url: field.name === "supplier_model_id" && field.lookup_url && /\/supplier-costs$/.test(operation.path) ? `${field.lookup_url}?provider_id=${encodeURIComponent(values.provider_id || "")}` : field.name === "kol_campaign_id" && field.lookup_url && row?.values.package_id ? `${field.lookup_url}&package_id=${encodeURIComponent(String(row.values.package_id))}` : field.lookup_url, help: businessFieldHelp(field.name === "warning" && /\/coverage(?:[?]|$)/.test(operation.path) ? "coverage.warning" : field.name, field.help, field.lookup_url) }} onLabel={label => setReferenceLabels(previous => previous[field.name] === label ? previous : { ...previous, [field.name]: label })} primaryReference={primaryReference(operation, field)} value={values[field.name] || ""} disabled={disabled || lockedFields.includes(field.name)} invalid={invalidField === field.name} change={value => change(field.name, value)} onChoice={defaults => { if (disabled) return; setConfirmed(false); setValues(previous => { const next = { ...previous }; for (const [name, value] of Object.entries(defaults)) { const target = operation.fields.find(item => item.name === name); if (target && !secretField(target) && value !== undefined && value !== null && !lockedFields.includes(name)) next[name] = fieldString(target, value); } return next; }); }} onFile={file => { if (disabled) return; setConfirmed(false); setFiles(previous => ({ ...previous, [field.name]: file })); }} />}
         {lockedFields.includes(field.name) && <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-mute"><LockKeyhole className="size-3" aria-hidden="true" />{t("已按当前业务对象带入")}</p>}
         {invalidField === field.name && validationError && <p className="mt-2 text-xs text-danger">{validationError instanceof ConfigurationError ? validationError.localized(locale) : t(validationError)}</p>}
-      </div>)}</div></Container>; })}
+      </div>)}</div>{receiptAmounts && fields.some(field => ["gross_usd", "fee_usd"].includes(field.name) && fieldGroup(field) === name) && <ReceiptAmounts gross={receiptGross} fee={values.fee_usd || ""} confirmed={receiptFeeConfirmed} />}</Container>; })}
       {!command.result && evidenceField && operatorID && <FinanceEvidenceUpload operatorID={operatorID} disabled={frozen} onPendingChange={setEvidencePending} attach={reference => change(evidenceField.name, [values[evidenceField.name],reference].filter(Boolean).join("\n"))} />}
       {!command.result && operation.name === "purchase" && /\/procurement\//.test(operation.path) && <PurchasePreview tiers={row?.values.gift_tiers} amount={values.amount_usd || ""} />}
       {!command.result && (!simpleProduct || operation.confirmation) && <div className="th-review"><h3 className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="size-4 text-brand-emphasis" aria-hidden="true" />{t("提交前核对")}</h3><Review fields={fields} values={values} files={files} referenceLabels={referenceLabels} /><p className="mt-3 text-xs leading-6 text-ink-mute">{t("本次操作将保存在当前经营范围。服务器核实成功后，最新结果会同步到业务记录。")}</p>{operation.confirmation && <label className="mt-4 flex items-start gap-3 border-t border-hairline pt-4 text-sm leading-7"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} className="mt-2 size-4 shrink-0" disabled={disabled} />{t(operation.confirmation)}</label>}</div>}

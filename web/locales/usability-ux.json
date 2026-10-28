@@ -3598,5 +3598,100 @@
     "en": "Expired",
     "ja": "期限切れ",
     "ru": "Срок истёк"
+  },
+  "收款金额核对": {
+    "en": "Receipt amount check",
+    "ja": "入金額の確認",
+    "ru": "Проверка суммы поступления"
+  },
+  "收款总额（扣手续费前）": {
+    "en": "Gross receipt before fees",
+    "ja": "手数料控除前の入金総額",
+    "ru": "Сумма поступления до комиссии"
+  },
+  "收款总额（扣手续费前） USD": {
+    "en": "Gross receipt before fees (USD)",
+    "ja": "手数料控除前の入金総額 USD",
+    "ru": "Сумма поступления до комиссии (USD)"
+  },
+  "收款手续费核实状态": {
+    "en": "Receipt fee verification",
+    "ja": "入金手数料の確認状況",
+    "ru": "Подтверждение комиссии за получение"
+  },
+  "己方承担的收款手续费 USD": {
+    "en": "Our receipt fee (USD)",
+    "ja": "当方負担の入金手数料 USD",
+    "ru": "Наша комиссия за получение (USD)"
+  },
+  "己方收款手续费": {
+    "en": "Our receipt fee",
+    "ja": "当方の入金手数料",
+    "ru": "Наша комиссия за получение"
+  },
+  "己方收款手续费 USD": {
+    "en": "Our receipt fee (USD)",
+    "ja": "当方の入金手数料 USD",
+    "ru": "Наша комиссия за получение (USD)"
+  },
+  "净到账金额": {
+    "en": "Net receipt",
+    "ja": "差引入金額",
+    "ru": "Чистая сумма поступления"
+  },
+  "净到账金额 USD": {
+    "en": "Net receipt (USD)",
+    "ja": "差引入金額 USD",
+    "ru": "Чистая сумма поступления (USD)"
+  },
+  "净额 USD": {
+    "en": "Net amount (USD)",
+    "ja": "差引額 USD",
+    "ru": "Чистая сумма (USD)"
+  },
+  "收款币种": {
+    "en": "Receipt currency",
+    "ja": "入金通貨",
+    "ru": "Валюта поступления"
+  },
+  "原币收款总额（扣手续费前）": {
+    "en": "Gross receipt in original currency before fees",
+    "ja": "元通貨での手数料控除前の入金総額",
+    "ru": "Сумма в исходной валюте до комиссии"
+  },
+  "手续费待核实，净到账金额暂不确定。": {
+    "en": "The receipt fee is unverified; the net receipt is not yet known.",
+    "ja": "入金手数料が未確認のため、差引入金額はまだ確定していません。",
+    "ru": "Комиссия ещё не подтверждена; чистая сумма поступления пока неизвестна."
+  },
+  "己方收款手续费不能超过收款总额。": {
+    "en": "Our receipt fee cannot exceed the gross receipt.",
+    "ja": "当方の入金手数料は入金総額を超えられません。",
+    "ru": "Наша комиссия не может превышать сумму поступления."
+  },
+  "净到账金额＝收款总额－己方收款手续费；订单交付仍按扣手续费前的收款总额计算。": {
+    "en": "Net receipt = gross receipt minus our receipt fee. Order delivery uses the gross receipt before fees.",
+    "ja": "差引入金額＝入金総額－当方の入金手数料。注文の提供額は手数料控除前の入金総額で計算します。",
+    "ru": "Чистое поступление = сумма поступления минус наша комиссия. Заказ исполняется по сумме до комиссии."
+  },
+  "尚不清楚己方收款手续费时选“稍后核实”，净到账金额暂不确定；确实没有手续费时，选“金额已核实”并填写0。": {
+    "en": "Choose “Verify later” if our receipt fee is unknown; the net receipt remains unknown. If there is no fee, choose “Amount verified” and enter 0.",
+    "ja": "当方の入金手数料が不明な場合は「後で確認」を選択してください。差引入金額は未確定です。手数料がないことを確認済みなら「金額確認済み」を選び、0を入力してください。",
+    "ru": "Если наша комиссия неизвестна, выберите «Подтвердить позже»; чистая сумма останется неизвестной. Если комиссии нет, выберите «Сумма подтверждена» и введите 0."
+  },
+  "只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。": {
+    "en": "Enter only the receipt fee borne by the current receiving operator. Exclude transfer or blockchain fees paid separately by the payer. Enter 0 if there is no fee. The system subtracts our fee from the gross receipt to calculate the net amount; order credits are unchanged.",
+    "ja": "現在の受取事業者が負担する入金手数料のみ入力します。支払人が別途支払う振込・ブロックチェーン手数料は含めません。当方の手数料がない場合は0を入力してください。総額から手数料を差し引いて差引入金額を計算し、注文の提供残高は減らしません。",
+    "ru": "Укажите только комиссию, которую несёт текущий получающий оператор. Отдельно оплаченные отправителем комиссии за перевод или блокчейн не включаются. Если нашей комиссии нет, введите 0. Система вычитает её из общей суммы; кредиты по заказу не уменьшаются."
+  },
+  "填写用于支付订单的收款总额，尚未扣除己方收款手续费。例如订单1000 USD、己方手续费10 USD、净到账990 USD，此处填1000；订单仍按1000 USD交付。付款人另付的转账费或链上手续费不计入。": {
+    "en": "Enter the gross receipt used to pay the order, before our receipt fee. For a 1000 USD order with a 10 USD fee and 990 USD net receipt, enter 1000; delivery remains 1000 USD. Exclude transfer or blockchain fees paid separately by the payer.",
+    "ja": "注文の支払いに充当する、当方の入金手数料控除前の総額を入力します。注文1000 USD、当方手数料10 USD、差引入金990 USDなら1000を入力し、1000 USD分を提供します。支払人が別途支払う振込・ブロックチェーン手数料は含めません。",
+    "ru": "Укажите сумму в оплату заказа до нашей комиссии. Для заказа на 1000 USD с комиссией 10 USD и чистым поступлением 990 USD введите 1000; исполнение останется на 1000 USD. Отдельные комиссии отправителя не включаются."
+  },
+  "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合USD的收款总额与本次估值依据分别填写。": {
+    "en": "Enter the gross amount in the original currency before our receipt fee, excluding sending fees paid separately by the payer. Enter the USD gross receipt and the current valuation evidence separately.",
+    "ja": "当方の入金手数料控除前の元通貨額を入力し、支払人が別途負担する送金手数料は含めません。USD換算の入金総額と今回の換算根拠は別に入力します。",
+    "ru": "Укажите сумму в исходной валюте до нашей комиссии, без отдельно оплаченных отправителем расходов. Сумму поступления в USD и основание текущей оценки укажите отдельно."
   }
 }

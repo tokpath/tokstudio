@@ -550,9 +550,9 @@ func (a *Application) operatorResource(c *gin.Context) {
 			item["allowed_actions"] = actions
 			items = append(items, item)
 		}
-		p["columns"] = []gin.H{col("id", "收款", "text"), col("provider", "通道", "text"), col("gross_usd", "实收总额", "usd"), col("allocated_usd", "已分配", "usd"), col("fee_status", "手续费证据", "status"), col("paid_at", "实际付款时间", "datetime")}
+		p["columns"] = []gin.H{col("id", "收款", "text"), col("provider", "通道", "text"), col("gross_usd", "收款总额（扣手续费前）", "usd"), col("fee_usd", "己方收款手续费", "usd"), col("net_usd", "净到账金额", "usd"), col("allocated_usd", "已分配", "usd"), col("fee_status", "收款手续费核实状态", "status"), col("paid_at", "实际付款时间", "datetime")}
 		p["operations"] = []operation{{Name: "receipt", Label: "登记人工核实收款", Method: "POST", Path: base, Fields: []field{jsonField("provider、provider_receipt_id、gross_usd、currency、original_amount、recipient_reference、payer_reference、verification_evidence、paid_at 等原始事实。")}}}
-		p["row_operations"] = []operation{{Name: "allocate", Label: "关联原订单", Method: "POST", Path: base + "/{id}/allocate", Fields: []field{f("order_id", "原订单", "text")}, Description: "整笔收款关联一个金额一致的订单，足额后自动交付。"}, {Name: "accounting", Label: "核实手续费与结算", Method: "POST", Path: base + "/{id}/accounting", Fields: []field{f("fee_usd", "已核实手续费 USD", "decimal"), optional("settled_at", "通道结算到账时间（可选）", "datetime"), f("evidence", "费用与结算核实依据", "textarea")}}}
+		p["row_operations"] = []operation{{Name: "allocate", Label: "关联原订单", Method: "POST", Path: base + "/{id}/allocate", Fields: []field{f("order_id", "原订单", "text")}, Description: "整笔收款关联一个金额一致的订单，足额后自动交付。"}, {Name: "accounting", Label: "核实手续费与结算", Method: "POST", Path: base + "/{id}/accounting", Fields: []field{receiptFeeField(), optional("settled_at", "通道结算到账时间（可选）", "datetime"), f("evidence", "费用与结算核实依据", "textarea")}}}
 	case "valuations":
 		var rows []valuationRow
 		if e := a.DB.WithContext(ctx).Where("operator_id=?", op.ID).Order("created_at DESC,id DESC").Limit(100).Find(&rows).Error; e != nil {

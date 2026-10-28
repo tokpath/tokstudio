@@ -87,13 +87,24 @@ func foreignField(name, label, kind, currency string) field {
 }
 
 func manualReceiptFields() []field {
-	fees := defaultField("fee_status", "手续费", "select", "pending")
+	fees := defaultField("fee_status", "收款手续费核实状态", "select", "pending")
+	fees.Help = "尚不清楚己方收款手续费时选“稍后核实”，净到账金额暂不确定；确实没有手续费时，选“金额已核实”并填写0。"
 	fees.Options = selectField("", "", "pending|稍后核实", "confirmed|金额已核实").Options
-	fee := f("fee_usd", "已核实手续费 USD", "decimal")
+	fee := receiptFeeField()
 	fee.VisibleWhen = &fieldVisibility{Field: "fee_status", Values: []string{"confirmed"}}
 	settled := optional("settled_at", "通道结算到账时间（可选）", "datetime")
 	settled.VisibleWhen = fee.VisibleWhen
-	return []field{optional("order_id", "关联订单（可选）", "text"), optional("provider_receipt_id", "收款流水或收据号（可选）", "text"), defaultField("currency", "实际入账币种", "text", "USD"), f("gross_usd", "实际入账总额USD", "decimal"), foreignField("original_amount", "原币种实收金额", "decimal", "currency"), foreignField("valuation_evidence", "本次USD估值依据", "text", "currency"), optional("recipient_reference", "收款方资料（可选）", "text"), optional("payer_reference", "付款方资料（可选）", "text"), f("paid_at", "真实付款时刻", "datetime"), optional("verification_evidence", "收款说明或凭证（可选）", "textarea"), fees, fee, settled, optional("network", "原网络（链上收款时填写）", "text")}
+	gross := f("gross_usd", "收款总额（扣手续费前） USD", "decimal")
+	gross.Help = "填写用于支付订单的收款总额，尚未扣除己方收款手续费。例如订单1000 USD、己方手续费10 USD、净到账990 USD，此处填1000；订单仍按1000 USD交付。付款人另付的转账费或链上手续费不计入。"
+	original := foreignField("original_amount", "原币收款总额（扣手续费前）", "decimal", "currency")
+	original.Help = "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合USD的收款总额与本次估值依据分别填写。"
+	return []field{optional("order_id", "关联订单（可选）", "text"), optional("provider_receipt_id", "收款流水或收据号（可选）", "text"), defaultField("currency", "收款币种", "text", "USD"), gross, original, foreignField("valuation_evidence", "本次USD估值依据", "text", "currency"), optional("recipient_reference", "收款方资料（可选）", "text"), optional("payer_reference", "付款方资料（可选）", "text"), f("paid_at", "真实付款时刻", "datetime"), optional("verification_evidence", "收款说明或凭证（可选）", "textarea"), fees, fee, settled, optional("network", "原网络（链上收款时填写）", "text")}
+}
+
+func receiptFeeField() field {
+	fee := f("fee_usd", "己方承担的收款手续费 USD", "decimal")
+	fee.Help = "只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。"
+	return fee
 }
 
 func (a *Application) allocateWholeRetailReceipt(ctx context.Context, tx *gorm.DB, actor, operator, receiptID, orderID, businessKey string) (commerce.Allocation, error) {

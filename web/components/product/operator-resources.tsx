@@ -394,7 +394,7 @@ export function recordTitle(row: Entity, resource: string, locale: Locale = "zh"
   return translate(locale, resourceLabel(resource));
 }
 function recordKindLabel(kind: string, locale: Locale = "zh") { return translate(locale, ({ case: "退款事项", leg: "退款分项", actual_refund_payment: "实际退款付款", exit: "采购退出事项", refund_leg: "退出退款分项", buyer_refund_leg: "采购方退款分项", quote: "采购报价", order: "采购订单", authorization: "自动补货授权", replenishment_attempt: "自动补货执行", credential: "供应商密钥", supplier_model: "供应商模型" } as Record<string, string>)[kind] || kind); }
-const factLabels: Record<string, string> = { customer: "客户", customer_id: "客户编号", order_id: "订单编号", receipt_id: "收款编号", provider: "收款通道", currency: "实际币种", original_amount: "原币金额", amount_usd: "金额 USD", allocated_usd: "已分配 USD", gross_usd: "实际入账 USD", fee_usd: "手续费 USD", fee_status: "手续费核实状态", due_usd: "应付 USD", external_allocated_usd: "外部款项已分配 USD", internal_usd: "USD 余额支付", commission_usd: "佣金支付", paid_atg: "购买权益 ATG", gift_atg: "赠送权益 ATG", package_gift_atg: "套餐赠送 ATG", merchant_gift_atg: "经营方赠送 ATG", kol_gift_atg: "KOL 赠送 ATG", balance: "余额", held: "占用", purpose: "资产目的", unit: "单位", created_at: "创建时间", paid_at: "真实付款时间", completed_at: "交付时间", expires_at: "到期时间", exception_reason: "异常原因", evidence: "核实依据", verification_evidence: "核实说明或凭证", valuation_evidence: "估值依据", recipient_reference: "收款方资料", payer_reference: "付款方资料", status: "业务状态", state: "办理状态", configured: "已配置", customer_usd_topup: "客户 USD 充值", package_purchase: "套餐购买", package_renewal: "套餐续费", package: "套餐订单", topup: "余额充值", renewal: "套餐续费" };
+const factLabels: Record<string, string> = { customer: "客户", customer_id: "客户编号", order_id: "订单编号", receipt_id: "收款编号", provider: "收款通道", currency: "实际币种", original_amount: "原币金额", amount_usd: "金额 USD", allocated_usd: "已分配 USD", gross_usd: "收款总额（扣手续费前） USD", fee_usd: "手续费 USD", fee_status: "手续费核实状态", due_usd: "应付 USD", external_allocated_usd: "外部款项已分配 USD", internal_usd: "USD 余额支付", commission_usd: "佣金支付", paid_atg: "购买权益 ATG", gift_atg: "赠送权益 ATG", package_gift_atg: "套餐赠送 ATG", merchant_gift_atg: "经营方赠送 ATG", kol_gift_atg: "KOL 赠送 ATG", balance: "余额", held: "占用", purpose: "资产目的", unit: "单位", created_at: "创建时间", paid_at: "真实付款时间", completed_at: "交付时间", expires_at: "到期时间", exception_reason: "异常原因", evidence: "核实依据", verification_evidence: "核实说明或凭证", valuation_evidence: "估值依据", recipient_reference: "收款方资料", payer_reference: "付款方资料", status: "业务状态", state: "办理状态", configured: "已配置", customer_usd_topup: "客户 USD 充值", package_purchase: "套餐购买", package_renewal: "套餐续费", package: "套餐订单", topup: "余额充值", renewal: "套餐续费" };
 
 const editableOperations: Record<string, { name: string; label: string }> = { plans: { name: "publish", label: "编辑套餐" }, marketing: { name: "publish", label: "修订活动" }, catalog: { name: "save", label: "编辑模型" }, routes: { name: "save", label: "编辑路由" }, "payment-methods": { name: "configure", label: "调整配置" } };
 const currentRecordOperations: Record<string, string[]> = { mail: ["configure"], commissions: ["policy"], branding: ["theme"], "channel-themes": ["theme"] };
@@ -577,12 +577,12 @@ const savedFactLabels: Record<string, string> = {
   "reminder_seconds": "持续风险提醒间隔秒数",
   "escalate_seconds": "升级等待秒数",
   "provider_receipt_id": "外部唯一收款流水",
-  "gross_usd": "实际入账总额USD",
+  "gross_usd": "收款总额（扣手续费前） USD",
   "fee_status": "手续费证据",
   "fee_usd": "已核实手续费USD",
-  "net_usd": "已核实净入账USD",
+  "net_usd": "净额 USD",
   "currency": "实际入账币种",
-  "original_amount": "原币种实收金额",
+  "original_amount": "原币金额",
   "recipient_reference": "收款方资料（可选）",
   "payer_reference": "付款方资料（可选）",
   "valuation_evidence": "本次USD估值依据",

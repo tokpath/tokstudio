@@ -11,6 +11,12 @@ const resolve = value => value.$ref ? document.components.schemas[value.$ref.spl
 const operation = (resource, method = 'post') => document.paths[`/v1/operators/{operatorId}/${resource}`][method];
 const body = resource => resolve(operation(resource).requestBody.content['application/json'].schema);
 
+test('user and channel invite responses share the six-character uppercase format',()=>{
+ const schemas=document.components.schemas;
+ assert.equal(schemas.InviteCode.pattern,'^[0-9A-Z]{6}$');
+ for(const name of ['Referral','ChannelInvitation']) assert.equal(resolve(schemas[name].properties.invite_code).pattern,'^[0-9A-Z]{6}$');
+});
+
 test('channel invitations require exact channel customer access and expose a typed brand link',()=>{
  const invitation=document.paths['/v1/operators/{operatorId}/customer-invitation'].get;
  assert.equal(invitation['x-required-permission'],'customers.read');

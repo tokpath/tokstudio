@@ -235,11 +235,8 @@ func (s *Service) CompleteRegistration(ctx context.Context, tx *gorm.DB, in Comp
 				return err
 			}
 		}
-		userCode, err := inviteCode()
+		userCode, err := createInviteCode(ctx, tx, r.BrandID, "user", c.ID, now)
 		if err != nil {
-			return err
-		}
-		if err = tx.Exec(`INSERT INTO organization_invite_codes(id,code,brand_id,kind,customer_id,enabled,created_at) VALUES(?,?,?,'user',?,true,?)`, newID(), userCode, r.BrandID, c.ID, now).Error; err != nil {
 			return err
 		}
 		if err = tx.Model(&r).Updates(map[string]any{"status": "completed", "customer_id": c.ID, "completed_at": now, "password_hash": ""}).Error; err != nil {

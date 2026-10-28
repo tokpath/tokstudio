@@ -6,6 +6,7 @@ const ready=process.env.TOKENHUB_INVITATION_ACCEPTANCE_FILE;
 test.skip(!ready,"Requires the isolated channel invitation application and PostgreSQL");
 test("channel shares its brand invite and queries changes made by another session without changing filters",async({page,browser,baseURL},info)=>{
   const f=JSON.parse(readFileSync(ready!,"utf8"));
+  expect(f.invite_code).toMatch(/^[0-9A-Z]{6}$/);
   await page.goto("/login");await page.getByLabel("邮箱",{exact:true}).fill(f.owner_email);await page.getByLabel("密码",{exact:true}).fill(f.owner_password);await page.getByRole("button",{name:"登录",exact:true}).click();await page.waitForURL(/\/manage\//);
   await page.goto(`/manage/${f.operator_id}/overview`);
   await expect(page.getByRole("heading",{name:"渠道邀请",exact:true})).toBeVisible();
@@ -19,7 +20,7 @@ test("channel shares its brand invite and queries changes made by another sessio
   await page.screenshot({path:info.outputPath("channel-invitation-desktop.png"),fullPage:true});
   await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath("channel-invitation-mobile.png"),fullPage:true});await page.setViewportSize({width:1365,height:960});
   const anonymous=await browser.newContext({baseURL,locale:"zh-CN"});
-  try {const signup=await anonymous.newPage();await signup.goto(link);await expect(signup.getByLabel("邀请码（可选）",{exact:true})).toHaveValue(f.invite_code);await expect(signup.getByText("无用户邀请人",{exact:false})).toBeVisible();await expect(signup.getByText("Invite channel",{exact:false})).toBeVisible();} finally {await anonymous.close();}
+  try {const signup=await anonymous.newPage();await signup.goto(link);await expect(signup.getByLabel("邀请码（可选）",{exact:true})).toHaveValue(f.invite_code);await signup.getByLabel("邀请码（可选）",{exact:true}).fill(f.invite_code.toLowerCase());await expect(signup.getByLabel("邀请码（可选）",{exact:true})).toHaveValue(f.invite_code);await expect(signup.getByText("无用户邀请人",{exact:false})).toBeVisible();await expect(signup.getByText("Invite channel",{exact:false})).toBeVisible();} finally {await anonymous.close();}
   await page.goto(`/manage/${f.operator_id}/payments`);
   await expect(page.getByText("暂无记录",{exact:true})).toBeVisible();
   const other=await browser.newContext({baseURL,locale:"zh-CN"});

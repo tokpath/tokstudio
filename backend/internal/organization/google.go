@@ -453,11 +453,8 @@ func (s *Service) registerGoogleCustomer(ctx context.Context, tx *gorm.DB, inten
 			return err
 		}
 	}
-	code, err := inviteCode()
+	code, err := createInviteCode(ctx, tx, intent.BrandID, "user", customerID, now)
 	if err != nil {
-		return err
-	}
-	if err = tx.Exec(`INSERT INTO organization_invite_codes(id,code,brand_id,kind,customer_id,enabled,created_at) VALUES(?,?,?,'user',?,true,?)`, newID(), code, intent.BrandID, customerID, now).Error; err != nil {
 		return err
 	}
 	result := RegistrationResult{Customer: Customer(customer), Ownership: Ownership(ownership), InviteCode: code, InviterID: attribution.InviterID, NewlyRegistered: true}

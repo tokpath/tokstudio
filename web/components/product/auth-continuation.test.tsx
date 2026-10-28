@@ -12,6 +12,23 @@ const session = { kind: "customer", customer: { id: "customer-one", email: "cust
 function mount(mode: "login" | "register" | "verify") { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return render(<QueryClientProvider client={cache}><AuthPage mode={mode} /></QueryClientProvider>); }
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); route.search = ""; route.push.mockReset(); });
 
+it("normalizes six-character codes without losing leading zeroes or truncating an old long code",async()=>{
+  route.search="invite=ab12c3";
+  const fetch=vi.fn(async(input:RequestInfo|URL)=>{
+    const code=new URL(String(input),"http://localhost").searchParams.get("invite_code")||"";
+    return response({brand:session.brand,operator:session.operator,theme:{},availability:[],payment_methods:[],invitation:{code,status:/^[0-9A-Z]{6}$/.test(code)?"valid":"invalid",type:"channel",operator:session.operator}});
+  });vi.stubGlobal("fetch",fetch);mount("register");
+  const input=screen.getByLabelText("邀请码（可选）") as HTMLInputElement;
+  expect(input.value).toBe("AB12C3");
+  await waitFor(()=>expect((screen.getByRole("button",{name:"确认归属并注册"}) as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.change(input,{target:{value:"0a1b2c"}});expect(input.value).toBe("0A1B2C");
+  await waitFor(()=>expect((screen.getByRole("button",{name:"确认归属并注册"}) as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.change(input,{target:{value:"AB12C3XXXXXXXXXXXXXXXXXX"}});
+  expect(input.value).toBe("AB12C3XXXXXXXXXXXXXXXXXX");
+  await waitFor(()=>expect((screen.getByRole("button",{name:"确认归属并注册"}) as HTMLButtonElement).disabled).toBe(true));
+  expect(fetch.mock.calls.every(([path])=>String(path).includes("invite_code="))).toBe(true);
+});
+
 it("carries a whitelisted plan and promotion through registration without changing invitation ownership", async () => {
   const next = "/workspace/plans?plan=plan-one&kol_activity=kol-one&invite=forged";
   route.search = new URLSearchParams({ next }).toString();

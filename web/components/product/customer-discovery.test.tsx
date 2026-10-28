@@ -20,7 +20,7 @@ const models: Model[] = [
   { id: "paused-model", name: "Paused model", capabilities: ["image"], status: "disabled", prices: [] },
 ];
 const plan: Plan = { id: "plan-one", name: "Synthetic plan", price_usd: "10", purchase_atg: "100", gift_atg: "20", validity: "month", auto_renew_available: false, status: "active", version: 1 };
-const referral = { invite_code: "original-code", invite_url: "https://brand.example.test/register?invite=original-code", direct_count: 3, indirect_count: 1, qualified: true, function_status: "active", confirmed_usd: "10", pending_usd: "2", threshold_usd: "10", direct_rate: "0.3", indirect_rate: "0.1" };
+const referral = { invite_code: "ORIG01", invite_url: "https://brand.example.test/register?invite=ORIG01", direct_count: 3, indirect_count: 1, qualified: true, function_status: "active", confirmed_usd: "10", pending_usd: "2", threshold_usd: "10", direct_rate: "0.3", indirect_rate: "0.1" };
 const page = { title: "", description: "", items: [], columns: [], operations: [], row_operations: [] };
 const response = (value: unknown) => new Response(JSON.stringify(value), { status: 200 });
 function show(component: React.ReactNode, locale: Locale = "zh") { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return { ...render(<I18nProvider initialLocale={locale}><QueryClientProvider client={cache}>{component}</QueryClientProvider></I18nProvider>), cache }; }
@@ -131,7 +131,7 @@ it("provides a share link after publication without changing the original invita
   fireEvent.click(screen.getByLabelText("我确认活动让利、期限和使用上限，发布后仅对有效直属受邀客户生效。"));
   fireEvent.click(screen.getByRole("button", { name: "确认发布活动" }));
   await screen.findByText("活动已发布，可以分享给直属受邀客户。");
-  expect(screen.getByText("https://brand.example.test/plans?invite=original-code&plan=plan-one&kol_activity=new-campaign")).toBeTruthy();
+  expect(screen.getByText("https://brand.example.test/plans?invite=ORIG01&plan=plan-one&kol_activity=new-campaign")).toBeTruthy();
   expect(screen.getByRole("button", { name: "复制活动链接" })).toBeTruthy();
 });
 
@@ -148,13 +148,13 @@ it("shows precise ordinary-user qualification progress without fetching the KOL 
 
 it("loads the invited operator's plans and carries the campaign into registration and login", async () => {
   scenario.customer = false;
-  window.history.replaceState({}, "", "/plans?plan=plan-one&kol_activity=campaign-one&invite=original-code");
-  const fetch = vi.fn(async (path: RequestInfo | URL) => String(path).includes("/context") ? response({ brand: { id: "brand", name: "Synthetic Brand", api_base_url: "https://brand.example.test/v1", theme: {} }, operator: { id: "invited-operator", name: "Invited operator", kind: "channel", brand_id: "brand" }, theme: {}, availability: [], payment_methods: [], invitation: { code: "original-code", status: "valid" } }) : response({ items: [plan] }));
+  window.history.replaceState({}, "", "/plans?plan=plan-one&kol_activity=campaign-one&invite=ORIG01");
+  const fetch = vi.fn(async (path: RequestInfo | URL) => String(path).includes("/context") ? response({ brand: { id: "brand", name: "Synthetic Brand", api_base_url: "https://brand.example.test/v1", theme: {} }, operator: { id: "invited-operator", name: "Invited operator", kind: "channel", brand_id: "brand" }, theme: {}, availability: [], payment_methods: [], invitation: { code: "ORIG01", status: "valid" } }) : response({ items: [plan] }));
   vi.stubGlobal("fetch", fetch);
   show(<PlansPage />);
   const link = await screen.findByRole("link", { name: "继续，核实活动资格" });
-  expect(fetch.mock.calls.some(([path]) => String(path) === "/api/v1/public/plans?invite_code=original-code")).toBe(true);
-  expect(link.getAttribute("href")).toBe("/register?next=%2Fworkspace%2Fplans%3Fplan%3Dplan-one%26kol_activity%3Dcampaign-one&invite=original-code");
+  expect(fetch.mock.calls.some(([path]) => String(path) === "/api/v1/public/plans?invite_code=ORIG01")).toBe(true);
+  expect(link.getAttribute("href")).toBe("/register?next=%2Fworkspace%2Fplans%3Fplan%3Dplan-one%26kol_activity%3Dcampaign-one&invite=ORIG01");
   expect(screen.getByRole("link", { name: "已有账号，登录核实活动" }).getAttribute("href")).toBe("/login?next=%2Fworkspace%2Fplans%3Fplan%3Dplan-one%26kol_activity%3Dcampaign-one");
   await screen.findAllByText("Invited operator");
 });

@@ -142,13 +142,6 @@ func tokenHash(t string) string { b := sha256.Sum256([]byte(t)); return hex.Enco
 func tokenMatches(raw, hash string) bool {
 	return raw != "" && subtle.ConstantTimeCompare([]byte(tokenHash(raw)), []byte(hash)) == 1
 }
-func inviteCode() (string, error) {
-	b := make([]byte, 12)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return strings.ToUpper(hex.EncodeToString(b)), nil
-}
 
 // NormalizeEmail deliberately applies no provider-specific dot or plus rules.
 func NormalizeEmail(value string) (string, error) {

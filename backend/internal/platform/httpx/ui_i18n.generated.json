@@ -203,6 +203,12 @@
     "3 · 公開モデルを選択",
     "3 · Выберите публичную модель"
   ],
+  "6位数字或大写字母，小写输入会自动转为大写。": [
+    "6位数字或大写字母，小写输入会自动转为大写。",
+    "6 digits or uppercase letters. Lowercase input is converted to uppercase.",
+    "数字または大文字の英字6文字です。小文字は自動で大文字に変換されます。",
+    "6 цифр или заглавных латинских букв. Строчные буквы преобразуются в заглавные."
+  ],
   "<为本次请求生成唯一编号>": [
     "<为本次请求生成唯一编号>",
     "<unique ID for this request>",
@@ -3730,6 +3736,12 @@
     "Enter 0.15 for 15%. Purchase fixes the order’s direct and indirect rates and KOL concession; subtract that concession from the direct rate. Each inviter’s eligibility is assessed when paid usage occurs. Later qualification is not retroactive, and an ineligible share is not reassigned to another referral level.",
     "15% は 0.15 と入力します。注文購入時に直接・間接料率と KOL 還元率を固定し、直接料率から注文の還元分を差し引きます。有償利用の発生時に二段階それぞれの紹介者の有効な分配資格を判定します。後からの資格取得は遡及せず、資格のない紹介者の分を他の段階へ移しません。",
     "Для 15% введите 0.15. При покупке фиксируются прямая и косвенная ставки заказа и уступка KOL; уступка вычитается из прямой ставки. Право каждого из двух пригласивших проверяется в момент оплаченного использования. Более позднее получение статуса не действует задним числом, а доля без права на комиссию не передаётся другому уровню."
+  ],
+  "例如 A1B2C3": [
+    "例如 A1B2C3",
+    "e.g. A1B2C3",
+    "例：A1B2C3",
+    "Например, A1B2C3"
   ],
   "例如 openai。这是转发时使用的协议，不是给客户看的名字。": [
     "例如 openai。这是转发时使用的协议，不是给客户看的名字。",

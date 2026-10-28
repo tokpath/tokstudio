@@ -100,11 +100,8 @@ func (s *Service) CreateOperator(ctx context.Context, tx *gorm.DB, in CreateOper
 		}
 		out = OperatorCreated{Operator: Operator(o), Brand: b, Supply: (*SupplyAgreement)(&a)}
 		if in.Kind == Channel {
-			code, err := inviteCode()
+			code, err := createInviteCode(ctx, tx, b.ID, "channel", opID, now)
 			if err != nil {
-				return err
-			}
-			if err = tx.Exec(`INSERT INTO organization_invite_codes(id,code,brand_id,kind,operator_id,enabled,created_at) VALUES(?,?,?,'channel',?,true,?)`, newID(), code, b.ID, opID, now).Error; err != nil {
 				return err
 			}
 			out.InviteCode = code

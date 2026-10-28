@@ -7,14 +7,16 @@ export function businessFieldHelp(name: string, existing?: string, lookup?: stri
   if (name === "upstream.identity" || name === "model.identity") return "填写已经核实的模型身份和修订版本，例如 vendor-model-2026-01。上游路由须与对应公开模型身份一致，避免把不同模型或版本混在同一个公开模型下。";
   if (name === "upstream.provider_id") return "选择已保存的供应商凭据后，系统会带入对应供应商引用。它必须指向真实供应商主体，与供应商协议名称和模型名称分别记录。";
   if (["terms_reference", "rules_reference", "method_reference"].includes(key)) return "填写已公示或已签署条款的编号或链接，例如 plan-2026-01。它用于追溯本次成交依据；请先准备真实条款，不要随意编造。";
-  if (["evidence", "evidence_reference", "verification_evidence", "consent_reference"].includes(key)) return "填写能够核实本次操作的材料、文件编号或链接，并说明核实结果。系统保留此依据供复核；填写文字本身不代表付款、授权或验证成功。";
+  if (key === "verification_evidence") return "可补充现金收据、转账记录或经办说明；人工收款时没有材料可留空，系统仍记录经办人和登记时间。涉及链上或第三方通道核验时，按该通道的要求提供资料。";
+  if (["recipient_reference", "payer_reference"].includes(key)) return "按实际情况填写收付款方姓名、收款地点或账号；现金收款没有账号时可留空，无需编造银行资料。";
+  if (["evidence", "evidence_reference", "consent_reference"].includes(key)) return "可填写经办核实说明、现金收据、转账记录或文件引用，按当前字段要求提供。非USD付款还需保留当次真实估值依据。";
   if (["direct_rate", "indirect_rate"].includes(key)) return "例如 15% 填写 0.15。购买时固定订单的直接、间接比例及 KOL 让利，直接佣金比例须减去订单让利。实际有偿消费发生时分别判断两跳邀请人的有效分佣资格，之后取得资格不追溯；不合资格的份额不转给其他跳。";
   if (["threshold_usd"].includes(key)) return "本账号订单中，实际消耗和到期未用的购买额度按对应实付 USD 经确认后累计，两类互斥，同一订单不超过有效实付金额。充值、有效期内未消费的购买额度和赠送不计入；到期确认不产生佣金。提高门槛不撤销已取得资格。";
   if (key === "confirmation_days") return "按整天填写，默认 30 天。等待期满且相关消费没有未结争议后，才计入资格，对应佣金才能使用或提现。已经开始等待的记录仍按原来的到期时间，不会因为后来改政策而延长。";
   if (key === "reward_validity_days") return "注册赠送额度从注册成功起按整天计算，默认 30 天。到期后尚未使用的注册奖励不再可用。";
   if (["paid_atg", "gift_atg"].includes(key)) return "购买 ATG 与赠送 ATG 分开记录；套餐在足额付款并成功交付后生效。购买部分按订单实付分摊有偿消费基数，赠送不计资格或佣金。同一套餐订单内购买与各来源赠送按比例消耗、同期限；独立赠送有各自明确期限。";
   if (["oversell_atg", "oversell_limit_atg", "oversell_limit", "oversell", "allowance"].includes(key)) return "只放宽可新增的销售承诺，不增加采购余额或授信。设为 0 时，售前须备足采购储备，按所有开放模型的最大采购成本覆盖购买、赠送及待成交承诺。调用预占仍须由真实采购余额覆盖，不足时不受理新调用；已售权益保留，由经营方补货履约。";
-  if (["provider_receipt_id", "payment_reference"].includes(key)) return "填写付款渠道或银行给出的原始唯一流水号，用来识别同一笔收款并防止重复入账。不要填写客户邮箱或自己新造的订单号。";
+  if (["provider_receipt_id", "payment_reference"].includes(key)) return "有转账流水或现金收据号时填写；没有可留空，系统自动生成登记编号。请勿重复登记同一笔款项。";
   if (["valuation_evidence", "usd_per_unit"].includes(key)) return "记录本次实际执行的币种、金额及折合 USD 的依据。系统只确定 USD 应收应付；换汇在外部完成，不锁定历史汇率，也不由本字段发起换汇。";
   if (["timezone"].includes(key)) return "使用 IANA 时区名称，例如 Asia/Shanghai、Asia/Tokyo、Europe/Moscow 或 UTC，不填写 UTC+8。Key 预算按经营时区的自然月、季、年划分；套餐的月、季、年期限则从每次成功交付起按约定时区的日历期间计算。切换界面语言不改变业务时区或周期边界。";
   if (["expected_version", "version"].includes(key)) return "当前记录版本由系统带入，用于防止两人同时编辑相互覆盖。如果记录已更新，请重新读取后再提交，不需要自己猜版本号。";

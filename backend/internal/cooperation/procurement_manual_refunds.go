@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// BeginManualRefund records the one approved bank-transfer instruction. A crash
+// BeginManualRefund records the one approved offline payment instruction. A crash
 // or an unknown manual outcome retains both the payable hold and shared source
 // capacity. Automatic execution cannot take over this instruction.
 func (p *ProcurementRefunds) BeginManualRefund(ctx context.Context, actor, id, key, evidence string) (ProcurementExitRefund, error) {
@@ -67,7 +67,7 @@ func (p *ProcurementRefunds) BeginManualRefund(ctx context.Context, actor, id, k
 			if e != nil {
 				return e
 			}
-			if receipt.Network != "" && receipt.Network != "bank" {
+			if receipt.Network != "" && receipt.Network != "bank" && receipt.Network != "cash" {
 				return payments.ErrUnsupported
 			}
 		} else {

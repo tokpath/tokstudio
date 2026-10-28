@@ -68,7 +68,7 @@ func (in manualReceiptInput) verified(operator string) (commerce.VerifiedReceipt
 	fact := commerce.VerifiedReceipt{OperatorID: operator, ProviderReceiptID: in.ProviderReceiptID, GrossUSD: in.GrossUSD, Currency: currency, OriginalAmount: in.OriginalAmount, Network: in.Network, RecipientReference: in.RecipientReference, PayerReference: in.PayerReference, ValuationEvidence: in.ValuationEvidence, VerificationEvidence: in.VerificationEvidence, PaidAt: in.PaidAt, FeeStatus: in.FeeStatus, FeeUSD: in.FeeUSD, SettledAt: in.SettledAt}
 	if currency == "USD" {
 		fact.OriginalAmount = in.GrossUSD.String()
-		fact.ValuationEvidence = "Native USD bank receipt; no currency conversion"
+		fact.ValuationEvidence = "Native USD receipt; no currency conversion"
 	}
 	if in.FeeStatus == "confirmed" {
 		if in.FeeUSD == nil {
@@ -93,7 +93,7 @@ func manualReceiptFields() []field {
 	fee.VisibleWhen = &fieldVisibility{Field: "fee_status", Values: []string{"confirmed"}}
 	settled := optional("settled_at", "通道结算到账时间（可选）", "datetime")
 	settled.VisibleWhen = fee.VisibleWhen
-	return []field{optional("order_id", "关联订单（可选）", "text"), f("provider_receipt_id", "外部唯一收款流水", "text"), defaultField("currency", "实际入账币种", "text", "USD"), f("gross_usd", "实际入账总额USD", "decimal"), foreignField("original_amount", "原币种实收金额", "decimal", "currency"), foreignField("valuation_evidence", "本次USD估值依据", "text", "currency"), f("recipient_reference", "实际收款账号证明", "text"), f("payer_reference", "实际付款人账号证明", "text"), f("paid_at", "真实付款时刻", "datetime"), f("verification_evidence", "真实银行核实凭证", "textarea"), fees, fee, settled, optional("network", "原网络（链上收款时填写）", "text")}
+	return []field{optional("order_id", "关联订单（可选）", "text"), optional("provider_receipt_id", "收款流水或收据号（可选）", "text"), defaultField("currency", "实际入账币种", "text", "USD"), f("gross_usd", "实际入账总额USD", "decimal"), foreignField("original_amount", "原币种实收金额", "decimal", "currency"), foreignField("valuation_evidence", "本次USD估值依据", "text", "currency"), optional("recipient_reference", "收款方资料（可选）", "text"), optional("payer_reference", "付款方资料（可选）", "text"), f("paid_at", "真实付款时刻", "datetime"), optional("verification_evidence", "收款说明或凭证（可选）", "textarea"), fees, fee, settled, optional("network", "原网络（链上收款时填写）", "text")}
 }
 
 func (a *Application) allocateWholeRetailReceipt(ctx context.Context, tx *gorm.DB, actor, operator, receiptID, orderID, businessKey string) (commerce.Allocation, error) {

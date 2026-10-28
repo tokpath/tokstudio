@@ -12,6 +12,30 @@ import (
 
 type manualRefundTestApproval struct{}
 
+func TestManualCashCheckoutAndVerificationNeedNoBankAccount(t *testing.T) {
+	db := paymentDB(t)
+	s := NewService(db, "cash-test-key", testPaymentAuth{}, NewTransport(true), &sqlReceiptSink{})
+	ctx := context.Background()
+	m := Merchant{ID: uuid.NewString(), OperatorID: uuid.NewString(), Driver: "manual", Enabled: true, Credentials: map[string]string{"currency": "USD", "instructions": "Pay cash to the operator in person"}}
+	if _, err := s.SaveMerchant(ctx, "finance", m, 0); err != nil {
+		t.Fatal(err)
+	}
+	o := paymentTestOrder(m, "USD")
+	checkout, err := s.Create(ctx, m.OperatorID, m.ID, o)
+	if err != nil || checkout.PaymentAddress != "" || checkout.Instructions != m.Credentials["instructions"] {
+		t.Fatal("cash checkout requires bank details", checkout, err)
+	}
+	proof := ManualVerification{Money: o.Money, PaidAt: time.Now().UTC()}
+	first, err := s.RecordManual(ctx, "finance", m.OperatorID, m.ID, o.ID, proof)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := s.RecordManual(ctx, "finance", m.OperatorID, m.ID, o.ID, proof)
+	if err != nil || first.ID != second.ID {
+		t.Fatal("cash retry duplicated payment", first, second, err)
+	}
+}
+
 func (manualRefundTestApproval) RequireApprovedRefund(context.Context, *gorm.DB, string, Refund) error {
 	return nil
 }

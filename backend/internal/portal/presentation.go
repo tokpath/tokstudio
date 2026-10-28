@@ -180,7 +180,7 @@ type paymentMaterial struct {
 }
 
 var paymentMaterials = []paymentMaterial{
-	{"currency", "收款币种（大写，例如USD/CNY）", []string{"stripe", "manual"}}, {"recipient_reference", "实际收款银行账号/凭证", []string{"manual"}}, {"instructions", "对付款人展示的付款说明", []string{"manual"}},
+	{"currency", "收款币种（大写，例如USD/CNY）", []string{"stripe", "manual"}}, {"recipient_reference", "线下收款信息（可选）", []string{"manual"}}, {"instructions", "对付款人展示的付款说明", []string{"manual"}},
 	{"secret_key", "Stripe服务端密钥", []string{"stripe"}}, {"publishable_key", "Stripe可发布密钥", []string{"stripe"}}, {"webhook_secret", "Stripe回调签名密钥", []string{"stripe"}},
 	{"app_id", "商户应用App ID", []string{"alipay", "wechat"}}, {"app_private_key", "支付宝应用RSA2私钥PEM", []string{"alipay"}}, {"alipay_public_key", "支付宝验签公钥PEM", []string{"alipay"}}, {"seller_id", "支付宝签约卖家ID", []string{"alipay"}},
 	{"mch_id", "微信支付商户号", []string{"wechat"}}, {"merchant_api_private_key", "微信商户API私钥PEM", []string{"wechat"}}, {"cert_serial", "微信商户证书序列号", []string{"wechat"}}, {"api_v3_key", "微信API v3加密密钥", []string{"wechat"}}, {"wechat_public_key", "微信平台验签公钥PEM", []string{"wechat"}}, {"public_key_id", "微信平台公钥ID", []string{"wechat"}},

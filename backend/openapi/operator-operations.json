@@ -485,9 +485,8 @@
       },
       {
         "kind": "text",
-        "label": "外部唯一收款流水",
-        "name": "provider_receipt_id",
-        "required": true
+        "label": "收款流水或收据号（可选）",
+        "name": "provider_receipt_id"
       },
       {
         "default_value": "USD",
@@ -530,15 +529,13 @@
       },
       {
         "kind": "text",
-        "label": "实际收款账号证明",
-        "name": "recipient_reference",
-        "required": true
+        "label": "收款方资料（可选）",
+        "name": "recipient_reference"
       },
       {
         "kind": "text",
-        "label": "实际付款人账号证明",
-        "name": "payer_reference",
-        "required": true
+        "label": "付款方资料（可选）",
+        "name": "payer_reference"
       },
       {
         "kind": "datetime",
@@ -548,9 +545,8 @@
       },
       {
         "kind": "textarea",
-        "label": "真实银行核实凭证",
-        "name": "verification_evidence",
-        "required": true
+        "label": "收款说明或凭证（可选）",
+        "name": "verification_evidence"
       },
       {
         "default_value": "pending",
@@ -714,7 +710,7 @@
           ]
         },
         "name": "credentials.recipient_reference",
-        "label": "实际收款银行账号/凭证",
+        "label": "线下收款信息（可选）",
         "kind": "text"
       },
       {
@@ -2477,18 +2473,18 @@
   },
   {
     "resource": "exits",
-    "confirmation": "仅保存唯一付款意图，不能把计划当作银行退款成功。",
+    "confirmation": "仅保存唯一付款意图，实际付款后再核实退款结果。",
     "description": "",
     "fields": [
       {
         "name": "evidence",
-        "label": "原银行路线与付款计划证据",
+        "label": "线下付款计划与说明",
         "kind": "textarea",
         "required": true
       }
     ],
     "include_version": false,
-    "label": "记录原路银行退款意图",
+    "label": "记录线下退款意图",
     "method": "POST",
     "name": "begin_manual",
     "path": "/v1/operators/{operatorId}/exits/{id}/begin_manual",
@@ -2501,9 +2497,8 @@
     "fields": [
       {
         "name": "proof.external_reference",
-        "label": "真实银行退款唯一流水",
-        "kind": "text",
-        "required": true
+        "label": "退款流水或收据号（可选）",
+        "kind": "text"
       },
       {
         "name": "proof.money.currency",
@@ -2525,7 +2520,7 @@
       },
       {
         "name": "proof.evidence_reference",
-        "label": "银行核实证据",
+        "label": "付款核实说明",
         "kind": "textarea",
         "required": true
       },
@@ -4451,7 +4446,7 @@
     "fields": [
       {
         "kind": "textarea",
-        "label": "银行付款计划与依据",
+        "label": "线下付款计划与说明",
         "name": "evidence",
         "required": true
       }
@@ -4470,9 +4465,8 @@
     "fields": [
       {
         "kind": "text",
-        "label": "唯一银行退款流水",
-        "name": "reference",
-        "required": true
+        "label": "退款流水或收据号（可选）",
+        "name": "reference"
       },
       {
         "default_value": "USD",
@@ -4515,13 +4509,13 @@
       },
       {
         "kind": "textarea",
-        "label": "银行核实及本次估值证据",
+        "label": "付款核实与估值说明",
         "name": "evidence",
         "required": true
       }
     ],
     "include_version": false,
-    "label": "核实实际银行退款",
+    "label": "核实实际线下退款",
     "method": "POST",
     "name": "verify_manual",
     "path": "/v1/operators/{operatorId}/refunds/{id}/verify_manual",
@@ -5886,13 +5880,12 @@
     "fields": [
       {
         "kind": "text",
-        "label": "真实唯一付款流水",
-        "name": "payment_reference",
-        "required": true
+        "label": "付款流水或收据号（可选）",
+        "name": "payment_reference"
       },
       {
         "kind": "textarea",
-        "label": "银行核实依据",
+        "label": "付款核实说明",
         "name": "evidence",
         "required": true
       },

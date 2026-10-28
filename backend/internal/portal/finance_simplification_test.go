@@ -143,3 +143,42 @@ func TestFinanceReceiptForeignCurrencyStillNeedsActualValuation(t *testing.T) {
 		t.Fatal(fact, err)
 	}
 }
+
+func TestPostgresRetailCashReceiptKeepsOptionalEvidenceAndActualAmounts(t *testing.T) {
+	f := setupPortal(t)
+	f.openRegistration(t)
+	f.registered(t, "cash@example.test")
+	f.login(t, "customer", "cash@example.test", "customer-password-test")
+	status, me, _ := f.call(t, "GET", "/v1/auth/me", nil, "")
+	mustOK(t, status, me)
+	customer := me["customer"].(map[string]any)["id"].(string)
+	operator := f.a.Installation.OperatorID
+	if err := f.a.DB.Exec("UPDATE organization_operator_statuses SET new_purchase=true WHERE operator_id=?", operator).Error; err != nil {
+		t.Fatal(err)
+	}
+	order, err := f.a.Commerce.CreateTopUpOrder(context.Background(), nil, commerce.CreateTopUpInput{OperatorID: operator, CustomerID: customer, BusinessKey: uuid.NewString(), ExpectedOwnershipVersion: 1, AmountUSD: ledger.FromInt64(10)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	input := map[string]any{"order_id": order.ID, "currency": "USD", "gross_usd": "10", "paid_at": time.Now().UTC()}
+	status, out, _ := f.call(t, "POST", "/v1/operators/"+operator+"/payments", input, uuid.NewString())
+	mustOK(t, status, out)
+	receipt, err := f.a.Commerce.GetReceipt(context.Background(), nil, operator, out["id"].(string))
+	if err != nil || receipt.AllocatedUSD.String() != "10" || receipt.VerificationEvidence != "" {
+		t.Fatal("cash payment failed", receipt, err)
+	}
+	for _, missing := range []string{"paid_at", "gross_usd"} {
+		invalid := map[string]any{"currency": "USD", "gross_usd": "10", "paid_at": time.Now().UTC()}
+		delete(invalid, missing)
+		status, _, _ = f.call(t, "POST", "/v1/operators/"+operator+"/payments", invalid, uuid.NewString())
+		if status != 400 {
+			t.Fatal("missing cash fact accepted", missing, status)
+		}
+	}
+	// A verified online-provider record still requires its authenticated facts.
+	_, err = f.a.Commerce.RecordReceipt(context.Background(), nil, commerce.VerifiedReceipt{OperatorID: operator, Provider: "stripe", ProviderReceiptID: uuid.NewString(), GrossUSD: ledger.FromInt64(10), FeeStatus: "pending", Currency: "USD", OriginalAmount: "10", ValuationEvidence: "native USD", VerifiedBy: "adapter:stripe"})
+	if err == nil {
+		t.Fatal("optional manual fields weakened provider validation")
+	}
+}

@@ -3,6 +3,7 @@ package incentives
 import (
 	"context"
 	"math/big"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
@@ -250,7 +251,7 @@ func (s *Service) MarkWithdrawalUnknown(ctx context.Context, tx *gorm.DB, actor,
 }
 func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, operator, id string, proof WithdrawalPaymentProof) (out Withdrawal, err error) {
 	original, parseErr := ledger.ParseDecimal(proof.OriginalAmount)
-	if proof.PaymentReference == "" || proof.Evidence == "" || proof.Currency == "" || proof.ValuationEvidence == "" || proof.PaidAt.IsZero() || parseErr != nil || original.Sign() <= 0 {
+	if proof.Evidence == "" || proof.Currency == "" || proof.ValuationEvidence == "" || proof.PaidAt.IsZero() || parseErr != nil || original.Sign() <= 0 {
 		return out, ErrInvalidInput
 	}
 	proof.PaidAt = proof.PaidAt.UTC()
@@ -258,6 +259,9 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 		r, err := s.withdrawalForStaff(ctx, tx, actor, operator, id)
 		if err != nil {
 			return err
+		}
+		if strings.TrimSpace(proof.PaymentReference) == "" {
+			proof.PaymentReference = "manual:withdrawal:" + r.ID
 		}
 		if r.Status == "paid" {
 			if r.PaymentReference == nil || *r.PaymentReference != proof.PaymentReference || r.NetUSD.Cmp(proof.PaidUSD) != 0 {

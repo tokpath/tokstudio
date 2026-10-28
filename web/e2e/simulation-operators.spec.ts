@@ -404,7 +404,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       expect(journal.takeover_executed.settlement_due_usd.startsWith("-")).toBe(true);
       await oem.getByRole("button", { name: "登记实际收付款", exact: true }).click();
       const panel = oem.getByRole("dialog").last();
-      for (const [label, value] of [["实际币种", "USD"], ["实际币种金额", amount], ["唯一银行流水 / 支付凭证", "synthetic-takeover-payment-" + randomUUID()], ["核实依据与当次估值证据", "synthetic USD bank payment independently verified"], ["实际收付款时间", localTime()]]) await control(panel, label, true).fill(value);
+      for (const [label, value] of [["实际币种", "USD"], ["实际币种金额", amount], ["收付款流水或收据号（可选）", "synthetic-takeover-payment-" + randomUUID()], ["核实依据与当次估值证据", "synthetic USD bank payment independently verified"], ["实际收付款时间", localTime()]]) await control(panel, label, true).fill(value);
       await panel.getByRole("checkbox").check();
       const pending = oem.waitForResponse(r => new URL(r.url()).pathname === `${oemBase}/takeovers/${journal.takeover.id}/settle` && r.request().method() === "POST");
       await panel.getByRole("button", { name: "确认提交", exact: true }).click();
@@ -421,9 +421,9 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.exit_intent) {
       await oem.goto(`/manage/${f.oem_id}/exits`);
-      await oem.getByRole("button", { name: "记录原路银行退款意图", exact: true }).click();
+      await oem.getByRole("button", { name: "记录线下退款意图", exact: true }).click();
       await field(oem.getByRole("dialog").last(), "evidence", "synthetic original USD bank route planned for original channel payer");
-      save("exit_intent", await submit(oem, "记录原路银行退款意图", `${oemBase}/exits/${journal.exit_refund.id}/begin_manual`));
+      save("exit_intent", await submit(oem, "记录线下退款意图", `${oemBase}/exits/${journal.exit_refund.id}/begin_manual`));
     }
     if (!journal.exit_paid) {
       await oem.goto(`/manage/${f.oem_id}/exits`);

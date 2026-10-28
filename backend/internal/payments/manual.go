@@ -12,7 +12,7 @@ type Manual struct{}
 
 func (Manual) Name() string { return "manual" }
 func (Manual) Validate(m Merchant) []string {
-	missing := required(m, "recipient_reference", "instructions", "currency")
+	missing := required(m, "instructions", "currency")
 	currency := m.Credentials["currency"]
 	if currency != "" && (currency != strings.ToUpper(currency) || (Money{Currency: currency, Amount: ledger.FromInt64(1)}).Validate() != nil) {
 		missing = append(missing, "currency_uppercase_code")
@@ -62,8 +62,11 @@ func (s *Service) RecordManual(ctx context.Context, actor, operator, merchant, o
 	if e != nil {
 		return Fact{}, e
 	}
-	if m.Driver != "manual" || v.ExternalReference == "" || v.PaidAt.IsZero() || v.PaidAt.After(now.Add(5*time.Minute)) || v.EvidenceReference == "" || v.PayerReference == "" {
+	if m.Driver != "manual" || v.PaidAt.IsZero() || v.PaidAt.After(now.Add(5*time.Minute)) {
 		return Fact{}, ErrInvalid
+	}
+	if strings.TrimSpace(v.ExternalReference) == "" {
+		v.ExternalReference = ManualReference("receipt", merchant, orderID)
 	}
 	o, e := s.loadOrder(ctx, m, orderID)
 	if e != nil {
@@ -73,9 +76,22 @@ func (s *Service) RecordManual(ctx context.Context, actor, operator, merchant, o
 	if e != nil {
 		return Fact{}, e
 	}
-	fact.ID = manualBankFactID("receipt", m.Credentials["recipient_reference"], v.ExternalReference)
+	fact.ID = manualBankFactID("receipt", ManualAccountScope(operator, m.Credentials["recipient_reference"]), v.ExternalReference)
 	e = s.RecordFact(ctx, m, o, fact)
 	return fact, e
+}
+
+// Internal references identify a staff-confirmed cash/offline payment without
+// inventing a bank transaction or requiring an account that does not exist.
+func ManualReference(kind, scope, key string) string {
+	return "manual:" + kind + ":" + fingerprint([]string{scope, key})
+}
+
+func ManualAccountScope(operator, account string) string {
+	if value := strings.TrimSpace(account); value != "" {
+		return value
+	}
+	return "operator:" + operator
 }
 func manualEvidence(f Fact) map[string]string {
 	var evidence map[string]string

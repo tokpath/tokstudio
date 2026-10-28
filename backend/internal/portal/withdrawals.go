@@ -176,7 +176,7 @@ func (a *Application) withdrawalStaffAction(c *gin.Context, op organization.Oper
 		in.Currency = strings.ToUpper(strings.TrimSpace(in.Currency))
 		if in.Currency == "USD" {
 			in.OriginalAmount = in.PaidUSD.String()
-			in.ValuationEvidence = "Native USD bank payment; no currency conversion"
+			in.ValuationEvidence = "Native USD payment; no currency conversion"
 		}
 		out, e = a.Incentives.VerifyWithdrawalPaid(ctx, nil, actor, op.ID, c.Param("id"), in)
 	case "fail":

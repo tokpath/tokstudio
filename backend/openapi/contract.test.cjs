@@ -254,3 +254,14 @@ test('collection references include supplier sales without widening retail refun
  assert.equal(document.paths['/v1/operators/{operatorId}/orders/{id}/fulfill_supply'].post['x-required-permission'],'payments.manage');
  assert.equal(document.paths['/v1/operators/{operatorId}/orders/{id}/fulfill'].post['x-required-permission'],'sales.manage');
 });
+
+test('offline cash registration does not require bank details or external transaction numbers',()=>{
+ const schemas=document.components.schemas;
+ const receipt=schemas.Operator_payments_receipt;
+ for(const field of ['provider_receipt_id','recipient_reference','payer_reference','verification_evidence']) assert.equal(receipt.required.includes(field),false);
+ for(const field of ['gross_usd','paid_at']) assert.ok(receipt.required.includes(field));
+ assert.equal(schemas.Operator_withdrawals_verify_paid.required.includes('payment_reference'),false);
+ assert.equal(schemas.Operator_refunds_verify_manual.required.includes('reference'),false);
+ assert.equal(schemas.Operator_exits_verify_manual.properties.proof.required.includes('external_reference'),false);
+ assert.equal(schemas.TakeoverSettlement.required.includes('reference'),false);
+});

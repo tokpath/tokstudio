@@ -38,6 +38,10 @@ func TestExternalProcurementExitRefundSharesReceiptCapacity(t *testing.T) {
 		t.Run(mode, func(t *testing.T) { testProcurementExitRefund(t, base, mode) })
 	}
 }
+
+func TestCashProcurementExitRefundWithoutBankMaterials(t *testing.T) {
+	testProcurementExitRefund(t, "http://127.0.0.1:1", "manual_unlinked_cash")
+}
 func testProcurementExitRefund(t *testing.T, base, mode string) {
 	isStripe := strings.HasPrefix(mode, "stripe")
 	unlinked := strings.HasPrefix(mode, "manual_unlinked")
@@ -136,7 +140,14 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	if unlinked {
 		zero := ledger.Zero()
 		net := order.DueUSD
-		receipt, err := collector.RecordManualReceipt(ctx, nil, owner, commerce.VerifiedReceipt{OperatorID: supplier, ProviderReceiptID: "generic-bank-" + order.ID, GrossUSD: order.DueUSD, NetUSD: &net, FeeUSD: &zero, FeeStatus: "confirmed", Currency: "USD", OriginalAmount: order.DueUSD.String(), RecipientReference: "bank:supplier-account", PayerReference: "bank:original-buyer", ValuationEvidence: "native USD", VerificationEvidence: "independently verified bank statement", PaidAt: &now, ObservedAt: now, SettledAt: &now})
+		fact := commerce.VerifiedReceipt{OperatorID: supplier, ProviderReceiptID: "generic-bank-" + order.ID, GrossUSD: order.DueUSD, NetUSD: &net, FeeUSD: &zero, FeeStatus: "confirmed", Currency: "USD", OriginalAmount: order.DueUSD.String(), RecipientReference: "bank:supplier-account", PayerReference: "bank:original-buyer", ValuationEvidence: "native USD", VerificationEvidence: "independently verified bank statement", PaidAt: &now, ObservedAt: now, SettledAt: &now}
+		if mode == "manual_unlinked_cash" {
+			fact.Network = "cash"
+			fact.RecipientReference = ""
+			fact.PayerReference = ""
+			fact.VerificationEvidence = ""
+		}
+		receipt, err := collector.RecordManualReceipt(ctx, nil, owner, fact)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -234,10 +245,17 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 			dispute()
 		}
 		proof := payments.ManualRefundVerification{ReceiptID: receiptID, ExternalReference: "bank-refund-" + leg.ID, Money: payments.Money{Currency: "USD", Amount: ledger.FromInt64(10)}, ExecutedAt: time.Now().UTC(), EvidenceReference: "bank-statement:verified-refund", RecipientReference: "bank:wrong-payee"}
-		if _, e = refunds.RecordManualRefund(ctx, owner, leg.ID, proof, payments.Valuation{}, time.Time{}, ""); e == nil {
-			t.Fatal("manual refund to unrelated payee accepted")
+		if mode != "manual_unlinked_cash" {
+			if _, e = refunds.RecordManualRefund(ctx, owner, leg.ID, proof, payments.Valuation{}, time.Time{}, ""); e == nil {
+				t.Fatal("manual refund to unrelated payee accepted")
+			}
 		}
 		proof.RecipientReference = "bank:original-buyer"
+		if mode == "manual_unlinked_cash" {
+			proof.ExternalReference = ""
+			proof.RecipientReference = ""
+			proof.EvidenceReference = "Cash returned to the original buyer in person"
+		}
 		if strings.HasSuffix(mode, "mismatch") {
 			proof.Money.Amount = ledger.FromInt64(9)
 		}

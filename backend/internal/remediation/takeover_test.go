@@ -200,13 +200,17 @@ func TestPostgresTakeoverKeepsRightsAndSettlesContractValueOnce(t *testing.T) {
 		t.Fatal("same bank fact settled twice")
 	}
 	proof.BusinessKey = "settle-part-2"
-	proof.Reference = "bank-transfer-2"
+	proof.Reference = ""
+	proof.Evidence = "Cash received in person without an external reference"
 	proof.ActualUSD = d("3")
 	proof.Amount = "3"
 	proof.FeeUSD = d("0")
 	paid, e = brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof)
 	if e != nil || paid.SettledUSD.Cmp(d("5")) != 0 {
 		t.Fatal(paid, e)
+	}
+	if repeated, err := brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof); err != nil || repeated.SettledUSD.Cmp(d("5")) != 0 {
+		t.Fatal("cash settlement replay", repeated, err)
 	}
 	payable, e := brand.s.account(brand.ctx, brand.db, brand.operator, p.ID, "counterparty:takeover_payable")
 	if e != nil || !payable.Balance.IsZero() {

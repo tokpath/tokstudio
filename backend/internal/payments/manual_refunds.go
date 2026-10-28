@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// ManualRefundVerification is evidence of an already completed bank transfer.
+// ManualRefundVerification records an already completed offline payment.
 // RecipientReference must match the original verified payer; a transfer request
 // or an approval document is not a completed-transfer fact.
 type ManualRefundVerification struct {
@@ -73,7 +73,11 @@ func (s *Service) RecordManualRefund(ctx context.Context, actor, operator, merch
 		}
 		r.Order = original
 		r.Money = v.Money
-		r.ExecutionID = "external:" + fingerprint([]string{r.ID, "manual", m.Credentials["recipient_reference"], v.ExternalReference})
+		if strings.TrimSpace(v.ExternalReference) == "" {
+			v.ExternalReference = ManualReference("refund", operator, r.ID)
+		}
+		account := ManualAccountScope(operator, m.Credentials["recipient_reference"])
+		r.ExecutionID = "external:" + fingerprint([]string{r.ID, "manual", account, v.ExternalReference})
 		now, e := databaseTime(ctx, tx)
 		if e != nil {
 			return e
@@ -82,7 +86,7 @@ func (s *Service) RecordManualRefund(ctx context.Context, actor, operator, merch
 		if validation.Money.Currency == "USD" {
 			validation.USDAmount = validation.Money.Amount
 		}
-		if v.ReceiptID == "" || strings.TrimSpace(v.ExternalReference) == "" || v.ExecutedAt.IsZero() || v.ExecutedAt.After(now.Add(5*time.Minute)) || v.EvidenceReference == "" || v.RecipientReference == "" || validation.Validate(m) != nil {
+		if v.ReceiptID == "" || v.ExecutedAt.IsZero() || v.ExecutedAt.After(now.Add(5*time.Minute)) || v.EvidenceReference == "" || validation.Validate(m) != nil {
 			return ErrInvalid
 		}
 		source, e := copy.PaymentSourceForReceipt(ctx, operator, v.ReceiptID)
@@ -90,7 +94,7 @@ func (s *Service) RecordManualRefund(ctx context.Context, actor, operator, merch
 			return e
 		}
 		proof := manualEvidence(source.Fact)
-		if source.MerchantID != merchant || source.OriginalOrder.ID != original.ID || source.Driver != "manual" || proof["payer_reference"] != v.RecipientReference || proof["recipient_reference"] != m.Credentials["recipient_reference"] || proof["payer_reference"] == "" {
+		if source.MerchantID != merchant || source.OriginalOrder.ID != original.ID || source.Driver != "manual" || (proof["payer_reference"] != "" && proof["payer_reference"] != v.RecipientReference) || proof["recipient_reference"] != m.Credentials["recipient_reference"] {
 			return ErrConflict
 		}
 		if e = tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", merchant+":refund:"+r.ID).Error; e != nil {
@@ -121,7 +125,7 @@ func (s *Service) RecordManualRefund(ctx context.Context, actor, operator, merch
 			if e != nil {
 				return e
 			}
-			f.ID = manualBankFactID("refund", m.Credentials["recipient_reference"], v.ExternalReference)
+			f.ID = manualBankFactID("refund", account, v.ExternalReference)
 			f.ObservedAt = now
 			if e = bindRefundFact(tx, m, r, f); e != nil {
 				return e

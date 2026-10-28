@@ -46,7 +46,8 @@ func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedRece
 		f.SettledAt = &t
 	}
 	original, parseErr := ledger.ParseDecimal(f.OriginalAmount)
-	if !validID(f.OperatorID) || strings.TrimSpace(f.Provider) == "" || strings.TrimSpace(f.ProviderReceiptID) == "" || f.GrossUSD.Sign() <= 0 || !f.GrossUSD.Valid() || f.Currency == "" || parseErr != nil || original.Sign() <= 0 || f.RecipientReference == "" || f.PayerReference == "" || f.ValuationEvidence == "" || f.VerificationEvidence == "" || f.VerifiedBy == "" || (f.PaidAt != nil && (f.PaidAt.IsZero() || f.PaidAt.After(s.now().Add(5*time.Minute)))) || (f.SettledAt != nil && f.PaidAt != nil && f.SettledAt.Before(*f.PaidAt)) || (!f.ObservedAt.IsZero() && f.ObservedAt.After(s.now().Add(5*time.Minute))) {
+	manual := (f.Provider == "manual" || strings.HasPrefix(f.Provider, "manual:")) && strings.HasPrefix(f.VerifiedBy, "staff:") && strings.TrimSpace(strings.TrimPrefix(f.VerifiedBy, "staff:")) != ""
+	if !validID(f.OperatorID) || strings.TrimSpace(f.Provider) == "" || strings.TrimSpace(f.ProviderReceiptID) == "" || f.GrossUSD.Sign() <= 0 || !f.GrossUSD.Valid() || f.Currency == "" || parseErr != nil || original.Sign() <= 0 || (!manual && (f.RecipientReference == "" || f.PayerReference == "" || f.VerificationEvidence == "")) || f.ValuationEvidence == "" || f.VerifiedBy == "" || (f.PaidAt != nil && (f.PaidAt.IsZero() || f.PaidAt.After(s.now().Add(5*time.Minute)))) || (f.SettledAt != nil && f.PaidAt != nil && f.SettledAt.Before(*f.PaidAt)) || (!f.ObservedAt.IsZero() && f.ObservedAt.After(s.now().Add(5*time.Minute))) {
 		return out, ErrInvalidInput
 	}
 	if f.FeeStatus == "pending" {
@@ -116,7 +117,11 @@ func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedRece
 			}
 			lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: f.FeeUSD.Neg()})
 		}
-		if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: f.OperatorID, BusinessKey: "receipt:" + r.ID, Kind: "external_receipt", SourceID: r.ID, ActorID: f.VerifiedBy, Reason: f.VerificationEvidence, Lines: lines}); err != nil {
+		reason := f.VerificationEvidence
+		if strings.TrimSpace(reason) == "" {
+			reason = "Staff confirmed offline receipt"
+		}
+		if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: f.OperatorID, BusinessKey: "receipt:" + r.ID, Kind: "external_receipt", SourceID: r.ID, ActorID: f.VerifiedBy, Reason: reason, Lines: lines}); err != nil {
 			return err
 		}
 		out = Receipt(r)

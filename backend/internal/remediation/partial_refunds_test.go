@@ -9,6 +9,23 @@ import (
 	"gorm.io/gorm"
 )
 
+func TestPostgresCashRefundUsesInternalReferenceAndRemainsIdempotent(t *testing.T) {
+	f := setup(t)
+	f.topup(t, "cash-return-source", "100")
+	leg := f.approvedRefundLeg(t, "cash-return", "10")
+	proof := ExecutionProof{BusinessKey: "cash-return-paid", Evidence: "Cash returned to the customer in person", ActualUSD: d("10"), Currency: "USD", Amount: "10", OccurredAt: time.Now().UTC()}
+	for range 2 {
+		out, err := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, proof)
+		if err != nil || out.State != "completed" || out.SettledUSD.Cmp(d("10")) != 0 {
+			t.Fatal(out, err)
+		}
+	}
+	var n int64
+	if err := f.db.Table("remediation_payment_observations").Where("leg_id=?", leg.ID).Count(&n).Error; err != nil || n != 1 {
+		t.Fatal("cash refund duplicated", n, err)
+	}
+}
+
 func TestPostgresPartialRefundClearsOnlyActualPrincipalAndSupplementHasIndependentFact(t *testing.T) {
 	f := setup(t)
 	f.topup(t, "actual-partial-source", "100")

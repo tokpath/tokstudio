@@ -113,7 +113,7 @@ it("shows offline bank account, original currency, precise amount and instructio
   mount(<PaymentAction order={{ ...order, payment_action: { kind: "offline", address: "合成测试银行账号 6222-0000", currency: "USD", amount: "10.000000000000000001", instructions: "仅限隔离测试：付款备注原订单编号，由财务核对银行回单。" } }} />);
   expect(screen.getByText("合成测试银行账号 6222-0000")).toBeTruthy();
   expect(screen.getByText(/付款备注原订单编号/)).toBeTruthy();
-  expect(screen.getByRole("button", { name: "复制收款账号" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "复制收款信息" })).toBeTruthy();
   expect(screen.getByText("付款币种")).toBeTruthy();
   expect(screen.getByText("应付原币金额")).toBeTruthy();
   expect(screen.getAllByLabelText("10.000000000000000001 USD", { exact: true })).toHaveLength(2);

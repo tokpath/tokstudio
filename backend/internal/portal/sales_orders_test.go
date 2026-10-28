@@ -21,6 +21,56 @@ func receiptForSalesOrder(order, amount string) map[string]any {
 	return map[string]any{"order_id": order, "provider_receipt_id": uuid.NewString(), "gross_usd": amount, "currency": "USD", "recipient_reference": "synthetic OEM bank", "payer_reference": "synthetic channel bank", "paid_at": time.Now().UTC(), "verification_evidence": "isolated verified bank statement"}
 }
 
+func TestPostgresCashCollectionWithoutAccountOrReceiptEvidence(t *testing.T) {
+	s := stockSetup(t)
+	status, out := s.buy(t, 1000)
+	mustOK(t, status, out)
+	id := out["id"].(string)
+	base := "/v1/operators/" + s.oem
+	for _, path := range []string{base + "/payments", base + "/order-context/" + id} {
+		status, page, _ := s.f.call(t, "GET", path, nil, "")
+		mustOK(t, status, page)
+		operations, _ := page["operations"].([]any)
+		if path != base+"/payments" {
+			operations = page["sections"].([]any)[0].(map[string]any)["page"].(map[string]any)["operations"].([]any)
+		}
+		for _, raw := range operations {
+			op := raw.(map[string]any)
+			if op["name"] != "receipt" {
+				continue
+			}
+			for _, rawField := range op["fields"].([]any) {
+				field := rawField.(map[string]any)
+				if contains([]string{"provider_receipt_id", "recipient_reference", "payer_reference", "verification_evidence"}, fmt.Sprint(field["name"])) && field["required"] == true {
+					t.Fatal("cash asks for bank evidence", field)
+				}
+			}
+		}
+	}
+	input := map[string]any{"order_id": id, "gross_usd": "1000", "currency": "USD", "paid_at": time.Now().UTC()}
+	key := uuid.NewString()
+	status, out, _ = s.f.call(t, "POST", base+"/payments", input, key)
+	mustOK(t, status, out)
+	receiptID := out["id"].(string)
+	status, out, _ = s.f.call(t, "POST", base+"/payments", input, key)
+	mustOK(t, status, out)
+	if out["id"] != receiptID {
+		t.Fatal("cash receipt duplicated", out)
+	}
+	receipt, err := s.f.a.Commerce.GetReceipt(context.Background(), nil, s.oem, receiptID)
+	if err != nil || receipt.RecipientReference != "" || receipt.PayerReference != "" || receipt.VerificationEvidence != "" || !strings.HasPrefix(receipt.ProviderReceiptID, "manual:receipt:") || receipt.AllocatedUSD.String() != "1000" {
+		t.Fatal("cash cannot be recorded faithfully", receipt, err)
+	}
+	var order cooperation.PurchaseOrder
+	if err = s.f.a.DB.First(&order, "id=?", id).Error; err != nil || order.Status != "completed" {
+		t.Fatal("cash did not deliver original order", order, err)
+	}
+	var n int64
+	if err = s.f.a.DB.Table("ledger_journals").Where("source_id=? AND actor_id=? AND reason=?", receiptID, "staff:"+s.f.a.Installation.OwnerStaffID, "Staff confirmed offline receipt").Count(&n).Error; err != nil || n != 1 {
+		t.Fatal("cash lost its staff audit trail", n, err)
+	}
+}
+
 func TestPostgresWholesaleSalesInboxAndFinanceCollection(t *testing.T) {
 	s := stockSetup(t)
 	f, ctx := s.f, context.Background()

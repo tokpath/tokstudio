@@ -111,8 +111,8 @@ test("finance records one whole payment, links private evidence, reviews a refun
     await expect(finance.getByRole("button", { name: "登记外部退款执行意图", exact: true })).toHaveCount(0);
     const held = await (await customer.request.get("/api/v1/me/credits")).json();
     expect(held.usd_balance.available).toBe(String(startingBalance + 80)); expect(held.usd_balance.held).toBe("20");
-    await finance.getByRole("button", { name: "核实实际银行退款", exact: true }).click();
-    await submit(finance, "核实实际银行退款", `${base}/refunds/${legID}/verify_manual`, { reference: `simulation-refund-${randomUUID()}`, currency: "USD", amount: "20", fee_usd: "0.5", occurred_at: localNow(), evidence: "SYNTHETIC settled bank statement; original payer; actual USD" });
+    await finance.getByRole("button", { name: "核实实际线下退款", exact: true }).click();
+    await submit(finance, "核实实际线下退款", `${base}/refunds/${legID}/verify_manual`, { reference: `simulation-refund-${randomUUID()}`, currency: "USD", amount: "20", fee_usd: "0.5", occurred_at: localNow(), evidence: "SYNTHETIC settled bank statement; original payer; actual USD" });
     const settled = await readCase();
     expect(settled.find(row => row.id === refund.id)?.status).toBe("completed");
     const credits = await (await customer.request.get("/api/v1/me/credits")).json();

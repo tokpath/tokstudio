@@ -96,7 +96,7 @@ test("customer Key edits retain authored input, precise money, and the existing 
 
 test("an unresolved financial modal switches language and retries the exact JSON and idempotency key", async ({ page }) => {
   await api(page); const attempts: { key: string; body: string | null }[] = [];
-  await page.route("**/api/v1/me/withdrawals/workspace", route => route.fulfill({ json: { ...resource("提现申请"), operations: [{ name: "apply", label: "确认费用并提交", method: "POST", path: "/api/v1/me/withdrawals", fields: [{ name: "amount_usd", label: "申请金额 USD", kind: "decimal", required: true }, { name: "evidence", label: "银行核实依据", kind: "text", required: true }], confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。" }] } }));
+  await page.route("**/api/v1/me/withdrawals/workspace", route => route.fulfill({ json: { ...resource("提现申请"), operations: [{ name: "apply", label: "确认费用并提交", method: "POST", path: "/api/v1/me/withdrawals", fields: [{ name: "amount_usd", label: "申请金额 USD", kind: "decimal", required: true }, { name: "evidence", label: "付款核实说明", kind: "text", required: true }], confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。" }] } }));
   await page.route("**/api/v1/me/withdrawals", async route => {
     attempts.push({ key: route.request().headers()["idempotency-key"], body: route.request().postData() });
     if (attempts.length === 1) await route.abort("connectionreset");
@@ -104,7 +104,7 @@ test("an unresolved financial modal switches language and retries the exact JSON
   });
   await page.goto("/workspace/withdrawals"); await page.getByRole("button", { name: "确认费用并提交", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("申请金额 USD", { exact: false }).fill("0.000000000000000001"); await dialog.getByRole("textbox", { name: /^银行核实依据/ }).fill("查看详情");
+  await dialog.getByLabel("申请金额 USD", { exact: false }).fill("0.000000000000000001"); await dialog.getByRole("textbox", { name: /^付款核实说明/ }).fill("查看详情");
   await dialog.getByRole("checkbox").check(); await dialog.getByRole("button", { name: "确认费用并提交", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "重试本次操作", exact: true })).toBeVisible();
   await dialog.getByTestId("language-selector").selectOption("ru");
@@ -112,7 +112,7 @@ test("an unresolved financial modal switches language and retries the exact JSON
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await expect(dialog.getByLabel(text("ru", "申请金额 USD"), { exact: false })).toHaveValue("0.000000000000000001");
   await expect(dialog.getByLabel(text("ru", "申请金额 USD"), { exact: false })).toBeDisabled();
-  await expect(dialog.getByRole("textbox", { name: new RegExp("^" + text("ru", "银行核实依据")) })).toHaveValue("查看详情");
+  await expect(dialog.getByRole("textbox", { name: new RegExp("^" + text("ru", "付款核实说明")) })).toHaveValue("查看详情");
   await expect(dialog.getByRole("button", { name: text("ru", "关闭办理面板"), exact: true })).toBeDisabled();
   await dialog.getByRole("button", { name: text("ru", "重试本次操作"), exact: true }).click();
   await expect(dialog.getByRole("button", { name: text("ru", "本次操作已完成，关闭后查看最新记录"), exact: true })).toBeVisible();

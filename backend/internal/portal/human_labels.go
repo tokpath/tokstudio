@@ -49,6 +49,9 @@ func humanTime(v gin.H) string {
 	return ""
 }
 func readableIdentifier(raw string) string {
+	if strings.HasPrefix(raw, "manual:") {
+		return ""
+	}
 	if _, e := uuid.Parse(raw); e == nil {
 		return ""
 	}

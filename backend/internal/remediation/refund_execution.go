@@ -152,6 +152,13 @@ func (s *Service) RecordManualRefund(ctx context.Context, actor, op, legID strin
 		if proof.ExternalRefund != nil {
 			return ErrInvalid
 		}
+		if strings.TrimSpace(proof.Reference) == "" {
+			execution := l.ExecutionKey
+			if proof.ExecutionClosureID != "" {
+				execution = proof.ExecutionClosureID
+			}
+			proof.Reference = payments.ManualReference("refund", l.ID, execution)
+		}
 		mismatch, e = s.recordPayment(ctx, t, &c, &l, actor, proof, verifiedClosed)
 		out = l
 		return e

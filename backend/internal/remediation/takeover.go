@@ -561,6 +561,9 @@ func (s *Service) CancelTakeover(ctx context.Context, actor, brand, id, evidence
 }
 func (s *Service) RecordTakeoverSettlement(ctx context.Context, actor, brand, id string, proof ExecutionProof) (Takeover, error) {
 	var out Takeover
+	if strings.TrimSpace(proof.Reference) == "" {
+		proof.Reference = "manual:takeover:" + fingerprint([]string{id, proof.BusinessKey})
+	}
 	foreignAmount, parseErr := ledger.ParseDecimal(proof.Amount)
 	if parseErr != nil || foreignAmount.Sign() <= 0 || !validAmount(proof.ActualUSD) || !proof.FeeUSD.Valid() || proof.FeeUSD.Sign() < 0 || proof.Currency == "" || proof.Currency != strings.ToUpper(proof.Currency) || (proof.Currency == "USD" && foreignAmount.Cmp(proof.ActualUSD) != 0) || proof.Reference == "" || proof.BusinessKey == "" || len(proof.BusinessKey) > 150 || proof.Evidence == "" || proof.OccurredAt.IsZero() {
 		return out, ErrInvalid

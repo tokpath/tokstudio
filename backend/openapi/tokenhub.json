@@ -26200,7 +26200,7 @@
     "/v1/operators/{operatorId}/exits/{id}/begin_manual": {
       "post": {
         "operationId": "post__v1_operators_operatorId_exits_id_begin_manual",
-        "summary": "记录原路银行退款意图",
+        "summary": "记录线下退款意图",
         "tags": [
           "Operator browser API"
         ],
@@ -26335,7 +26335,7 @@
             }
           }
         },
-        "description": " Required explicit review: 仅保存唯一付款意图，不能把计划当作银行退款成功。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": " Required explicit review: 仅保存唯一付款意图，实际付款后再核实退款结果。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "cooperation.manage"
       }
     },
@@ -29326,7 +29326,7 @@
     "/v1/operators/{operatorId}/refunds/{id}/verify_manual": {
       "post": {
         "operationId": "post__v1_operators_operatorId_refunds_id_verify_manual",
-        "summary": "核实实际银行退款",
+        "summary": "核实实际线下退款",
         "tags": [
           "Operator browser API"
         ],
@@ -47334,7 +47334,7 @@
           },
           "provider_receipt_id": {
             "type": "string",
-            "description": "外部唯一收款流水"
+            "description": "收款流水或收据号（可选）"
           },
           "currency": {
             "type": "string",
@@ -47370,11 +47370,11 @@
           },
           "recipient_reference": {
             "type": "string",
-            "description": "实际收款账号证明"
+            "description": "收款方资料（可选）"
           },
           "payer_reference": {
             "type": "string",
-            "description": "实际付款人账号证明"
+            "description": "付款方资料（可选）"
           },
           "paid_at": {
             "type": "string",
@@ -47383,7 +47383,7 @@
           },
           "verification_evidence": {
             "type": "string",
-            "description": "真实银行核实凭证"
+            "description": "收款说明或凭证（可选）"
           },
           "fee_status": {
             "type": "string",
@@ -47422,13 +47422,9 @@
           }
         },
         "required": [
-          "provider_receipt_id",
           "currency",
           "gross_usd",
-          "recipient_reference",
-          "payer_reference",
           "paid_at",
-          "verification_evidence",
           "fee_status"
         ],
         "additionalProperties": false,
@@ -47575,7 +47571,7 @@
               },
               "recipient_reference": {
                 "type": "string",
-                "description": "实际收款银行账号/凭证",
+                "description": "线下收款信息（可选）",
                 "x-visible-when": {
                   "field": "driver",
                   "values": [
@@ -48991,7 +48987,7 @@
         "properties": {
           "evidence": {
             "type": "string",
-            "description": "原银行路线与付款计划证据"
+            "description": "线下付款计划与说明"
           }
         },
         "required": [
@@ -49007,7 +49003,7 @@
             "properties": {
               "external_reference": {
                 "type": "string",
-                "description": "真实银行退款唯一流水"
+                "description": "退款流水或收据号（可选）"
               },
               "money": {
                 "type": "object",
@@ -49034,11 +49030,10 @@
               },
               "evidence_reference": {
                 "type": "string",
-                "description": "银行核实证据"
+                "description": "付款核实说明"
               }
             },
             "required": [
-              "external_reference",
               "money",
               "executed_at",
               "evidence_reference"
@@ -51881,7 +51876,7 @@
         "properties": {
           "evidence": {
             "type": "string",
-            "description": "银行付款计划与依据"
+            "description": "线下付款计划与说明"
           }
         },
         "required": [
@@ -51894,7 +51889,7 @@
         "properties": {
           "reference": {
             "type": "string",
-            "description": "唯一银行退款流水"
+            "description": "退款流水或收据号（可选）"
           },
           "currency": {
             "type": "string",
@@ -51927,11 +51922,10 @@
           },
           "evidence": {
             "type": "string",
-            "description": "银行核实及本次估值证据"
+            "description": "付款核实与估值说明"
           }
         },
         "required": [
-          "reference",
           "currency",
           "amount",
           "fee_usd",
@@ -54501,11 +54495,11 @@
         "properties": {
           "payment_reference": {
             "type": "string",
-            "description": "真实唯一付款流水"
+            "description": "付款流水或收据号（可选）"
           },
           "evidence": {
             "type": "string",
-            "description": "银行核实依据"
+            "description": "付款核实说明"
           },
           "currency": {
             "type": "string",
@@ -54546,7 +54540,6 @@
           }
         },
         "required": [
-          "payment_reference",
           "evidence",
           "currency",
           "paid_usd",
@@ -55228,7 +55221,6 @@
           }
         },
         "required": [
-          "reference",
           "currency",
           "amount",
           "fee_usd",

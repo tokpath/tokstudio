@@ -172,6 +172,10 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			if e != nil {
 				return nil, e
 			}
+			if strings.TrimSpace(fact.ProviderReceiptID) == "" {
+				businessKey, _ := key(c)
+				fact.ProviderReceiptID = payments.ManualReference("receipt", op.ID, businessKey)
+			}
 			out, e := a.Commerce.RecordManualReceipt(ctx, tx, actor, fact)
 			if e == nil && in.OrderID != "" {
 				businessKey, _ := key(c)

@@ -53,7 +53,7 @@ func businessFields(o operation) []field {
 	case "payments":
 		return manualReceiptFields()
 	case "payment-methods":
-		fields := []field{optional("id", "现有商户配置ID（首次留空）", "text"), selectField("driver", "真实通道协议", "stripe|Stripe", "alipay|支付宝", "wechat|微信支付", "nowpayments|NOWPayments", "evm_wallet|自有EVM钱包只读验证", "manual|银行人工核实", "kvoucher|KVoucher"), defaultField("enabled", "材料齐全后启用", "boolean", false), version}
+		fields := []field{optional("id", "现有商户配置ID（首次留空）", "text"), selectField("driver", "真实通道协议", "stripe|Stripe", "alipay|支付宝", "wechat|微信支付", "nowpayments|NOWPayments", "evm_wallet|自有EVM钱包只读验证", "manual|线下人工核实", "kvoucher|KVoucher"), defaultField("enabled", "材料齐全后启用", "boolean", false), version}
 		asset := optional("asset_network_version_id", "平台已发布的准确资产与网络", "text")
 		asset.VisibleWhen = &fieldVisibility{Field: "driver", Values: []string{"evm_wallet", "nowpayments"}}
 		fields = append(fields, asset)
@@ -69,7 +69,7 @@ func businessFields(o operation) []field {
 		return fields
 	case "withdrawals":
 		if o.Name == "verify_paid" {
-			return []field{f("payment_reference", "真实唯一付款流水", "text"), f("evidence", "银行核实依据", "textarea"), defaultField("currency", "实际付款币种", "text", "USD"), foreignField("original_amount", "实际付款金额", "decimal", "currency"), foreignField("valuation_evidence", "本次真实换汇依据", "text", "currency"), f("paid_usd", "已付净额USD", "decimal"), f("paid_at", "实际付款时刻", "datetime")}
+			return []field{optional("payment_reference", "付款流水或收据号（可选）", "text"), f("evidence", "付款核实说明", "textarea"), defaultField("currency", "实际付款币种", "text", "USD"), foreignField("original_amount", "实际付款金额", "decimal", "currency"), foreignField("valuation_evidence", "本次真实换汇依据", "text", "currency"), f("paid_usd", "已付净额USD", "decimal"), f("paid_at", "实际付款时刻", "datetime")}
 		}
 		return []field{f("minimum_usd", "最低提现 USD", "decimal"), f("flat_fee_usd", "固定手续费 USD", "decimal"), f("fee_rate", "手续费比例（0到1）", "decimal"), f("requires_dual_approval", "必须双人审批付款", "boolean"), f("method_reference", "对客户公示付款方式规则", "text"), version}
 	case "invoices":
@@ -83,7 +83,7 @@ func businessFields(o operation) []field {
 		case "policy":
 			return []field{defaultField("action", "办理类型", "hidden", "policy"), optional("second_review_above", "需独立复核的USD阈值（留空关闭）", "decimal"), version}
 		case "verify_manual":
-			return []field{f("reference", "唯一银行退款流水", "text"), defaultField("currency", "实际付款币种", "text", "USD"), f("amount", "实际币种金额", "decimal"), foreignField("actual_usd", "本次折合USD", "decimal", "currency"), defaultField("fee_usd", "付款方手续费USD", "decimal", "0"), f("occurred_at", "实际付款时间", "datetime"), f("evidence", "银行核实及本次估值证据", "textarea")}
+			return []field{optional("reference", "退款流水或收据号（可选）", "text"), defaultField("currency", "实际付款币种", "text", "USD"), f("amount", "实际币种金额", "decimal"), foreignField("actual_usd", "本次折合USD", "decimal", "currency"), defaultField("fee_usd", "付款方手续费USD", "decimal", "0"), f("occurred_at", "实际付款时间", "datetime"), f("evidence", "付款核实与估值说明", "textarea")}
 		case "execute_api":
 			fields := []field{f("money.currency", "原付款币种", "text"), f("money.amount", "本次实际执行币种金额", "decimal")}
 			for _, v := range executionValuationFields("money.currency") {

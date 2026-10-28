@@ -14,14 +14,14 @@ import (
 )
 
 // manualReceipt accepts only a separately verified, immutable manual collection.
-// It does not invent a payment intent or merchant for an offline bank receipt.
+// It does not invent a payment intent or merchant for an offline receipt.
 func (p *ProcurementRefunds) manualReceipt(ctx context.Context, tx *gorm.DB, operator, id string) (commerce.Receipt, error) {
 	var r commerce.Receipt
 	e := tx.WithContext(ctx).Table("commerce_receipts").Where("id=? AND operator_id=?", id, operator).First(&r).Error
 	if e != nil {
 		return r, e
 	}
-	if r.Provider != "manual" || !strings.HasPrefix(r.VerifiedBy, "staff:") || r.VerificationEvidence == "" || r.PayerReference == "" || r.RecipientReference == "" {
+	if r.Provider != "manual" || !strings.HasPrefix(r.VerifiedBy, "staff:") {
 		return r, payments.ErrConflict
 	}
 	return r, nil
@@ -66,16 +66,20 @@ func (p *ProcurementRefunds) recordManualReceiptRefund(ctx context.Context, acto
 		if e != nil {
 			return e
 		}
-		if receipt.Network != "" && receipt.Network != "bank" {
+		// A recorded chain network still needs its dedicated external verifier.
+		if receipt.Network != "" && receipt.Network != "bank" && receipt.Network != "cash" {
 			return payments.ErrUnsupported
+		}
+		if strings.TrimSpace(proof.ExternalReference) == "" {
+			proof.ExternalReference = payments.ManualReference("refund", leg.SupplierID, leg.ExecutionKey)
 		}
 		if proof.Money.Validate() != nil || proof.Money.Currency != receipt.Currency || strings.TrimSpace(proof.ExternalReference) == "" || strings.TrimSpace(proof.EvidenceReference) == "" || proof.ExecutedAt.IsZero() || proof.ExecutedAt.After(now.Add(5*time.Minute)) {
 			return payments.ErrInvalid
 		}
-		if proof.RecipientReference != receipt.PayerReference {
+		if receipt.PayerReference != "" && proof.RecipientReference != receipt.PayerReference {
 			return payments.ErrConflict
 		}
-		factID, e := payments.ClaimManualReceiptRefund(tx, leg.SupplierID, leg.ID, receipt.RecipientReference, proof.ExternalReference)
+		factID, e := payments.ClaimManualReceiptRefund(tx, leg.SupplierID, leg.ID, payments.ManualAccountScope(leg.SupplierID, receipt.RecipientReference), proof.ExternalReference)
 		if e != nil {
 			return e
 		}

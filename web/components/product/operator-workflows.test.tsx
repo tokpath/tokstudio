@@ -311,7 +311,7 @@ it("retries an uncertain takeover settlement with the original proof and action 
   }));
   show(<TakeoversScreen operatorID="operator-one" />);
   fireEvent.click(await screen.findByRole("button", { name: "登记实际收付款" }));
-  for (const [label, value] of [["实际币种金额", "5.000000000000000001"], ["唯一银行流水 / 支付凭证", "bank-one"], ["核实依据与当次估值证据", "bank-proof-one"], ["实际收付款时间", "2026-10-18T12:34"]]) fireEvent.change(screen.getByLabelText(label, { exact: true }), { target: { value } });
+  for (const [label, value] of [["实际币种金额", "5.000000000000000001"], ["收付款流水或收据号（可选）", "bank-one"], ["核实依据与当次估值证据", "bank-proof-one"], ["实际收付款时间", "2026-10-18T12:34"]]) fireEvent.change(screen.getByLabelText(label, { exact: true }), { target: { value } });
   fireEvent.click(screen.getByRole("checkbox"));
   fireEvent.click(screen.getByRole("button", { name: "确认提交" }));
   await screen.findByRole("button", { name: "重试原操作" });

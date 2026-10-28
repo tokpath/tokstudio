@@ -531,9 +531,9 @@ func TestPostgresWithdrawalUnknownRecoveryAndOffsetsNeverTouchOtherAssets(t *tes
 	if account := f.balance(t, a.Customer.ID, "commission:available"); account.Balance.Cmp(d("10")) != 0 || account.Held.Cmp(d("10")) != 0 {
 		t.Fatalf("unknown payment held amount taken: %+v", account)
 	}
-	proof := WithdrawalPaymentProof{PaymentReference: "bank-execution-1", Evidence: "bank independently verified paid", Currency: "USD", OriginalAmount: "8", ValuationEvidence: "actual USD payout", PaidUSD: d("8"), PaidAt: time.Now().UTC()}
-	if _, err = f.s.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, proof); err != nil {
-		t.Fatal(err)
+	proof := WithdrawalPaymentProof{Evidence: "Cash paid to the customer in person", Currency: "USD", OriginalAmount: "8", ValuationEvidence: "actual USD payout", PaidUSD: d("8"), PaidAt: time.Now().UTC()}
+	if paid, err := f.s.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, proof); err != nil || paid.PaymentReference == nil || *paid.PaymentReference == "" {
+		t.Fatal(paid, err)
 	}
 	if _, err = f.s.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, proof); err != nil {
 		t.Fatal(err)

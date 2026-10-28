@@ -1,6 +1,14 @@
 {
-  "赠送权益": {"en":"Gift credits","ja":"特典残高","ru":"Подарочные кредиты"},
-  "收款已关联，采购额度待交付；请在原订单重试交付。": {"en":"Payment linked; procurement credits await delivery. Retry delivery from the original order.","ja":"入金は関連付け済みですが、仕入残高は提供待ちです。元の注文から提供を再試行してください。","ru":"Платёж привязан; закупочные кредиты ожидают выдачи. Повторите поставку из исходного заказа."},
+  "赠送权益": {
+    "en": "Gift credits",
+    "ja": "特典残高",
+    "ru": "Подарочные кредиты"
+  },
+  "收款已关联，采购额度待交付；请在原订单重试交付。": {
+    "en": "Payment linked; procurement credits await delivery. Retry delivery from the original order.",
+    "ja": "入金は関連付け済みですが、仕入残高は提供待ちです。元の注文から提供を再試行してください。",
+    "ru": "Платёж привязан; закупочные кредиты ожидают выдачи. Повторите поставку из исходного заказа."
+  },
   "通用ATG额度可用于当前经营方已上架模型，模型价格按调用时生效报价计算。购买与套餐赠送额度按成交期限有效，到期余量不结转。套餐不支持一般性退款，可停止未来续费；重复或错误交易、未正确交付及无法履约按异常流程办理。": {
     "en": "General ATG credits can be used for models listed by your current operator, at the prices effective when each call is made. Purchased and package gift credits remain valid for the agreed term; unused credits do not carry over after expiry. Packages do not allow ordinary refunds, and future renewals can be stopped. Duplicate or incorrect transactions, delivery errors and inability to fulfil service follow the exception process.",
     "ja": "共通ATG残高は、現在の運営事業者が公開しているモデルに、呼び出し時点の価格で利用できます。購入分とプラン特典分は契約期間中のみ有効で、期限後の残高は繰り越されません。通常の返金はできませんが、今後の更新は停止できます。重複・誤取引、提供不備、履行不能は例外手続きで対応します。",
@@ -2910,5 +2918,140 @@
     "en": "Select a whole payment matching this order's amount due. Delivery follows automatically.",
     "ja": "この注文の請求額と一致する入金を1件選択してください。関連付け後に自動提供します。",
     "ru": "Выберите один платёж, точно совпадающий с суммой заказа. После привязки поставка выполняется автоматически."
+  },
+  "收款流水或收据号（可选）": {
+    "en": "Payment reference or receipt number (optional)",
+    "ja": "入金参照番号・領収書番号（任意）",
+    "ru": "Номер платежа или квитанции (необязательно)"
+  },
+  "收款方资料（可选）": {
+    "en": "Recipient details (optional)",
+    "ja": "受取人情報（任意）",
+    "ru": "Данные получателя (необязательно)"
+  },
+  "付款方资料（可选）": {
+    "en": "Payer details (optional)",
+    "ja": "支払者情報（任意）",
+    "ru": "Данные плательщика (необязательно)"
+  },
+  "收款说明或凭证（可选）": {
+    "en": "Payment notes or evidence (optional)",
+    "ja": "入金の説明・証憑（任意）",
+    "ru": "Примечание или подтверждение оплаты (необязательно)"
+  },
+  "核实说明或凭证": {
+    "en": "Verification notes or evidence",
+    "ja": "確認内容・証憑",
+    "ru": "Примечание или подтверждение проверки"
+  },
+  "收款方资料": {
+    "en": "Recipient details",
+    "ja": "受取人情報",
+    "ru": "Данные получателя"
+  },
+  "付款方资料": {
+    "en": "Payer details",
+    "ja": "支払者情報",
+    "ru": "Данные плательщика"
+  },
+  "线下收款信息（可选）": {
+    "en": "Offline collection details (optional)",
+    "ja": "オフライン入金情報（任意）",
+    "ru": "Данные для офлайн-оплаты (необязательно)"
+  },
+  "线下人工核实": {
+    "en": "Offline payment verified by staff",
+    "ja": "オフライン支払いの手動確認",
+    "ru": "Офлайн-оплата с ручной проверкой"
+  },
+  "线下付款计划与说明": {
+    "en": "Offline payment plan and notes",
+    "ja": "オフライン支払いの予定・説明",
+    "ru": "План и описание офлайн-выплаты"
+  },
+  "核实实际线下退款": {
+    "en": "Verify completed offline refund",
+    "ja": "実行済みオフライン返金の確認",
+    "ru": "Подтвердить выполненный офлайн-возврат"
+  },
+  "记录线下退款意图": {
+    "en": "Record offline refund intent",
+    "ja": "オフライン返金予定を登録",
+    "ru": "Зарегистрировать намерение офлайн-возврата"
+  },
+  "仅保存唯一付款意图，实际付款后再核实退款结果。": {
+    "en": "Records one payment intent. Verify the refund after payment actually occurs.",
+    "ja": "支払予定を1件登録します。実際の支払い後に返金結果を確認してください。",
+    "ru": "Регистрируется одно намерение выплаты. Подтвердите возврат после фактической оплаты."
+  },
+  "退款流水或收据号（可选）": {
+    "en": "Refund reference or receipt number (optional)",
+    "ja": "返金参照番号・領収書番号（任意）",
+    "ru": "Номер возврата или квитанции (необязательно)"
+  },
+  "付款核实说明": {
+    "en": "Payment verification notes",
+    "ja": "支払いの確認内容",
+    "ru": "Примечание о проверке выплаты"
+  },
+  "收付款流水或收据号（可选）": {
+    "en": "Payment reference or receipt number (optional)",
+    "ja": "支払参照番号・領収書番号（任意）",
+    "ru": "Номер платежа или квитанции (необязательно)"
+  },
+  "已核实本次实际收付款，登记内容真实且未重复记录。": {
+    "en": "I verified the actual payment; these details are accurate and have not been recorded twice.",
+    "ja": "実際の入出金を確認し、登録内容が正確で重複登録がないことを確認しました。",
+    "ru": "Фактическая оплата проверена; данные достоверны и не зарегистрированы повторно."
+  },
+  "请按本订单说明付款。现金、转账等线下收款由经营方人工核实后更新订单状态；如有收据或付款记录，可自行留存。": {
+    "en": "Follow this order's payment instructions. The operator verifies offline payments such as cash or transfers before updating the order. Keep any receipt or payment record you have.",
+    "ja": "この注文の支払い案内に従ってください。現金・振込などのオフライン入金は事業者が確認して注文状況を更新します。領収書や支払記録がある場合は保管してください。",
+    "ru": "Следуйте инструкциям заказа. Оператор проверит офлайн-оплату наличными или переводом и обновит статус заказа. Сохраните квитанцию или запись об оплате, если они есть."
+  },
+  "已核实的原付款方资料：{account}": {
+    "en": "Verified original payer details: {account}",
+    "ja": "確認済みの元の支払者情報：{account}",
+    "ru": "Проверенные данные исходного плательщика: {account}"
+  },
+  "付款流水或收据号（可选）": {
+    "en": "Payment reference or receipt number (optional)",
+    "ja": "支払参照番号・領収書番号（任意）",
+    "ru": "Номер выплаты или квитанции (необязательно)"
+  },
+  "付款核实与估值说明": {
+    "en": "Payment verification and valuation notes",
+    "ja": "支払い確認・評価額の説明",
+    "ru": "Описание проверки выплаты и оценки стоимости"
+  },
+  "可补充现金收据、转账记录或经办说明；人工收款时没有材料可留空，系统仍记录经办人和登记时间。涉及链上或第三方通道核验时，按该通道的要求提供资料。": {
+    "en": "You may add a cash receipt, transfer record, or staff notes. Manual receipts can leave this blank; the system still records the staff member and time. Blockchain and third-party verification follow their own requirements.",
+    "ja": "現金領収書、振込記録、担当者の説明を任意で追加できます。手動入金登録では空欄でも担当者と登録時刻が記録されます。ブロックチェーン・外部決済の確認では各方式の要件に従ってください。",
+    "ru": "Можно добавить кассовую квитанцию, запись о переводе или пояснение сотрудника. При ручной регистрации поле можно оставить пустым: сотрудник и время всё равно записываются. Для блокчейна и сторонних сервисов действуют их требования."
+  },
+  "按实际情况填写收付款方姓名、收款地点或账号；现金收款没有账号时可留空，无需编造银行资料。": {
+    "en": "Enter the payer or recipient name, collection location, or account as applicable. Cash payments without an account can leave this blank; do not invent bank details.",
+    "ja": "必要に応じて支払者・受取人名、受取場所、口座を入力してください。口座のない現金入金では空欄にでき、架空の銀行情報は不要です。",
+    "ru": "При необходимости укажите имя плательщика или получателя, место получения либо счёт. Для наличных без счёта поле можно оставить пустым; выдумывать банковские данные не нужно."
+  },
+  "可填写经办核实说明、现金收据、转账记录或文件引用，按当前字段要求提供。非USD付款还需保留当次真实估值依据。": {
+    "en": "Provide staff verification notes, a cash receipt, transfer record, or document reference as required by this field. Non-USD payments also need evidence of the actual valuation.",
+    "ja": "この項目の要件に応じて担当者の確認内容、現金領収書、振込記録、文書参照を入力してください。USD以外の支払いでは実際の評価額の根拠も必要です。",
+    "ru": "Укажите пояснение сотрудника, кассовую квитанцию, запись о переводе или ссылку на документ согласно требованиям поля. Для оплаты не в USD также нужно основание фактической оценки."
+  },
+  "有转账流水或现金收据号时填写；没有可留空，系统自动生成登记编号。请勿重复登记同一笔款项。": {
+    "en": "Enter a transfer reference or cash receipt number if available. Otherwise leave it blank; the system generates a record number. Do not record the same payment twice.",
+    "ja": "振込参照番号や現金領収書番号があれば入力してください。ない場合は空欄にするとシステムが登録番号を発行します。同じ支払いを重複登録しないでください。",
+    "ru": "Укажите номер перевода или кассовой квитанции, если он есть. Иначе оставьте поле пустым: система создаст номер записи. Не регистрируйте один платёж дважды."
+  },
+  "收款信息": {
+    "en": "Collection details",
+    "ja": "受取情報",
+    "ru": "Данные для оплаты"
+  },
+  "复制收款信息": {
+    "en": "Copy collection details",
+    "ja": "受取情報をコピー",
+    "ru": "Копировать данные для оплаты"
   }
 }

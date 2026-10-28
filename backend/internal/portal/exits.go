@@ -53,14 +53,14 @@ func (a *Application) exitsResource(c *gin.Context, op organization.Operator, ac
 			v["remaining_usd"] = remaining
 			v["expected_execution_key"] = leg.ExecutionKey
 			sourceDriver := "manual"
-			manualBank := true
+			manualOffline := true
 			if leg.SourceKind == "manual_receipt" {
 				receipt, err := a.Commerce.GetReceipt(ctx, nil, op.ID, leg.ReceiptID)
 				if err != nil {
 					handleError(c, err)
 					return
 				}
-				manualBank = receipt.Network == "" || receipt.Network == "bank"
+				manualOffline = receipt.Network == "" || receipt.Network == "bank" || receipt.Network == "cash"
 				v["proof"] = gin.H{"receipt_id": receipt.ID, "recipient_reference": receipt.PayerReference, "money": gin.H{"currency": receipt.Currency}}
 			} else {
 				source, err := a.Payments.PaymentSourceForReceipt(ctx, op.ID, leg.ReceiptID)
@@ -97,7 +97,7 @@ func (a *Application) exitsResource(c *gin.Context, op organization.Operator, ac
 				actions = []string{"execute_refund", "begin_manual", "release_refund"}
 				if sourceDriver == "manual" {
 					actions = []string{"release_refund"}
-					if manualBank {
+					if manualOffline {
 						actions = append(actions, "begin_manual")
 					}
 				}
@@ -198,7 +198,7 @@ func (a *Application) exitsResource(c *gin.Context, op organization.Operator, ac
 			ops[0].Fields[i].VisibleWhen = &fieldVisibility{Field: "mode", Values: []string{"supply_failure"}}
 		}
 	}
-	p["row_operations"] = []operation{{Name: "prepare_refund", Label: "按原来源预留本次退款", Method: "POST", Path: base + "/{id}/prepare_refund", Fields: []field{f("receipt_id", "原采购收款编号", "text"), f("amount_usd", "本次合同退款USD", "decimal")}}, {Name: "begin_manual", Label: "记录原路银行退款意图", Method: "POST", Path: base + "/{id}/begin_manual", Fields: []field{f("evidence", "原银行路线与付款计划证据", "textarea")}, Confirmation: "仅保存唯一付款意图，不能把计划当作银行退款成功。"}, {Name: "verify_manual", Label: "核实原付款人实际退款", Method: "POST", Path: base + "/{id}/verify_manual", Fields: append([]field{f("proof.external_reference", "真实银行退款唯一流水", "text"), f("proof.money.currency", "本次付款币种", "text"), f("proof.money.amount", "本次实际付款金额", "decimal"), f("proof.executed_at", "实际退款时间", "datetime"), f("proof.evidence_reference", "银行核实证据", "textarea")}, executionValuationFields("proof.money.currency")...)}, {Name: "execute_refund", Label: "通过原通道执行退款", Method: "POST", Path: base + "/{id}/execute_refund", Fields: append([]field{f("money.currency", "本次付款币种", "text"), f("money.amount", "本次实际执行金额", "decimal")}, executionValuationFields("money.currency")...), Confirmation: "使用本次真实执行汇率，退款ID固定为原leg；未知时只查询原交易。"}, {Name: "release_refund", Label: "取消尚未执行的预留", Method: "POST", Path: base + "/{id}/release_refund", Fields: []field{f("evidence", "取消依据", "textarea")}}}
+	p["row_operations"] = []operation{{Name: "prepare_refund", Label: "按原来源预留本次退款", Method: "POST", Path: base + "/{id}/prepare_refund", Fields: []field{f("receipt_id", "原采购收款编号", "text"), f("amount_usd", "本次合同退款USD", "decimal")}}, {Name: "begin_manual", Label: "记录线下退款意图", Method: "POST", Path: base + "/{id}/begin_manual", Fields: []field{f("evidence", "线下付款计划与说明", "textarea")}, Confirmation: "仅保存唯一付款意图，实际付款后再核实退款结果。"}, {Name: "verify_manual", Label: "核实原付款人实际退款", Method: "POST", Path: base + "/{id}/verify_manual", Fields: append([]field{optional("proof.external_reference", "退款流水或收据号（可选）", "text"), f("proof.money.currency", "本次付款币种", "text"), f("proof.money.amount", "本次实际付款金额", "decimal"), f("proof.executed_at", "实际退款时间", "datetime"), f("proof.evidence_reference", "付款核实说明", "textarea")}, executionValuationFields("proof.money.currency")...)}, {Name: "execute_refund", Label: "通过原通道执行退款", Method: "POST", Path: base + "/{id}/execute_refund", Fields: append([]field{f("money.currency", "本次付款币种", "text"), f("money.amount", "本次实际执行金额", "decimal")}, executionValuationFields("money.currency")...), Confirmation: "使用本次真实执行汇率，退款ID固定为原leg；未知时只查询原交易。"}, {Name: "release_refund", Label: "取消尚未执行的预留", Method: "POST", Path: base + "/{id}/release_refund", Fields: []field{f("evidence", "取消依据", "textarea")}}}
 	p["row_operations"] = append(p["row_operations"].([]operation), procurementDestinationOperations(base)...)
 	p["row_operations"] = tagOperationPermissions(p["row_operations"].([]operation), "payments.manage", "prepare_refund", "begin_manual", "verify_manual", "execute_refund", "release_refund", "confirm_fee", "close_route", "verify_manual_failure", "verify_replacement_destination", "verify_replacement", "verify_destination", "verify_evm", "verify_external")
 	p["row_operations"] = tagOperationPermissions(p["row_operations"].([]operation), "cooperation.manage", "propose_destination")
@@ -311,7 +311,7 @@ func (a *Application) exitsAction(c *gin.Context, op organization.Operator, acto
 		}
 		in.Proof.ReceiptID = leg.ReceiptID
 		in.Proof.RecipientReference = receipt.PayerReference
-		in.Valuation = payments.EnsureValuationIdentity(in.Valuation, "procurement-bank:"+op.ID+":"+id+":"+in.Proof.ExternalReference, in.Proof.Money.Currency)
+		in.Valuation = payments.EnsureValuationIdentity(in.Valuation, "procurement-offline:"+op.ID+":"+id+":"+in.Proof.ExternalReference, in.Proof.Money.Currency)
 		out, err := a.ProcurementRefunds.RecordManualRefund(ctx, actor, id, in.Proof, in.Valuation, in.ValuedAt, in.FX)
 		e = err
 		result = commandResult(id, out.State)

@@ -70,10 +70,6 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				}
 				lookup := ""
 				switch f.Name {
-				case "owner_id":
-					if resource == "exports" {
-						lookup = "export-subjects"
-					}
 				case "recipient_id":
 					lookup = "recipients"
 				case "approval_id":

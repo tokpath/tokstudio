@@ -78,16 +78,6 @@ it("explains the warning buffer inside the editable coverage form",()=>{
  expect(screen.getByRole("dialog").textContent).toContain("超卖额度不计入");
 });
 
-it("scopes the export subject selector to its chosen business and clears a stale subject",async()=>{
- const fetch=vi.fn(async(_input:RequestInfo|URL)=>response({items:[{value:rowID,label:"林客户 · lin@example.test"}]}));vi.stubGlobal("fetch",fetch);
- const operation:Operation={name:"export",label:"创建私有导出",method:"POST",path:"/api/v1/operators/workspace/exports",fields:[{name:"kind",label:"导出业务",kind:"select",default_value:"ledger",options:[{value:"ledger",label:"账本"},{value:"requests",label:"请求"}]},{name:"owner_id",label:"限定客户或合作方（留空导出当前范围）",kind:"text",lookup_url:"/api/v1/operators/workspace/references/export-subjects"}]};
- show(<OperationForm operatorID="workspace" operation={operation} initialValues={{owner_id:rowID}} />);
- const subject=screen.getByRole("combobox",{name:"限定客户或合作方（留空导出当前范围）"});await waitFor(()=>expect((subject as HTMLSelectElement).disabled).toBe(false));
- expect(String(fetch.mock.calls[0]?.[0])).toContain("?kind=ledger&q=");
- fireEvent.change(screen.getByRole("combobox",{name:"导出业务"}),{target:{value:"requests"}});
- await waitFor(()=>expect(fetch.mock.calls.some(call=>String(call[0]).includes("?kind=requests&q="))).toBe(true));
- expect((subject as HTMLSelectElement).value).toBe("");
-});
 
 it("explains initial-password limits and rejects a short password before sending the account request",async()=>{
  const fetch=vi.fn();vi.stubGlobal("fetch",fetch);

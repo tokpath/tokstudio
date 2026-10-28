@@ -6325,48 +6325,55 @@
   {
     "resource": "exports",
     "confirmation": "",
-    "description": "",
+    "description": "按日期导出当前经营方的数据；经营报表另外需要查看报表权限。",
     "fields": [
       {
         "name": "kind",
-        "label": "导出业务",
+        "label": "导出内容",
         "kind": "select",
         "required": true,
         "options": [
           {
-            "label": "账本",
-            "value": "ledger"
+            "value": "financial",
+            "label": "经营报表"
           },
           {
-            "label": "请求",
-            "value": "requests"
+            "value": "orders",
+            "label": "客户订单"
           },
           {
-            "label": "采购",
-            "value": "procurement"
+            "value": "payments",
+            "label": "收款记录"
+          },
+          {
+            "value": "requests",
+            "label": "调用明细"
+          },
+          {
+            "value": "procurement",
+            "label": "采购与供货"
+          },
+          {
+            "value": "ledger",
+            "label": "账务明细"
           }
         ]
       },
       {
-        "name": "owner_id",
-        "label": "限定主体编号（留空当前范围）",
-        "kind": "text"
-      },
-      {
         "name": "from",
-        "label": "起始时间",
+        "label": "开始时间",
         "kind": "datetime",
         "required": true
       },
       {
         "name": "to",
-        "label": "截至时间",
+        "label": "结束时间",
         "kind": "datetime",
         "required": true
       }
     ],
     "include_version": false,
-    "label": "创建私有导出",
+    "label": "生成 CSV",
     "method": "POST",
     "name": "export",
     "path": "/v1/operators/{operatorId}/exports",

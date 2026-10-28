@@ -49,7 +49,7 @@ func (s *Service) OperationalPurchaseOrders(ctx context.Context, tx *gorm.DB, op
 			return nil, ErrConflict
 		}
 	}
-	if !to.After(from) || to.Sub(from) > 31*24*time.Hour || limit < 1 || limit > 10001 {
+	if !to.After(from) || to.Sub(from) > 366*24*time.Hour || limit < 1 || limit > 100001 {
 		return nil, ErrConflict
 	}
 	out := []PurchaseOrder{}

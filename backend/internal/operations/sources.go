@@ -20,10 +20,9 @@ type Finding struct {
 	Actual    ledger.Decimal `json:"actual"`
 }
 type ExportQuery struct {
-	Kind    string    `json:"kind"`
-	OwnerID string    `json:"owner_id,omitempty"`
-	From    time.Time `json:"from"`
-	To      time.Time `json:"to"`
+	Kind string    `json:"kind"`
+	From time.Time `json:"from"`
+	To   time.Time `json:"to"`
 }
 type Source interface {
 	Reconcile(context.Context, *gorm.DB, string) ([]Finding, error)
@@ -121,23 +120,31 @@ func (d DomainSource) Export(ctx context.Context, tx *gorm.DB, operator string, 
 	}
 	switch q.Kind {
 	case "ledger":
-		rows, e := d.Ledger.OperationalEntries(ctx, tx, operator, q.OwnerID, q.From, q.To, 10001)
+		rows, e := d.Ledger.OperationalEntries(ctx, tx, operator, "", q.From, q.To, 100001)
 		if e != nil {
 			return nil, e
 		}
 		return jsonRows(rows)
-	case "usage", "requests":
-		rows, e := d.Usage.OperationalRequests(ctx, tx, operator, q.OwnerID, q.From, q.To, 10001)
+	case "requests":
+		rows, e := d.Usage.OperationalRequests(ctx, tx, operator, "", q.From, q.To, 100001)
 		if e != nil {
 			return nil, e
 		}
 		return jsonRows(rows)
 	case "procurement":
-		rows, e := d.Cooperation.OperationalPurchaseOrders(ctx, tx, operator, q.OwnerID, q.From, q.To, 10001)
+		rows, e := d.Cooperation.OperationalPurchaseOrders(ctx, tx, operator, "", q.From, q.To, 100001)
 		if e != nil {
 			return nil, e
 		}
 		return jsonRows(rows)
+	case "financial":
+		report, e := d.FinancialReport(ctx, tx, operator, q.From, q.To)
+		if e != nil {
+			return nil, e
+		}
+		return financialExportRows(report)
+	case "orders", "payments":
+		return d.salesExport(ctx, tx, operator, q)
 	default:
 		return nil, ErrInvalid
 	}

@@ -52,7 +52,7 @@ type ExportEntry struct {
 }
 
 func (s *Service) OperationalEntries(ctx context.Context, tx *gorm.DB, operator, owner string, from, to time.Time, limit int) ([]ExportEntry, error) {
-	if !validPortalScope(operator, owner) || limit < 1 || limit > 10001 || !to.After(from) || to.Sub(from) > 31*24*time.Hour {
+	if !validPortalScope(operator, owner) || limit < 1 || limit > 100001 || !to.After(from) || to.Sub(from) > 366*24*time.Hour {
 		return nil, ErrScope
 	}
 	out := []ExportEntry{}

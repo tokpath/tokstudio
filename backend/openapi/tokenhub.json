@@ -19154,7 +19154,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_exports",
-        "summary": "创建私有导出",
+        "summary": "生成 CSV",
         "tags": [
           "Operator browser API"
         ],
@@ -19281,7 +19281,7 @@
             }
           }
         },
-        "description": " Requires reports.export. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "按日期导出当前经营方的数据；经营报表另外需要查看报表权限。 Requires reports.export. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "reports.export"
       }
     },
@@ -21522,6 +21522,131 @@
             }
           }
         }
+      }
+    },
+    "/v1/operators/{operatorId}/exports/{id}/download": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_exports_id_download",
+        "summary": "Download own private expiring CSV; financial files additionally require reports.view",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "reports.export"
       }
     },
     "/v1/chat/completions": {
@@ -45495,6 +45620,89 @@
             "type": "string",
             "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
           },
+          "sales": {
+            "type": "object",
+            "properties": {
+              "completed_sales": {
+                "type": "integer"
+              },
+              "sales_usd": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
+              "wallet_top_ups": {
+                "type": "integer"
+              },
+              "wallet_top_up_usd": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
+              "pending_deliveries": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "completed_sales",
+              "sales_usd",
+              "wallet_top_ups",
+              "wallet_top_up_usd",
+              "pending_deliveries"
+            ],
+            "additionalProperties": true
+          },
+          "procurement": {
+            "type": "object",
+            "properties": {
+              "purchase_orders": {
+                "type": "integer"
+              },
+              "purchases_usd": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
+              "wholesale_orders": {
+                "type": "integer"
+              },
+              "wholesale_sales_usd": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              }
+            },
+            "required": [
+              "purchase_orders",
+              "purchases_usd",
+              "wholesale_orders",
+              "wholesale_sales_usd"
+            ],
+            "additionalProperties": true
+          },
+          "usage": {
+            "type": "object",
+            "properties": {
+              "completed_requests": {
+                "type": "integer"
+              },
+              "charged_atg": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
+              "correction_atg": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
+              "shortfall_atg": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              }
+            },
+            "required": [
+              "completed_requests",
+              "charged_atg",
+              "correction_atg",
+              "shortfall_atg"
+            ],
+            "additionalProperties": true
+          },
           "revenue": {
             "type": "object",
             "properties": {
@@ -45620,6 +45828,10 @@
           "liabilities": {
             "type": "object",
             "properties": {
+              "wholesale_prepayment_usd": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
               "customer_wallet_usd": {
                 "type": "string",
                 "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
@@ -45646,6 +45858,7 @@
               }
             },
             "required": [
+              "wholesale_prepayment_usd",
               "customer_wallet_usd",
               "outstanding_grant_paid_usd",
               "outstanding_grant_atg",
@@ -45818,6 +46031,9 @@
           "captured_at",
           "status",
           "operating_result_usd",
+          "sales",
+          "procurement",
+          "usage",
           "revenue",
           "costs",
           "cash",
@@ -54855,25 +55071,24 @@
           "kind": {
             "type": "string",
             "enum": [
-              "ledger",
+              "financial",
+              "orders",
+              "payments",
               "requests",
-              "procurement"
+              "procurement",
+              "ledger"
             ],
-            "description": "导出业务"
-          },
-          "owner_id": {
-            "type": "string",
-            "description": "限定主体编号（留空当前范围）"
+            "description": "导出内容"
           },
           "from": {
             "type": "string",
             "format": "date-time",
-            "description": "起始时间"
+            "description": "开始时间"
           },
           "to": {
             "type": "string",
             "format": "date-time",
-            "description": "截至时间"
+            "description": "结束时间"
           }
         },
         "required": [

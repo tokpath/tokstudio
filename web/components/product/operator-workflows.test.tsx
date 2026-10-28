@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { OperatorOverview, OperatorSubjectPanel, OperatorWorkflowScreen } from "./operator-workflows";
 import { ResourceCollection, ResourceScreen } from "./operator-resources";
 import { FinancialReportScreen } from "./financial-report";
+import { DataExportsScreen } from "./data-exports";
 import { TakeoversScreen } from "./takeovers";
 import type { Entity, ResourcePage, Session } from "@/lib/contracts";
 
@@ -15,6 +16,32 @@ function staff(permissions: string[], kind: "platform" | "oem" | "channel" = "oe
 function page(items: Entity[] = [], extra: Partial<ResourcePage> = {}): ResourcePage { return { search_supported: true, status_supported: true, title: "业务记录", description: "精确归属的原业务记录", items: items.map(item => ({...item,presentation:item.presentation || {title:item.id,labels:{}}})), columns: [{ key: "id", label: "编号", kind: "text" }], operations: [], row_operations: [], ...extra }; }
 function show(content: React.ReactNode) { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return render(<QueryClientProvider client={cache}>{content}</QueryClientProvider>); }
 function response(data: unknown) { return new Response(JSON.stringify(data), { status: 200, headers: { "content-type": "application/json" } }); }
+
+it("exports through one content/date form and retries uncertain submission without changing the request", async () => {
+  staff(["reports.export"]);
+  const attempts: {body:unknown; key:string|null}[]=[];
+  const fetch=vi.fn(async (_input,init)=>{
+    if(init?.method==="POST") {
+      attempts.push({body:JSON.parse(String(init.body)),key:new Headers(init.headers).get("Idempotency-Key")});
+      if(attempts.length===1) throw new TypeError("connection reset");
+      return response({id:"export-one",status:"queued"});
+    }
+    return response(page([{id:"expired-export",status:"expired",values:{kind:"orders",from_at:"2026-10-01T00:00:00Z",to_at:"2026-10-02T00:00:00Z",created_at:"2026-10-02T00:00:00Z",expires_at:"2026-10-03T00:00:00Z",row_count:0}}]));
+  });
+  vi.stubGlobal("fetch",fetch);
+  show(<DataExportsScreen operatorID="operator-one"/>);
+  await screen.findAllByText("已过期");
+  expect(screen.queryByRole("option",{name:"经营报表"})).toBeNull();
+  expect(screen.queryByText(/限定主体/)).toBeNull();
+  fireEvent.click(screen.getByRole("button",{name:"生成 CSV",exact:true}));
+  await screen.findByText("提交结果待确认，请重试原操作，避免重复生成。");
+  expect((screen.getByLabelText("导出内容") as HTMLSelectElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button",{name:"重试读取"}));
+  await screen.findByText("导出已提交，生成后可在下方下载。");
+  expect(attempts).toHaveLength(2);expect(attempts[1]).toEqual(attempts[0]);
+  expect(Object.keys(attempts[0].body as object).sort()).toEqual(["from","kind","to"]);
+  expect(screen.queryByRole("link",{name:"下载 CSV"})).toBeNull();
+});
 
 it("does not fetch a business resource outside the current explicit scope", () => {
   staff(["customers.read"]);
@@ -261,14 +288,15 @@ it("edits a directly managed channel coverage policy with that row's actual vers
   await waitFor(() => expect(submitted).toEqual({ allowance: "12.000000000000000001", warning: "2.5", expected_version: 7 }));
 });
 
-it("retains unresolved financial facts and validates the selected UTC report interval", async () => {
+it("retains unresolved financial facts and validates the selected calendar date range", async () => {
   staff(["reports.view"]);
   const report = {
     operator_id: "operator-one", from: "2026-10-01T00:00:00Z", to: "2026-10-18T00:00:00Z", captured_at: "2026-10-18T00:00:00Z", status: "pending_verification", operating_result_usd: "-3.000000000000000001",
+    sales:{completed_sales:2,sales_usd:"20",wallet_top_ups:1,wallet_top_up_usd:"5",pending_deliveries:0},procurement:{purchase_orders:1,purchases_usd:"4",wholesale_orders:1,wholesale_sales_usd:"30"},usage:{completed_requests:4,charged_atg:"8",correction_atg:"1",shortfall_atg:"0"},
     revenue: { paid_invocation_usd: "1", expired_unused_paid_usd: "2", wholesale_consumed_usd: "3", withdrawal_fees_retained_usd: "4", total_usd: "10" },
     costs: { fulfillment_usd: "5", retail_gift_subset_usd: "1", commission_usd: "2", payment_fees_usd: "3", exception_loss_usd: "3.000000000000000001", total_usd: "13.000000000000000001", pending_fees: 1, pending_supplier_costs: 2 },
     cash: { recorded_in_usd: "20", recorded_out_usd: "7", procurement_payments_usd: "4", commission_payouts_usd: "3", takeover_in_usd: "0", takeover_out_usd: "0", provider_receivable_usd: "1" },
-    liabilities: { customer_wallet_usd: "2", outstanding_grant_paid_usd: "5", outstanding_grant_atg: "8", commission_usd: "3", unfulfilled_order_funds_usd: "4", supplier_payable_usd: "1" },
+    liabilities: { wholesale_prepayment_usd:"0", customer_wallet_usd: "2", outstanding_grant_paid_usd: "5", outstanding_grant_atg: "8", commission_usd: "3", unfulfilled_order_funds_usd: "4", supplier_payable_usd: "1" },
     payments: { pending_receipt_facts: 3, awaiting_valuation: 2, original_money: [{ currency: "CNY", amount: "99.000000000000000001", facts: 1 }] },
     refunds: { pending_fees: 1, pending_executions: 2, outstanding_usd: "9", mismatch_count: 1 }, takeover_flows: [], takeover_balances: [], notes: ["历史责任按原始经营范围保留。"],
   };
@@ -276,12 +304,12 @@ it("retains unresolved financial facts and validates the selected UTC report int
   show(<FinancialReportScreen operatorID="operator-one" />);
   await screen.findByLabelText("99.000000000000000001 CNY");
   expect(screen.getByLabelText("-3.000000000000000001 USD")).toBeTruthy();
-  expect(screen.getByText("未核实供应成本 2 笔", { exact: false })).toBeTruthy();
+  expect(screen.getByText("未核实供应成本 · 2", { exact: false })).toBeTruthy();
   expect(screen.queryByRole("link", { name: "处理退款未决" })).toBeNull();
-  fireEvent.change(screen.getByLabelText("起始（UTC）"), { target: { value: "2026-10-20T00:00" } });
-  fireEvent.change(screen.getByLabelText("截至（UTC，含所选分钟）"), { target: { value: "2026-10-19T00:00" } });
-  fireEvent.click(screen.getByRole("button", { name: "按实际区间读取" }));
-  expect(screen.getByRole("alert").textContent).toContain("截止时间须晚于起始时间");
+  fireEvent.change(screen.getByLabelText("开始日期"), { target: { value: "2026-10-20" } });
+  fireEvent.change(screen.getByLabelText("结束日期"), { target: { value: "2026-10-19" } });
+  fireEvent.click(screen.getByRole("button", { name: "查询" }));
+  expect(screen.getByRole("alert").textContent).toContain("有效日期范围");
   expect(fetch).toHaveBeenCalledTimes(1);
 });
 

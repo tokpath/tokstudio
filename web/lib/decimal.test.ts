@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareDecimal, formatDecimal, previewDecimal, safeAssetURL } from "./decimal";
+import { subtractDecimal, compareDecimal, formatDecimal, previewDecimal, safeAssetURL } from "./decimal";
 import { Decimal, CreditsSchema, ThemeSchema } from "./contracts";
 import { resolveTheme } from "./theme";
 describe("asset amounts and theme boundaries", () => {
@@ -16,6 +16,11 @@ describe("asset amounts and theme boundaries", () => {
     expect(previewDecimal("-0.000000000000000001")).toBe("−<0.000001");
     expect(previewDecimal("9007199254740993.999999999")).toBe("≈9,007,199,254,740,994");
     expect(previewDecimal("0.017000000")).toBe("0.017");
+  });
+  it("subtracts report corrections exactly, including negative net usage", () => {
+    expect(subtractDecimal("9007199254740993.000000000000000001", "9007199254740993")).toBe("0.000000000000000001");
+    expect(subtractDecimal("1", "2.000000000000000001")).toBe("-1.000000000000000001");
+    expect(subtractDecimal("1.00", "1")).toBe("0");
   });
   it("rejects floating-point API amounts and scientific notation", () => {
     expect(Decimal.safeParse(0.01).success).toBe(false);

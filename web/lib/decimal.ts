@@ -1,4 +1,10 @@
-import { Decimal } from "./contracts";
+import { Decimal, SignedDecimal } from "./contracts";
+
+export function subtractDecimal(a:string,b:string):string {
+  const scale=(value:string)=>{SignedDecimal.parse(value);const negative=value.startsWith("-"),[whole,fraction=""]=(negative?value.slice(1):value).split(".");return BigInt(whole+fraction.padEnd(24,"0"))*(negative?-1n:1n);};
+  const value=scale(a)-scale(b),negative=value<0n,digits=(negative?-value:value).toString().padStart(25,"0");
+  const fraction=digits.slice(-24).replace(/0+$/,"");return (negative?"-":"")+digits.slice(0,-24)+(fraction?"."+fraction:"");
+}
 
 export function formatDecimal(value: string, group = true): string {
   const negative = value.startsWith("-");

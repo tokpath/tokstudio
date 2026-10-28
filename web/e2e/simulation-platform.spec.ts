@@ -376,26 +376,26 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     await login(exporter, fixture.personas.finance.finance);
     for (const kind of ["ledger", "requests", "procurement"]) {
       await page.goto(`/manage/${p.operator_id}/exports`);
-      dialog = await panel(page, "创建私有导出");
-      await dialog.getByRole("combobox", { name: "导出业务", exact: false }).selectOption(kind);
-      await control(dialog, "起始时间", false).fill(localTime(new Date(Date.now() - 86400_000)));
-      await control(dialog, "截至时间", false).fill(localTime(new Date(Date.now() + 60_000)));
-      const exportResult = await (await submit(page, dialog, "创建私有导出", `${base}/exports`)).json(); await close(dialog); exportIDs.push(exportResult.id);
+      await page.getByRole("combobox", { name: "导出内容", exact: true }).selectOption(kind);
+      const pendingExport = page.waitForResponse(response => response.url().endsWith(base + "/exports") && response.request().method() === "POST");
+      await page.getByRole("button", { name: "生成 CSV", exact: true }).click();
+      const exportResponse = await pendingExport; expect(exportResponse.status()).toBe(200);
+      const exportResult = await exportResponse.json(); exportIDs.push(exportResult.id);
       await expect.poll(async () => { const resource = await (await page.request.get(`${base}/exports`)).json(); return resource.items.find((row: any) => row.id === exportResult.id)?.status; }, { timeout: 45_000 }).toBe("ready");
       await page.reload();
       const exports = await (await page.request.get(`${base}/exports`)).json(), exportRow = exports.items.find((item: any) => item.id === exportResult.id);
-      const downloadLink = page.locator(`a[href="${base}/exports/${exportResult.id}/download"]`);
+      const downloadLink = page.getByRole("link", {name:"下载 CSV",exact:true}).and(page.locator(`a[href="${base}/exports/${exportResult.id}/download"]`));
       await expect(page.getByRole("columnheader", { name: "记录数", exact: true })).toBeVisible();
       const countColumn = await page.getByRole("columnheader").allTextContents();
       const countIndex = countColumn.findIndex(label => label.trim() === "记录数");
       expect(countIndex).toBeGreaterThanOrEqual(0);
       await expect(downloadLink.locator("xpath=ancestor::tr").locator("td").nth(countIndex)).toHaveText(String(exportRow.values.row_count));
       const downloadPending = page.waitForEvent("download"); await downloadLink.click();
-      const download = await downloadPending, exportFile = testInfo.outputPath(`platform-${kind}-export.jsonl`); await download.saveAs(exportFile);
-      const exported = readFileSync(exportFile, "utf8").split("\n").filter(Boolean).map(line => JSON.parse(line));
-      expect(exported.length).toBe(exportRow.values.row_count);
-      if (kind === "ledger") expect(exported.length).toBeGreaterThan(0);
-      if (kind === "procurement") for (const purchase of exported) expect([purchase.supplier_id, purchase.buyer_id]).toContain(p.operator_id);
+      const download = await downloadPending, exportFile = testInfo.outputPath(`platform-${kind}-export.csv`); await download.saveAs(exportFile);
+      const exported = readFileSync(exportFile, "utf8");
+      expect(exported.startsWith("\ufeff")).toBe(true);
+      expect(exported).toContain(kind === "ledger" ? "变动金额" : kind === "requests" ? "净扣费 ATG" : "供货方");
+      if (kind === "ledger") expect(exportRow.values.row_count).toBeGreaterThan(0);
       expect((await employee.request.get(`${base}/exports/${exportResult.id}/download`)).status()).toBe(403);
       expect((await exporter.request.get(`${base}/exports/${exportResult.id}/download`)).status()).toBe(404);
     }

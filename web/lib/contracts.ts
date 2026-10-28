@@ -110,10 +110,13 @@ export const TakeoverSchema=z.object({
 export type Takeover=z.infer<typeof TakeoverSchema>;
 export const TakeoversSchema=z.object({items:z.array(TakeoverSchema),channels:z.array(z.object({id:ID,name:z.string(),legal_name:z.string(),lifecycle:z.string()}))});
 export const FinancialReportSchema=z.object({operator_id:z.string(),from:z.string(),to:z.string(),captured_at:z.string(),status:z.string(),operating_result_usd:SignedDecimal,
+ sales:z.object({completed_sales:z.number().int(),sales_usd:SignedDecimal,wallet_top_ups:z.number().int(),wallet_top_up_usd:SignedDecimal,pending_deliveries:z.number().int()}),
+ procurement:z.object({purchase_orders:z.number().int(),purchases_usd:SignedDecimal,wholesale_orders:z.number().int(),wholesale_sales_usd:SignedDecimal}),
+ usage:z.object({completed_requests:z.number().int(),charged_atg:SignedDecimal,correction_atg:SignedDecimal,shortfall_atg:SignedDecimal}),
  revenue:z.object({paid_invocation_usd:SignedDecimal,expired_unused_paid_usd:SignedDecimal,wholesale_consumed_usd:SignedDecimal,withdrawal_fees_retained_usd:SignedDecimal,total_usd:SignedDecimal}),
  costs:z.object({fulfillment_usd:SignedDecimal,retail_gift_subset_usd:SignedDecimal,commission_usd:SignedDecimal,payment_fees_usd:SignedDecimal,exception_loss_usd:SignedDecimal,total_usd:SignedDecimal,pending_fees:z.number().int(),pending_supplier_costs:z.number().int()}),
  cash:z.object({recorded_in_usd:SignedDecimal,recorded_out_usd:SignedDecimal,procurement_payments_usd:SignedDecimal,commission_payouts_usd:SignedDecimal,takeover_in_usd:SignedDecimal,takeover_out_usd:SignedDecimal,provider_receivable_usd:SignedDecimal}),
- liabilities:z.object({customer_wallet_usd:SignedDecimal,outstanding_grant_paid_usd:SignedDecimal,outstanding_grant_atg:SignedDecimal,commission_usd:SignedDecimal,unfulfilled_order_funds_usd:SignedDecimal,supplier_payable_usd:SignedDecimal}),
+ liabilities:z.object({wholesale_prepayment_usd:SignedDecimal,customer_wallet_usd:SignedDecimal,outstanding_grant_paid_usd:SignedDecimal,outstanding_grant_atg:SignedDecimal,commission_usd:SignedDecimal,unfulfilled_order_funds_usd:SignedDecimal,supplier_payable_usd:SignedDecimal}),
  payments:z.object({pending_receipt_facts:z.number().int(),awaiting_valuation:z.number().int(),original_money:z.array(z.object({currency:z.string(),amount:Decimal,facts:z.number().int()}))}).optional(),
  refunds:z.object({pending_fees:z.number().int(),pending_executions:z.number().int(),outstanding_usd:SignedDecimal,mismatch_count:z.number().int()}),
  takeover_flows:z.array(z.object({purpose:z.string(),kind:z.string(),unit:z.string(),increase:SignedDecimal,decrease:SignedDecimal,net:SignedDecimal})).nullable(),takeover_balances:z.array(z.object({purpose:z.string(),unit:z.string(),balance:SignedDecimal})).nullable(),notes:z.array(z.string()).nullable(),

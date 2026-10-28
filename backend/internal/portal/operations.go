@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -202,13 +203,18 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		}
 		for _, row := range rows {
 			v := values(row)
-			if row.State == "ready" {
+			state := row.State
+			if !time.Now().UTC().Before(row.ExpiresAt) {
+				state = "expired"
+			}
+			if state == "ready" {
 				v["download_url"] = "/api/v1/operators/" + op.ID + "/exports/" + row.ID + "/download"
 			}
-			items = append(items, entity(row.ID, row.State, 1, v))
+			items = append(items, entity(row.ID, state, 1, v))
 		}
+		p["title"], p["description"] = "数据导出", "按日期导出当前经营方的数据，生成后下载 CSV。"
 		p["columns"] = []gin.H{col("kind", "类型", "text"), col("state", "状态", "status"), col("row_count", "记录数", "text"), col("expires_at", "失效", "datetime"), col("download_url", "私有下载地址", "link")}
-		p["operations"] = []operation{{Name: "export", Label: "创建私有导出", Method: "POST", Path: base, Fields: []field{jsonField("kind(ledger/requests/procurement)、owner_id(可选)、from、to；选择有限时间范围。")}}}
+		p["operations"] = []operation{{Name: "export", Label: "生成 CSV", Method: "POST", Path: base, Fields: []field{jsonField("kind、from、to")}}}
 	case "alerts":
 		a.riskWorkspace(c, op, actor, resource, base, p)
 		return true
@@ -324,16 +330,19 @@ func (a *Application) operatorOperationsCommand(c *gin.Context, op organization.
 			return true
 		}
 		var in operations.ExportQuery
-		if json.Unmarshal(raw, &in) != nil {
+		decoder := json.NewDecoder(bytes.NewReader(raw))
+		decoder.DisallowUnknownFields()
+		if decoder.Decode(&in) != nil {
 			handleError(c, operations.ErrInvalid)
 			return true
 		}
-		out, e := a.Operations.RequestExport(ctx, actor, op.ID, in)
-		if e != nil {
-			handleError(c, e)
-			return true
-		}
-		c.JSON(200, commandResult(out.ID, "queued"))
+		result, e := a.command(c, "export:"+op.ID, in, func(tx *gorm.DB) (any, error) {
+			svc := *a.Operations
+			svc.DB = tx
+			out, e := svc.RequestExport(ctx, actor, op.ID, in)
+			return commandResult(out.ID, "queued"), e
+		})
+		jsonResponse(c, result, e)
 		return true
 	case "alerts":
 		raw, ok := decodeConfiguration(c)
@@ -404,8 +413,14 @@ func (a *Application) downloadExport(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	c.Header("Content-Disposition", "attachment; filename=export.jsonl")
-	c.Data(200, "application/x-ndjson", raw)
+	raw, e = operations.LocalizeExportCSV(raw, func(source string) string { return httpx.LocalizedText(httpx.RequestLocale(c.Request), source) })
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	c.Header("Content-Disposition", "attachment; filename=tokenhub-export.csv")
+	c.Header("Cache-Control", "private, no-store")
+	c.Data(200, "text/csv; charset=utf-8", raw)
 }
 func (a *Application) requestInvoice(c *gin.Context) {
 	raw, ok := decodeConfiguration(c)

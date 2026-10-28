@@ -40,7 +40,7 @@ func (s *Service) OperationalRequests(ctx context.Context, tx *gorm.DB, operator
 			return nil, e
 		}
 	}
-	if !to.After(from) || to.Sub(from) > 31*24*time.Hour || limit < 1 || limit > 10001 {
+	if !to.After(from) || to.Sub(from) > 366*24*time.Hour || limit < 1 || limit > 100001 {
 		return nil, ErrConflict
 	}
 	out := []OperationalUsage{}

@@ -11,6 +11,15 @@ const resolve = value => value.$ref ? document.components.schemas[value.$ref.spl
 const operation = (resource, method = 'post') => document.paths[`/v1/operators/{operatorId}/${resource}`][method];
 const body = resource => resolve(operation(resource).requestBody.content['application/json'].schema);
 
+test('reports export only content and dates and download a private CSV', () => {
+  const input = body('exports');
+  assert.deepEqual(Object.keys(input.properties).sort(), ['from','kind','to']);
+  assert.deepEqual(input.properties.kind.enum, ['financial','orders','payments','requests','procurement','ledger']);
+  assert.ok(document.paths['/v1/operators/{operatorId}/exports/{id}/download'].get.responses['200'].content['text/csv']);
+  const report = document.components.schemas.FinancialReport;
+  for (const field of ['sales','procurement','usage']) assert.ok(report.required.includes(field));
+});
+
 test('settings remove unused workspaces and avoid duplicate human evidence inputs', () => {
   for (const resource of ['risk', 'retention']) {
     assert.equal(document.paths[`/v1/operators/{operatorId}/${resource}`], undefined);

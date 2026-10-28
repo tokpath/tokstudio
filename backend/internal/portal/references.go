@@ -100,16 +100,6 @@ func (a *Application) references(c *gin.Context) {
 				add(target.ID, target.Name, nil)
 			}
 		}
-	case "export-subjects":
-		if customer || !require("reports.export") {
-			return
-		}
-		var e error
-		items, next, e = a.exportSubjectChoices(c, operator, actor, query)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
 	case "supply-failure-approvals":
 		if customer || !require("cooperation.manage") {
 			return
@@ -637,7 +627,7 @@ func (a *Application) references(c *gin.Context) {
 		handleError(c, organization.ErrInvalidInput)
 		return
 	}
-	if !contains([]string{"customers", "scope-subjects", "orders", "receipts", "recipients", "export-subjects"}, kind) {
+	if !contains([]string{"customers", "scope-subjects", "orders", "receipts", "recipients"}, kind) {
 		start := 0
 		if cursor := c.Query("cursor"); cursor != "" {
 			for i, item := range items {

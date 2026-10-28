@@ -133,28 +133,10 @@ func TestPostgresHumanLabelsRespectExactServiceAndSupplyScopes(t *testing.T) {
 	if !strings.Contains(names["buyer_id"], "直属渠道") || !strings.Contains(names["supplier_id"], "Test Operator") {
 		t.Fatal(names)
 	}
-	for _, ownerID := range []string{own, foreign} {
-		if _, e := f.a.Ledger.EnsureAccount(ctx, nil, ledger.Account{OperatorID: op, OwnerID: ownerID, Purpose: "customer:usd", Unit: "USD"}); e != nil {
-			t.Fatal(e)
-		}
-	}
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
-	for _, kind := range []string{"ledger", "requests", "procurement"} {
-		status, out, _ := f.call(t, "GET", "/v1/operators/"+op+"/references/export-subjects?kind="+kind, nil, "")
-		mustOK(t, status, out)
-		found := false
-		for _, raw := range out["items"].([]any) {
-			row := raw.(map[string]any)
-			if row["value"] == foreign || strings.Contains(row["label"].(string), "secret@labels.test") {
-				t.Fatal("export selector leaked a child customer", row)
-			}
-			if row["value"] == own {
-				found = true
-			}
-		}
-		if kind == "ledger" && !found {
-			t.Fatal("export selector lost the current ledger owner", out)
-		}
+	status, out, _ := f.call(t, "GET", "/v1/operators/"+op+"/references/export-subjects?kind=ledger", nil, "")
+	if status != 400 {
+		t.Fatal("obsolete export selector remains available", status, out)
 	}
 	// Customer presentation never resolves another customer, even if a future
 	// projection accidentally includes an unrelated customer_id.

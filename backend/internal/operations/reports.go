@@ -1,7 +1,6 @@
 package operations
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -123,7 +122,6 @@ type Export struct {
 	ID                string     `json:"id"`
 	OperatorID        string     `json:"operator_id"`
 	RequestedBy       string     `json:"requested_by"`
-	OwnerID           *string    `json:"owner_id,omitempty"`
 	Kind              string     `json:"kind"`
 	FromAt            time.Time  `json:"from_at"`
 	ToAt              time.Time  `json:"to_at"`
@@ -140,21 +138,20 @@ type Export struct {
 func (Export) TableName() string { return "operations_exports" }
 func (s *Service) RequestExport(ctx context.Context, actor, operator string, q ExportQuery) (Export, error) {
 	out := Export{}
-	if !q.To.After(q.From) || q.To.Sub(q.From) > 31*24*time.Hour || (q.Kind != "ledger" && q.Kind != "usage" && q.Kind != "requests" && q.Kind != "procurement") {
-		return out, ErrInvalid
-	}
-	if q.OwnerID != "" && !validID(q.OwnerID) {
+	if q.From.IsZero() || !q.To.After(q.From) || q.To.Sub(q.From) > 366*24*time.Hour || !exportKind(q.Kind) {
 		return out, ErrInvalid
 	}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
 		if e := s.require(ctx, t, actor, operator, "reports.export"); e != nil {
 			return e
 		}
+		if q.Kind == "financial" {
+			if e := s.require(ctx, t, actor, operator, "reports.view"); e != nil {
+				return e
+			}
+		}
 		now := time.Now().UTC()
 		out = Export{ID: uuid.NewString(), OperatorID: operator, RequestedBy: actor, Kind: q.Kind, FromAt: q.From.UTC(), ToAt: q.To.UTC(), State: "pending", CreatedAt: now, ExpiresAt: now.Add(24 * time.Hour)}
-		if q.OwnerID != "" {
-			out.OwnerID = &q.OwnerID
-		}
 		return t.Create(&out).Error
 	})
 	return out, e
@@ -165,7 +162,7 @@ func (s *Service) ListExports(ctx context.Context, actor, operator string) ([]Ex
 		if e := s.require(ctx, t, actor, operator, "reports.export"); e != nil {
 			return e
 		}
-		return t.Where("operator_id=? AND requested_by=?", operator, actor).Order("created_at DESC").Limit(100).Find(&out).Error
+		return t.Omit("content_ciphertext").Where("operator_id=? AND requested_by=?", operator, actor).Order("created_at DESC").Limit(100).Find(&out).Error
 	})
 	return out, e
 }
@@ -200,26 +197,25 @@ func (s *Service) RunExports(ctx context.Context, limit int) ([]Export, error) {
 			if e := s.require(ctx, t, j.RequestedBy, j.OperatorID, "reports.export"); e != nil {
 				return e
 			}
-			owner := ""
-			if j.OwnerID != nil {
-				owner = *j.OwnerID
+			if j.Kind == "financial" {
+				if e := s.require(ctx, t, j.RequestedBy, j.OperatorID, "reports.view"); e != nil {
+					return e
+				}
 			}
-			rows, e := s.Source.Export(ctx, t, j.OperatorID, ExportQuery{Kind: j.Kind, OwnerID: owner, From: j.FromAt, To: j.ToAt})
+			rows, e := s.Source.Export(ctx, t, j.OperatorID, ExportQuery{Kind: j.Kind, From: j.FromAt, To: j.ToAt})
 			if e != nil {
 				return e
 			}
-			if len(rows) > 10000 {
+			if len(rows) > 100000 {
 				return ErrTooLarge
 			}
-			var content bytes.Buffer
-			for _, row := range rows {
-				content.Write(row)
-				content.WriteByte('\n')
+			b, e := buildExportCSV(ctx, t, j.OperatorID, j.Kind, rows)
+			if e != nil {
+				return e
 			}
-			if content.Len() > 20<<20 {
+			if len(b) > 64<<20 {
 				return ErrTooLarge
 			}
-			b := content.Bytes()
 			digest := sha256.Sum256(b)
 			j.SHA256 = hex.EncodeToString(digest[:])
 			j.RowCount = len(rows)
@@ -237,6 +233,7 @@ func (s *Service) RunExports(ctx context.Context, limit int) ([]Export, error) {
 		if e = s.DB.WithContext(ctx).Model(&Export{}).Where("id=? AND state='processing'", j.ID).Updates(map[string]any{"state": j.State, "content_ciphertext": j.ContentCiphertext, "sha256": j.SHA256, "row_count": j.RowCount, "error_code": j.ErrorCode, "lease_until": nil}).Error; e != nil {
 			return jobs, e
 		}
+		j.ContentCiphertext = ""
 	}
 	return jobs, nil
 }
@@ -252,6 +249,11 @@ func (s *Service) DownloadExport(ctx context.Context, actor, operator, id string
 		}
 		if row.State != "ready" || !time.Now().UTC().Before(row.ExpiresAt) {
 			return ErrExpired
+		}
+		if row.Kind == "financial" {
+			if e := s.require(ctx, t, actor, operator, "reports.view"); e != nil {
+				return e
+			}
 		}
 		if e := s.open(row.ContentCiphertext, &out); e != nil {
 			return e

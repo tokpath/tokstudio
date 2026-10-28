@@ -20,7 +20,7 @@ export const operatorNav: readonly NavigationSection[] = [
   { id: "marketing", group: "营销与推广", items: [["marketing", "活动管理"], ["commissions", "邀请与分佣规则"], ["gifts", "赠送与补偿"]] },
   { id: "finance", group: "资金办理", items: [["orders", "订单与交付"], ["payments", "收款办理"], ["refunds", "退款与冲正"], ["withdrawals", "提现办理"], ["disputes", "争议与扣回"], ["invoices", "票据办理"], ["reconciliation", "对账与差额"], ["approvals", "待复核事项"], ["ledger", "资产与账本"]] },
   { id: "cooperation", group: "采购与合作", items: [["operators", "下属经营方"], ["procurement", "采购与供货"], ["contracts", "合作合同"], ["coverage", "履约与超卖"], ["alerts", "风险预警"], ["procurement-invoices", "采购开票"], ["takeovers", "渠道接管"], ["exits", "合作退出"], ["branding", "品牌外观"], ["domains", "品牌域名"], ["channel-themes", "渠道外观"]] },
-  { id: "reports", group: "报表", items: [["reports", "经营报表"], ["exports", "导出记录"]] },
+  { id: "reports", group: "报表", items: [["reports", "经营报表"], ["exports", "数据导出"]] },
   { id: "settings", group: "设置", items: [["business-status", "营业设置"], ["payment-methods", "收款方式"], ["staff", "人员与权限"], ["restrictions", "业务限制"], ["notifications", "通知管理"], ["audit", "操作审计"]] },
   { id: "technology", group: "平台技术", items: [["catalog", "公开模型"], ["providers", "模型供应商"], ["routes", "路由配置"], ["bifrost", "Bifrost 设置"], ["supplier-costs", "真实上游成本"], ["requests", "调用与成本核实"], ["jobs", "任务恢复"], ["payment-assets", "支付资产与网络"], ["mail", "邮件服务"]] },
 ];

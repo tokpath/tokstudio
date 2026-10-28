@@ -355,16 +355,16 @@ func TestRealLedgerReconciliationExportAuthorizationAndRetention(t *testing.T) {
 	if e = s.ResolveDiscrepancy(ctx, a.actor, operator, rows[0].ID, uuid.NewString(), "hide mismatch"); e == nil {
 		t.Fatal("mismatch hidden with arbitrary reference")
 	}
-	export, e := s.RequestExport(ctx, a.actor, operator, ExportQuery{Kind: "ledger", OwnerID: customer, From: time.Now().Add(-time.Hour), To: time.Now().Add(time.Hour)})
+	export, e := s.RequestExport(ctx, a.actor, operator, ExportQuery{Kind: "ledger", From: time.Now().Add(-time.Hour), To: time.Now().Add(time.Hour)})
 	if e != nil {
 		t.Fatal(e)
 	}
 	jobs, e := s.RunExports(ctx, 5)
-	if e != nil || len(jobs) != 1 || jobs[0].RowCount != 1 {
+	if e != nil || len(jobs) != 1 || jobs[0].RowCount != 2 {
 		t.Fatalf("real export %+v %v", jobs, e)
 	}
 	data, e := s.DownloadExport(ctx, a.actor, operator, export.ID)
-	if e != nil || !strings.Contains(string(data), `"amount":"10"`) {
+	if e != nil || !strings.Contains(string(data), "变动金额") || !strings.Contains(string(data), ",10,") {
 		t.Fatalf("export mismatch %s %v", data, e)
 	}
 	a.deny.Store(true)

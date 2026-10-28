@@ -21390,6 +21390,123 @@
         "x-required-permission": "platform.manage"
       }
     },
+    "/v1/operators/{operatorId}/customer-invitation": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_customer_invitation",
+        "summary": "Read this channel's permanent customer invite code and its own verified brand registration URL",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelInvitation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "customers.read"
+      }
+    },
     "/v1/operators/{operatorId}/reports/financial": {
       "get": {
         "operationId": "get__v1_operators_operatorId_reports_financial",
@@ -38266,6 +38383,35 @@
           "threshold_usd",
           "direct_rate",
           "indirect_rate"
+        ],
+        "additionalProperties": true
+      },
+      "ChannelInvitation": {
+        "type": "object",
+        "properties": {
+          "invite_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "invite_url": {
+            "type": "string"
+          },
+          "brand_name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "registration_open": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "invite_code",
+          "invite_url",
+          "brand_name",
+          "enabled",
+          "registration_open"
         ],
         "additionalProperties": true
       },

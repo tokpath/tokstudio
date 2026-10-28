@@ -306,11 +306,19 @@ it("retains unresolved financial facts and validates the selected calendar date 
   expect(screen.getByLabelText("-3.000000000000000001 USD")).toBeTruthy();
   expect(screen.getByText("未核实供应成本 · 2", { exact: false })).toBeTruthy();
   expect(screen.queryByRole("link", { name: "处理退款未决" })).toBeNull();
+  fireEvent.change(screen.getByLabelText("开始日期"), {target:{value:"2026-01-01"}});
+  fireEvent.change(screen.getByLabelText("结束日期"), {target:{value:"2026-01-31"}});
+  fireEvent.click(screen.getByRole("button",{name:"查询",exact:true}));
+  await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(2));
+  await waitFor(()=>expect((screen.getByRole("button",{name:"查询",exact:true}) as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(screen.getByRole("button",{name:"查询",exact:true}));
+  await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(3));
+  await waitFor(()=>expect((screen.getByRole("button",{name:"查询",exact:true}) as HTMLButtonElement).disabled).toBe(false));
   fireEvent.change(screen.getByLabelText("开始日期"), { target: { value: "2026-10-20" } });
   fireEvent.change(screen.getByLabelText("结束日期"), { target: { value: "2026-10-19" } });
   fireEvent.click(screen.getByRole("button", { name: "查询" }));
   expect(screen.getByRole("alert").textContent).toContain("有效日期范围");
-  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(fetch).toHaveBeenCalledTimes(3);
 });
 
 const takeover = {

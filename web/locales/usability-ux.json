@@ -3693,5 +3693,55 @@
     "en": "Enter the gross amount in the original currency before our receipt fee, excluding sending fees paid separately by the payer. Enter the USD gross receipt and the current valuation evidence separately.",
     "ja": "当方の入金手数料控除前の元通貨額を入力し、支払人が別途負担する送金手数料は含めません。USD換算の入金総額と今回の換算根拠は別に入力します。",
     "ru": "Укажите сумму в исходной валюте до нашей комиссии, без отдельно оплаченных отправителем расходов. Сумму поступления в USD и основание текущей оценки укажите отдельно."
+  },
+  "渠道邀请": {
+    "en": "Channel invitations",
+    "ja": "チャネル招待",
+    "ru": "Приглашения канала"
+  },
+  "渠道邀请码": {
+    "en": "Channel invite code",
+    "ja": "チャネル招待コード",
+    "ru": "Код приглашения канала"
+  },
+  "渠道邀请链接": {
+    "en": "Channel invite link",
+    "ja": "チャネル招待リンク",
+    "ru": "Ссылка приглашения канала"
+  },
+  "复制渠道邀请码": {
+    "en": "Copy channel invite code",
+    "ja": "チャネル招待コードをコピー",
+    "ru": "Копировать код канала"
+  },
+  "复制渠道邀请链接": {
+    "en": "Copy channel invite link",
+    "ja": "チャネル招待リンクをコピー",
+    "ru": "Копировать ссылку канала"
+  },
+  "通过此链接或邀请码注册的新用户，将成为{operator}的直属客户，不产生用户邀请上下级关系。": {
+    "en": "New users registering with this link or code become direct customers of {operator}. It does not create a user referral relationship.",
+    "ja": "このリンクまたはコードで登録した新規ユーザーは{operator}の直属顧客になります。ユーザー間の紹介関係は作成されません。",
+    "ru": "Новые пользователи по этой ссылке или коду становятся прямыми клиентами {operator}. Пользовательская реферальная связь не создаётся."
+  },
+  "品牌尚未配置可用域名，请联系品牌方。域名启用后会自动生成邀请链接，不会使用其他品牌的域名。": {
+    "en": "The brand has no active domain yet. Contact the brand operator. The invite link will appear once the domain is active; another brand’s domain will not be used.",
+    "ja": "ブランドの利用可能なドメインが未設定です。ブランド運営者に連絡してください。有効化後に招待リンクを自動生成し、他ブランドのドメインは使用しません。",
+    "ru": "У бренда ещё нет активного домена. Обратитесь к оператору бренда. После включения домена ссылка появится автоматически; домен другого бренда не используется."
+  },
+  "渠道邀请码已停用，请联系品牌方。": {
+    "en": "This channel invite code is disabled. Contact the brand operator.",
+    "ja": "チャネル招待コードは無効です。ブランド運営者に連絡してください。",
+    "ru": "Код приглашения канала отключён. Обратитесь к оператору бренда."
+  },
+  "当前渠道暂未开放注册。邀请信息可保存，开放注册后再邀请新客户。": {
+    "en": "Registration is currently closed for this channel. You can save the invite details and invite new customers once registration opens.",
+    "ja": "現在このチャネルは登録を受け付けていません。招待情報を保存し、登録受付開始後に新規顧客を招待してください。",
+    "ru": "Регистрация в канале пока закрыта. Сохраните приглашение и приглашайте клиентов после открытия регистрации."
+  },
+  "此入口仅用于渠道客户邀请": {
+    "en": "This endpoint is only for channel customer invitations.",
+    "ja": "この機能はチャネル顧客の招待専用です。",
+    "ru": "Этот раздел предназначен только для приглашения клиентов канала."
   }
 }

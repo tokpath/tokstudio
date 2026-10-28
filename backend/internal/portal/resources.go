@@ -257,6 +257,7 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 	a.resourceResponse(c, p)
 }
 func (a *Application) operatorRoutes(r *gin.RouterGroup) {
+	r.GET("/customer-invitation", a.channelCustomerInvitation)
 	r.GET("/customer-context/:id", a.customerContext)
 	r.GET("/order-context/:id", a.orderContext)
 	r.POST("/order-context/:id/allocate", a.allocateOrderReceipt)

@@ -11,6 +11,13 @@ const resolve = value => value.$ref ? document.components.schemas[value.$ref.spl
 const operation = (resource, method = 'post') => document.paths[`/v1/operators/{operatorId}/${resource}`][method];
 const body = resource => resolve(operation(resource).requestBody.content['application/json'].schema);
 
+test('channel invitations require exact channel customer access and expose a typed brand link',()=>{
+ const invitation=document.paths['/v1/operators/{operatorId}/customer-invitation'].get;
+ assert.equal(invitation['x-required-permission'],'customers.read');
+ const schema=resolve(invitation.responses['200'].content['application/json'].schema);
+ for(const field of ['invite_code','invite_url','brand_name','enabled','registration_open']) assert.ok(schema.required.includes(field));
+});
+
 test('receipt inputs distinguish gross value and merchant fee while net is derived',()=>{
  const receipt=body('payments');
  assert.equal(receipt.properties.net_usd,undefined);

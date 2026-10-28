@@ -72,6 +72,24 @@ func (s *Service) CustomerInvite(ctx context.Context, tx *gorm.DB, customerID st
 	return row.Code, classify(err)
 }
 
+// ChannelInvite returns the permanent code created with this channel. Reading
+// it requires customer access in the exact channel, never just its parent.
+func (s *Service) ChannelInvite(ctx context.Context, tx *gorm.DB, actor, operator string) (string, bool, error) {
+	if err := s.RequirePermission(ctx, tx, actor, operator, "customers.read"); err != nil {
+		return "", false, err
+	}
+	op, err := s.GetOperator(ctx, tx, operator)
+	if err != nil {
+		return "", false, err
+	}
+	if op.Kind != Channel {
+		return "", false, ErrInvalidInput
+	}
+	var row codeRow
+	err = s.dbFor(ctx, tx).Where("operator_id=? AND brand_id=? AND kind='channel'", operator, op.BrandID).Take(&row).Error
+	return row.Code, row.Enabled, classify(err)
+}
+
 type ScopedCustomer struct {
 	Customer  Customer  `json:"customer"`
 	Email     string    `json:"email"`

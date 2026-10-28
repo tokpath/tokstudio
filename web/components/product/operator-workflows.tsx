@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { subjectURL, subjectReturnURL } from "./operator-list-state";
 import { FieldHelp } from "./field-help";
+import { ChannelInvitationCard } from "./channel-invitation";
 
 export function OperatorWorkflowScreen({ operatorID, resource, record }: { operatorID: string; resource: string; record?: string }) {
   const { t } = useI18n();
@@ -30,6 +31,7 @@ export function OperatorWorkflowScreen({ operatorID, resource, record }: { opera
   return <>
     <div hidden={!!subject}>
       {workflow && <><Heading eyebrow={t(workflow.eyebrow)} title={t(resourceLabel(resource))} description={t(workflow.description)} />{!["business-status","staff","restrictions","notifications","marketing","commissions","gifts","plans","pricing","catalog","providers","routes","operators","procurement","coverage","orders","payments","refunds","withdrawals","disputes","invoices","reconciliation","ledger"].includes(resource) && <WorkflowGuide operatorID={operatorID} resource={resource} />}</>}
+      {resource === "customers" && <ChannelInvitationCard operatorID={operatorID} />}
       <ResourceScreen key={`${operatorID}:${resource}`} operatorID={operatorID} resource={resource} record={resource === "customers" || resource === "orders" ? undefined : record} embedded={!!workflow} layout={cardResources.has(resource) ? "cards" : "table"} inspectionLinks onInspect={(name, row) => { if (name === "customers" || name === "orders") { const returnTo = window.location.pathname + window.location.search; window.history.pushState(window.history.state, "", subjectURL(operatorID, name, row.id, returnTo)); setSubject({ resource: name, row }); } }} />
     </div>
     {subject && <OperatorSubjectContent key={`${subject.resource}:${subject.row.id}`} operatorID={operatorID} resource={subject.resource} row={subject.row} close={close} fullPage />}
@@ -65,6 +67,7 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
   return <>
     <Heading eyebrow={t("经营工作台")} title={t(focusTitles[focus])} description={t("{operator}的待办、营业项目和服务责任。所有数据均来自当前空间已授权的经营范围。", { operator: workspace?.operator.name || t("当前经营方") })} actions={<span className="rounded-full border border-hairline bg-canvas-raised px-3 py-2 text-xs text-ink-mute">{workspace?.operator.kind === "platform" ? t("平台经营") : workspace?.operator.kind === "oem" ? t("OEM 独立经营") : t("渠道独立经营")}
     </span>} />
+    <ChannelInvitationCard operatorID={operatorID} />
     {overview.isLoading && <Loading />}{overview.isError && <div className="mb-5">
       <ErrorPanel error={overview.error} retry={() => void overview.refetch()} />
     </div>}

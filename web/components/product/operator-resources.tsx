@@ -7,7 +7,7 @@ import { translate, type Locale } from "@/lib/i18n";
 import { createContext, useCallback, useContext, useEffect, useId, useState, type ReactNode } from "react";
 import Link from "next/link";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 import { request } from "@/lib/api-client";
 import { CommandResultSchema, ResourcePageSchema, type Entity, type Operation, type JSONValue, type ResourcePage } from "@/lib/contracts";
@@ -55,6 +55,7 @@ type ResourceOptions = {
 
 export function ResourceScreen({ operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, record, inspectionLinks }: ResourceOptions) {
   const { t } = useI18n();
+  const cache = useQueryClient();
   const { session } = useProduct();
   const [filters, setFilters] = useState(readResourceListState);
   const [query, setQuery] = useState(filters.q);
@@ -71,14 +72,21 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   else if(resourceName === "procurement") parameters.set("section",filters.section || "orders");
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const canRead = customer ? session?.kind === "customer" : canReadResource(workspace, resourceName);
-  const data = useQuery({ queryKey: ["resource", scope, resource, filters.cursor, filters.q, filters.view, filters.status, filters.section, record || ""], queryFn: ({ signal }) => request(`${scope}/${resource}${parameters.size ? `?${parameters}` : ""}`, ResourcePageSchema, { signal }), enabled: canRead });
+  const keyFor = (state: typeof filters) => ["resource", scope, resource, state.cursor, state.q, state.view, state.status, state.section, record || ""];
+  const data = useQuery({ queryKey: keyFor(filters), queryFn: ({ signal }) => request(`${scope}/${resource}${parameters.size ? `?${parameters}` : ""}`, ResourcePageSchema, { signal }), enabled: canRead });
   if (!canRead) return <Empty title={t("没有查看权限")}>{t("此页面需要当前经营方明确授予相应权限。")}</Empty>;
   if (data.isPending) return <Loading />;
   if (data.isError) return <ErrorPanel error={data.error} retry={() => void data.refetch()} />;
   const page = data.data;
   const serverSearch = page.search_supported === true;
   const statusFilter = page.status_supported === true;
-  const apply = (next: Partial<ResourceFilter>) => setFilters(current => ({ ...current, ...next, cursor: "", history: [] }));
+  const apply = (next: Partial<ResourceFilter>) => {
+    const updated = { ...filters, ...next, cursor: "", history: [] };
+    // Explicit searches must read again, including unchanged conditions and a
+    // previously cached target page. Invalidate only that target, not old filters.
+    void cache.invalidateQueries({ queryKey: keyFor(updated), exact: true });
+    setFilters(updated);
+  };
   const statuses = [...new Set([...(resourceName==="procurement" ? (filters.section==="quotes" ? ["quote","disabled","expired","archived"] : filters.section==="automatic" ? ["authorization","prepared","awaiting_manual_payment","outcome_unknown","verified_payment_delivery_pending","completed","failed_unpaid","cancelled_unpaid"] : ["awaiting_payment","paid","completed","closed","exception"]) : resourceFilterStatuses[resourceName] || []), ...page.items.flatMap(item => item.status ? [item.status] : []), filters.status].filter(Boolean))];
   return <>
     {record && <div className="mb-5"><Notice><div className="flex flex-wrap items-center justify-between gap-3"><span>{t("正在办理关联事项")}</span><Link className="text-brand-emphasis underline" href={operatorID ? `/manage/${encodeURIComponent(operatorID)}/${resource}` : `/workspace/${resource}`}>{t("返回全部记录")}</Link></div></Notice></div>}
@@ -86,7 +94,7 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
     <ResourceCollection page={page} operatorID={operatorID} resource={resource} customer={customer} embedded={embedded} layout={layout} onInspect={onInspect} inspectionLinks={inspectionLinks} businessView={filters.view || page.views?.[0]?.value} procurementSection={record ? (page.items[0]?.values.record_kind==="quote" ? "quotes" : ["authorization","replenishment_attempt"].includes(String(page.items[0]?.values.record_kind)) ? "automatic" : "orders") : filters.section || "orders"} onProcurementSection={section=>apply({section,status:""})} record={record} toolbar={serverSearch || statusFilter ? <div className="min-w-0 flex-1 basis-[32rem]"><form onSubmit={event => { event.preventDefault(); apply({ q: query.trim() }); }}>
       <div className="flex flex-wrap items-center gap-2">{serverSearch && <div className="relative min-w-48 flex-1"><Search size={15} aria-hidden className="absolute left-3 top-3.5 text-ink-mute" /><Input aria-label={t("搜索记录")} aria-describedby={searchDescription} placeholder={resourceName === "notifications" ? t("搜索通知标题、正文或关联事项") : resourceName === "customers" ? t("搜索客户名称或邮箱") : resourceName === "invoices" ? t("搜索发票编号、开票凭证或原始收款编号") : t("搜索业务编号、名称或关联记录")} value={query} onChange={event => setQuery(event.target.value)} className="pl-9" /></div>}
       {statusFilter && <label className="flex items-center gap-2 text-xs text-ink-secondary"><span>{t("状态")}</span><select className="min-h-11 rounded-control border border-hairline bg-canvas-raised px-3 text-sm" aria-label={t("筛选状态")} value={filters.status} onChange={event => apply({ status: event.target.value })}><option value="">{t("全部状态")}</option>{statuses.map(status => <option key={status} value={status}>{t(resourceFilterStatusLabel(resourceName, status))}</option>)}</select></label>}
-      {serverSearch && <Button variant="outline" type="submit">{t("查询")}</Button>}{(serverSearch && filters.q || statusFilter && filters.status) && <Button variant="ghost" type="button" onClick={() => { setQuery(""); apply({ q: "", status: "" }); }}>{t("清除")}</Button>}</div>
+      {serverSearch && <Button variant="outline" type="submit" disabled={data.isFetching} aria-busy={data.isFetching}>{t("查询")}</Button>}{(serverSearch && filters.q || statusFilter && filters.status) && <Button variant="ghost" type="button" onClick={() => { setQuery(""); apply({ q: "", status: "" }); }}>{t("清除")}</Button>}</div>
       {serverSearch && <p id={searchDescription} className="mt-2 text-xs leading-6 text-ink-mute">{t("在当前权限范围内检索记录，结果按当前列表规则分页。")}</p>}
     </form></div> : undefined} />
     {resourceName !== "business-status" && <div className="mt-5 flex items-center justify-between gap-3"><p className="text-xs text-ink-mute">{t("当前页 {count} 条", { count: page.items.length })}{page.next_cursor ? t(" · 还有后续记录") : ""}</p><div className="flex gap-2">{filters.history.length > 0 && <Button variant="outline" onClick={() => setFilters(current => { const history = [...current.history]; return { ...current, cursor: history.pop() || "", history }; })}>{t("上一页")}</Button>}{page.next_cursor && <Button variant="outline" onClick={() => setFilters(current => ({ ...current, history: [...current.history, current.cursor], cursor: page.next_cursor || "" }))}>{t("下一页")}</Button>}</div></div>}

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/components/i18n";
 import { request } from "@/lib/api-client";
 import { FinancialReportSchema } from "@/lib/contracts";
@@ -16,6 +16,7 @@ import { resourceValueText } from "./operator-resources";
 
 export function FinancialReportScreen({ operatorID }: { operatorID: string }) {
   const { t, locale } = useI18n();
+  const cache = useQueryClient();
   const { session } = useProduct();
   const ws = session?.kind === "staff" ? session.workspaces.find(w => w.operator.id === operatorID) : undefined;
   const allowed = !!ws && (ws.permissions.includes("*") || ws.permissions.includes("reports.view"));
@@ -34,7 +35,7 @@ export function FinancialReportScreen({ operatorID }: { operatorID: string }) {
   const facts = (items: [string, string | number, string?][]) => <dl className="space-y-4">{items.map(([label, value, unit]) => <div key={label} className="flex flex-wrap items-baseline justify-between gap-3 text-sm"><dt className="text-ink-secondary">{t(label)}</dt><dd className="font-medium">{unit ? <Money value={String(value)} unit={unit} /> : String(value)}</dd></div>)}</dl>;
   return <>
     <Heading title={t("经营报表")} description={t("查看销售、调用、资金收支和经营结果。金额以 USD 记账。")} actions={canReadResource(ws, "exports") ? <Button variant="outline" asChild><Link href={base + "/exports?" + new URLSearchParams({ kind: "financial", ...range })}>{t("导出本期数据")}</Link></Button> : undefined} />
-    <Card className="mb-6"><ReportPeriod range={range} onApply={setRange} /></Card>
+    <Card className="mb-6"><ReportPeriod range={range} disabled={data.isFetching} onApply={next => { void cache.invalidateQueries({queryKey:["financial-report",operatorID,next],exact:true}); setRange(next); }} /></Card>
     {data.isPending ? <Loading /> : data.isError ? <ErrorPanel error={data.error} retry={() => void data.refetch()} /> : report && <>
       <p className="mb-4 text-xs text-ink-mute">{t("更新于")} <When value={report.captured_at} /></p>
       <div className="mb-6 grid gap-4 sm:grid-cols-3">

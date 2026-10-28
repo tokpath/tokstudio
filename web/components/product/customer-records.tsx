@@ -4,7 +4,7 @@ import { useI18n } from "@/components/i18n";
 import { localizeNumberText } from "@/lib/i18n";
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Search } from "lucide-react";
 import { request } from "@/lib/api-client";
 import { collection, OrderSchema, RequestSchema, CommandResultSchema } from "@/lib/contracts";
@@ -17,16 +17,21 @@ import { ContextHelp, CopyButton, DetailPairs } from "./customer-ui";
 import { modelTerm } from "./customer-models";
 import { PaymentAction } from "./customer-plans";
 
-export function useCursor() {
+export function useCursor(namespace: string) {
+  const cache = useQueryClient();
   const [cursor, setCursor] = useState(""), [history, setHistory] = useState<string[]>([]), [search, setSearch] = useState("");
-  return { cursor, history, search, setSearch: (value: string) => { setCursor(""); setHistory([]); setSearch(value); }, path: (base: string) => { const params = new URLSearchParams(); if (cursor) params.set("cursor", cursor); if (search) params.set("q", search); return `${base}${params.size ? `?${params}` : ""}`; }, next: (value: string) => { setHistory(previous => [...previous, cursor]); setCursor(value); }, previous: () => { const prior = [...history]; setCursor(prior.pop() || ""); setHistory(prior); } };
+  const refreshing = useIsFetching({ queryKey: [namespace, cursor, search], exact: true }) > 0;
+  return { cursor, history, search, refreshing, setSearch: (value: string) => {
+    void cache.invalidateQueries({ queryKey: [namespace, "", value], exact: true });
+    setCursor(""); setHistory([]); setSearch(value);
+  }, path: (base: string) => { const params = new URLSearchParams(); if (cursor) params.set("cursor", cursor); if (search) params.set("q", search); return `${base}${params.size ? `?${params}` : ""}`; }, next: (value: string) => { setHistory(previous => [...previous, cursor]); setCursor(value); }, previous: () => { const prior = [...history]; setCursor(prior.pop() || ""); setHistory(prior); } };
 }
 export function RecordSearch({ paging, placeholder = "搜索业务编号、模型或关联记录", statuses, hint }: { paging: ReturnType<typeof useCursor>; placeholder?: string; statuses?: string[]; hint?: string }) {
   const { t } = useI18n();
   const [value, setValue] = useState(paging.search);
   const hintID = useId();
   useEffect(() => { setValue(paging.search); }, [paging.search]);
-  return <div className="mb-5"><form role="search" className="flex flex-wrap gap-3" onSubmit={event => { event.preventDefault(); paging.setSearch(value.trim()); }}><div className="relative min-w-0 flex-1 sm:max-w-xl"><Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-ink-mute" /><Input type="search" aria-label={t("搜索明细")} aria-describedby={hint ? hintID : undefined} placeholder={t(placeholder)} className="pl-10" maxLength={200} value={value} onChange={event => setValue(event.target.value)} /></div><Button type="submit" variant="outline">{t("查询")}</Button>{statuses && <select aria-label={t("快捷查询状态")} className="h-11 max-w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm" value={statuses.includes(paging.search) ? paging.search : ""} onChange={event => paging.setSearch(event.target.value)}><option value="">{t("快捷查询状态")}</option>{statuses.map(status => <option key={status} value={status}>{t(statusLabels[status] || status)}</option>)}</select>}{(paging.search || value) && <Button type="button" variant="ghost" onClick={() => { setValue(""); paging.setSearch(""); }}>{t("清除")}</Button>}</form>{hint && <p id={hintID} className="mt-2 text-xs leading-6 text-ink-mute">{t(hint)}</p>}</div>;
+  return <div className="mb-5"><form role="search" className="flex flex-wrap gap-3" onSubmit={event => { event.preventDefault(); paging.setSearch(value.trim()); }}><div className="relative min-w-0 flex-1 sm:max-w-xl"><Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-ink-mute" /><Input type="search" aria-label={t("搜索明细")} aria-describedby={hint ? hintID : undefined} placeholder={t(placeholder)} className="pl-10" maxLength={200} value={value} onChange={event => setValue(event.target.value)} /></div><Button type="submit" variant="outline" disabled={paging.refreshing} aria-busy={paging.refreshing}>{t("查询")}</Button>{statuses && <select aria-label={t("快捷查询状态")} className="h-11 max-w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm" value={statuses.includes(paging.search) ? paging.search : ""} onChange={event => paging.setSearch(event.target.value)}><option value="">{t("快捷查询状态")}</option>{statuses.map(status => <option key={status} value={status}>{t(statusLabels[status] || status)}</option>)}</select>}{(paging.search || value) && <Button type="button" variant="ghost" onClick={() => { setValue(""); paging.setSearch(""); }}>{t("清除")}</Button>}</form>{hint && <p id={hintID} className="mt-2 text-xs leading-6 text-ink-mute">{t(hint)}</p>}</div>;
 }
 export function CursorControls({ paging, next }: { paging: ReturnType<typeof useCursor>; next?: string | null }) {
   const { t } = useI18n();
@@ -39,8 +44,8 @@ function useSelectedRecord() {
 }
 export function CustomerOrders() {
   const { t } = useI18n();
-  const paging = useCursor(), [selected, setSelected] = useSelectedRecord();
-  const data = useQuery({ queryKey: ["orders", paging.cursor, paging.search], queryFn: () => request(paging.path("/api/v1/me/orders"), collection(OrderSchema)), refetchInterval: query => query.state.data?.items.some(item => ["pending_payment", "partially_paid", "paid", "paid_pending_delivery", "pending_verification"].includes(item.status)) ? 5000 : false });
+  const paging = useCursor("orders"), [selected, setSelected] = useSelectedRecord();
+  const data = useQuery({ queryKey: ["orders", paging.cursor, paging.search], queryFn: ({signal}) => request(paging.path("/api/v1/me/orders"), collection(OrderSchema), {signal}), refetchInterval: query => query.state.data?.items.some(item => ["pending_payment", "partially_paid", "paid", "paid_pending_delivery", "pending_verification"].includes(item.status)) ? 5000 : false });
   const detail = useQuery({ queryKey: ["order-detail", selected], queryFn: () => request(`/api/v1/me/orders/${encodeURIComponent(selected || "")}`, OrderSchema), enabled: !!selected });
   return <><Heading title={t("订单与到账")} description={t("从付款到交付，核对每笔购包和充值。已收款未交付时继续处理原订单。")} actions={<Button asChild><Link href="/workspace/plans">{t("购买套餐")}</Link></Button>} /><RecordSearch paging={paging} placeholder={t("搜索订单编号、订单类型或状态")} statuses={["pending_payment", "paid_pending_delivery", "fulfilled", "pending_verification", "refunded"]} hint={t("查询全部订单；选择状态会替换当前关键词。")} />
     {selected && <Card className="mb-6 border-brand/40"><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">{t("订单详情")}</h2><Button variant="ghost" size="sm" onClick={() => setSelected(undefined)}>{t("收起详情")}</Button></div>{detail.isPending ? <Loading /> : detail.isError ? <ErrorPanel error={detail.error} retry={() => void detail.refetch()} /> : <PaymentAction order={detail.data} />}<div className="mt-5 flex flex-wrap gap-5 text-sm text-brand-emphasis"><Link href="/workspace/credit-sources" className="underline">{t("额度与到期记录")}</Link><Link href="/workspace/invoices" className="underline">{t("开票与交易凭证")}</Link><Link href="/workspace/refunds" className="underline">{t("退款与异常办理")}</Link></div></Card>}
@@ -50,8 +55,8 @@ const creditSourceLabels: Record<string, string> = { paid: "购买额度", purch
 const inFlight = ["accepted", "executing", "submitted", "awaiting_usage", "cancellation_requested"];
 export function CustomerRequests() {
   const { t } = useI18n();
-  const paging = useCursor(), [selected, setSelected] = useSelectedRecord();
-  const data = useQuery({ queryKey: ["requests", paging.cursor, paging.search], queryFn: () => request(paging.path("/api/v1/me/requests"), collection(RequestSchema)), refetchInterval: query => query.state.data?.items.some(item => inFlight.includes(item.status)) ? 5000 : false });
+  const paging = useCursor("requests"), [selected, setSelected] = useSelectedRecord();
+  const data = useQuery({ queryKey: ["requests", paging.cursor, paging.search], queryFn: ({signal}) => request(paging.path("/api/v1/me/requests"), collection(RequestSchema), {signal}), refetchInterval: query => query.state.data?.items.some(item => inFlight.includes(item.status)) ? 5000 : false });
   const detail = useQuery({ queryKey: ["request-detail", selected], queryFn: () => request(`/api/v1/me/requests/${encodeURIComponent(selected || "")}`, RequestSchema), enabled: !!selected, refetchInterval: query => query.state.data && inFlight.includes(query.state.data.status) ? 3000 : false });
   return <><Heading title={t("用量与账单")} description={t("按请求核对模型、Key 和费用，获取尚在保留期的异步结果。")} actions={<Button variant="outline" onClick={() => void data.refetch()} disabled={data.isFetching}>{t("刷新记录")}</Button>} /><RecordSearch paging={paging} placeholder={t("搜索请求编号、模型 ID 或状态")} statuses={["completed", "accepted", "executing", "submitted", "awaiting_usage", "cancellation_requested", "failed", "free"]} hint={t("查询全部调用；选择状态会替换当前关键词。")} />
     {selected && <Card className="mb-6 border-brand/40"><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">{t("本次请求如何计费")}</h2><Button variant="ghost" size="sm" onClick={() => setSelected(undefined)}>{t("收起详情")}</Button></div>{detail.isPending ? <Loading /> : detail.isError ? <ErrorPanel error={detail.error} retry={() => void detail.refetch()} /> : <RequestDetail item={detail.data} />}</Card>}

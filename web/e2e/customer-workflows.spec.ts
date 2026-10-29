@@ -3,9 +3,9 @@ import { expect, test, type Page } from "@playwright/test";
 const brand = { id: "brand-customer", name: "山海模型", api_base_url: "https://api.shanhai.example/v1", theme: {} };
 const operator = { id: "customer-operator", name: "山海经营方", kind: "oem", brand_id: brand.id };
 const amount = "10.000000000000000001";
-const plan = { id: "plan-one", name: "通用套餐", price_usd: amount, purchase_atg: "20", gift_atg: "2", validity: "month", auto_renew_available: true, status: "active", version: 1 };
-const quote = { id: "quote-one", plan_id: plan.id, plan_name: plan.name, operator_name: operator.name, amount_usd: amount, purchase_atg: "20", plan_gift_atg: "2", operator_gift_atg: "0", kol_gift_atg: "0", total_atg: "22", validity: "month", terms_version: "terms-one", expires_at: "2099-10-18T00:00:00Z", warnings: [] };
-const order = { id: "order-one", status: "fulfilled", kind: "package", operator_name: operator.name, amount_usd: amount, paid_usd: amount, plan_name: plan.name, created_at: "2026-10-18T00:00:00Z", delivered_at: "2026-10-18T00:01:00Z" };
+const plan = { id: "plan-one", name: "通用套餐", price_money: amount, purchase_atg: "20", gift_atg: "2", validity: "month", auto_renew_available: true, status: "active", version: 1 };
+const quote = { id: "quote-one", plan_id: plan.id, plan_name: plan.name, operator_name: operator.name, amount_money: amount, purchase_atg: "20", plan_gift_atg: "2", operator_gift_atg: "0", kol_gift_atg: "0", total_atg: "22", validity: "month", terms_version: "terms-one", expires_at: "2099-10-18T00:00:00Z", warnings: [] };
+const order = { id: "order-one", status: "fulfilled", kind: "package", operator_name: operator.name, amount_money: amount, paid_money: amount, plan_name: plan.name, created_at: "2026-10-18T00:00:00Z", delivered_at: "2026-10-18T00:01:00Z" };
 
 async function customerAPI(page: Page) {
   await page.route("**/api/v1/**", async route => {
@@ -13,7 +13,7 @@ async function customerAPI(page: Page) {
     let data: unknown = { items: [] };
     if (path === "/api/v1/public/context") data = { brand, operator, theme: {}, availability: [], payment_methods: [{ id: "bank", name: "银行转账", kind: "offline", status: "ready" }] };
     else if (path === "/api/v1/auth/me") data = { kind: "customer", customer: { id: "customer-one", display_name: "林同学", email: "lin@example.test" }, brand, operator, csrf_token: "csrf_customer_test" };
-    else if (path === "/api/v1/me/credits") data = { customer_atg: { available: "20", held: "0", purchased_remaining: "20", gift_remaining: "0" }, usd_balance: { available: amount, held: "0" }, commission_usd: { available: "100", held: "0", frozen: "50", recovery_due: "0" }, qualification: { confirmed_usd: "0", pending_usd: "0", threshold_usd: "100", qualified_at: null, function_status: "normal" } };
+    else if (path === "/api/v1/me/credits") data = { customer_atg: { available: "20", held: "0", purchased_remaining: "20", gift_remaining: "0" }, money_balance: { available: amount, held: "0" }, commission_money: { available: "100", held: "0", frozen: "50", recovery_due: "0" }, qualification: { confirmed_money: "0", pending_money: "0", threshold_money: "100", qualified_at: null, function_status: "normal" } };
     else if (path === "/api/v1/me/plans/catalog") data = { items: [plan, { ...plan, id: "plan-two", name: "另一个套餐" }] };
     else if (path === "/api/v1/public/plans") data = { items: [plan] };
     else if (path === "/api/v1/me/orders/quotes") data = quote;
@@ -46,7 +46,7 @@ for (const navigationMode of ["native", "fallback"] as const) test(`unknown chec
   await choosePlan.click();
   await expect(page).toHaveURL(/\/workspace\/plans\?plan=plan-one$/);
   await page.getByRole("button", { name: "继续，核对成交条款" }).click();
-  await expect(page.getByLabel("本次使用 USD 支付余额")).toHaveValue(amount);
+  await expect(page.getByLabel("本次使用 结算币种 支付余额")).toHaveValue(amount);
   await expect(page.getByLabel("使用可用佣金补足", { exact: false })).not.toBeChecked();
   await expect(page.getByLabel("授权到期自动续费")).not.toBeChecked();
   await page.getByLabel("我确认本次价格", { exact: false }).check();
@@ -69,7 +69,7 @@ for (const navigationMode of ["native", "fallback"] as const) test(`unknown chec
   expect(attempts).toHaveLength(2);
   expect(attempts[1]).toEqual(attempts[0]);
   expect(logoutAttempts).toBe(0);
-  expect(JSON.parse(attempts[0].body || "{}")).toEqual({ quote_id: "quote-one", terms_version: "terms-one", funding: { usd_balance: amount, commission_usd: "0" }, auto_renew: false, allow_commission: false });
+  expect(JSON.parse(attempts[0].body || "{}")).toEqual({ quote_id: "quote-one", terms_version: "terms-one", funding: { money_balance: amount, commission_money: "0" }, auto_renew: false, allow_commission: false });
   await page.getByRole("link", { name: "创建或管理 Key" }).click();
   await expect(page).toHaveURL(/\/workspace\/keys$/);
 });

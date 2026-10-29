@@ -48,10 +48,10 @@ type BuyerRefundLegView struct {
 	Currency      string         `json:"currency"`
 	Network       string         `json:"network,omitempty"`
 	TokenContract string         `json:"token_contract,omitempty"`
-	AmountUSD     ledger.Decimal `json:"amount_usd"`
-	SettledUSD    ledger.Decimal `json:"settled_usd"`
-	ActualUSD     ledger.Decimal `json:"actual_usd"`
-	ExcessUSD     ledger.Decimal `json:"excess_usd"`
+	AmountMoney   ledger.Decimal `json:"amount_money"`
+	SettledMoney  ledger.Decimal `json:"settled_money"`
+	ActualMoney   ledger.Decimal `json:"actual_money"`
+	ExcessMoney   ledger.Decimal `json:"excess_money"`
 }
 
 func (p *ProcurementRefunds) BuyerRefundLegs(ctx context.Context, actor, buyer string) ([]BuyerRefundLegView, error) {
@@ -75,7 +75,7 @@ func (p *ProcurementRefunds) BuyerRefundLegs(ctx context.Context, actor, buyer s
 				if e != nil {
 					return e
 				}
-				out = append(out, BuyerRefundLegView{ID: leg.ID, ExitID: leg.ExitID, State: leg.State, Driver: "manual", Currency: receipt.Currency, Network: receipt.Network, AmountUSD: leg.AmountUSD, SettledUSD: leg.SettledUSD, ActualUSD: leg.ActualUSD, ExcessUSD: leg.ExcessUSD})
+				out = append(out, BuyerRefundLegView{ID: leg.ID, ExitID: leg.ExitID, State: leg.State, Driver: "manual", Currency: receipt.Currency, Network: receipt.Network, AmountMoney: leg.AmountMoney, SettledMoney: leg.SettledMoney, ActualMoney: leg.ActualMoney, ExcessMoney: leg.ExcessMoney})
 				continue
 			}
 			source, e := copy.PaymentSourceForReceipt(ctx, leg.SupplierID, leg.ReceiptID)
@@ -90,7 +90,7 @@ func (p *ProcurementRefunds) BuyerRefundLegs(ctx context.Context, actor, buyer s
 			if m.Driver == "evm_wallet" {
 				network, contract = m.Credentials["chain_id"], m.Credentials["token_contract"]
 			}
-			out = append(out, BuyerRefundLegView{ID: leg.ID, ExitID: leg.ExitID, State: leg.State, Driver: source.Driver, Currency: source.OriginalOrder.Money.Currency, Network: network, TokenContract: contract, AmountUSD: leg.AmountUSD, SettledUSD: leg.SettledUSD, ActualUSD: leg.ActualUSD, ExcessUSD: leg.ExcessUSD})
+			out = append(out, BuyerRefundLegView{ID: leg.ID, ExitID: leg.ExitID, State: leg.State, Driver: source.Driver, Currency: source.OriginalOrder.Money.Currency, Network: network, TokenContract: contract, AmountMoney: leg.AmountMoney, SettledMoney: leg.SettledMoney, ActualMoney: leg.ActualMoney, ExcessMoney: leg.ExcessMoney})
 		}
 		return nil
 	})
@@ -301,7 +301,7 @@ func (p *ProcurementRefunds) RequireExternalRefundFact(ctx context.Context, tx *
 	if e := p.Cooperation.Organization.RequirePermission(ctx, tx, actor, leg.SupplierID, "payments.manage"); e != nil {
 		return e
 	}
-	if r.USDAmount.Cmp(leg.AmountUSD) != 0 || r.Order.ID != leg.OriginOrderID || r.Order.MerchantID != leg.MerchantID || r.Order.OperatorID != leg.SupplierID {
+	if r.MoneyAmount.Cmp(leg.AmountMoney) != 0 || r.Order.ID != leg.OriginOrderID || r.Order.MerchantID != leg.MerchantID || r.Order.OperatorID != leg.SupplierID {
 		return ErrConflict
 	}
 	expected, e := p.destinationByID(ctx, tx, leg, d.AuthorizationReference)
@@ -361,7 +361,7 @@ func (p *ProcurementRefunds) externalRefund(ctx context.Context, actor, id, auth
 		if e != nil {
 			return e
 		}
-		r = payments.Refund{ID: leg.ID, Order: source.OriginalOrder, USDAmount: leg.AmountUSD}
+		r = payments.Refund{ID: leg.ID, Order: source.OriginalOrder, MoneyAmount: leg.AmountMoney}
 		return nil
 	})
 	return leg, r, d, e

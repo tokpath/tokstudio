@@ -244,15 +244,10 @@
     "ja": "区間別ボーナス規則",
     "ru": "Бонусы по диапазонам"
   },
-  "每 1 USD 固定购买 1 ATG。赠送只计算落在本阶区间的金额，填 1 表示 1%，最后一阶没有上限。": {
-    "en": "Each USD buys 1 ATG. A bonus applies only to the amount within its band. Enter 1 for 1%. The last band has no upper limit.",
-    "ja": "1 USD で 1 ATG を購入します。ボーナスは各区間内の金額だけに適用されます。1% は 1 と入力します。最終区間に上限はありません。",
-    "ru": "За каждый USD приобретается 1 ATG. Бонус начисляется только на сумму внутри диапазона. Для 1% введите 1. Последний диапазон не ограничен сверху."
-  },
-  "区间起点 USD": {
-    "en": "Band starts at USD",
-    "ja": "区間開始額 USD",
-    "ru": "Начало диапазона, USD"
+  "区间起点 结算币种": {
+    "en": "Band starts at settlement currency",
+    "ja": "区間開始額 決済通貨",
+    "ru": "Начало диапазона, валюта расчётов"
   },
   "本段赠送 %": {
     "en": "Bonus for this band %",
@@ -264,30 +259,25 @@
     "ja": "ボーナス区間を追加",
     "ru": "Добавить диапазон"
   },
-  "试算采购金额 USD": {
-    "en": "Preview purchase amount USD",
-    "ja": "仕入額を試算 USD",
-    "ru": "Сумма для расчёта, USD"
+  "试算采购金额 结算币种": {
+    "en": "Preview purchase amount settlement currency",
+    "ja": "仕入額を試算 決済通貨",
+    "ru": "Сумма для расчёта, валюта расчётов"
   },
-  "{from}–{to} USD 部分赠送 {percent}%": {
-    "en": "{from}–{to} USD portion: {percent}% bonus",
-    "ja": "{from}–{to} USD の部分に {percent}% ボーナス",
-    "ru": "На часть {from}–{to} USD: бонус {percent}%"
+  "{from}–{to} 结算币种 部分赠送 {percent}%": {
+    "en": "{from}–{to} settlement currency portion: {percent}% bonus",
+    "ja": "{from}–{to} 決済通貨 の部分に {percent}% ボーナス",
+    "ru": "На часть {from}–{to} валюта расчётов: бонус {percent}%"
   },
-  "超过 {from} USD 的部分赠送 {percent}%": {
-    "en": "Portion above {from} USD: {percent}% bonus",
-    "ja": "{from} USD を超える部分に {percent}% ボーナス",
-    "ru": "На часть свыше {from} USD: бонус {percent}%"
+  "超过 {from} 结算币种 的部分赠送 {percent}%": {
+    "en": "Portion above {from} settlement currency: {percent}% bonus",
+    "ja": "{from} 決済通貨 を超える部分に {percent}% ボーナス",
+    "ru": "На часть свыше {from} валюта расчётов: бонус {percent}%"
   },
   "购买 {paid} ATG + 赠送 {gift} ATG = 合计 {total} ATG": {
     "en": "Purchased {paid} ATG + bonus {gift} ATG = {total} ATG total",
     "ja": "購入 {paid} ATG + ボーナス {gift} ATG = 合計 {total} ATG",
     "ru": "Покупка {paid} ATG + бонус {gift} ATG = всего {total} ATG"
-  },
-  "每 1 USD 购买 1 ATG；赠送按本单金额分段累加，不跨订单累计。": {
-    "en": "Each USD buys 1 ATG. Bonuses accumulate across this order’s bands, never across orders.",
-    "ja": "1 USD で 1 ATG を購入。ボーナスは本注文の区間ごとに加算し、別注文とは合算しません。",
-    "ru": "Каждый USD даёт 1 ATG. Бонусы суммируются по диапазонам одного заказа, без объединения заказов."
   },
   "填写有效金额和连续阶梯后显示试算结果。": {
     "en": "Enter a valid amount and ordered bands to preview the result.",
@@ -314,10 +304,10 @@
     "ja": "ボーナス区間を 1 つ以上設定してください。",
     "ru": "Задайте хотя бы один бонусный диапазон."
   },
-  "首阶从 0 USD 开始，后续起点必须依次递增。": {
-    "en": "The first band starts at 0 USD; later thresholds must increase strictly.",
-    "ja": "最初の区間は 0 USD から開始し、以降の開始額は順に大きくしてください。",
-    "ru": "Первый диапазон начинается с 0 USD; следующие пороги должны строго возрастать."
+  "首阶从 0 结算币种 开始，后续起点必须依次递增。": {
+    "en": "The first band starts at 0 settlement currency; later thresholds must increase strictly.",
+    "ja": "最初の区間は 0 決済通貨 から開始し、以降の開始額は順に大きくしてください。",
+    "ru": "Первый диапазон начинается с 0 валюта расчётов; следующие пороги должны строго возрастать."
   },
   "采购金额必须大于 0。": {
     "en": "Purchase amount must be greater than zero.",
@@ -329,20 +319,20 @@
     "ja": "金額を指定して仕入れ",
     "ru": "Закупить на сумму"
   },
-  "本次采购USD": {
-    "en": "Purchase amount USD",
-    "ja": "今回の仕入額 USD",
-    "ru": "Сумма закупки, USD"
+  "本次采购结算币种": {
+    "en": "Purchase amount settlement currency",
+    "ja": "今回の仕入額 決済通貨",
+    "ru": "Сумма закупки, валюта расчётов"
   },
-  "每次采购USD": {
-    "en": "Amount per replenishment USD",
-    "ja": "補充 1 回の仕入額 USD",
-    "ru": "Сумма каждого пополнения, USD"
+  "每次采购结算币种": {
+    "en": "Amount per replenishment settlement currency",
+    "ja": "補充 1 回の仕入額 決済通貨",
+    "ru": "Сумма каждого пополнения, валюта расчётов"
   },
-  "已收款USD": {
-    "en": "Received USD",
-    "ja": "受領済 USD",
-    "ru": "Получено, USD"
+  "已收款结算币种": {
+    "en": "Received settlement currency",
+    "ja": "受領済 決済通貨",
+    "ru": "Получено, валюта расчётов"
   },
   "本方已核实的整笔收款": {
     "en": "One whole verified receipt",
@@ -364,10 +354,10 @@
     "ja": "未割当で注文金額と完全に一致する入金 1 件のみ関連付けできます。確認後、自動付与します。",
     "ru": "Привяжите один нераспределённый платёж с точной суммой заказа. После подтверждения ATG начислятся автоматически."
   },
-  "选择一笔尚未分配的收款，系统按该笔 USD 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。": {
-    "en": "Select one unallocated receipt. Its USD value and this quote determine purchased and bonus ATG; the order and delivery complete together.",
-    "ja": "未割当の入金を 1 件選択します。USD 金額と本見積から購入・ボーナス ATG を計算し、注文作成と付与を一度に完了します。",
-    "ru": "Выберите один нераспределённый платёж. По его сумме в USD и этому предложению система рассчитает ATG покупки и бонуса, создаст и исполнит заказ."
+  "选择一笔尚未分配的收款，系统按该笔 结算币种 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。": {
+    "en": "Select one unallocated receipt. Its settlement currency value and this quote determine purchased and bonus ATG; the order and delivery complete together.",
+    "ja": "未割当の入金を 1 件選択します。決済通貨 金額と本見積から購入・ボーナス ATG を計算し、注文作成と付与を一度に完了します。",
+    "ru": "Выберите один нераспределённый платёж. По его сумме в валюта расчётов и этому предложению система рассчитает ATG покупки и бонуса, создаст и исполнит заказ."
   },
   "每单使用一个付款方式和一笔足额付款。付款结果未知时查询原交易，不能另付一笔。足额核实后自动交付。": {
     "en": "Use one payment method and one full payment per order. If the outcome is unknown, query the original transaction instead of paying again. Verified full payment triggers delivery.",
@@ -393,16 +383,6 @@
     "en": "Payment exception, awaiting review",
     "ja": "入金例外・確認対応待ち",
     "ru": "Нестандартный платёж, ожидает проверки"
-  },
-  "1 USD = 1 ATG + 阶梯赠送": {
-    "en": "1 USD = 1 ATG + tiered bonuses",
-    "ja": "1 USD = 1 ATG + 段階別ボーナス",
-    "ru": "1 USD = 1 ATG + ступенчатые бонусы"
-  },
-  "每 1 USD 购买 1 ATG，赠送按本单金额分段累加。每单一笔线上或线下付款，足额核实后自动交付。待付款订单持续占用供货库存，取消后释放。": {
-    "en": "Each USD buys 1 ATG, with bonuses accumulated across this order’s bands. One online or offline payment per order; verified full payment triggers delivery. Unpaid orders reserve supply capacity until delivery or cancellation.",
-    "ja": "1 USD で 1 ATG を購入し、本注文の区間ごとにボーナスを加算します。各注文はオンラインまたはオフラインの 1 回払いで、全額確認後に自動付与します。未払い注文は付与または取消まで供給枠を確保します。",
-    "ru": "Каждый USD даёт 1 ATG, бонусы суммируются по диапазонам одного заказа. Один онлайн- или офлайн-платёж на заказ; подтверждение всей суммы запускает начисление. Неоплаченные заказы резервируют объём до исполнения или отмены."
   },
   "已归档": {
     "en": "Archived",
@@ -434,10 +414,10 @@
     "ja": "支払い失敗・未請求",
     "ru": "Платёж не прошёл, списания нет"
   },
-  "按字段标示的 USD、ATG 或原币种填写，精确值按原样提交。": {
-    "en": "Use the stated USD, ATG or original currency. Exact values are submitted unchanged.",
-    "ja": "表示された USD、ATG または元の通貨で入力してください。正確な値をそのまま送信します。",
-    "ru": "Указывайте суммы в обозначенных USD, ATG или исходной валюте. Точные значения передаются без изменения."
+  "按字段标示的 结算币种、ATG 或原币种填写，精确值按原样提交。": {
+    "en": "Use the stated settlement currency, ATG or original currency. Exact values are submitted unchanged.",
+    "ja": "表示された 決済通貨、ATG または元の通貨で入力してください。正確な値をそのまま送信します。",
+    "ru": "Указывайте суммы в обозначенных валюта расчётов, ATG или исходной валюте. Точные значения передаются без изменения."
   },
   "自动补货按原授权付款，请在自动补货中查看原交易结果。": {
     "en": "Automatic replenishment uses the original payment authorization. Check the original transaction under Automatic replenishment.",

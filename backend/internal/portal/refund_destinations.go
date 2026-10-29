@@ -77,7 +77,7 @@ func (a *Application) externalRefundAction(c *gin.Context, actor, operator, acti
 	case "confirm_fee":
 		var in struct {
 			LegID      string         `json:"leg_id"`
-			FeeUSD     ledger.Decimal `json:"fee_usd"`
+			FeeMoney   ledger.Decimal `json:"fee_money"`
 			Reference  string         `json:"reference"`
 			Evidence   string         `json:"evidence"`
 			OccurredAt time.Time      `json:"occurred_at"`
@@ -101,7 +101,7 @@ func (a *Application) externalRefundAction(c *gin.Context, actor, operator, acti
 			return true
 		}
 		k, _ := key(c)
-		out, e := a.Remediation.ConfirmRefundFee(c.Request.Context(), nil, remediation.RefundFeeInput{OperatorID: operator, LegID: in.LegID, PaymentBusinessKey: business, BusinessKey: k, ActorID: actor, FeeUSD: in.FeeUSD, Reference: in.Reference, Evidence: in.Evidence, OccurredAt: in.OccurredAt})
+		out, e := a.Remediation.ConfirmRefundFee(c.Request.Context(), nil, remediation.RefundFeeInput{OperatorID: operator, LegID: in.LegID, PaymentBusinessKey: business, BusinessKey: k, ActorID: actor, FeeMoney: in.FeeMoney, Reference: in.Reference, Evidence: in.Evidence, OccurredAt: in.OccurredAt})
 		if e != nil {
 			handleError(c, e)
 			return true
@@ -152,9 +152,9 @@ func (a *Application) externalRefundAction(c *gin.Context, actor, operator, acti
 			MerchantID           string                              `json:"merchant_id"`
 			EVM                  payments.EVMRefundVerification      `json:"evm"`
 			External             payments.ExternalRefundVerification `json:"external"`
-			Valuation            payments.Valuation                  `json:"valuation"`
-			ValuedAt             time.Time                           `json:"valued_at"`
-			FX                   string                              `json:"fx_execution_reference"`
+			Valuation            payments.Valuation                  `json:"-"`
+			SettlementAmount     ledger.Decimal                      `json:"settlement_amount"`
+			SettlementEvidence   string                              `json:"settlement_evidence"`
 			VerificationEvidence string                              `json:"verification_evidence"`
 		}
 		if !body(c, &in) {
@@ -177,8 +177,12 @@ func (a *Application) externalRefundAction(c *gin.Context, actor, operator, acti
 		}
 		d := status.AuthorizedDestination
 		destination := payments.ExternalRefundDestination{Network: d.Network, Asset: d.Asset, TokenContract: d.TokenContract, Address: d.Address, AuthorizationReference: status.AuthorizationID, VerificationEvidence: in.VerificationEvidence}
-		in.Valuation = payments.EnsureValuationIdentity(in.Valuation, "retail-external:"+operator+":"+leg.ID+":"+in.External.ExternalReference+":"+in.EVM.TransactionHash+":"+in.EVM.LogIndex, d.Asset)
-		refund := payments.Refund{ID: leg.ID, USDAmount: leg.AmountUSD, RefundValuation: in.Valuation, ValuedAt: in.ValuedAt, FXExecutionReference: in.FX}
+		in.Valuation, e = a.refundSettlementConfirmation(ctx, "retail-external:"+operator+":"+leg.ID+":"+in.External.ExternalReference+":"+in.EVM.TransactionHash+":"+in.EVM.LogIndex, in.SettlementAmount, in.SettlementEvidence)
+		if e != nil {
+			handleError(c, e)
+			return true
+		}
+		refund := payments.Refund{ID: leg.ID, MoneyAmount: leg.AmountMoney, RefundValuation: in.Valuation}
 		in.EVM.ReceiptID, in.EVM.Destination = leg.ReceiptID, destination
 		in.External.ReceiptID, in.External.Destination = leg.ReceiptID, destination
 		var out payments.RefundStatus

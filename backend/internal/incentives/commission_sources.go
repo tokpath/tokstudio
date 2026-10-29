@@ -10,18 +10,18 @@ import (
 )
 
 type commissionSourceFlag struct {
-	EventID, Reference, OperatorID string
-	NumeratorUSD, DenominatorUSD   ledger.Decimal
-	Active                         bool
-	Evidence                       string
-	CreatedAt, UpdatedAt           time.Time
+	EventID, Reference, OperatorID   string
+	NumeratorMoney, DenominatorMoney ledger.Decimal
+	Active                           bool
+	Evidence                         string
+	CreatedAt, UpdatedAt             time.Time
 }
 
 func (commissionSourceFlag) TableName() string { return "incentives_commission_source_flags" }
 
 type commissionEntryFlag struct {
 	EntryID, Reference, EventID string
-	BlockedUSD                  ledger.Decimal
+	BlockedMoney                ledger.Decimal
 	Active                      bool
 	CreatedAt                   time.Time
 }
@@ -30,7 +30,7 @@ func (commissionEntryFlag) TableName() string { return "incentives_commission_en
 
 type commissionDisputeHold struct {
 	EntryID, Reference, OperatorID, HoldID string
-	AmountUSD                              ledger.Decimal
+	AmountMoney                            ledger.Decimal
 	State                                  string
 	CreatedAt                              time.Time
 }
@@ -61,12 +61,12 @@ func (s *Service) FlagCommissionSource(ctx context.Context, t *gorm.DB, actor, o
 		return q.Error
 	}
 	if q.RowsAffected > 0 {
-		if !previous.Active || previous.NumeratorUSD.Cmp(numerator) != 0 || previous.DenominatorUSD.Cmp(denominator) != 0 || previous.Evidence != evidence {
+		if !previous.Active || previous.NumeratorMoney.Cmp(numerator) != 0 || previous.DenominatorMoney.Cmp(denominator) != 0 || previous.Evidence != evidence {
 			return ErrConflict
 		}
 		return nil
 	}
-	flag := commissionSourceFlag{EventID: event.ID, Reference: reference, OperatorID: op, NumeratorUSD: numerator, DenominatorUSD: denominator, Active: true, Evidence: evidence}
+	flag := commissionSourceFlag{EventID: event.ID, Reference: reference, OperatorID: op, NumeratorMoney: numerator, DenominatorMoney: denominator, Active: true, Evidence: evidence}
 	if e := t.Create(&flag).Error; e != nil {
 		return e
 	}
@@ -79,7 +79,7 @@ func (s *Service) FlagCommissionSource(ctx context.Context, t *gorm.DB, actor, o
 			return e
 		}
 	}
-	return s.event(t, op, event.ID, "commission.source_restricted", map[string]any{"actor_id": actor, "evidence": evidence, "reference": reference, "source_event_id": sourceEvent, "numerator_usd": numerator, "denominator_usd": denominator})
+	return s.event(t, op, event.ID, "commission.source_restricted", map[string]any{"actor_id": actor, "evidence": evidence, "reference": reference, "source_event_id": sourceEvent, "numerator_money": numerator, "denominator_money": denominator})
 }
 func (s *Service) applyFlagsToLot(t *gorm.DB, lot commissionLot) error {
 	var entry commissionRow
@@ -99,15 +99,15 @@ func (s *Service) applyFlagsToLot(t *gorm.DB, lot commissionLot) error {
 			continue
 		}
 		var already ledger.Decimal
-		if e := t.Model(&commissionEntryFlag{}).Select("COALESCE(sum(blocked_usd),0)::text").Where("entry_id=? AND active", lot.EntryID).Row().Scan(&already); e != nil {
+		if e := t.Model(&commissionEntryFlag{}).Select("COALESCE(sum(blocked_money),0)::text").Where("entry_id=? AND active", lot.EntryID).Row().Scan(&already); e != nil {
 			return e
 		}
-		remaining := lot.AmountUSD.Sub(lot.ConsumedUSD).Sub(already)
+		remaining := lot.AmountMoney.Sub(lot.ConsumedMoney).Sub(already)
 		if remaining.Sign() < 0 {
 			remaining = ledger.Zero()
 		}
-		blocked, _ := ledger.Quantize(newRatio(remaining, flag.NumeratorUSD, flag.DenominatorUSD))
-		if e := t.Create(&commissionEntryFlag{EntryID: lot.EntryID, Reference: flag.Reference, EventID: entry.EventID, BlockedUSD: blocked, Active: true}).Error; e != nil {
+		blocked, _ := ledger.Quantize(newRatio(remaining, flag.NumeratorMoney, flag.DenominatorMoney))
+		if e := t.Create(&commissionEntryFlag{EntryID: lot.EntryID, Reference: flag.Reference, EventID: entry.EventID, BlockedMoney: blocked, Active: true}).Error; e != nil {
 			return e
 		}
 	}
@@ -120,9 +120,9 @@ func (s *Service) expandRestoredFlags(t *gorm.DB, entry string, amount ledger.De
 	}
 	remaining := amount
 	for _, flag := range flags {
-		blocked, _ := ledger.Quantize(newRatio(remaining, flag.NumeratorUSD, flag.DenominatorUSD))
+		blocked, _ := ledger.Quantize(newRatio(remaining, flag.NumeratorMoney, flag.DenominatorMoney))
 		if blocked.Sign() > 0 {
-			if e := t.Model(&commissionEntryFlag{}).Where("entry_id=? AND reference=? AND active", entry, flag.Reference).Update("blocked_usd", gorm.Expr("blocked_usd+?", blocked)).Error; e != nil {
+			if e := t.Model(&commissionEntryFlag{}).Where("entry_id=? AND reference=? AND active", entry, flag.Reference).Update("blocked_money", gorm.Expr("blocked_money+?", blocked)).Error; e != nil {
 				return e
 			}
 		}
@@ -161,12 +161,12 @@ func (s *Service) HoldCommissionSource(ctx context.Context, t *gorm.DB, actor, o
 		if e := t.First(&lot, "entry_id=?", flag.EntryID).Error; e != nil {
 			return e
 		}
-		remaining := lot.AmountUSD.Sub(lot.ConsumedUSD)
-		amount := minimum(flag.BlockedUSD, remaining)
+		remaining := lot.AmountMoney.Sub(lot.ConsumedMoney)
+		amount := minimum(flag.BlockedMoney, remaining)
 		if amount.IsZero() {
 			continue
 		}
-		if amount.Cmp(remaining.Sub(lot.ReservedUSD)) > 0 {
+		if amount.Cmp(remaining.Sub(lot.ReservedMoney)) > 0 {
 			return ErrBlocked
 		}
 		key := reference + ":" + lot.EntryID
@@ -185,7 +185,7 @@ func (s *Service) HoldCommissionSource(ctx context.Context, t *gorm.DB, actor, o
 		if e != nil {
 			return e
 		}
-		if e = t.Create(&commissionDisputeHold{EntryID: lot.EntryID, Reference: reference, OperatorID: op, HoldID: hold.ID, AmountUSD: amount, State: "held"}).Error; e != nil {
+		if e = t.Create(&commissionDisputeHold{EntryID: lot.EntryID, Reference: reference, OperatorID: op, HoldID: hold.ID, AmountMoney: amount, State: "held"}).Error; e != nil {
 			return e
 		}
 	}

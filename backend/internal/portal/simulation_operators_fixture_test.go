@@ -75,7 +75,7 @@ func (f *testApp) seedOperatorSimulation(t *testing.T, lab string) map[string]an
 	if err = f.a.DB.Table("branding_domains").Create(&domain).Error; err != nil {
 		t.Fatal(err)
 	}
-	if _, err = f.a.Cooperation.DeliverPurchase(ctx, nil, cooperation.PurchaseInput{BuyerID: oem.Operator.ID, SupplierID: platform, OrderID: uuid.NewString(), ReceiptReference: "synthetic-operator-opening-inventory", ActorID: platformOwner, PaidUSD: d("800"), PaidATG: d("1000"), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"synthetic-opening"}`), At: now}); err != nil {
+	if _, err = f.a.Cooperation.DeliverPurchase(ctx, nil, cooperation.PurchaseInput{BuyerID: oem.Operator.ID, SupplierID: platform, OrderID: uuid.NewString(), ReceiptReference: "synthetic-operator-opening-inventory", ActorID: platformOwner, PaidMoney: d("800"), PaidATG: d("1000"), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"synthetic-opening"}`), At: now}); err != nil {
 		t.Fatal(err)
 	}
 	if err = f.a.Catalog.SetAuthorization(ctx, platform, oem.Operator.ID, model, true, 0); err != nil {
@@ -105,7 +105,7 @@ func (f *testApp) seedOperatorSimulation(t *testing.T, lab string) map[string]an
 	oemMerchant := manual(oemOwner.ID, oem.Operator.ID, "山海 OEM")
 	channelMerchant := manual(channelOwner.ID, channel.Operator.ID, "星河渠道")
 	for _, pair := range [][2]string{{oem.Operator.ID, oemOwner.ID}, {channel.Operator.ID, channelOwner.ID}, {spare.Operator.ID, spareOwner.ID}} {
-		if _, err = f.a.Incentives.SetPolicy(ctx, nil, pair[1], pair[0], incentives.PolicyInput{ThresholdUSD: d("60"), DirectRate: d("0.1"), IndirectRate: d("0.02"), RewardValiditySeconds: 86400, Evidence: "synthetic opening incentive terms"}); err != nil {
+		if _, err = f.a.Incentives.SetPolicy(ctx, nil, pair[1], pair[0], incentives.PolicyInput{ThresholdMoney: d("60"), DirectRate: d("0.1"), IndirectRate: d("0.02"), RewardValiditySeconds: 86400, Evidence: "synthetic opening incentive terms"}); err != nil {
 			t.Fatal(err)
 		}
 	}

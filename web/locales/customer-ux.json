@@ -14,10 +14,10 @@
     "ja": "支払い残高と利用クレジット",
     "ru": "Платёжный баланс и кредиты для вызовов"
   },
-  "例如：充值 10 USD 只增加支付余额；购买并交付套餐后才增加 ATG 调用额度。": {
-    "en": "For example, topping up 10 USD only increases your payment balance. ATG usage credits are added after a plan is purchased and delivered.",
-    "ja": "例：10 USD をチャージすると支払い残高のみが増えます。ATG 利用クレジットはプランの購入・付与後に増えます。",
-    "ru": "Например, пополнение на 10 USD увеличит только платёжный баланс. Кредиты ATG появятся после покупки и предоставления пакета."
+  "例如：充值 10 结算币种 只增加支付余额；购买并交付套餐后才增加 ATG 调用额度。": {
+    "en": "For example, topping up 10 settlement currency only increases your payment balance. ATG usage credits are added after a plan is purchased and delivered.",
+    "ja": "例：10 決済通貨 をチャージすると支払い残高のみが増えます。ATG 利用クレジットはプランの購入・付与後に増えます。",
+    "ru": "Например, пополнение на 10 валюта расчётов увеличит только платёжный баланс. Кредиты ATG появятся после покупки и предоставления пакета."
   },
   "Key 预算如何生效": {
     "en": "How Key budgets work",
@@ -89,10 +89,10 @@
     "ja": "今回の支払いの組み合わせ",
     "ru": "Как распределяется этот платёж"
   },
-  "例如：套餐 10 USD，余额 3 USD，默认用余额抵扣 3 USD，再直接支付 7 USD。勾选使用佣金后，才会用可用佣金继续补足。": {
-    "en": "For example, a 10 USD plan with a 3 USD balance uses 3 USD from your balance and charges the remaining 7 USD directly. Available commission is used only if you select it.",
-    "ja": "例：10 USD のプランで残高が 3 USD の場合、初期設定では残高から 3 USD を充当し、残りの 7 USD を直接支払います。利用可能なコミッションは、使用を選択した場合のみ充当されます。",
-    "ru": "Например, пакет за 10 USD при балансе 3 USD оплачивается 3 USD с баланса и 7 USD напрямую. Доступная комиссия используется только с вашего согласия."
+  "例如：套餐 10 结算币种，余额 3 结算币种，默认用余额抵扣 3 结算币种，再直接支付 7 结算币种。勾选使用佣金后，才会用可用佣金继续补足。": {
+    "en": "For example, a 10 settlement currency plan with a 3 settlement currency balance uses 3 settlement currency from your balance and charges the remaining 7 settlement currency directly. Available commission is used only if you select it.",
+    "ja": "例：10 決済通貨 のプランで残高が 3 決済通貨 の場合、初期設定では残高から 3 決済通貨 を充当し、残りの 7 決済通貨 を直接支払います。利用可能なコミッションは、使用を選択した場合のみ充当されます。",
+    "ru": "Например, пакет за 10 валюта расчётов при балансе 3 валюта расчётов оплачивается 3 валюта расчётов с баланса и 7 валюта расчётов напрямую. Доступная комиссия используется только с вашего согласия."
   },
   "本次使用佣金不会授权未来续费使用佣金。": {
     "en": "Using commission now does not authorize its use for future renewals.",
@@ -129,10 +129,10 @@
     "ja": "自動更新時の支払い方法",
     "ru": "Как оплачивается автопродление"
   },
-  "例如：月套餐到期时，用足额 USD 余额购买下一份套餐；只有单独授权后才用佣金补足。不会自动从外部钱包扣款，余额不足时不续费。": {
-    "en": "For example, when a monthly plan expires, a new plan is purchased with sufficient USD balance. Commission can cover a shortfall only with separate permission. External wallets are never charged automatically; renewal fails if authorized funds are insufficient.",
-    "ja": "例：月間プランの満了時に、十分な USD 残高で次のプランを購入します。コミッションによる不足分の補填には別途許可が必要です。外部ウォレットから自動で引き落とされることはなく、許可された資金が不足する場合は更新されません。",
-    "ru": "Например, по окончании месячного пакета новый пакет покупается при достаточном балансе USD. Комиссия покрывает нехватку только с отдельного разрешения. Внешние кошельки автоматически не списываются; при недостатке разрешённых средств продление не выполняется."
+  "例如：月套餐到期时，用足额 结算币种 余额购买下一份套餐；只有单独授权后才用佣金补足。不会自动从外部钱包扣款，余额不足时不续费。": {
+    "en": "For example, when a monthly plan expires, a new plan is purchased with sufficient settlement currency balance. Commission can cover a shortfall only with separate permission. External wallets are never charged automatically; renewal fails if authorized funds are insufficient.",
+    "ja": "例：月間プランの満了時に、十分な 決済通貨 残高で次のプランを購入します。コミッションによる不足分の補填には別途許可が必要です。外部ウォレットから自動で引き落とされることはなく、許可された資金が不足する場合は更新されません。",
+    "ru": "Например, по окончании месячного пакета новый пакет покупается при достаточном балансе валюта расчётов. Комиссия покрывает нехватку только с отдельного разрешения. Внешние кошельки автоматически не списываются; при недостатке разрешённых средств продление не выполняется."
   },
   "提前用完不会提前续费，当前套餐到期余量不结转；续费条件变差时须重新确认。": {
     "en": "Using all credits early does not trigger early renewal. Unused credits expire with the plan, and less favorable renewal terms require your confirmation again.",
@@ -194,15 +194,15 @@
     "ja": "保存済みのプロバイダー認証情報を選択すると、対応するプロバイダー参照が入力されます。実際の供給主体を指定し、プロトコル名やモデル名とは別に記録します。",
     "ru": "После выбора сохранённых учётных данных подставляется ссылка на соответствующего поставщика. Она должна указывать на реального поставщика и хранится отдельно от названий протокола и модели."
   },
-  "按双方接管合同填写服务责任每 ATG 的 USD 作价。例如 100 ATG、每 ATG 作价 0.02 USD，对应服务作价 2 USD；最终金额依完整责任快照核实，填写不会发起实际付款。": {
-    "en": "Enter the agreed USD value per ATG of service obligations. For example, 100 ATG at 0.02 USD per ATG is valued at 2 USD. The full obligation snapshot determines the final amount; entering a value does not initiate payment.",
-    "ja": "双方の接管契約に従って、サービス責任 1 ATG 当たりの USD 評価額を入力します。例：100 ATG × 0.02 USD = 2 USD。最終金額は完全な責任スナップショットで確認され、入力しても実際の支払いは開始されません。",
-    "ru": "Укажите согласованную договором стоимость обязательств в USD за ATG. Например, 100 ATG по 0.02 USD оцениваются в 2 USD. Итог проверяется по полному снимку обязательств; ввод не запускает платёж."
+  "按双方接管合同填写服务责任每 ATG 的 结算币种 作价。例如 100 ATG、每 ATG 作价 0.02 结算币种，对应服务作价 2 结算币种；最终金额依完整责任快照核实，填写不会发起实际付款。": {
+    "en": "Enter the agreed settlement currency value per ATG of service obligations. For example, 100 ATG at 0.02 settlement currency per ATG is valued at 2 settlement currency. The full obligation snapshot determines the final amount; entering a value does not initiate payment.",
+    "ja": "双方の接管契約に従って、サービス責任 1 ATG 当たりの 決済通貨 評価額を入力します。例：100 ATG × 0.02 決済通貨 = 2 決済通貨。最終金額は完全な責任スナップショットで確認され、入力しても実際の支払いは開始されません。",
+    "ru": "Укажите согласованную договором стоимость обязательств в валюта расчётов за ATG. Например, 100 ATG по 0.02 валюта расчётов оцениваются в 2 валюта расчётов. Итог проверяется по полному снимку обязательств; ввод не запускает платёж."
   },
-  "这是采购库存抵扣时每 ATG 的合同 USD 作价，与承接服务作价分别约定。系统按真实库存和合同规则核算抵扣，不会因填写此价格增加库存或直接退款。": {
-    "en": "This is the contractual USD value per ATG used to offset procurement inventory, agreed separately from service obligations. Offsets use actual inventory and contract rules. This value does not add inventory or directly issue a refund.",
-    "ja": "調達在庫の相殺に使用する 1 ATG 当たりの契約上の USD 評価額です。サービス責任の評価額とは別に合意します。実際の在庫と契約条件に基づいて相殺され、入力しても在庫追加や直接返金は行われません。",
-    "ru": "Это договорная стоимость ATG в USD для зачёта закупленного запаса, согласуемая отдельно от стоимости услуг. Зачёт рассчитывается по реальному запасу и договору. Ввод цены не увеличивает запас и не оформляет возврат."
+  "这是采购库存抵扣时每 ATG 的合同 结算币种 作价，与承接服务作价分别约定。系统按真实库存和合同规则核算抵扣，不会因填写此价格增加库存或直接退款。": {
+    "en": "This is the contractual settlement currency value per ATG used to offset procurement inventory, agreed separately from service obligations. Offsets use actual inventory and contract rules. This value does not add inventory or directly issue a refund.",
+    "ja": "調達在庫の相殺に使用する 1 ATG 当たりの契約上の 決済通貨 評価額です。サービス責任の評価額とは別に合意します。実際の在庫と契約条件に基づいて相殺され、入力しても在庫追加や直接返金は行われません。",
+    "ru": "Это договорная стоимость ATG в валюта расчётов для зачёта закупленного запаса, согласуемая отдельно от стоимости услуг. Зачёт рассчитывается по реальному запасу и договору. Ввод цены не увеличивает запас и не оформляет возврат."
   },
   "正数增加渠道向品牌的合同结清额，负数减少该金额，并可能改变付款方向。没有额外约定填写 0；请在完整快照核对最终结清方向。": {
     "en": "A positive amount increases the contractual settlement owed by the channel to the brand; a negative amount reduces it and may reverse the payment direction. Enter 0 if there is no extra agreement, and verify the final direction in the full snapshot.",
@@ -214,10 +214,10 @@
     "ja": "双方が確認した接管契約番号または文書参照を入力し、承継範囲、評価額、在庫退出、精算責任を確認します。計画の作成は契約の署名に代わるものではありません。",
     "ru": "Укажите номер или ссылку на договор, подтверждённый обеими сторонами. По нему проверяются объём передачи, оценка, выход из запасов и расчётные обязательства. Создание плана не заменяет подписание договора."
   },
-  "填写本次实际清偿的 USD 金额，手续费单独记录。例如到账结清 9.8 USD、付款方另付手续费 0.2 USD，此处填 9.8，手续费填 0.2；非 USD 执行应保留当次真实估值依据。": {
-    "en": "Enter the USD amount actually settled and record fees separately. For example, if 9.8 USD settles the obligation and the payer pays a separate 0.2 USD fee, enter 9.8 here and 0.2 as the fee. Keep current valuation evidence for non-USD payments.",
-    "ja": "今回実際に精算した USD 額を入力し、手数料は別に記録します。例：精算入金 9.8 USD、支払者が別途負担する手数料 0.2 USD の場合、ここに 9.8、手数料に 0.2 を入力します。外貨の場合は今回の実際の評価根拠を保存してください。",
-    "ru": "Укажите фактически погашенную сумму в USD, а комиссию отдельно. Например, при погашении 9.8 USD и дополнительной комиссии плательщика 0.2 USD укажите здесь 9.8, а в поле комиссии 0.2. Для иной валюты сохраните актуальное основание оценки."
+  "填写本次实际清偿的 结算币种 金额，手续费单独记录。例如到账结清 9.8 结算币种、付款方另付手续费 0.2 结算币种，此处填 9.8，手续费填 0.2；非 结算币种 执行应保留当次真实估值依据。": {
+    "en": "Enter the settlement currency amount actually settled and record fees separately. For example, if 9.8 settlement currency settles the obligation and the payer pays a separate 0.2 settlement currency fee, enter 9.8 here and 0.2 as the fee. Keep current valuation evidence for non-settlement currency payments.",
+    "ja": "今回実際に精算した 決済通貨 額を入力し、手数料は別に記録します。例：精算入金 9.8 決済通貨、支払者が別途負担する手数料 0.2 決済通貨 の場合、ここに 9.8、手数料に 0.2 を入力します。外貨の場合は今回の実際の評価根拠を保存してください。",
+    "ru": "Укажите фактически погашенную сумму в валюта расчётов, а комиссию отдельно. Например, при погашении 9.8 валюта расчётов и дополнительной комиссии плательщика 0.2 валюта расчётов укажите здесь 9.8, а в поле комиссии 0.2. Для иной валюты сохраните актуальное основание оценки."
   },
   "填写银行或支付通道为本次实际收付款出具的唯一流水号，不要重复登记同一笔款项。它与合同编号分别记录，提交后仍按真实凭证核实。": {
     "en": "Enter the unique transaction reference issued by the bank or payment channel for this actual payment. Do not register the same payment twice. It is separate from the contract number, and the actual proof remains subject to verification.",

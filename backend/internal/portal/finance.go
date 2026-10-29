@@ -15,29 +15,33 @@ import (
 )
 
 // Only independently supplied facts belong in the manual receipt form.
-// Observation time, native USD equivalence and net value are derived.
+// Observation time and same-currency settlement values are derived.
 type manualReceiptInput struct {
 	OrderID              string          `json:"order_id"`
 	ProviderReceiptID    string          `json:"provider_receipt_id"`
-	GrossUSD             ledger.Decimal  `json:"gross_usd"`
+	GrossMoney           ledger.Decimal  `json:"gross_money"`
+	SettlementAmount     ledger.Decimal  `json:"settlement_amount"`
 	Currency             string          `json:"currency"`
 	OriginalAmount       string          `json:"original_amount"`
 	Network              string          `json:"network"`
 	RecipientReference   string          `json:"recipient_reference"`
 	PayerReference       string          `json:"payer_reference"`
-	ValuationEvidence    string          `json:"valuation_evidence"`
+	SettlementEvidence   string          `json:"settlement_evidence"`
+	ValuationEvidence    string          `json:"-"`
+	OriginalFeeAmount    *ledger.Decimal `json:"original_fee_amount"`
 	VerificationEvidence string          `json:"verification_evidence"`
 	PaidAt               *time.Time      `json:"paid_at"`
 	FeeStatus            string          `json:"fee_status"`
-	FeeUSD               *ledger.Decimal `json:"fee_usd"`
+	FeeMoney             *ledger.Decimal `json:"fee_money"`
 	SettledAt            *time.Time      `json:"settled_at"`
 }
 
 func (a *Application) receiptAccountingCommand(c *gin.Context, op organization.Operator, actor string) {
 	var in struct {
-		FeeUSD    ledger.Decimal `json:"fee_usd"`
-		SettledAt *time.Time     `json:"settled_at"`
-		Evidence  string         `json:"evidence"`
+		FeeMoney          *ledger.Decimal `json:"fee_money"`
+		OriginalFeeAmount *ledger.Decimal `json:"original_fee_amount"`
+		SettledAt         *time.Time      `json:"settled_at"`
+		Evidence          string          `json:"evidence"`
 	}
 	if !body(c, &in) {
 		return
@@ -48,62 +52,116 @@ func (a *Application) receiptAccountingCommand(c *gin.Context, op organization.O
 		if err != nil {
 			return nil, err
 		}
-		out, err := a.Commerce.RecordReceiptAccounting(ctx, tx, commerce.ReceiptAccounting{ReceiptID: receipt.ID, FeeUSD: in.FeeUSD, NetUSD: receipt.GrossUSD.Sub(in.FeeUSD), SettledAt: in.SettledAt, Evidence: in.Evidence, VerifiedBy: "staff:" + actor})
+		settings, err := ledger.GetMonetary(ctx, tx)
+		if err != nil {
+			return nil, err
+		}
+		fee := in.FeeMoney
+		originalFee := in.OriginalFeeAmount
+		if receipt.Currency == settings.Currency {
+			if fee != nil && originalFee != nil && fee.Cmp(*originalFee) != 0 {
+				return nil, commerce.ErrInvalidInput
+			}
+			if fee == nil {
+				fee = originalFee
+			}
+			if originalFee == nil {
+				originalFee = fee
+			}
+		}
+		accounting := commerce.ReceiptAccounting{ReceiptID: receipt.ID, OriginalFeeAmount: originalFee, Evidence: in.Evidence, VerifiedBy: "staff:" + actor}
+		if fee != nil {
+			accounting.SettlementFeeConfirmed = true
+			accounting.FeeMoney = *fee
+			accounting.NetMoney = receipt.GrossMoney.Sub(*fee)
+			accounting.SettledAt = in.SettledAt
+		}
+		out, err := a.Commerce.RecordReceiptAccounting(ctx, tx, accounting)
 		return commandResult(out.ID, "confirmed"), err
 	})
 	jsonResponse(c, raw, err)
 }
 
-func (in manualReceiptInput) verified(operator string) (commerce.VerifiedReceipt, error) {
+func (in manualReceiptInput) verified(operator, settlementCurrency string) (commerce.VerifiedReceipt, error) {
 	currency := strings.ToUpper(strings.TrimSpace(in.Currency))
-	if currency == "" {
-		currency = "USD"
+	gross := in.GrossMoney
+	if !in.SettlementAmount.IsZero() {
+		if !gross.IsZero() && gross.Cmp(in.SettlementAmount) != 0 {
+			return commerce.VerifiedReceipt{}, commerce.ErrInvalidInput
+		}
+		gross = in.SettlementAmount
 	}
-	if in.FeeStatus == "" {
-		in.FeeStatus = "pending"
-	}
-	if in.PaidAt == nil {
+	if currency == "" || settlementCurrency == "" || in.PaidAt == nil || gross.Sign() <= 0 || (in.FeeStatus == "confirmed" && in.FeeMoney == nil && in.OriginalFeeAmount == nil) {
 		return commerce.VerifiedReceipt{}, commerce.ErrInvalidInput
 	}
-	fact := commerce.VerifiedReceipt{OperatorID: operator, ProviderReceiptID: in.ProviderReceiptID, GrossUSD: in.GrossUSD, Currency: currency, OriginalAmount: in.OriginalAmount, Network: in.Network, RecipientReference: in.RecipientReference, PayerReference: in.PayerReference, ValuationEvidence: in.ValuationEvidence, VerificationEvidence: in.VerificationEvidence, PaidAt: in.PaidAt, FeeStatus: in.FeeStatus, FeeUSD: in.FeeUSD, SettledAt: in.SettledAt}
-	if currency == "USD" {
-		fact.OriginalAmount = in.GrossUSD.String()
-		fact.ValuationEvidence = "Native USD receipt; no currency conversion"
+	evidence := strings.TrimSpace(in.SettlementEvidence)
+	if evidence == "" {
+		evidence = in.VerificationEvidence
 	}
-	if in.FeeStatus == "confirmed" {
-		if in.FeeUSD == nil {
+	original := in.OriginalAmount
+	if currency == settlementCurrency {
+		if original != "" {
+			amount, e := ledger.ParseDecimal(original)
+			if e != nil || amount.Cmp(gross) != 0 {
+				return commerce.VerifiedReceipt{}, commerce.ErrInvalidInput
+			}
+		}
+		original = gross.String()
+		if evidence == "" {
+			evidence = "Verified receipt in the settlement currency"
+		}
+		if in.OriginalFeeAmount == nil && in.FeeMoney != nil {
+			in.OriginalFeeAmount = in.FeeMoney
+		}
+	}
+	amount, e := ledger.ParseDecimal(original)
+	if e != nil || amount.Sign() <= 0 || evidence == "" {
+		return commerce.VerifiedReceipt{}, commerce.ErrInvalidInput
+	}
+	fact := commerce.VerifiedReceipt{OperatorID: operator, ProviderReceiptID: in.ProviderReceiptID, GrossMoney: gross, Currency: currency, OriginalAmount: original, Network: in.Network, RecipientReference: in.RecipientReference, PayerReference: in.PayerReference, ValuationEvidence: evidence, VerificationEvidence: in.VerificationEvidence, PaidAt: in.PaidAt, FeeStatus: "pending", OriginalFeeAmount: in.OriginalFeeAmount}
+	if in.OriginalFeeAmount != nil {
+		if in.OriginalFeeAmount.Sign() < 0 || !in.OriginalFeeAmount.Valid() || in.OriginalFeeAmount.Cmp(amount) > 0 {
 			return fact, commerce.ErrInvalidInput
 		}
-		net := in.GrossUSD.Sub(*in.FeeUSD)
-		fact.NetUSD = &net
+		net := amount.Sub(*in.OriginalFeeAmount)
+		fact.OriginalNetAmount = &net
+		if currency == settlementCurrency {
+			fact.FeeMoney = in.OriginalFeeAmount
+		}
+	}
+	if in.FeeMoney != nil {
+		fact.FeeMoney = in.FeeMoney
+	}
+	if fact.FeeMoney != nil {
+		if fact.FeeMoney.Sign() < 0 || fact.FeeMoney.Cmp(gross) > 0 {
+			return fact, commerce.ErrInvalidInput
+		}
+		if currency == settlementCurrency && in.OriginalFeeAmount != nil && fact.FeeMoney.Cmp(*in.OriginalFeeAmount) != 0 {
+			return fact, commerce.ErrInvalidInput
+		}
+		net := gross.Sub(*fact.FeeMoney)
+		fact.NetMoney = &net
+		fact.FeeStatus = "confirmed"
+		fact.SettledAt = in.SettledAt
 	}
 	return fact, nil
 }
 
-func foreignField(name, label, kind, currency string) field {
-	v := f(name, label, kind)
-	v.VisibleWhen = &fieldVisibility{Field: currency, Values: []string{"USD"}, Not: true}
-	return v
-}
-
 func manualReceiptFields() []field {
-	fees := defaultField("fee_status", "收款手续费核实状态", "select", "pending")
-	fees.Help = "尚不清楚己方收款手续费时选“稍后核实”，净到账金额暂不确定；确实没有手续费时，选“金额已核实”并填写0。"
-	fees.Options = selectField("", "", "pending|稍后核实", "confirmed|金额已核实").Options
-	fee := receiptFeeField()
-	fee.VisibleWhen = &fieldVisibility{Field: "fee_status", Values: []string{"confirmed"}}
-	settled := optional("settled_at", "通道结算到账时间（可选）", "datetime")
-	settled.VisibleWhen = fee.VisibleWhen
-	gross := f("gross_usd", "收款总额（扣手续费前） USD", "decimal")
-	gross.Help = "填写用于支付订单的收款总额，尚未扣除己方收款手续费。例如订单1000 USD、己方手续费10 USD、净到账990 USD，此处填1000；订单仍按1000 USD交付。付款人另付的转账费或链上手续费不计入。"
-	original := foreignField("original_amount", "原币收款总额（扣手续费前）", "decimal", "currency")
-	original.Help = "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合USD的收款总额与本次估值依据分别填写。"
-	return []field{optional("order_id", "关联订单（可选）", "text"), optional("provider_receipt_id", "收款流水或收据号（可选）", "text"), defaultField("currency", "收款币种", "text", "USD"), gross, original, foreignField("valuation_evidence", "本次USD估值依据", "text", "currency"), optional("recipient_reference", "收款方资料（可选）", "text"), optional("payer_reference", "付款方资料（可选）", "text"), f("paid_at", "真实付款时刻", "datetime"), optional("verification_evidence", "收款说明或凭证（可选）", "textarea"), fees, fee, settled, optional("network", "原网络（链上收款时填写）", "text")}
+	gross := f("settlement_amount", "已核实订单入账金额（结算币种，扣己方手续费前）", "decimal")
+	gross.Help = "仅登记这笔真实原币收款对应的订单清算金额。收款方承担的手续费不减少订单交付额度。"
+	original := f("original_amount", "实际原币收款总额（扣己方手续费前）", "decimal")
+	original.Help = "保留真实收款币种与金额；付款人另付的发送费或链上手续费不计入。"
+	fee := optional("original_fee_amount", "己方收款手续费（原币，可稍后核实）", "decimal")
+	fee.Help = "只记录收款方承担的真实原币费用。未核实时留空，确实没有时填0。"
+	settlementFee := receiptFeeField()
+	settlementFee.Required = false
+	return []field{optional("order_id", "关联订单（可选）", "text"), optional("provider_receipt_id", "收款流水或收据号（可选）", "text"), f("currency", "真实收款币种", "text"), original, gross, f("settlement_evidence", "本笔交易与订单清算金额的核实依据", "textarea"), optional("recipient_reference", "收款方资料（可选）", "text"), optional("payer_reference", "付款方资料（可选）", "text"), f("paid_at", "真实付款时刻", "datetime"), optional("verification_evidence", "收款说明或凭证（可选）", "textarea"), fee, settlementFee, optional("settled_at", "通道结算到账时间（清算手续费已核实时填写）", "datetime"), optional("network", "原网络（链上收款时填写）", "text")}
 }
 
 func receiptFeeField() field {
-	fee := f("fee_usd", "己方承担的收款手续费 USD", "decimal")
-	fee.Help = "只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。"
+	fee := f("fee_money", "已核实清算手续费（结算币种）", "decimal")
+	fee.Help = "仅在通道真实提供或人工明确核实结算币种费用时登记。同币费用可直接记录；不能按原币费用自动折算。该费用由收款方承担，不减少订单交付金额。"
 	return fee
 }
 
@@ -132,7 +190,7 @@ func (a *Application) allocateWholeRetailReceipt(ctx context.Context, tx *gorm.D
 			}
 		}
 	}
-	return a.Commerce.AllocateReceipt(ctx, tx, commerce.AllocateReceiptInput{ActorStaffID: actor, OperatorID: operator, BusinessKey: businessKey, ReceiptID: receiptID, OrderID: orderID, AmountUSD: order.DueUSD.Sub(order.InternalUSD).Sub(order.CommissionUSD)})
+	return a.Commerce.AllocateReceipt(ctx, tx, commerce.AllocateReceiptInput{ActorStaffID: actor, OperatorID: operator, BusinessKey: businessKey, ReceiptID: receiptID, OrderID: orderID, AmountMoney: order.DueMoney.Sub(order.InternalMoney).Sub(order.CommissionMoney)})
 }
 
 // Receipt selection spans both types of sales order, but settlement always
@@ -195,7 +253,7 @@ func (a *Application) allocateWholeSalesReceipt(ctx context.Context, tx *gorm.DB
 	if err != nil {
 		return salesReceiptAllocation{}, err
 	}
-	if _, err = a.Cooperation.FundPurchase(ctx, tx, a.Commerce, actor, orderID, receiptID, businessKey, receipt.GrossUSD); err != nil {
+	if _, err = a.Cooperation.FundPurchase(ctx, tx, a.Commerce, actor, orderID, receiptID, businessKey, receipt.GrossMoney); err != nil {
 		return salesReceiptAllocation{}, err
 	}
 	// The payment remains allocated even if stock cannot be delivered now.

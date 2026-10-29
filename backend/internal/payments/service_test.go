@@ -31,8 +31,8 @@ type testRefundApproval struct{ calls atomic.Int32 }
 
 type testRefundSink struct{}
 
-func (testRefundSink) RecordVerifiedRefund(_ context.Context, tx *gorm.DB, m Merchant, o Order, r Refund, f Fact, v USDValue) error {
-	if !f.Verified() || f.Kind != "refund" || f.OrderID != o.ID || f.MerchantID != m.ID || r.USDAmount.Cmp(v.Amount) != 0 {
+func (testRefundSink) RecordVerifiedRefund(_ context.Context, tx *gorm.DB, m Merchant, o Order, r Refund, f Fact, v MoneyValue) error {
+	if !f.Verified() || f.Kind != "refund" || f.OrderID != o.ID || f.MerchantID != m.ID || r.MoneyAmount.Cmp(v.Amount) != 0 {
 		return ErrInvalid
 	}
 	return nil
@@ -52,7 +52,7 @@ func (testPaymentAuth) RequirePermission(_ context.Context, _ *gorm.DB, actor, o
 
 type sqlReceiptSink struct{ fail atomic.Bool }
 
-func (s *sqlReceiptSink) RecordVerifiedReceipt(ctx context.Context, tx *gorm.DB, m Merchant, o Order, f Fact, v USDValue) (string, error) {
+func (s *sqlReceiptSink) RecordVerifiedReceipt(ctx context.Context, tx *gorm.DB, m Merchant, o Order, f Fact, v MoneyValue) (string, error) {
 	if e := tx.WithContext(ctx).Table("payment_test_receipts").Create(map[string]any{"id": f.ID, "operator_id": m.OperatorID, "amount": v.Amount.String()}).Error; e != nil {
 		return "", e
 	}
@@ -61,7 +61,7 @@ func (s *sqlReceiptSink) RecordVerifiedReceipt(ctx context.Context, tx *gorm.DB,
 	}
 	return f.ID, nil
 }
-func paymentDB(t *testing.T) *gorm.DB {
+func paymentDB(t *testing.T, currencies ...string) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("TOKENHUB_TEST_DATABASE_URL")
 	if dsn == "" {
@@ -96,6 +96,17 @@ func paymentDB(t *testing.T) *gorm.DB {
 		t.Fatal(e)
 	}
 	if e = db.Exec("CREATE TABLE payment_test_receipts(id text PRIMARY KEY,operator_id text NOT NULL,amount numeric(38,18) NOT NULL)").Error; e != nil {
+		t.Fatal(e)
+	}
+	if e = db.AutoMigrate(&ledger.MonetarySettings{}); e != nil {
+		t.Fatal(e)
+	}
+	effective := time.Now().UTC().Add(-time.Hour)
+	currency := "USD"
+	if len(currencies) > 0 {
+		currency = currencies[0]
+	}
+	if e = db.Create(&ledger.MonetarySettings{ID: "platform", Currency: currency, AtgPerUnit: ledger.FromInt64(1), EffectiveAt: &effective, Version: 1}).Error; e != nil {
 		t.Fatal(e)
 	}
 	return db
@@ -336,6 +347,9 @@ func TestExternalRefundUnknownRequiresOriginalApprovalAndIdentity(t *testing.T) 
 			if name == "stripe" {
 				currency = "USD"
 			}
+			if e := db.Model(&ledger.MonetarySettings{}).Where("id=?", "platform").Update("currency", currency).Error; e != nil {
+				t.Fatal(e)
+			}
 			o := paymentTestOrder(m, currency)
 			checkout, e := s.Create(context.Background(), m.OperatorID, m.ID, o)
 			if e != nil {
@@ -350,7 +364,7 @@ func TestExternalRefundUnknownRequiresOriginalApprovalAndIdentity(t *testing.T) 
 			if _, e = s.Reconcile(context.Background(), m.OperatorID, m.ID, o.ID); e != nil {
 				t.Fatal(e)
 			}
-			r := Refund{ID: uuid.NewString(), Order: o, Money: Money{Currency: currency, Amount: ledger.MustDecimal("2")}, USDAmount: ledger.MustDecimal("2"), RefundValuation: o.Valuation, ValuedAt: o.AcceptedAt, FXExecutionReference: "synthetic-current-refund-fx"}
+			r := Refund{ID: uuid.NewString(), Order: o, Money: Money{Currency: currency, Amount: ledger.MustDecimal("2")}, MoneyAmount: ledger.MustDecimal("2"), RefundValuation: o.Valuation, ValuedAt: o.AcceptedAt, FXExecutionReference: "synthetic-current-refund-fx"}
 			if _, e = s.SubmitRefund(context.Background(), "finance", m.OperatorID, m.ID, r); !errors.Is(e, ErrNotConfigured) {
 				t.Fatal("finance permission bypassed business refund approval")
 			}

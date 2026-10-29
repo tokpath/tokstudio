@@ -8,7 +8,7 @@ export const customerSections: readonly NavigationSection[] = [
   { id: "models", group: "模型与接入", items: [["models", "模型与接入"], ["playground", "在线体验"]] },
   { id: "keys", group: "API Key", items: [["keys", "API Key"]] },
   { id: "usage", group: "用量与账单", items: [["requests", "调用账单"]] },
-  { id: "funds", group: "套餐与资金", items: [["plans", "套餐与续费"], ["orders", "购买记录"], ["credit-sources", "额度来源"], ["topups", "USD 充值"], ["refunds", "支付余额退款"], ["invoices", "开票与凭证"]] },
+  { id: "funds", group: "套餐与资金", items: [["plans", "套餐与续费"], ["orders", "购买记录"], ["credit-sources", "额度来源"], ["topups", "结算币种 充值"], ["refunds", "支付余额退款"], ["invoices", "开票与凭证"]] },
   { id: "promotion", group: "邀请与收益", items: [["referrals", "邀请与资格"], ["commissions", "佣金明细"], ["activities", "我的推广活动"], ["withdrawals", "佣金提现"]] },
   { id: "account", group: "账号设置", items: [["account", "账号与安全"], ["notifications", "通知与订阅"]] },
 ];

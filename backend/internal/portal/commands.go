@@ -112,24 +112,7 @@ func (a *Application) operatorCommand(c *gin.Context) {
 		return
 	}
 	if resource == "valuations" {
-		var in struct {
-			Currency    string         `json:"currency"`
-			USDPerUnit  ledger.Decimal `json:"usd_per_unit"`
-			Source      string         `json:"source"`
-			EffectiveAt time.Time      `json:"effective_at"`
-			ExpiresAt   time.Time      `json:"expires_at"`
-		}
-		if !body(c, &in) {
-			return
-		}
-		raw, e := a.command(c, "valuation:"+op.ID, in, func(tx *gorm.DB) (any, error) {
-			if in.Currency == "USD" || strings.TrimSpace(in.Currency) == "" || in.USDPerUnit.Sign() <= 0 || in.Source == "" || !in.ExpiresAt.After(in.EffectiveAt) {
-				return nil, payments.ErrInvalid
-			}
-			row := valuationRow{ID: uuid.NewString(), OperatorID: op.ID, Currency: strings.ToUpper(in.Currency), USDPerUnit: in.USDPerUnit, Source: in.Source, ActorID: actor, EffectiveAt: in.EffectiveAt, ExpiresAt: in.ExpiresAt, CreatedAt: time.Now().UTC()}
-			return commandResult(row.ID, "published"), tx.Create(&row).Error
-		})
-		jsonResponse(c, raw, e)
+		fail(c, 404, "not_found", "汇率配置已移除，请核实真实收款及本次订单入账金额。", false)
 		return
 	}
 	if resource == "staff" {
@@ -168,7 +151,11 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			if e := json.Unmarshal(config, &in); e != nil {
 				return nil, commerce.ErrInvalidInput
 			}
-			fact, e := in.verified(op.ID)
+			settings, e := ledger.GetMonetary(ctx, tx)
+			if e != nil {
+				return nil, e
+			}
+			fact, e := in.verified(op.ID, settings.Currency)
 			if e != nil {
 				return nil, e
 			}
@@ -885,6 +872,12 @@ func (a *Application) Check(ctx context.Context, tx *gorm.DB, op organization.Op
 	add := func(code, description string, ready bool) {
 		requirements = append(requirements, organization.Requirement{Code: code, Description: description, Ready: ready})
 	}
+	connection := tx
+	if connection == nil {
+		connection = a.DB
+	}
+	_, monetaryErr := ledger.RequireMonetary(ctx, connection)
+	add("monetary_foundation", "平台清算币种和 ATG 基础比例已正式生效", monetaryErr == nil)
 	policy, e := a.Incentives.CurrentPolicy(ctx, tx, op.ID)
 	add("incentives_policy", "已发布资格、分佣与注册奖励规则", e == nil)
 	if feature == organization.Registration {

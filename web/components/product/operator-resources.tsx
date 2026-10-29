@@ -1,5 +1,6 @@
 "use client";
 import { BusinessSettings } from "./business-settings";
+import { useMonetary } from "./monetary";
 import { MarketingCard, ReferralPolicyCard } from "./marketing-cards";
 import { LanguageControl, useI18n } from "@/components/i18n";
 import { translate, type Locale } from "@/lib/i18n";
@@ -113,7 +114,7 @@ const resourceFilterStatuses: Record<string, readonly string[]> = {
   withdrawals: ["requested", "approved", "paying", "unknown", "paid", "cancelled", "failed"],
   invoices: ["requested", "issued", "rejected", "review_required", "voided"],
   "procurement-invoices": ["requested", "issued", "rejected", "review_required", "voided"],
-  "receipt-valuations": ["awaiting_valuation"],
+  "receipt-valuations": ["awaiting_settlement"],
   assets: ["open"], ledger: ["open"], gifts: ["delivered"],
   jobs: ["pending", "running", "completed", "dead"],
 };
@@ -192,10 +193,11 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const identity = (row: Entity) => <div className="min-w-32"><p className="font-medium">{recordTitle(row, resourceName, locale)}</p>{row.presentation?.subtitle && <p className="mt-1 text-xs text-ink-mute">{row.presentation.subtitle}</p>}</div>;
   const renderTable = (items: Entity[]) => resourceName === "procurement" ? <ProcurementCards rows={items} title={row => recordTitle(row, resourceName, locale)} actions={actions} /> : resourceName === "supplier-costs" ? <Table rows={items} getID={row => row.id} columns={[
     {label:"供应商与期间",cell:row=><div className="min-w-48 max-w-72"><p className="font-medium">{String(row.values.provider_name || "")}</p><p className="mt-1 text-xs text-ink-secondary">{row.values.model_name === "供应商整体" ? t("供应商整体") : String(row.values.model_name || "")}</p><p className="mt-2 text-xs text-ink-mute"><When value={String(row.values.starts_at)} /> — <When value={String(row.values.ends_at)} /></p>{row.values.note && <p className="mt-2 line-clamp-2 text-xs leading-5 text-ink-secondary">{String(row.values.note)}</p>}</div>},
-    ...["calculated_usd","amount_usd","difference_usd"].map(key=>({label:page.columns.find(column=>column.key===key)?.label || key,align:"right" as const,cell:(row:Entity)=><div className="min-w-24 whitespace-nowrap"><Money value={String(row.values[key])} unit="USD" />{key==="calculated_usd" && Number(row.values.pending_count)>0 && <p className="mt-2 text-xs text-hold">{t("{count} 次调用缺少核算金额",{count:Number(row.values.pending_count)})}</p>}</div>})),
+    {label:t("供应商参考成本"),align:"right",cell:(row:Entity)=><div className="min-w-24"><Money value={String(row.values.reference_amount || "0")} unit={String(row.values.reference_currency || "USD")} />{Number(row.values.pending_count)>0 && <p className="mt-2 text-xs text-hold">{t("{count} 次调用缺少核算金额",{count:Number(row.values.pending_count)})}</p>}</div>},
+    {label:t("供应商实际账单"),align:"right",cell:(row:Entity)=><Money value={String(row.values.amount || "0")} unit={String(row.values.currency || "")} />},
     {label:"办理",cell:row=><div className="min-w-28">{actions(row)}</div>},
-  ]} /> : <Table rows={items} getID={row => row.id} empty={t("当前筛选下没有记录。可查询其他编号或继续办理新事项。")} columns={[{ label: t("名称与事项"), cell: identity }, ...columnsFor(items).filter(column => column.key !== "state").map(column => ({ label: column.label, help: businessFieldHelp(`${resourceName}.${column.key}`, column.help), align: ["usd", "atg", "decimal"].includes(column.kind) ? "right" as const : undefined, cell: (row: Entity) => { if ((resourceName === "catalog" || resourceName === "providers") && column.key === "capabilities") return <PublicModelCapabilities value={row.values.capabilities} />; if (resourceName === "catalog" && column.key === "enabled" && operatorID) return <PublicModelSwitch row={row} operatorID={operatorID} />; const value = <ResourceValue value={readableResourceValue(row, column.key, locale)} kind={column.kind} field={column.key} />; if (column.key === "reserved_atg" && procurementHold(row)) return <span className="inline-flex rounded-md bg-danger/10 px-2 py-1 font-semibold text-danger">{value}</span>; if (column.key === "reserved_note" && procurementHold(row)) return <span className="font-medium text-danger">{value}</span>; return value; } })), { label: t(resourceName === "notifications" ? "邮件状态" : "状态"), cell: (row: Entity) => row.status ? <Status value={row.status} /> : <span>—</span> }, { label: t("办理"), cell: (row: Entity) => actions(row) }]} />;
-  const renderRefund = (row: Entity, children: Entity[]) => <section key={row.id} className="rounded-card border border-hairline bg-canvas-raised p-5"><div className="flex flex-wrap items-start justify-between gap-3">{identity(row)}{row.status && <Status value={row.status} />}</div><div className="my-4 grid gap-4 sm:grid-cols-3"><div><p className="mb-1 text-xs text-ink-mute">{t("退款责任")}</p><ResourceValue value={row.values.amount_usd} kind="usd" /></div><div><p className="mb-1 text-xs text-ink-mute">{t("已真实清偿")}</p><ResourceValue value={sumResourceAmounts(children, "settled_usd")} kind="usd" /></div><div><p className="mb-1 text-xs text-ink-mute">{t("仍待付款")}</p><ResourceValue value={sumResourceAmounts(children, "remaining_usd")} kind="usd" /></div></div><p className="mb-4 text-sm text-ink-secondary">{t(refundNextStep(row, children))}</p>{actions(row)}{children.length > 0 && <details className="mt-5 border-t border-hairline pt-4" open={!!record}><summary className="cursor-pointer text-sm text-brand-emphasis">{t("关联退款明细与付款")} · {children.length}</summary><div className="mt-4 space-y-4">{children.map(leg => <div key={leg.id} className="rounded-control border border-hairline p-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-3">{identity(leg)}{leg.status && <Status value={leg.status} />}</div><div className="mb-4 grid gap-3 sm:grid-cols-3">{["amount_usd", "settled_usd", "remaining_usd"].map(key => <div key={key}><p className="mb-1 text-xs text-ink-mute">{t(page.columns.find(column => column.key === key)?.label || key)}</p><ResourceValue value={leg.values[key]} kind="usd" /></div>)}</div>{actions(leg)}{page.items.filter(payment => payment.values.record_kind === "actual_refund_payment" && payment.values.leg_id === leg.id).map(payment => <div key={payment.id} className="mt-4 border-l-2 border-hairline pl-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-2">{identity(payment)}{payment.status && <Status value={payment.status} />}</div><p className="mb-3 text-xs text-ink-secondary">{t("本次实际付款")} <ResourceValue value={payment.values.actual_payment_usd ?? payment.values.actual_usd} kind="usd" /> · {t("手续费")} <ResourceValue value={payment.values.fee_usd} kind="usd" /></p>{actions(payment)}</div>)}</div>)}</div></details>}</section>;
+  ]} /> : <Table rows={items} getID={row => row.id} empty={t("当前筛选下没有记录。可查询其他编号或继续办理新事项。")} columns={[{ label: t("名称与事项"), cell: identity }, ...columnsFor(items).filter(column => column.key !== "state").map(column => ({ label: column.label, help: businessFieldHelp(`${resourceName}.${column.key}`, column.help), align: ["money", "atg", "decimal"].includes(column.kind) ? "right" as const : undefined, cell: (row: Entity) => { if ((resourceName === "catalog" || resourceName === "providers") && column.key === "capabilities") return <PublicModelCapabilities value={row.values.capabilities} />; if (resourceName === "catalog" && column.key === "enabled" && operatorID) return <PublicModelSwitch row={row} operatorID={operatorID} />; const value = <ResourceValue value={readableResourceValue(row, column.key, locale)} kind={column.kind} field={column.key} settlementCurrency={recordSettlementCurrency(row)} />; if (column.key === "reserved_atg" && procurementHold(row)) return <span className="inline-flex rounded-md bg-danger/10 px-2 py-1 font-semibold text-danger">{value}</span>; if (column.key === "reserved_note" && procurementHold(row)) return <span className="font-medium text-danger">{value}</span>; return value; } })), { label: t(resourceName === "notifications" ? "邮件状态" : "状态"), cell: (row: Entity) => row.status ? <Status value={row.status} /> : <span>—</span> }, { label: t("办理"), cell: (row: Entity) => actions(row) }]} />;
+  const renderRefund = (row: Entity, children: Entity[]) => <section key={row.id} className="rounded-card border border-hairline bg-canvas-raised p-5"><div className="flex flex-wrap items-start justify-between gap-3">{identity(row)}{row.status && <Status value={row.status} />}</div><div className="my-4 grid gap-4 sm:grid-cols-3"><div><p className="mb-1 text-xs text-ink-mute">{t("退款责任")}</p><ResourceValue value={row.values.amount_money} kind="money" /></div><div><p className="mb-1 text-xs text-ink-mute">{t("已真实清偿")}</p><ResourceValue value={sumResourceAmounts(children, "settled_money")} kind="money" /></div><div><p className="mb-1 text-xs text-ink-mute">{t("仍待付款")}</p><ResourceValue value={sumResourceAmounts(children, "remaining_money")} kind="money" /></div></div><p className="mb-4 text-sm text-ink-secondary">{t(refundNextStep(row, children))}</p>{actions(row)}{children.length > 0 && <details className="mt-5 border-t border-hairline pt-4" open={!!record}><summary className="cursor-pointer text-sm text-brand-emphasis">{t("关联退款明细与付款")} · {children.length}</summary><div className="mt-4 space-y-4">{children.map(leg => <div key={leg.id} className="rounded-control border border-hairline p-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-3">{identity(leg)}{leg.status && <Status value={leg.status} />}</div><div className="mb-4 grid gap-3 sm:grid-cols-3">{["amount_money", "settled_money", "remaining_money"].map(key => <div key={key}><p className="mb-1 text-xs text-ink-mute">{t(page.columns.find(column => column.key === key)?.label || key)}</p><ResourceValue value={leg.values[key]} kind="money" /></div>)}</div>{actions(leg)}{page.items.filter(payment => payment.values.record_kind === "actual_refund_payment" && payment.values.leg_id === leg.id).map(payment => <div key={payment.id} className="mt-4 border-l-2 border-hairline pl-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-2">{identity(payment)}{payment.status && <Status value={payment.status} />}</div><p className="mb-3 text-xs text-ink-secondary">{t("本次实际付款")} <ResourceValue value={payment.values.actual_payment_money ?? payment.values.actual_money} kind="money" /> · {t("手续费")} <ResourceValue value={payment.values.fee_money} kind="money" /></p>{actions(payment)}</div>)}</div>)}</div></details>}</section>;
   const refundCases = resourceName === "refunds" ? rows.filter(row => row.values.record_kind === "case") : [];
   const linkedRefundIDs = new Set(refundCases.flatMap(row => { const legs = rows.filter(leg => leg.values.record_kind === "leg" && leg.values.case_id === row.id); return [row.id, ...legs.map(leg => leg.id), ...rows.filter(payment => legs.some(leg => payment.values.leg_id === leg.id)).map(payment => payment.id)]; }));
   const orphanRefunds = rows.filter(row => !linkedRefundIDs.has(row.id));
@@ -242,7 +244,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
         <dt className="mb-1 text-xs text-ink-mute">{t(column.label)}{businessFieldHelp(`${resourceName}.${column.key}`, column.help) && <FieldHelp title={t(column.label)}>{t(businessFieldHelp(`${resourceName}.${column.key}`, column.help)!)}</FieldHelp>}
         </dt>
         <dd className="min-w-0 text-sm">
-          <ResourceValue value={readableResourceValue(row, column.key, locale)} kind={column.kind} field={column.key} />
+          <ResourceValue value={readableResourceValue(row, column.key, locale)} kind={column.kind} field={column.key} settlementCurrency={recordSettlementCurrency(row)} />
         </dd>
       </div>)}
       </dl>{actions(row)}
@@ -261,7 +263,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
         <dt className="mb-2 text-xs text-ink-mute">{t(column.label)}{businessFieldHelp(`${resourceName}.${column.key}`, column.help) && <FieldHelp title={t(column.label)}>{t(businessFieldHelp(`${resourceName}.${column.key}`, column.help)!)}</FieldHelp>}
         </dt>
         <dd>
-          <ResourceValue value={column.key === "status" ? facts.status : readableResourceValue(facts, column.key, locale)} kind={column.kind} field={column.key} />
+          <ResourceValue value={column.key === "status" ? facts.status : readableResourceValue(facts, column.key, locale)} kind={column.kind} field={column.key} settlementCurrency={recordSettlementCurrency(facts)} />
         </dd>
       </div>)}
       </dl>
@@ -352,10 +354,17 @@ export function OperatorPanel({ title, description, open, close, blocked = false
   </Dialog.Root></PanelLockContext.Provider>;
 }
 
-export function ResourceValue({ value, kind = "text", field }: { value?: JSONValue; kind?: string; field?: string }) {
+function recordSettlementCurrency(row: Entity): string | undefined {
+  const snapshot = row.values.monetary_snapshot;
+  return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) && typeof snapshot.currency === "string" ? snapshot.currency : undefined;
+}
+
+export function ResourceValue({ value, kind = "text", field, settlementCurrency }: { value?: JSONValue; kind?: string; field?: string; settlementCurrency?: string }) {
   const { t, locale } = useI18n();
+  const monetary = useMonetary();
+  if (field === "unit" && value === "MONEY") return <span>{monetary.currency}</span>;
   if (value === null || value === undefined) return <span className="text-ink-mute">—</span>;
-  if (field === "gift_tiers") return <PurchaseTierSummary value={value} />;
+  if (field === "gift_tiers") return <PurchaseTierSummary value={value} currency={settlementCurrency} />;
   if (field === "record_kind" && typeof value === "string") return <span>{recordKindLabel(value, locale)}</span>;
   if (kind === "link" && typeof value === "string" && (value.startsWith("/manage/") || value.startsWith("/api/v1/operators/"))) return <a className="text-brand-emphasis underline" href={value}>{field === "contract_url" ? t("查看私有合同") : value.includes("download") || value.endsWith("/content") ? t("下载私有文件") : t("进入业务办理")}
   </a>;
@@ -365,7 +374,7 @@ export function ResourceValue({ value, kind = "text", field }: { value?: JSONVal
       <ReadFacts value={value} />
     </div>
   </details>;
-  if (kind === "usd" || kind === "atg") return <Money value={String(value)} unit={kind.toUpperCase()} />;
+  if (kind === "money" || kind === "atg") return <Money value={String(value)} unit={kind === "money" ? settlementCurrency || "MONEY" : "ATG"} />;
   if (kind === "datetime" || typeof value === "string" && isFactDate(field, value)) return <When value={String(value)} />;
   if (kind === "status") return <Status value={String(value)} />;
   if (kind === "boolean") return <span className={value ? "text-success" : "text-ink-mute"}>{value ? t("已开启") : t("未开启")}
@@ -376,6 +385,8 @@ export function ResourceValue({ value, kind = "text", field }: { value?: JSONVal
 
 export function ReadFacts({ value, field }: { value: JSONValue; field?: string }) {
   const { t, locale } = useI18n();
+  const monetary = useMonetary();
+  if (field === "unit" && value === "MONEY") return <span>{monetary.currency}</span>;
   field = field ? normalizeFactKey(field) : undefined;
   if (value !== null && typeof value === "object") return <dl className="space-y-3">{Object.entries(value).map(([key, item]) => <div key={key} className="min-w-0 border-l border-hairline pl-3">
     <dt className="text-xs text-ink-mute">{factLabel(key, locale)}
@@ -402,7 +413,7 @@ export function recordTitle(row: Entity, resource: string, locale: Locale = "zh"
   return translate(locale, resourceLabel(resource));
 }
 function recordKindLabel(kind: string, locale: Locale = "zh") { return translate(locale, ({ case: "退款事项", leg: "退款分项", actual_refund_payment: "实际退款付款", exit: "采购退出事项", refund_leg: "退出退款分项", buyer_refund_leg: "采购方退款分项", quote: "采购报价", order: "采购订单", authorization: "自动补货授权", replenishment_attempt: "自动补货执行", credential: "供应商密钥", supplier_model: "供应商模型" } as Record<string, string>)[kind] || kind); }
-const factLabels: Record<string, string> = { customer: "客户", customer_id: "客户编号", order_id: "订单编号", receipt_id: "收款编号", provider: "收款通道", currency: "实际币种", original_amount: "原币金额", amount_usd: "金额 USD", allocated_usd: "已分配 USD", gross_usd: "收款总额（扣手续费前） USD", fee_usd: "手续费 USD", fee_status: "手续费核实状态", due_usd: "应付 USD", external_allocated_usd: "外部款项已分配 USD", internal_usd: "USD 余额支付", commission_usd: "佣金支付", paid_atg: "购买权益 ATG", gift_atg: "赠送权益 ATG", package_gift_atg: "套餐赠送 ATG", merchant_gift_atg: "经营方赠送 ATG", kol_gift_atg: "KOL 赠送 ATG", balance: "余额", held: "占用", purpose: "资产目的", unit: "单位", created_at: "创建时间", paid_at: "真实付款时间", completed_at: "交付时间", expires_at: "到期时间", exception_reason: "异常原因", evidence: "核实依据", verification_evidence: "核实说明或凭证", valuation_evidence: "估值依据", recipient_reference: "收款方资料", payer_reference: "付款方资料", status: "业务状态", state: "办理状态", configured: "已配置", customer_usd_topup: "客户 USD 充值", package_purchase: "套餐购买", package_renewal: "套餐续费", package: "套餐订单", topup: "余额充值", renewal: "套餐续费" };
+const factLabels: Record<string, string> = { customer: "客户", customer_id: "客户编号", order_id: "订单编号", receipt_id: "收款编号", provider: "收款通道", currency: "实际币种", original_amount: "原币金额", amount_money: "金额 结算币种", allocated_money: "已分配 结算币种", gross_money: "收款总额（扣手续费前） 结算币种", fee_money: "手续费 结算币种", fee_status: "手续费核实状态", due_money: "应付 结算币种", external_allocated_money: "外部款项已分配 结算币种", internal_money: "结算币种 余额支付", commission_money: "佣金支付", paid_atg: "购买权益 ATG", gift_atg: "赠送权益 ATG", package_gift_atg: "套餐赠送 ATG", merchant_gift_atg: "经营方赠送 ATG", kol_gift_atg: "KOL 赠送 ATG", balance: "余额", held: "占用", purpose: "资产目的", unit: "单位", created_at: "创建时间", paid_at: "真实付款时间", completed_at: "交付时间", expires_at: "到期时间", exception_reason: "异常原因", evidence: "核实依据", verification_evidence: "核实说明或凭证", settlement_amount: "已核实结算金额", recipient_reference: "收款方资料", payer_reference: "付款方资料", status: "业务状态", state: "办理状态", configured: "已配置", customer_money_topup: "客户 结算币种 充值", package_purchase: "套餐购买", package_renewal: "套餐续费", package: "套餐订单", topup: "余额充值", renewal: "套餐续费" };
 
 const editableOperations: Record<string, { name: string; label: string }> = { plans: { name: "publish", label: "编辑套餐" }, marketing: { name: "publish", label: "修订活动" }, catalog: { name: "save", label: "编辑模型" }, routes: { name: "save", label: "编辑路由" }, "payment-methods": { name: "configure", label: "调整配置" } };
 const currentRecordOperations: Record<string, string[]> = { mail: ["configure"], commissions: ["policy"], branding: ["theme"], "channel-themes": ["theme"] };
@@ -425,7 +436,7 @@ function normalizeFactKey(key: string): string {
 }
 export function factLabel(key: string, locale: Locale): string {
   const normalized = normalizeFactKey(key);
-  if (normalized.startsWith("lot_refund_usd:")) return `${translate(locale, "采购批次退款 USD")} · ${key.slice(key.indexOf(":")+1)}`;
+  if (normalized.startsWith("lot_refund_money:")) return `${translate(locale, "采购批次退款 结算币种")} · ${key.slice(key.indexOf(":")+1)}`;
   return translate(locale, factLabels[normalized] || savedFactLabels[normalized] || key);
 }
 
@@ -477,8 +488,8 @@ const savedFactLabels: Record<string, string> = {
   "warning": "预警缓冲 ATG",
   "receipt_id": "原收款来源",
   "provider_case_id": "外部争议编号",
-  "amount_usd": "实际损失",
-  "recovered_usd": "已核实追回",
+  "amount_money": "实际损失",
+  "recovered_money": "已核实追回",
   "reason": "原因",
   "created_at": "登记时间",
   "evidence": "核实依据",
@@ -500,10 +511,10 @@ const savedFactLabels: Record<string, string> = {
   "record_kind": "记录类型",
   "buyer_id": "采购方编号",
   "supplier_id": "供货方编号",
-  "contract_usd": "合同退款责任",
-  "book_cost_usd": "退出账面成本",
-  "cost_difference_usd": "合同与成本差额",
-  "refunded_usd": "已核实退回",
+  "contract_money": "合同退款责任",
+  "book_cost_money": "退出账面成本",
+  "cost_difference_money": "合同与成本差额",
+  "refunded_money": "已核实退回",
   "action": "办理类型",
   "mode": "办理方式",
   "quantity": "采购库存 ATG",
@@ -517,10 +528,10 @@ const savedFactLabels: Record<string, string> = {
   "proof.recipient_reference": "原已核实付款人账户",
   "money.currency": "本次付款币种",
   "money.amount": "本次实际执行金额",
-  "actual_usd": "实际价值 USD",
-  "settled_usd": "已结清 USD",
-  "remaining_usd": "剩余责任 USD",
-  "excess_usd": "多付金额 USD",
+  "actual_money": "实际价值 结算币种",
+  "settled_money": "已结清 结算币种",
+  "remaining_money": "剩余责任 结算币种",
+  "excess_money": "多付金额 结算币种",
   "network": "准确网络",
   "asset": "准确资产",
   "token_contract": "代币合约",
@@ -528,16 +539,9 @@ const savedFactLabels: Record<string, string> = {
   "authorization_id": "独立核实授权",
   "route_version": "剩余款路线版本",
   "route_history": "已封存历史",
-  "valuation.id": "本次估值事实编号",
-  "valuation.currency": "本次估值币种",
-  "valuation.usd_per_unit": "本次真实每单位USD",
-  "valuation.source": "本次授权汇率/实际换汇依据",
-  "valuation.effective_at": "本次估值生效",
-  "valuation.expires_at": "本次估值失效",
-  "valued_at": "实际估值时刻",
   "fx_execution_reference": "本次执行凭证/原币种结算依据",
   "package_id": "现有套餐编号（新建留空）",
-  "price_usd": "成交价格 USD",
+  "price_money": "成交价格 结算币种",
   "paid_atg": "购买权益 ATG",
   "gift_atg": "套餐赠送 ATG",
   "period": "有效期",
@@ -548,7 +552,7 @@ const savedFactLabels: Record<string, string> = {
   "legal_name": "法定名称",
   "brand_name": "OEM品牌名称",
   "api_base_url": "OEM API入口",
-  "threshold_usd": "终身资格累计净消费门槛 USD",
+  "threshold_money": "终身资格累计净消费门槛 结算币种",
   "direct_rate": "直接推荐分佣比例（0到1）",
   "indirect_rate": "间接推荐分佣比例（0到1）",
   "confirmation_seconds": "消费确认等待天数",
@@ -560,7 +564,7 @@ const savedFactLabels: Record<string, string> = {
   "kol_cross_activity_limit": "KOL跨活动限制次数",
   "campaign_id": "现有活动编号（新建留空）",
   "eligibility": "参与对象",
-  "final_price_usd": "最终成交价 USD（无折扣留空）",
+  "final_price_money": "最终成交价 结算币种（无折扣留空）",
   "concession_rate": "本人佣金让利比例（0到1）",
   "starts_at": "开始时间",
   "ends_at": "结束时间",
@@ -585,15 +589,15 @@ const savedFactLabels: Record<string, string> = {
   "reminder_seconds": "持续风险提醒间隔秒数",
   "escalate_seconds": "升级等待秒数",
   "provider_receipt_id": "外部唯一收款流水",
-  "gross_usd": "收款总额（扣手续费前） USD",
+  "gross_money": "收款总额（扣手续费前） 结算币种",
   "fee_status": "手续费证据",
-  "fee_usd": "已核实手续费USD",
-  "net_usd": "净额 USD",
+  "fee_money": "已核实手续费结算币种",
+  "net_money": "净额 结算币种",
   "currency": "实际入账币种",
   "original_amount": "原币金额",
   "recipient_reference": "收款方资料（可选）",
   "payer_reference": "付款方资料（可选）",
-  "valuation_evidence": "本次USD估值依据",
+  "settlement_amount": "已核实结算金额",
   "verification_evidence": "收款说明或凭证（可选）",
   "paid_at": "真实付款时刻",
   "observed_at": "核实时刻",
@@ -601,22 +605,22 @@ const savedFactLabels: Record<string, string> = {
   "driver": "真实通道协议",
   "asset_network_version_id": "平台已发布的准确资产与网络",
   "payment_reference": "真实唯一付款流水",
-  "paid_usd": "原成交 USD",
-  "minimum_usd": "最低提现 USD",
-  "flat_fee_usd": "固定手续费 USD",
+  "paid_money": "原成交 结算币种",
+  "minimum_money": "最低提现 结算币种",
+  "flat_fee_money": "固定手续费 结算币种",
   "fee_rate": "手续费比例（0到1）",
   "requires_dual_approval": "必须双人审批付款",
   "method_reference": "对客户公示付款方式规则",
   "issuer_id": "原始开票经营方",
   "lines.0.receipt_id": "原始收款编号",
-  "lines.0.amount_usd": "本次申请 USD",
+  "lines.0.amount_money": "本次申请 结算币种",
   "details.title": "发票抬头",
   "details.tax_id": "纳税识别号",
   "details.email": "接收邮箱",
   "details.address": "发票地址",
   "customer_id": "客户编号",
   "order_id": "原成交订单",
-  "second_review_above": "需独立复核的USD阈值（留空关闭）",
+  "second_review_above": "需独立复核的结算币种阈值（留空关闭）",
   "amount": "实际币种金额",
   "occurred_at": "实际发生时间",
   "operator_id": "经营方编号",
@@ -649,7 +653,7 @@ const savedFactLabels: Record<string, string> = {
   "token_decimals": "小数位",
   "minimum_confirmations": "最少确认数",
   "asset_id": "已有组合（首次留空）",
-  "allocated_usd": "已分配USD",
+  "allocated_money": "已分配结算币种",
   "exit_terms": "原退出条款",
   "exit_terms.version": "退出条款版本",
   "exit_terms.voluntary_refund": "允许自愿退出退款",
@@ -658,7 +662,7 @@ const savedFactLabels: Record<string, string> = {
   "valid_until": "报价截止时间",
   "quote_id": "固定成交报价编号",
   "trigger_available_atg": "采购可用库存低于ATG时触发",
-  "period_limit_usd": "周期最高USD",
+  "period_limit_money": "周期最高结算币种",
   "merchant_id": "真实供货收款商户配置编号",
   "payment.payment_method": "Stripe已授权pm_编号",
   "payment.customer_ref": "Stripe已授权cus_编号",
@@ -693,10 +697,10 @@ const savedFactLabels: Record<string, string> = {
   "decision": "审核决定",
   "route_exception_reference": "同经营方原路受限的替代依据（跨经营方接管可留空）",
   "leg_id": "原退款责任",
-  "actual_payment_usd": "本次实际支付USD",
+  "actual_payment_money": "本次实际支付结算币种",
   "configuration": "配置 JSON",
-  "due_usd": "应付",
-  "external_allocated_usd": "已分配",
+  "due_money": "应付",
+  "external_allocated_money": "已分配",
   "external_method_id": "收款方式",
   "total": "总额",
   "consumed": "已消费",
@@ -711,10 +715,8 @@ const savedFactLabels: Record<string, string> = {
   "missing_fields": "待配置材料",
   "fields_set": "已设置字段",
   "Currency": "币种",
-  "USDPerUnit": "每单位 USD 估值",
   "Source": "来源依据",
   "ExpiresAt": "有效截止",
-  "usd_per_unit": "每单位 USD",
   "purpose": "账户目的",
   "balance": "余额",
   "held": "占用",
@@ -745,7 +747,8 @@ const savedFactLabels: Record<string, string> = {
   "estimate_atg": "预估占用",
   "actual_atg": "实际用量计价",
   "charged_atg": "实扣ATG",
-  "supplier_cost_usd": "已核实供应成本USD",
+  "supplier_reference_costs": "供应商参考成本",
+  "supplier_reported_costs": "供应商报告成本",
   "unverified_attempts": "成本证据状态",
   "accepted_at": "受理时间",
   "rule_id": "风险规则",
@@ -763,9 +766,9 @@ const savedFactLabels: Record<string, string> = {
   "additional_attempts": "追加尝试次数1–10",
   "legal_hold_until": "保护截至",
   "until": "保护截止时间",
-  "configuration.minimum_usd": "最低提现 USD",
+  "configuration.minimum_money": "最低提现 结算币种",
   "configuration.method_reference": "对客户公示付款方式规则",
-  "configuration.flat_fee_usd": "固定手续费 USD",
+  "configuration.flat_fee_money": "固定手续费 结算币种",
   "configuration.fee_rate": "手续费比例（0到1）",
   "configuration.requires_dual_approval": "必须双人审批付款",
   "configuration.expected_version": "当前规则版本",
@@ -774,23 +777,23 @@ const savedFactLabels: Record<string, string> = {
   "operation": "调用类型",
   "net_charged_atg": "冲正后净扣费",
   "hop": "邀请层级",
-  "reversed_usd": "已冲正",
+  "reversed_money": "已冲正",
   "confirm_at": "确认时间",
   "manage_url": "办理",
-  "order_allocated_usd": "分配至此单",
+  "order_allocated_money": "分配至此单",
   "account_id": "账户编号",
   "channel_id": "渠道编号",
   "brand_operator_id": "品牌经营方编号",
-  "cost": "采购账面成本 USD",
+  "cost": "采购账面成本 结算币种",
   "has_upstream": "存在上级供货方",
   "version": "版本",
   "service_atg": "承接服务 ATG",
-  "service_usd": "承接服务作价",
-  "cash_usd": "承接现金与佣金责任",
+  "service_money": "承接服务作价",
+  "cash_money": "承接现金与佣金责任",
   "offset_atg": "采购库存抵扣 ATG",
-  "offset_usd": "采购库存抵扣 USD",
-  "residual_refund_usd": "剩余合同可退采购款 USD",
-  "settlement_due_usd": "合同结清额 USD",
+  "offset_money": "采购库存抵扣 结算币种",
+  "residual_refund_money": "剩余合同可退采购款 结算币种",
+  "settlement_due_money": "合同结清额 结算币种",
   "receipt_reference": "收款凭证引用",
   "remaining": "剩余采购库存 ATG",
   "paid_consumed": "已消费购买库存 ATG",
@@ -799,7 +802,7 @@ const savedFactLabels: Record<string, string> = {
   "gift_removed": "已移除赠送库存 ATG",
   "fingerprint": "记录指纹",
   "delivered_at": "交付时间",
-  "lot_refund_usd": "采购批次退款 USD",
+  "lot_refund_money": "采购批次退款 结算币种",
   "rounding_evidence": "舍入依据",
   "lots": "采购批次",
   "coverage": "覆盖与责任计算",
@@ -965,7 +968,7 @@ const enumLabelsByField: Record<string, Record<string, string>> = {
 };
 
 const systemValueLabels: Record<string, string> = {
-  "customer:usd": "客户 USD 现金余额",
+  "customer:money": "客户 结算币种 现金余额",
   "customer:atg": "客户 ATG 权益",
   "commission:available": "可用佣金",
   "commission:frozen": "冻结佣金",
@@ -981,7 +984,7 @@ const systemValueLabels: Record<string, string> = {
   "procurement_available_atg": "可用采购余额",
   "oversell_used_atg": "已使用超卖空间",
   "pending_receipt_facts": "实际款待核实与入账",
-  "awaiting_valuation_receipts": "实际款待估值",
+  "awaiting_settlement_receipts": "收款待核实结算金额",
   "pending_usage": "用量待核实请求",
   "unverified_costs": "供应成本待核实"
 };

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useProduct } from "./context";
 import { Empty, ErrorPanel, Notice, useCommand } from "./shared";
+import { MonetarySettings } from "./monetary-settings";
 
 const checksSchema = z.array(z.object({ feature: z.string(), requirements: z.array(z.object({ code: z.string(), description: z.string(), ready: z.boolean(), resource: z.string().optional() })) }));
 const features = [
@@ -36,6 +37,7 @@ export function BusinessSettings({ row, operatorID }: { row?: Entity; operatorID
     if (result) setPending(undefined);
   }
   return <div className="space-y-5">
+    <MonetarySettings canManage={workspace?.can_manage_monetary === true} />
     {!!command.error && <ErrorPanel error={command.error} />}
     {command.unresolved && <Notice>{t("正在核实营业设置，请重试原操作或刷新查看最新状态。")}<Button className="ml-3" variant="outline" onClick={() => void command.run(undefined).then(result => { if (result) setPending(undefined); })} disabled={command.busy}>{t("重试原操作")}</Button></Notice>}
     <div className="grid gap-4 lg:grid-cols-2">{features.map(([feature, label, help]) => {

@@ -142,12 +142,18 @@ type Result struct {
 	OutputDelivered   bool              `json:"output_delivered"`
 	ErrorCode         string            `json:"error_code,omitempty"`
 }
+
+// Money preserves the currency documented by the source. Supplier observations
+// never become the platform's internal settlement asset or an FX conversion.
+type Money struct {
+	Currency string `json:"currency"`
+	Amount   string `json:"amount"`
+}
 type CostObservation struct {
-	CalculatedUSD *string `json:"calculated_usd,omitempty"`
-	ReportedUSD   *string `json:"reported_usd,omitempty"`
-	AmountUSD     *string `json:"amount_usd,omitempty"`
-	Source        string  `json:"source"`
-	Version       string  `json:"version,omitempty"`
+	ReferenceCost *Money `json:"reference_cost,omitempty"`
+	ReportedCost  *Money `json:"reported_cost,omitempty"`
+	Source        string `json:"source"`
+	Version       string `json:"version,omitempty"`
 }
 type CostMeter interface {
 	Observe(context.Context, Attempt, any) *CostObservation

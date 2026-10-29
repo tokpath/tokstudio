@@ -414,10 +414,10 @@
     "ja": "下位事業者への供給価格",
     "ru": "Цена поставки нижестоящим операторам"
   },
-  "供应商成本价（USD）": {
-    "en": "Supplier cost (USD)",
-    "ja": "供給元の原価（USD）",
-    "ru": "Себестоимость поставщика (USD)"
+  "供应商成本价（原币种）": {
+    "en": "Supplier cost (original currency)",
+    "ja": "供給元の原価（元通貨）",
+    "ru": "Себестоимость поставщика (исходная валюта)"
   },
   "卖方经营方 / 供应商引用": {
     "en": "Selling operator / supplier reference",
@@ -774,10 +774,10 @@
     "ja": "モデル倍率",
     "ru": "Множитель модели"
   },
-  "零售价使用客户 ATG，供货价使用采购 ATG，供应商成本价使用 USD。倍率不是利润率。": {
-    "en": "Retail prices use customer ATG, supply prices use procurement ATG, and supplier costs use USD. A multiplier is not a profit margin.",
-    "ja": "小売価格は顧客 ATG、供給価格は仕入 ATG、供給元原価は USD を使用します。倍率は利益率ではありません。",
-    "ru": "Розничные цены указываются в клиентских ATG, цены поставки — в закупочных ATG, себестоимость — в USD. Множитель не является нормой прибыли."
+  "零售价使用客户 ATG，供货价使用采购 ATG，供应商成本价使用 原币种。倍率不是利润率。": {
+    "en": "Retail prices use customer ATG, supply prices use procurement ATG, and supplier costs use original currency. A multiplier is not a profit margin.",
+    "ja": "小売価格は顧客 ATG、供給価格は仕入 ATG、供給元原価は 元通貨 を使用します。倍率は利益率ではありません。",
+    "ru": "Розничные цены указываются в клиентских ATG, цены поставки — в закупочных ATG, себестоимость — в исходная валюта. Множитель не является нормой прибыли."
   },
   "客户通知记录引用": {
     "en": "Customer notification record reference",
@@ -1099,10 +1099,10 @@
     "ja": "今回保存する内容を入力してください。",
     "ru": "Укажите, что нужно сохранить."
   },
-  "按字段标示的 USD、ATG 或原币种填写。比例使用 0 到 1 的小数；精确值按原样提交。": {
-    "en": "Use USD, ATG, or the original currency as indicated. Enter ratios as decimals from 0 to 1; exact values are submitted unchanged.",
-    "ja": "各欄に示す USD、ATG、または元の通貨で入力してください。比率は 0 から 1 の小数を使用し、正確な値のまま送信されます。",
-    "ru": "Используйте USD, ATG или исходную валюту, указанную у поля. Доли задавайте десятичными числами от 0 до 1; точные значения отправляются без изменения."
+  "按字段标示的 结算币种、ATG 或原币种填写。比例使用 0 到 1 的小数；精确值按原样提交。": {
+    "en": "Use settlement currency, ATG, or the original currency as indicated. Enter ratios as decimals from 0 to 1; exact values are submitted unchanged.",
+    "ja": "各欄に示す 決済通貨、ATG、または元の通貨で入力してください。比率は 0 から 1 の小数を使用し、正確な値のまま送信されます。",
+    "ru": "Используйте валюта расчётов, ATG или исходную валюту, указанную у поля. Доли задавайте десятичными числами от 0 до 1; точные значения отправляются без изменения."
   },
   "时间按当前设备时区显示，提交时保存为统一时刻。": {
     "en": "Times are shown in your device's time zone and saved as a universal instant.",
@@ -1934,10 +1934,10 @@
     "ja": "支払い、返金、利用記録",
     "ru": "Оплата, возвраты и история использования"
   },
-  "套餐不提供一般性退款；重复、错误交易、未交付或无法履约的问题通过异常流程办理。未使用且未占用的 USD 支付余额可申请退回。": {
-    "en": "Plans do not offer general refunds. Duplicate or incorrect transactions, non-delivery, and fulfillment failures follow the exception process. Unused, unreserved USD payment balances may be requested back.",
-    "ja": "プランの一般的な返金はありません。重複・誤取引、未提供、履行不能は例外手続きで対応します。未使用かつ未確保の USD 支払残高は返金申請が可能です。",
-    "ru": "Общий возврат по планам не предусмотрен. Дублирующие или ошибочные операции, невыдача и невозможность исполнения обрабатываются через исключения. Неиспользованный и незарезервированный остаток USD можно запросить к возврату."
+  "套餐不提供一般性退款；重复、错误交易、未交付或无法履约的问题通过异常流程办理。未使用且未占用的 结算币种 支付余额可申请退回。": {
+    "en": "Plans do not offer general refunds. Duplicate or incorrect transactions, non-delivery, and fulfillment failures follow the exception process. Unused, unreserved settlement currency payment balances may be requested back.",
+    "ja": "プランの一般的な返金はありません。重複・誤取引、未提供、履行不能は例外手続きで対応します。未使用かつ未確保の 決済通貨 支払残高は返金申請が可能です。",
+    "ru": "Общий возврат по планам не предусмотрен. Дублирующие или ошибочные операции, невыдача и невозможность исполнения обрабатываются через исключения. Неиспользованный и незарезервированный остаток валюта расчётов можно запросить к возврату."
   },
   "购买后在工作台创建 Key、获取接入代码，并在用量账单查看价格与费用依据。": {
     "en": "After purchase, create keys and get integration code in your workspace, then review pricing and charge evidence in usage billing.",
@@ -2798,10 +2798,10 @@
     "ja": "各行は 1 つの呼び出し方です。課金名は下のコストと一致させます。",
     "ru": "Каждая строка — один способ вызова. Название тарифа должно совпасть с себестоимостью ниже."
   },
-  "成本价（USD）": {
-    "en": "Cost (USD)",
-    "ja": "コスト（USD）",
-    "ru": "Себестоимость (USD)"
+  "成本价（原币种）": {
+    "en": "Cost (original currency)",
+    "ja": "コスト（元通貨）",
+    "ru": "Себестоимость (исходная валюта)"
   },
   "成本价": {
     "en": "Cost",
@@ -2813,20 +2813,20 @@
     "ja": "上の課金名と一致させます。例：input。",
     "ru": "Используйте то же название тарифа, что выше, например input."
   },
-  "单价（USD）": {
-    "en": "Unit price (USD)",
-    "ja": "単価（USD）",
-    "ru": "Цена за единицу (USD)"
+  "单价（结算币种）": {
+    "en": "Unit price (settlement currency)",
+    "ja": "単価（決済通貨）",
+    "ru": "Цена за единицу (валюта расчётов)"
   },
   "这是平台付给供应商的价格，不是客户看到的零售价。": {
     "en": "This is what the platform pays the supplier, not the retail price customers see.",
     "ja": "これはプラットフォームが供給元に払う価格であり、顧客が見る小売価格ではありません。",
     "ru": "Это цена, которую платформа платит поставщику, а не розничная цена для клиента."
   },
-  "填写供应商那边的模型名称、怎么读取用量，以及 USD 成本价。": {
-    "en": "Enter the supplier's model name, how to read usage, and the USD cost.",
-    "ja": "供給元のモデル名、使用量の読み取り方、USD コストを記入します。",
-    "ru": "Укажите имя модели у поставщика, как читать расход и себестоимость в USD."
+  "填写供应商那边的模型名称、怎么读取用量，以及 原币种 成本价。": {
+    "en": "Enter the supplier's model name, how to read usage, and the original currency cost.",
+    "ja": "供給元のモデル名、使用量の読み取り方、元通貨 コストを記入します。",
+    "ru": "Укажите имя модели у поставщика, как читать расход и себестоимость в исходная валюта."
   },
   "路由配置": {
     "en": "Route setup",
@@ -2878,10 +2878,10 @@
     "ja": "1 つの公開モデルに複数の供給元モデルを紐付けできます。優先度の数字が小さい方が先に考慮されます。",
     "ru": "К одной публичной модели можно привязать несколько моделей поставщика. Меньший приоритет рассматривается раньше."
   },
-  "零售价使用客户 ATG，供货价使用采购 ATG。供应商的 USD 成本价写在供应商模型上。倍率不是利润率。": {
-    "en": "Retail prices use customer ATG. Supply prices use procurement ATG. The supplier USD cost is entered on the supplier model. A multiplier is not a profit margin.",
-    "ja": "小売価格は顧客 ATG、供給価格は調達 ATG です。供給元の USD コストは供給元モデルに記入します。倍率は利益率ではありません。",
-    "ru": "Розница считается в ATG клиента, поставка — в закупочном ATG. Себестоимость поставщика в USD указывается у модели поставщика. Множитель — это не норма прибыли."
+  "零售价使用客户 ATG，供货价使用采购 ATG。供应商的 原币种 成本价写在供应商模型上。倍率不是利润率。": {
+    "en": "Retail prices use customer ATG. Supply prices use procurement ATG. The supplier original currency cost is entered on the supplier model. A multiplier is not a profit margin.",
+    "ja": "小売価格は顧客 ATG、供給価格は調達 ATG です。供給元の 元通貨 コストは供給元モデルに記入します。倍率は利益率ではありません。",
+    "ru": "Розница считается в ATG клиента, поставка — в закупочном ATG. Себестоимость поставщика в исходная валюта указывается у модели поставщика. Множитель — это не норма прибыли."
   },
   "开放模型前，至少勾选一项能力。": {
     "en": "Check at least one capability before enabling the model.",
@@ -2928,10 +2928,10 @@
     "ja": "公開モデル {model} には供給元モデルが {count} 件紐付いています。経路戦略は{strategy}です。",
     "ru": "К публичной модели {model} привязано моделей поставщика: {count}. Стратегия маршрута: {strategy}."
   },
-  "供应商模型 {name} 写了 {count} 项 USD 成本价。": {
-    "en": "Supplier model {name} has {count} USD cost rows.",
-    "ja": "供給元モデル {name} には USD コストが {count} 件あります。",
-    "ru": "У модели поставщика {name} указано строк себестоимости в USD: {count}."
+  "供应商模型 {name} 写了 {count} 项 原币种 成本价。": {
+    "en": "Supplier model {name} has {count} original currency cost rows.",
+    "ja": "供給元モデル {name} には 元通貨 コストが {count} 件あります。",
+    "ru": "У модели поставщика {name} указано строк себестоимости в исходная валюта: {count}."
   },
   "待选择": {
     "en": "Not chosen yet",

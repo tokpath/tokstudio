@@ -107,7 +107,7 @@ func TestPostgresSettingsAuditAndReviewRespectActualPermissions(t *testing.T) {
 	}
 	f.login(t, "staff", reviewer.Email, "owner-password-test")
 	base := "/v1/operators/" + op
-	if err := f.a.DB.Create(&remediation.Case{ID: uuid.NewString(), OperatorID: op, BusinessKey: "settings-review", Fingerprint: "synthetic", Kind: "unallocated", AmountUSD: ledger.MustDecimal("1"), State: "pending_review", Reason: "test", Evidence: "test", RequestedBy: owner, RequiredReviews: 1, CreatedAt: time.Now()}).Error; err != nil {
+	if err := f.a.DB.Create(&remediation.Case{ID: uuid.NewString(), OperatorID: op, BusinessKey: "settings-review", Fingerprint: "synthetic", Kind: "unallocated", AmountMoney: ledger.MustDecimal("1"), State: "pending_review", Reason: "test", Evidence: "test", RequestedBy: owner, RequiredReviews: 1, CreatedAt: time.Now()}).Error; err != nil {
 		t.Fatal(err)
 	}
 	for _, test := range []struct {

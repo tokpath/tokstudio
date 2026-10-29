@@ -27,7 +27,7 @@ func (s *Service) InvoiceReceiptAdjustments(ctx context.Context, tx *gorm.DB, op
 				Review bool
 				Count  int64
 			}
-			if e := t.Model(&capacity{}).Select("COALESCE(sum(completed_usd),0)::text AS paid, COALESCE(bool_or(state='reserved'),false) AS review,count(*) AS count").Where("operator_id=? AND receipt_id=?", operator, id).Scan(&amounts).Error; e != nil {
+			if e := t.Model(&capacity{}).Select("COALESCE(sum(completed_money),0)::text AS paid, COALESCE(bool_or(state='reserved'),false) AS review,count(*) AS count").Where("operator_id=? AND receipt_id=?", operator, id).Scan(&amounts).Error; e != nil {
 				return e
 			}
 			var disputes struct {
@@ -35,10 +35,10 @@ func (s *Service) InvoiceReceiptAdjustments(ctx context.Context, tx *gorm.DB, op
 				Review  bool
 				Count   int64
 			}
-			if e := t.Table("remediation_chargebacks").Select("COALESCE(sum(CASE WHEN state='invalid_payment' THEN amount_usd ELSE 0 END),0)::text AS removed,COALESCE(bool_or(state='disputed'),false) AS review,count(*) AS count").Where("operator_id=? AND receipt_id=?", operator, id).Scan(&disputes).Error; e != nil {
+			if e := t.Table("remediation_chargebacks").Select("COALESCE(sum(CASE WHEN state='invalid_payment' THEN amount_money ELSE 0 END),0)::text AS removed,COALESCE(bool_or(state='disputed'),false) AS review,count(*) AS count").Where("operator_id=? AND receipt_id=?", operator, id).Scan(&disputes).Error; e != nil {
 				return e
 			}
-			out = append(out, operations.ReceiptAdjustment{ReceiptID: id, RemovedUSD: amounts.Paid.Add(disputes.Removed), ReviewRequired: amounts.Review || disputes.Review, Reference: fmt.Sprintf("receipt:%s/refund-legs:%d/chargebacks:%d", id, amounts.Count, disputes.Count)})
+			out = append(out, operations.ReceiptAdjustment{ReceiptID: id, RemovedMoney: amounts.Paid.Add(disputes.Removed), ReviewRequired: amounts.Review || disputes.Review, Reference: fmt.Sprintf("receipt:%s/refund-legs:%d/chargebacks:%d", id, amounts.Count, disputes.Count)})
 		}
 		return nil
 	})
@@ -63,14 +63,14 @@ func (s *Service) InvoicePartyReceiptAdjustments(ctx context.Context, tx *gorm.D
 				Removed ledger.Decimal
 				Review  bool
 			}
-			if e := t.Table("remediation_refund_legs l").Select("COALESCE(sum(l.settled_usd),0)::text AS removed,COALESCE(bool_or(l.state NOT IN ('completed','cancelled')),false) AS review").Joins("JOIN remediation_cases c ON c.id=l.case_id").Where("l.source_operator_id=? AND l.receipt_id=? AND c.customer_id=?", operator, receipt, customer).Scan(&party).Error; e != nil {
+			if e := t.Table("remediation_refund_legs l").Select("COALESCE(sum(l.settled_money),0)::text AS removed,COALESCE(bool_or(l.state NOT IN ('completed','cancelled')),false) AS review").Joins("JOIN remediation_cases c ON c.id=l.case_id").Where("l.source_operator_id=? AND l.receipt_id=? AND c.customer_id=?", operator, receipt, customer).Scan(&party).Error; e != nil {
 				return e
 			}
 			var disputed bool
 			if e := t.Table("remediation_chargebacks").Select("COALESCE(bool_or(state IN ('disputed','invalid_payment')),false)").Where("operator_id=? AND receipt_id=?", operator, receipt).Scan(&disputed).Error; e != nil {
 				return e
 			}
-			rows = append(rows, operations.ReceiptAdjustment{ReceiptID: receipt, RemovedUSD: party.Removed, ReviewRequired: party.Review || disputed, Reference: fmt.Sprintf("receipt:%s/customer:%s/external_refund:%s", receipt, customer, party.Removed.String())})
+			rows = append(rows, operations.ReceiptAdjustment{ReceiptID: receipt, RemovedMoney: party.Removed, ReviewRequired: party.Review || disputed, Reference: fmt.Sprintf("receipt:%s/customer:%s/external_refund:%s", receipt, customer, party.Removed.String())})
 		}
 		return nil
 	})

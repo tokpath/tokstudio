@@ -58,10 +58,10 @@ func (s *Service) assumedRefundSource(ctx context.Context, t *gorm.DB, l RefundL
 		total := ledger.Zero()
 		for _, a := range allocations {
 			if allowed[a.ID] && a.SourceOperatorID == l.SourceOperatorID && a.ReceiptID == l.ReceiptID {
-				total = total.Add(a.AmountUSD)
+				total = total.Add(a.AmountMoney)
 			}
 		}
-		if total.Cmp(l.AmountUSD) != 0 {
+		if total.Cmp(l.AmountMoney) != 0 {
 			return r, ErrScope
 		}
 	case "package_exception":
@@ -151,7 +151,7 @@ func (s *Service) responsibleRefundBasis(ctx context.Context, t *gorm.DB, l Refu
 	if e != nil {
 		return out, e
 	}
-	return payments.ResponsibleRefundBasis{RefundID: l.ID, OperatorID: l.OperatorID, SourceOperatorID: l.SourceOperatorID, ReceiptID: l.ReceiptID, Currency: r.Currency, AmountUSD: l.AmountUSD, RemainingUSD: l.AmountUSD.Sub(l.SettledUSD), AuthorizedAt: a.CreatedAt, CreatedAt: l.CreatedAt}, nil
+	return payments.ResponsibleRefundBasis{RefundID: l.ID, OperatorID: l.OperatorID, SourceOperatorID: l.SourceOperatorID, ReceiptID: l.ReceiptID, Currency: r.Currency, AmountMoney: l.AmountMoney, RemainingMoney: l.AmountMoney.Sub(l.SettledMoney), AuthorizedAt: a.CreatedAt, CreatedAt: l.CreatedAt}, nil
 }
 
 func (s *Service) validateAssumedDestination(ctx context.Context, t *gorm.DB, l RefundLeg, d RefundDestination) error {

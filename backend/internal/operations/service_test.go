@@ -230,7 +230,7 @@ type invoiceBasis struct {
 }
 
 func (b *invoiceBasis) InvoiceBasis(_ context.Context, _ *gorm.DB, _, _, receipt string) (InvoiceBasis, error) {
-	return InvoiceBasis{ReceiptID: receipt, EligibleUSD: b.value, ReviewRequired: b.review.Load()}, nil
+	return InvoiceBasis{ReceiptID: receipt, EligibleMoney: b.value, ReviewRequired: b.review.Load()}, nil
 }
 func TestInvoiceCapacityConcurrentAndRefundReview(t *testing.T) {
 	s, a, _, operator, customer := opsFixture(t)
@@ -302,11 +302,11 @@ func TestRealLedgerReconciliationExportAuthorizationAndRetention(t *testing.T) {
 	ctx := context.Background()
 	installLedger(t, s.DB)
 	l := ledger.New(s.DB)
-	account, e := l.EnsureAccount(ctx, nil, ledger.Account{OperatorID: operator, OwnerID: customer, Purpose: "customer:usd", Unit: "USD"})
+	account, e := l.EnsureAccount(ctx, nil, ledger.Account{OperatorID: operator, OwnerID: customer, Purpose: "customer:money", Unit: ledger.MoneyUnit})
 	if e != nil {
 		t.Fatal(e)
 	}
-	control, e := l.EnsureAccount(ctx, nil, ledger.Account{OperatorID: operator, OwnerID: operator, Purpose: "control:cash", Unit: "USD", AllowNegative: true})
+	control, e := l.EnsureAccount(ctx, nil, ledger.Account{OperatorID: operator, OwnerID: operator, Purpose: "control:cash", Unit: ledger.MoneyUnit, AllowNegative: true})
 	if e != nil {
 		t.Fatal(e)
 	}

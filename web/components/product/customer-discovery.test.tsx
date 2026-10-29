@@ -19,8 +19,8 @@ const models: Model[] = [
   { id: "second-model", name: "Second model", capabilities: ["image"], status: "active", prices: [] },
   { id: "paused-model", name: "Paused model", capabilities: ["image"], status: "disabled", prices: [] },
 ];
-const plan: Plan = { id: "plan-one", name: "Synthetic plan", price_usd: "10", purchase_atg: "100", gift_atg: "20", validity: "month", auto_renew_available: false, status: "active", version: 1 };
-const referral = { invite_code: "ORIG01", invite_url: "https://brand.example.test/register?invite=ORIG01", direct_count: 3, indirect_count: 1, qualified: true, function_status: "active", confirmed_usd: "10", pending_usd: "2", threshold_usd: "10", direct_rate: "0.3", indirect_rate: "0.1" };
+const plan: Plan = { id: "plan-one", name: "Synthetic plan", price_money: "10", purchase_atg: "100", gift_atg: "20", validity: "month", auto_renew_available: false, status: "active", version: 1 };
+const referral = { invite_code: "ORIG01", invite_url: "https://brand.example.test/register?invite=ORIG01", direct_count: 3, indirect_count: 1, qualified: true, function_status: "active", confirmed_money: "10", pending_money: "2", threshold_money: "10", direct_rate: "0.3", indirect_rate: "0.1" };
 const page = { title: "", description: "", items: [], columns: [], operations: [], row_operations: [] };
 const response = (value: unknown) => new Response(JSON.stringify(value), { status: 200 });
 function show(component: React.ReactNode, locale: Locale = "zh") { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return { ...render(<I18nProvider initialLocale={locale}><QueryClientProvider client={cache}>{component}</QueryClientProvider></I18nProvider>), cache }; }
@@ -136,7 +136,7 @@ it("provides a share link after publication without changing the original invita
 });
 
 it("shows precise ordinary-user qualification progress without fetching the KOL wallet", async () => {
-  const fetch = vi.fn(async () => response({ ...referral, qualified: false, confirmed_usd: "9.999999999999999999", pending_usd: "100" }));
+  const fetch = vi.fn(async () => response({ ...referral, qualified: false, confirmed_money: "9.999999999999999999", pending_money: "100" }));
   vi.stubGlobal("fetch", fetch);
   show(<CustomerReferrals />);
   await screen.findByRole("progressbar", { name: "KOL 资格进度" });

@@ -16,7 +16,7 @@ test("unconfigured channel can buy stock and sees preparation and blocked-quote 
   await page.screenshot({path:info.outputPath("stock-purchase-before-models.png"),fullPage:true});
   await page.getByRole("button",{name:"按金额采购",exact:true}).click();
   const panel=page.getByRole("dialog").last();
-  await panel.getByLabel("本次采购USD",{exact:true}).fill("1000");
+  await panel.getByLabel("本次采购结算币种",{exact:true}).fill("1000");
   await panel.getByRole("checkbox").check();
   const saved=page.waitForResponse(response=>response.url().endsWith("/purchase")&&response.request().method()==="POST");
   await panel.getByRole("button",{name:"按金额采购",exact:true}).click();

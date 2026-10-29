@@ -28,7 +28,7 @@ func TestMarketingWorkspacePublishesNamedActivityWithoutBudget(t *testing.T) {
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	base := "/v1/operators/" + f.a.Installation.OperatorID
 	status, out, _ := f.call(t, "POST", base+"/commissions", map[string]any{
-		"threshold_usd": "100", "direct_percent": "15", "indirect_percent": "5", "confirmation_days": 30,
+		"threshold_money": "100", "direct_percent": "15", "indirect_percent": "5", "confirmation_days": 30,
 		"reward_validity_days": 30, "invitee_atg": "0", "inviter_atg": "0", "kol_cross_activity_limit": 0, "expected_version": 0,
 	}, "")
 	mustOK(t, status, out)
@@ -38,11 +38,11 @@ func TestMarketingWorkspacePublishesNamedActivityWithoutBudget(t *testing.T) {
 	if v["direct_percent"] != "15" || v["direct_rate"] != nil {
 		t.Fatalf("percentage conversion: %+v", v)
 	}
-	status, out, _ = f.call(t, "POST", base+"/plans", map[string]any{"name": "Starter", "price_usd": "100", "paid_atg": "100", "gift_atg": "20", "period": "lifetime", "new_purchase_enabled": true, "renewal_enabled": false, "expected_version": 0}, "")
+	status, out, _ = f.call(t, "POST", base+"/plans", map[string]any{"name": "Starter", "price_money": "100", "paid_atg": "100", "gift_atg": "20", "period": "lifetime", "new_purchase_enabled": true, "renewal_enabled": false, "expected_version": 0}, "")
 	mustOK(t, status, out)
 	packageID := out["id"].(string)
 	status, out, _ = f.call(t, "POST", base+"/marketing", map[string]any{
-		"name": "Summer offer", "package_id": packageID, "eligibility": "any", "final_price_usd": "90", "gift_atg": "10",
+		"name": "Summer offer", "package_id": packageID, "eligibility": "any", "final_price_money": "90", "gift_atg": "10",
 		"starts_at": time.Now().Add(-time.Hour), "ends_at": time.Now().Add(time.Hour), "per_customer_limit": 1, "total_use_limit": 0, "enabled": true,
 	}, "")
 	mustOK(t, status, out)

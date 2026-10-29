@@ -46,6 +46,9 @@ func New(db *gorm.DB) *Service {
 
 // Configure adapters before the service starts serving concurrent requests.
 func (s *Service) SetSalesCoverage(c SalesCoverage) { s.coverage = c }
+func (s *Service) SetMonetaryReadiness(check func(context.Context, *gorm.DB) error) {
+	s.org.SetMonetaryReadiness(check)
+}
 func (s *Service) SetMarketing(m Marketing) {
 	s.marketing = m
 	s.commissionFunding, _ = m.(CommissionFunding)
@@ -84,7 +87,7 @@ func classify(err error) error {
 		if p.Code == "23505" {
 			return ErrConflict
 		}
-		if p.Code == "23514" && (p.ConstraintName == "commerce_receipts_allocated_usd_check" || p.ConstraintName == "commerce_orders_check1") {
+		if p.Code == "23514" && (p.ConstraintName == "commerce_receipts_allocated_money_check" || p.ConstraintName == "commerce_orders_check1") {
 			return ErrExcessAllocation
 		}
 	}
@@ -135,10 +138,10 @@ type subscriptionRow Subscription
 
 func (subscriptionRow) TableName() string { return "commerce_subscriptions" }
 func (s *Service) account(ctx context.Context, tx *gorm.DB, operator, owner, purpose string) (ledger.Account, error) {
-	return s.ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: operator, OwnerID: owner, Purpose: purpose, Unit: "USD", AllowNegative: len(purpose) >= 8 && purpose[:8] == "control:"})
+	return s.ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: operator, OwnerID: owner, Purpose: purpose, Unit: "MONEY", AllowNegative: len(purpose) >= 8 && purpose[:8] == "control:"})
 }
 func orderTotalATG(o Order) ledger.Decimal {
 	return o.PaidATG.Add(o.PackageGiftATG).Add(o.MerchantGiftATG).Add(o.KOLGiftATG)
 }
-func internalTotal(o Order) ledger.Decimal { return o.InternalUSD.Add(o.CommissionUSD) }
-func externalDue(o Order) ledger.Decimal   { return o.DueUSD.Sub(internalTotal(o)) }
+func internalTotal(o Order) ledger.Decimal { return o.InternalMoney.Add(o.CommissionMoney) }
+func externalDue(o Order) ledger.Decimal   { return o.DueMoney.Sub(internalTotal(o)) }

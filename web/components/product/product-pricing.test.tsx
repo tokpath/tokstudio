@@ -44,7 +44,7 @@ it("lets operators combine input media without keeping an overlapping aggregate 
 });
 
 it("shows no renewal form for lifetime credits and binds changed-term consent to the displayed quote", async () => {
-  const quote={quote_id:"current-quote",plan_id:"package",name:"月套餐",price_usd:"20",purchase_atg:"100",gift_atg:"20",validity:"month",terms_summary:"本次续费服务约定"};
+  const quote={quote_id:"current-quote",plan_id:"package",name:"月套餐",price_money:"20",purchase_atg:"100",gift_atg:"20",validity:"month",terms_summary:"本次续费服务约定"};
   const base={name:"月套餐",status:"active",purchase_remaining_atg:"5",gift_remaining_atg:"1",effective_at:"2026-10-01T00:00:00Z",expires_at:"2030-11-01T00:00:00Z",auto_renew:false,auto_renew_available:true,allow_commission:false,requires_confirmation:true,renewal_quote:quote,version:1};
   const sent:unknown[]=[];
   vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL, init?:RequestInit) => {

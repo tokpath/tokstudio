@@ -130,7 +130,7 @@ func TestPostgresRoutingPoliciesChooseCostAndLatencyWithAuthority(t *testing.T) 
 		t.Fatal(e)
 	}
 	expensive, cheap := "2", "1"
-	q := ModelQuote{ModelID: "model", Candidates: []UpstreamModel{{ID: "expensive", Priority: 0}, {ID: "cheap", Priority: 1}}, Supplier: []SupplierPriceSnapshot{{UpstreamID: "expensive", EstimateUSD: &expensive}, {UpstreamID: "cheap", EstimateUSD: &cheap}}}
+	q := ModelQuote{ModelID: "model", Candidates: []UpstreamModel{{ID: "expensive", Priority: 0}, {ID: "cheap", Priority: 1}}, Supplier: []SupplierPriceSnapshot{{UpstreamID: "expensive", EstimateMoney: &expensive}, {UpstreamID: "cheap", EstimateMoney: &cheap}}}
 	if e := c.rankRoutes(ctx, &q); e != nil {
 		t.Fatal(e)
 	}

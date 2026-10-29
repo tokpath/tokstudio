@@ -11,24 +11,24 @@ import (
 
 func TestPostgresReceiptDisputeKeepsVerifiedFactAndAllowsOnlyReleasedValidRemainder(t *testing.T) {
 	f := setup(t)
-	o, e := f.s.Commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "pending-dispute-topup", ExpectedOwnershipVersion: 1, AmountUSD: d("20")})
+	o, e := f.s.Commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "pending-dispute-topup", ExpectedOwnershipVersion: 1, AmountMoney: d("20")})
 	if e != nil {
 		t.Fatal(e)
 	}
 	r := f.receipt(t, "verified-unallocated-source", "100")
 	cb := f.chargeback(t, r, "partial-unallocated-dispute", "50")
-	in := commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "original-source-allocation", AmountUSD: d("20")}
+	in := commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "original-source-allocation", AmountMoney: d("20")}
 	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, in); !errors.Is(e, commerce.ErrReceiptRestricted) {
 		t.Fatal("new assignment escaped recorded source review", e)
 	}
 	e = f.db.Transaction(func(tx *gorm.DB) error {
-		_, e := f.s.Commerce.ReserveReceiptFunds(f.ctx, tx, commerce.ReceiptFundsInput{OperatorID: f.operator, ReceiptID: r.ID, DestinationID: uuid.NewString(), BusinessKey: "unapproved-procurement-source", ActorID: f.owner, AmountUSD: d("10"), Deadline: time.Now().Add(time.Hour)})
+		_, e := f.s.Commerce.ReserveReceiptFunds(f.ctx, tx, commerce.ReceiptFundsInput{OperatorID: f.operator, ReceiptID: r.ID, DestinationID: uuid.NewString(), BusinessKey: "unapproved-procurement-source", ActorID: f.owner, AmountMoney: d("10"), Deadline: time.Now().Add(time.Hour)})
 		return e
 	})
 	if !errors.Is(e, commerce.ErrReceiptRestricted) {
 		t.Fatal("wholesale allocation escaped shared guard", e)
 	}
-	if current, e := f.s.Commerce.GetReceipt(f.ctx, nil, f.operator, r.ID); e != nil || current.GrossUSD.Cmp(d("100")) != 0 || !current.AllocatedUSD.IsZero() {
+	if current, e := f.s.Commerce.GetReceipt(f.ctx, nil, f.operator, r.ID); e != nil || current.GrossMoney.Cmp(d("100")) != 0 || !current.AllocatedMoney.IsZero() {
 		t.Fatal("restricted allocation erased actual receipt", current, e)
 	}
 	if e = f.s.RestrictChargeback(f.ctx, f.owner, f.operator, cb.ID, "specific disputed half now held"); e != nil {

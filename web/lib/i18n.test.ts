@@ -69,4 +69,14 @@ describe("four-language presentation contract", () => {
     expect(localizeNumberText("12,345.000000000000000001", "ru")).toBe("12\u00a0345,000000000000000001");
     expect(localizeNumberText("0.000000000000000001", "en")).toBe("0.000000000000000001");
   });
+  it.each(["zh", "en", "ja", "ru"] as const)("shows the configured settlement currency only in marked system templates in %s", locale => {
+    const amount = translate(locale, "金额 结算币种", undefined, "CNY");
+    expect(amount).toContain("CNY");
+    expect(amount).not.toMatch(/结算币种|settlement currency|決済通貨|валюта расчётов/);
+    const authoredName = "结算币种 settlement currency USD";
+    expect(translate(locale, "{provider} · {amount} 结算币种 · 原开票方 {issuer}", { provider: authoredName, amount: "1.000000000000000001", issuer: "供货方" }, "CNY")).toContain(authoredName + " · 1.000000000000000001 CNY");
+    expect(translate(locale, "自定义结算币种 USD 别名", undefined, "CNY")).toBe("自定义结算币种 USD 别名");
+    expect(translate(locale, "结算币种（ISO 代码）", undefined, "CNY")).toBe(translate(locale, "结算币种（ISO 代码）"));
+    expect(translate(locale, "美元 / 每秒", undefined, "CNY")).toBe(translate(locale, "美元 / 每秒"));
+  });
 });

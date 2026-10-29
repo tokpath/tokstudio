@@ -27,7 +27,7 @@ func businessFields(o operation) []field {
 		renewal := defaultField("renewal_enabled", "允许到期续费", "boolean", false)
 		renewal.VisibleWhen = &fieldVisibility{Field: "period", Values: []string{"month", "quarter", "year"}}
 		renewal.Help = "仅允许客户自行授权续费，不会替客户开启。停止新购与停止续费分别控制，已购权益保持原条款。"
-		return []field{optional("package_id", "套餐", "hidden"), f("name", "套餐名称", "text"), f("price_usd", "售价 USD", "decimal"), f("paid_atg", "购买额度 ATG", "decimal"), defaultField("gift_atg", "赠送额度 ATG", "decimal", "0"), period, packageTermsField(), defaultField("new_purchase_enabled", "允许新购", "boolean", true), renewal, version}
+		return []field{optional("package_id", "套餐", "hidden"), f("name", "套餐名称", "text"), f("price_money", "售价 结算币种", "decimal"), f("paid_atg", "购买额度 ATG", "decimal"), defaultField("gift_atg", "赠送额度 ATG", "decimal", "0"), period, packageTermsField(), defaultField("new_purchase_enabled", "允许新购", "boolean", true), renewal, version}
 	case "operators":
 		return []field{selectField("kind", "合作类型", "oem|独立OEM品牌", "channel|同品牌渠道"), f("name", "经营方名称", "text"), f("legal_name", "实际经营主体", "text"), cooperationBrandNameField(), optional("supply_terms", "合作约定说明（可选）", "textarea"), optional("contract_attachment_id", "已上传合作合同（可选）", "text")}
 	case "commissions":
@@ -35,7 +35,7 @@ func businessFields(o operation) []field {
 		confirmation.Help = "按整天填写，默认 30 天。等待期满且相关消费没有未结争议后，才计入资格，对应佣金才能使用或提现。已经开始等待的记录仍按原来的到期时间，不会因为后来改政策而延长。"
 		reward := defaultField("reward_validity_days", "注册奖励有效天数", "integer", 30)
 		reward.Help = "注册赠送额度从注册成功起按整天计算，默认 30 天。到期后尚未使用的注册奖励不再可用。"
-		return []field{f("threshold_usd", "分佣资格门槛 USD", "decimal"), f("direct_percent", "直接邀请佣金 %", "decimal"), f("indirect_percent", "间接邀请佣金 %", "decimal"), confirmation, f("invitee_atg", "受邀人注册赠送 ATG", "decimal"), f("inviter_atg", "邀请人注册赠送 ATG", "decimal"), reward, defaultField("kol_cross_activity_limit", "同一 KOL 跨活动每人限次", "integer", 0), version}
+		return []field{f("threshold_money", "分佣资格门槛 结算币种", "decimal"), f("direct_percent", "直接邀请佣金 %", "decimal"), f("indirect_percent", "间接邀请佣金 %", "decimal"), confirmation, f("invitee_atg", "受邀人注册赠送 ATG", "decimal"), f("inviter_atg", "邀请人注册赠送 ATG", "decimal"), reward, defaultField("kol_cross_activity_limit", "同一 KOL 跨活动每人限次", "integer", 0), version}
 	case "activities":
 		return campaignFields(true, version)
 	case "marketing":
@@ -69,21 +69,21 @@ func businessFields(o operation) []field {
 		return fields
 	case "withdrawals":
 		if o.Name == "verify_paid" {
-			return []field{optional("payment_reference", "付款流水或收据号（可选）", "text"), f("evidence", "付款核实说明", "textarea"), defaultField("currency", "实际付款币种", "text", "USD"), foreignField("original_amount", "实际付款金额", "decimal", "currency"), foreignField("valuation_evidence", "本次真实换汇依据", "text", "currency"), f("paid_usd", "已付净额USD", "decimal"), f("paid_at", "实际付款时刻", "datetime")}
+			return []field{optional("payment_reference", "付款流水或收据号（可选）", "text"), f("evidence", "付款核实说明", "textarea"), f("currency", "实际付款币种", "text"), optional("original_amount", "实际原币付款金额（同结算币种可省略）", "decimal"), optional("valuation_evidence", "本笔原币付款与清偿金额关联凭证（跨币必填）", "textarea"), f("paid_money", "已核实清偿净额（结算币种）", "decimal"), f("paid_at", "实际付款时刻", "datetime")}
 		}
-		return []field{f("minimum_usd", "最低提现 USD", "decimal"), f("flat_fee_usd", "固定手续费 USD", "decimal"), f("fee_rate", "手续费比例（0到1）", "decimal"), f("requires_dual_approval", "必须双人审批付款", "boolean"), f("method_reference", "对客户公示付款方式规则", "text"), version}
+		return []field{f("minimum_money", "最低提现 结算币种", "decimal"), f("flat_fee_money", "固定手续费 结算币种", "decimal"), f("fee_rate", "手续费比例（0到1）", "decimal"), f("requires_dual_approval", "必须双人审批付款", "boolean"), f("method_reference", "对客户公示付款方式规则", "text"), version}
 	case "invoices":
-		return []field{optional("issuer_id", "原始开票经营方", "hidden"), f("lines.0.receipt_id", "原始收款编号", "text"), f("lines.0.amount_usd", "本次申请 USD", "decimal"), f("details.title", "发票抬头", "text"), f("details.tax_id", "纳税识别号", "text"), f("details.email", "接收邮箱", "email"), optional("details.address", "发票地址", "text")}
+		return []field{optional("issuer_id", "原始开票经营方", "hidden"), f("lines.0.receipt_id", "原始收款编号", "text"), f("lines.0.amount_money", "本次申请 结算币种", "decimal"), f("details.title", "发票抬头", "text"), f("details.tax_id", "纳税识别号", "text"), f("details.email", "接收邮箱", "email"), optional("details.address", "发票地址", "text")}
 	case "refunds":
 		switch o.Name {
 		case "package_exception":
 			return []field{defaultField("action", "办理类型", "hidden", "package_exception"), f("customer_id", "客户编号", "text"), f("order_id", "原成交订单", "text"), selectField("reason", "真实异常原因", "transaction_error|交易错误", "unable_to_fulfill|无法履行服务"), f("evidence", "事实证据", "textarea")}
 		case "unallocated":
-			return []field{defaultField("action", "办理类型", "hidden", "unallocated"), f("receipt_id", "原收款编号", "text"), f("amount_usd", "退回 USD", "decimal"), f("reason", "退款原因", "text"), f("evidence", "核实依据", "textarea")}
+			return []field{defaultField("action", "办理类型", "hidden", "unallocated"), f("receipt_id", "原收款编号", "text"), f("amount_money", "退回 结算币种", "decimal"), f("reason", "退款原因", "text"), f("evidence", "核实依据", "textarea")}
 		case "policy":
-			return []field{defaultField("action", "办理类型", "hidden", "policy"), optional("second_review_above", "需独立复核的USD阈值（留空关闭）", "decimal"), version}
+			return []field{defaultField("action", "办理类型", "hidden", "policy"), optional("second_review_above", "需独立复核的结算币种阈值（留空关闭）", "decimal"), version}
 		case "verify_manual":
-			return []field{optional("reference", "退款流水或收据号（可选）", "text"), defaultField("currency", "实际付款币种", "text", "USD"), f("amount", "实际币种金额", "decimal"), foreignField("actual_usd", "本次折合USD", "decimal", "currency"), defaultField("fee_usd", "付款方手续费USD", "decimal", "0"), f("occurred_at", "实际付款时间", "datetime"), f("evidence", "付款核实与估值说明", "textarea")}
+			return []field{optional("reference", "退款流水或收据号（可选）", "text"), f("currency", "实际付款币种", "text"), f("amount", "实际币种金额", "decimal"), f("actual_money", "已核实本次清偿金额（结算币种）", "decimal"), optional("fee_money", "付款方已核实清算手续费（可稍后核实）", "decimal"), f("occurred_at", "实际付款时间", "datetime"), f("evidence", "本笔付款与清偿金额的核实说明", "textarea")}
 		case "execute_api":
 			fields := []field{f("money.currency", "原付款币种", "text"), f("money.amount", "本次实际执行币种金额", "decimal")}
 			for _, v := range executionValuationFields("money.currency") {
@@ -101,7 +101,7 @@ func campaignFields(kol bool, version field) []field {
 	if kol {
 		fields = append(fields, f("concession_rate", "本人佣金让利比例", "decimal"))
 	} else {
-		price := optional("final_price_usd", "活动售价 USD（留空使用套餐售价）", "decimal")
+		price := optional("final_price_money", "活动售价 结算币种（留空使用套餐售价）", "decimal")
 		price.Help = "可以只降价、只加赠或同时使用。活动售价不得高于下单时的套餐售价；不会修改套餐基础额度。"
 		fields = append(fields, price, defaultField("gift_atg", "额外赠送 ATG", "decimal", "0"))
 	}

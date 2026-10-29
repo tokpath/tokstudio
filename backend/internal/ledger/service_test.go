@@ -205,7 +205,7 @@ func TestCustomerOverageCannotStealOtherHold(t *testing.T) {
 func TestUnitAndScopeAreNotInterchangeable(t *testing.T) {
 	s, op, c, _ := fixture(t)
 	ctx := context.Background()
-	usd, e := s.EnsureAccount(ctx, nil, Account{OperatorID: op, OwnerID: c.OwnerID, Purpose: "customer:usd", Unit: "USD"})
+	usd, e := s.EnsureAccount(ctx, nil, Account{OperatorID: op, OwnerID: c.OwnerID, Purpose: "customer:money", Unit: "MONEY"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -213,7 +213,7 @@ func TestUnitAndScopeAreNotInterchangeable(t *testing.T) {
 	if !errors.Is(e, ErrUnbalanced) {
 		t.Fatal(e)
 	}
-	_, e = s.EnsureAccount(ctx, nil, Account{OperatorID: op, OwnerID: c.OwnerID, Purpose: "customer:usd", Unit: "USD", AllowNegative: true})
+	_, e = s.EnsureAccount(ctx, nil, Account{OperatorID: op, OwnerID: c.OwnerID, Purpose: "customer:money", Unit: "MONEY", AllowNegative: true})
 	if !errors.Is(e, ErrScope) {
 		t.Fatal(e)
 	}

@@ -15,7 +15,7 @@ func TestGrantConsumptionExpiryPaidBasisAndRetries(t *testing.T) {
 	op, c := uuid.NewString(), uuid.NewString()
 	now := time.Now().UTC()
 	expiry := now.Add(time.Hour)
-	in := GrantInput{OperatorID: op, CustomerID: c, OrderID: "order", BusinessKey: "order", ActorID: "test", Reason: "paid order", PaidUSD: FromInt64(80), Sources: []GrantSource{{"paid", FromInt64(80)}, {"package_gift", FromInt64(20)}}, EffectiveAt: now, ExpiresAt: &expiry}
+	in := GrantInput{OperatorID: op, CustomerID: c, OrderID: "order", BusinessKey: "order", ActorID: "test", Reason: "paid order", PaidMoney: FromInt64(80), Sources: []GrantSource{{"paid", FromInt64(80)}, {"package_gift", FromInt64(20)}}, EffectiveAt: now, ExpiresAt: &expiry}
 	g, e := s.IssueGrant(ctx, nil, in)
 	if e != nil {
 		t.Fatal(e)
@@ -29,22 +29,22 @@ func TestGrantConsumptionExpiryPaidBasisAndRetries(t *testing.T) {
 		t.Fatal(e)
 	}
 	events, e := s.ExpireCredits(ctx, nil, op, c, expiry)
-	if e != nil || len(events) != 1 || events[0].PaidUSD.String() != "56" || events[0].Amount.String() != "70" {
+	if e != nil || len(events) != 1 || events[0].PaidMoney.String() != "56" || events[0].Amount.String() != "70" {
 		t.Fatal(events, e)
 	}
 	result, e := s.SettleCredits(ctx, nil, op, c, h.ID, "settle", FromInt64(20), expiry.Add(time.Minute))
 	if e != nil {
 		t.Fatal(e)
 	}
-	if result.PaidUSD.String() != "16" || result.Debited.String() != "20" || !result.Shortfall.IsZero() {
+	if result.PaidMoney.String() != "16" || result.Debited.String() != "20" || !result.Shortfall.IsZero() {
 		t.Fatal(result)
 	}
 	repeat, e := s.SettleCredits(ctx, nil, op, c, h.ID, "settle", FromInt64(20), expiry.Add(time.Hour))
-	if e != nil || repeat.PaidUSD.String() != "16" {
+	if e != nil || repeat.PaidMoney.String() != "16" {
 		t.Fatal(repeat, e)
 	}
 	events, e = s.ExpireCredits(ctx, nil, op, c, expiry.Add(time.Minute))
-	if e != nil || len(events) != 1 || events[0].PaidUSD.String() != "8" {
+	if e != nil || len(events) != 1 || events[0].PaidMoney.String() != "8" {
 		t.Fatal(events, e)
 	}
 	grants, e := s.CustomerGrants(ctx, nil, op, c)
@@ -52,7 +52,7 @@ func TestGrantConsumptionExpiryPaidBasisAndRetries(t *testing.T) {
 		t.Fatal(e)
 	}
 	g = grants[0]
-	if g.ConsumedPaidUSD.Add(g.ExpiredPaidUSD).String() != "80" || g.Consumed.Add(g.Expired).String() != "100" {
+	if g.ConsumedPaidMoney.Add(g.ExpiredPaidMoney).String() != "80" || g.Consumed.Add(g.Expired).String() != "100" {
 		t.Fatal(g)
 	}
 	if e = s.Reconcile(ctx, nil, g.AccountID); e != nil {
@@ -69,7 +69,7 @@ func TestGrantSelectionSkipsUnneededLocksAndPagesFEFO(t *testing.T) {
 	if err := s.db.Transaction(func(tx *gorm.DB) error {
 		for i := 0; i < 70; i++ {
 			expires := now.Add(time.Duration(i+1) * time.Hour)
-			g, err := s.IssueGrant(ctx, tx, GrantInput{OperatorID: op, CustomerID: customer, BusinessKey: uuid.NewString(), ActorID: "test", Reason: "many packages", PaidUSD: FromInt64(1), Sources: []GrantSource{{"paid", FromInt64(1)}}, EffectiveAt: now, ExpiresAt: &expires})
+			g, err := s.IssueGrant(ctx, tx, GrantInput{OperatorID: op, CustomerID: customer, BusinessKey: uuid.NewString(), ActorID: "test", Reason: "many packages", PaidMoney: FromInt64(1), Sources: []GrantSource{{"paid", FromInt64(1)}}, EffectiveAt: now, ExpiresAt: &expires})
 			if err != nil {
 				return err
 			}
@@ -120,8 +120,8 @@ func TestGrantFEFOAndUnfundedShortfall(t *testing.T) {
 	now := time.Now().UTC()
 	expiry := now.Add(time.Hour)
 	for _, in := range []GrantInput{
-		{OperatorID: op, CustomerID: c, BusinessKey: "forever", ActorID: "test", Reason: "order", PaidUSD: FromInt64(1), Sources: []GrantSource{{"paid", FromInt64(1)}}, EffectiveAt: now},
-		{OperatorID: op, CustomerID: c, BusinessKey: "expiring", ActorID: "test", Reason: "order", PaidUSD: FromInt64(1), Sources: []GrantSource{{"paid", FromInt64(1)}, {"package_gift", FromInt64(1)}}, EffectiveAt: now, ExpiresAt: &expiry},
+		{OperatorID: op, CustomerID: c, BusinessKey: "forever", ActorID: "test", Reason: "order", PaidMoney: FromInt64(1), Sources: []GrantSource{{"paid", FromInt64(1)}}, EffectiveAt: now},
+		{OperatorID: op, CustomerID: c, BusinessKey: "expiring", ActorID: "test", Reason: "order", PaidMoney: FromInt64(1), Sources: []GrantSource{{"paid", FromInt64(1)}, {"package_gift", FromInt64(1)}}, EffectiveAt: now, ExpiresAt: &expiry},
 	} {
 		if _, e := s.IssueGrant(ctx, nil, in); e != nil {
 			t.Fatal(e)
@@ -135,7 +135,7 @@ func TestGrantFEFOAndUnfundedShortfall(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if result.Debited.String() != "3" || result.Shortfall.String() != "0.1" || result.PaidUSD.String() != "2" || len(result.Events) != 2 {
+	if result.Debited.String() != "3" || result.Shortfall.String() != "0.1" || result.PaidMoney.String() != "2" || len(result.Events) != 2 {
 		t.Fatal(result)
 	}
 	grants, _ := s.CustomerGrants(ctx, nil, op, c)

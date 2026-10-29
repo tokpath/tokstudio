@@ -23,7 +23,7 @@ type GrantInput struct {
 	BusinessKey string        `json:"business_key"`
 	ActorID     string        `json:"actor_id"`
 	Reason      string        `json:"reason"`
-	PaidUSD     Decimal       `json:"paid_usd"`
+	PaidMoney   Decimal       `json:"paid_money"`
 	Sources     []GrantSource `json:"sources"`
 	EffectiveAt time.Time     `json:"effective_at"`
 	ExpiresAt   *time.Time    `json:"expires_at,omitempty"`
@@ -37,14 +37,14 @@ type Grant struct {
 	OrderID            string     `json:"order_id"`
 	BusinessKey        string     `json:"business_key"`
 	Fingerprint        string     `json:"-"`
-	PaidUSD            Decimal    `json:"paid_usd"`
+	PaidMoney          Decimal    `json:"paid_money"`
 	Total              Decimal    `json:"total"`
 	Consumed           Decimal    `json:"consumed"`
 	Expired            Decimal    `json:"expired"`
 	Cancelled          Decimal    `json:"cancelled"`
-	ConsumedPaidUSD    Decimal    `json:"consumed_paid_usd"`
-	ExpiredPaidUSD     Decimal    `json:"expired_paid_usd"`
-	CancelledPaidUSD   Decimal    `json:"cancelled_paid_usd"`
+	ConsumedPaidMoney  Decimal    `json:"consumed_paid_money"`
+	ExpiredPaidMoney   Decimal    `json:"expired_paid_money"`
+	CancelledPaidMoney Decimal    `json:"cancelled_paid_money"`
 	EffectiveAt        time.Time  `json:"effective_at"`
 	ExpiresAt          *time.Time `json:"expires_at,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
@@ -69,7 +69,7 @@ type GrantEvent struct {
 	BusinessKey string          `json:"business_key"`
 	Kind        string          `json:"kind"`
 	Amount      Decimal         `json:"amount"`
-	PaidUSD     Decimal         `json:"paid_usd"`
+	PaidMoney   Decimal         `json:"paid_money"`
 	Sources     json.RawMessage `json:"sources" gorm:"type:jsonb"`
 	JournalID   *string         `json:"journal_id,omitempty"`
 	CreatedAt   time.Time       `json:"created_at"`
@@ -81,7 +81,7 @@ type CreditResult struct {
 	Requested Decimal      `json:"requested"`
 	Debited   Decimal      `json:"debited"`
 	Shortfall Decimal      `json:"shortfall"`
-	PaidUSD   Decimal      `json:"paid_usd"`
+	PaidMoney Decimal      `json:"paid_money"`
 	JournalID *string      `json:"journal_id,omitempty"`
 	Events    []GrantEvent `json:"events"`
 }
@@ -99,7 +99,7 @@ func lockCustomer(t *gorm.DB, operator, customer string) error {
 }
 
 func (s *Service) IssueGrant(ctx context.Context, tx *gorm.DB, in GrantInput) (Grant, error) {
-	if in.OperatorID == "" || in.CustomerID == "" || in.BusinessKey == "" || in.ActorID == "" || in.Reason == "" || in.PaidUSD.Sign() < 0 || in.EffectiveAt.IsZero() || (in.ExpiresAt != nil && !in.ExpiresAt.After(in.EffectiveAt)) {
+	if in.OperatorID == "" || in.CustomerID == "" || in.BusinessKey == "" || in.ActorID == "" || in.Reason == "" || in.PaidMoney.Sign() < 0 || in.EffectiveAt.IsZero() || (in.ExpiresAt != nil && !in.ExpiresAt.After(in.EffectiveAt)) {
 		return Grant{}, ErrAmount
 	}
 	allowed := map[string]bool{"paid": true, "package_gift": true, "merchant_gift": true, "kol_gift": true, "registration_gift": true, "manual_gift": true}
@@ -112,7 +112,7 @@ func (s *Service) IssueGrant(ctx context.Context, tx *gorm.DB, in GrantInput) (G
 		quantities[source.Kind] = quantities[source.Kind].Add(source.Amount)
 		total = total.Add(source.Amount)
 	}
-	if total.Sign() <= 0 || !total.Valid() || !in.PaidUSD.Valid() || (in.PaidUSD.Sign() > 0 && quantities["paid"].Sign() <= 0) {
+	if total.Sign() <= 0 || !total.Valid() || !in.PaidMoney.Valid() || (in.PaidMoney.Sign() > 0 && quantities["paid"].Sign() <= 0) {
 		return Grant{}, ErrAmount
 	}
 	in.Sources = nil
@@ -135,7 +135,7 @@ func (s *Service) IssueGrant(ctx context.Context, tx *gorm.DB, in GrantInput) (G
 		if !errors.Is(e, gorm.ErrRecordNotFound) {
 			return e
 		}
-		g := Grant{ID: uuid.NewString(), OperatorID: in.OperatorID, OriginalOperatorID: in.OperatorID, CustomerID: in.CustomerID, OrderID: in.OrderID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), PaidUSD: in.PaidUSD, Total: total, EffectiveAt: in.EffectiveAt.UTC(), ExpiresAt: in.ExpiresAt, CreatedAt: time.Now().UTC()}
+		g := Grant{ID: uuid.NewString(), OperatorID: in.OperatorID, OriginalOperatorID: in.OperatorID, CustomerID: in.CustomerID, OrderID: in.OrderID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), PaidMoney: in.PaidMoney, Total: total, EffectiveAt: in.EffectiveAt.UTC(), ExpiresAt: in.ExpiresAt, CreatedAt: time.Now().UTC()}
 		a, e := s.EnsureAccount(ctx, t, Account{OperatorID: in.OperatorID, OwnerID: in.CustomerID, Purpose: "customer:atg:" + g.ID, Unit: "ATG"})
 		if e != nil {
 			return e
@@ -437,7 +437,7 @@ func (s *Service) SettleCredits(ctx context.Context, tx *gorm.DB, operator, cust
 						return e
 					}
 					result.Events = append(result.Events, event)
-					result.PaidUSD = result.PaidUSD.Add(event.PaidUSD)
+					result.PaidMoney = result.PaidMoney.Add(event.PaidMoney)
 				}
 			}
 		}
@@ -485,18 +485,18 @@ func (s *Service) attributeGrant(t *gorm.DB, g Grant, n Decimal, kind, key strin
 	}
 	// Compute a cumulative target across both disjoint attribution classes.
 	attributed := g.Consumed.Add(g.Expired).Add(g.Cancelled).Add(n)
-	target, _ := Quantize(new(big.Rat).Mul(g.PaidUSD.Rat(), new(big.Rat).Quo(attributed.Rat(), g.Total.Rat())))
-	paid := target.Sub(g.ConsumedPaidUSD).Sub(g.ExpiredPaidUSD).Sub(g.CancelledPaidUSD)
+	target, _ := Quantize(new(big.Rat).Mul(g.PaidMoney.Rat(), new(big.Rat).Quo(attributed.Rat(), g.Total.Rat())))
+	paid := target.Sub(g.ConsumedPaidMoney).Sub(g.ExpiredPaidMoney).Sub(g.CancelledPaidMoney)
 	updates := map[string]any{}
 	if kind == "usage" {
 		updates["consumed"] = g.Consumed.Add(n)
-		updates["consumed_paid_usd"] = g.ConsumedPaidUSD.Add(paid)
+		updates["consumed_paid_money"] = g.ConsumedPaidMoney.Add(paid)
 	} else if kind == "expiry" {
 		updates["expired"] = g.Expired.Add(n)
-		updates["expired_paid_usd"] = g.ExpiredPaidUSD.Add(paid)
+		updates["expired_paid_money"] = g.ExpiredPaidMoney.Add(paid)
 	} else if kind == "cancellation" {
 		updates["cancelled"] = g.Cancelled.Add(n)
-		updates["cancelled_paid_usd"] = g.CancelledPaidUSD.Add(paid)
+		updates["cancelled_paid_money"] = g.CancelledPaidMoney.Add(paid)
 	} else {
 		return GrantEvent{}, ErrAmount
 	}
@@ -504,7 +504,7 @@ func (s *Service) attributeGrant(t *gorm.DB, g Grant, n Decimal, kind, key strin
 		return GrantEvent{}, e
 	}
 	encoded, _ := json.Marshal(allocations)
-	event := GrantEvent{ID: uuid.NewString(), GrantID: g.ID, BusinessKey: key, Kind: kind, Amount: n, PaidUSD: paid, Sources: encoded, JournalID: journal, CreatedAt: at}
+	event := GrantEvent{ID: uuid.NewString(), GrantID: g.ID, BusinessKey: key, Kind: kind, Amount: n, PaidMoney: paid, Sources: encoded, JournalID: journal, CreatedAt: at}
 	e = t.Create(&event).Error
 	return event, e
 }

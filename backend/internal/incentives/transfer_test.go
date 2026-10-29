@@ -35,11 +35,11 @@ func (f fixture) channel(t *testing.T) (fixture, string) {
 			t.Fatal(e)
 		}
 	}
-	q, e := f.commerce.PublishPackage(f.ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: c.Operator.ID, Name: "Channel monthly", TermsReference: "channel-terms-v1", Timezone: "UTC", PriceUSD: d("100"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
+	q, e := f.commerce.PublishPackage(f.ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: c.Operator.ID, Name: "Channel monthly", TermsReference: "channel-terms-v1", Timezone: "UTC", PriceMoney: d("100"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
-	p, e := f.s.SetPolicy(f.ctx, nil, owner, c.Operator.ID, PolicyInput{ThresholdUSD: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), RewardValiditySeconds: 3600})
+	p, e := f.s.SetPolicy(f.ctx, nil, owner, c.Operator.ID, PolicyInput{ThresholdMoney: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), RewardValiditySeconds: 3600})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -58,31 +58,31 @@ func TestPostgresTakeoverTransfersWalletQualificationsCommissionsAndPendingWithd
 	channel.qualify(t, a.Customer.ID, "qualification")
 	order := channel.buy(t, b.Customer.ID, "customer-package", "100", ActivitySelection{})
 	first := channel.consume(t, b.Customer.ID, "20")
-	if _, e := channel.s.SetPolicy(channel.ctx, nil, channel.owner, channel.operator, PolicyInput{ExpectedVersion: 1, ThresholdUSD: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 3600, RewardValiditySeconds: 3600}); e != nil {
+	if _, e := channel.s.SetPolicy(channel.ctx, nil, channel.owner, channel.operator, PolicyInput{ExpectedVersion: 1, ThresholdMoney: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 3600, RewardValiditySeconds: 3600}); e != nil {
 		t.Fatal(e)
 	}
 	channel.consume(t, b.Customer.ID, "20")
-	channel.seed(t, b.Customer.ID, "customer:usd", "25")
+	channel.seed(t, b.Customer.ID, "customer:money", "25")
 	sub, e := channel.commerce.EnableAutoRenewal(channel.ctx, nil, b.Customer.ID, order.ID, "customer renewal consent", false)
 	if e != nil {
 		t.Fatal(e)
 	}
-	payout, e := channel.s.SetWithdrawalPolicy(channel.ctx, nil, channel.owner, channel.operator, WithdrawalPolicy{MinimumUSD: d("1"), MethodReference: "manual-bank-transfer"}, 0)
+	payout, e := channel.s.SetWithdrawalPolicy(channel.ctx, nil, channel.owner, channel.operator, WithdrawalPolicy{MinimumMoney: d("1"), MethodReference: "manual-bank-transfer"}, 0)
 	if e != nil {
 		t.Fatal(e)
 	}
-	w, e := channel.s.RequestWithdrawal(channel.ctx, nil, WithdrawalInput{OperatorID: channel.operator, CustomerID: a.Customer.ID, BusinessKey: "pending-withdrawal", PolicyID: payout.ID, AmountUSD: d("1"), RecipientReference: "verified customer bank"})
+	w, e := channel.s.RequestWithdrawal(channel.ctx, nil, WithdrawalInput{OperatorID: channel.operator, CustomerID: a.Customer.ID, BusinessKey: "pending-withdrawal", PolicyID: payout.ID, AmountMoney: d("1"), RecipientReference: "verified customer bank"})
 	if e != nil {
 		t.Fatal(e)
 	}
-	if e = channel.s.ReverseEvent(channel.ctx, nil, CorrectionInput{ActorStaffID: channel.owner, OperatorID: channel.operator, OriginalEventID: first[0].ID, BusinessKey: "wrong-first-base", Evidence: "verified original paid base correction", AmountUSD: d("20")}); e != nil {
+	if e = channel.s.ReverseEvent(channel.ctx, nil, CorrectionInput{ActorStaffID: channel.owner, OperatorID: channel.operator, OriginalEventID: first[0].ID, BusinessKey: "wrong-first-base", Evidence: "verified original paid base correction", AmountMoney: d("20")}); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = channel.s.SetFunctionState(channel.ctx, nil, channel.owner, channel.operator, a.Customer.ID, "suspended", "confirmed fraud review", true); e != nil {
 		t.Fatal(e)
 	}
 	qBefore, e := channel.s.GetQualification(channel.ctx, nil, channel.operator, a.Customer.ID)
-	if e != nil || qBefore.PendingOffsetUSD.Cmp(d("1")) != 0 {
+	if e != nil || qBefore.PendingOffsetMoney.Cmp(d("1")) != 0 {
 		t.Fatalf("qualification before=%+v %v", qBefore, e)
 	}
 	obligations, e := channel.s.ClosureRequirements(channel.ctx, nil, channel.operator, a.Customer.ID)
@@ -95,7 +95,7 @@ func TestPostgresTakeoverTransfersWalletQualificationsCommissionsAndPendingWithd
 		}
 	}
 	unrelated := brand.register(t, "unrelated-brand@example.test", "")
-	if _, e = brand.commerce.CreateTopUpOrder(brand.ctx, nil, commerce.CreateTopUpInput{OperatorID: brand.operator, CustomerID: unrelated.Customer.ID, BusinessKey: "customer-package", ExpectedOwnershipVersion: 1, AmountUSD: d("1")}); e != nil {
+	if _, e = brand.commerce.CreateTopUpOrder(brand.ctx, nil, commerce.CreateTopUpInput{OperatorID: brand.operator, CustomerID: unrelated.Customer.ID, BusinessKey: "customer-package", ExpectedOwnershipVersion: 1, AmountMoney: d("1")}); e != nil {
 		t.Fatal(e)
 	}
 	blocked, e := channel.commerce.CreateOrder(channel.ctx, nil, commerce.CreateOrderInput{OperatorID: channel.operator, CustomerID: b.Customer.ID, QuoteID: channel.quote.ID, BusinessKey: "unfinished-external", ExpectedOwnershipVersion: 1})
@@ -217,7 +217,7 @@ func TestPostgresTakeoverTransfersWalletQualificationsCommissionsAndPendingWithd
 		t.Fatal("withdrawal provenance reservation not transferred", command, e)
 	}
 	qAfter, e := brand.s.GetQualification(brand.ctx, nil, brand.operator, a.Customer.ID)
-	if e != nil || qAfter.AcquiredAt == nil || !qAfter.AcquiredAt.Equal(*qBefore.AcquiredAt) || qAfter.PendingOffsetUSD.Cmp(d("1")) != 0 {
+	if e != nil || qAfter.AcquiredAt == nil || !qAfter.AcquiredAt.Equal(*qBefore.AcquiredAt) || qAfter.PendingOffsetMoney.Cmp(d("1")) != 0 {
 		t.Fatalf("qualification history=%+v %v", qAfter, e)
 	}
 	instant, e := brand.s.BusinessInstant(brand.ctx, nil)
@@ -235,18 +235,18 @@ func TestPostgresTakeoverTransfersWalletQualificationsCommissionsAndPendingWithd
 		t.Fatal(e)
 	}
 	qAfter, e = brand.s.GetQualification(brand.ctx, nil, brand.operator, a.Customer.ID)
-	if e != nil || !qAfter.PendingOffsetUSD.IsZero() {
+	if e != nil || !qAfter.PendingOffsetMoney.IsZero() {
 		t.Fatalf("pending recovery not continued=%+v %v", qAfter, e)
 	}
 	before := brand.balance(t, a.Customer.ID, "commission:available").Balance
-	if _, e = brand.s.SetPolicy(brand.ctx, nil, brand.owner, brand.operator, PolicyInput{ExpectedVersion: 1, ThresholdUSD: d("1000"), DirectRate: d("0.01"), IndirectRate: d("0.01"), RewardValiditySeconds: 3600}); e != nil {
+	if _, e = brand.s.SetPolicy(brand.ctx, nil, brand.owner, brand.operator, PolicyInput{ExpectedVersion: 1, ThresholdMoney: d("1000"), DirectRate: d("0.01"), IndirectRate: d("0.01"), RewardValiditySeconds: 3600}); e != nil {
 		t.Fatal(e)
 	}
 	brand.consume(t, b.Customer.ID, "10")
 	if after := brand.balance(t, a.Customer.ID, "commission:available").Balance; after.Sub(before).Cmp(d("1.5")) != 0 {
 		t.Fatalf("original fixed rate lost after takeover: %s", after.Sub(before))
 	}
-	if e = brand.s.AccrueGrantEvent(brand.ctx, nil, GrantEventInput{EventID: first[0].ID, OperatorID: brand.operator, CustomerID: b.Customer.ID, OrderID: order.ID, Kind: "usage", PaidUSD: first[0].PaidUSD, OccurredAt: first[0].CreatedAt}); e != nil {
+	if e = brand.s.AccrueGrantEvent(brand.ctx, nil, GrantEventInput{EventID: first[0].ID, OperatorID: brand.operator, CustomerID: b.Customer.ID, OrderID: order.ID, Kind: "usage", PaidMoney: first[0].PaidMoney, OccurredAt: first[0].CreatedAt}); e != nil {
 		t.Fatalf("historical event replay after takeover=%v", e)
 	}
 	subMoved, e := brand.commerce.GetSubscription(brand.ctx, nil, b.Customer.ID, sub.ID)
@@ -256,7 +256,7 @@ func TestPostgresTakeoverTransfersWalletQualificationsCommissionsAndPendingWithd
 	if result, e := brand.commerce.RenewSubscription(brand.ctx, nil, sub.ID); e != nil || result.Status != "needs_confirmation" {
 		t.Fatalf("renewal auto-accepted new terms=%+v %v", result, e)
 	}
-	replacement, e := brand.commerce.PublishPackage(brand.ctx, nil, commerce.PublishPackageInput{ActorStaffID: brand.owner, OperatorID: brand.operator, PackageID: brand.quote.PackageID, ExpectedVersion: brand.quote.Version, Name: "Brand monthly renewal", PriceUSD: brand.quote.PriceUSD, PaidATG: brand.quote.PaidATG, GiftATG: brand.quote.GiftATG, Period: brand.quote.Period, Timezone: brand.quote.Timezone, TermsSummary: brand.quote.TermsSummary, NewPurchaseEnabled: true, RenewalEnabled: true})
+	replacement, e := brand.commerce.PublishPackage(brand.ctx, nil, commerce.PublishPackageInput{ActorStaffID: brand.owner, OperatorID: brand.operator, PackageID: brand.quote.PackageID, ExpectedVersion: brand.quote.Version, Name: "Brand monthly renewal", PriceMoney: brand.quote.PriceMoney, PaidATG: brand.quote.PaidATG, GiftATG: brand.quote.GiftATG, Period: brand.quote.Period, Timezone: brand.quote.Timezone, TermsSummary: brand.quote.TermsSummary, NewPurchaseEnabled: true, RenewalEnabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}

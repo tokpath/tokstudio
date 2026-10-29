@@ -13,6 +13,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/modelpricing"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
@@ -46,6 +47,7 @@ func TestFinancialReportRecordedFactsScopeAndTakeover(t *testing.T) {
 	apply(incentives.Migrations())
 	apply(cooperation.Migrations())
 	apply(usage.Migrations())
+	apply(modelpricing.Migrations())
 	apply(operations.Migrations())
 	apply(payments.Migrations())
 	apply(remediation.Migrations())
@@ -65,11 +67,11 @@ func TestFinancialReportRecordedFactsScopeAndTakeover(t *testing.T) {
 	s := &operations.Service{DB: db, Authorize: org}
 	s.Source = operations.DomainSource{Ledger: l, Cooperation: coop, Commerce: com, Usage: u, Payments: payments.NewService(db, "financial-read", org, nil, nil), Refunds: operations.RefundFinancialSourceFunc(func(ctx context.Context, tx *gorm.DB, op string, from, to time.Time) (operations.RefundFinancialFacts, error) {
 		r, e := rem.FinancialRefundFacts(ctx, tx, op, from, to)
-		return operations.RefundFinancialFacts{PendingFees: r.PendingFees, PendingExecutions: r.PendingExecutions, OutstandingUSD: r.OutstandingUSD, MismatchCount: r.MismatchCount}, e
+		return operations.RefundFinancialFacts{PendingFees: r.PendingFees, PendingExecutions: r.PendingExecutions, OutstandingMoney: r.OutstandingMoney, MismatchCount: r.MismatchCount}, e
 	})}
 	account := func(purpose string, negative bool) ledger.Account {
 		t.Helper()
-		a, e := l.EnsureAccount(ctx, nil, ledger.Account{OperatorID: op, OwnerID: op, Purpose: purpose, Unit: "USD", AllowNegative: negative})
+		a, e := l.EnsureAccount(ctx, nil, ledger.Account{OperatorID: op, OwnerID: op, Purpose: purpose, Unit: ledger.MoneyUnit, AllowNegative: negative})
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -94,7 +96,7 @@ func TestFinancialReportRecordedFactsScopeAndTakeover(t *testing.T) {
 	post("commission_accrual", ledger.Line{AccountID: frozen.ID, Amount: ledger.FromInt64(3)}, ledger.Line{AccountID: commissions.ID, Amount: ledger.FromInt64(-3)})
 	post("takeover_cash_settlement", ledger.Line{AccountID: cash.ID, Amount: ledger.FromInt64(7)}, ledger.Line{AccountID: fees.ID, Amount: ledger.FromInt64(-7)})
 	post("supplier_cost", ledger.Line{AccountID: supplier.ID, Amount: ledger.FromInt64(-4)}, ledger.Line{AccountID: cost.ID, Amount: ledger.FromInt64(4)})
-	if _, e = l.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: op, CustomerID: uuid.NewString(), BusinessKey: "outstanding", ActorID: owner, Reason: "verified test package", PaidUSD: ledger.FromInt64(10), Sources: []ledger.GrantSource{{Kind: "paid", Amount: ledger.FromInt64(80)}, {Kind: "package_gift", Amount: ledger.FromInt64(20)}}, EffectiveAt: time.Now().Add(-time.Minute)}); e != nil {
+	if _, e = l.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: op, CustomerID: uuid.NewString(), BusinessKey: "outstanding", ActorID: owner, Reason: "verified test package", PaidMoney: ledger.FromInt64(10), Sources: []ledger.GrantSource{{Kind: "paid", Amount: ledger.FromInt64(80)}, {Kind: "package_gift", Amount: ledger.FromInt64(20)}}, EffectiveAt: time.Now().Add(-time.Minute)}); e != nil {
 		t.Fatal(e)
 	}
 	var now time.Time
@@ -105,13 +107,13 @@ func TestFinancialReportRecordedFactsScopeAndTakeover(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if r.Revenue.TotalUSD.String() != "0" || r.Costs.TotalUSD.String() != "5" || r.OperatingResultUSD.String() != "-5" {
+	if r.Revenue.TotalMoney.String() != "0" || r.Costs.TotalMoney.String() != "5" {
 		t.Fatalf("cash/contract settlement inflated operating revenue, or takeover fees became operating costs: %+v", r)
 	}
-	if r.Cash.RecordedInUSD.String() != "100" || r.Cash.RecordedOutUSD.String() != "9" || r.Cash.TakeoverOutUSD.String() != "7" || len(r.TakeoverFlows) != 2 {
+	if r.Cash.RecordedInMoney.String() != "100" || r.Cash.RecordedOutMoney.String() != "9" || r.Cash.TakeoverOutMoney.String() != "7" || len(r.TakeoverFlows) != 2 {
 		t.Fatalf("cash and takeover separation: %+v", r.Cash)
 	}
-	if r.Liabilities.SupplierPayableUSD.String() != "4" || r.Liabilities.OutstandingGrantPaidUSD.String() != "10" || r.Liabilities.OutstandingGrantATG.String() != "100" {
+	if r.Liabilities.SupplierPayableMoney.String() != "4" || r.Liabilities.OutstandingGrantPaidMoney.String() != "10" || r.Liabilities.OutstandingGrantATG.String() != "100" {
 		t.Fatalf("recorded unpaid obligations missing: %+v", r.Liabilities)
 	}
 	if _, e = s.FinancialReport(ctx, uuid.NewString(), op, now.Add(-time.Hour), now); e == nil {

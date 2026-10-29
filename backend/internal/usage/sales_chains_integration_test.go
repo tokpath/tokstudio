@@ -127,7 +127,7 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 		}
 	}
 	for _, ch := range []chain{oem, direct, nested} {
-		if _, e = f.coop.DeliverPurchase(f.ctx, nil, cooperation.PurchaseInput{BuyerID: ch.op, SupplierID: ch.parent, OrderID: "funded-stock-" + ch.op, ReceiptReference: "verified-bank-" + ch.op, ActorID: ch.owner, PaidUSD: d(ch.cost), PaidATG: d("800"), GiftATG: d("200"), ExitTerms: json.RawMessage(`{"voluntary_refund":false}`), At: time.Now()}); e != nil {
+		if _, e = f.coop.DeliverPurchase(f.ctx, nil, cooperation.PurchaseInput{BuyerID: ch.op, SupplierID: ch.parent, OrderID: "funded-stock-" + ch.op, ReceiptReference: "verified-bank-" + ch.op, ActorID: ch.owner, PaidMoney: d(ch.cost), PaidATG: d("800"), GiftATG: d("200"), ExitTerms: json.RawMessage(`{"voluntary_refund":false}`), At: time.Now()}); e != nil {
 			t.Fatal(e)
 		}
 	}
@@ -141,7 +141,7 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 				t.Fatal(e)
 			}
 		}
-		if _, e = inc.SetPolicy(f.ctx, nil, ch.owner, ch.op, incentives.PolicyInput{ThresholdUSD: ledger.Zero(), DirectRate: d("0.15"), IndirectRate: d("0.05"), RewardValiditySeconds: 3600, Evidence: "test published incentive policy"}); e != nil {
+		if _, e = inc.SetPolicy(f.ctx, nil, ch.owner, ch.op, incentives.PolicyInput{ThresholdMoney: ledger.Zero(), DirectRate: d("0.15"), IndirectRate: d("0.05"), RewardValiditySeconds: 3600, Evidence: "test published incentive policy"}); e != nil {
 			t.Fatal(e)
 		}
 	}
@@ -177,7 +177,7 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 					t.Fatalf("zero threshold KOL qualification %v %+v", e, q)
 				}
 			}
-			q, e := c.PublishPackage(f.ctx, nil, commerce.PublishPackageInput{ActorStaffID: ch.owner, OperatorID: ch.op, Name: "Chain package", TermsReference: "fixed-order-terms", Timezone: "UTC", PriceUSD: d("60"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true})
+			q, e := c.PublishPackage(f.ctx, nil, commerce.PublishPackageInput{ActorStaffID: ch.owner, OperatorID: ch.op, Name: "Chain package", TermsReference: "fixed-order-terms", Timezone: "UTC", PriceMoney: d("60"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true})
 			if e != nil {
 				t.Fatal(e)
 			}
@@ -186,7 +186,7 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 				t.Fatal(e)
 			}
 			gross, zero := d("60"), ledger.Zero()
-			fact := commerce.VerifiedReceipt{OperatorID: ch.op, ProviderReceiptID: "bank-receipt-" + ch.op, GrossUSD: gross, NetUSD: &gross, FeeUSD: &zero, Currency: "USD", OriginalAmount: "60", RecipientReference: "owned-bank-account-" + ch.op, PayerReference: "external-payer", ValuationEvidence: "USD original payment", VerificationEvidence: "synthetic bank statement verified by operator", PaidAt: &o.CreatedAt, SettledAt: &o.CreatedAt}
+			fact := commerce.VerifiedReceipt{OperatorID: ch.op, ProviderReceiptID: "bank-receipt-" + ch.op, GrossMoney: gross, NetMoney: &gross, FeeMoney: &zero, Currency: "USD", OriginalAmount: "60", RecipientReference: "owned-bank-account-" + ch.op, PayerReference: "external-payer", ValuationEvidence: "USD original payment", VerificationEvidence: "synthetic bank statement verified by operator", PaidAt: &o.CreatedAt, SettledAt: &o.CreatedAt}
 			receipt, e := c.RecordManualReceipt(f.ctx, nil, ch.owner, fact)
 			if e != nil {
 				t.Fatal(e)
@@ -195,7 +195,7 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 			if e != nil || duplicate.ID != receipt.ID {
 				t.Fatal("receipt replay", e)
 			}
-			if _, e = c.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: ch.owner, OperatorID: ch.op, BusinessKey: "allocation", ReceiptID: receipt.ID, OrderID: o.ID, AmountUSD: gross}); e != nil {
+			if _, e = c.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: ch.owner, OperatorID: ch.op, BusinessKey: "allocation", ReceiptID: receipt.ID, OrderID: o.ID, AmountMoney: gross}); e != nil {
 				t.Fatal(e)
 			}
 			if _, e = c.Fulfill(f.ctx, nil, o.ID, ch.owner); e != nil {
@@ -245,18 +245,18 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 			if e != nil || len(rows) != 1 {
 				t.Fatal("own request export", rows, e)
 			}
-			ownCost := map[string]string{"0.017": "0.017", "0.034": "0.0119", "0.051": "0.01088", "0.068": "0.0204"}[ch.retail]
-			if rows[0].FulfillmentCostUSD.String() != ownCost {
+			ownCost := map[string]string{"0.017": "0", "0.034": "0.0119", "0.051": "0.01088", "0.068": "0.0204"}[ch.retail]
+			if rows[0].FulfillmentCostMoney.String() != ownCost {
 				t.Fatal("export did not use own historical cost", rows[0])
 			}
 			exported, e := json.Marshal(rows[0])
 			if e != nil {
 				t.Fatal(e)
 			}
-			if ch.op != f.operator && (rows[0].SupplierCostUSD != nil || rows[0].UnverifiedAttempts != nil || rows[0].EstimateATG != nil || strings.Contains(string(exported), "supplier_cost_usd") || strings.Contains(string(exported), "unverified_attempts") || strings.Contains(string(exported), "estimate_atg")) {
+			if ch.op != f.operator && (len(rows[0].SupplierReferenceCosts) > 0 || len(rows[0].SupplierReportedCosts) > 0 || rows[0].UnverifiedAttempts != nil || rows[0].EstimateATG != nil || strings.Contains(string(exported), "supplier_reference_costs") || strings.Contains(string(exported), "unverified_attempts") || strings.Contains(string(exported), "estimate_atg")) {
 				t.Fatal("downstream export leaked platform provider economics", string(exported))
 			}
-			if ch.op == f.operator && (rows[0].SupplierCostUSD == nil || rows[0].SupplierCostUSD.String() != "0.017" || rows[0].EstimateATG == nil || rows[0].EstimateATG.Sign() <= 0) {
+			if ch.op == f.operator && (len(rows[0].SupplierReferenceCosts) != 1 || rows[0].SupplierReferenceCosts[0].Currency != "USD" || rows[0].SupplierReferenceCosts[0].Amount != "0.017" || rows[0].EstimateATG == nil || rows[0].EstimateATG.Sign() <= 0) {
 				t.Fatal("platform lost actual supplier cost or reservation", rows[0])
 			}
 			replay, e := f.s.Execute(f.ctx, key.Key, "actual-model-call", request(t, false), nil)
@@ -324,7 +324,7 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 				t.Fatalf("two hops %d: %v", count, e)
 			}
 			var total ledger.Decimal
-			if e = f.db.Raw("SELECT sum(amount_usd)::text FROM incentives_commission_entries WHERE operator_id=?", ch.op).Row().Scan(&total); e != nil {
+			if e = f.db.Raw("SELECT sum(amount_money)::text FROM incentives_commission_entries WHERE operator_id=?", ch.op).Row().Scan(&total); e != nil {
 				t.Fatal(e)
 			}
 			// 60USD / 100ATG * actual retail debit * (15% + 5%).

@@ -19,14 +19,11 @@ it("keeps pending receipts in the receipt workspace and resets unrelated filters
   expect(window.location.search).toBe("?section=pending");
 });
 
-it("loads reference exchange-rate configuration only when requested",async()=>{
+it("offers payment channels without an exchange-rate configuration entry",()=>{
   render(<PaymentMethodsScreen operatorID="operator"/>);
-  expect(screen.getAllByTestId("resource")).toHaveLength(1);
-  const details=screen.getByText("外币收款报价依据").parentElement! as HTMLDetailsElement;
-  details.open=true;fireEvent(details,new Event("toggle"));
-  await waitFor(()=>expect(screen.getAllByTestId("resource").map(node=>node.textContent)).toEqual(["payment-methods","valuations"]));
-  details.open=false;fireEvent(details,new Event("toggle"));
-  await waitFor(()=>expect(screen.getAllByTestId("resource")).toHaveLength(1));
+  expect(screen.getAllByTestId("resource").map(node=>node.textContent)).toEqual(["payment-methods"]);
+  expect(screen.queryByText("外币收款报价依据")).toBeNull();
+  expect(screen.queryByText("valuations")).toBeNull();
 });
 
 it("retries an uncertain private attachment with its original file and key",async()=>{

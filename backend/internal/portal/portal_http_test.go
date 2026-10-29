@@ -30,7 +30,7 @@ func TestPostgresTakeoverHTTPPreparationAndSnapshotReview(t *testing.T) {
 		t.Fatal("channel selector unavailable", out)
 	}
 	action := uuid.NewString()
-	input := map[string]any{"channel_id": child.Operator.ID, "method": "supply_coverage", "service_usd_per_atg": "1", "procurement_usd_per_atg": "1", "extra_usd": "0", "contract_reference": "signed no-asset takeover", "evidence": "explicit brand decision"}
+	input := map[string]any{"channel_id": child.Operator.ID, "method": "supply_coverage", "service_money_per_atg": "1", "procurement_money_per_atg": "1", "extra_money": "0", "contract_reference": "signed no-asset takeover", "evidence": "explicit brand decision"}
 	status, out, _ = f.call(t, "POST", scope+"/takeovers", input, action)
 	mustOK(t, status, out)
 	id := out["id"].(string)

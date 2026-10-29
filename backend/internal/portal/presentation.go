@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"strings"
 )
 
@@ -17,6 +18,12 @@ func (a *Application) resourceResponse(c *gin.Context, p gin.H) {
 }
 func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource string) {
 	prepareResourceFilters(c, p, resource)
+	settlementCurrency := ""
+	if a.DB != nil {
+		if settings, err := ledger.GetMonetary(c.Request.Context(), a.DB); err == nil {
+			settlementCurrency = settings.Currency
+		}
+	}
 	scope := "/api/v1/me"
 	if c.Param("operatorId") != "" {
 		scope = "/api/v1/operators/" + c.Param("operatorId")
@@ -44,6 +51,9 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 			}
 			for j := range ops[i].Fields {
 				f := &ops[i].Fields[j]
+				if f.Name == "currency" && f.Default == nil && settlementCurrency != "" {
+					f.Default = settlementCurrency
+				}
 				if f.Name == "delivery_mode" && !a.Mail.Available() {
 					options := []gin.H{}
 					for _, option := range f.Options {

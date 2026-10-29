@@ -28,7 +28,7 @@ test("channel shares its brand invite and queries changes made by another sessio
     const origin=new URL(baseURL!).origin;
     const logged=await other.request.post("/api/v1/auth/login",{data:{email:f.owner_email,password:f.owner_password},headers:{Origin:origin,"Idempotency-Key":randomUUID()}});expect(logged.status()).toBe(200);
     const me=await(await other.request.get("/api/v1/auth/me")).json();
-    const write=async(amount:string)=>{const paid=await other.request.post(`/api/v1/operators/${f.operator_id}/payments`,{data:{gross_usd:amount,currency:"USD",paid_at:new Date().toISOString()},headers:{Origin:origin,"Idempotency-Key":randomUUID(),"X-CSRF-Token":me.csrf_token}});expect(paid.status()).toBe(200);};
+    const write=async(amount:string)=>{const paid=await other.request.post(`/api/v1/operators/${f.operator_id}/payments`,{data:{gross_money:amount,currency:"USD",paid_at:new Date().toISOString()},headers:{Origin:origin,"Idempotency-Key":randomUUID(),"X-CSRF-Token":me.csrf_token}});expect(paid.status()).toBe(200);};
     const query=async(count:number)=>{const result=page.waitForResponse(r=>r.request().method()==="GET"&&new URL(r.url()).pathname===`/api/v1/operators/${f.operator_id}/payments`);await page.getByRole("button",{name:"查询",exact:true}).click();expect((await(await result).json()).items).toHaveLength(count);await expect(page.getByRole("button",{name:"查询",exact:true})).toBeEnabled();};
     await write("100");await expect(page.getByText("暂无记录",{exact:true})).toBeVisible();await query(1);await expect(page.getByLabel("100 USD",{exact:true}).first()).toBeVisible();
     await page.getByLabel("筛选状态",{exact:true}).selectOption("pending");await expect(page.getByRole("button",{name:"查询",exact:true})).toBeEnabled();

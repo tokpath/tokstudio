@@ -85,6 +85,8 @@ cd web && npm run build && npx playwright test
 
 ## 测试站验收数据
 
+全系统清算币种与 ATG 基础比例须由平台负责人先在“设置 → 营业状态”预约并正式生效；生效前不开始资金交易、注册奖励或模型调用，生效后永久锁定，暂停营业不解锁。生效前应核对已录入的套餐、报价和费率。系统不维护汇率，原币收支与成本按币种分别汇总，财务人员据原始明细核算。
+
 `seed-demo` 是显式管理命令，不在 API、迁移或正常启动时运行。只允许 `test.tokpath.com`，本地非生产联调可使用 `localhost`；必须传入匹配的 `--host` 与 `--confirm TEST_DATA_ONLY`。先部署并验证项目外的独立测试模型，再通过环境变量 `TOKENHUB_DEMO_MODEL_KEY` 提供其凭据（不要放进命令参数或提交 Git）。
 
 ```sh

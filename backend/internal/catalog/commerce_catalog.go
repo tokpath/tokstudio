@@ -625,7 +625,7 @@ type ModelQuote struct {
 	Candidates     []UpstreamModel         `json:"-"`
 }
 type SupplierPriceSnapshot struct {
-	EstimateUSD *string         `json:"estimate_usd,omitempty"`
+	EstimateMoney *string         `json:"estimate_money,omitempty"`
 	Snapshot    json.RawMessage `json:"snapshot"`
 	UpstreamID  string          `json:"upstream_id"`
 }
@@ -684,7 +684,7 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 		if s.Costs != nil {
 			estimate = s.Costs.Estimate(ctx, snapshot, r, cap)
 		}
-		q.Supplier = append(q.Supplier, SupplierPriceSnapshot{UpstreamID: u.ID, Snapshot: snapshot, EstimateUSD: estimate})
+		q.Supplier = append(q.Supplier, SupplierPriceSnapshot{UpstreamID: u.ID, Snapshot: snapshot, EstimateMoney: estimate})
 	}
 	if _, e = retail.MaximumCharge(q.Bounds); e != nil {
 		return ModelQuote{}, e

@@ -22,7 +22,7 @@ func TestRecordedFactReplayPreservesCallerEvidence(t *testing.T) {
 	if _, e := s.Create(ctx, m.OperatorID, m.ID, o); e != nil {
 		t.Fatal(e)
 	}
-	r := Refund{ID: uuid.NewString(), Order: o, Money: Money{Currency: "USD", Amount: ledger.FromInt64(2)}, USDAmount: ledger.FromInt64(2)}
+	r := Refund{ID: uuid.NewString(), Order: o, Money: Money{Currency: "USD", Amount: ledger.FromInt64(2)}, MoneyAmount: ledger.FromInt64(2)}
 	f, e := refundFact(m, r, "actual-provider-refund", r.Money, nil, map[string]any{"provider_refund": "actual-provider-refund", "amount": 2, "currency": "USD", "status": "succeeded"})
 	if e != nil {
 		t.Fatal(e)

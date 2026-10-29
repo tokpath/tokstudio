@@ -31,13 +31,8 @@ export function FinanceReceiptsScreen({ operatorID }: { operatorID: string }) {
 
 export function PaymentMethodsScreen({ operatorID }: { operatorID: string }) {
   const { t } = useI18n();
-  const [open, setOpen] = useState(false);
   return <>
-    <Heading title={t("收款方式")} description={t("配置实际收款通道。外币付款金额需要报价依据时，再展开下方设置。")} />
+    <Heading title={t("收款方式")} description={t("配置实际收款通道。原币收款与已核实的结算金额分别记录，不设置汇率。")} />
     <ResourceScreen operatorID={operatorID} resource="payment-methods" embedded layout="cards" inspectionLinks />
-    <details className="mt-8 rounded-card border border-hairline bg-canvas-raised p-5" onToggle={event => setOpen(event.currentTarget.open)}>
-      <summary className="cursor-pointer text-sm font-medium">{t("外币收款报价依据")}</summary>
-      {open && <div className="mt-5"><p className="mb-4 text-sm leading-7 text-ink-secondary">{t("用于向付款人展示外币应付金额。实际收款仍按真实付款时点核实入账，不锁汇。USD 收款不需要此配置。")}</p><ResourceScreen resource="valuations" operatorID={operatorID} embedded inspectionLinks /></div>}
-    </details>
   </>;
 }

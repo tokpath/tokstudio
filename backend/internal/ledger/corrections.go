@@ -13,7 +13,7 @@ import (
 
 type GrantReversal struct {
 	ID, OperatorID, OriginalEventID, ReversalEventID, BusinessKey, Fingerprint string
-	Amount, PaidUSD                                                            Decimal
+	Amount, PaidMoney                                                          Decimal
 	Sources                                                                    json.RawMessage `gorm:"type:jsonb"`
 	CreatedAt                                                                  time.Time
 }
@@ -73,7 +73,7 @@ func (s *Service) ReverseUsage(ctx context.Context, tx *gorm.DB, in ReverseUsage
 		already := map[string]Decimal{}
 		for _, r := range prior {
 			reversed = reversed.Add(r.Amount)
-			paidReversed = paidReversed.Add(r.PaidUSD)
+			paidReversed = paidReversed.Add(r.PaidMoney)
 			var parts []GrantSource
 			if e = json.Unmarshal(r.Sources, &parts); e != nil {
 				return e
@@ -97,7 +97,7 @@ func (s *Service) ReverseUsage(ctx context.Context, tx *gorm.DB, in ReverseUsage
 		if e != nil {
 			return e
 		}
-		paidTarget, _ := Quantize(new(big.Rat).Mul(original.PaidUSD.Rat(), new(big.Rat).Quo(reversed.Add(in.Amount).Rat(), original.Amount.Rat())))
+		paidTarget, _ := Quantize(new(big.Rat).Mul(original.PaidMoney.Rat(), new(big.Rat).Quo(reversed.Add(in.Amount).Rat(), original.Amount.Rat())))
 		paid := paidTarget.Sub(paidReversed)
 		control, e := s.EnsureAccount(ctx, t, Account{OperatorID: in.OperatorID, OwnerID: in.OperatorID, Purpose: "control:credits", Unit: "ATG", AllowNegative: true})
 		if e != nil {
@@ -135,18 +135,18 @@ func (s *Service) ReverseUsage(ctx context.Context, tx *gorm.DB, in ReverseUsage
 			}
 			restored = append(restored, GrantSource{Kind: source.Kind, Amount: parts[i]})
 		}
-		if grant.Consumed.Cmp(in.Amount) < 0 || grant.ConsumedPaidUSD.Cmp(paid) < 0 {
+		if grant.Consumed.Cmp(in.Amount) < 0 || grant.ConsumedPaidMoney.Cmp(paid) < 0 {
 			return ErrAmount
 		}
-		if e = t.Model(&Grant{}).Where("id=?", grant.ID).Updates(map[string]any{"consumed": grant.Consumed.Sub(in.Amount), "consumed_paid_usd": grant.ConsumedPaidUSD.Sub(paid)}).Error; e != nil {
+		if e = t.Model(&Grant{}).Where("id=?", grant.ID).Updates(map[string]any{"consumed": grant.Consumed.Sub(in.Amount), "consumed_paid_money": grant.ConsumedPaidMoney.Sub(paid)}).Error; e != nil {
 			return e
 		}
 		encoded, _ := json.Marshal(restored)
-		out.Event = GrantEvent{ID: uuid.NewString(), GrantID: grant.ID, BusinessKey: "correction:" + in.BusinessKey, Kind: "reversal", Amount: in.Amount.Neg(), PaidUSD: paid.Neg(), Sources: encoded, JournalID: &journal.ID, CreatedAt: in.At}
+		out.Event = GrantEvent{ID: uuid.NewString(), GrantID: grant.ID, BusinessKey: "correction:" + in.BusinessKey, Kind: "reversal", Amount: in.Amount.Neg(), PaidMoney: paid.Neg(), Sources: encoded, JournalID: &journal.ID, CreatedAt: in.At}
 		if e = t.Create(&out.Event).Error; e != nil {
 			return e
 		}
-		out.Reversal = GrantReversal{ID: uuid.NewString(), OperatorID: in.OperatorID, OriginalEventID: original.ID, ReversalEventID: out.Event.ID, BusinessKey: in.BusinessKey, Fingerprint: fp, Amount: in.Amount, PaidUSD: paid, Sources: encoded, CreatedAt: in.At}
+		out.Reversal = GrantReversal{ID: uuid.NewString(), OperatorID: in.OperatorID, OriginalEventID: original.ID, ReversalEventID: out.Event.ID, BusinessKey: in.BusinessKey, Fingerprint: fp, Amount: in.Amount, PaidMoney: paid, Sources: encoded, CreatedAt: in.At}
 		if e = t.Create(&out.Reversal).Error; e != nil {
 			return e
 		}

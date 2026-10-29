@@ -65,7 +65,7 @@ func TestActualRefundFactCannotSettleDifferentBusinessLeg(t *testing.T) {
 		t.Fatal(links, e)
 	}
 	v := ManualRefundVerification{ReceiptID: links[0].ReceiptID, ExternalReference: "one-actual-outbound-transfer", Money: Money{Currency: "USD", Amount: ledger.FromInt64(2)}, ExecutedAt: time.Now(), EvidenceReference: "verified outbound bank statement", RecipientReference: "bank:original-payer"}
-	r := Refund{ID: uuid.NewString(), Order: o, Money: v.Money, USDAmount: ledger.FromInt64(2)}
+	r := Refund{ID: uuid.NewString(), Order: o, Money: v.Money, MoneyAmount: ledger.FromInt64(2)}
 	if _, e = s.RecordManualRefund(ctx, "finance", m.OperatorID, m.ID, r, v); e != nil {
 		t.Fatal(e)
 	}
@@ -140,8 +140,6 @@ func TestExpiredOrderCannotStartNewExternalCollection(t *testing.T) {
 	o := paymentTestOrder(m, "USD")
 	o.AcceptedAt = now.Add(-2 * time.Hour)
 	o.ExpiresAt = now.Add(-time.Hour)
-	o.Valuation.EffectiveAt = o.AcceptedAt.Add(-time.Minute)
-	o.Valuation.ExpiresAt = now
 	if _, e = s.Create(ctx, m.OperatorID, m.ID, o); !errors.Is(e, ErrInvalid) {
 		t.Fatalf("expired order began collection: %v", e)
 	}

@@ -7,12 +7,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"math/big"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
-	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	platformcrypto "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"go.opentelemetry.io/otel"
@@ -24,12 +22,14 @@ import (
 type AttemptRecord struct {
 	SupplierModelID                       string
 	CostObservation                       json.RawMessage `gorm:"type:jsonb"`
-	CalculatedCostUSD                     *ledger.Decimal
+	ReferenceCostCurrency                 string
+	ReferenceCostAmount                   *string
+	ReportedCostCurrency                  string
+	ReportedCostAmount                    *string
 	ID, RequestID, UpstreamID, ProviderID string
 	Definition                            json.RawMessage `gorm:"type:jsonb"`
 	State, ProviderRequestID, TaskID      string
 	Usage                                 json.RawMessage `gorm:"type:jsonb"`
-	SupplierCostUSD                       ledger.Decimal
 	CostStatus, ErrorCode                 string
 	CostRecordedAt                        *time.Time
 	OutputDelivered                       bool
@@ -270,50 +270,39 @@ func (s *Service) RecordAttempt(ctx context.Context, requestID, attemptID string
 			updates["usage"] = raw
 		}
 		if result.State == "not_dispatched" {
-			zero := "0"
-			result.Cost = &modelruntime.CostObservation{Source: "not_dispatched", AmountUSD: &zero, CalculatedUSD: &zero}
+			result.Cost = &modelruntime.CostObservation{Source: "not_dispatched"}
 		}
+		// Observations are source facts, never automatic financial postings. A
+		// reference and a reported amount may coexist without being added together.
 		if row.CostStatus != "confirmed" && result.Cost != nil {
 			raw, _ := json.Marshal(result.Cost)
 			updates["cost_observation"] = raw
-			if result.Cost.CalculatedUSD != nil {
-				if exact, ok := new(big.Rat).SetString(*result.Cost.CalculatedUSD); ok && exact.Sign() >= 0 {
-					value, _ := ledger.Quantize(exact)
-					updates["calculated_cost_usd"] = value
+			known := result.State == "not_dispatched"
+			for _, item := range []struct {
+				Prefix string
+				Money  *modelruntime.Money
+			}{
+				{"reference_cost", result.Cost.ReferenceCost}, {"reported_cost", result.Cost.ReportedCost},
+			} {
+				if item.Money == nil {
+					continue
 				}
+				if !validObservedMoney(*item.Money) {
+					return ErrConflict
+				}
+				updates[item.Prefix+"_currency"] = item.Money.Currency
+				updates[item.Prefix+"_amount"] = item.Money.Amount
+				known = true
 			}
-		}
-		if row.CostStatus != "confirmed" && result.Cost != nil && result.Cost.AmountUSD != nil {
-			exact, ok := new(big.Rat).SetString(*result.Cost.AmountUSD)
-			if !ok || exact.Sign() < 0 {
-				return ErrConflict
-			}
-			amount, e := s.rounded(ctx, t, s.Catalog.PlatformOperatorID, s.Catalog.PlatformOperatorID, "supplier:"+row.ProviderID, attemptID, exact, "USD")
-			if e != nil {
-				return e
-			}
-			if amount.Sign() > 0 {
-				payable, e := s.Ledger.EnsureAccount(ctx, t, ledger.Account{OperatorID: s.Catalog.PlatformOperatorID, OwnerID: s.Catalog.PlatformOperatorID, Purpose: "control:supplier:" + row.ProviderID, Unit: "USD", AllowNegative: true})
-				if e != nil {
-					return e
+			if known {
+				updates["cost_status"] = "confirmed"
+				if row.CostRecordedAt == nil {
+					at, err := s.businessTime(t)
+					if err != nil {
+						return err
+					}
+					updates["cost_recorded_at"] = at
 				}
-				cost, e := s.Ledger.EnsureAccount(ctx, t, ledger.Account{OperatorID: s.Catalog.PlatformOperatorID, OwnerID: s.Catalog.PlatformOperatorID, Purpose: "cost:supplier:" + row.ProviderID, Unit: "USD"})
-				if e != nil {
-					return e
-				}
-				_, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: s.Catalog.PlatformOperatorID, BusinessKey: "supplier:" + attemptID, Kind: "supplier_cost", SourceID: requestID, ActorID: "system:metering", Reason: "observed upstream attempt usage", Lines: []ledger.Line{{AccountID: payable.ID, Amount: amount.Neg()}, {AccountID: cost.ID, Amount: amount}}})
-				if e != nil {
-					return e
-				}
-			}
-			updates["supplier_cost_usd"] = amount
-			updates["cost_status"] = "confirmed"
-			if row.CostRecordedAt == nil {
-				at, err := s.businessTime(t)
-				if err != nil {
-					return err
-				}
-				updates["cost_recorded_at"] = at
 			}
 		}
 		if e := t.Model(&AttemptRecord{}).Where("id=?", row.ID).Updates(updates).Error; e != nil {
@@ -493,4 +482,29 @@ func (s *Service) purgeExpiredResults(ctx context.Context, at time.Time, limit i
 		count++
 	}
 	return count, nil
+}
+
+func validObservedMoney(m modelruntime.Money) bool {
+	if len(m.Currency) < 2 || len(m.Currency) > 12 || len(m.Amount) == 0 || len(m.Amount) > 100 {
+		return false
+	}
+	for _, c := range m.Currency {
+		if c < 'A' || c > 'Z' {
+			return false
+		}
+	}
+	digits, dots := 0, 0
+	for _, c := range m.Amount {
+		if c == '.' {
+			dots++
+			if dots > 1 {
+				return false
+			}
+		} else if c >= '0' && c <= '9' {
+			digits++
+		} else {
+			return false
+		}
+	}
+	return digits > 0 && m.Amount[0] != '.' && m.Amount[len(m.Amount)-1] != '.'
 }

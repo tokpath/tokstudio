@@ -21,7 +21,7 @@ type commissionSourceFixture struct {
 func commissionSources(t *testing.T) commissionSourceFixture {
 	t.Helper()
 	f := setup(t)
-	if _, e := f.s.Incentives.SetPolicy(f.ctx, nil, f.owner, f.operator, incentives.PolicyInput{ExpectedVersion: 1, ThresholdUSD: d("0"), DirectRate: d("0.15"), IndirectRate: d("0.05"), RewardValiditySeconds: 86400}); e != nil {
+	if _, e := f.s.Incentives.SetPolicy(f.ctx, nil, f.owner, f.operator, incentives.PolicyInput{ExpectedVersion: 1, ThresholdMoney: d("0"), DirectRate: d("0.15"), IndirectRate: d("0.05"), RewardValiditySeconds: 86400}); e != nil {
 		t.Fatal(e)
 	}
 	q, e := f.s.Incentives.GetQualification(f.ctx, nil, f.operator, f.customer)
@@ -56,7 +56,7 @@ func commissionSources(t *testing.T) commissionSourceFixture {
 			t.Fatal(e)
 		}
 		r := f.receipt(t, key, "80")
-		if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: key, AmountUSD: d("80")}); e != nil {
+		if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: key, AmountMoney: d("80")}); e != nil {
 			t.Fatal(e)
 		}
 		if _, e = f.s.Commerce.Fulfill(f.ctx, nil, o.ID, f.owner); e != nil {
@@ -81,11 +81,11 @@ func commissionSources(t *testing.T) commissionSourceFixture {
 }
 func (f commissionSourceFixture) withdrawal(t *testing.T, key string, begin bool) incentives.Withdrawal {
 	t.Helper()
-	policy, e := f.s.Incentives.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, incentives.WithdrawalPolicy{MinimumUSD: d("1"), MethodReference: "verified manual banking"}, 0)
+	policy, e := f.s.Incentives.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, incentives.WithdrawalPolicy{MinimumMoney: d("1"), MethodReference: "verified manual banking"}, 0)
 	if e != nil {
 		t.Fatal(e)
 	}
-	w, e := f.s.Incentives.RequestWithdrawal(f.ctx, nil, incentives.WithdrawalInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: key, RecipientReference: "private:payer-profile", PolicyID: policy.ID, AmountUSD: d("12")})
+	w, e := f.s.Incentives.RequestWithdrawal(f.ctx, nil, incentives.WithdrawalInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: key, RecipientReference: "private:payer-profile", PolicyID: policy.ID, AmountMoney: d("12")})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -103,19 +103,19 @@ func (f commissionSourceFixture) withdrawal(t *testing.T, key string, begin bool
 }
 func TestPostgresCommissionPurchaseRefundRestoresOriginalEntryAndDisputeDoesNotFreezeNormalSource(t *testing.T) {
 	f := commissionSources(t)
-	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "commission-purchase", ExpectedOwnershipVersion: 1, CommissionUSD: d("12")})
+	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "commission-purchase", ExpectedOwnershipVersion: 1, CommissionMoney: d("12")})
 	if e != nil {
 		t.Fatal(e)
 	}
 	r := f.receipt(t, "external-rest-of-commission-purchase", "68")
-	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "rest-purchase", AmountUSD: d("68")}); e != nil {
+	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "rest-purchase", AmountMoney: d("68")}); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = f.s.Commerce.Fulfill(f.ctx, nil, o.ID, f.owner); e != nil {
 		t.Fatal(e)
 	}
 	views, e := f.s.Incentives.OrderCommissionFunding(f.ctx, nil, f.operator, f.customer, o.ID)
-	if e != nil || len(views) != 1 || views[0].SourceEventID != f.sourceEvent.ID || views[0].AmountUSD.Cmp(d("12")) != 0 || views[0].State != "consumed" {
+	if e != nil || len(views) != 1 || views[0].SourceEventID != f.sourceEvent.ID || views[0].AmountMoney.Cmp(d("12")) != 0 || views[0].State != "consumed" {
 		t.Fatal(views, e)
 	}
 	c, e := f.s.RequestPackageException(f.ctx, PackageExceptionInput{OperatorID: f.operator, CustomerID: f.customer, OrderID: o.ID, BusinessKey: "cannot-perform-commission-package", ActorStaffID: f.owner, Reason: "unable_to_fulfill", Evidence: "verified total fulfilment failure"})
@@ -126,7 +126,7 @@ func TestPostgresCommissionPurchaseRefundRestoresOriginalEntryAndDisputeDoesNotF
 		t.Fatal(e)
 	}
 	views, e = f.s.Incentives.OrderCommissionFunding(f.ctx, nil, f.operator, f.customer, o.ID)
-	if e != nil || len(views) != 1 || views[0].RestoredUSD.Cmp(d("12")) != 0 || views[0].SourceEventID != f.sourceEvent.ID {
+	if e != nil || len(views) != 1 || views[0].RestoredMoney.Cmp(d("12")) != 0 || views[0].SourceEventID != f.sourceEvent.ID {
 		t.Fatal("restoration lost original source", views, e)
 	}
 	cb := f.chargeback(t, f.source, "dispute-restored-origin", "80")
@@ -165,7 +165,7 @@ func TestPostgresCommissionDisputeBlocksNewExecutionBeforeRestrictionReviewAndKe
 	}
 	// An order can use the independent second source while the original source
 	// remains blocked, rather than freezing the customer's whole commission.
-	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "normal-source-still-works", ExpectedOwnershipVersion: 1, CommissionUSD: d("12")})
+	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "normal-source-still-works", ExpectedOwnershipVersion: 1, CommissionMoney: d("12")})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -191,7 +191,7 @@ func TestPostgresVerifiedCommissionPayoutFactAfterDisputeRemainsRecordable(t *te
 	f := commissionSources(t)
 	w := f.withdrawal(t, "already-executed-source-withdrawal", true)
 	cb := f.chargeback(t, f.source, "dispute-after-bank-instruction", "80")
-	if _, e := f.s.Incentives.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, incentives.WithdrawalPaymentProof{PaymentReference: "real-bank-payout", Evidence: "independently verified completed original instruction", Currency: "USD", OriginalAmount: "12", PaidUSD: d("12"), ValuationEvidence: "actual USD", PaidAt: time.Now().UTC()}); e != nil {
+	if _, e := f.s.Incentives.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, incentives.WithdrawalPaymentProof{PaymentReference: "real-bank-payout", Evidence: "independently verified completed original instruction", Currency: "USD", OriginalAmount: "12", PaidMoney: d("12"), ValuationEvidence: "actual USD", PaidAt: time.Now().UTC()}); e != nil {
 		t.Fatal("real executed fact rolled back by new gate", e)
 	}
 	if e := f.s.RestrictChargeback(f.ctx, f.owner, f.operator, cb.ID, "freeze only still controllable original source"); e != nil {
@@ -211,7 +211,7 @@ func TestPostgresCommissionDisputeAndPayoutInstructionRaceUsesOneBusinessOrder(t
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		cb, cbErr = f.s.RecordChargeback(f.ctx, ChargebackInput{ActorID: f.owner, OperatorID: f.operator, ReceiptID: f.source.ID, Provider: "verified-bank", ProviderCaseID: "racing-dispute", AmountUSD: d("80"), Reason: "provider dispute", Evidence: "independently queried dispute"})
+		cb, cbErr = f.s.RecordChargeback(f.ctx, ChargebackInput{ActorID: f.owner, OperatorID: f.operator, ReceiptID: f.source.ID, Provider: "verified-bank", ProviderCaseID: "racing-dispute", AmountMoney: d("80"), Reason: "provider dispute", Evidence: "independently queried dispute"})
 	}()
 	go func() {
 		defer wg.Done()
@@ -237,12 +237,12 @@ func TestPostgresCommissionDisputeAndPayoutInstructionRaceUsesOneBusinessOrder(t
 
 func TestPostgresCommissionDisputeBlocksPreviouslyReservedOrderDeliveryWithoutErasingActualReceipt(t *testing.T) {
 	f := commissionSources(t)
-	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "funded-before-source-dispute", ExpectedOwnershipVersion: 1, CommissionUSD: d("12")})
+	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "funded-before-source-dispute", ExpectedOwnershipVersion: 1, CommissionMoney: d("12")})
 	if e != nil {
 		t.Fatal(e)
 	}
 	r := f.receipt(t, "actual-payer-rest-before-dispute", "68")
-	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "actual-rest-funded", AmountUSD: d("68")}); e != nil {
+	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "actual-rest-funded", AmountMoney: d("68")}); e != nil {
 		t.Fatal(e)
 	}
 	cb := f.chargeback(t, f.source, "source-dispute-before-delivery", "80")
@@ -250,7 +250,7 @@ func TestPostgresCommissionDisputeBlocksPreviouslyReservedOrderDeliveryWithoutEr
 		t.Fatal("delivered using a newly disputed original commission source", e)
 	}
 	got, e := f.s.Commerce.GetOrder(f.ctx, nil, f.customer, o.ID)
-	if e != nil || got.Status != "paid" || got.ExternalAllocatedUSD.Cmp(d("68")) != 0 {
+	if e != nil || got.Status != "paid" || got.ExternalAllocatedMoney.Cmp(d("68")) != 0 {
 		t.Fatal("real external receipt erased after blocked fulfilment", got, e)
 	}
 	var deliveries int64
@@ -298,12 +298,12 @@ func TestPostgresPartialCommissionDisputesFreezeOnlyTheirOwnShareAndReleaseIndep
 
 func TestPostgresRestoringSpentCommissionDuringDisputeKeepsItsOriginalSourceGate(t *testing.T) {
 	f := commissionSources(t)
-	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "spent-before-dispute", ExpectedOwnershipVersion: 1, CommissionUSD: d("12")})
+	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "spent-before-dispute", ExpectedOwnershipVersion: 1, CommissionMoney: d("12")})
 	if e != nil {
 		t.Fatal(e)
 	}
 	r := f.receipt(t, "actual-rest-of-spent-commission", "68")
-	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "spent-rest", AmountUSD: d("68")}); e != nil {
+	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "spent-rest", AmountMoney: d("68")}); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = f.s.Commerce.Fulfill(f.ctx, nil, o.ID, f.owner); e != nil {
@@ -333,7 +333,7 @@ func TestPostgresRestoringSpentCommissionDuringDisputeKeepsItsOriginalSourceGate
 		t.Fatal("source correction failed after restoration", a, spendable, e, bookErr)
 	}
 	var originalSpent ledger.Decimal
-	if e = f.db.Table("incentives_commission_funding_lots l").Select("l.consumed_usd::text").Joins("JOIN incentives_commission_entries c ON c.id=l.entry_id").Joins("JOIN incentives_confirmation_events e ON e.id=c.event_id").Where("e.source_event_id=?", f.sourceEvent.ID).Row().Scan(&originalSpent); e != nil || originalSpent.Cmp(d("12")) != 0 {
+	if e = f.db.Table("incentives_commission_funding_lots l").Select("l.consumed_money::text").Joins("JOIN incentives_commission_entries c ON c.id=l.entry_id").Joins("JOIN incentives_confirmation_events e ON e.id=c.event_id").Where("e.source_event_id=?", f.sourceEvent.ID).Row().Scan(&originalSpent); e != nil || originalSpent.Cmp(d("12")) != 0 {
 		t.Fatal("correction consumed a normal source before original restored funds", originalSpent, e)
 	}
 }

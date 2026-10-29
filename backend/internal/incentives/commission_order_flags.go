@@ -9,12 +9,12 @@ import (
 )
 
 type commissionOrderFlag struct {
-	OrderID, Reference, OperatorID string
-	NumeratorUSD, DenominatorUSD   ledger.Decimal
-	Active, FutureEvents           bool
-	Evidence                       string
-	Fingerprint                    string
-	CreatedAt                      time.Time
+	OrderID, Reference, OperatorID   string
+	NumeratorMoney, DenominatorMoney ledger.Decimal
+	Active, FutureEvents             bool
+	Evidence                         string
+	Fingerprint                      string
+	CreatedAt                        time.Time
 }
 
 func (commissionOrderFlag) TableName() string { return "incentives_commission_order_flags" }
@@ -46,7 +46,7 @@ func (s *Service) FlagCommissionOrder(ctx context.Context, t *gorm.DB, actor, op
 		return nil
 	}
 	var previous ledger.Decimal
-	if e := t.Model(&commissionOrderFlag{}).Select("COALESCE(sum(numerator_usd),0)::text").Where("order_id=? AND active", order).Row().Scan(&previous); e != nil {
+	if e := t.Model(&commissionOrderFlag{}).Select("COALESCE(sum(numerator_money),0)::text").Where("order_id=? AND active", order).Row().Scan(&previous); e != nil {
 		return e
 	}
 	remaining := basis.Sub(previous)
@@ -54,7 +54,7 @@ func (s *Service) FlagCommissionOrder(ctx context.Context, t *gorm.DB, actor, op
 		return nil
 	}
 	claim = minimum(claim, remaining)
-	flag := commissionOrderFlag{OrderID: order, Reference: reference, OperatorID: op, NumeratorUSD: claim, DenominatorUSD: remaining, Active: true, FutureEvents: true, Evidence: evidence, Fingerprint: fp}
+	flag := commissionOrderFlag{OrderID: order, Reference: reference, OperatorID: op, NumeratorMoney: claim, DenominatorMoney: remaining, Active: true, FutureEvents: true, Evidence: evidence, Fingerprint: fp}
 	if e := t.Create(&flag).Error; e != nil {
 		return e
 	}
@@ -75,7 +75,7 @@ func (s *Service) inheritCommissionOrderFlags(t *gorm.DB, event confirmationRow)
 		return e
 	}
 	for _, flag := range flags {
-		source := commissionSourceFlag{EventID: event.ID, Reference: flag.Reference, OperatorID: event.OperatorID, NumeratorUSD: flag.NumeratorUSD, DenominatorUSD: flag.DenominatorUSD, Active: true, Evidence: flag.Evidence}
+		source := commissionSourceFlag{EventID: event.ID, Reference: flag.Reference, OperatorID: event.OperatorID, NumeratorMoney: flag.NumeratorMoney, DenominatorMoney: flag.DenominatorMoney, Active: true, Evidence: flag.Evidence}
 		if e := t.Create(&source).Error; e != nil {
 			return e
 		}

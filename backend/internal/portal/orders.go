@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 	"time"
 
@@ -41,13 +40,6 @@ type checkoutRow struct {
 
 func (checkoutRow) TableName() string { return "portal_order_checkout" }
 
-type valuationRow struct {
-	ID, OperatorID, Currency, Source, ActorID string
-	USDPerUnit                                ledger.Decimal
-	EffectiveAt, ExpiresAt, CreatedAt         time.Time
-}
-
-func (valuationRow) TableName() string { return "portal_valuations" }
 func (a *Application) offers(c *gin.Context) {
 	id := subject(c)
 	rows, e := a.Incentives.EligibleActivities(c.Request.Context(), nil, id.Customer.Ownership.OperatorID, id.Customer.Customer.ID, c.Param("id"))
@@ -103,7 +95,7 @@ func (a *Application) quote(c *gin.Context) {
 		now := time.Now().UTC()
 		terms := fmt.Sprintf("%s:%d", q.ID, q.Version)
 		qid := uuid.NewString()
-		dto := gin.H{"id": qid, "plan_id": p.ID, "plan_name": p.Name, "operator_name": op.Name, "amount_usd": m.FinalUSD, "purchase_atg": q.PaidATG, "plan_gift_atg": q.GiftATG, "operator_gift_atg": m.MerchantGiftATG, "kol_gift_atg": m.KOLGiftATG, "total_atg": q.PaidATG.Add(q.GiftATG).Add(m.MerchantGiftATG).Add(m.KOLGiftATG), "validity": validity(q.Period), "terms_version": terms, "terms_summary": commerce.PackageTermsSummary(q), "expires_at": now.Add(15 * time.Minute), "warnings": []string{"报价预览不会预留活动名额；提交时将重新验证资格及覆盖"}}
+		dto := gin.H{"id": qid, "plan_id": p.ID, "plan_name": p.Name, "operator_name": op.Name, "amount_money": m.FinalMoney, "purchase_atg": q.PaidATG, "plan_gift_atg": q.GiftATG, "operator_gift_atg": m.MerchantGiftATG, "kol_gift_atg": m.KOLGiftATG, "total_atg": q.PaidATG.Add(q.GiftATG).Add(m.MerchantGiftATG).Add(m.KOLGiftATG), "validity": validity(q.Period), "terms_version": terms, "terms_summary": commerce.PackageTermsSummary(q), "expires_at": now.Add(15 * time.Minute), "warnings": []string{"报价预览不会预留活动名额；提交时将重新验证资格及覆盖"}}
 		preview, _ := json.Marshal(dto)
 		e = tx.Create(&quoteRow{ID: qid, CustomerID: id.Customer.Customer.ID, OperatorID: q.OperatorID, PackageID: p.ID, QuoteID: q.ID, TermsVersion: terms, Selection: selection, Preview: preview, ExpiresAt: now.Add(15 * time.Minute), CreatedAt: now}).Error
 		return dto, e
@@ -115,8 +107,8 @@ func (a *Application) createOrder(c *gin.Context) {
 		QuoteID      string `json:"quote_id"`
 		TermsVersion string `json:"terms_version"`
 		Funding      struct {
-			USDBalance       ledger.Decimal `json:"usd_balance"`
-			CommissionUSD    ledger.Decimal `json:"commission_usd"`
+			MoneyBalance     ledger.Decimal `json:"money_balance"`
+			CommissionMoney  ledger.Decimal `json:"commission_money"`
 			ExternalMethodID string         `json:"external_method_id"`
 		} `json:"funding"`
 		AutoRenew       bool `json:"auto_renew"`
@@ -144,21 +136,21 @@ func (a *Application) createOrder(c *gin.Context) {
 			return nil, commerce.ErrConflict
 		}
 		var expected struct {
-			Amount       ledger.Decimal `json:"amount_usd"`
+			Amount       ledger.Decimal `json:"amount_money"`
 			MerchantGift ledger.Decimal `json:"operator_gift_atg"`
 			KOLGift      ledger.Decimal `json:"kol_gift_atg"`
 		}
 		if e = json.Unmarshal(qr.Preview, &expected); e != nil {
 			return nil, e
 		}
-		order, e := a.Commerce.CreateOrder(ctx, tx, commerce.CreateOrderInput{CustomerID: id.Customer.Customer.ID, OperatorID: qr.OperatorID, QuoteID: qr.QuoteID, BusinessKey: businessKey, ExpectedOwnershipVersion: id.Customer.Ownership.Version, InternalUSD: in.Funding.USDBalance, CommissionUSD: in.Funding.CommissionUSD, ActivitySelection: qr.Selection, Validity: 30 * time.Minute})
+		order, e := a.Commerce.CreateOrder(ctx, tx, commerce.CreateOrderInput{CustomerID: id.Customer.Customer.ID, OperatorID: qr.OperatorID, QuoteID: qr.QuoteID, BusinessKey: businessKey, ExpectedOwnershipVersion: id.Customer.Ownership.Version, InternalMoney: in.Funding.MoneyBalance, CommissionMoney: in.Funding.CommissionMoney, ActivitySelection: qr.Selection, Validity: 30 * time.Minute})
 		if e != nil {
 			return nil, e
 		}
-		if order.DueUSD.Cmp(expected.Amount) != 0 || order.MerchantGiftATG.Cmp(expected.MerchantGift) != 0 || order.KOLGiftATG.Cmp(expected.KOLGift) != 0 {
+		if order.DueMoney.Cmp(expected.Amount) != 0 || order.MerchantGiftATG.Cmp(expected.MerchantGift) != 0 || order.KOLGiftATG.Cmp(expected.KOLGift) != 0 {
 			return nil, commerce.ErrConflict
 		}
-		ext := order.DueUSD.Sub(order.InternalUSD).Sub(order.CommissionUSD)
+		ext := order.DueMoney.Sub(order.InternalMoney).Sub(order.CommissionMoney)
 		var merchant *string
 		if ext.Sign() > 0 {
 			if in.Funding.ExternalMethodID == "" {
@@ -170,6 +162,13 @@ func (a *Application) createOrder(c *gin.Context) {
 			}
 			if !m.Enabled {
 				return nil, payments.ErrNotConfigured
+			}
+			settings, e := ledger.RequireMonetary(ctx, tx)
+			if e != nil {
+				return nil, e
+			}
+			if supported, _ := payments.SettlementSupport(m, settings.Currency); !supported {
+				return nil, payments.ErrUnsupported
 			}
 			merchant = &m.ID
 		}
@@ -217,19 +216,15 @@ func (a *Application) authorizeRenewal(ctx context.Context, tx *gorm.DB, o comme
 	return e
 }
 func (a *Application) paymentValue(ctx context.Context, operator, currency string, due ledger.Decimal, at time.Time) (payments.Money, payments.Valuation, error) {
-	if currency == "USD" {
-		return payments.Money{Currency: "USD", Amount: due}, payments.Valuation{ID: "usd-native", Currency: "USD", USDPerUnit: ledger.MustDecimal("1"), Source: "USD-denominated obligation", EffectiveAt: at.Add(-time.Second), ExpiresAt: at.Add(24 * time.Hour)}, nil
+	settings, e := ledger.GetMonetary(ctx, a.DB)
+	if e != nil {
+		return payments.Money{}, payments.Valuation{}, e
 	}
-	var row valuationRow
-	if e := a.DB.WithContext(ctx).Where("operator_id=? AND currency=? AND effective_at<=? AND expires_at>?", operator, currency, at, at).Order("created_at DESC,id DESC").First(&row).Error; e != nil {
-		return payments.Money{}, payments.Valuation{}, payments.ErrNotConfigured
+	money := payments.Money{Currency: currency}
+	if currency == settings.Currency {
+		money.Amount = due
 	}
-	r := new(big.Rat).Quo(due.Rat(), row.USDPerUnit.Rat())
-	amount, remainder := ledger.Quantize(r)
-	if remainder.Sign() != 0 {
-		return payments.Money{}, payments.Valuation{}, payments.ErrInvalid
-	}
-	return payments.Money{Currency: currency, Amount: amount}, payments.Valuation{ID: row.ID, Currency: row.Currency, USDPerUnit: row.USDPerUnit, Source: row.Source, EffectiveAt: row.EffectiveAt, ExpiresAt: row.ExpiresAt}, nil
+	return money, payments.Valuation{Currency: settings.Currency}, nil
 }
 func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) error {
 	if o.Status == "completed" {
@@ -257,18 +252,21 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 		currency := ""
 		for _, m := range methods {
 			if m.ID == *cr.MerchantID {
+				if !m.SettlementSupported {
+					return payments.ErrUnsupported
+				}
 				currency = m.Currency
 			}
 		}
 		if currency == "" {
 			return payments.ErrNotConfigured
 		}
-		due := o.DueUSD.Sub(o.InternalUSD).Sub(o.CommissionUSD)
+		due := o.DueMoney.Sub(o.InternalMoney).Sub(o.CommissionMoney)
 		money, value, e := a.paymentValue(ctx, o.OperatorID, currency, due, o.CreatedAt)
 		if e != nil {
 			return e
 		}
-		paymentOrder = payments.Order{ID: o.ID, OperatorID: o.OperatorID, MerchantID: *cr.MerchantID, Money: money, Valuation: value, AcceptedAt: o.CreatedAt, ExpiresAt: o.ExpiresAt, NotifyURL: a.Config.PublicBaseURL + "/v1/payments/webhooks/" + *cr.MerchantID, Description: "TokenHub order " + o.ID}
+		paymentOrder = payments.Order{ID: o.ID, OperatorID: o.OperatorID, MerchantID: *cr.MerchantID, Money: money, SettlementMoney: payments.Money{Currency: value.Currency, Amount: due}, AcceptedAt: o.CreatedAt, ExpiresAt: o.ExpiresAt, NotifyURL: a.Config.PublicBaseURL + "/v1/payments/webhooks/" + *cr.MerchantID, Description: "TokenHub order " + o.ID}
 		raw, e := json.Marshal(paymentOrder)
 		if e != nil {
 			return e
@@ -289,9 +287,12 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 	if e != nil {
 		return nil, e
 	}
-	dto := gin.H{"id": o.ID, "status": o.Status, "kind": o.Kind, "operator_name": op.Name, "amount_usd": o.DueUSD, "paid_usd": o.ExternalAllocatedUSD, "delivered_at": o.CompletedAt, "created_at": o.CreatedAt, "expires_at": o.ExpiresAt, "purchase_atg": o.PaidATG, "gift_atg": o.PackageGiftATG.Add(o.MerchantGiftATG).Add(o.KOLGiftATG)}
+	dto := gin.H{"id": o.ID, "status": o.Status, "kind": o.Kind, "operator_name": op.Name, "amount_money": o.DueMoney, "paid_money": o.ExternalAllocatedMoney, "delivered_at": o.CompletedAt, "created_at": o.CreatedAt, "expires_at": o.ExpiresAt, "purchase_atg": o.PaidATG, "gift_atg": o.PackageGiftATG.Add(o.MerchantGiftATG).Add(o.KOLGiftATG)}
+	if o.MonetarySnapshot.Version > 0 {
+		dto["monetary_snapshot"] = o.MonetarySnapshot
+	}
 	if o.InternalStatus == "captured" {
-		dto["paid_usd"] = o.ExternalAllocatedUSD.Add(o.InternalUSD).Add(o.CommissionUSD)
+		dto["paid_money"] = o.ExternalAllocatedMoney.Add(o.InternalMoney).Add(o.CommissionMoney)
 	}
 	if o.QuoteID != nil {
 		q, e := a.Commerce.GetQuote(ctx, nil, *o.QuoteID)
@@ -312,8 +313,15 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 		if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
 			return nil, e
 		}
+		if e == nil {
+			dto["payment_state"] = intent.State
+			dto["method_change_allowed"] = intent.State == "failed" && o.Status == "pending" && o.ExternalAllocatedMoney.IsZero()
+			if intent.State == "awaiting_settlement" {
+				dto["payment_notice"] = "原币实际款已保留，等待收款方核实本笔交易对应的订单清算金额，请勿重复付款。"
+			}
+		}
 		if e == nil && intent.Checkout != nil {
-			dto["method_change_allowed"] = intent.State == "failed" && o.Status == "pending" && o.ExternalAllocatedUSD.IsZero()
+			dto["method_change_allowed"] = intent.State == "failed" && o.Status == "pending" && o.ExternalAllocatedMoney.IsZero()
 			ch := intent.Checkout
 			action := gin.H{}
 			switch {
@@ -333,6 +341,10 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 			if ch.PayMoney != nil {
 				action["amount"] = ch.PayMoney.Amount.String()
 				action["currency"] = ch.PayMoney.Currency
+			}
+			action["settlement_money"] = ch.SettlementMoney
+			if ch.Instructions != "" {
+				action["instructions"] = ch.Instructions
 			}
 			action["network"], action["token_contract"] = intent.Network, intent.TokenContract
 			if intent.Driver == "evm_wallet" {
@@ -395,8 +407,8 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		if e != nil {
 			return nil, e
 		}
-		due := o.DueUSD.Sub(o.InternalUSD).Sub(o.CommissionUSD)
-		if due.Sign() <= 0 || o.ExternalAllocatedUSD.Sign() > 0 || o.Status == "completed" {
+		due := o.DueMoney.Sub(o.InternalMoney).Sub(o.CommissionMoney)
+		if due.Sign() <= 0 || o.ExternalAllocatedMoney.Sign() > 0 || o.Status == "completed" {
 			return nil, commerce.ErrOrderState
 		}
 		m, e := a.Payments.Merchant(ctx, o.OperatorID, in.Method)
@@ -405,6 +417,13 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		}
 		if !m.Enabled {
 			return nil, payments.ErrNotConfigured
+		}
+		settings, e := ledger.RequireMonetary(ctx, tx)
+		if e != nil {
+			return nil, e
+		}
+		if supported, _ := payments.SettlementSupport(m, settings.Currency); !supported {
+			return nil, payments.ErrUnsupported
 		}
 		var cr checkoutRow
 		if e = tx.First(&cr, "order_id=? AND customer_id=?", o.ID, o.CustomerID).Error; e != nil {
@@ -474,7 +493,7 @@ func (a *Application) reconcileOrder(c *gin.Context) {
 }
 func (a *Application) topup(c *gin.Context) {
 	var in struct {
-		Amount ledger.Decimal `json:"amount_usd"`
+		Amount ledger.Decimal `json:"amount_money"`
 		Method string         `json:"external_method_id"`
 	}
 	if !body(c, &in) {
@@ -484,7 +503,7 @@ func (a *Application) topup(c *gin.Context) {
 	k, _ := key(c)
 	ctx := c.Request.Context()
 	raw, e := a.command(c, "topup:"+id.Customer.Customer.ID, in, func(tx *gorm.DB) (any, error) {
-		o, e := a.Commerce.CreateTopUpOrder(ctx, tx, commerce.CreateTopUpInput{CustomerID: id.Customer.Customer.ID, OperatorID: id.Customer.Ownership.OperatorID, BusinessKey: k, ExpectedOwnershipVersion: id.Customer.Ownership.Version, AmountUSD: in.Amount, Validity: 30 * time.Minute})
+		o, e := a.Commerce.CreateTopUpOrder(ctx, tx, commerce.CreateTopUpInput{CustomerID: id.Customer.Customer.ID, OperatorID: id.Customer.Ownership.OperatorID, BusinessKey: k, ExpectedOwnershipVersion: id.Customer.Ownership.Version, AmountMoney: in.Amount, Validity: 30 * time.Minute})
 		if e != nil {
 			return nil, e
 		}
@@ -494,6 +513,13 @@ func (a *Application) topup(c *gin.Context) {
 		}
 		if !m.Enabled {
 			return nil, payments.ErrNotConfigured
+		}
+		settings, e := ledger.RequireMonetary(ctx, tx)
+		if e != nil {
+			return nil, e
+		}
+		if supported, _ := payments.SettlementSupport(m, settings.Currency); !supported {
+			return nil, payments.ErrUnsupported
 		}
 		e = tx.Create(&checkoutRow{OrderID: o.ID, CustomerID: o.CustomerID, MerchantID: &m.ID, CreatedAt: time.Now()}).Error
 		return gin.H{"id": o.ID}, e
@@ -619,7 +645,7 @@ func (a *Application) subscriptions(c *gin.Context) {
 }
 
 func renewalQuoteView(pkg commerce.Package, quote commerce.PackageQuote) gin.H {
-	return gin.H{"quote_id": quote.ID, "plan_id": pkg.ID, "name": pkg.Name, "price_usd": quote.PriceUSD, "purchase_atg": quote.PaidATG, "gift_atg": quote.GiftATG, "validity": validity(quote.Period), "terms_summary": commerce.PackageTermsSummary(quote)}
+	return gin.H{"quote_id": quote.ID, "plan_id": pkg.ID, "name": pkg.Name, "price_money": quote.PriceMoney, "purchase_atg": quote.PaidATG, "gift_atg": quote.GiftATG, "validity": validity(quote.Period), "terms_summary": commerce.PackageTermsSummary(quote)}
 }
 
 func (a *Application) renewal(c *gin.Context) {
@@ -773,7 +799,7 @@ func (s portalReceiptSink) LockReceiptAcceptance(ctx context.Context, tx *gorm.D
 	return e
 }
 
-func (s portalReceiptSink) RecordVerifiedReceipt(ctx context.Context, tx *gorm.DB, m payments.Merchant, o payments.Order, f payments.Fact, v payments.USDValue) (string, error) {
+func (s portalReceiptSink) RecordVerifiedReceipt(ctx context.Context, tx *gorm.DB, m payments.Merchant, o payments.Order, f payments.Fact, v payments.MoneyValue) (string, error) {
 	id, e := s.CommerceSink.RecordVerifiedReceipt(ctx, tx, m, o, f, v)
 	if e != nil {
 		return "", e
@@ -835,8 +861,8 @@ func (a *Application) deliverReceipt(ctx context.Context, op, receiptID, orderID
 		if e != nil {
 			return e
 		}
-		amount := r.GrossUSD.Sub(r.AllocatedUSD)
-		due := o.DueUSD.Sub(o.InternalUSD).Sub(o.CommissionUSD).Sub(o.ExternalAllocatedUSD)
+		amount := r.GrossMoney.Sub(r.AllocatedMoney)
+		due := o.DueMoney.Sub(o.InternalMoney).Sub(o.CommissionMoney).Sub(o.ExternalAllocatedMoney)
 		if amount.Sign() > 0 && due.Sign() <= 0 {
 			return commerce.ErrWholePayment
 		}
@@ -844,7 +870,7 @@ func (a *Application) deliverReceipt(ctx context.Context, op, receiptID, orderID
 			amount = due
 		}
 		if amount.Sign() > 0 {
-			_, e = a.Commerce.AllocateReceipt(ctx, tx, commerce.AllocateReceiptInput{OperatorID: op, BusinessKey: "verified-payment:" + receiptID + ":" + orderID, ReceiptID: receiptID, OrderID: orderID, AmountUSD: amount})
+			_, e = a.Commerce.AllocateReceipt(ctx, tx, commerce.AllocateReceiptInput{OperatorID: op, BusinessKey: "verified-payment:" + receiptID + ":" + orderID, ReceiptID: receiptID, OrderID: orderID, AmountMoney: amount})
 		}
 		return e
 	})

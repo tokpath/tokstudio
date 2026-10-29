@@ -5,8 +5,8 @@ afterEach(() => { vi.unstubAllGlobals(); setCSRFToken(); });
 describe("validated business HTTP client", () => {
   it("sends cookies, CSRF and exact decimal strings with the caller's stable key", async () => {
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "job-1", status: "pending" }), { status: 200 })); vi.stubGlobal("fetch", fetch); setCSRFToken("csrf-test");
-    await request("/api/v1/me/withdrawals", CommandResultSchema, { method: "POST", actionKey: "action-1", body: { amount_usd: "0.000000000000000001" } });
-    const [, options] = fetch.mock.calls[0]; expect(options.credentials).toBe("include"); expect(options.headers.get("X-CSRF-Token")).toBe("csrf-test"); expect(options.headers.get("Idempotency-Key")).toBe("action-1"); expect(JSON.parse(options.body).amount_usd).toBe("0.000000000000000001");
+    await request("/api/v1/me/withdrawals", CommandResultSchema, { method: "POST", actionKey: "action-1", body: { amount_money: "0.000000000000000001" } });
+    const [, options] = fetch.mock.calls[0]; expect(options.credentials).toBe("include"); expect(options.headers.get("X-CSRF-Token")).toBe("csrf-test"); expect(options.headers.get("Idempotency-Key")).toBe("action-1"); expect(JSON.parse(options.body).amount_money).toBe("0.000000000000000001");
   });
   it("refuses mutations without an operation key before network access", async () => { const fetch = vi.fn(); vi.stubGlobal("fetch", fetch); await expect(request("/api/v1/me/orders", CommandResultSchema, { method: "POST", body: {} })).rejects.toThrow("stable idempotency key"); expect(fetch).not.toHaveBeenCalled(); });
   it("keeps network unknowns and business rejection facts distinct", async () => {

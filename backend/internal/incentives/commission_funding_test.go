@@ -24,11 +24,11 @@ func TestPostgresInFlightConsumptionInheritsCommissionSourceGateBeforeItCanBePai
 	if e != nil || !spendable.IsZero() {
 		t.Fatal("late consumption escaped original source restriction", spendable, e)
 	}
-	p, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumUSD: d("1"), MethodReference: "verified manual payout"}, 0)
+	p, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumMoney: d("1"), MethodReference: "verified manual payout"}, 0)
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: a.Customer.ID, BusinessKey: "blocked-late-consumption", RecipientReference: "private:bank", PolicyID: p.ID, AmountUSD: d("1")}); !errors.Is(e, ErrBlocked) {
+	if _, e = f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: a.Customer.ID, BusinessKey: "blocked-late-consumption", RecipientReference: "private:bank", PolicyID: p.ID, AmountMoney: d("1")}); !errors.Is(e, ErrBlocked) {
 		t.Fatal("new payout used uncertain source", e)
 	}
 	if e = f.db.Transaction(func(tx *gorm.DB) error {

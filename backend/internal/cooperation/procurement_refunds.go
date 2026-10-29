@@ -41,7 +41,7 @@ type ProcurementExitRefund struct {
 	SourceKind         string          `json:"source_kind" gorm:"default:payment"`
 	MerchantID         string          `json:"merchant_id"`
 	OriginOrderID      string          `json:"origin_order_id"`
-	AmountUSD          ledger.Decimal  `json:"amount_usd"`
+	AmountMoney        ledger.Decimal  `json:"amount_money"`
 	HoldID             string          `json:"hold_id"`
 	State              string          `json:"state"`
 	VerifiedFactID     *string         `json:"verified_fact_id,omitempty"`
@@ -52,10 +52,10 @@ type ProcurementExitRefund struct {
 	ExecutionKey       string          `json:"execution_key"`
 	ExecutionEvidence  string          `json:"execution_evidence"`
 	FeeStatus          string          `json:"fee_status" gorm:"default:pending"`
-	FeeUSD             *ledger.Decimal `json:"fee_usd,omitempty"`
-	SettledUSD         ledger.Decimal  `json:"settled_usd"`
-	ActualUSD          ledger.Decimal  `json:"actual_usd"`
-	ExcessUSD          ledger.Decimal  `json:"excess_usd"`
+	FeeMoney           *ledger.Decimal `json:"fee_money,omitempty"`
+	SettledMoney       ledger.Decimal  `json:"settled_money"`
+	ActualMoney        ledger.Decimal  `json:"actual_money"`
+	ExcessMoney        ledger.Decimal  `json:"excess_money"`
 }
 
 func (ProcurementExitRefund) TableName() string { return "cooperation_procurement_exit_refunds" }
@@ -63,22 +63,22 @@ func (p *ProcurementRefunds) Ready() bool {
 	return p.Cooperation != nil && p.Payments != nil && p.Collector != nil && p.Capacity != nil
 }
 func (p *ProcurementRefunds) payable(ctx context.Context, tx *gorm.DB, exit ProcurementExit) (ledger.Account, error) {
-	return p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.SupplierID, OwnerID: exit.ID, Purpose: "procurement_exit:payable", Unit: "USD"})
+	return p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.SupplierID, OwnerID: exit.ID, Purpose: "procurement_exit:payable", Unit: "MONEY"})
 }
 func (s *Service) bookExitObligation(ctx context.Context, tx *gorm.DB, exit ProcurementExit) error {
-	if exit.ContractUSD.IsZero() {
+	if exit.ContractMoney.IsZero() {
 		return nil
 	}
 	for _, side := range []struct{ operator, purpose string }{{exit.SupplierID, "procurement_exit:payable"}, {exit.BuyerID, "procurement_exit:receivable"}} {
-		a, e := s.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: side.operator, OwnerID: exit.ID, Purpose: side.purpose, Unit: "USD"})
+		a, e := s.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: side.operator, OwnerID: exit.ID, Purpose: side.purpose, Unit: "MONEY"})
 		if e != nil {
 			return e
 		}
-		control, e := s.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: side.operator, OwnerID: side.operator, Purpose: "control:procurement_exit_obligation", Unit: "USD", AllowNegative: true})
+		control, e := s.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: side.operator, OwnerID: side.operator, Purpose: "control:procurement_exit_obligation", Unit: "MONEY", AllowNegative: true})
 		if e != nil {
 			return e
 		}
-		if _, e = s.Ledger.Post(ctx, tx, ledger.Posting{OperatorID: side.operator, BusinessKey: "procurement-exit:" + exit.ID, Kind: "procurement_exit_obligation", SourceID: exit.ID, ActorID: exit.CreatedBy, Reason: exit.Evidence, Lines: []ledger.Line{{AccountID: a.ID, Amount: exit.ContractUSD}, {AccountID: control.ID, Amount: exit.ContractUSD.Neg()}}}); e != nil {
+		if _, e = s.Ledger.Post(ctx, tx, ledger.Posting{OperatorID: side.operator, BusinessKey: "procurement-exit:" + exit.ID, Kind: "procurement_exit_obligation", SourceID: exit.ID, ActorID: exit.CreatedBy, Reason: exit.Evidence, Lines: []ledger.Line{{AccountID: a.ID, Amount: exit.ContractMoney}, {AccountID: control.ID, Amount: exit.ContractMoney.Neg()}}}); e != nil {
 			return e
 		}
 	}
@@ -153,19 +153,19 @@ func (p *ProcurementRefunds) PrepareRefund(ctx context.Context, actor, exitID, r
 				return e
 			}
 			var allocated ledger.Decimal
-			if e = t.Model(&PurchaseAllocation{}).Where("order_id=? AND receipt_id=?", order.ID, receiptID).Select("COALESCE(sum(amount_usd),0)::text").Row().Scan(&allocated); e != nil {
+			if e = t.Model(&PurchaseAllocation{}).Where("order_id=? AND receipt_id=?", order.ID, receiptID).Select("COALESCE(sum(amount_money),0)::text").Row().Scan(&allocated); e != nil {
 				return e
 			}
 			if allocated.IsZero() {
 				continue
 			}
-			part := new(big.Rat).Mul(src.OriginalPaidUSD.Rat(), new(big.Rat).Quo(src.PaidATG.Rat(), src.OriginalPaidATG.Rat()))
-			part.Mul(part, new(big.Rat).Quo(allocated.Rat(), order.DueUSD.Rat()))
+			part := new(big.Rat).Mul(src.OriginalPaidMoney.Rat(), new(big.Rat).Quo(src.PaidATG.Rat(), src.OriginalPaidATG.Rat()))
+			part.Mul(part, new(big.Rat).Quo(allocated.Rat(), order.DueMoney.Rat()))
 			eligible.Add(eligible, part)
 		}
 		cap, _ := ledger.Quantize(eligible)
 		var used ledger.Decimal
-		if e = t.Model(&ProcurementExitRefund{}).Where("exit_id=? AND receipt_id=? AND state<>'released_unpaid'", exitID, receiptID).Select("COALESCE(sum(amount_usd),0)::text").Row().Scan(&used); e != nil {
+		if e = t.Model(&ProcurementExitRefund{}).Where("exit_id=? AND receipt_id=? AND state<>'released_unpaid'", exitID, receiptID).Select("COALESCE(sum(amount_money),0)::text").Row().Scan(&used); e != nil {
 			return e
 		}
 		if used.Add(amount).Cmp(cap) > 0 {
@@ -187,7 +187,7 @@ func (p *ProcurementRefunds) PrepareRefund(ctx context.Context, actor, exitID, r
 		if e != nil {
 			return e
 		}
-		out = ProcurementExitRefund{ID: id, ExitID: exitID, BuyerID: exit.BuyerID, SupplierID: exit.SupplierID, BusinessKey: key, Fingerprint: fp, ReceiptID: receiptID, SourceKind: sourceKind, MerchantID: source.MerchantID, OriginOrderID: source.OriginalOrder.ID, AmountUSD: amount, HoldID: hold.ID, State: "prepared", CreatedBy: actor, CreatedAt: now}
+		out = ProcurementExitRefund{ID: id, ExitID: exitID, BuyerID: exit.BuyerID, SupplierID: exit.SupplierID, BusinessKey: key, Fingerprint: fp, ReceiptID: receiptID, SourceKind: sourceKind, MerchantID: source.MerchantID, OriginOrderID: source.OriginalOrder.ID, AmountMoney: amount, HoldID: hold.ID, State: "prepared", CreatedBy: actor, CreatedAt: now}
 		if sourceKind == "manual_receipt" {
 			return t.Omit("MerchantID").Create(&out).Error
 		}
@@ -223,7 +223,7 @@ func (p *ProcurementRefunds) requireRefundMatch(ctx context.Context, tx *gorm.DB
 	if leg.State != "prepared" && leg.State != "executing" && leg.State != "manual_executing" {
 		return ErrConflict
 	}
-	if r.USDAmount.Cmp(leg.AmountUSD) != 0 || r.Order.ID != leg.OriginOrderID || r.Order.OperatorID != leg.SupplierID || r.Order.MerchantID != leg.MerchantID {
+	if r.MoneyAmount.Cmp(leg.AmountMoney) != 0 || r.Order.ID != leg.OriginOrderID || r.Order.OperatorID != leg.SupplierID || r.Order.MerchantID != leg.MerchantID {
 		return ErrConflict
 	}
 	if verifiedManual {
@@ -238,9 +238,9 @@ func (p *ProcurementRefunds) requireRefundMatch(ctx context.Context, tx *gorm.DB
 			return e
 		}
 	}
-	if !verifiedManual && r.Money.Currency != "USD" {
+	if !verifiedManual && r.Money.Currency != r.Order.Settlement().Currency {
 		value, e := r.RefundValuation.Convert(r.Money, r.ValuedAt)
-		if e != nil || value.Amount.Cmp(leg.AmountUSD) != 0 || value.RemainderNumerator != "0" {
+		if e != nil || value.Amount.Cmp(leg.AmountMoney) != 0 {
 			return ErrRefundFX
 		}
 	}
@@ -264,9 +264,9 @@ func (p *ProcurementRefunds) Execute(ctx context.Context, actor, id string, mone
 	service := *p.Payments
 	service.RefundApproval = p
 	service.RefundSink = p
-	return service.SubmitRefund(ctx, actor, leg.SupplierID, leg.MerchantID, payments.Refund{ID: leg.ID, Order: source.OriginalOrder, Money: money, USDAmount: leg.AmountUSD, RefundValuation: valuation, ValuedAt: valuedAt, FXExecutionReference: exchangeRef})
+	return service.SubmitRefund(ctx, actor, leg.SupplierID, leg.MerchantID, payments.Refund{ID: leg.ID, Order: source.OriginalOrder, Money: money, MoneyAmount: leg.AmountMoney, RefundValuation: valuation, ValuedAt: valuedAt, FXExecutionReference: exchangeRef})
 }
-func (p *ProcurementRefunds) RecordVerifiedRefund(ctx context.Context, tx *gorm.DB, m payments.Merchant, o payments.Order, r payments.Refund, f payments.Fact, value payments.USDValue) error {
+func (p *ProcurementRefunds) RecordVerifiedRefund(ctx context.Context, tx *gorm.DB, m payments.Merchant, o payments.Order, r payments.Refund, f payments.Fact, value payments.MoneyValue) error {
 	return p.recordRefundObservation(ctx, tx, m, o, r, f, value)
 }
 func (p *ProcurementRefunds) Run(ctx context.Context, limit int) ([]ProcurementExitRefund, error) {

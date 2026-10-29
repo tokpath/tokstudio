@@ -16,7 +16,7 @@ func (b scopedInvoiceSource) InvoiceBasis(_ context.Context, _ *gorm.DB, operato
 		return InvoiceBasis{}, ErrForbidden
 	}
 	value := ledger.FromInt64(10)
-	return InvoiceBasis{ReceiptID: receipt, EligibleUSD: value, GlobalEligibleUSD: &value, ReceiptUSD: &value}, nil
+	return InvoiceBasis{ReceiptID: receipt, EligibleMoney: value, GlobalEligibleMoney: &value, ReceiptMoney: &value}, nil
 }
 func TestInvoiceHistoryAndPolicyVersionsSurviveCurrentRelationshipChange(t *testing.T) {
 	s, a, _, op, customer := opsFixture(t)

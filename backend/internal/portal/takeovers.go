@@ -80,13 +80,15 @@ func (a *Application) takeoverAction(c *gin.Context, op organization.Operator, a
 			return
 		}
 		in.BusinessKey, _ = key(c)
-		if in.Currency == "USD" {
-			amount, err := ledger.ParseDecimal(in.Amount)
-			if err != nil {
-				handleError(c, err)
-				return
-			}
-			in.ActualUSD = amount
+		settings, err := ledger.GetMonetary(ctx, a.DB)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		in, e = normalizeExecutionProof(in, settings.Currency)
+		if e != nil {
+			handleError(c, e)
+			return
 		}
 		out, e = a.Remediation.RecordTakeoverSettlement(ctx, actor, op.ID, id, in)
 	default:

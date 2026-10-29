@@ -18,7 +18,7 @@ func (a *Application) modelSettingsResource(c *gin.Context, p gin.H, base string
 		return
 	}
 	p["title"] = "Bifrost 设置"
-	p["description"] = "同步模型供应商参考价目，用于上游成本核算。客户与下级经营方继续按各自的 ATG 价目计费。"
+	p["description"] = "同步 Bifrost 的 USD 模型参考价目，用于参考成本观察和选路。供应商实际账单按原币独立登记。客户与下级经营方按各自 ATG 价目计费。"
 	p["summary"] = []gin.H{{"label": "Bifrost Core", "value": bifrostDependencyVersion("core")}, {"label": "成本计算组件", "value": bifrostDependencyVersion("framework")}, {"label": "自动同步", "value": "每 24 小时"}}
 	p["items"] = []any{entity("platform", "configured", int64(settings.Version), settings)}
 	p["columns"] = []gin.H{col("last_success_at", "上次成功同步", "datetime"), col("last_attempt_at", "最近尝试", "datetime"), col("sync_requested", "等待同步", "boolean"), col("last_error", "同步提示", "text")}
@@ -80,7 +80,7 @@ func (a *Application) actualCostResource(c *gin.Context, p gin.H, base string) {
 		if row.SupplierModelID != "" {
 			q = q.Where("supplier_model_id=?", row.SupplierModelID)
 		}
-		if e = q.Select("COALESCE(sum(calculated_cost_usd),0)::text AS cost,count(*) FILTER (WHERE calculated_cost_usd IS NULL) AS pending").Scan(&totals).Error; e != nil {
+		if e = q.Select("ROUND(COALESCE(sum(reference_cost_amount) FILTER(WHERE reference_cost_currency='USD'),0),18)::text AS cost,count(*) FILTER (WHERE reference_cost_amount IS NULL) AS pending").Scan(&totals).Error; e != nil {
 			handleError(c, e)
 			return
 		}
@@ -92,20 +92,20 @@ func (a *Application) actualCostResource(c *gin.Context, p gin.H, base string) {
 			values["model_name"] = modelNames[row.SupplierModelID]
 		}
 		item["presentation"] = gin.H{"title": humanJoin(names[row.ProviderID], fmt.Sprint(values["model_name"]))}
-		values["calculated_usd"] = totals.Cost
-		values["difference_usd"] = row.AmountUSD.Sub(totals.Cost)
+		values["reference_currency"] = "USD"
+		values["reference_amount"] = totals.Cost
 		values["pending_count"] = totals.Pending
 		items = append(items, item)
 	}
 	p["title"] = "真实上游成本"
-	p["description"] = "登记供应商实际费用，与同一供应商、模型和期间的系统核算金额并列对比。登记不会修改调用费用或客户账单。结束时间不包含在统计期间内。"
+	p["description"] = "按账单原币登记供应商实际费用，并列展示同一供应商、模型及期间的 Bifrost USD 参考成本。两者独立列示，不折算、不相减、不重复计入总成本。财务按登记时间汇总，服务期间结束时间不包含在统计内。"
 	p["items"] = items
-	p["columns"] = []gin.H{col("provider_name", "供应商", "text"), col("model_name", "供应商模型", "text"), col("starts_at", "期间开始", "datetime"), col("ends_at", "期间结束", "datetime"), col("calculated_usd", "系统核算 USD", "usd"), col("amount_usd", "登记实际 USD", "usd"), col("difference_usd", "差额 USD", "usd"), col("pending_count", "未取得核算金额的调用", "text"), col("note", "备注", "text")}
+	p["columns"] = []gin.H{col("provider_name", "供应商", "text"), col("model_name", "供应商模型", "text"), col("starts_at", "期间开始", "datetime"), col("ends_at", "期间结束", "datetime"), col("reference_currency", "参考币种", "text"), col("reference_amount", "Bifrost 参考成本", "decimal"), col("currency", "账单币种", "text"), col("amount", "登记实际成本", "decimal"), col("pending_count", "未取得核算金额的调用", "text"), col("note", "备注", "text")}
 	supplier := f("provider_id", "供应商", "text")
 	supplier.LookupURL = "/api/v1/operators/" + c.Param("operatorId") + "/references/cost-suppliers"
 	model := optional("supplier_model_id", "供应商模型（留空表示供应商整体）", "text")
 	model.LookupURL = "/api/v1/operators/" + c.Param("operatorId") + "/references/cost-models"
-	fields := []field{supplier, model, f("starts_at", "期间开始", "datetime"), f("ends_at", "期间结束", "datetime"), f("amount_usd", "实际费用 USD", "decimal"), optional("note", "备注", "textarea")}
+	fields := []field{supplier, model, f("starts_at", "期间开始", "datetime"), f("ends_at", "期间结束", "datetime"), f("currency", "账单原币币种", "text"), f("amount", "账单原币实际费用", "decimal"), optional("note", "备注", "textarea")}
 	p["row_operations"] = []operation{{Name: "edit", Label: "修改登记", Method: "POST", Path: base, Fields: append([]field{optional("id", "记录", "hidden"), defaultField("expected_version", "当前版本", "hidden", 0)}, fields...)}}
 	p["operations"] = []operation{{Name: "record", Label: "登记实际费用", Method: "POST", Path: base, Fields: fields}}
 	a.resourceResponse(c, p)

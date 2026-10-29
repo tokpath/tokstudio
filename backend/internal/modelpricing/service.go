@@ -74,7 +74,8 @@ type ActualCost struct {
 	SupplierModelID string         `json:"supplier_model_id"`
 	StartsAt        time.Time      `json:"starts_at"`
 	EndsAt          time.Time      `json:"ends_at"`
-	AmountUSD       ledger.Decimal `json:"amount_usd"`
+	Currency        string         `json:"currency"`
+	Amount          ledger.Decimal `json:"amount"`
 	Note            string         `json:"note"`
 	Version         uint64         `json:"version"`
 	CreatedAt       time.Time      `json:"created_at"`
@@ -300,8 +301,22 @@ func (s *Service) Snapshot(ctx context.Context, provider, model string, at time.
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return raw, e
 }
+func validCurrency(currency string) bool {
+	if len(currency) < 2 || len(currency) > 12 {
+		return false
+	}
+	for _, c := range currency {
+		if c < 'A' || c > 'Z' {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Service) SaveActual(ctx context.Context, in ActualCost, expected uint64) error {
-	if in.ProviderID == "" || in.StartsAt.IsZero() || !in.EndsAt.After(in.StartsAt) || in.AmountUSD.Sign() < 0 || len(in.Note) > 2000 {
+	in.Currency = strings.ToUpper(strings.TrimSpace(in.Currency))
+	in.Note = strings.TrimSpace(in.Note)
+	if in.ProviderID == "" || in.StartsAt.IsZero() || !in.EndsAt.After(in.StartsAt) || !in.Amount.Valid() || in.Amount.Sign() < 0 || !validCurrency(in.Currency) || len(in.Note) > 2000 {
 		return ErrInput
 	}
 	var count int64
@@ -324,9 +339,14 @@ func (s *Service) SaveActual(ctx context.Context, in ActualCost, expected uint64
 		if in.ID == "" {
 			in.ID = uuid.NewString()
 		}
+		// Registration time belongs to the database. The statement's service
+		// period is supplied separately and must not backdate financial reports.
+		if e := s.DB.WithContext(ctx).Raw("SELECT clock_timestamp()").Scan(&in.CreatedAt).Error; e != nil {
+			return e
+		}
 		return s.DB.WithContext(ctx).Create(&in).Error
 	}
-	r := s.DB.WithContext(ctx).Model(&ActualCost{}).Where("id=? AND version=?", in.ID, expected).Updates(map[string]any{"provider_id": in.ProviderID, "supplier_model_id": in.SupplierModelID, "starts_at": in.StartsAt, "ends_at": in.EndsAt, "amount_usd": in.AmountUSD, "note": strings.TrimSpace(in.Note), "version": in.Version})
+	r := s.DB.WithContext(ctx).Model(&ActualCost{}).Where("id=? AND version=?", in.ID, expected).Updates(map[string]any{"provider_id": in.ProviderID, "supplier_model_id": in.SupplierModelID, "starts_at": in.StartsAt, "ends_at": in.EndsAt, "currency": in.Currency, "amount": in.Amount, "note": strings.TrimSpace(in.Note), "version": in.Version})
 	if r.Error != nil {
 		return r.Error
 	}

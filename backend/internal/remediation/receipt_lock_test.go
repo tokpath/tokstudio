@@ -35,7 +35,7 @@ func TestPostgresAllocationTakesBusinessFenceBeforeReceiptAndOrderRows(t *testin
 					return e
 				}
 				pid <- processID
-				_, e := f.s.Commerce.AllocateReceipt(f.ctx, allocationTx, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "ordered-allocation", AmountUSD: d("80")})
+				_, e := f.s.Commerce.AllocateReceipt(f.ctx, allocationTx, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "ordered-allocation", AmountMoney: d("80")})
 				return e
 			})
 		}()

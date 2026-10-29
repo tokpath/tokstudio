@@ -66,7 +66,7 @@ test("operators prepare multimodal prices and manage packages without notificati
   await page.getByRole("button",{name:"创建套餐",exact:true}).click();
   panel=page.getByRole("dialog").last();
   await expect(panel.locator('[data-command-field="package_id"],[data-command-field="timezone"],[data-command-field="renewal_enabled"]')).toHaveCount(0);
-  for(const [key,value] of Object.entries({name,price_usd:"80",paid_atg:"80",gift_atg:"20"})) await panel.locator(`[data-command-field="${key}"] input`).fill(value);
+  for(const [key,value] of Object.entries({name,price_money:"80",paid_atg:"80",gift_atg:"20"})) await panel.locator(`[data-command-field="${key}"] input`).fill(value);
   const created=await submit(page,panel,"创建套餐",`${base}/plans`);
   const plan=page.locator("section.th-card").filter({has:page.getByRole("heading",{name,exact:true})});
   await expect(plan.getByText("无需续费",{exact:true})).toBeVisible();

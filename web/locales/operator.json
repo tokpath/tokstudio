@@ -309,45 +309,45 @@
     "ja": "原通貨額",
     "ru": "Сумма в исходной валюте"
   },
-  "金额 USD": {
-    "en": "Amount USD",
-    "ja": "金額 USD",
-    "ru": "Сумма USD"
+  "金额 结算币种": {
+    "en": "Amount settlement currency",
+    "ja": "金額 決済通貨",
+    "ru": "Сумма валюта расчётов"
   },
-  "已分配 USD": {
-    "en": "Allocated USD",
-    "ja": "割当済み USD",
-    "ru": "Распределено USD"
+  "已分配 结算币种": {
+    "en": "Allocated settlement currency",
+    "ja": "割当済み 決済通貨",
+    "ru": "Распределено валюта расчётов"
   },
-  "实际入账 USD": {
-    "en": "Actually posted USD",
-    "ja": "実際の計上額 USD",
-    "ru": "Фактически зачислено USD"
+  "实际入账 结算币种": {
+    "en": "Actually posted settlement currency",
+    "ja": "実際の計上額 決済通貨",
+    "ru": "Фактически зачислено валюта расчётов"
   },
-  "手续费 USD": {
-    "en": "Fee USD",
-    "ja": "手数料 USD",
-    "ru": "Комиссия USD"
+  "手续费 结算币种": {
+    "en": "Fee settlement currency",
+    "ja": "手数料 決済通貨",
+    "ru": "Комиссия валюта расчётов"
   },
   "手续费核实状态": {
     "en": "Fee verification status",
     "ja": "手数料の確認状態",
     "ru": "Статус проверки комиссии"
   },
-  "应付 USD": {
-    "en": "Due USD",
-    "ja": "支払額 USD",
-    "ru": "К оплате USD"
+  "应付 结算币种": {
+    "en": "Due settlement currency",
+    "ja": "支払額 決済通貨",
+    "ru": "К оплате валюта расчётов"
   },
-  "外部款项已分配 USD": {
-    "en": "External funds allocated USD",
-    "ja": "外部資金の割当済み額 USD",
-    "ru": "Распределено внешних средств USD"
+  "外部款项已分配 结算币种": {
+    "en": "External funds allocated settlement currency",
+    "ja": "外部資金の割当済み額 決済通貨",
+    "ru": "Распределено внешних средств валюта расчётов"
   },
-  "USD 余额支付": {
-    "en": "USD balance payment",
-    "ja": "USD 残高払い",
-    "ru": "Оплата с баланса USD"
+  "结算币种 余额支付": {
+    "en": "settlement currency balance payment",
+    "ja": "決済通貨 残高払い",
+    "ru": "Оплата с баланса валюта расчётов"
   },
   "佣金支付": {
     "en": "Commission payment",
@@ -464,10 +464,10 @@
     "ja": "設定済み",
     "ru": "Настроено"
   },
-  "客户 USD 充值": {
-    "en": "Customer USD top-up",
-    "ja": "顧客 USD チャージ",
-    "ru": "Пополнение USD клиентом"
+  "客户 结算币种 充值": {
+    "en": "Customer settlement currency top-up",
+    "ja": "顧客 決済通貨 チャージ",
+    "ru": "Пополнение валюта расчётов клиентом"
   },
   "套餐购买": {
     "en": "Package purchase",
@@ -899,10 +899,10 @@
     "ja": "プラン購入注文",
     "ru": "Заказ на покупку пакета"
   },
-  "USD 余额充值订单": {
-    "en": "USD balance top-up order",
-    "ja": "USD 残高チャージ注文",
-    "ru": "Заказ на пополнение баланса USD"
+  "结算币种 余额充值订单": {
+    "en": "settlement currency balance top-up order",
+    "ja": "決済通貨 残高チャージ注文",
+    "ru": "Заказ на пополнение баланса валюта расчётов"
   },
   "套餐续费订单": {
     "en": "Package renewal order",
@@ -1189,10 +1189,10 @@
     "ja": "今回の評価を確認",
     "ru": "Проверить текущую оценку"
   },
-  "尚未确定 USD 价值的真实款，先到估值待办核实。": {
-    "en": "For actual receipts with no confirmed USD value, verify the valuation first.",
-    "ja": "USD 価値が未確定の実入金は、先に評価タスクで確認します。",
-    "ru": "Если стоимость фактического поступления в USD не определена, сначала проверьте оценку."
+  "尚未确定 结算币种 价值的真实款，先到估值待办核实。": {
+    "en": "For actual receipts with no confirmed settlement currency value, verify the valuation first.",
+    "ja": "決済通貨 価値が未確定の実入金は、先に評価タスクで確認します。",
+    "ru": "Если стоимость фактического поступления в валюта расчётов не определена, сначала проверьте оценку."
   },
   "分配并追踪交付": {
     "en": "Allocate and track delivery",
@@ -1219,10 +1219,10 @@
     "ja": "商品を定義",
     "ru": "Определить продукт"
   },
-  "确认成交 USD、购买/赠送 ATG、有效期和公开条款。": {
-    "en": "Confirm the agreed USD price, purchased/gift ATG, validity, and public terms.",
-    "ja": "成約額 USD、購入・特典 ATG、有効期間、公開条件を確認します。",
-    "ru": "Проверьте согласованную цену USD, купленные и бонусные ATG, срок и публичные условия."
+  "确认成交 结算币种、购买/赠送 ATG、有效期和公开条款。": {
+    "en": "Confirm the agreed settlement currency price, purchased/gift ATG, validity, and public terms.",
+    "ja": "成約額 決済通貨、購入・特典 ATG、有効期間、公開条件を確認します。",
+    "ru": "Проверьте согласованную цену валюта расчётов, купленные и бонусные ATG, срок и публичные условия."
   },
   "准备销售": {
     "en": "Prepare for sales",
@@ -1709,10 +1709,10 @@
     "ja": "チャネル引継ぎ",
     "ru": "Передача канала"
   },
-  "客户权益接管完成后，双方实际收付款仍独立办理。登记真实银行凭证与当次USD估值，支持分批结清。": {
-    "en": "After customer credits are transferred, actual payments between both parties are handled separately. Record genuine bank evidence and the current USD valuation; partial settlements are supported.",
-    "ja": "顧客の利用権を引き継いだ後も、双方の実際の入出金は別に処理します。実際の銀行証憑と今回の USD 評価を記録し、分割精算にも対応します。",
-    "ru": "После передачи клиентских единиц фактические платежи сторон обрабатываются отдельно. Записывайте реальные банковские подтверждения и текущую оценку в USD; допускаются частичные расчёты."
+  "客户权益接管完成后，双方实际收付款仍独立办理。登记真实银行凭证与当次结算币种估值，支持分批结清。": {
+    "en": "After customer credits are transferred, actual payments between both parties are handled separately. Record genuine bank evidence and the current settlement currency valuation; partial settlements are supported.",
+    "ja": "顧客の利用権を引き継いだ後も、双方の実際の入出金は別に処理します。実際の銀行証憑と今回の 決済通貨 評価を記録し、分割精算にも対応します。",
+    "ru": "После передачи клиентских единиц фактические платежи сторон обрабатываются отдельно. Записывайте реальные банковские подтверждения и текущую оценку в валюта расчётов; допускаются частичные расчёты."
   },
   "先暂停新增业务，等待在途事项结清，再审阅完整资产与责任快照。执行接管不会继承原渠道商户密钥。": {
     "en": "Pause new business, wait for in-flight operations to settle, then review the full asset and obligation snapshot. The original channel's merchant keys are not inherited.",
@@ -1774,20 +1774,20 @@
     "ja": "合意済み ATG 価格",
     "ru": "По согласованной цене ATG"
   },
-  "承接服务每ATG合同作价 USD（大于0）": {
-    "en": "Contract service value per ATG in USD (> 0)",
-    "ja": "引継ぎサービスの契約単価 USD/ATG（0 超）",
-    "ru": "Договорная цена принятой услуги USD/ATG (> 0)"
+  "承接服务每ATG合同作价 结算币种（大于0）": {
+    "en": "Contract service value per ATG in settlement currency (> 0)",
+    "ja": "引継ぎサービスの契約単価 決済通貨/ATG（0 超）",
+    "ru": "Договорная цена принятой услуги валюта расчётов/ATG (> 0)"
   },
-  "采购库存每ATG合同抵扣 USD（大于0）": {
-    "en": "Contract procurement offset per ATG in USD (> 0)",
-    "ja": "調達在庫の契約相殺単価 USD/ATG（0 超）",
-    "ru": "Договорный зачёт закупочного запаса USD/ATG (> 0)"
+  "采购库存每ATG合同抵扣 结算币种（大于0）": {
+    "en": "Contract procurement offset per ATG in settlement currency (> 0)",
+    "ja": "調達在庫の契約相殺単価 決済通貨/ATG（0 超）",
+    "ru": "Договорный зачёт закупочного запаса валюта расчётов/ATG (> 0)"
   },
-  "合同额外结清 USD（可负数）": {
-    "en": "Additional contract settlement USD (may be negative)",
-    "ja": "契約上の追加精算 USD（負数可）",
-    "ru": "Дополнительный расчёт по договору USD (может быть отрицательным)"
+  "合同额外结清 结算币种（可负数）": {
+    "en": "Additional contract settlement settlement currency (may be negative)",
+    "ja": "契約上の追加精算 決済通貨（負数可）",
+    "ru": "Дополнительный расчёт по договору валюта расчётов (может быть отрицательным)"
   },
   "双方接管合同编号": {
     "en": "Bilateral takeover contract reference",
@@ -2014,25 +2014,20 @@
     "ja": "取消根拠",
     "ru": "Основание отмены"
   },
-  "{direction}。填写实际执行币种和金额、本次折合USD以及付款方手续费；不得使用原订单汇率代替本次真实执行事实。": {
-    "en": "{direction}. Enter the actual currency and amount, this settlement's USD value, and payer fees. Do not substitute the original order's exchange rate for the actual execution facts.",
-    "ja": "{direction}。実際の通貨と金額、今回の USD 換算額、支払側の手数料を入力してください。元の注文の為替レートを今回の実行事実の代わりに使用しないでください。",
-    "ru": "{direction}. Укажите фактическую валюту и сумму, стоимость текущего расчёта в USD и комиссии плательщика. Не заменяйте факты исполнения курсом исходного заказа."
-  },
   "实际币种金额": {
     "en": "Actual currency amount",
     "ja": "実際の通貨額",
     "ru": "Сумма в фактической валюте"
   },
-  "本次实际结清 USD": {
-    "en": "Actual settlement USD",
-    "ja": "今回の実精算 USD",
-    "ru": "Фактический расчёт USD"
+  "本次实际结清 结算币种": {
+    "en": "Actual settlement settlement currency",
+    "ja": "今回の実精算 決済通貨",
+    "ru": "Фактический расчёт валюта расчётов"
   },
-  "付款方另付手续费 USD": {
-    "en": "Payer's additional fee USD",
-    "ja": "支払側の別途手数料 USD",
-    "ru": "Дополнительная комиссия плательщика USD"
+  "付款方另付手续费 结算币种": {
+    "en": "Payer's additional fee settlement currency",
+    "ja": "支払側の別途手数料 決済通貨",
+    "ru": "Дополнительная комиссия плательщика валюта расчётов"
   },
   "唯一银行流水 / 支付凭证": {
     "en": "Unique bank transaction / payment reference",
@@ -2199,10 +2194,10 @@
     "ja": "現在の未履行責任",
     "ru": "Текущие неисполненные обязательства"
   },
-  "客户USD余额责任": {
-    "en": "Customer USD wallet obligations",
-    "ja": "顧客 USD 残高の責任",
-    "ru": "Обязательства по балансу USD клиентов"
+  "客户结算币种余额责任": {
+    "en": "Customer settlement currency wallet obligations",
+    "ja": "顧客 決済通貨 残高の責任",
+    "ru": "Обязательства по балансу валюта расчётов клиентов"
   },
   "购买权益剩余成交价值": {
     "en": "Remaining sale value of purchased credits",
@@ -2289,10 +2284,10 @@
     "ja": "（{count} 件）",
     "ru": " (записей: {count})"
   },
-  "这些原币款未按零USD或固定币价处理。": {
-    "en": "These original currency receipts are not assigned zero USD or a fixed currency price.",
-    "ja": "これらの原通貨入金をゼロ USD や固定通貨価格で扱いません。",
-    "ru": "Этим поступлениям не присваивается нулевая стоимость в USD или фиксированная цена валюты."
+  "这些原币款未按零结算币种或固定币价处理。": {
+    "en": "These original currency receipts are not assigned zero settlement currency or a fixed currency price.",
+    "ja": "これらの原通貨入金をゼロ 決済通貨 や固定通貨価格で扱いません。",
+    "ru": "Этим поступлениям не присваивается нулевая стоимость в валюта расчётов или фиксированная цена валюты."
   },
   "办理未入账实际款": {
     "en": "Handle unposted actual receipts",
@@ -2379,10 +2374,10 @@
     "ja": "調達在庫 ATG",
     "ru": "Закупочный запас ATG"
   },
-  "采购账面成本 USD": {
-    "en": "Procurement book cost USD",
-    "ja": "調達帳簿原価 USD",
-    "ru": "Балансовая стоимость закупки USD"
+  "采购账面成本 结算币种": {
+    "en": "Procurement book cost settlement currency",
+    "ja": "調達帳簿原価 決済通貨",
+    "ru": "Балансовая стоимость закупки валюта расчётов"
   },
   "存在上级供货方": {
     "en": "Has upstream supplier",
@@ -2409,30 +2404,30 @@
     "ja": "調達在庫の相殺 ATG",
     "ru": "Зачёт закупочного запаса ATG"
   },
-  "采购库存抵扣 USD": {
-    "en": "Procurement inventory offset USD",
-    "ja": "調達在庫の相殺 USD",
-    "ru": "Зачёт закупочного запаса USD"
+  "采购库存抵扣 结算币种": {
+    "en": "Procurement inventory offset settlement currency",
+    "ja": "調達在庫の相殺 決済通貨",
+    "ru": "Зачёт закупочного запаса валюта расчётов"
   },
-  "剩余合同可退采购款 USD": {
-    "en": "Remaining contract-refundable procurement USD",
-    "ja": "契約上返金可能な残りの調達額 USD",
-    "ru": "Оставшаяся возвращаемая закупочная сумма по договору USD"
+  "剩余合同可退采购款 结算币种": {
+    "en": "Remaining contract-refundable procurement settlement currency",
+    "ja": "契約上返金可能な残りの調達額 決済通貨",
+    "ru": "Оставшаяся возвращаемая закупочная сумма по договору валюта расчётов"
   },
-  "合同结清额 USD": {
-    "en": "Contract settlement amount USD",
-    "ja": "契約精算額 USD",
-    "ru": "Сумма расчёта по договору USD"
+  "合同结清额 结算币种": {
+    "en": "Contract settlement amount settlement currency",
+    "ja": "契約精算額 決済通貨",
+    "ru": "Сумма расчёта по договору валюта расчётов"
   },
   "收款凭证引用": {
     "en": "Receipt evidence reference",
     "ja": "入金証憑の参照",
     "ru": "Ссылка на подтверждение поступления"
   },
-  "原成交 USD": {
-    "en": "Original sale value USD",
-    "ja": "元の成約額 USD",
-    "ru": "Исходная стоимость продажи USD"
+  "原成交 结算币种": {
+    "en": "Original sale value settlement currency",
+    "ja": "元の成約額 決済通貨",
+    "ru": "Исходная стоимость продажи валюта расчётов"
   },
   "剩余采购库存 ATG": {
     "en": "Remaining procurement inventory ATG",
@@ -2464,10 +2459,10 @@
     "ja": "記録の指紋",
     "ru": "Отпечаток записи"
   },
-  "采购批次退款 USD": {
-    "en": "Procurement lot refund USD",
-    "ja": "調達ロット返金 USD",
-    "ru": "Возврат по закупочной партии USD"
+  "采购批次退款 结算币种": {
+    "en": "Procurement lot refund settlement currency",
+    "ja": "調達ロット返金 決済通貨",
+    "ru": "Возврат по закупочной партии валюта расчётов"
   },
   "舍入依据": {
     "en": "Rounding evidence",
@@ -2524,25 +2519,25 @@
     "ja": "元のスナップショット",
     "ru": "Исходный снимок"
   },
-  "已结清 USD": {
-    "en": "Settled USD",
-    "ja": "精算済み USD",
-    "ru": "Погашено USD"
+  "已结清 结算币种": {
+    "en": "Settled settlement currency",
+    "ja": "精算済み 決済通貨",
+    "ru": "Погашено валюта расчётов"
   },
-  "实际价值 USD": {
-    "en": "Actual value USD",
-    "ja": "実際の価値 USD",
-    "ru": "Фактическая стоимость USD"
+  "实际价值 结算币种": {
+    "en": "Actual value settlement currency",
+    "ja": "実際の価値 決済通貨",
+    "ru": "Фактическая стоимость валюта расчётов"
   },
-  "多付金额 USD": {
-    "en": "Overpaid amount USD",
-    "ja": "過払額 USD",
-    "ru": "Переплата USD"
+  "多付金额 结算币种": {
+    "en": "Overpaid amount settlement currency",
+    "ja": "過払額 決済通貨",
+    "ru": "Переплата валюта расчётов"
   },
-  "剩余责任 USD": {
-    "en": "Remaining obligation USD",
-    "ja": "残存責任 USD",
-    "ru": "Оставшееся обязательство USD"
+  "剩余责任 结算币种": {
+    "en": "Remaining obligation settlement currency",
+    "ja": "残存責任 決済通貨",
+    "ru": "Оставшееся обязательство валюта расчётов"
   },
   "实际发生时间": {
     "en": "Actual occurrence time",
@@ -2609,10 +2604,10 @@
     "ja": "顧客 ATG 利用枠",
     "ru": "Единицы ATG клиента"
   },
-  "客户 USD 现金余额": {
-    "en": "Customer USD cash balance",
-    "ja": "顧客 USD 現金残高",
-    "ru": "Денежный баланс клиента USD"
+  "客户 结算币种 现金余额": {
+    "en": "Customer settlement currency cash balance",
+    "ja": "顧客 決済通貨 現金残高",
+    "ru": "Денежный баланс клиента валюта расчётов"
   },
   "可用佣金": {
     "en": "Available commission",
@@ -2684,11 +2679,11 @@
     "ja": "フローは選択期間、期末残高は終了時点に基づきます。未確定状態と現在の保留額はスナップショット取得時点の値で、以前からの未解決案件も含みます。",
     "ru": "Потоки относятся к выбранному периоду, конечные остатки — к его окончанию. Неподтверждённые статусы и текущие резервы указаны на момент снимка, включая более ранние нерешённые позиции."
   },
-  "Verified original-currency payments awaiting execution-time valuation are listed by currency, without an invented USD amount. They remain current obligations regardless of commercial order expiry.": {
-    "zh": "已核实但尚待按实际执行时点评估的原币付款按币种列示，不虚构 USD 金额。无论商业订单是否到期，这些款项仍属于当前责任。",
-    "en": "Verified original-currency payments awaiting execution-time valuation are listed by currency, without an invented USD amount. They remain current obligations regardless of commercial order expiry.",
-    "ja": "確認済みで実行時点の評価待ちの原通貨支払いは、架空の USD 額を付けず通貨別に表示します。注文の期限切れにかかわらず、現在の責任として残ります。",
-    "ru": "Проверенные платежи в исходной валюте, ожидающие оценки на момент исполнения, приведены по валютам без вымышленной суммы USD. Они остаются текущими обязательствами независимо от истечения коммерческого заказа."
+  "Verified original-currency payments awaiting execution-time valuation are listed by currency, without an invented 结算币种 amount. They remain current obligations regardless of commercial order expiry.": {
+    "zh": "已核实但尚待按实际执行时点评估的原币付款按币种列示，不虚构 结算币种 金额。无论商业订单是否到期，这些款项仍属于当前责任。",
+    "en": "Verified original-currency payments awaiting execution-time valuation are listed by currency, without an invented settlement currency amount. They remain current obligations regardless of commercial order expiry.",
+    "ja": "確認済みで実行時点の評価待ちの原通貨支払いは、架空の 決済通貨 額を付けず通貨別に表示します。注文の期限切れにかかわらず、現在の責任として残ります。",
+    "ru": "Проверенные платежи в исходной валюте, ожидающие оценки на момент исполнения, приведены по валютам без вымышленной суммы валюта расчётов. Они остаются текущими обязательствами независимо от истечения коммерческого заказа."
   },
   "。": {
     "en": ".",
@@ -2715,20 +2710,20 @@
     "ja": "供給元と供給元モデルを登録",
     "ru": "Регистрация поставщиков и их моделей"
   },
-  "每把供应商密钥都有名称，方便辨认。密钥加密保存，页面不再显示原文。供应商模型在这里填写用量读取方式和 USD 成本价。": {
-    "en": "Each supplier secret has a name so you can recognize it. The secret is stored encrypted and is not shown again. Supplier models record how usage is read and the USD cost.",
-    "ja": "各供給元の鍵には名前があり、見分けられます。鍵は暗号化して保存され、画面には再表示されません。供給元モデルには使用量の読み取り方と USD コストを記入します。",
-    "ru": "У каждого ключа поставщика есть имя. Ключ хранится в зашифрованном виде и больше не показывается. У модели поставщика указывают, как читать расход, и цену в USD."
+  "每把供应商密钥都有名称，方便辨认。密钥加密保存，页面不再显示原文。供应商模型在这里填写用量读取方式和 原币种 成本价。": {
+    "en": "Each supplier secret has a name so you can recognize it. The secret is stored encrypted and is not shown again. Supplier models record how usage is read and the original currency cost.",
+    "ja": "各供給元の鍵には名前があり、見分けられます。鍵は暗号化して保存され、画面には再表示されません。供給元モデルには使用量の読み取り方と 元通貨 コストを記入します。",
+    "ru": "У каждого ключа поставщика есть имя. Ключ хранится в зашифрованном виде и больше не показывается. У модели поставщика указывают, как читать расход, и цену в исходная валюта."
   },
   "登记供应商模型": {
     "en": "Register a supplier model",
     "ja": "供給元モデルを登録",
     "ru": "Зарегистрировать модель поставщика"
   },
-  "填写供应商模型名称、计费方式和 USD 成本价。": {
-    "en": "Enter the supplier model name, how it is metered, and the USD cost.",
-    "ja": "供給元モデル名、課金方法、USD コストを記入します。",
-    "ru": "Укажите имя модели поставщика, способ учёта и цену в USD."
+  "填写供应商模型名称、计费方式和 原币种 成本价。": {
+    "en": "Enter the supplier model name, how it is metered, and the original currency cost.",
+    "ja": "供給元モデル名、課金方法、元通貨 コストを記入します。",
+    "ru": "Укажите имя модели поставщика, способ учёта и цену в исходная валюта."
   },
   "再到路由配置绑定": {
     "en": "Then bind it in route setup",

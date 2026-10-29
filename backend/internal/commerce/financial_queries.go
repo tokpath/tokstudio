@@ -12,10 +12,10 @@ import (
 // consumption revenue. Current exceptions are not limited to the flow window.
 type FinancialSnapshot struct {
 	CompletedSales             int64          `json:"completed_sales"`
-	SalesUSD                   ledger.Decimal `json:"sales_usd"`
+	SalesMoney                 ledger.Decimal `json:"sales_money"`
 	WalletTopUps               int64          `json:"wallet_top_ups"`
-	WalletTopUpUSD             ledger.Decimal `json:"wallet_top_up_usd"`
-	VerifiedReceiptGrossUSD    ledger.Decimal `json:"verified_receipt_gross_usd"`
+	WalletTopUpMoney           ledger.Decimal `json:"wallet_top_up_money"`
+	VerifiedReceiptGrossMoney  ledger.Decimal `json:"verified_receipt_gross_money"`
 	PendingReceiptFees         int64          `json:"pending_receipt_fees"`
 	PendingProviderSettlements int64          `json:"pending_provider_settlements"`
 	UnknownPaymentTimes        int64          `json:"unknown_payment_times"`
@@ -36,19 +36,19 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 			Count  int64
 			Amount ledger.Decimal
 		}
-		if e := t.Raw(`SELECT o.kind,count(*) AS count,sum(o.due_usd)::text AS amount FROM commerce_orders o JOIN commerce_deliveries d ON d.order_id=o.id WHERE d.delivered_at>=? AND d.delivered_at<? AND EXISTS(SELECT 1 FROM ledger_journals j WHERE j.operator_id=? AND j.source_id=o.id::text AND j.kind IN ('package_payment','wallet_topup')) GROUP BY o.kind`, from, to, operator).Scan(&rows).Error; e != nil {
+		if e := t.Raw(`SELECT o.kind,count(*) AS count,sum(o.due_money)::text AS amount FROM commerce_orders o JOIN commerce_deliveries d ON d.order_id=o.id WHERE d.delivered_at>=? AND d.delivered_at<? AND EXISTS(SELECT 1 FROM ledger_journals j WHERE j.operator_id=? AND j.source_id=o.id::text AND j.kind IN ('package_payment','wallet_topup')) GROUP BY o.kind`, from, to, operator).Scan(&rows).Error; e != nil {
 			return e
 		}
 		for _, r := range rows {
 			if r.Kind == "topup" {
 				out.WalletTopUps += r.Count
-				out.WalletTopUpUSD = out.WalletTopUpUSD.Add(r.Amount)
+				out.WalletTopUpMoney = out.WalletTopUpMoney.Add(r.Amount)
 			} else {
 				out.CompletedSales += r.Count
-				out.SalesUSD = out.SalesUSD.Add(r.Amount)
+				out.SalesMoney = out.SalesMoney.Add(r.Amount)
 			}
 		}
-		if e := t.Model(&receiptRow{}).Where("operator_id=? AND created_at>=? AND created_at<?", operator, from, to).Select("COALESCE(sum(gross_usd),0)::text").Row().Scan(&out.VerifiedReceiptGrossUSD); e != nil {
+		if e := t.Model(&receiptRow{}).Where("operator_id=? AND created_at>=? AND created_at<?", operator, from, to).Select("COALESCE(sum(gross_money),0)::text").Row().Scan(&out.VerifiedReceiptGrossMoney); e != nil {
 			return e
 		}
 		for _, q := range []struct {

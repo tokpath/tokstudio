@@ -734,10 +734,10 @@
     "ja": "クレジットの出所",
     "ru": "Источники кредитов"
   },
-  "USD 充值": {
-    "en": "Add USD balance",
-    "ja": "USD チャージ",
-    "ru": "Пополнение USD"
+  "结算币种 充值": {
+    "en": "Add settlement currency balance",
+    "ja": "決済通貨 チャージ",
+    "ru": "Пополнение валюта расчётов"
   },
   "支付余额退款": {
     "en": "Payment balance refunds",
@@ -1129,10 +1129,10 @@
     "ja": "{driver} · {asset} · ネットワーク {network} · コントラクト {contract}",
     "ru": "{driver} · {asset} · Сеть {network} · Контракт {contract}"
   },
-  "{provider} · {amount} USD · 原开票方 {issuer}": {
-    "en": "{provider} · {amount} USD · Original invoice issuer {issuer}",
-    "ja": "{provider} · {amount} USD · 元の請求書発行者 {issuer}",
-    "ru": "{provider} · {amount} USD · Первоначальный выставитель счёта {issuer}"
+  "{provider} · {amount} 结算币种 · 原开票方 {issuer}": {
+    "en": "{provider} · {amount} settlement currency · Original invoice issuer {issuer}",
+    "ja": "{provider} · {amount} 決済通貨 · 元の請求書発行者 {issuer}",
+    "ru": "{provider} · {amount} валюта расчётов · Первоначальный выставитель счёта {issuer}"
   },
   "供应商 {id} · {fingerprint}": {
     "en": "Provider {id} · {fingerprint}",
@@ -1154,20 +1154,20 @@
     "ja": "ロゴを非公開ストレージに保存しました。テーマのロゴ欄にこの URL を指定し、バージョンを保存してください：{url}",
     "ru": "Логотип сохранён в закрытом хранилище. Укажите этот адрес в поле логотипа темы и сохраните версию: {url}"
   },
-  "总额 {amount} USD，手续费 {fee} USD，实付 {net} USD。请刷新列表核对后，在此报价行确认收款资料。": {
-    "en": "Total {amount} USD, fee {fee} USD, net payment {net} USD. Refresh and verify the list, then confirm recipient details on this quote.",
-    "ja": "総額 {amount} USD、手数料 {fee} USD、実支払額 {net} USD。一覧を更新して確認し、この見積もり行で受取情報を確定してください。",
-    "ru": "Всего {amount} USD, комиссия {fee} USD, к выплате {net} USD. Обновите и проверьте список, затем подтвердите реквизиты получателя в этой строке предложения."
+  "总额 {amount} 结算币种，手续费 {fee} 结算币种，实付 {net} 结算币种。请刷新列表核对后，在此报价行确认收款资料。": {
+    "en": "Total {amount} settlement currency, fee {fee} settlement currency, net payment {net} settlement currency. Refresh and verify the list, then confirm recipient details on this quote.",
+    "ja": "総額 {amount} 決済通貨、手数料 {fee} 決済通貨、実支払額 {net} 決済通貨。一覧を更新して確認し、この見積もり行で受取情報を確定してください。",
+    "ru": "Всего {amount} валюта расчётов, комиссия {fee} валюта расчётов, к выплате {net} валюта расчётов. Обновите и проверьте список, затем подтвердите реквизиты получателя в этой строке предложения."
   },
-  "下次续费于 {date} 到期，价格 {price} USD，购买 {paid} ATG，赠送 {gift} ATG，有效期 {period}。请核对条款；不利变化需要本人重新确认，资金不足不会产生客户欠款。": {
-    "en": "The next renewal is due {date}: price {price} USD, purchased credits {paid} ATG, bonus {gift} ATG, term {period}. Review the terms; adverse changes require your confirmation. Insufficient funds will not create customer debt.",
-    "ja": "次回更新は {date}、料金 {price} USD、購入分 {paid} ATG、付与分 {gift} ATG、有効期間 {period} です。条件をご確認ください。不利な変更には本人の再確認が必要です。資金不足でお客様の債務が発生することはありません。",
-    "ru": "Следующее продление: {date}; цена {price} USD, оплаченная квота {paid} ATG, бонус {gift} ATG, срок {period}. Проверьте условия: ухудшение требует вашего подтверждения. Нехватка средств не создаёт задолженность клиента."
+  "下次续费于 {date} 到期，价格 {price} 结算币种，购买 {paid} ATG，赠送 {gift} ATG，有效期 {period}。请核对条款；不利变化需要本人重新确认，资金不足不会产生客户欠款。": {
+    "en": "The next renewal is due {date}: price {price} settlement currency, purchased credits {paid} ATG, bonus {gift} ATG, term {period}. Review the terms; adverse changes require your confirmation. Insufficient funds will not create customer debt.",
+    "ja": "次回更新は {date}、料金 {price} 決済通貨、購入分 {paid} ATG、付与分 {gift} ATG、有効期間 {period} です。条件をご確認ください。不利な変更には本人の再確認が必要です。資金不足でお客様の債務が発生することはありません。",
+    "ru": "Следующее продление: {date}; цена {price} валюта расчётов, оплаченная квота {paid} ATG, бонус {gift} ATG, срок {period}. Проверьте условия: ухудшение требует вашего подтверждения. Нехватка средств не создаёт задолженность клиента."
   },
-  " 本次申请金额 {amount} USD。": {
-    "en": " Amount requested: {amount} USD.",
-    "ja": " 今回の申請額は {amount} USD です。",
-    "ru": " Сумма заявки: {amount} USD."
+  " 本次申请金额 {amount} 结算币种。": {
+    "en": " Amount requested: {amount} settlement currency.",
+    "ja": " 今回の申請額は {amount} 決済通貨 です。",
+    "ru": " Сумма заявки: {amount} валюта расчётов."
   },
   "公开模型 {id} 的 {kind} 变更计划于 {date} 生效。请在模型目录或合作报价中查看具体条件；已受理请求继续按原快照结算。": {
     "en": "Change {kind} for public model {id} is scheduled for {date}. Review the terms in the model catalog or supply quote; accepted requests retain their original billing snapshots.",

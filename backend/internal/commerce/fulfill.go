@@ -53,7 +53,7 @@ func (s *Service) Fulfill(ctx context.Context, tx *gorm.DB, orderID, actorID str
 			out = Delivery(d)
 			return nil
 		}
-		if o.ExternalAllocatedUSD.Cmp(externalDue(o)) != 0 {
+		if o.ExternalAllocatedMoney.Cmp(externalDue(o)) != 0 {
 			return ErrNotPaid
 		}
 		if o.Status != "paid" && o.Status != "exception" {
@@ -105,11 +105,11 @@ func (s *Service) Fulfill(ctx context.Context, tx *gorm.DB, orderID, actorID str
 			if err != nil {
 				return err
 			}
-			to, err := s.account(ctx, tx, o.OperatorID, o.CustomerID, "customer:usd")
+			to, err := s.account(ctx, tx, o.OperatorID, o.CustomerID, "customer:money")
 			if err != nil {
 				return err
 			}
-			if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: o.OperatorID, BusinessKey: "topup:" + o.ID, Kind: "wallet_topup", SourceID: o.ID, ActorID: actorID, Reason: "verified fully paid wallet topup", Lines: []ledger.Line{{AccountID: from.ID, Amount: o.DueUSD.Neg()}, {AccountID: to.ID, Amount: o.DueUSD}}}); err != nil {
+			if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: o.OperatorID, BusinessKey: "topup:" + o.ID, Kind: "wallet_topup", SourceID: o.ID, ActorID: actorID, Reason: "verified fully paid wallet topup", Lines: []ledger.Line{{AccountID: from.ID, Amount: o.DueMoney.Neg()}, {AccountID: to.ID, Amount: o.DueMoney}}}); err != nil {
 				return err
 			}
 		} else {
@@ -124,7 +124,7 @@ func (s *Service) Fulfill(ctx context.Context, tx *gorm.DB, orderID, actorID str
 				return err
 			}
 			if internalTotal(o).Sign() > 0 {
-				if o.CommissionUSD.Sign() > 0 {
+				if o.CommissionMoney.Sign() > 0 {
 					if s.commissionFunding == nil {
 						return ErrNotReady
 					}
@@ -136,7 +136,7 @@ func (s *Service) Fulfill(ctx context.Context, tx *gorm.DB, orderID, actorID str
 				for _, fund := range []struct {
 					purpose string
 					amount  ledger.Decimal
-				}{{"customer:usd", o.InternalUSD}, {"commission:available", o.CommissionUSD}} {
+				}{{"customer:money", o.InternalMoney}, {"commission:available", o.CommissionMoney}} {
 					if fund.amount.Sign() > 0 {
 						a, err := s.account(ctx, tx, o.OperatorID, o.CustomerID, fund.purpose)
 						if err != nil {
@@ -149,18 +149,18 @@ func (s *Service) Fulfill(ctx context.Context, tx *gorm.DB, orderID, actorID str
 					return err
 				}
 				o.InternalStatus = "captured"
-				if o.CommissionUSD.Sign() > 0 {
+				if o.CommissionMoney.Sign() > 0 {
 					if err := s.commissionFunding.CompleteCommissionFunding(ctx, tx, o.OperatorID, o.CustomerID, o.ID); err != nil {
 						return err
 					}
 				}
 			}
-			if o.ExternalAllocatedUSD.Sign() > 0 {
+			if o.ExternalAllocatedMoney.Sign() > 0 {
 				funds, err := s.account(ctx, tx, o.OperatorID, o.ID, "order:funds")
 				if err != nil {
 					return err
 				}
-				if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: o.OperatorID, BusinessKey: "order-external:" + o.ID, Kind: "package_payment", SourceID: o.ID, ActorID: actorID, Reason: "consume verified allocated receipt funds", Lines: []ledger.Line{{AccountID: funds.ID, Amount: o.ExternalAllocatedUSD.Neg()}, {AccountID: sales.ID, Amount: o.ExternalAllocatedUSD}}}); err != nil {
+				if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: o.OperatorID, BusinessKey: "order-external:" + o.ID, Kind: "package_payment", SourceID: o.ID, ActorID: actorID, Reason: "consume verified allocated receipt funds", Lines: []ledger.Line{{AccountID: funds.ID, Amount: o.ExternalAllocatedMoney.Neg()}, {AccountID: sales.ID, Amount: o.ExternalAllocatedMoney}}}); err != nil {
 					return err
 				}
 			}
@@ -170,7 +170,7 @@ func (s *Service) Fulfill(ctx context.Context, tx *gorm.DB, orderID, actorID str
 					sources = append(sources, source)
 				}
 			}
-			grant, err := s.ledger.IssueGrant(ctx, tx, ledger.GrantInput{OperatorID: o.OperatorID, CustomerID: o.CustomerID, OrderID: o.ID, BusinessKey: "order:" + o.ID, ActorID: actorID, Reason: "fully paid package delivery", PaidUSD: o.DueUSD, Sources: sources, EffectiveAt: now, ExpiresAt: end})
+			grant, err := s.ledger.IssueGrant(ctx, tx, ledger.GrantInput{OperatorID: o.OperatorID, CustomerID: o.CustomerID, OrderID: o.ID, BusinessKey: "order:" + o.ID, ActorID: actorID, Reason: "fully paid package delivery", PaidMoney: o.DueMoney, Sources: sources, EffectiveAt: now, ExpiresAt: end})
 			if err != nil {
 				return err
 			}
@@ -199,7 +199,7 @@ func (s *Service) Fulfill(ctx context.Context, tx *gorm.DB, orderID, actorID str
 			return err
 		}
 		out = Delivery(d)
-		return s.event(tx, o.OperatorID, o.ID, "order.delivered", map[string]any{"actor_id": actorID, "evidence": o.ID, "before": before, "after": o, "order_id": o.ID, "delivery": out, "paid_usd": o.DueUSD, "beneficiary_customer_id": o.CustomerID})
+		return s.event(tx, o.OperatorID, o.ID, "order.delivered", map[string]any{"actor_id": actorID, "evidence": o.ID, "before": before, "after": o, "order_id": o.ID, "delivery": out, "paid_money": o.DueMoney, "beneficiary_customer_id": o.CustomerID})
 	})
 	return
 }

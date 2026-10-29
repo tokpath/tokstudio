@@ -12,7 +12,7 @@ import (
 
 type RefundFeeInput struct {
 	OperatorID, LegID, PaymentBusinessKey, BusinessKey, ActorID, Reference, Evidence string
-	FeeUSD                                                                           ledger.Decimal
+	FeeMoney                                                                         ledger.Decimal
 	OccurredAt                                                                       time.Time
 }
 type RefundFeeConfirmation struct {
@@ -22,7 +22,7 @@ type RefundFeeConfirmation struct {
 	LegID         string         `json:"leg_id"`
 	BusinessKey   string         `json:"business_key"`
 	Fingerprint   string         `json:"-"`
-	FeeUSD        ledger.Decimal `json:"fee_usd"`
+	FeeMoney      ledger.Decimal `json:"fee_money"`
 	JournalID     *string        `json:"journal_id,omitempty"`
 	Reference     string         `json:"reference"`
 	Evidence      string         `json:"evidence"`
@@ -37,9 +37,9 @@ type RefundPaymentAccounting struct {
 	ID                string                     `json:"id"`
 	LegID             string                     `json:"leg_id"`
 	BusinessKey       string                     `json:"business_key"`
-	ActualUSD         ledger.Decimal             `json:"actual_usd"`
+	ActualMoney       ledger.Decimal             `json:"actual_money"`
 	FeeStatus         string                     `json:"fee_status"`
-	FeeUSD            *ledger.Decimal            `json:"fee_usd"`
+	FeeMoney          *ledger.Decimal            `json:"fee_money"`
 	FeeConfirmationID *string                    `json:"fee_confirmation_id,omitempty"`
 	Evidence          string                     `json:"evidence"`
 	OccurredAt        time.Time                  `json:"occurred_at"`
@@ -70,7 +70,7 @@ func (RefundExternalObservation) TableName() string {
 // original successful refund observation and its customer settlement stay intact.
 func (s *Service) ConfirmRefundFee(ctx context.Context, tx *gorm.DB, in RefundFeeInput) (RefundFeeConfirmation, error) {
 	var out RefundFeeConfirmation
-	if !validID(in.OperatorID) || !validID(in.LegID) || in.PaymentBusinessKey == "" || in.BusinessKey == "" || len(in.BusinessKey) > 180 || in.Reference == "" || in.Evidence == "" || !in.FeeUSD.Valid() || in.FeeUSD.Sign() < 0 || in.OccurredAt.IsZero() {
+	if !validID(in.OperatorID) || !validID(in.LegID) || in.PaymentBusinessKey == "" || in.BusinessKey == "" || len(in.BusinessKey) > 180 || in.Reference == "" || in.Evidence == "" || !in.FeeMoney.Valid() || in.FeeMoney.Sign() < 0 || in.OccurredAt.IsZero() {
 		return out, ErrInvalid
 	}
 	e := s.within(ctx, tx, func(t *gorm.DB) error {
@@ -107,8 +107,8 @@ func (s *Service) recordRefundFee(ctx context.Context, t *gorm.DB, leg RefundLeg
 	if in.OccurredAt.After(at.Add(5 * time.Minute)) {
 		return out, ErrInvalid
 	}
-	out = RefundFeeConfirmation{ID: uuid.NewString(), OperatorID: leg.OperatorID, ObservationID: observationID, LegID: leg.ID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), FeeUSD: in.FeeUSD, Reference: in.Reference, Evidence: in.Evidence, ActorID: in.ActorID, OccurredAt: in.OccurredAt, CreatedAt: at}
-	if in.FeeUSD.Sign() > 0 {
+	out = RefundFeeConfirmation{ID: uuid.NewString(), OperatorID: leg.OperatorID, ObservationID: observationID, LegID: leg.ID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), FeeMoney: in.FeeMoney, Reference: in.Reference, Evidence: in.Evidence, ActorID: in.ActorID, OccurredAt: in.OccurredAt, CreatedAt: at}
+	if in.FeeMoney.Sign() > 0 {
 		cash, e := s.account(ctx, t, leg.OperatorID, leg.OperatorID, "control:external_cash")
 		if e != nil {
 			return out, e
@@ -117,7 +117,7 @@ func (s *Service) recordRefundFee(ctx context.Context, t *gorm.DB, leg RefundLeg
 		if e != nil {
 			return out, e
 		}
-		journal, e := s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: leg.OperatorID, BusinessKey: "refund-fee:" + observationID, Kind: "refund_merchant_fee", SourceID: observationID, ActorID: in.ActorID, Reason: in.Reference + " | " + in.Evidence, Lines: []ledger.Line{{AccountID: cash.ID, Amount: in.FeeUSD}, {AccountID: fees.ID, Amount: in.FeeUSD.Neg()}}})
+		journal, e := s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: leg.OperatorID, BusinessKey: "refund-fee:" + observationID, Kind: "refund_merchant_fee", SourceID: observationID, ActorID: in.ActorID, Reason: in.Reference + " | " + in.Evidence, Lines: []ledger.Line{{AccountID: cash.ID, Amount: in.FeeMoney}, {AccountID: fees.ID, Amount: in.FeeMoney.Neg()}}})
 		if e != nil {
 			return out, e
 		}
@@ -138,7 +138,7 @@ func (s *Service) RefundAccounting(ctx context.Context, tx *gorm.DB, actor, oper
 		if e := t.First(&leg, "id=? AND operator_id=?", legID, operator).Error; e != nil {
 			return e
 		}
-		if e := t.Table("remediation_payment_observations p").Select("p.id,p.leg_id,p.business_key,p.actual_usd,CASE WHEN f.id IS NOT NULL THEN 'confirmed' ELSE p.fee_status END AS fee_status,COALESCE(f.fee_usd,p.fee_usd) AS fee_usd,f.id AS fee_confirmation_id,p.evidence,p.occurred_at,p.created_at").Joins("LEFT JOIN remediation_refund_fee_confirmations f ON f.observation_id=p.id").Where("p.leg_id=?", legID).Order("p.created_at,p.id").Scan(&rows).Error; e != nil {
+		if e := t.Table("remediation_payment_observations p").Select("p.id,p.leg_id,p.business_key,p.actual_money,CASE WHEN f.id IS NOT NULL THEN 'confirmed' ELSE p.fee_status END AS fee_status,COALESCE(f.fee_money,p.fee_money) AS fee_money,f.id AS fee_confirmation_id,p.evidence,p.occurred_at,p.created_at").Joins("LEFT JOIN remediation_refund_fee_confirmations f ON f.observation_id=p.id").Where("p.leg_id=?", legID).Order("p.created_at,p.id").Scan(&rows).Error; e != nil {
 			return e
 		}
 		for i := range rows {

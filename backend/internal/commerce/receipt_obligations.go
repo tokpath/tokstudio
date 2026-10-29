@@ -8,13 +8,13 @@ import (
 )
 
 type ReceiptFundObligation struct {
-	ReceiptID      string         `json:"receipt_id"`
-	OperatorID     string         `json:"operator_id"`
-	Currency       string         `json:"currency"`
-	OriginalAmount string         `json:"original_amount"`
-	GrossUSD       ledger.Decimal `json:"gross_usd"`
-	UnallocatedUSD ledger.Decimal `json:"unallocated_usd"`
-	HeldUSD        ledger.Decimal `json:"held_usd"`
+	ReceiptID        string         `json:"receipt_id"`
+	OperatorID       string         `json:"operator_id"`
+	Currency         string         `json:"currency"`
+	OriginalAmount   string         `json:"original_amount"`
+	GrossMoney       ledger.Decimal `json:"gross_money"`
+	UnallocatedMoney ledger.Decimal `json:"unallocated_money"`
+	HeldMoney        ledger.Decimal `json:"held_money"`
 }
 
 // UnsettledReceiptFunds is a trusted lifecycle projection. It follows the
@@ -43,7 +43,7 @@ func (s *Service) UnsettledReceiptFunds(ctx context.Context, tx *gorm.DB, operat
 		}
 		q = q.Where("id IN ?", receiptIDs)
 	} else {
-		q = q.Where("allocated_usd<gross_usd")
+		q = q.Where("allocated_money<gross_money")
 	}
 	var rows []receiptRow
 	if e := q.Order("id").Find(&rows).Error; e != nil {
@@ -63,11 +63,11 @@ func (s *Service) UnsettledReceiptFunds(ctx context.Context, tx *gorm.DB, operat
 				continue
 			}
 			found = true
-			if a.Unit != "USD" || a.Balance.Sign() < 0 || a.Held.Cmp(a.Balance) > 0 {
+			if a.Unit != "MONEY" || a.Balance.Sign() < 0 || a.Held.Cmp(a.Balance) > 0 {
 				return out, ErrConflict
 			}
 			if a.Balance.Sign() > 0 {
-				out = append(out, ReceiptFundObligation{ReceiptID: r.ID, OperatorID: operator, Currency: r.Currency, OriginalAmount: r.OriginalAmount, GrossUSD: r.GrossUSD, UnallocatedUSD: a.Balance, HeldUSD: a.Held})
+				out = append(out, ReceiptFundObligation{ReceiptID: r.ID, OperatorID: operator, Currency: r.Currency, OriginalAmount: r.OriginalAmount, GrossMoney: r.GrossMoney, UnallocatedMoney: a.Balance, HeldMoney: a.Held})
 			}
 		}
 		if !found {

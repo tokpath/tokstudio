@@ -12,14 +12,14 @@ import (
 // customer orders. It does not create invoice capacity for an internal wallet
 // debit; downstream funding provenance must resolve back to the same receipt.
 type InvoiceReceiptBasis struct {
-	ReceiptID      string          `json:"receipt_id"`
-	CustomerID     string          `json:"customer_id"`
-	AllocatedUSD   ledger.Decimal  `json:"allocated_usd"`
-	GrossUSD       ledger.Decimal  `json:"gross_usd"`
-	TopUpUSD       ledger.Decimal  `json:"top_up_usd"`
-	PurchaseUSD    ledger.Decimal  `json:"purchase_usd"`
-	ConsumptionUSD ledger.Decimal  `json:"consumption_usd"`
-	Evidence       json.RawMessage `json:"evidence"`
+	ReceiptID        string          `json:"receipt_id"`
+	CustomerID       string          `json:"customer_id"`
+	AllocatedMoney   ledger.Decimal  `json:"allocated_money"`
+	GrossMoney       ledger.Decimal  `json:"gross_money"`
+	TopUpMoney       ledger.Decimal  `json:"top_up_money"`
+	PurchaseMoney    ledger.Decimal  `json:"purchase_money"`
+	ConsumptionMoney ledger.Decimal  `json:"consumption_money"`
+	Evidence         json.RawMessage `json:"evidence"`
 }
 
 func (s *Service) InvoiceReceiptBasis(ctx context.Context, tx *gorm.DB, operator, customer, receipt string) (InvoiceReceiptBasis, error) {
@@ -32,24 +32,24 @@ func (s *Service) InvoiceReceiptBasis(ctx context.Context, tx *gorm.DB, operator
 		if e := t.First(&r, "id=? AND operator_id=?", receipt, operator).Error; e != nil {
 			return e
 		}
-		out.GrossUSD = r.GrossUSD
-		if e := t.Raw(`SELECT COALESCE(sum(a.amount_usd),0)::text FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id WHERE a.operator_id=? AND a.receipt_id=? AND o.customer_id=? AND o.status='completed'`, operator, receipt, customer).Row().Scan(&out.AllocatedUSD); e != nil {
+		out.GrossMoney = r.GrossMoney
+		if e := t.Raw(`SELECT COALESCE(sum(a.amount_money),0)::text FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id WHERE a.operator_id=? AND a.receipt_id=? AND o.customer_id=? AND o.status='completed'`, operator, receipt, customer).Row().Scan(&out.AllocatedMoney); e != nil {
 			return e
 		}
-		if out.AllocatedUSD.Sign() <= 0 {
+		if out.AllocatedMoney.Sign() <= 0 {
 			return ErrInvalidInput
 		}
 		var topup ledger.Decimal
-		if e := t.Raw(`SELECT COALESCE(sum(a.amount_usd),0)::text FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id WHERE a.operator_id=? AND a.receipt_id=? AND o.customer_id=? AND o.kind='topup' AND o.status='completed'`, operator, receipt, customer).Row().Scan(&topup); e != nil {
+		if e := t.Raw(`SELECT COALESCE(sum(a.amount_money),0)::text FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id WHERE a.operator_id=? AND a.receipt_id=? AND o.customer_id=? AND o.kind='topup' AND o.status='completed'`, operator, receipt, customer).Row().Scan(&topup); e != nil {
 			return e
 		}
-		out.TopUpUSD = topup
+		out.TopUpMoney = topup
 		var funded []struct {
 			OrderID     string
 			Amount, Due ledger.Decimal
 		}
-		if e := t.Raw(`SELECT o.id::text AS order_id,a.amount_usd::text AS amount,o.due_usd::text AS due FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id WHERE a.operator_id=? AND a.receipt_id=? AND o.customer_id=? AND o.status='completed' AND o.kind IN ('package','renewal')
- UNION ALL SELECT o.id::text,(a.amount_usd-a.restored_usd)::text,o.due_usd::text FROM commerce_wallet_funding_allocations a JOIN commerce_wallet_funding_commands c ON c.id=a.command_id JOIN commerce_wallet_funding_lots l ON l.id=a.lot_id JOIN commerce_orders o ON o.id=c.reference_id WHERE l.source_operator_id=? AND l.receipt_id=? AND l.customer_id=? AND c.kind='order' AND a.status='consumed' AND o.status='completed' AND o.kind IN ('package','renewal')`, operator, receipt, customer, operator, receipt, customer).Scan(&funded).Error; e != nil {
+		if e := t.Raw(`SELECT o.id::text AS order_id,a.amount_money::text AS amount,o.due_money::text AS due FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id WHERE a.operator_id=? AND a.receipt_id=? AND o.customer_id=? AND o.status='completed' AND o.kind IN ('package','renewal')
+ UNION ALL SELECT o.id::text,(a.amount_money-a.restored_money)::text,o.due_money::text FROM commerce_wallet_funding_allocations a JOIN commerce_wallet_funding_commands c ON c.id=a.command_id JOIN commerce_wallet_funding_lots l ON l.id=a.lot_id JOIN commerce_orders o ON o.id=c.reference_id WHERE l.source_operator_id=? AND l.receipt_id=? AND l.customer_id=? AND c.kind='order' AND a.status='consumed' AND o.status='completed' AND o.kind IN ('package','renewal')`, operator, receipt, customer, operator, receipt, customer).Scan(&funded).Error; e != nil {
 			return e
 		}
 		if len(funded) > 10000 {
@@ -64,7 +64,7 @@ func (s *Service) InvoiceReceiptBasis(ctx context.Context, tx *gorm.DB, operator
 			}
 			funding[f.OrderID] = funding[f.OrderID].Add(f.Amount)
 			dues[f.OrderID] = f.Due
-			out.PurchaseUSD = out.PurchaseUSD.Add(f.Amount)
+			out.PurchaseMoney = out.PurchaseMoney.Add(f.Amount)
 		}
 		consumed, e := s.ledger.PaidConsumptionByOrder(ctx, t, customer, ids)
 		if e != nil {
@@ -79,8 +79,8 @@ func (s *Service) InvoiceReceiptBasis(ctx context.Context, tx *gorm.DB, operator
 			part := new(big.Rat).Mul(consumed[orderID].Rat(), new(big.Rat).Quo(f.Rat(), due.Rat()))
 			exactConsumed.Add(exactConsumed, part)
 		}
-		out.ConsumptionUSD, _ = ledger.Quantize(exactConsumed)
-		out.Evidence, _ = json.Marshal(map[string]any{"receipt_id": r.ID, "allocated_to_completed_orders_usd": out.AllocatedUSD, "customer_id": customer})
+		out.ConsumptionMoney, _ = ledger.Quantize(exactConsumed)
+		out.Evidence, _ = json.Marshal(map[string]any{"receipt_id": r.ID, "allocated_to_completed_orders_money": out.AllocatedMoney, "customer_id": customer})
 		return nil
 	})
 	return out, e

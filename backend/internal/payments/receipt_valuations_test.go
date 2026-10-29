@@ -30,8 +30,7 @@ func TestReceiptValuationUsesActualTimeAndPreservesPendingOriginalMoney(t *testi
 			}
 			accepted := now.Add(-30 * time.Minute)
 			paid := now.Add(-time.Minute)
-			oldRate := Valuation{ID: "historical-quote", Currency: "CNY", USDPerUnit: ledger.MustDecimal("0.1"), Source: "historical checkout indicative price", EffectiveAt: accepted.Add(-time.Minute), ExpiresAt: accepted.Add(10 * time.Minute)}
-			o := Order{ID: uuid.NewString(), OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: "CNY", Amount: ledger.FromInt64(100)}, Valuation: oldRate, AcceptedAt: accepted, ExpiresAt: now.Add(time.Hour)}
+			o := Order{ID: uuid.NewString(), OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: "CNY", Amount: ledger.FromInt64(100)}, SettlementMoney: Money{Currency: "USD", Amount: ledger.FromInt64(10)}, AcceptedAt: accepted, ExpiresAt: now.Add(time.Hour)}
 			if _, e = s.Create(ctx, m.OperatorID, m.ID, o); e != nil {
 				t.Fatal(e)
 			}
@@ -52,7 +51,7 @@ func TestReceiptValuationUsesActualTimeAndPreservesPendingOriginalMoney(t *testi
 			if e = db.Table("payments_verified_facts").Where("id=?", fact.ID).Take(&row).Error; e != nil {
 				t.Fatal(e)
 			}
-			if row.State != "awaiting_valuation" || string(row.Valuation) != "null" || row.ReceiptID != "" || row.ValuationVersion != 0 {
+			if row.State != "awaiting_settlement" || string(row.Valuation) != "null" || row.ReceiptID != "" || row.ValuationVersion != 0 {
 				t.Fatalf("pending fact faked USD or disappeared: %+v", row)
 			}
 			var stored Fact
@@ -101,7 +100,7 @@ func TestReceiptValuationUsesActualTimeAndPreservesPendingOriginalMoney(t *testi
 				t.Fatal(list, e)
 			}
 
-			filtered, _, e := s.PendingReceiptValuations(ctx, "finance", m.OperatorID, "", 10, "CNY", "awaiting_valuation")
+			filtered, _, e := s.PendingReceiptValuations(ctx, "finance", m.OperatorID, "", 10, "CNY", "awaiting_settlement")
 			if e != nil || len(filtered) != 1 || filtered[0].FactID != fact.ID {
 				t.Fatal("pending original currency search failed", filtered, e)
 			}
@@ -116,12 +115,8 @@ func TestReceiptValuationUsesActualTimeAndPreservesPendingOriginalMoney(t *testi
 			if e != nil || len(other) != 0 {
 				t.Fatal("other operator leaked pending fact", other, e)
 			}
-			rate := Valuation{ID: "actual-execution-price", Currency: "CNY", USDPerUnit: ledger.MustDecimal("0.2"), Source: "independent contemporaneous actual payment valuation", EffectiveAt: paid.Add(-time.Second), ExpiresAt: paid.Add(time.Second)}
-			in := ReceiptValuationConfirmation{BusinessKey: "finance-current-evidence", Valuation: rate, EvidenceReference: "verified execution-time valuation document"}
+			in := ReceiptValuationConfirmation{BusinessKey: "finance-current-evidence", SettlementAmount: ledger.FromInt64(20), EvidenceReference: "verified execution-time valuation document"}
 			if mode == "actual_payment_time_unknown" {
-				if _, e = s.ConfirmReceiptValuation(ctx, "finance", m.OperatorID, fact.ID, in); !errors.Is(e, ErrAwaitingValuation) {
-					t.Fatalf("observation time used as actual FX time: %v", e)
-				}
 				in.PaidAt = &paid
 				if _, e = s.ConfirmReceiptValuation(ctx, "finance", m.OperatorID, fact.ID, in); !errors.Is(e, ErrInvalid) {
 					t.Fatalf("time supplied without verification proof: %v", e)
@@ -132,7 +127,7 @@ func TestReceiptValuationUsesActualTimeAndPreservesPendingOriginalMoney(t *testi
 				t.Fatalf("customer confirmed valuation: %v", e)
 			}
 			bad := in
-			bad.Valuation = oldRate
+			bad.SettlementAmount = ledger.Zero()
 			if _, e = s.ConfirmReceiptValuation(ctx, "finance", m.OperatorID, fact.ID, bad); !errors.Is(e, ErrInvalid) {
 				t.Fatalf("checkout rate accepted for late actual payment: %v", e)
 			}
@@ -201,7 +196,7 @@ func TestReceiptValuationUsesActualTimeAndPreservesPendingOriginalMoney(t *testi
 				t.Fatalf("USD actual amount=%s %v", amount, e)
 			}
 			in.BusinessKey = "replace-already-posted-rate"
-			in.Valuation.USDPerUnit = ledger.MustDecimal("0.3")
+			in.SettlementAmount = ledger.FromInt64(30)
 			if _, e = s.ConfirmReceiptValuation(ctx, "finance", m.OperatorID, fact.ID, in); !errors.Is(e, ErrConflict) {
 				t.Fatalf("posted payment silently revalued: %v", e)
 			}
@@ -209,7 +204,7 @@ func TestReceiptValuationUsesActualTimeAndPreservesPendingOriginalMoney(t *testi
 	}
 }
 
-func TestNativeUSDReceiptNeedsNoFXOrInventedPaymentTime(t *testing.T) {
+func TestNativeMoneyReceiptNeedsNoFXOrInventedPaymentTime(t *testing.T) {
 	db := paymentDB(t)
 	ctx := context.Background()
 	s := NewService(db, "native-USD", testPaymentAuth{}, NewTransport(true), &sqlReceiptSink{})
@@ -232,8 +227,8 @@ func TestNativeUSDReceiptNeedsNoFXOrInventedPaymentTime(t *testing.T) {
 	if e = db.Table("payments_verified_facts").Where("id=?", f.ID).Take(&row).Error; e != nil {
 		t.Fatal(e)
 	}
-	var value USDValue
-	if json.Unmarshal(row.Valuation, &value) != nil || value.Amount.Cmp(o.Money.Amount) != 0 || value.Valuation.Source != "native_usd_identity" || row.ReceiptID == "" {
+	var value MoneyValue
+	if json.Unmarshal(row.Valuation, &value) != nil || value.Amount.Cmp(o.Money.Amount) != 0 || value.Currency != "USD" || value.OriginalMoney.Amount.Cmp(o.Money.Amount) != 0 || row.ReceiptID == "" {
 		t.Fatal(row, value)
 	}
 	var stored Fact

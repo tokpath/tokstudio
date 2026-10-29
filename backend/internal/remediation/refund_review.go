@@ -94,18 +94,18 @@ func (s *Service) approvePackage(ctx context.Context, t *gorm.DB, c Case, actor 
 	if e != nil {
 		return e
 	}
-	if event.PaidUSD.Cmp(c.AmountUSD) != 0 || event.Amount.Cmp(c.CreditATG) != 0 {
+	if event.PaidMoney.Cmp(c.AmountMoney) != 0 || event.Amount.Cmp(c.CreditATG) != 0 {
 		return ErrConflict
 	}
 	// Unused value is returned to its original asset class. Commission funding
 	// cannot be laundered into a cash refund or a refundable USD topup.
-	if c.InternalUSD.Sign() > 0 {
-		if _, e = s.Commerce.RestoreWalletFunding(ctx, t, c.OperatorID, *c.CustomerID, *c.OrderID, c.ID, c.InternalUSD); e != nil {
+	if c.InternalMoney.Sign() > 0 {
+		if _, e = s.Commerce.RestoreWalletFunding(ctx, t, c.OperatorID, *c.CustomerID, *c.OrderID, c.ID, c.InternalMoney); e != nil {
 			return e
 		}
 	}
-	if c.CommissionUSD.Sign() > 0 {
-		if e = s.Commerce.RestoreCommissionFunding(ctx, t, c.OperatorID, *c.CustomerID, *c.OrderID, c.ID, c.CommissionUSD); e != nil {
+	if c.CommissionMoney.Sign() > 0 {
+		if e = s.Commerce.RestoreCommissionFunding(ctx, t, c.OperatorID, *c.CustomerID, *c.OrderID, c.ID, c.CommissionMoney); e != nil {
 			return e
 		}
 	}
@@ -113,11 +113,11 @@ func (s *Service) approvePackage(ctx context.Context, t *gorm.DB, c Case, actor 
 	if e != nil {
 		return e
 	}
-	lines := []ledger.Line{{AccountID: sales.ID, Amount: c.AmountUSD.Neg()}}
+	lines := []ledger.Line{{AccountID: sales.ID, Amount: c.AmountMoney.Neg()}}
 	for _, r := range []struct {
 		Purpose string
 		Amount  ledger.Decimal
-	}{{"customer:usd", c.InternalUSD}, {"commission:available", c.CommissionUSD}} {
+	}{{"customer:money", c.InternalMoney}, {"commission:available", c.CommissionMoney}} {
 		if r.Amount.Sign() > 0 {
 			a, e := s.account(ctx, t, c.OperatorID, *c.CustomerID, r.Purpose)
 			if e != nil {
@@ -136,13 +136,13 @@ func (s *Service) approvePackage(ctx context.Context, t *gorm.DB, c Case, actor 
 			return e
 		}
 		legs[i].SourceAccountID = &a.ID
-		lines = append(lines, ledger.Line{AccountID: a.ID, Amount: legs[i].AmountUSD})
+		lines = append(lines, ledger.Line{AccountID: a.ID, Amount: legs[i].AmountMoney})
 	}
 	if _, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: c.OperatorID, BusinessKey: "exception-refund:" + c.ID, Kind: "package_exception_refund", SourceID: *c.OrderID, ActorID: actor, Reason: c.Evidence, Lines: lines}); e != nil {
 		return e
 	}
 	for i := range legs {
-		h, e := s.Ledger.Reserve(ctx, t, ledger.Reservation{OperatorID: c.OperatorID, BusinessKey: "refund:" + legs[i].ID, Purpose: "refund", ExpiresAt: holdExpiry(at), Amounts: []ledger.Line{{AccountID: *legs[i].SourceAccountID, Amount: legs[i].AmountUSD}}})
+		h, e := s.Ledger.Reserve(ctx, t, ledger.Reservation{OperatorID: c.OperatorID, BusinessKey: "refund:" + legs[i].ID, Purpose: "refund", ExpiresAt: holdExpiry(at), Amounts: []ledger.Line{{AccountID: *legs[i].SourceAccountID, Amount: legs[i].AmountMoney}}})
 		if e != nil {
 			return e
 		}

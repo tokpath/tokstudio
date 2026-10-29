@@ -43,17 +43,17 @@ type RemovalInput struct {
 	Guard                                                 RemovalGuard
 }
 type RemovedSource struct {
-	LotID           string          `json:"lot_id"`
-	OrderID         string          `json:"order_id"`
-	PaidATG         ledger.Decimal  `json:"paid_atg"`
-	GiftATG         ledger.Decimal  `json:"gift_atg"`
-	OriginalPaidUSD ledger.Decimal  `json:"original_paid_usd"`
-	OriginalPaidATG ledger.Decimal  `json:"original_paid_atg"`
-	ExitTerms       json.RawMessage `json:"exit_terms"`
+	LotID             string          `json:"lot_id"`
+	OrderID           string          `json:"order_id"`
+	PaidATG           ledger.Decimal  `json:"paid_atg"`
+	GiftATG           ledger.Decimal  `json:"gift_atg"`
+	OriginalPaidMoney ledger.Decimal  `json:"original_paid_money"`
+	OriginalPaidATG   ledger.Decimal  `json:"original_paid_atg"`
+	ExitTerms         json.RawMessage `json:"exit_terms"`
 }
 type ProcurementRemoval struct {
 	ID, BuyerID, BusinessKey, Fingerprint, Mode      string
-	Quantity, BookCostUSD                            ledger.Decimal
+	Quantity, BookCostMoney                          ledger.Decimal
 	CostRemainderNumerator, CostRemainderDenominator string
 	Sources                                          json.RawMessage `gorm:"type:jsonb"`
 	JournalID, ActorID, Reason, Evidence             string
@@ -121,7 +121,7 @@ func (s *Service) RemoveProcurement(ctx context.Context, tx *gorm.DB, in Removal
 			if e != nil {
 				return e
 			}
-			sources = append(sources, RemovedSource{lot.ID, lot.OrderID, parts[0], parts[1], lot.PaidUSD, lot.PaidATG, lot.ExitTerms})
+			sources = append(sources, RemovedSource{lot.ID, lot.OrderID, parts[0], parts[1], lot.PaidMoney, lot.PaidATG, lot.ExitTerms})
 			if e = t.Model(&ProcurementLot{}).Where("id=?", lot.ID).Updates(map[string]any{"remaining": lot.Remaining.Sub(take), "paid_removed": lot.PaidRemoved.Add(parts[0]), "gift_removed": lot.GiftRemoved.Add(parts[1])}).Error; e != nil {
 				return e
 			}
@@ -142,7 +142,7 @@ func (s *Service) RemoveProcurement(ctx context.Context, tx *gorm.DB, in Removal
 			return e
 		}
 		raw, _ := json.Marshal(sources)
-		out = ProcurementRemoval{ID: uuid.NewString(), BuyerID: in.BuyerID, BusinessKey: in.BusinessKey, Fingerprint: fp, Mode: in.Mode, Quantity: in.Quantity, BookCostUSD: cost, CostRemainderNumerator: remainder.Num().String(), CostRemainderDenominator: remainder.Denom().String(), Sources: raw, JournalID: journal.ID, ActorID: in.ActorID, Reason: in.Reason, Evidence: in.Evidence, CreatedAt: in.At.UTC()}
+		out = ProcurementRemoval{ID: uuid.NewString(), BuyerID: in.BuyerID, BusinessKey: in.BusinessKey, Fingerprint: fp, Mode: in.Mode, Quantity: in.Quantity, BookCostMoney: cost, CostRemainderNumerator: remainder.Num().String(), CostRemainderDenominator: remainder.Denom().String(), Sources: raw, JournalID: journal.ID, ActorID: in.ActorID, Reason: in.Reason, Evidence: in.Evidence, CreatedAt: in.At.UTC()}
 		return t.Create(&out).Error
 	})
 	return out, e
@@ -187,10 +187,10 @@ type ProcurementExit struct {
 	Fingerprint                  string         `json:"-"`
 	Mode                         string         `json:"mode"`
 	RemovalID                    string         `json:"removal_id"`
-	ContractUSD                  ledger.Decimal `json:"contract_usd"`
-	BookCostUSD                  ledger.Decimal `json:"book_cost_usd"`
-	CostDifferenceUSD            ledger.Decimal `json:"cost_difference_usd"`
-	RefundedUSD                  ledger.Decimal `json:"refunded_usd"`
+	ContractMoney                ledger.Decimal `json:"contract_money"`
+	BookCostMoney                ledger.Decimal `json:"book_cost_money"`
+	CostDifferenceMoney          ledger.Decimal `json:"cost_difference_money"`
+	RefundedMoney                ledger.Decimal `json:"refunded_money"`
 	ContractRemainderNumerator   string         `json:"contract_remainder_numerator"`
 	ContractRemainderDenominator string         `json:"contract_remainder_denominator"`
 	State                        string         `json:"state"`
@@ -252,14 +252,14 @@ func (s *Service) RequestProcurementExit(ctx context.Context, tx *gorm.DB, actor
 				}
 			}
 			if src.PaidATG.Sign() > 0 && src.OriginalPaidATG.Sign() > 0 {
-				exact.Add(exact, new(big.Rat).Mul(src.OriginalPaidUSD.Rat(), new(big.Rat).Quo(src.PaidATG.Rat(), src.OriginalPaidATG.Rat())))
+				exact.Add(exact, new(big.Rat).Mul(src.OriginalPaidMoney.Rat(), new(big.Rat).Quo(src.PaidATG.Rat(), src.OriginalPaidATG.Rat())))
 			}
 		}
 		cash, tail := ledger.Quantize(exact)
 		if !cash.Valid() {
 			return ledger.ErrAmount
 		}
-		out = ProcurementExit{ID: uuid.NewString(), BuyerID: buyer, SupplierID: agreement.SupplierID, BusinessKey: key, Fingerprint: fp, Mode: mode, RemovalID: removal.ID, ContractUSD: cash, BookCostUSD: removal.BookCostUSD, CostDifferenceUSD: cash.Sub(removal.BookCostUSD), ContractRemainderNumerator: tail.Num().String(), ContractRemainderDenominator: tail.Denom().String(), State: "awaiting_refund", Evidence: evidence, CreatedBy: actor, CreatedAt: now}
+		out = ProcurementExit{ID: uuid.NewString(), BuyerID: buyer, SupplierID: agreement.SupplierID, BusinessKey: key, Fingerprint: fp, Mode: mode, RemovalID: removal.ID, ContractMoney: cash, BookCostMoney: removal.BookCostMoney, CostDifferenceMoney: cash.Sub(removal.BookCostMoney), ContractRemainderNumerator: tail.Num().String(), ContractRemainderDenominator: tail.Denom().String(), State: "awaiting_refund", Evidence: evidence, CreatedBy: actor, CreatedAt: now}
 		if cash.IsZero() {
 			out.State = "settled_no_cash"
 		}

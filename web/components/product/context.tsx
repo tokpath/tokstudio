@@ -2,7 +2,7 @@
 import { useI18n, LanguageControl } from "@/components/i18n";
 import Link from "next/link";
 import { allowNavigation } from "@/lib/navigation-guard";
-import { createContext, useContext, type ReactNode, type CSSProperties } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeSchema, PublicContextSchema, SessionSchema, CommandResultSchema, type PublicContext, type Session } from "@/lib/contracts";
@@ -15,14 +15,23 @@ import { StaffNotificationBell } from "./staff-notification-bell";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { ErrorPanel, useCommand } from "./shared";
+import { MonetaryProvider, monetaryRefetchInterval } from "./monetary";
 
 const Context = createContext<{ context?: PublicContext; session?: Session; sessionError?: unknown; reload: () => void }>({ reload: () => {} });
 export function useProduct() { return useContext(Context); }
 export function ProductProvider({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const pathname = usePathname();
+  const cache = useQueryClient();
   const insideWorkspace = pathname.startsWith("/workspace") || pathname.startsWith("/manage/");
-  const context = useQuery({ queryKey: ["public-context"], queryFn: () => request("/api/v1/public/context", PublicContextSchema) });
+  const context = useQuery({ queryKey: ["public-context"], queryFn: () => request("/api/v1/public/context", PublicContextSchema), refetchInterval: query => monetaryRefetchInterval(query.state.data?.monetary) });
+  const monetaryStatus = context.data?.monetary.status, previousMonetaryStatus = useRef(monetaryStatus);
+  useEffect(() => {
+    // Availability and readiness were fetched while business was closed. Once
+    // the server confirms activation, refresh those dependent pages as well.
+    if (previousMonetaryStatus.current === "scheduled" && monetaryStatus === "locked") void cache.invalidateQueries({ predicate: query => !["public-context", "session"].includes(String(query.queryKey[0])) });
+    previousMonetaryStatus.current = monetaryStatus;
+  }, [cache, monetaryStatus]);
   const session = useQuery({ queryKey: ["session"], queryFn: async () => { const value = await request("/api/v1/auth/me", SessionSchema); setCSRFToken(value.kind !== "anonymous" ? value.csrf_token : undefined); return value; } });
   const current = session.data;
   const presentationOperator = current?.kind === "customer" ? current.operator : context.data?.operator;
@@ -33,7 +42,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
  const actualOperator = current?.kind === "customer" ? current.operator : activeStaffWorkspace?.operator || context.data?.operator;
 
   return <Context.Provider value={{ context: context.data, session: current, sessionError: session.error, reload: () => { void context.refetch(); void session.refetch(); } }}>
-    <div style={style} className="product-theme min-h-screen bg-canvas text-ink">
+    <MonetaryProvider value={context.data?.monetary}><div style={style} className="product-theme min-h-screen bg-canvas text-ink">
       <a href={insideWorkspace ? "#workspace-content" : "#site-content"} className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-canvas-raised focus:px-4 focus:py-3">{t("跳到页面内容")}</a>
       <header className={insideWorkspace ? "th-app-header" : "border-b border-hairline bg-canvas-raised"}>
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3 lg:px-8">
@@ -47,7 +56,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       {context.data && !insideWorkspace && <div className="border-b border-hairline bg-canvas-raised px-5 py-2 text-center text-[11px] leading-5 text-ink-mute">{t("品牌：")}{context.data.brand.name}<span className="mx-3 text-hairline">/</span>{t("实际经营方：")}{current?.kind === "customer" ? current.operator.name : context.data.operator.name}{actualOperator?.legal_name && <span> · {actualOperator.legal_name}</span>}</div>}
       <div id="site-content">{children}</div>
       <footer className={`border-t border-hairline px-5 text-center text-[11px] leading-6 text-ink-mute ${insideWorkspace ? "bg-canvas-raised py-4" : "py-8"}`}>{actualOperator?.name || "TokenHub"} {t("· 模型服务与独立经营")}{actualOperator?.contact_email && <span> · <a href={`mailto:${actualOperator.contact_email}`}>{actualOperator.contact_email}</a></span>}<p>{t("价格和权益以本次成交条款为准。账单、资金和服务责任均可追溯。")}</p></footer>
-    </div>
+    </div></MonetaryProvider>
   </Context.Provider>;
 }
 function Logout() {

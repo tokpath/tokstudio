@@ -3,7 +3,7 @@ package payments
 import (
 	"context"
 	"encoding/json"
-	"strings"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"time"
 )
 
@@ -20,16 +20,20 @@ func (in MerchantInput) Configuration() Merchant {
 }
 
 type PublicMethod struct {
-	ID             string   `json:"id"`
-	Driver         string   `json:"driver"`
-	Currency       string   `json:"currency"`
-	Network        string   `json:"network,omitempty"`
-	TokenContract  string   `json:"token_contract,omitempty"`
-	Instructions   string   `json:"instructions,omitempty"`
-	Configured     bool     `json:"configured"`
-	RefundAPI      bool     `json:"refund_api"`
-	AutoCharge     bool     `json:"auto_charge"`
-	RefundChannels []string `json:"refund_channels,omitempty"`
+	ID                             string   `json:"id"`
+	SettlementCurrency             string   `json:"settlement_currency"`
+	SettlementSupported            bool     `json:"settlement_supported"`
+	UnsupportedReason              string   `json:"unsupported_reason,omitempty"`
+	RequiresSettlementConfirmation bool     `json:"requires_settlement_confirmation"`
+	Driver                         string   `json:"driver"`
+	Currency                       string   `json:"currency"`
+	Network                        string   `json:"network,omitempty"`
+	TokenContract                  string   `json:"token_contract,omitempty"`
+	Instructions                   string   `json:"instructions,omitempty"`
+	Configured                     bool     `json:"configured"`
+	RefundAPI                      bool     `json:"refund_api"`
+	AutoCharge                     bool     `json:"auto_charge"`
+	RefundChannels                 []string `json:"refund_channels,omitempty"`
 }
 
 func (s *Service) ListMerchantConfigs(ctx context.Context, actor, operator string) ([]MerchantView, error) {
@@ -67,6 +71,10 @@ func (s *Service) ListMerchantConfigs(ctx context.Context, actor, operator strin
 	return out, nil
 }
 func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicMethod, error) {
+	settings, e := ledger.GetMonetary(ctx, s.DB)
+	if e != nil {
+		return nil, e
+	}
 	var rows []merchantRow
 	if e := s.DB.WithContext(ctx).Table("payments_merchants").Where("operator_id=? AND enabled=true", operator).Order("id").Find(&rows).Error; e != nil {
 		return nil, e
@@ -84,20 +92,13 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 		if d == nil || ready(m, d) != nil {
 			continue
 		}
-		currency := "CNY"
-		switch m.Driver {
-		case "stripe":
-			currency = m.Credentials["currency"]
-		case "nowpayments":
-			currency = strings.ToUpper(m.Credentials["pay_currency"])
-		case "evm_wallet":
-			currency = m.Credentials["asset"]
-		case "manual":
-			currency = m.Credentials["currency"]
-		case "kvoucher":
-			currency = "USD"
+		currency := merchantCurrency(m)
+		supported, reason := SettlementSupport(m, settings.Currency)
+		if settings.Status != "locked" {
+			supported = false
+			reason = "系统清算设置尚未正式生效，暂不可付款。"
 		}
-		view := PublicMethod{ID: m.ID, Driver: m.Driver, Currency: currency, Configured: true, RefundAPI: m.Driver == "stripe" || m.Driver == "alipay" || m.Driver == "wechat", AutoCharge: m.Driver == "stripe"}
+		view := PublicMethod{ID: m.ID, Driver: m.Driver, Currency: currency, Configured: true, SettlementCurrency: settings.Currency, SettlementSupported: supported, UnsupportedReason: reason, RequiresSettlementConfirmation: (m.Driver == "manual" || m.Driver == "evm_wallet") && currency != settings.Currency, RefundAPI: m.Driver == "stripe" || m.Driver == "alipay" || m.Driver == "wechat", AutoCharge: m.Driver == "stripe"}
 		if m.Driver == "evm_wallet" {
 			view.Network = m.Credentials["chain_id"]
 			view.TokenContract = m.Credentials["token_contract"]

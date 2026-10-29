@@ -14,7 +14,7 @@ func TestPostgresUnavailableOriginalBankUsesExplicitCustomerAuthorizedReplacemen
 	f.s.Payments = payments.NewService(f.db, "isolated-replacement-bank-key", f.s.Organization, payments.NewTransport(true), payments.CommerceSink{Commerce: f.s.Commerce})
 	f.s.Payments.RefundApproval = f.s
 	f.s.Payments.RefundSink = f.s
-	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "return-through-replacement-bank", AmountUSD: d("10"), Reason: "original account cannot execute return"})
+	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "return-through-replacement-bank", AmountMoney: d("10"), Reason: "original account cannot execute return"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -68,7 +68,7 @@ func TestPostgresUnavailableOriginalBankUsesExplicitCustomerAuthorizedReplacemen
 		t.Fatal(a)
 	}
 	cap, e := f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, leg.ReceiptID)
-	if e != nil || cap.CompletedUSD.Cmp(d("10")) != 0 || !cap.ReservedUSD.IsZero() {
+	if e != nil || cap.CompletedMoney.Cmp(d("10")) != 0 || !cap.ReservedMoney.IsZero() {
 		t.Fatal(cap, e)
 	}
 }
@@ -88,7 +88,7 @@ func TestPostgresTakeoverRefundUsesBrandOwnWalletAndBankWithoutFormerMerchantAcc
 		t.Fatal(e)
 	}
 	brand.customer = channel.customer
-	c, e := brand.s.RequestWalletRefund(brand.ctx, WalletRefundInput{OperatorID: brand.operator, CustomerID: brand.customer, BusinessKey: "assumed-original-sources-return", AmountUSD: d("45"), Reason: "return original25 bank and20 stablecoin after complete takeover"})
+	c, e := brand.s.RequestWalletRefund(brand.ctx, WalletRefundInput{OperatorID: brand.operator, CustomerID: brand.customer, BusinessKey: "assumed-original-sources-return", AmountMoney: d("45"), Reason: "return original25 bank and20 stablecoin after complete takeover"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -111,7 +111,7 @@ func TestPostgresTakeoverRefundUsesBrandOwnWalletAndBankWithoutFormerMerchantAcc
 			t.Fatal("original collector lost", leg)
 		}
 	}
-	if ext.leg.AmountUSD.Cmp(d("20")) != 0 || bank.AmountUSD.Cmp(d("25")) != 0 {
+	if ext.leg.AmountMoney.Cmp(d("20")) != 0 || bank.AmountMoney.Cmp(d("25")) != 0 {
 		t.Fatal(legs)
 	}
 	// Simulate a former merchant whose secrets are no longer recoverable. The
@@ -150,18 +150,18 @@ func TestPostgresTakeoverRefundUsesBrandOwnWalletAndBankWithoutFormerMerchantAcc
 		t.Fatal(out, e)
 	}
 	cap, e := brand.s.ReceiptRefundCapacity(brand.ctx, nil, channel.operator, ext.receipt)
-	if e != nil || cap.CompletedUSD.Cmp(d("19")) != 0 || cap.ReservedUSD.Cmp(d("1")) != 0 {
+	if e != nil || cap.CompletedMoney.Cmp(d("19")) != 0 || cap.ReservedMoney.Cmp(d("1")) != 0 {
 		t.Fatal(cap, e)
 	}
 	if _, e = brand.s.BeginManualRefund(brand.ctx, brand.owner, brand.operator, ext.leg.ID, "brand-wallet-supplement", "verified original19; authorize remaining1 from brand"); e != nil {
 		t.Fatal(e)
 	}
-	_, v = ext.refund(t, a, "7")
+	r, v = ext.refund(t, a, "7")
 	if out, e := brand.s.Payments.RecordResponsibleEVMRefund(brand.ctx, brand.owner, brand.operator, current.ID, r, v); e != nil || out.State != "succeeded" {
 		t.Fatal(out, e)
 	}
 	cap, e = brand.s.ReceiptRefundCapacity(brand.ctx, nil, channel.operator, ext.receipt)
-	if e != nil || cap.CompletedUSD.Cmp(d("20")) != 0 || !cap.ReservedUSD.IsZero() {
+	if e != nil || cap.CompletedMoney.Cmp(d("20")) != 0 || !cap.ReservedMoney.IsZero() {
 		t.Fatal(cap, e)
 	}
 	// The original bank source is now fulfilled by the brand's own verified
@@ -191,7 +191,7 @@ func TestPostgresTakeoverRefundUsesBrandOwnWalletAndBankWithoutFormerMerchantAcc
 	if a := brand.balance(t); a.Balance.Cmp(d("80")) != 0 || !a.Held.IsZero() {
 		t.Fatal(a)
 	}
-	other, e := brand.s.account(brand.ctx, brand.db, brand.operator, originalBrandCustomer, "customer:usd")
+	other, e := brand.s.account(brand.ctx, brand.db, brand.operator, originalBrandCustomer, "customer:money")
 	if e != nil || other.Balance.Cmp(d("10")) != 0 {
 		t.Fatal("unrelated customer asset changed", other, e)
 	}

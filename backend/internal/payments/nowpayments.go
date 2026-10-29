@@ -48,11 +48,11 @@ func (d NOWPayments) Create(ctx context.Context, m Merchant, o Order) (Checkout,
 	if o.Validate(m) != nil || strings.ToLower(o.Money.Currency) != m.Credentials["pay_currency"] || o.NotifyURL == "" {
 		return Checkout{}, ErrInvalid
 	}
-	usd, e := o.Valuation.Convert(o.Money, o.AcceptedAt)
-	if e != nil || usd.RemainderNumerator != "0" || usd.Amount.Sign() <= 0 {
-		return Checkout{}, ErrInvalid
+	settlement := o.Settlement()
+	if supported, _ := SettlementSupport(m, settlement.Currency); !supported {
+		return Checkout{}, ErrUnsupported
 	}
-	raw, e := d.call(ctx, m, http.MethodPost, "/v1/payment", map[string]any{"price_amount": json.Number(usd.Amount.String()), "price_currency": "usd", "pay_currency": m.Credentials["pay_currency"], "order_id": o.ID, "order_description": o.Description, "ipn_callback_url": o.NotifyURL, "is_fixed_rate": true, "is_fee_paid_by_user": false})
+	raw, e := d.call(ctx, m, http.MethodPost, "/v1/payment", map[string]any{"price_amount": json.Number(settlement.Amount.String()), "price_currency": strings.ToLower(settlement.Currency), "pay_currency": m.Credentials["pay_currency"], "order_id": o.ID, "order_description": o.Description, "ipn_callback_url": o.NotifyURL, "is_fixed_rate": true, "is_fee_paid_by_user": false})
 	if e != nil {
 		return Checkout{}, e
 	}
@@ -70,7 +70,7 @@ func (d NOWPayments) Create(ctx context.Context, m Merchant, o Order) (Checkout,
 		return Checkout{}, ErrInvalid
 	}
 	money := Money{Currency: o.Money.Currency, Amount: amount}
-	return Checkout{ProviderID: string(response.PaymentID), State: "pending", PaymentAddress: response.PayAddress, PayMoney: &money}, nil
+	return Checkout{ProviderID: string(response.PaymentID), State: "pending", PaymentAddress: response.PayAddress, PayMoney: &money, SettlementMoney: &settlement}, nil
 }
 func (d NOWPayments) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 	if e := ready(m, d); e != nil {
@@ -84,13 +84,17 @@ func (d NOWPayments) Lookup(ctx context.Context, m Merchant, o Order) (Fact, err
 		return Fact{}, e
 	}
 	var response struct {
-		PaymentID    json.Number `json:"payment_id"`
-		OrderID      string      `json:"order_id"`
-		Status       string      `json:"payment_status"`
-		PayCurrency  string      `json:"pay_currency"`
-		ActuallyPaid json.Number `json:"actually_paid"`
-		PayinHash    string      `json:"payin_hash"`
-		UpdatedAt    string      `json:"updated_at"`
+		PaymentID          json.Number `json:"payment_id"`
+		OrderID            string      `json:"order_id"`
+		Status             string      `json:"payment_status"`
+		PayCurrency        string      `json:"pay_currency"`
+		ActuallyPaid       json.Number `json:"actually_paid"`
+		PayAmount          json.Number `json:"pay_amount"`
+		PriceAmount        json.Number `json:"price_amount"`
+		PriceCurrency      string      `json:"price_currency"`
+		ActuallyPaidAtFiat json.Number `json:"actually_paid_at_fiat"`
+		PayinHash          string      `json:"payin_hash"`
+		UpdatedAt          string      `json:"updated_at"`
 	}
 	if json.Unmarshal(raw, &response) != nil || string(response.PaymentID) != o.ProviderID || response.OrderID != o.ID || strings.ToUpper(response.PayCurrency) != o.Money.Currency {
 		return Fact{}, ErrConflict
@@ -102,7 +106,28 @@ func (d NOWPayments) Lookup(ctx context.Context, m Merchant, o Order) (Fact, err
 	if e != nil || amount.Sign() <= 0 {
 		return Fact{}, ErrInvalid
 	}
-	return receiptFact(m, o, o.ProviderID, Money{Currency: o.Money.Currency, Amount: amount}, nil, map[string]any{"payment_id": o.ProviderID, "status": response.Status, "actually_paid": string(response.ActuallyPaid), "currency": response.PayCurrency, "payin_hash": response.PayinHash, "updated_at": response.UpdatedAt})
+	fact, e := receiptFact(m, o, o.ProviderID, Money{Currency: o.Money.Currency, Amount: amount}, nil, json.RawMessage(raw))
+	if e != nil {
+		return fact, e
+	}
+	// The provider's authenticated transaction carries the settlement relation.
+	// Missing or partial relations remain pending for finance confirmation.
+	if strings.ToUpper(response.PriceCurrency) == o.Settlement().Currency {
+		settled, parseErr := ledger.ParseDecimal(string(response.ActuallyPaidAtFiat))
+		if parseErr != nil || settled.Sign() <= 0 {
+			quoted, quoteErr := ledger.ParseDecimal(string(response.PayAmount))
+			price, priceErr := ledger.ParseDecimal(string(response.PriceAmount))
+			if quoteErr == nil && priceErr == nil && quoted.Sign() > 0 && amount.Cmp(quoted) >= 0 && price.Cmp(o.Settlement().Amount) == 0 {
+				settled = price
+				parseErr = nil
+			}
+		}
+		if parseErr == nil && settled.Sign() > 0 {
+			value := MoneyValue{Amount: settled, Currency: o.Settlement().Currency, OriginalMoney: fact.Money, EvidenceReference: "NOWPayments verified payment " + o.ProviderID, VerifiedBy: "adapter:nowpayments"}
+			fact.ExecutionValue = &value
+		}
+	}
+	return fact, nil
 }
 func (NOWPayments) Refund(context.Context, Merchant, Refund) (RefundStatus, error) {
 	return RefundStatus{}, ErrUnsupported

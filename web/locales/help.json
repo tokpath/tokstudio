@@ -19,11 +19,6 @@
     "ja": "決済サービスまたは銀行が発行した一意の取引番号を入力します。重複計上を防ぐための番号です。顧客メールや独自の注文番号は使用しません。",
     "ru": "Используйте исходный уникальный номер операции банка или платёжного сервиса. Он предотвращает повторный учёт. Не вводите email клиента или придуманный номер заказа."
   },
-  "记录本次实际执行的币种、金额及折合 USD 的依据。系统只确定 USD 应收应付；换汇在外部完成，不锁定历史汇率，也不由本字段发起换汇。": {
-    "en": "Record the executed currency, amount and evidence for the USD value. The system determines USD obligations; conversion happens externally. This field neither locks a historical exchange rate nor performs conversion.",
-    "ja": "実際に使用した通貨、金額、USD換算の根拠を記録します。システムはUSD建て債権債務を管理し、両替は外部で行います。過去レートの固定や両替の実行はしません。",
-    "ru": "Укажите фактическую валюту, сумму и основание оценки в USD. Система ведёт обязательства в USD; обмен выполняется извне. Поле не фиксирует исторический курс и не запускает обмен."
-  },
   "按秒填写等待或有效时长：1 小时为 3600，1 天为 86400。0 是否允许以当前字段规则为准，不要把 0 默认理解为永久有效。": {
     "en": "Enter a duration in seconds: 1 hour is 3600 and 1 day is 86400. Whether zero is allowed depends on this field; do not assume it means unlimited.",
     "ja": "秒で入力します。1時間は3600、1日は86400です。0が使えるかは各項目の規則に従い、無期限とは限りません。",
@@ -39,10 +34,10 @@
     "ja": "input_tokensなどの実利用計量項目です。識別子と単位はモデル能力定義と一致させます。指定した基準数量あたりの金額を入力します。",
     "ru": "Компонент измеренного использования, например input_tokens. Идентификатор и единица должны совпадать с возможностями модели. Цена задаётся за указанное базовое количество."
   },
-  "例如每百万 token 收取 2 ATG：每多少单位填 1000000，基础单价填 2。零售价和供货价的单位为各自 ATG，供应商成本价为 USD。": {
-    "en": "For 2 ATG per million tokens, enter 1000000 as the quantity and 2 as the rate. Retail and supply prices use their respective ATG; provider cost uses USD.",
-    "ja": "100万tokenあたり2ATGなら、基準数量に1000000、単価に2を入力します。小売・供給価格はそれぞれのATG、プロバイダー原価はUSDです。",
-    "ru": "Для 2 ATG за миллион токенов укажите количество 1000000 и цену 2. Розничные и оптовые цены выражены в соответствующих ATG, себестоимость поставщика — в USD."
+  "例如每百万 token 收取 2 ATG：每多少单位填 1000000，基础单价填 2。零售价和供货价的单位为各自 ATG，供应商成本价为 原币种。": {
+    "en": "For 2 ATG per million tokens, enter 1000000 as the quantity and 2 as the rate. Retail and supply prices use their respective ATG; provider cost uses original currency.",
+    "ja": "100万tokenあたり2ATGなら、基準数量に1000000、単価に2を入力します。小売・供給価格はそれぞれのATG、プロバイダー原価は元通貨です。",
+    "ru": "Для 2 ATG за миллион токенов укажите количество 1000000 и цену 2. Розничные и оптовые цены выражены в соответствующих ATG, себестоимость поставщика — в исходная валюта."
   },
   "例如 1.2 表示按跟随价目的 120% 定价。它只是定价倍率；实际利润还取决于采购成本、赠送、佣金和费用，不能当作利润率。": {
     "en": "For example, 1.2 prices at 120% of the followed rate. This is a pricing multiplier, not a profit margin: real profit also depends on procurement cost, bonuses, commissions and fees.",
@@ -89,9 +84,9 @@
     "ja": "15% は 0.15 と入力します。注文購入時に直接・間接料率と KOL 還元率を固定し、直接料率から注文の還元分を差し引きます。有償利用の発生時に二段階それぞれの紹介者の有効な分配資格を判定します。後からの資格取得は遡及せず、資格のない紹介者の分を他の段階へ移しません。",
     "ru": "Для 15% введите 0.15. При покупке фиксируются прямая и косвенная ставки заказа и уступка KOL; уступка вычитается из прямой ставки. Право каждого из двух пригласивших проверяется в момент оплаченного использования. Более позднее получение статуса не действует задним числом, а доля без права на комиссию не передаётся другому уровню."
   },
-  "本账号订单中，实际消耗和到期未用的购买额度按对应实付 USD 经确认后累计，两类互斥，同一订单不超过有效实付金额。充值、有效期内未消费的购买额度和赠送不计入；到期确认不产生佣金。提高门槛不撤销已取得资格。": {
-    "en": "Qualification accumulates confirmed USD paid for purchased credits that were consumed or expired unused in this account’s orders. The two categories do not overlap, and each order is capped at its valid paid amount. Top-ups, unconsumed purchased credits that remain valid, and gifts do not count. Expiry confirmation earns no commission. Raising the threshold preserves acquired qualification.",
-    "ja": "本アカウントの注文で消費済み、または未使用のまま期限切れとなった購入枠について、対応する実支払 USD を確認後に累積します。両区分は重複せず、各注文の有効な実支払額が上限です。入金、有効期間内の未消費購入枠、特典分は対象外です。期限切れ確認ではコミッションは発生せず、基準引上げでも取得済み資格は失われません。",
+  "本账号订单中，实际消耗和到期未用的购买额度按对应实付 结算币种 经确认后累计，两类互斥，同一订单不超过有效实付金额。充值、有效期内未消费的购买额度和赠送不计入；到期确认不产生佣金。提高门槛不撤销已取得资格。": {
+    "en": "Qualification accumulates confirmed settlement currency paid for purchased credits that were consumed or expired unused in this account’s orders. The two categories do not overlap, and each order is capped at its valid paid amount. Top-ups, unconsumed purchased credits that remain valid, and gifts do not count. Expiry confirmation earns no commission. Raising the threshold preserves acquired qualification.",
+    "ja": "本アカウントの注文で消費済み、または未使用のまま期限切れとなった購入枠について、対応する実支払 決済通貨 を確認後に累積します。両区分は重複せず、各注文の有効な実支払額が上限です。入金、有効期間内の未消費購入枠、特典分は対象外です。期限切れ確認ではコミッションは発生せず、基準引上げでも取得済み資格は失われません。",
     "ru": "Для статуса учитывается подтверждённая оплаченная стоимость использованных или истёкших неиспользованных покупных единиц в заказах этого аккаунта. Категории не пересекаются; сумма по заказу не превышает действительную оплату. Пополнения, ещё действующие неиспользованные единицы и бонусы не учитываются. Подтверждение истечения не создаёт комиссию. Повышение порога сохраняет полученный статус."
   },
   "按整天填写，默认 30 天。等待期满且相关消费没有未结争议后，才计入资格，对应佣金才能使用或提现。已经开始等待的记录仍按原来的到期时间，不会因为后来改政策而延长。": {
@@ -144,10 +139,10 @@
     "ja": "同一顧客が同じ KOL の複数キャンペーンを利用できる累計回数上限で、0 はこの活動横断累計に独自上限を設けない意味です。各キャンペーンの顧客別・総回数制限も同時に適用します。未成立注文で仮押さえし、成立時に使用確定、失敗・終了時に解放します。",
     "ru": "Общий лимит использований одним клиентом разных кампаний одного KOL. Ноль не устанавливает отдельного общего лимита. Продолжают действовать собственные лимиты кампаний на клиента и общее число использований. Ожидающие заказы резервируют места; завершение расходует их, сбой или закрытие освобождает."
   },
-  "限制本活动累计 USD 降价总额，包含已用及待成交占用，与 ATG 赠送预算分别核实。待付款订单先占用，成交核销，失败或关闭释放；0 不表示无限折扣。降价后的有偿消费基数按本单实付分摊，优惠额不重复扣作成本。": {
-    "en": "Caps this campaign’s cumulative USD price reductions, including used amounts and pending-order holds, separately from the ATG gift budget. Unpaid orders reserve budget; completion consumes it, while failure or closure releases it. Zero does not mean unlimited discounts. Paid usage is allocated from the order’s actual discounted payment; the discount is not deducted again as a cost.",
-    "ja": "本キャンペーンの USD 値引き累計を制限し、使用済みと未成立注文の仮押さえを含みます。ATG 付与予算とは別に確認します。未払注文で仮押さえし、成立時に使用確定、失敗・終了時に解放します。0 は無制限値引きを意味しません。有償消費基数は値引き後の実支払額から配分し、値引き額を原価として二重控除しません。",
-    "ru": "Ограничивает суммарные снижения цены в USD, включая использованные суммы и резервы ожидающих заказов, отдельно от бюджета подарочных ATG. Неоплаченные заказы резервируют бюджет; завершение расходует его, сбой или закрытие освобождает. Ноль не означает безлимитные скидки. База оплаченного использования распределяется из фактической оплаты со скидкой; скидка повторно не вычитается как расход."
+  "限制本活动累计 结算币种 降价总额，包含已用及待成交占用，与 ATG 赠送预算分别核实。待付款订单先占用，成交核销，失败或关闭释放；0 不表示无限折扣。降价后的有偿消费基数按本单实付分摊，优惠额不重复扣作成本。": {
+    "en": "Caps this campaign’s cumulative settlement currency price reductions, including used amounts and pending-order holds, separately from the ATG gift budget. Unpaid orders reserve budget; completion consumes it, while failure or closure releases it. Zero does not mean unlimited discounts. Paid usage is allocated from the order’s actual discounted payment; the discount is not deducted again as a cost.",
+    "ja": "本キャンペーンの 決済通貨 値引き累計を制限し、使用済みと未成立注文の仮押さえを含みます。ATG 付与予算とは別に確認します。未払注文で仮押さえし、成立時に使用確定、失敗・終了時に解放します。0 は無制限値引きを意味しません。有償消費基数は値引き後の実支払額から配分し、値引き額を原価として二重控除しません。",
+    "ru": "Ограничивает суммарные снижения цены в валюта расчётов, включая использованные суммы и резервы ожидающих заказов, отдельно от бюджета подарочных ATG. Неоплаченные заказы резервируют бюджет; завершение расходует его, сбой или закрытие освобождает. Ноль не означает безлимитные скидки. База оплаченного использования распределяется из фактической оплаты со скидкой; скидка повторно не вычитается как расход."
   },
   "套餐期限从每次成功交付时开始，按经营时区计算一个、三个或十二个日历月，到期后剩余额度不可用；不限期额度不过期。是否续费由客户授权决定，与 API Key 的自然周期预算分别管理。": {
     "en": "Each package term starts when delivery succeeds and lasts one, three or twelve calendar months in the operator’s timezone. Unused credits expire at the end; lifetime credits do not expire. Renewal requires customer authorization and is separate from an API key’s calendar-period budget.",

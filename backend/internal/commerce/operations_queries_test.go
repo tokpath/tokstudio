@@ -16,15 +16,15 @@ func TestPostgresInvoiceStagesFollowOriginalWalletFundingAndActualConsumption(t 
 		t.Fatal(e)
 	}
 	first, e := f.s.InvoiceReceiptBasis(f.ctx, nil, f.operator, f.customer, receipts[0].ID)
-	if e != nil || first.TopUpUSD.String() != "30" || first.PurchaseUSD.String() != "30" || !first.ConsumptionUSD.IsZero() {
+	if e != nil || first.TopUpMoney.String() != "30" || first.PurchaseMoney.String() != "30" || !first.ConsumptionMoney.IsZero() {
 		t.Fatalf("stage funding %+v %v", first, e)
 	}
 	second, e := f.s.InvoiceReceiptBasis(f.ctx, nil, f.operator, f.customer, receipts[1].ID)
-	if e != nil || second.TopUpUSD.String() != "70" || second.PurchaseUSD.String() != "30" {
+	if e != nil || second.TopUpMoney.String() != "70" || second.PurchaseMoney.String() != "30" {
 		t.Fatalf("split funding %+v %v", second, e)
 	}
 	external, e := f.s.InvoiceReceiptBasis(f.ctx, nil, f.operator, f.customer, direct.ID)
-	if e != nil || !external.TopUpUSD.IsZero() || external.PurchaseUSD.String() != "20" {
+	if e != nil || !external.TopUpMoney.IsZero() || external.PurchaseMoney.String() != "20" {
 		t.Fatalf("direct purchase stage %+v %v", external, e)
 	}
 	// Production delivery starts the grant at the PostgreSQL business instant.
@@ -42,11 +42,11 @@ func TestPostgresInvoiceStagesFollowOriginalWalletFundingAndActualConsumption(t 
 		t.Fatal(e)
 	}
 	first, e = f.s.InvoiceReceiptBasis(f.ctx, nil, f.operator, f.customer, receipts[0].ID)
-	if e != nil || first.ConsumptionUSD.String() != "15" {
+	if e != nil || first.ConsumptionMoney.String() != "15" {
 		t.Fatalf("actual proportional paid consumption %+v %v", first, e)
 	}
 	external, e = f.s.InvoiceReceiptBasis(f.ctx, nil, f.operator, f.customer, direct.ID)
-	if e != nil || external.ConsumptionUSD.String() != "10" {
+	if e != nil || external.ConsumptionMoney.String() != "10" {
 		t.Fatalf("direct actual consumption %+v %v", external, e)
 	}
 }

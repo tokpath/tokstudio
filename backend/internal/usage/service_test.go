@@ -37,7 +37,7 @@ type observer struct{}
 func (observer) LockBusiness(context.Context, *gorm.DB, string) error { return nil }
 
 func (observer) ObserveGrantEvent(_ context.Context, t *gorm.DB, g ledger.Grant, e ledger.GrantEvent) error {
-	return t.Exec("INSERT INTO test_observed_grants(id,paid_usd) VALUES(?,?) ON CONFLICT DO NOTHING", e.ID, e.PaidUSD).Error
+	return t.Exec("INSERT INTO test_observed_grants(id,paid_money) VALUES(?,?) ON CONFLICT DO NOTHING", e.ID, e.PaidMoney).Error
 }
 
 type ready struct{}
@@ -84,7 +84,7 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 	if e := db.Exec(catalog.CommerceSchema()).Error; e != nil {
 		t.Fatal(e)
 	}
-	if e := db.Exec("CREATE TABLE test_observed_grants(id UUID PRIMARY KEY,paid_usd NUMERIC(38,18))").Error; e != nil {
+	if e := db.Exec("CREATE TABLE test_observed_grants(id UUID PRIMARY KEY,paid_money NUMERIC(38,18))").Error; e != nil {
 		t.Fatal(e)
 	}
 	ctx := context.Background()
@@ -171,7 +171,7 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 		}
 	}
 	coop.Rates = cooperation.CatalogRates{Catalog: cat, Organization: org}
-	if _, e = l.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: p.Operator.ID, CustomerID: registered.Customer.ID, OrderID: "fixture-order", BusinessKey: "fixture-grant", ActorID: owner, Reason: "test funded credits", PaidUSD: d(credits), Sources: []ledger.GrantSource{{Kind: "paid", Amount: d(credits)}}, EffectiveAt: time.Now().Add(-time.Minute)}); e != nil {
+	if _, e = l.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: p.Operator.ID, CustomerID: registered.Customer.ID, OrderID: "fixture-order", BusinessKey: "fixture-grant", ActorID: owner, Reason: "test funded credits", PaidMoney: d(credits), Sources: []ledger.GrantSource{{Kind: "paid", Amount: d(credits)}}, EffectiveAt: time.Now().Add(-time.Minute)}); e != nil {
 		t.Fatal(e)
 	}
 	s := New(db, Dependencies{Ledger: l, Organization: org, Cooperation: coop, Catalog: cat, GrantObserver: observer{}, EncryptionKey: cat.EncryptionKey, UsageTimeout: time.Minute})
@@ -249,7 +249,7 @@ func TestPostgresActualOverageNoCustomerDebtAndKeyResetPreservesBudget(t *testin
 		t.Fatal("settlement not idempotent", e)
 	}
 	var observed ledger.Decimal
-	if e = f.db.Raw("SELECT COALESCE(sum(paid_usd),0)::text FROM test_observed_grants").Row().Scan(&observed); e != nil {
+	if e = f.db.Raw("SELECT COALESCE(sum(paid_money),0)::text FROM test_observed_grants").Row().Scan(&observed); e != nil {
 		t.Fatal(e)
 	}
 	if observed.String() != "0.7" {
@@ -410,7 +410,7 @@ func TestUnmeasurableInputReleasesAllHoldsWithoutBreakingSupplierCircuit(t *test
 		t.Fatal(account, e)
 	}
 	var attempt AttemptRecord
-	if e = f.db.Where("request_id=?", ex.Request.ID).Take(&attempt).Error; e != nil || attempt.State != "not_dispatched" || attempt.CostStatus != "confirmed" || !attempt.SupplierCostUSD.IsZero() {
+	if e = f.db.Where("request_id=?", ex.Request.ID).Take(&attempt).Error; e != nil || attempt.State != "not_dispatched" || attempt.CostStatus != "confirmed" || attempt.ReferenceCostAmount != nil || attempt.ReportedCostAmount != nil {
 		t.Fatal(attempt, e)
 	}
 	health, _, e := f.cat.RouteHealth(f.ctx, "public")

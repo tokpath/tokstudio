@@ -18,7 +18,7 @@ import (
 )
 
 func receiptForSalesOrder(order, amount string) map[string]any {
-	return map[string]any{"order_id": order, "provider_receipt_id": uuid.NewString(), "gross_usd": amount, "currency": "USD", "recipient_reference": "synthetic OEM bank", "payer_reference": "synthetic channel bank", "paid_at": time.Now().UTC(), "verification_evidence": "isolated verified bank statement"}
+	return map[string]any{"order_id": order, "provider_receipt_id": uuid.NewString(), "gross_money": amount, "currency": "USD", "recipient_reference": "synthetic OEM bank", "payer_reference": "synthetic channel bank", "paid_at": time.Now().UTC(), "verification_evidence": "isolated verified bank statement"}
 }
 
 func TestPostgresWholesaleReceiptMerchantFeeDoesNotReduceDelivery(t *testing.T) {
@@ -27,15 +27,15 @@ func TestPostgresWholesaleReceiptMerchantFeeDoesNotReduceDelivery(t *testing.T) 
 	mustOK(t, status, out)
 	orderID := out["id"].(string)
 	input := receiptForSalesOrder(orderID, "1000")
-	input["fee_status"], input["fee_usd"] = "confirmed", "10"
+	input["fee_status"], input["fee_money"] = "confirmed", "10"
 	status, out, _ = s.f.call(t, "POST", "/v1/operators/"+s.oem+"/payments", input, uuid.NewString())
 	mustOK(t, status, out)
 	receipt, err := s.f.a.Commerce.GetReceipt(context.Background(), nil, s.oem, out["id"].(string))
-	if err != nil || receipt.NetUSD == nil || receipt.NetUSD.String() != "990" || receipt.GrossUSD.String() != "1000" || receipt.AllocatedUSD.String() != "1000" || receipt.FeeUSD.String() != "10" {
+	if err != nil || receipt.NetMoney == nil || receipt.NetMoney.String() != "990" || receipt.GrossMoney.String() != "1000" || receipt.AllocatedMoney.String() != "1000" || receipt.FeeMoney.String() != "10" {
 		t.Fatal("incorrect gross/fee/net receipt", receipt, err)
 	}
 	var order cooperation.PurchaseOrder
-	if err = s.f.a.DB.First(&order, "id=?", orderID).Error; err != nil || order.Status != "completed" || order.AllocatedUSD.String() != "1000" {
+	if err = s.f.a.DB.First(&order, "id=?", orderID).Error; err != nil || order.Status != "completed" || order.AllocatedMoney.String() != "1000" {
 		t.Fatal("merchant fee reduced order payment", order, err)
 	}
 	position, err := s.f.a.Cooperation.Position(context.Background(), nil, s.channel)
@@ -70,7 +70,7 @@ func TestPostgresCashCollectionWithoutAccountOrReceiptEvidence(t *testing.T) {
 			}
 		}
 	}
-	input := map[string]any{"order_id": id, "gross_usd": "1000", "currency": "USD", "paid_at": time.Now().UTC()}
+	input := map[string]any{"order_id": id, "gross_money": "1000", "currency": "USD", "paid_at": time.Now().UTC()}
 	key := uuid.NewString()
 	status, out, _ = s.f.call(t, "POST", base+"/payments", input, key)
 	mustOK(t, status, out)
@@ -81,7 +81,7 @@ func TestPostgresCashCollectionWithoutAccountOrReceiptEvidence(t *testing.T) {
 		t.Fatal("cash receipt duplicated", out)
 	}
 	receipt, err := s.f.a.Commerce.GetReceipt(context.Background(), nil, s.oem, receiptID)
-	if err != nil || receipt.RecipientReference != "" || receipt.PayerReference != "" || receipt.VerificationEvidence != "" || !strings.HasPrefix(receipt.ProviderReceiptID, "manual:receipt:") || receipt.AllocatedUSD.String() != "1000" {
+	if err != nil || receipt.RecipientReference != "" || receipt.PayerReference != "" || receipt.VerificationEvidence != "" || !strings.HasPrefix(receipt.ProviderReceiptID, "manual:receipt:") || receipt.AllocatedMoney.String() != "1000" {
 		t.Fatal("cash cannot be recorded faithfully", receipt, err)
 	}
 	var order cooperation.PurchaseOrder
@@ -168,7 +168,7 @@ func TestPostgresWholesaleSalesInboxAndFinanceCollection(t *testing.T) {
 		mustOK(t, status, out)
 	}
 	var order cooperation.PurchaseOrder
-	if err := f.a.DB.First(&order, "id=?", id).Error; err != nil || order.Status != "completed" || order.AllocatedUSD.String() != "1000" {
+	if err := f.a.DB.First(&order, "id=?", id).Error; err != nil || order.Status != "completed" || order.AllocatedMoney.String() != "1000" {
 		t.Fatal("original purchase not delivered", order, err)
 	}
 	position, err := f.a.Cooperation.Position(ctx, nil, s.channel)
@@ -213,7 +213,7 @@ func TestPostgresWholesaleCollectionRetainsPaidOrderWhenDeliveryNeedsRetry(t *te
 		t.Fatal("delivery failure hidden", out)
 	}
 	receipt, err := s.f.a.Commerce.GetReceipt(context.Background(), nil, s.oem, out["id"].(string))
-	if err != nil || receipt.AllocatedUSD.String() != "1000" {
+	if err != nil || receipt.AllocatedMoney.String() != "1000" {
 		t.Fatal("receipt allocation rolled back", receipt, err)
 	}
 	var order cooperation.PurchaseOrder
@@ -244,7 +244,7 @@ func TestPostgresWholesaleManualCollectionPreservesUnmatchedFunds(t *testing.T) 
 		t.Fatal("mismatch hidden", out)
 	}
 	receipt, err := f.a.Commerce.GetReceipt(ctx, nil, s.oem, shortID)
-	if err != nil || !receipt.AllocatedUSD.IsZero() || receipt.GrossUSD.String() != "999" {
+	if err != nil || !receipt.AllocatedMoney.IsZero() || receipt.GrossMoney.String() != "999" {
 		t.Fatal("real receipt lost", receipt, err)
 	}
 	status, _, _ = f.call(t, "POST", base+"/payments/"+shortID+"/allocate", map[string]any{"order_id": id}, uuid.NewString())
@@ -270,7 +270,7 @@ func TestPostgresWholesaleManualCollectionPreservesUnmatchedFunds(t *testing.T) 
 	status, out, _ = f.call(t, "POST", base+"/payments", receiptForSalesOrder(unsafe, "100"), uuid.NewString())
 	mustOK(t, status, out)
 	receipt, err = f.a.Commerce.GetReceipt(ctx, nil, s.oem, out["id"].(string))
-	if err != nil || !receipt.AllocatedUSD.IsZero() || !strings.Contains(fmt.Sprint(out["message"]), "尚未关联") {
+	if err != nil || !receipt.AllocatedMoney.IsZero() || !strings.Contains(fmt.Sprint(out["message"]), "尚未关联") {
 		t.Fatal("online payment bypassed", out, receipt, err)
 	}
 }
@@ -297,14 +297,14 @@ func TestPostgresSalesInboxFiltersAndPagesAcrossBothOrderTypes(t *testing.T) {
 	}
 	now := time.Now().UTC()
 	for i := range 60 {
-		order, err := f.a.Commerce.CreateTopUpOrder(context.Background(), nil, commerce.CreateTopUpInput{OperatorID: op, CustomerID: customer, BusinessKey: uuid.NewString(), ExpectedOwnershipVersion: 1, AmountUSD: ledger.FromInt64(1)})
+		order, err := f.a.Commerce.CreateTopUpOrder(context.Background(), nil, commerce.CreateTopUpInput{OperatorID: op, CustomerID: customer, BusinessKey: uuid.NewString(), ExpectedOwnershipVersion: 1, AmountMoney: ledger.FromInt64(1)})
 		if err != nil {
 			t.Fatal(err)
 		}
 		if err = f.a.DB.Table("commerce_orders").Where("id=?", order.ID).Update("created_at", now.Add(-time.Duration(i*2)*time.Minute)).Error; err != nil {
 			t.Fatal(err)
 		}
-		order2 := cooperation.PurchaseOrder{ID: uuid.NewString(), SupplierID: op, BuyerID: child.Operator.ID, QuoteID: quote.ID, BusinessKey: uuid.NewString(), Fingerprint: "synthetic", Name: "Paged order", QuoteVersion: 1, DueUSD: ledger.FromInt64(1), PaidATG: ledger.FromInt64(1), ExitTerms: json.RawMessage(`{}`), TermsReference: "synthetic", Status: "awaiting_payment", CreatedAt: now.Add(-time.Duration(i*2+1) * time.Minute), ExpiresAt: now.Add(time.Hour)}
+		order2 := cooperation.PurchaseOrder{ID: uuid.NewString(), SupplierID: op, BuyerID: child.Operator.ID, QuoteID: quote.ID, BusinessKey: uuid.NewString(), Fingerprint: "synthetic", Name: "Paged order", QuoteVersion: 1, DueMoney: ledger.FromInt64(1), PaidATG: ledger.FromInt64(1), ExitTerms: json.RawMessage(`{}`), TermsReference: "synthetic", Status: "awaiting_payment", CreatedAt: now.Add(-time.Duration(i*2+1) * time.Minute), ExpiresAt: now.Add(time.Hour)}
 		if i == 59 {
 			order2.Name = "needle oldest supply order"
 		}

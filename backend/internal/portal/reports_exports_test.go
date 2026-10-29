@@ -25,7 +25,7 @@ func TestSimpleReportsAndCSVExports(t *testing.T) {
 	from, to := time.Now().Add(-time.Hour).UTC(), time.Now().Add(time.Minute).UTC()
 	status, report, _ := s.f.call(t, "GET", base+"/reports/financial?from="+from.Format(time.RFC3339Nano)+"&to="+to.Format(time.RFC3339Nano), nil, "")
 	mustOK(t, status, report)
-	if report["procurement"].(map[string]any)["wholesale_sales_usd"] != "1000" {
+	if report["procurement"].(map[string]any)["wholesale_sales_money"] != "1000" {
 		t.Fatal(report)
 	}
 	var first string

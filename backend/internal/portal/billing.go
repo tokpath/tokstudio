@@ -83,7 +83,7 @@ func (a *Application) billingDetails(ctx context.Context, r usage.Request, out g
 		if g.OrderID != "" {
 			name = "订单 " + g.OrderID
 		}
-		allocations = append(allocations, gin.H{"source_name": name, "kind": strings.Join(kinds, " + "), "amount_atg": event.Amount, "paid_basis_usd": event.PaidUSD, "sources": parts})
+		allocations = append(allocations, gin.H{"source_name": name, "kind": strings.Join(kinds, " + "), "amount_atg": event.Amount, "paid_basis_money": event.PaidMoney, "sources": parts})
 	}
 	out["allocations"] = allocations
 	return nil

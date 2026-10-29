@@ -28,13 +28,13 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     await customer.getByRole("button", { name: "选择此套餐", exact: true }).first().click();
     await customer.getByRole("button", { name: "继续，核对成交条款" }).click();
     await customer.getByText("精确调整抵扣金额", { exact: true }).click();
-    await customer.getByLabel("本次使用 USD 支付余额", { exact: true }).fill("0");
+    await customer.getByLabel("本次使用 结算币种 支付余额", { exact: true }).fill("0");
     await customer.getByRole("combobox", { name: /^支付方式/ }).selectOption(fixture.manual_method_id);
     await customer.getByRole("checkbox", { name: /^我确认本次价格/ }).check();
     const orderResponse = customer.waitForResponse(response => response.url().endsWith("/api/v1/me/orders") && response.request().method() === "POST");
     await customer.getByRole("button", { name: "确认订单，继续支付" }).click();
     const rawOrder = await orderResponse; expect(rawOrder.status()).toBe(200); const order = await rawOrder.json();
-    expect(order.amount_usd).toBe("100");
+    expect(order.amount_money).toBe("100");
     expect(order.payment_action.kind).toBe("offline");
     await expect(customer.getByText("合成测试收款账户", { exact: true })).toBeVisible();
     await expect(customer.getByText("仅限隔离联调：登记合成到账事实后交付，不要向任何真实账户付款。", { exact: true })).toBeVisible();
@@ -47,7 +47,7 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     const receiptPanel = staff.getByRole("dialog").last();
     for (const details of await receiptPanel.locator("details:not([open]) > summary").all()) await details.click();
     const reference = "synthetic-browser-" + randomUUID();
-    for (const [label, value] of [["收款流水或收据号（可选）", reference], ["收款总额（扣手续费前） USD", "100"], ["收款币种", "USD"], ["收款方资料（可选）", "isolated synthetic recipient"], ["付款方资料（可选）", "isolated synthetic payer"], ["收款说明或凭证（可选）", "SYNTHETIC ACCEPTANCE FACT ONLY: " + reference]]) {
+    for (const [label, value] of [["收款流水或收据号（可选）", reference], ["收款总额（扣手续费前） 结算币种", "100"], ["收款币种", "USD"], ["收款方资料（可选）", "isolated synthetic recipient"], ["付款方资料（可选）", "isolated synthetic payer"], ["收款说明或凭证（可选）", "SYNTHETIC ACCEPTANCE FACT ONLY: " + reference]]) {
       await receiptPanel.getByLabel(label, { exact: false }).and(receiptPanel.locator("input,textarea,select")).fill(value);
     }
     await receiptPanel.getByRole("combobox", { name: "手续费" }).selectOption("pending");

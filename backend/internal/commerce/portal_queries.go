@@ -259,7 +259,7 @@ func (s *Service) SearchOperatorReceipts(ctx context.Context, tx *gorm.DB, opera
 	rows := []Receipt{}
 	query := s.dbFor(ctx, tx).Table("commerce_receipts").Where("operator_id=?", operator)
 	if len(wholeReceipt) > 0 && wholeReceipt[0] {
-		query = query.Where("allocated_usd=0")
+		query = query.Where("allocated_money=0")
 	}
 	if cursor != "" {
 		if !validID(cursor) {

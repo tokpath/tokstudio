@@ -51,7 +51,7 @@ func (f *testApp) seedCustomerSimulation(t *testing.T, lab string) map[string]an
 		if _, e = f.a.Organization.AcceptStaffInvitation(ctx, nil, invitation.Token, organization.VerifiedStaff{ID: owner, Email: "owner@example.test", EmailVerified: true}); e != nil {
 			t.Fatal(e)
 		}
-		if _, e = f.a.Cooperation.DeliverPurchase(ctx, nil, cooperation.PurchaseInput{BuyerID: op, SupplierID: platform, OrderID: uuid.NewString(), ReceiptReference: "synthetic-opening-inventory", ActorID: owner, PaidUSD: d("10000"), PaidATG: d("10000"), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"synthetic-opening"}`), At: time.Now()}); e != nil {
+		if _, e = f.a.Cooperation.DeliverPurchase(ctx, nil, cooperation.PurchaseInput{BuyerID: op, SupplierID: platform, OrderID: uuid.NewString(), ReceiptReference: "synthetic-opening-inventory", ActorID: owner, PaidMoney: d("10000"), PaidATG: d("10000"), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"synthetic-opening"}`), At: time.Now()}); e != nil {
 			t.Fatal(e)
 		}
 		if e = f.a.Catalog.SetAuthorization(ctx, platform, op, model, true, 0); e != nil {
@@ -70,11 +70,11 @@ func (f *testApp) seedCustomerSimulation(t *testing.T, lab string) map[string]an
 				t.Fatal(e)
 			}
 		}
-		quote, e := f.a.Commerce.PublishPackage(ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: op, Name: name + " 月套餐", TermsReference: "synthetic-customer-package-v1", Timezone: "Asia/Shanghai", PriceUSD: d("80"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
+		quote, e := f.a.Commerce.PublishPackage(ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: op, Name: name + " 月套餐", TermsReference: "synthetic-customer-package-v1", Timezone: "Asia/Shanghai", PriceMoney: d("80"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
 		if e != nil {
 			t.Fatal(e)
 		}
-		policy, e := f.a.Incentives.SetPolicy(ctx, nil, owner, op, incentives.PolicyInput{ThresholdUSD: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 5, InviteeATG: ledger.Zero(), InviterATG: ledger.Zero(), RewardValiditySeconds: 86400, KOLCrossActivityLimit: 3, Evidence: "isolated synthetic customer policy"})
+		policy, e := f.a.Incentives.SetPolicy(ctx, nil, owner, op, incentives.PolicyInput{ThresholdMoney: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 5, InviteeATG: ledger.Zero(), InviterATG: ledger.Zero(), RewardValiditySeconds: 86400, KOLCrossActivityLimit: 3, Evidence: "isolated synthetic customer policy"})
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -91,7 +91,7 @@ func (f *testApp) seedCustomerSimulation(t *testing.T, lab string) map[string]an
 				t.Fatal(e)
 			}
 		}
-		if _, e = f.a.Incentives.SetWithdrawalPolicy(ctx, nil, owner, op, incentives.WithdrawalPolicy{MinimumUSD: d("0.00000001"), FlatFeeUSD: ledger.Zero(), FeeRate: ledger.Zero(), MethodReference: "隔离仿真人工付款：未支付取消释放全部占用"}, 0); e != nil {
+		if _, e = f.a.Incentives.SetWithdrawalPolicy(ctx, nil, owner, op, incentives.WithdrawalPolicy{MinimumMoney: d("0.00000001"), FlatFeeMoney: ledger.Zero(), FeeRate: ledger.Zero(), MethodReference: "隔离仿真人工付款：未支付取消释放全部占用"}, 0); e != nil {
 			t.Fatal(e)
 		}
 		return preparedChannel{created: created, quote: quote, policy: policy, merchant: merchant.ID}
@@ -124,7 +124,7 @@ func (f *testApp) seedCustomerSimulation(t *testing.T, lab string) map[string]an
 	foreign := register("sim-foreign@customer.test", "合成异渠道客户", b.created.InviteCode)
 	for _, person := range []organization.RegistrationResult{upstream, kol, other} {
 		acquired := time.Now().Add(-time.Hour)
-		if e := f.a.DB.Exec("INSERT INTO incentives_qualification_accounts(operator_id,customer_id,confirmed_usd,acquired_at,acquired_policy_id,pending_offset_usd) VALUES(?,?,?,?,?,0) ON CONFLICT(operator_id,customer_id) DO UPDATE SET confirmed_usd=EXCLUDED.confirmed_usd, acquired_at=EXCLUDED.acquired_at,acquired_policy_id=EXCLUDED.acquired_policy_id", a.created.Operator.ID, person.Customer.ID, "100", acquired, a.policy.ID).Error; e != nil {
+		if e := f.a.DB.Exec("INSERT INTO incentives_qualification_accounts(operator_id,customer_id,confirmed_money,acquired_at,acquired_policy_id,pending_offset_money) VALUES(?,?,?,?,?,0) ON CONFLICT(operator_id,customer_id) DO UPDATE SET confirmed_money=EXCLUDED.confirmed_money, acquired_at=EXCLUDED.acquired_at,acquired_policy_id=EXCLUDED.acquired_policy_id", a.created.Operator.ID, person.Customer.ID, "100", acquired, a.policy.ID).Error; e != nil {
 			t.Fatal(e)
 		}
 	}
@@ -133,16 +133,16 @@ func (f *testApp) seedCustomerSimulation(t *testing.T, lab string) map[string]an
 		// USD opening assets retain verified synthetic receipt provenance, just
 		// like an existing top-up. A bare ledger balance is intentionally not
 		// accepted by production order funding.
-		order, e := f.a.Commerce.CreateTopUpOrder(ctx, nil, commerce.CreateTopUpInput{OperatorID: operator, CustomerID: customer, BusinessKey: "synthetic-opening:" + uuid.NewString(), ExpectedOwnershipVersion: 1, AmountUSD: d(amount)})
+		order, e := f.a.Commerce.CreateTopUpOrder(ctx, nil, commerce.CreateTopUpInput{OperatorID: operator, CustomerID: customer, BusinessKey: "synthetic-opening:" + uuid.NewString(), ExpectedOwnershipVersion: 1, AmountMoney: d(amount)})
 		if e != nil {
 			t.Fatal(e)
 		}
 		paidAt := order.CreatedAt
-		receipt, e := f.a.Commerce.RecordManualReceipt(ctx, nil, owner, commerce.VerifiedReceipt{OperatorID: operator, ProviderReceiptID: "synthetic-opening:" + uuid.NewString(), GrossUSD: d(amount), FeeStatus: "pending", Currency: "USD", OriginalAmount: amount, RecipientReference: "synthetic channel account", PayerReference: "synthetic customer's verified account", ValuationEvidence: "synthetic USD no FX", VerificationEvidence: "explicit synthetic pre-existing wallet funding fixture", PaidAt: &paidAt})
+		receipt, e := f.a.Commerce.RecordManualReceipt(ctx, nil, owner, commerce.VerifiedReceipt{OperatorID: operator, ProviderReceiptID: "synthetic-opening:" + uuid.NewString(), GrossMoney: d(amount), FeeStatus: "pending", Currency: "USD", OriginalAmount: amount, RecipientReference: "synthetic channel account", PayerReference: "synthetic customer's verified account", ValuationEvidence: "synthetic USD no FX", VerificationEvidence: "explicit synthetic pre-existing wallet funding fixture", PaidAt: &paidAt})
 		if e != nil {
 			t.Fatal(e)
 		}
-		if _, e = f.a.Commerce.AllocateReceipt(ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: owner, OperatorID: operator, BusinessKey: "synthetic-opening-allocation:" + uuid.NewString(), ReceiptID: receipt.ID, OrderID: order.ID, AmountUSD: d(amount)}); e != nil {
+		if _, e = f.a.Commerce.AllocateReceipt(ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: owner, OperatorID: operator, BusinessKey: "synthetic-opening-allocation:" + uuid.NewString(), ReceiptID: receipt.ID, OrderID: order.ID, AmountMoney: d(amount)}); e != nil {
 			t.Fatal(e)
 		}
 		if _, e = f.a.Commerce.Fulfill(ctx, nil, order.ID, "test:synthetic-existing-wallet"); e != nil {
@@ -150,11 +150,11 @@ func (f *testApp) seedCustomerSimulation(t *testing.T, lab string) map[string]an
 		}
 	}
 	for _, person := range []organization.RegistrationResult{buyer, ordinaryChild} {
-		seedMoney(a.created.Operator.ID, person.Customer.ID, "customer:usd", "240")
+		seedMoney(a.created.Operator.ID, person.Customer.ID, "customer:money", "240")
 	}
-	seedMoney(b.created.Operator.ID, foreign.Customer.ID, "customer:usd", "240")
+	seedMoney(b.created.Operator.ID, foreign.Customer.ID, "customer:money", "240")
 	price := d("80")
-	merchant, e := f.a.Incentives.PublishCampaign(ctx, nil, incentives.CampaignInput{ActorStaffID: owner, OperatorID: a.created.Operator.ID, Kind: "merchant", PackageID: a.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: time.Now().Add(-time.Hour), EndsAt: time.Now().Add(24 * time.Hour), FinalPriceUSD: &price, GiftATG: d("20"), PerCustomerLimit: 10, TotalUseLimit: 100, Evidence: "synthetic operator gift campaign"})
+	merchant, e := f.a.Incentives.PublishCampaign(ctx, nil, incentives.CampaignInput{ActorStaffID: owner, OperatorID: a.created.Operator.ID, Kind: "merchant", PackageID: a.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: time.Now().Add(-time.Hour), EndsAt: time.Now().Add(24 * time.Hour), FinalPriceMoney: &price, GiftATG: d("20"), PerCustomerLimit: 10, TotalUseLimit: 100, Evidence: "synthetic operator gift campaign"})
 	if e != nil {
 		t.Fatal(e)
 	}

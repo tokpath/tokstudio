@@ -66,6 +66,9 @@ type testApp struct {
 }
 
 func setupPortal(t *testing.T) *testApp {
+	return setupPortalMonetary(t, true)
+}
+func setupPortalMonetary(t *testing.T, active bool) *testApp {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	gdb := dbtest.New(t)
@@ -82,6 +85,11 @@ func setupPortal(t *testing.T) *testApp {
 	cfg.S3ForcePathStyle = true
 	if _, e := Bootstrap(context.Background(), cfg, gdb); e != nil {
 		t.Fatal(e)
+	}
+	if active {
+		if e := gdb.Exec("UPDATE ledger_monetary_settings SET effective_at=clock_timestamp()-interval '1 minute',configured_by='synthetic fixture' WHERE id='platform'").Error; e != nil {
+			t.Fatal(e)
+		}
 	}
 	a, e := New(context.Background(), cfg, gdb)
 	if e != nil {
@@ -158,7 +166,7 @@ func (f *testApp) login(t *testing.T, kind, email, password string) {
 func (f *testApp) openRegistration(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
-	_, e := f.a.Incentives.SetPolicy(ctx, nil, f.a.Installation.OwnerStaffID, f.a.Installation.OperatorID, incentives.PolicyInput{ThresholdUSD: ledger.MustDecimal("1"), DirectRate: ledger.MustDecimal("0.1"), IndirectRate: ledger.MustDecimal("0.02"), RewardValiditySeconds: 86400})
+	_, e := f.a.Incentives.SetPolicy(ctx, nil, f.a.Installation.OwnerStaffID, f.a.Installation.OperatorID, incentives.PolicyInput{ThresholdMoney: ledger.MustDecimal("1"), DirectRate: ledger.MustDecimal("0.1"), IndirectRate: ledger.MustDecimal("0.02"), RewardValiditySeconds: 86400})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -206,7 +214,7 @@ func TestPostgresBrowserIdentityCSRFAndScope(t *testing.T) {
 	// CSRF must be verified before the action handler executes.
 	saved := f.csrf
 	f.csrf = "wrong"
-	status, out, _ = f.call(t, "POST", "/v1/operators/"+f.a.Installation.OperatorID+"/commissions", map[string]any{"configuration": map[string]any{"threshold_usd": "999", "expected_version": 1}}, "")
+	status, out, _ = f.call(t, "POST", "/v1/operators/"+f.a.Installation.OperatorID+"/commissions", map[string]any{"configuration": map[string]any{"threshold_money": "999", "expected_version": 1}}, "")
 	if status != 403 {
 		t.Fatal(status, out)
 	}
@@ -333,7 +341,7 @@ func TestExternalStripeReceiptCallbackTopup(t *testing.T) {
 		}
 	}
 	cmd := uuid.NewString()
-	input := map[string]string{"amount_usd": "100", "external_method_id": merchant.ID}
+	input := map[string]string{"amount_money": "100", "external_method_id": merchant.ID}
 	status, out, _ := f.call(t, "POST", "/v1/me/topups", input, cmd)
 	mustOK(t, status, out)
 	orderID := out["id"].(string)
@@ -380,7 +388,7 @@ func TestExternalStripeReceiptCallbackTopup(t *testing.T) {
 	}
 	status, out, _ = f.call(t, "GET", "/v1/me/credits", nil, "")
 	mustOK(t, status, out)
-	if out["usd_balance"].(map[string]any)["available"] != "100" {
+	if out["money_balance"].(map[string]any)["available"] != "100" {
 		t.Fatal("verified receipt not credited", out)
 	}
 	if _, e = f.a.Payments.Reconcile(context.Background(), merchant.OperatorID, merchant.ID, orderID); e != nil {
@@ -391,7 +399,7 @@ func TestExternalStripeReceiptCallbackTopup(t *testing.T) {
 	}
 	status, out, _ = f.call(t, "GET", "/v1/me/credits", nil, "")
 	mustOK(t, status, out)
-	if out["usd_balance"].(map[string]any)["available"] != "100" {
+	if out["money_balance"].(map[string]any)["available"] != "100" {
 		t.Fatal("repeat receipt doubled balance", out)
 	}
 	status, out, _ = f.call(t, "GET", "/v1/me/plans/catalog", nil, "")
@@ -401,7 +409,7 @@ func TestExternalStripeReceiptCallbackTopup(t *testing.T) {
 	mustOK(t, status, out)
 	quote := out
 	buyKey := uuid.NewString()
-	buy := map[string]any{"quote_id": quote["id"], "terms_version": quote["terms_version"], "funding": map[string]string{"usd_balance": "100", "commission_usd": "0"}, "auto_renew": true, "allow_commission": false}
+	buy := map[string]any{"quote_id": quote["id"], "terms_version": quote["terms_version"], "funding": map[string]string{"money_balance": "100", "commission_money": "0"}, "auto_renew": true, "allow_commission": false}
 	status, out, _ = f.call(t, "POST", "/v1/me/orders", buy, buyKey)
 	mustOK(t, status, out)
 	if out["status"] != "completed" {
@@ -487,7 +495,7 @@ func (f *testApp) configureExternalCatalog(t *testing.T, lab string) string {
 			t.Fatal(e)
 		}
 	}
-	if _, e := f.a.Commerce.PublishPackage(ctx, nil, commerce.PublishPackageInput{ActorStaffID: f.a.Installation.OwnerStaffID, OperatorID: platform, Name: "Contract monthly", TermsReference: "independent protocol fixture", Timezone: "UTC", PriceUSD: ledger.MustDecimal("100"), PaidATG: ledger.MustDecimal("100"), GiftATG: ledger.MustDecimal("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true}); e != nil {
+	if _, e := f.a.Commerce.PublishPackage(ctx, nil, commerce.PublishPackageInput{ActorStaffID: f.a.Installation.OwnerStaffID, OperatorID: platform, Name: "Contract monthly", TermsReference: "independent protocol fixture", Timezone: "UTC", PriceMoney: ledger.MustDecimal("100"), PaidATG: ledger.MustDecimal("100"), GiftATG: ledger.MustDecimal("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true}); e != nil {
 		t.Fatal(e)
 	}
 	return modelID
@@ -572,7 +580,7 @@ func TestPostgresLifecycleKeepsStoppedAssetsAndRequiresExplicitATGWaiver(t *test
 	mustOK(t, status, session)
 	customer := session["customer"].(map[string]any)["id"].(string)
 	ctx := context.Background()
-	grant, e := f.a.Ledger.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: f.a.Installation.OperatorID, CustomerID: customer, BusinessKey: "lifecycle-explicit-fixture", ActorID: f.a.Installation.OwnerStaffID, Reason: "isolated lifecycle test funded grant", PaidUSD: ledger.MustDecimal("5"), Sources: []ledger.GrantSource{{Kind: "paid", Amount: ledger.MustDecimal("5")}, {Kind: "package_gift", Amount: ledger.MustDecimal("2")}}, EffectiveAt: time.Now().Add(-time.Minute)})
+	grant, e := f.a.Ledger.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: f.a.Installation.OperatorID, CustomerID: customer, BusinessKey: "lifecycle-explicit-fixture", ActorID: f.a.Installation.OwnerStaffID, Reason: "isolated lifecycle test funded grant", PaidMoney: ledger.MustDecimal("5"), Sources: []ledger.GrantSource{{Kind: "paid", Amount: ledger.MustDecimal("5")}, {Kind: "package_gift", Amount: ledger.MustDecimal("2")}}, EffectiveAt: time.Now().Add(-time.Minute)})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -619,16 +627,20 @@ func TestPostgresPublicContextAndManagementActions(t *testing.T) {
 	f.openRegistration(t)
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	scope := "/v1/operators/" + f.a.Installation.OperatorID
-	for _, resource := range []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "valuations", "pricing", "marketing", "commissions", "ledger", "refunds", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "procurement", "alerts", "takeovers", "exits", "branding", "domains", "channel-themes", "staff", "approvals", "notifications", "business-status", "audit", "providers", "catalog", "routes", "requests", "jobs", "mail"} {
+	for _, resource := range []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "pricing", "marketing", "commissions", "ledger", "refunds", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "procurement", "alerts", "takeovers", "exits", "branding", "domains", "channel-themes", "staff", "approvals", "notifications", "business-status", "audit", "providers", "catalog", "routes", "requests", "jobs", "mail"} {
 		status, out, _ = f.call(t, "GET", scope+"/"+resource, nil, "")
 		mustOK(t, status, out)
 		if _, has := out["items"]; !has {
 			t.Fatalf("%s has no actual records collection %#v", resource, out)
 		}
 	}
+	status, out, _ = f.call(t, "GET", scope+"/valuations", nil, "")
+	if status != 404 {
+		t.Fatal("removed exchange-rate configuration remains available", status, out)
+	}
 	// Ordinary package UI submits explicit fields, without constructing JSON.
 	action := uuid.NewString()
-	in := map[string]any{"name": "HTTP real package", "price_usd": "12.34567890123456789", "paid_atg": "40", "gift_atg": "2", "period": "month", "timezone": "UTC", "terms_reference": "published terms", "new_purchase_enabled": true, "renewal_enabled": true, "expected_version": 0}
+	in := map[string]any{"name": "HTTP real package", "price_money": "12.34567890123456789", "paid_atg": "40", "gift_atg": "2", "period": "month", "timezone": "UTC", "terms_reference": "published terms", "new_purchase_enabled": true, "renewal_enabled": true, "expected_version": 0}
 	status, out, _ = f.call(t, "POST", scope+"/plans", in, action)
 	mustOK(t, status, out)
 	packageID := out["id"].(string)

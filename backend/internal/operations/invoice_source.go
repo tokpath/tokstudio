@@ -13,7 +13,7 @@ import (
 // supplies verified outcomes.
 type ReceiptAdjustment struct {
 	ReceiptID      string         `json:"receipt_id"`
-	RemovedUSD     ledger.Decimal `json:"removed_usd"`
+	RemovedMoney     ledger.Decimal `json:"removed_money"`
 	ReviewRequired bool           `json:"review_required"`
 	Reference      string         `json:"reference"`
 }
@@ -45,7 +45,7 @@ func (d CommerceInvoiceSource) InvoiceBasis(ctx context.Context, tx *gorm.DB, op
 		return out, ErrNotReady
 	}
 	a := adjustments[0]
-	if a.RemovedUSD.Sign() < 0 || !a.RemovedUSD.Valid() {
+	if a.RemovedMoney.Sign() < 0 || !a.RemovedMoney.Valid() {
 		return out, ErrInvalid
 	}
 	partySource, ok := d.Adjustments.(PartyReceiptAdjustments)
@@ -56,29 +56,29 @@ func (d CommerceInvoiceSource) InvoiceBasis(ctx context.Context, tx *gorm.DB, op
 	if e != nil {
 		return out, e
 	}
-	if len(parties) != 1 || parties[0].ReceiptID != receipt || parties[0].RemovedUSD.Sign() < 0 {
+	if len(parties) != 1 || parties[0].ReceiptID != receipt || parties[0].RemovedMoney.Sign() < 0 {
 		return out, ErrNotReady
 	}
 	party := parties[0]
-	global := basis.GrossUSD.Sub(a.RemovedUSD)
+	global := basis.GrossMoney.Sub(a.RemovedMoney)
 	if global.Sign() < 0 {
 		global = ledger.Zero()
 	}
-	out.GlobalEligibleUSD = &global
-	out.EligibleUSD = basis.AllocatedUSD.Sub(party.RemovedUSD)
-	if out.EligibleUSD.Sign() < 0 {
-		out.EligibleUSD = ledger.Zero()
+	out.GlobalEligibleMoney = &global
+	out.EligibleMoney = basis.AllocatedMoney.Sub(party.RemovedMoney)
+	if out.EligibleMoney.Sign() < 0 {
+		out.EligibleMoney = ledger.Zero()
 	}
-	out.ReceiptUSD = &out.EligibleUSD
+	out.ReceiptMoney = &out.EligibleMoney
 	capStage := func(v ledger.Decimal) ledger.Decimal {
-		if v.Cmp(out.EligibleUSD) > 0 {
-			return out.EligibleUSD
+		if v.Cmp(out.EligibleMoney) > 0 {
+			return out.EligibleMoney
 		}
 		return v
 	}
-	out.TopUpUSD = capStage(basis.TopUpUSD)
-	out.PurchaseUSD = capStage(basis.PurchaseUSD)
-	out.ConsumptionUSD = capStage(basis.ConsumptionUSD)
+	out.TopUpMoney = capStage(basis.TopUpMoney)
+	out.PurchaseMoney = capStage(basis.PurchaseMoney)
+	out.ConsumptionMoney = capStage(basis.ConsumptionMoney)
 	out.ReviewRequired = a.ReviewRequired || party.ReviewRequired
 	out.AdjustmentReference = a.Reference
 	b, _ := json.Marshal(map[string]any{"commerce": basis, "adjustment": a, "party_adjustment": party})

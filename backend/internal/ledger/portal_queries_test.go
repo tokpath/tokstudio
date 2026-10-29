@@ -17,7 +17,7 @@ func TestPostgresLiveAssetSummaryUsesFulfillmentClock(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i, at := range []time.Time{now, now.Add(time.Hour)} {
-		_, err := s.IssueGrant(ctx, nil, GrantInput{OperatorID: op, CustomerID: customer, OrderID: uuid.NewString(), BusinessKey: uuid.NewString(), ActorID: "test", Reason: "database-clock delivery", PaidUSD: FromInt64(10), Sources: []GrantSource{{Kind: "paid", Amount: FromInt64(10)}, {Kind: "package_gift", Amount: FromInt64(2)}}, EffectiveAt: at})
+		_, err := s.IssueGrant(ctx, nil, GrantInput{OperatorID: op, CustomerID: customer, OrderID: uuid.NewString(), BusinessKey: uuid.NewString(), ActorID: "test", Reason: "database-clock delivery", PaidMoney: FromInt64(10), Sources: []GrantSource{{Kind: "paid", Amount: FromInt64(10)}, {Kind: "package_gift", Amount: FromInt64(2)}}, EffectiveAt: at})
 		if err != nil {
 			t.Fatal(i, err)
 		}

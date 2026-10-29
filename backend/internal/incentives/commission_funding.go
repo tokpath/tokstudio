@@ -14,7 +14,7 @@ import (
 
 type commissionLot struct {
 	EntryID, OperatorID, OriginalOperatorID, CustomerID string
-	AmountUSD, ReservedUSD, ConsumedUSD                 ledger.Decimal
+	AmountMoney, ReservedMoney, ConsumedMoney           ledger.Decimal
 	CreatedAt                                           time.Time
 }
 
@@ -22,7 +22,7 @@ func (commissionLot) TableName() string { return "incentives_commission_funding_
 
 type commissionFundingCommand struct {
 	ID, OperatorID, CustomerID, Kind, Reference string
-	AmountUSD                                   ledger.Decimal
+	AmountMoney                                 ledger.Decimal
 	RestrictedEntryID                           *string
 	Attempt                                     int
 	State                                       string
@@ -32,14 +32,14 @@ type commissionFundingCommand struct {
 func (commissionFundingCommand) TableName() string { return "incentives_commission_funding_commands" }
 
 type CommissionFundingAllocation struct {
-	ID          string         `json:"id"`
-	CommandID   string         `json:"command_id"`
-	EntryID     string         `json:"entry_id"`
-	Attempt     int            `json:"attempt"`
-	AmountUSD   ledger.Decimal `json:"amount_usd"`
-	RestoredUSD ledger.Decimal `json:"restored_usd"`
-	State       string         `json:"state"`
-	CreatedAt   time.Time      `json:"created_at"`
+	ID            string         `json:"id"`
+	CommandID     string         `json:"command_id"`
+	EntryID       string         `json:"entry_id"`
+	Attempt       int            `json:"attempt"`
+	AmountMoney   ledger.Decimal `json:"amount_money"`
+	RestoredMoney ledger.Decimal `json:"restored_money"`
+	State         string         `json:"state"`
+	CreatedAt     time.Time      `json:"created_at"`
 }
 
 func (CommissionFundingAllocation) TableName() string {
@@ -50,7 +50,7 @@ func (s *Service) fundingLot(ctx context.Context, t *gorm.DB, e CommissionEntry,
 	if amount.Sign() <= 0 {
 		return nil
 	}
-	lot := commissionLot{EntryID: e.ID, OperatorID: e.OperatorID, OriginalOperatorID: e.OriginalOperatorID, CustomerID: e.BeneficiaryID, AmountUSD: amount}
+	lot := commissionLot{EntryID: e.ID, OperatorID: e.OperatorID, OriginalOperatorID: e.OriginalOperatorID, CustomerID: e.BeneficiaryID, AmountMoney: amount}
 	if lot.OriginalOperatorID == "" {
 		lot.OriginalOperatorID = e.OperatorID
 	}
@@ -61,17 +61,17 @@ func (s *Service) fundingLot(ctx context.Context, t *gorm.DB, e CommissionEntry,
 }
 func (s *Service) lotSpendable(t *gorm.DB, lot commissionLot) (ledger.Decimal, error) {
 	var blocked, held ledger.Decimal
-	if e := t.Table("incentives_commission_entry_flags").Select("COALESCE(sum(blocked_usd),0)::text").Where("entry_id=? AND active", lot.EntryID).Row().Scan(&blocked); e != nil {
+	if e := t.Table("incentives_commission_entry_flags").Select("COALESCE(sum(blocked_money),0)::text").Where("entry_id=? AND active", lot.EntryID).Row().Scan(&blocked); e != nil {
 		return ledger.Zero(), e
 	}
-	if e := t.Table("incentives_commission_funding_allocations a").Select("COALESCE(sum(a.amount_usd),0)::text").Joins("JOIN incentives_commission_funding_commands c ON c.id=a.command_id").Where("a.entry_id=? AND a.state='reserved' AND c.kind='dispute'", lot.EntryID).Row().Scan(&held); e != nil {
+	if e := t.Table("incentives_commission_funding_allocations a").Select("COALESCE(sum(a.amount_money),0)::text").Joins("JOIN incentives_commission_funding_commands c ON c.id=a.command_id").Where("a.entry_id=? AND a.state='reserved' AND c.kind='dispute'", lot.EntryID).Row().Scan(&held); e != nil {
 		return ledger.Zero(), e
 	}
 	blocked = blocked.Sub(held)
 	if blocked.Sign() < 0 {
 		blocked = ledger.Zero()
 	}
-	available := lot.AmountUSD.Sub(lot.ReservedUSD).Sub(lot.ConsumedUSD).Sub(blocked)
+	available := lot.AmountMoney.Sub(lot.ReservedMoney).Sub(lot.ConsumedMoney).Sub(blocked)
 	if available.Sign() < 0 {
 		available = ledger.Zero()
 	}
@@ -95,7 +95,7 @@ func (s *Service) reserveCommissionUse(ctx context.Context, t *gorm.DB, op, cust
 		return command, q.Error
 	}
 	if q.RowsAffected > 0 {
-		if command.AmountUSD.Cmp(amount) != 0 || !sameOptionalString(command.RestrictedEntryID, restricted) {
+		if command.AmountMoney.Cmp(amount) != 0 || !sameOptionalString(command.RestrictedEntryID, restricted) {
 			return command, ErrConflict
 		}
 		if command.State != "released" {
@@ -107,12 +107,12 @@ func (s *Service) reserveCommissionUse(ctx context.Context, t *gorm.DB, op, cust
 			return command, e
 		}
 	} else {
-		command = commissionFundingCommand{ID: uuid.NewString(), OperatorID: op, CustomerID: customer, Kind: kind, Reference: reference, AmountUSD: amount, RestrictedEntryID: restricted, Attempt: 1, State: "reserved"}
+		command = commissionFundingCommand{ID: uuid.NewString(), OperatorID: op, CustomerID: customer, Kind: kind, Reference: reference, AmountMoney: amount, RestrictedEntryID: restricted, Attempt: 1, State: "reserved"}
 		if e := t.Create(&command).Error; e != nil {
 			return command, e
 		}
 	}
-	query := t.Clauses(clause.Locking{Strength: "UPDATE"}).Where("operator_id=? AND customer_id=? AND reserved_usd+consumed_usd<amount_usd", op, customer)
+	query := t.Clauses(clause.Locking{Strength: "UPDATE"}).Where("operator_id=? AND customer_id=? AND reserved_money+consumed_money<amount_money", op, customer)
 	if restricted != nil {
 		query = query.Where("entry_id=?", *restricted)
 	}
@@ -127,16 +127,16 @@ func (s *Service) reserveCommissionUse(ctx context.Context, t *gorm.DB, op, cust
 			return command, e
 		}
 		if kind == "dispute" {
-			available = lot.AmountUSD.Sub(lot.ReservedUSD).Sub(lot.ConsumedUSD)
+			available = lot.AmountMoney.Sub(lot.ReservedMoney).Sub(lot.ConsumedMoney)
 		}
 		take := minimum(remaining, available)
 		if take.Sign() <= 0 {
 			continue
 		}
-		if e = t.Model(&commissionLot{}).Where("entry_id=?", lot.EntryID).Update("reserved_usd", lot.ReservedUSD.Add(take)).Error; e != nil {
+		if e = t.Model(&commissionLot{}).Where("entry_id=?", lot.EntryID).Update("reserved_money", lot.ReservedMoney.Add(take)).Error; e != nil {
 			return command, e
 		}
-		allocation := CommissionFundingAllocation{ID: uuid.NewString(), CommandID: command.ID, EntryID: lot.EntryID, Attempt: command.Attempt, AmountUSD: take, State: "reserved"}
+		allocation := CommissionFundingAllocation{ID: uuid.NewString(), CommandID: command.ID, EntryID: lot.EntryID, Attempt: command.Attempt, AmountMoney: take, State: "reserved"}
 		if e = t.Create(&allocation).Error; e != nil {
 			return command, e
 		}
@@ -179,9 +179,9 @@ func (s *Service) resolveCommissionUse(ctx context.Context, t *gorm.DB, op, cust
 		return e
 	}
 	for _, allocation := range allocations {
-		updates := map[string]any{"reserved_usd": gorm.Expr("reserved_usd-?", allocation.AmountUSD)}
+		updates := map[string]any{"reserved_money": gorm.Expr("reserved_money-?", allocation.AmountMoney)}
 		if consume {
-			updates["consumed_usd"] = gorm.Expr("consumed_usd+?", allocation.AmountUSD)
+			updates["consumed_money"] = gorm.Expr("consumed_money+?", allocation.AmountMoney)
 		}
 		if e := t.Model(&commissionLot{}).Where("entry_id=?", allocation.EntryID).Updates(updates).Error; e != nil {
 			return e
@@ -265,13 +265,13 @@ func (s *Service) RequireCommissionFundingExecution(ctx context.Context, t *gorm
 			return e
 		}
 		var blocked, disputeHeld ledger.Decimal
-		if e := t.Table("incentives_commission_entry_flags").Select("COALESCE(sum(blocked_usd),0)::text").Where("entry_id=? AND active", a.EntryID).Row().Scan(&blocked); e != nil {
+		if e := t.Table("incentives_commission_entry_flags").Select("COALESCE(sum(blocked_money),0)::text").Where("entry_id=? AND active", a.EntryID).Row().Scan(&blocked); e != nil {
 			return e
 		}
-		if e := t.Table("incentives_commission_funding_allocations x").Select("COALESCE(sum(x.amount_usd),0)::text").Joins("JOIN incentives_commission_funding_commands c ON c.id=x.command_id").Where("x.entry_id=? AND x.state='reserved' AND c.kind='dispute'", a.EntryID).Row().Scan(&disputeHeld); e != nil {
+		if e := t.Table("incentives_commission_funding_allocations x").Select("COALESCE(sum(x.amount_money),0)::text").Joins("JOIN incentives_commission_funding_commands c ON c.id=x.command_id").Where("x.entry_id=? AND x.state='reserved' AND c.kind='dispute'", a.EntryID).Row().Scan(&disputeHeld); e != nil {
 			return e
 		}
-		unreserved := lot.AmountUSD.Sub(lot.ConsumedUSD).Sub(lot.ReservedUSD).Add(disputeHeld)
+		unreserved := lot.AmountMoney.Sub(lot.ConsumedMoney).Sub(lot.ReservedMoney).Add(disputeHeld)
 		if blocked.Cmp(unreserved) > 0 {
 			return ErrBlocked
 		}
@@ -286,13 +286,13 @@ func (s *Service) RestoreCommissionFunding(ctx context.Context, t *gorm.DB, op, 
 	if e := s.LockBusiness(ctx, t, op); e != nil {
 		return e
 	}
-	var previous struct{ AmountUSD ledger.Decimal }
+	var previous struct{ AmountMoney ledger.Decimal }
 	q := t.Table("incentives_commission_funding_restorations").Where("order_id=? AND reference=?", order, reference).Limit(1).Find(&previous)
 	if q.Error != nil {
 		return q.Error
 	}
 	if q.RowsAffected > 0 {
-		if previous.AmountUSD.Cmp(amount) != 0 {
+		if previous.AmountMoney.Cmp(amount) != 0 {
 			return ErrConflict
 		}
 		return nil
@@ -311,7 +311,7 @@ func (s *Service) RestoreCommissionFunding(ctx context.Context, t *gorm.DB, op, 
 	weights := make([]ledger.Decimal, len(allocations))
 	total := ledger.Zero()
 	for i, a := range allocations {
-		weights[i] = a.AmountUSD.Sub(a.RestoredUSD)
+		weights[i] = a.AmountMoney.Sub(a.RestoredMoney)
 		total = total.Add(weights[i])
 	}
 	if amount.Cmp(total) > 0 {
@@ -325,29 +325,29 @@ func (s *Service) RestoreCommissionFunding(ctx context.Context, t *gorm.DB, op, 
 		if parts[i].IsZero() {
 			continue
 		}
-		if e = t.Model(&commissionLot{}).Where("entry_id=?", a.EntryID).Update("consumed_usd", gorm.Expr("consumed_usd-?", parts[i])).Error; e != nil {
+		if e = t.Model(&commissionLot{}).Where("entry_id=?", a.EntryID).Update("consumed_money", gorm.Expr("consumed_money-?", parts[i])).Error; e != nil {
 			return e
 		}
 		if e = s.expandRestoredFlags(t, a.EntryID, parts[i]); e != nil {
 			return e
 		}
-		if e = t.Model(&CommissionFundingAllocation{}).Where("id=?", a.ID).Update("restored_usd", a.RestoredUSD.Add(parts[i])).Error; e != nil {
+		if e = t.Model(&CommissionFundingAllocation{}).Where("id=?", a.ID).Update("restored_money", a.RestoredMoney.Add(parts[i])).Error; e != nil {
 			return e
 		}
 	}
 	type restoredSource struct {
 		AllocationID string         `json:"allocation_id"`
 		EntryID      string         `json:"entry_id"`
-		AmountUSD    ledger.Decimal `json:"amount_usd"`
+		AmountMoney  ledger.Decimal `json:"amount_money"`
 	}
 	sources := []restoredSource{}
 	for i, a := range allocations {
 		if parts[i].Sign() > 0 {
-			sources = append(sources, restoredSource{AllocationID: a.ID, EntryID: a.EntryID, AmountUSD: parts[i]})
+			sources = append(sources, restoredSource{AllocationID: a.ID, EntryID: a.EntryID, AmountMoney: parts[i]})
 		}
 	}
 	encoded, _ := json.Marshal(sources)
-	return t.Exec("INSERT INTO incentives_commission_funding_restorations(id,operator_id,customer_id,order_id,reference,amount_usd,allocations) VALUES(?,?,?,?,?,?,?::jsonb)", uuid.NewString(), op, customer, order, reference, amount, string(encoded)).Error
+	return t.Exec("INSERT INTO incentives_commission_funding_restorations(id,operator_id,customer_id,order_id,reference,amount_money,allocations) VALUES(?,?,?,?,?,?,?::jsonb)", uuid.NewString(), op, customer, order, reference, amount, string(encoded)).Error
 }
 
 type CommissionFundingView struct {

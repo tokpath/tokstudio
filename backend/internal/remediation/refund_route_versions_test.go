@@ -13,7 +13,7 @@ func TestPostgresRefundRerouteRequiresTerminalProofAndOnlySettlesRemainingPrinci
 	f.topup(t, "source-for-versioned-refund", "100")
 	f.s.Payments = payments.NewService(f.db, "isolated-versioned-refund-key", f.s.Organization, payments.NewTransport(true), payments.CommerceSink{Commerce: f.s.Commerce})
 	f.s.Payments.RefundApproval, f.s.Payments.RefundSink = f.s, f.s
-	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "versioned-return", AmountUSD: d("10"), Reason: "original receiving bank unavailable"})
+	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "versioned-return", AmountMoney: d("10"), Reason: "original receiving bank unavailable"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -62,7 +62,7 @@ func TestPostgresRefundRerouteRequiresTerminalProofAndOnlySettlesRemainingPrinci
 		t.Fatal(repeat, e)
 	}
 	closed, e := f.s.CloseRefundExecution(f.ctx, f.owner, f.operator, l.ID, closeInput)
-	if e != nil || closed.RemainingUSD.Cmp(d("10")) != 0 {
+	if e != nil || closed.RemainingMoney.Cmp(d("10")) != 0 {
 		t.Fatal(closed, e)
 	}
 	if repeat, e := f.s.CloseRefundExecution(f.ctx, f.owner, f.operator, l.ID, closeInput); e != nil || repeat.ID != closed.ID {
@@ -76,7 +76,7 @@ func TestPostgresRefundRerouteRequiresTerminalProofAndOnlySettlesRemainingPrinci
 		t.Fatal("closed route reused without new customer consent", e)
 	}
 	a2 := authorize("second", "bank:original-payer-2")
-	if a2.RouteVersion != 2 || a2.AmountUSD.Cmp(d("10")) != 0 || !a2.SettledBeforeUSD.IsZero() {
+	if a2.RouteVersion != 2 || a2.AmountMoney.Cmp(d("10")) != 0 || !a2.SettledBeforeMoney.IsZero() {
 		t.Fatal(a2)
 	}
 	m := payments.Merchant{ID: uuid.NewString(), OperatorID: f.operator, Driver: "manual", Enabled: true, Credentials: map[string]string{"currency": "USD", "recipient_reference": "bank:current-responsible-operator", "instructions": "independently verify actual outgoing transfer"}}
@@ -93,11 +93,11 @@ func TestPostgresRefundRerouteRequiresTerminalProofAndOnlySettlesRemainingPrinci
 		t.Fatal(first, e)
 	}
 	closedPartial, e := f.s.CloseRefundExecution(f.ctx, f.owner, f.operator, l.ID, RefundExecutionClosureInput{BusinessKey: "close-second", ExpectedExecutionKey: "second-instruction", Reason: "settled_partial", NoFurtherPaymentReference: "bank confirmed transfer final, no automatic retry or second transfer", Evidence: "remaining 1 USD will use newly authorized receiving account"})
-	if e != nil || closedPartial.SettledUSD.Cmp(d("9")) != 0 || closedPartial.RemainingUSD.Cmp(d("1")) != 0 {
+	if e != nil || closedPartial.SettledMoney.Cmp(d("9")) != 0 || closedPartial.RemainingMoney.Cmp(d("1")) != 0 {
 		t.Fatal(closedPartial, e)
 	}
 	a3 := authorize("third", "bank:original-payer-3")
-	if a3.RouteVersion != 3 || a3.AmountUSD.Cmp(d("1")) != 0 || a3.SettledBeforeUSD.Cmp(d("9")) != 0 {
+	if a3.RouteVersion != 3 || a3.AmountMoney.Cmp(d("1")) != 0 || a3.SettledBeforeMoney.Cmp(d("9")) != 0 {
 		t.Fatal("new authorization exceeded remaining principal", a3)
 	}
 	// Replaying the already closed stored execution is read-only and does not
@@ -130,7 +130,7 @@ func TestPostgresRefundRerouteRequiresTerminalProofAndOnlySettlesRemainingPrinci
 		t.Fatal("late fact replay lost review or repeated cash", out, e)
 	}
 	cap, e := f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, l.ReceiptID)
-	if e != nil || cap.CompletedUSD.Cmp(d("10")) != 0 || !cap.ReservedUSD.IsZero() {
+	if e != nil || cap.CompletedMoney.Cmp(d("10")) != 0 || !cap.ReservedMoney.IsZero() {
 		t.Fatal(cap, e)
 	}
 	if wallet := f.balance(t); wallet.Balance.Cmp(d("90")) != 0 || !wallet.Held.IsZero() {

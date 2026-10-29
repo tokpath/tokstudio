@@ -42,7 +42,7 @@ func TestPostgresReadableQuoteGeneratesReferencesAndFreezesAcceptedRules(t *test
 	}
 	publish := func(policy string) PurchaseQuote {
 		t.Helper()
-		q, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, Name: "日常采购", TermsSummary: "按实际到账交付", GiftTiers: []PurchaseGiftTier{{FromUSD: amount("0"), GiftPercent: amount("1100")}}, ExitPolicy: policy, Enabled: true, TermsReference: "client-controlled-reference", Version: 999})
+		q, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, Name: "日常采购", TermsSummary: "按实际到账交付", GiftTiers: []PurchaseGiftTier{{FromMoney: amount("0"), GiftPercent: amount("1100")}}, ExitPolicy: policy, Enabled: true, TermsReference: "client-controlled-reference", Version: 999})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -96,7 +96,7 @@ func TestPostgresCooperationRejectsForeignAndPathContractReferences(t *testing.T
 		}
 	}
 	for _, id := range []string{foreignID, pendingID, "/private/contracts/signed.pdf", "https://example.test/signed.pdf"} {
-		_, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: []PurchaseGiftTier{{FromUSD: amount("0"), GiftPercent: amount("900")}}, ContractAttachmentID: id, Enabled: true})
+		_, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: []PurchaseGiftTier{{FromMoney: amount("0"), GiftPercent: amount("900")}}, ContractAttachmentID: id, Enabled: true})
 		if !errors.Is(err, organization.ErrForbidden) && !errors.Is(err, organization.ErrInvalidInput) {
 			t.Fatalf("unowned contract accepted %q: %v", id, err)
 		}

@@ -6,6 +6,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db/dbtest"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -88,9 +89,20 @@ func TestPostgresSheetSyncPinsAcceptedPricesAndRetainsGoodSheet(t *testing.T) {
 }
 func TestPostgresActualCostRegistrationStaysSimpleAndScoped(t *testing.T) {
 	db := dbtest.New(t)
-	raw, _ := migrations.ReadFile("migrate/0001_init.sql")
-	if e := db.Exec(string(raw)).Error; e != nil {
-		t.Fatal(e)
+	_, ledgerFiles := ledger.Migrations()
+	entries, _ := fs.ReadDir(ledgerFiles, ".")
+	for _, entry := range entries {
+		raw, _ := fs.ReadFile(ledgerFiles, entry.Name())
+		if err := db.Exec(string(raw)).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	files, _ := fs.ReadDir(migrations, "migrate")
+	for _, file := range files {
+		raw, _ := migrations.ReadFile("migrate/" + file.Name())
+		if e := db.Exec(string(raw)).Error; e != nil {
+			t.Fatal(e)
+		}
 	}
 	if e := db.Exec(catalog.CommerceSchema()).Error; e != nil {
 		t.Fatal(e)
@@ -104,15 +116,16 @@ func TestPostgresActualCostRegistrationStaysSimpleAndScoped(t *testing.T) {
 	}
 	s := Service{DB: db}
 	ctx := context.Background()
-	row := ActualCost{ID: "record", ProviderID: "provider", SupplierModelID: "model", StartsAt: time.Now().Add(-time.Hour), EndsAt: time.Now(), AmountUSD: ledger.MustDecimal("92"), Note: "monthly bill"}
+	beforeRegistration := time.Now().Add(-time.Second)
+	row := ActualCost{ID: "record", ProviderID: "provider", SupplierModelID: "model", StartsAt: time.Now().Add(-time.Hour), EndsAt: time.Now(), Currency: "CNY", Amount: ledger.MustDecimal("92"), Note: "monthly bill", CreatedAt: time.Now().Add(-30 * 24 * time.Hour)}
 	if e := s.SaveActual(ctx, row, 0); e != nil {
 		t.Fatal(e)
 	}
 	records, e := s.Actuals(ctx)
-	if e != nil || len(records) != 1 || records[0].AmountUSD.String() != "92" {
+	if e != nil || len(records) != 1 || records[0].Amount.String() != "92" || records[0].Currency != "CNY" || records[0].CreatedAt.Before(beforeRegistration) {
 		t.Fatal(records, e)
 	}
-	row.AmountUSD = ledger.MustDecimal("91.5")
+	row.Amount = ledger.MustDecimal("91.5")
 	if e = s.SaveActual(ctx, row, 1); e != nil {
 		t.Fatal(e)
 	}

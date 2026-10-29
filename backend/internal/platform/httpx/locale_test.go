@@ -79,8 +79,8 @@ func TestNewErrorMessagesUseLocalizedCodeFallback(t *testing.T) {
 func TestClosureRequirementsTranslateWithoutChangingBalances(t *testing.T) {
 	amount := "0.000000000000000001"
 	for _, locale := range []string{"zh", "en", "ja", "ru"} {
-		text := LocalizedErrorMessage(locale, "unmet_requirements", "仍有未满足事项：frozen commission USD: "+amount+"；all requested, approved and uncertain withdrawals must be resolved")
-		want := LocalizedText(locale, "仍有未满足事项：") + strings.ReplaceAll(LocalizedText(locale, "frozen commission USD: {amount}"), "{amount}", amount) + "\n" + LocalizedText(locale, "all requested, approved and uncertain withdrawals must be resolved")
+		text := LocalizedErrorMessage(locale, "unmet_requirements", "仍有未满足事项：frozen commission 结算币种: "+amount+"；all requested, approved and uncertain withdrawals must be resolved")
+		want := LocalizedText(locale, "仍有未满足事项：") + strings.ReplaceAll(LocalizedText(locale, "frozen commission 结算币种: {amount}"), "{amount}", amount) + "\n" + LocalizedText(locale, "all requested, approved and uncertain withdrawals must be resolved")
 		if text != want || !strings.Contains(text, amount) {
 			t.Fatalf("locale %s lost a detailed requirement or exact amount: %q", locale, text)
 		}

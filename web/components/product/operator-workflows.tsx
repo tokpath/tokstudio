@@ -180,9 +180,9 @@ function OperatorSubjectContent({ operatorID, resource, row, close, fullPage = f
           </div>{subject.status && <Status value={subject.status} />}
         </div>{!profile && <>
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
-            <AmountFact label={t("订单应付")} value={subject.values.due_usd} />
-            <AmountFact label={t("外部款已分配")} value={subject.values.external_allocated_usd} />
-            {subject.values.kind === "supply" ? <><div><p className="mb-1 text-xs text-ink-mute">{t("采购方")}</p><p className="text-sm">{String(subject.values.counterparty_name || "—")}</p></div><AmountFact label={t("赠送权益")} value={subject.values.gift_atg} unit="ATG" /></> : <><AmountFact label={t("USD 余额支付")} value={subject.values.internal_usd} /><AmountFact label={t("佣金支付")} value={subject.values.commission_usd} /></>}
+            <AmountFact label={t("订单应付")} value={subject.values.due_money} />
+            <AmountFact label={t("外部款已分配")} value={subject.values.external_allocated_money} />
+            {subject.values.kind === "supply" ? <><div><p className="mb-1 text-xs text-ink-mute">{t("采购方")}</p><p className="text-sm">{String(subject.values.counterparty_name || "—")}</p></div><AmountFact label={t("赠送权益")} value={subject.values.gift_atg} unit="ATG" /></> : <><AmountFact label={t("结算币种 余额支付")} value={subject.values.internal_money} /><AmountFact label={t("佣金支付")} value={subject.values.commission_money} /></>}
             <AmountFact label={t("购买权益")} value={subject.values.paid_atg} unit="ATG" />
             <div>
               <p className="mb-1 text-xs text-ink-mute">{t("实际交付")}</p>
@@ -226,7 +226,7 @@ function OperatorSubjectContent({ operatorID, resource, row, close, fullPage = f
   </Container>;
 }
 
-function AmountFact({ label, value, unit = "USD" }: { label: string; value?: JSONValue; unit?: string }) {
+function AmountFact({ label, value, unit = "MONEY" }: { label: string; value?: JSONValue; unit?: string }) {
   const { t } = useI18n();
   return <div>
     <p className="mb-1 text-xs text-ink-mute">{t(label)}
@@ -253,7 +253,7 @@ function OrderProgress({ subject }: { subject: Entity }) {
     </div>
   </div>;
 }
-function orderKindLabel(kind?: JSONValue) { return ({ supply: "供货采购订单", package: "套餐购买订单", topup: "USD 余额充值订单", renewal: "套餐续费订单", package_purchase: "套餐购买订单", package_renewal: "套餐续费订单", customer_usd_topup: "USD 余额充值订单" } as Record<string, string>)[String(kind)] || "原始订单"; }
+function orderKindLabel(kind?: JSONValue) { return ({ supply: "供货采购订单", package: "套餐购买订单", topup: "结算币种 余额充值订单", renewal: "套餐续费订单", package_purchase: "套餐购买订单", package_renewal: "套餐续费订单", customer_money_topup: "结算币种 余额充值订单" } as Record<string, string>)[String(kind)] || "原始订单"; }
 function TaskRow({ title, description, count, href }: { title: string; description: string; count: string; href?: string }) {
   const { t } = useI18n();
   const body = <>
@@ -301,7 +301,7 @@ const metricDefinitions: { key: string; label: string; unit?: string; detail: st
   { key: "procurement_available_atg", label: "可用采购余额", unit: "ATG", detail: "用于真实模型调用；不提供采购授信。", resource: "procurement" },
   { key: "oversell_used_atg", label: "已使用超卖空间", unit: "ATG", detail: "只影响销售承载，不代表可以欠款调用。", resource: "coverage" },
   { key: "pending_receipt_facts", label: "实际款待核实与入账", detail: "先核实已收款原事实，避免让客户重复付款。", task: "处理实际款入账", resource: "receipt-valuations" },
-  { key: "awaiting_valuation_receipts", label: "实际款待估值", detail: "按实际付款时点的独立估值证据办理。", task: "核实原币收款估值", resource: "receipt-valuations" },
+  { key: "awaiting_settlement_receipts", label: "收款待核实结算金额", detail: "核实实际收款事实及订单结算金额。", task: "核实收款结算金额", resource: "receipt-valuations" },
   { key: "pending_usage", label: "用量待核实请求", detail: "先查询原请求结果，再核实占用与结算。", task: "排查未决模型请求", resource: "requests" },
   { key: "unverified_costs", label: "供应成本待核实", detail: "保留未决成本，不将未知金额计作零成本。", task: "核实供应商成本", resource: "requests" },
 ];
@@ -310,8 +310,8 @@ type Workflow = { eyebrow: string; title: string; description: string; steps: [s
 const workflows: Record<string, Workflow> = {
   customers: { eyebrow: "客户服务", title: "围绕一个客户，处理完整服务", description: "按姓名、邮箱或编号找到本经营方客户，进入客户工作台查看订单、资产和已授权的服务记录。", steps: [["找到客户", "核对邮箱、注册时间与当前归属。"], ["查看业务上下文", "客户工作台集中展示精确关联的订单、资产和售后。"], ["在原业务办理", "保留收款、交付、退款与推广记录各自的状态。"]], links: ["orders", "gifts", "restrictions"] },
   orders: { eyebrow: "资金办理 · 订单", title: "从成交到交付，一笔订单办到底", description: "收款事实、资金分配和权益发放分别核实。打开订单查看关联收款、付款证据与下一步办理。", steps: [["核对成交", "保留套餐版本、应付金额和购买/赠送条款。"], ["核实资金", "核实真实到账，按原订单分配，差额与费用独立记录。"], ["完成交付", "资金足额且覆盖满足后发放；异常沿用原订单重试。"]], links: ["payments", "refunds"] },
-  payments: { eyebrow: "资金办理 · 收款", title: "核实真实到账，再分配至原订单", description: "每笔收款保留实际币种、付款时点、估值和银行或通道证据。查看详情核对原始事实，按需办理分配。", steps: [["确认收款事实", "先核查外部唯一流水、收款账号和原币金额。"], ["核实本次估值", "尚未确定 USD 价值的真实款，先到估值待办核实。"], ["分配并追踪交付", "选取原订单及可分配金额，随后查看订单交付。"]], links: ["orders", "reconciliation"] },
-  plans: { eyebrow: "商品与定价", title: "把套餐条款做成清楚的商品", description: "设置套餐总售价，分别记录购买额度与赠送额度。修改后新订单使用新条件，已有成交保留原条款。", steps: [["定义商品", "确认成交 USD、购买/赠送 ATG、有效期和公开条款。"], ["准备销售", "核对收款就绪、模型价格和销售承载空间。"], ["发布与续费", "分别控制新购与续费；涨价或权益减少时，由客户重新确认。"]], links: ["pricing", "payment-methods", "coverage", "marketing"] },
+  payments: { eyebrow: "资金办理 · 收款", title: "核实真实到账，再分配至原订单", description: "每笔收款保留实际币种、付款时点、结算金额和银行或通道证据。查看详情核对原始事实，按需办理分配。", steps: [["确认收款事实", "先核查外部唯一流水、收款账号和原币金额。"], ["核实结算金额", "尚未确定结算金额的真实款，先到收款待办核实。"], ["分配并追踪交付", "选取原订单及可分配金额，随后查看订单交付。"]], links: ["orders", "reconciliation"] },
+  plans: { eyebrow: "商品与定价", title: "把套餐条款做成清楚的商品", description: "设置套餐总售价，分别记录购买额度与赠送额度。修改后新订单使用新条件，已有成交保留原条款。", steps: [["定义商品", "确认成交 结算币种、购买/赠送 ATG、有效期和公开条款。"], ["准备销售", "核对收款就绪、模型价格和销售承载空间。"], ["发布与续费", "分别控制新购与续费；涨价或权益减少时，由客户重新确认。"]], links: ["pricing", "payment-methods", "coverage", "marketing"] },
   pricing: { eyebrow: "商品与定价", title: "管理上架模型与各层调用价", description: "模型调用价格与采购额度的购买报价分别管理。新价格适用于新受理请求，已有请求保留受理快照。", steps: [["核对模型授权", "在已授权范围选择上架，平台停用后不能继续受理。"], ["设置有效价格", "设置客户或直属下级的 ATG 单价，也可按倍率跟随上级供货价。"], ["通知并检查覆盖", "系统自动处理调价通知、生效安排和承载重算。"]], links: ["coverage", "procurement", "plans"] },
   marketing: { eyebrow: "营销与推广", title: "套餐活动与 KOL 推广", description: "设置套餐活动价或加赠，按时间、客户范围和名额生效。需要与 KOL 优惠同享时，在对应活动上开放组合。", steps: [], links: [] },
   commissions: { eyebrow: "营销与推广", title: "公布推荐规则，保留每笔佣金依据", description: "在此设置注册赠送和 KOL 规则；客户的推广收益与功能状态，在客户工作台查看和办理。", steps: [], links: [] },

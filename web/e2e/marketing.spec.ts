@@ -33,12 +33,12 @@ test("operator configures readable commissions, publishes a named offer without 
   await panel.getByLabel("活动名称（留空使用套餐名称）", { exact: true }).fill("Browser simple offer");
   await expect(panel.getByLabel("适用套餐", { exact: true })).toBeEnabled();
   await panel.getByLabel("适用套餐", { exact: true }).fill(customerFixture.other_plan_id);
-  await panel.getByLabel("活动售价 USD（留空使用套餐售价）", { exact: true }).fill("75");
+  await panel.getByLabel("活动售价 结算币种（留空使用套餐售价）", { exact: true }).fill("75");
   await panel.getByLabel("额外赠送 ATG", { exact: true }).fill("7");
   await panel.getByLabel("开始时间", { exact: true }).fill(new Date(Date.now() - 60_000).toISOString().slice(0, 16));
   await panel.getByLabel("结束时间", { exact: true }).fill(new Date(Date.now() + 86400_000).toISOString().slice(0, 16));
   await expect(panel.getByLabel("赠送总预算 ATG", { exact: true })).toHaveCount(0);
-  await expect(panel.getByLabel("折扣总预算 USD", { exact: true })).toHaveCount(0);
+  await expect(panel.getByLabel("折扣总预算 结算币种", { exact: true })).toHaveCount(0);
   const publish = page.waitForResponse(response => response.url().endsWith(`/operators/${op}/marketing`) && response.request().method() === "POST");
   await panel.getByRole("button", { name: "创建套餐活动", exact: true }).click();
   const published = await publish;

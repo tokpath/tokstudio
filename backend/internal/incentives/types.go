@@ -31,7 +31,7 @@ type Policy struct {
 	ID                    string         `json:"id"`
 	OperatorID            string         `json:"operator_id"`
 	Version               int64          `json:"version"`
-	ThresholdUSD          ledger.Decimal `json:"threshold_usd"`
+	ThresholdMoney        ledger.Decimal `json:"threshold_money"`
 	DirectRate            ledger.Decimal `json:"direct_rate"`
 	IndirectRate          ledger.Decimal `json:"indirect_rate"`
 	ConfirmationSeconds   int64          `json:"confirmation_seconds"`
@@ -44,7 +44,7 @@ type Policy struct {
 }
 type PolicyInput struct {
 	Evidence              string         `json:"evidence"`
-	ThresholdUSD          ledger.Decimal `json:"threshold_usd"`
+	ThresholdMoney        ledger.Decimal `json:"threshold_money"`
 	DirectRate            ledger.Decimal `json:"direct_rate"`
 	IndirectRate          ledger.Decimal `json:"indirect_rate"`
 	ConfirmationSeconds   int64          `json:"confirmation_seconds"`
@@ -58,10 +58,10 @@ type Qualification struct {
 	OriginalOperatorID string         `json:"original_operator_id" gorm:"default:(-)"`
 	OperatorID         string         `json:"operator_id"`
 	CustomerID         string         `json:"customer_id"`
-	ConfirmedUSD       ledger.Decimal `json:"confirmed_usd"`
+	ConfirmedMoney     ledger.Decimal `json:"confirmed_money"`
 	AcquiredAt         *time.Time     `json:"acquired_at"`
 	AcquiredPolicyID   *string        `json:"acquired_policy_id"`
-	PendingOffsetUSD   ledger.Decimal `json:"pending_offset_usd"`
+	PendingOffsetMoney ledger.Decimal `json:"pending_offset_money"`
 }
 type FunctionState struct {
 	OriginalOperatorID string    `json:"original_operator_id" gorm:"default:(-)"`
@@ -89,25 +89,25 @@ type CampaignInput struct {
 	Enabled          bool            `json:"enabled"`
 	StartsAt         time.Time       `json:"starts_at"`
 	EndsAt           time.Time       `json:"ends_at"`
-	FinalPriceUSD    *ledger.Decimal `json:"final_price_usd"`
+	FinalPriceMoney  *ledger.Decimal `json:"final_price_money"`
 	GiftATG          ledger.Decimal  `json:"gift_atg"`
 	ConcessionRate   ledger.Decimal  `json:"concession_rate"`
 	PerCustomerLimit int64           `json:"per_customer_limit"`
 	TotalUseLimit    int64           `json:"total_use_limit"`
 }
 type Campaign struct {
-	OriginalOperatorID  string         `json:"original_operator_id" gorm:"default:(-)"`
-	ID                  string         `json:"id"`
-	OperatorID          string         `json:"operator_id"`
-	Kind                string         `json:"kind"`
-	OwnerCustomerID     *string        `json:"owner_customer_id"`
-	CurrentVersion      int64          `json:"current_version"`
-	ReservedGiftATG     ledger.Decimal `json:"reserved_gift_atg"`
-	UsedGiftATG         ledger.Decimal `json:"used_gift_atg"`
-	ReservedDiscountUSD ledger.Decimal `json:"reserved_discount_usd"`
-	UsedDiscountUSD     ledger.Decimal `json:"used_discount_usd"`
-	ReservedUses        int64          `json:"reserved_uses"`
-	UsedUses            int64          `json:"used_uses"`
+	OriginalOperatorID    string         `json:"original_operator_id" gorm:"default:(-)"`
+	ID                    string         `json:"id"`
+	OperatorID            string         `json:"operator_id"`
+	Kind                  string         `json:"kind"`
+	OwnerCustomerID       *string        `json:"owner_customer_id"`
+	CurrentVersion        int64          `json:"current_version"`
+	ReservedGiftATG       ledger.Decimal `json:"reserved_gift_atg"`
+	UsedGiftATG           ledger.Decimal `json:"used_gift_atg"`
+	ReservedDiscountMoney ledger.Decimal `json:"reserved_discount_money"`
+	UsedDiscountMoney     ledger.Decimal `json:"used_discount_money"`
+	ReservedUses          int64          `json:"reserved_uses"`
+	UsedUses              int64          `json:"used_uses"`
 }
 type CampaignVersion struct {
 	Name             string          `json:"name"`
@@ -119,7 +119,7 @@ type CampaignVersion struct {
 	Enabled          bool            `json:"enabled"`
 	StartsAt         time.Time       `json:"starts_at"`
 	EndsAt           time.Time       `json:"ends_at"`
-	FinalPriceUSD    *ledger.Decimal `json:"final_price_usd"`
+	FinalPriceMoney  *ledger.Decimal `json:"final_price_money"`
 	GiftATG          ledger.Decimal  `json:"gift_atg"`
 	ConcessionRate   ledger.Decimal  `json:"concession_rate"`
 	PerCustomerLimit int64           `json:"per_customer_limit"`
@@ -148,7 +148,7 @@ type OrderSnapshot struct {
 	KOLCustomerID      *string        `json:"kol_customer_id"`
 	MerchantGiftATG    ledger.Decimal `json:"merchant_gift_atg"`
 	KOLGiftATG         ledger.Decimal `json:"kol_gift_atg"`
-	DiscountUSD        ledger.Decimal `json:"discount_usd"`
+	DiscountMoney      ledger.Decimal `json:"discount_money"`
 	GiftRemainder      string         `json:"gift_remainder"`
 	Status             string         `json:"status"`
 	CreatedAt          time.Time      `json:"created_at"`
@@ -159,7 +159,7 @@ type GrantEventInput struct {
 	CustomerID       string         `json:"customer_id"`
 	OrderID          string         `json:"order_id"`
 	Kind             string         `json:"kind"`
-	PaidUSD          ledger.Decimal `json:"paid_usd"`
+	PaidMoney        ledger.Decimal `json:"paid_money"`
 	OccurredAt       time.Time      `json:"occurred_at"`
 	BusinessSequence int64          `json:"business_sequence"`
 }
@@ -171,7 +171,7 @@ type ConfirmationEvent struct {
 	CustomerID         string         `json:"customer_id"`
 	OrderID            string         `json:"order_id"`
 	Kind               string         `json:"kind"`
-	PaidUSD            ledger.Decimal `json:"paid_usd"`
+	PaidMoney          ledger.Decimal `json:"paid_money"`
 	PolicyID           string         `json:"policy_id"`
 	OccurredAt         time.Time      `json:"occurred_at"`
 	SourceOccurredAt   time.Time      `json:"source_occurred_at"`
@@ -189,9 +189,9 @@ type CommissionEntry struct {
 	OrderID            string         `json:"order_id"`
 	BeneficiaryID      string         `json:"beneficiary_id"`
 	Hop                int            `json:"hop"`
-	AmountUSD          ledger.Decimal `json:"amount_usd"`
-	ReversedUSD        ledger.Decimal `json:"reversed_usd"`
-	OffsetUSD          ledger.Decimal `json:"offset_usd"`
+	AmountMoney        ledger.Decimal `json:"amount_money"`
+	ReversedMoney      ledger.Decimal `json:"reversed_money"`
+	OffsetMoney        ledger.Decimal `json:"offset_money"`
 	Status             string         `json:"status"`
 	ConfirmAt          time.Time      `json:"confirm_at"`
 	CreatedAt          time.Time      `json:"created_at"`
@@ -202,14 +202,14 @@ type CorrectionInput struct {
 	OriginalEventID string         `json:"original_event_id"`
 	BusinessKey     string         `json:"business_key"`
 	Evidence        string         `json:"evidence"`
-	AmountUSD       ledger.Decimal `json:"amount_usd"`
+	AmountMoney     ledger.Decimal `json:"amount_money"`
 }
 type WithdrawalPolicy struct {
 	ID                   string         `json:"id"`
 	OperatorID           string         `json:"operator_id"`
 	Version              int64          `json:"version"`
-	MinimumUSD           ledger.Decimal `json:"minimum_usd"`
-	FlatFeeUSD           ledger.Decimal `json:"flat_fee_usd"`
+	MinimumMoney         ledger.Decimal `json:"minimum_money"`
+	FlatFeeMoney         ledger.Decimal `json:"flat_fee_money"`
 	FeeRate              ledger.Decimal `json:"fee_rate"`
 	RequiresDualApproval bool           `json:"requires_dual_approval"`
 	MethodReference      string         `json:"method_reference"`
@@ -221,13 +221,13 @@ type WithdrawalInput struct {
 	BusinessKey        string         `json:"business_key"`
 	RecipientReference string         `json:"recipient_reference"`
 	PolicyID           string         `json:"policy_id"`
-	AmountUSD          ledger.Decimal `json:"amount_usd"`
+	AmountMoney        ledger.Decimal `json:"amount_money"`
 }
 type WithdrawalQuote struct {
 	Policy       WithdrawalPolicy `json:"policy"`
-	AmountUSD    ledger.Decimal   `json:"amount_usd"`
-	FeeUSD       ledger.Decimal   `json:"fee_usd"`
-	NetUSD       ledger.Decimal   `json:"net_usd"`
+	AmountMoney  ledger.Decimal   `json:"amount_money"`
+	FeeMoney     ledger.Decimal   `json:"fee_money"`
+	NetMoney     ledger.Decimal   `json:"net_money"`
 	FeeRemainder string           `json:"fee_remainder"`
 }
 type Withdrawal struct {
@@ -238,9 +238,9 @@ type Withdrawal struct {
 	BusinessKey        string         `json:"business_key"`
 	Fingerprint        string         `json:"fingerprint"`
 	PolicyID           string         `json:"policy_id"`
-	AmountUSD          ledger.Decimal `json:"amount_usd"`
-	FeeUSD             ledger.Decimal `json:"fee_usd"`
-	NetUSD             ledger.Decimal `json:"net_usd"`
+	AmountMoney        ledger.Decimal `json:"amount_money"`
+	FeeMoney           ledger.Decimal `json:"fee_money"`
+	NetMoney           ledger.Decimal `json:"net_money"`
 	FeeRemainder       string         `json:"fee_remainder"`
 	RecipientReference string         `json:"recipient_reference"`
 	HoldID             string         `json:"hold_id"`
@@ -259,7 +259,7 @@ type WithdrawalPaymentProof struct {
 	Currency          string         `json:"currency"`
 	OriginalAmount    string         `json:"original_amount"`
 	ValuationEvidence string         `json:"valuation_evidence"`
-	PaidUSD           ledger.Decimal `json:"paid_usd"`
+	PaidMoney         ledger.Decimal `json:"paid_money"`
 	PaidAt            time.Time      `json:"paid_at"`
 }
 type RegistrationPromise struct {

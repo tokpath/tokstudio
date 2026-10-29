@@ -18,20 +18,20 @@ export function totalCredits(...amounts: string[]) {
 }
 export function fundingSuggestion(amount: string, availableBalance: string, availableCommission = "0", useCommission = false) {
   const total = units(amount), balance = units(availableBalance), commission = useCommission ? units(availableCommission) : 0n;
-  const usdBalance = total < balance ? total : balance;
-  const remaining = total - usdBalance;
-  const commissionUSD = remaining < commission ? remaining : commission;
-  return { balance: decimal(usdBalance), commission: decimal(commissionUSD), external: decimal(remaining - commissionUSD) };
+  const moneyBalance = total < balance ? total : balance;
+  const remaining = total - moneyBalance;
+  const commissionMoney = remaining < commission ? remaining : commission;
+  return { balance: decimal(moneyBalance), commission: decimal(commissionMoney), external: decimal(remaining - commissionMoney) };
 }
 export function fundingPreview(amount: string, balance: string, commission: string, availableBalance?: string, availableCommission?: string, locale: Locale = "zh") {
   const t = (source: string) => translate(locale, source);
   try {
     const total = units(amount), b = units(balance), c = units(commission);
-    if (availableBalance !== undefined && b > units(availableBalance)) return { error: t("所选 USD 支付余额超过当前可用金额。") };
+    if (availableBalance !== undefined && b > units(availableBalance)) return { error: t("所选 结算币种 支付余额超过当前可用金额。") };
     if (availableCommission !== undefined && c > units(availableCommission)) return { error: t("所选佣金超过当前可用金额。") };
     if (b + c > total) return { error: t("支付来源合计超过本次应付，请调整分配。") };
     return { external: decimal(total - b - c) };
-  } catch { return { error: t("请输入非负十进制 USD 金额，最多 24 位小数。") }; }
+  } catch { return { error: t("请输入非负十进制 结算币种 金额，最多 24 位小数。") }; }
 }
 export const planPeriods: Record<string, string> = { unlimited: "不限时", month: "一个日历月", quarter: "三个日历月", year: "十二个日历月" };
 export const budgetPeriods = { lifetime: "不限时累计", month: "自然月", quarter: "自然季", year: "自然年" };

@@ -36,7 +36,7 @@ func (s *Service) PreviewQuote(ctx context.Context, tx *gorm.DB, customer, opera
 		if err = tx.SavePoint(point).Error; err != nil {
 			return err
 		}
-		o := commerce.Order{ID: id, CustomerID: customer, OperatorID: operator, BrandID: own.BrandID, OwnershipVersion: own.Version, QuoteID: &quote.ID, DueUSD: quote.PriceUSD, PaidATG: quote.PaidATG, PackageGiftATG: quote.GiftATG}
+		o := commerce.Order{ID: id, CustomerID: customer, OperatorID: operator, BrandID: own.BrandID, OwnershipVersion: own.Version, QuoteID: &quote.ID, DueMoney: quote.PriceMoney, PaidATG: quote.PaidATG, PackageGiftATG: quote.GiftATG}
 		out, err = s.Quote(ctx, tx, o, selection)
 		rollback := tx.RollbackTo(point).Error
 		if rollback != nil {
@@ -57,7 +57,7 @@ type ActivityOffer struct {
 	Kind                  string          `json:"kind"`
 	OwnerCustomerID       *string         `json:"owner_customer_id"`
 	PackageID             string          `json:"package_id"`
-	FinalPriceUSD         *ledger.Decimal `json:"final_price_usd"`
+	FinalPriceMoney       *ledger.Decimal `json:"final_price_money"`
 	GiftATG               ledger.Decimal  `json:"gift_atg"`
 	ConcessionRate        ledger.Decimal  `json:"concession_rate"`
 	StartsAt              time.Time       `json:"starts_at"`
@@ -128,7 +128,7 @@ func (s *Service) EligibleActivities(ctx context.Context, tx *gorm.DB, operator,
 			if name == "" {
 				name = p.Name
 			}
-			offer := ActivityOffer{Name: name, ID: c.ID, Kind: c.Kind, OwnerCustomerID: c.OwnerCustomerID, PackageID: v.PackageID, FinalPriceUSD: v.FinalPriceUSD, GiftATG: v.GiftATG, ConcessionRate: v.ConcessionRate, StartsAt: v.StartsAt, EndsAt: v.EndsAt, PerCustomerLimit: v.PerCustomerLimit, Eligible: previewErr == nil}
+			offer := ActivityOffer{Name: name, ID: c.ID, Kind: c.Kind, OwnerCustomerID: c.OwnerCustomerID, PackageID: v.PackageID, FinalPriceMoney: v.FinalPriceMoney, GiftATG: v.GiftATG, ConcessionRate: v.ConcessionRate, StartsAt: v.StartsAt, EndsAt: v.EndsAt, PerCustomerLimit: v.PerCustomerLimit, Eligible: previewErr == nil}
 			if previewErr != nil {
 				offer.Reason = previewErr.Error()
 			}
@@ -211,15 +211,15 @@ func (s *Service) managedCampaigns(tx *gorm.DB, rows []campaignRow) ([]ManagedCa
 }
 
 type PromotionOverview struct {
-	Qualification         Qualification  `json:"qualification"`
-	FunctionState         FunctionState  `json:"function_state"`
-	DirectInvites         int64          `json:"direct_invites"`
-	IndirectInvites       int64          `json:"indirect_invites"`
-	FrozenUSD             ledger.Decimal `json:"frozen_usd"`
-	AvailableUSD          ledger.Decimal `json:"available_usd"`
-	HeldUSD               ledger.Decimal `json:"held_usd"`
-	PendingConsumptionUSD ledger.Decimal `json:"pending_consumption_usd"`
-	PendingCorrectionUSD  ledger.Decimal `json:"pending_correction_usd"`
+	Qualification           Qualification  `json:"qualification"`
+	FunctionState           FunctionState  `json:"function_state"`
+	DirectInvites           int64          `json:"direct_invites"`
+	IndirectInvites         int64          `json:"indirect_invites"`
+	FrozenMoney             ledger.Decimal `json:"frozen_money"`
+	AvailableMoney          ledger.Decimal `json:"available_money"`
+	HeldMoney               ledger.Decimal `json:"held_money"`
+	PendingConsumptionMoney ledger.Decimal `json:"pending_consumption_money"`
+	PendingCorrectionMoney  ledger.Decimal `json:"pending_correction_money"`
 }
 
 // FunctionStateForOperator is a read projection. Unlike PromotionOverview it
@@ -272,13 +272,13 @@ func (s *Service) PromotionOverview(ctx context.Context, tx *gorm.DB, operator, 
 		if err != nil {
 			return err
 		}
-		out.FrozenUSD = frozen.Balance
-		out.AvailableUSD = available.Available()
-		out.HeldUSD = available.Held
-		if err = tx.Raw(`SELECT COALESCE(sum(CASE WHEN e.kind IN ('usage','expiry') THEN e.paid_usd WHEN original.status IN ('pending','disputed') THEN e.paid_usd ELSE 0 END),0)::text FROM incentives_confirmation_events e LEFT JOIN incentives_confirmation_events original ON original.id=e.original_event_id WHERE e.operator_id=? AND e.customer_id=? AND e.status IN ('pending','disputed')`, operator, customer).Row().Scan(&out.PendingConsumptionUSD); err != nil {
+		out.FrozenMoney = frozen.Balance
+		out.AvailableMoney = available.Available()
+		out.HeldMoney = available.Held
+		if err = tx.Raw(`SELECT COALESCE(sum(CASE WHEN e.kind IN ('usage','expiry') THEN e.paid_money WHEN original.status IN ('pending','disputed') THEN e.paid_money ELSE 0 END),0)::text FROM incentives_confirmation_events e LEFT JOIN incentives_confirmation_events original ON original.id=e.original_event_id WHERE e.operator_id=? AND e.customer_id=? AND e.status IN ('pending','disputed')`, operator, customer).Row().Scan(&out.PendingConsumptionMoney); err != nil {
 			return err
 		}
-		if err = tx.Raw(`SELECT COALESCE(sum(-paid_usd),0)::text FROM incentives_confirmation_events WHERE operator_id=? AND customer_id=? AND kind='correction' AND status IN ('pending','disputed')`, operator, customer).Row().Scan(&out.PendingCorrectionUSD); err != nil {
+		if err = tx.Raw(`SELECT COALESCE(sum(-paid_money),0)::text FROM incentives_confirmation_events WHERE operator_id=? AND customer_id=? AND kind='correction' AND status IN ('pending','disputed')`, operator, customer).Row().Scan(&out.PendingCorrectionMoney); err != nil {
 			return err
 		}
 		return nil

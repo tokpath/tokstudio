@@ -116,7 +116,12 @@ func (d EVMWallet) Create(_ context.Context, m Merchant, o Order) (Checkout, err
 	if o.Validate(m) != nil || o.Money.Currency != m.Credentials["asset"] {
 		return Checkout{}, ErrInvalid
 	}
-	return Checkout{State: "pending", PaymentAddress: m.Credentials["wallet_address"], PayMoney: &o.Money}, nil
+	settlement := o.Settlement()
+	checkout := Checkout{State: "pending", PaymentAddress: m.Credentials["wallet_address"], Instructions: "请按双方确认的原币付款金额转账；实际收款后由收款方核实对应订单清算金额。", SettlementMoney: &settlement}
+	if o.Money.Currency == settlement.Currency {
+		checkout.PayMoney = &o.Money
+	}
+	return checkout, nil
 }
 func (d EVMWallet) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 	return d.lookupTransfer(ctx, m, o, "", true)

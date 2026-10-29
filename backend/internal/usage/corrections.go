@@ -29,7 +29,7 @@ type ChargeCorrection struct {
 	Fingerprint string          `json:"-"`
 	AmountATG   ledger.Decimal  `json:"amount_atg"`
 	ReturnedATG ledger.Decimal  `json:"returned_atg"`
-	PaidUSD     ledger.Decimal  `json:"paid_usd"`
+	PaidMoney     ledger.Decimal  `json:"paid_money"`
 	Reversals   json.RawMessage `gorm:"type:jsonb" json:"reversals"`
 	Evidence    string          `json:"evidence"`
 	ActorID     string          `json:"actor_id"`
@@ -126,8 +126,8 @@ func (s *Service) CorrectCustomerCharge(ctx context.Context, tx *gorm.DB, in Cha
 				if e != nil {
 					return e
 				}
-				if r.Reversal.PaidUSD.Sign() > 0 {
-					if e = commissions.ReverseEvent(ctx, t, incentives.CorrectionInput{ActorStaffID: in.ActorID, OperatorID: in.OperatorID, OriginalEventID: event.ID, BusinessKey: "usage-correction:" + r.Reversal.ID, Evidence: in.Evidence, AmountUSD: r.Reversal.PaidUSD}); e != nil {
+				if r.Reversal.PaidMoney.Sign() > 0 {
+					if e = commissions.ReverseEvent(ctx, t, incentives.CorrectionInput{ActorStaffID: in.ActorID, OperatorID: in.OperatorID, OriginalEventID: event.ID, BusinessKey: "usage-correction:" + r.Reversal.ID, Evidence: in.Evidence, AmountMoney: r.Reversal.PaidMoney}); e != nil {
 						return e
 					}
 				}
@@ -135,11 +135,11 @@ func (s *Service) CorrectCustomerCharge(ctx context.Context, tx *gorm.DB, in Cha
 					return e
 				}
 				reversals = append(reversals, r.Reversal)
-				paid = paid.Add(r.Reversal.PaidUSD)
+				paid = paid.Add(r.Reversal.PaidMoney)
 			}
 		}
 		b, _ := json.Marshal(reversals)
-		out = ChargeCorrection{ID: uuid.NewString(), RequestID: req.ID, OperatorID: in.OperatorID, BusinessKey: in.BusinessKey, Fingerprint: s.fingerprint(in), AmountATG: in.AmountATG, ReturnedATG: toReturn, PaidUSD: paid, Reversals: b, Evidence: in.Evidence, ActorID: in.ActorID, CreatedAt: at}
+		out = ChargeCorrection{ID: uuid.NewString(), RequestID: req.ID, OperatorID: in.OperatorID, BusinessKey: in.BusinessKey, Fingerprint: s.fingerprint(in), AmountATG: in.AmountATG, ReturnedATG: toReturn, PaidMoney: paid, Reversals: b, Evidence: in.Evidence, ActorID: in.ActorID, CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}

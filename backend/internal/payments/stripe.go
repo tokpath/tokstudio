@@ -19,8 +19,8 @@ type Stripe struct{ HTTP *Transport }
 func (Stripe) Name() string { return "stripe" }
 func (Stripe) Validate(m Merchant) []string {
 	missing := required(m, "secret_key", "publishable_key", "webhook_secret", "currency")
-	if m.Credentials["currency"] != "USD" {
-		missing = append(missing, "currency_must_be_USD")
+	if _, ok := stripeMinorDigits(m.Credentials["currency"]); !ok {
+		missing = append(missing, "supported_presentment_currency")
 	}
 	return missing
 }
@@ -45,14 +45,15 @@ func (d Stripe) Create(ctx context.Context, m Merchant, o Order) (Checkout, erro
 	if e := ready(m, d); e != nil {
 		return Checkout{}, e
 	}
-	if o.Validate(m) != nil || o.Money.Currency != "USD" {
+	digits, supported := stripeMinorDigits(o.Money.Currency)
+	if o.Validate(m) != nil || !supported || o.Money.Currency != m.Credentials["currency"] {
 		return Checkout{}, ErrInvalid
 	}
-	minor, e := o.Money.Minor(2)
+	minor, e := o.Money.Minor(digits)
 	if e != nil {
 		return Checkout{}, e
 	}
-	form := url.Values{"amount": {strconv.FormatInt(minor, 10)}, "currency": {"usd"}, "metadata[order_id]": {o.ID}, "metadata[operator_id]": {o.OperatorID}, "automatic_payment_methods[enabled]": {"true"}}
+	form := url.Values{"amount": {strconv.FormatInt(minor, 10)}, "currency": {strings.ToLower(o.Money.Currency)}, "metadata[order_id]": {o.ID}, "metadata[operator_id]": {o.OperatorID}, "automatic_payment_methods[enabled]": {"true"}}
 	if o.PaymentMethod != "" {
 		if o.CustomerRef == "" || o.AuthorizationID == "" {
 			return Checkout{}, ErrForbidden
@@ -101,7 +102,11 @@ func (d Stripe) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 	if pi.Status != "succeeded" {
 		return Fact{}, ErrNotFinal
 	}
-	money, e := fromMinor(pi.Currency, pi.AmountReceived, 2)
+	digits, ok := stripeMinorDigits(strings.ToUpper(pi.Currency))
+	if !ok {
+		return Fact{}, ErrUnsupported
+	}
+	money, e := fromMinor(pi.Currency, pi.AmountReceived, digits)
 	if e != nil {
 		return Fact{}, e
 	}
@@ -114,7 +119,11 @@ func (d Stripe) Refund(ctx context.Context, m Merchant, r Refund) (RefundStatus,
 	if r.Validate(m) != nil || r.Order.ProviderID == "" {
 		return RefundStatus{}, ErrInvalid
 	}
-	minor, e := r.Money.Minor(2)
+	digits, ok := stripeMinorDigits(r.Money.Currency)
+	if !ok {
+		return RefundStatus{}, ErrUnsupported
+	}
+	minor, e := r.Money.Minor(digits)
 	if e != nil {
 		return RefundStatus{}, e
 	}
@@ -153,7 +162,11 @@ func stripeRefundResult(m Merchant, r Refund, raw []byte) (RefundStatus, error) 
 	}
 	out := RefundStatus{ProviderID: response.ID, State: response.Status}
 	if response.Status == "succeeded" {
-		money, e := fromMinor(response.Currency, response.Amount, 2)
+		digits, ok := stripeMinorDigits(strings.ToUpper(response.Currency))
+		if !ok {
+			return out, ErrUnsupported
+		}
+		money, e := fromMinor(response.Currency, response.Amount, digits)
 		if e != nil || money.Amount.Cmp(r.Money.Amount) != 0 || money.Currency != r.Money.Currency {
 			return out, ErrConflict
 		}
@@ -240,4 +253,18 @@ func (d Stripe) VerifyWebhook(_ context.Context, m Merchant, w Webhook) (Hint, e
 		return Hint{}, ErrInvalid
 	}
 	return Hint{EventID: event.ID, Kind: kind, OrderID: event.Data.Object.Metadata.OrderID, ReferenceID: event.Data.Object.Metadata.RefundID, ProviderID: event.Data.Object.ID, OccurredAt: &occurred, SignatureVerified: true, Final: kind == "receipt"}, nil
+}
+
+// The charge/refund minor unit follows Stripe's presentment-currency rules.
+// This explicit implemented set avoids guessing special-case currency behavior.
+// https://docs.stripe.com/currencies#minor-units-in-api-amounts
+func stripeMinorDigits(code string) (uint8, bool) {
+	switch code {
+	case "JPY":
+		return 0, true
+	case "USD", "EUR", "GBP", "CNY", "HKD", "SGD", "MYR", "AUD", "CAD", "CHF", "NZD":
+		return 2, true
+	default:
+		return 0, false
+	}
 }

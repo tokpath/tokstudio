@@ -139,10 +139,9 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 				}
 				for _, component := range item.Components("input") {
 					if _, known := r.InputFacts[component.Key]; !known {
-						zero := "0"
 						out.State = "not_dispatched"
 						out.ErrorCode = "input_quantity_unavailable"
-						out.Cost = &CostObservation{Source: "not_dispatched", AmountUSD: &zero, CalculatedUSD: &zero}
+						out.Cost = &CostObservation{Source: "not_dispatched"}
 						return out, ErrUsageUnknown
 					}
 				}
@@ -365,7 +364,7 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 				usage := measurements.measure(ctx, b, chunk, a.Capability, r)
 				if b.config.Costs != nil {
 					observation := measurements.cost(ctx, b.config.Costs, a, chunk)
-					if observation != nil && (observation.AmountUSD != nil || chunk.BifrostImageGenerationStreamResponse != nil) {
+					if observation != nil && (observation.ReportedCost != nil || observation.ReferenceCost != nil || chunk.BifrostImageGenerationStreamResponse != nil) {
 						out.Cost = observation
 					}
 				}

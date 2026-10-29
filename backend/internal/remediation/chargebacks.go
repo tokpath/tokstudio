@@ -19,7 +19,7 @@ type ChargebackInput struct {
 	ReceiptID      string         `json:"receipt_id"`
 	Provider       string         `json:"provider"`
 	ProviderCaseID string         `json:"provider_case_id"`
-	AmountUSD      ledger.Decimal `json:"amount_usd"`
+	AmountMoney    ledger.Decimal `json:"amount_money"`
 	Reason         string         `json:"reason"`
 	Evidence       string         `json:"evidence"`
 }
@@ -30,8 +30,8 @@ type Chargeback struct {
 	Provider              string         `json:"provider"`
 	ProviderCaseID        string         `json:"provider_case_id"`
 	Fingerprint           string         `json:"-"`
-	AmountUSD             ledger.Decimal `json:"amount_usd"`
-	RecoveredUSD          ledger.Decimal `json:"recovered_usd"`
+	AmountMoney           ledger.Decimal `json:"amount_money"`
+	RecoveredMoney        ledger.Decimal `json:"recovered_money"`
 	RestrictionsAppliedAt *time.Time     `json:"restrictions_applied_at,omitempty"`
 	State                 string         `json:"state"`
 	Reason                string         `json:"reason"`
@@ -55,7 +55,7 @@ func (chargebackHold) TableName() string { return "remediation_chargeback_holds"
 
 type chargebackEvent struct {
 	ChargebackID, SourceEventID, OperatorID string
-	AmountUSD                               ledger.Decimal
+	AmountMoney                             ledger.Decimal
 	State                                   string
 }
 
@@ -66,7 +66,7 @@ func (chargebackEvent) TableName() string { return "remediation_chargeback_event
 // any customer's originally valid payment became invalid.
 func (s *Service) RecordChargeback(ctx context.Context, in ChargebackInput) (Chargeback, error) {
 	var out Chargeback
-	if !validAmount(in.AmountUSD) || in.Provider == "" || in.ProviderCaseID == "" || in.Reason == "" || in.Evidence == "" {
+	if !validAmount(in.AmountMoney) || in.Provider == "" || in.ProviderCaseID == "" || in.Reason == "" || in.Evidence == "" {
 		return out, ErrInvalid
 	}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
@@ -93,18 +93,18 @@ func (s *Service) RecordChargeback(ctx context.Context, in ChargebackInput) (Cha
 		if e != nil {
 			return e
 		}
-		if in.AmountUSD.Cmp(r.GrossUSD) > 0 {
+		if in.AmountMoney.Cmp(r.GrossMoney) > 0 {
 			return ErrInvalid
 		}
 		at, e := instant(t)
 		if e != nil {
 			return e
 		}
-		out = Chargeback{ID: uuid.NewString(), OperatorID: in.OperatorID, ReceiptID: in.ReceiptID, Provider: in.Provider, ProviderCaseID: in.ProviderCaseID, Fingerprint: fingerprint(in), AmountUSD: in.AmountUSD, State: "disputed", Reason: in.Reason, Evidence: in.Evidence, CreatedAt: at}
+		out = Chargeback{ID: uuid.NewString(), OperatorID: in.OperatorID, ReceiptID: in.ReceiptID, Provider: in.Provider, ProviderCaseID: in.ProviderCaseID, Fingerprint: fingerprint(in), AmountMoney: in.AmountMoney, State: "disputed", Reason: in.Reason, Evidence: in.Evidence, CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
-		if e = s.flagChargebackCommissionSources(ctx, t, in.ActorID, out, r.GrossUSD); e != nil {
+		if e = s.flagChargebackCommissionSources(ctx, t, in.ActorID, out, r.GrossMoney); e != nil {
 			return e
 		}
 		loss, e := s.account(ctx, t, in.OperatorID, in.OperatorID, "control:collection_loss")
@@ -115,7 +115,7 @@ func (s *Service) RecordChargeback(ctx context.Context, in ChargebackInput) (Cha
 		if e != nil {
 			return e
 		}
-		if _, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: in.OperatorID, BusinessKey: "chargeback:" + out.ID, Kind: "external_chargeback", SourceID: out.ID, ActorID: in.ActorID, Reason: in.Evidence, Lines: []ledger.Line{{AccountID: loss.ID, Amount: in.AmountUSD.Neg()}, {AccountID: cash.ID, Amount: in.AmountUSD}}}); e != nil {
+		if _, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: in.OperatorID, BusinessKey: "chargeback:" + out.ID, Kind: "external_chargeback", SourceID: out.ID, ActorID: in.ActorID, Reason: in.Evidence, Lines: []ledger.Line{{AccountID: loss.ID, Amount: in.AmountMoney.Neg()}, {AccountID: cash.ID, Amount: in.AmountMoney}}}); e != nil {
 			return e
 		}
 		return s.event(t, in.OperatorID, out.ID, "chargeback.recorded", in.ActorID, in.Evidence, out)
@@ -166,7 +166,7 @@ func (s *Service) ResolveChargeback(ctx context.Context, actor, op, id, classifi
 		if classification == "invalid_payment" && out.RestrictionsAppliedAt == nil {
 			return ErrReview
 		}
-		if classification == "reversed" && out.RecoveredUSD.Cmp(out.AmountUSD) != 0 {
+		if classification == "reversed" && out.RecoveredMoney.Cmp(out.AmountMoney) != 0 {
 			return ErrState
 		}
 		if e := lock(t, op+":receipt:"+out.ReceiptID); e != nil {
@@ -178,14 +178,14 @@ func (s *Service) ResolveChargeback(ctx context.Context, actor, op, id, classifi
 		}
 		if classification == "invalid_payment" {
 			var already ledger.Decimal
-			if e = t.Model(&capacity{}).Select("COALESCE(sum(amount_usd),0)::text").Where("operator_id=? AND receipt_id=? AND state<>'released'", op, out.ReceiptID).Row().Scan(&already); e != nil {
+			if e = t.Model(&capacity{}).Select("COALESCE(sum(amount_money),0)::text").Where("operator_id=? AND receipt_id=? AND state<>'released'", op, out.ReceiptID).Row().Scan(&already); e != nil {
 				return e
 			}
 			var other ledger.Decimal
-			if e = t.Model(&Chargeback{}).Select("COALESCE(sum(amount_usd),0)::text").Where("operator_id=? AND receipt_id=? AND id<>? AND state='invalid_payment'", op, out.ReceiptID, id).Row().Scan(&other); e != nil {
+			if e = t.Model(&Chargeback{}).Select("COALESCE(sum(amount_money),0)::text").Where("operator_id=? AND receipt_id=? AND id<>? AND state='invalid_payment'", op, out.ReceiptID, id).Row().Scan(&other); e != nil {
 				return e
 			}
-			if already.Add(other).Add(out.AmountUSD).Cmp(r.GrossUSD) > 0 {
+			if already.Add(other).Add(out.AmountMoney).Cmp(r.GrossMoney) > 0 {
 				return ErrConflict
 			}
 		}
@@ -257,7 +257,7 @@ func (s *Service) ResolveChargeback(ctx context.Context, actor, op, id, classifi
 		}
 		for _, event := range events {
 			if classification == "invalid_payment" {
-				if e = s.Incentives.ReverseEvent(ctx, t, incentives.CorrectionInput{ActorStaffID: actor, OperatorID: event.OperatorID, OriginalEventID: event.SourceEventID, BusinessKey: "chargeback:" + id + ":" + event.SourceEventID, Evidence: evidence, AmountUSD: event.AmountUSD}); e != nil {
+				if e = s.Incentives.ReverseEvent(ctx, t, incentives.CorrectionInput{ActorStaffID: actor, OperatorID: event.OperatorID, OriginalEventID: event.SourceEventID, BusinessKey: "chargeback:" + id + ":" + event.SourceEventID, Evidence: evidence, AmountMoney: event.AmountMoney}); e != nil {
 					return e
 				}
 			}
@@ -324,20 +324,20 @@ func (s *Service) RecordChargebackRecovery(ctx context.Context, actor, op, id, k
 			return e
 		}
 		var old struct {
-			AmountUSD ledger.Decimal
-			Evidence  string
+			AmountMoney ledger.Decimal
+			Evidence    string
 		}
 		q := t.Table("remediation_chargeback_recoveries").Where("chargeback_id=? AND business_key=?", id, key).Limit(1).Find(&old)
 		if q.Error != nil {
 			return q.Error
 		}
 		if q.RowsAffected > 0 {
-			if old.AmountUSD.Cmp(amount) != 0 || old.Evidence != evidence {
+			if old.AmountMoney.Cmp(amount) != 0 || old.Evidence != evidence {
 				return ErrConflict
 			}
 			return nil
 		}
-		if out.RecoveredUSD.Add(amount).Cmp(out.AmountUSD) > 0 {
+		if out.RecoveredMoney.Add(amount).Cmp(out.AmountMoney) > 0 {
 			return ErrInvalid
 		}
 		cash, e := s.account(ctx, t, op, op, "control:external_cash")
@@ -355,14 +355,14 @@ func (s *Service) RecordChargebackRecovery(ctx context.Context, actor, op, id, k
 		if e != nil {
 			return e
 		}
-		if e = t.Exec("INSERT INTO remediation_chargeback_recoveries(id,chargeback_id,business_key,amount_usd,evidence,created_at) VALUES(?,?,?,?,?,?)", uuid.NewString(), id, key, amount, evidence, at).Error; e != nil {
+		if e = t.Exec("INSERT INTO remediation_chargeback_recoveries(id,chargeback_id,business_key,amount_money,evidence,created_at) VALUES(?,?,?,?,?,?)", uuid.NewString(), id, key, amount, evidence, at).Error; e != nil {
 			return e
 		}
-		out.RecoveredUSD = out.RecoveredUSD.Add(amount)
+		out.RecoveredMoney = out.RecoveredMoney.Add(amount)
 		if e = t.Save(&out).Error; e != nil {
 			return e
 		}
-		return s.event(t, op, id, "chargeback.cash_recovered", actor, evidence, map[string]any{"amount_usd": amount, "reference": key})
+		return s.event(t, op, id, "chargeback.cash_recovered", actor, evidence, map[string]any{"amount_money": amount, "reference": key})
 	})
 	return out, e
 }

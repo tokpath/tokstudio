@@ -14,10 +14,10 @@
     "ja": "共通ATG残高は、現在の運営事業者が公開しているモデルに、呼び出し時点の価格で利用できます。購入分とプラン特典分は契約期間中のみ有効で、期限後の残高は繰り越されません。通常の返金はできませんが、今後の更新は停止できます。重複・誤取引、提供不備、履行不能は例外手続きで対応します。",
     "ru": "Общие кредиты ATG можно использовать для моделей текущего оператора по ценам, действующим на момент вызова. Купленные и подарочные кредиты пакета действуют в течение согласованного срока; остаток после окончания срока не переносится. Обычный возврат средств за пакет не предусмотрен, будущие продления можно остановить. Дублирующие или ошибочные операции, ошибки предоставления и невозможность оказать услугу обрабатываются как исключения."
   },
-  "%s ATG / %s USD 供货报价": {
-    "en": "Supply quote: %s ATG / %s USD",
-    "ja": "供給見積：%s ATG / %s USD",
-    "ru": "Предложение поставки: %s ATG / %s USD"
+  "%s ATG / %s 结算币种 供货报价": {
+    "en": "Supply quote: %s ATG / %s settlement currency",
+    "ja": "供給見積：%s ATG / %s 決済通貨",
+    "ru": "Предложение поставки: %s ATG / %s валюта расчётов"
   },
   "主动退出并清算存量责任后，剩余购买额度按原实付比例退回；赠送额度不退。须另行办理退出及实际退款。": {
     "en": "After voluntary exit and settlement of outstanding obligations, unused purchased credits are refunded in proportion to the original payment. Gift credits are not refundable. Exit and actual refund must be processed separately.",
@@ -1064,10 +1064,10 @@
     "ja": "料金設定事業者（自動入力）",
     "ru": "Оператор, задающий цену (автоматически)"
   },
-  "实际费用 USD": {
-    "en": "Actual cost USD",
-    "ja": "実際の費用 USD",
-    "ru": "Фактические затраты, USD"
+  "实际费用 结算币种": {
+    "en": "Actual cost settlement currency",
+    "ja": "実際の費用 決済通貨",
+    "ru": "Фактические затраты, валюта расчётов"
   },
   "客户看到的规格名称": {
     "en": "Specification name shown to customers",
@@ -1089,10 +1089,10 @@
     "ja": "出力（すべて Token 課金）",
     "ru": "Вывод (все модальности, за токен)"
   },
-  "差额 USD": {
-    "en": "Difference USD",
-    "ja": "差額 USD",
-    "ru": "Разница, USD"
+  "差额 结算币种": {
+    "en": "Difference settlement currency",
+    "ja": "差額 決済通貨",
+    "ru": "Разница, валюта расчётов"
   },
   "张": {
     "en": "images",
@@ -1194,10 +1194,10 @@
     "ja": "同じ供給元・モデル・期間について実際の費用と計算原価を比較します。登録しても呼出料金や顧客請求は変更しません。終了時刻は集計期間に含みません。",
     "ru": "Сравните фактические и рассчитанные затраты для одного поставщика, модели и периода. Запись не меняет оплату вызовов и счета клиентов. Время окончания не входит в период."
   },
-  "登记实际 USD": {
-    "en": "Recorded actual USD",
-    "ja": "登録した実費 USD",
-    "ru": "Зарегистрированные фактические затраты, USD"
+  "登记实际 结算币种": {
+    "en": "Recorded actual settlement currency",
+    "ja": "登録した実費 決済通貨",
+    "ru": "Зарегистрированные фактические затраты, валюта расчётов"
   },
   "登记实际费用": {
     "en": "Record actual cost",
@@ -1224,10 +1224,10 @@
     "ja": "同期待ち",
     "ru": "Ожидание синхронизации"
   },
-  "系统核算 USD": {
-    "en": "Calculated USD",
-    "ja": "計算原価 USD",
-    "ru": "Рассчитанные затраты, USD"
+  "系统核算 结算币种": {
+    "en": "Calculated settlement currency",
+    "ja": "計算原価 決済通貨",
+    "ru": "Рассчитанные затраты, валюта расчётов"
   },
   "统一 Token 与分模态计费不能在同一方向并用。": {
     "en": "Aggregate token and modality pricing cannot be combined within one direction.",
@@ -1479,10 +1479,10 @@
     "ja": "更新日時",
     "ru": "Дата продления"
   },
-  "续费余额不足，请补足 USD 余额后等待系统重试，或停止续费。": {
-    "en": "Insufficient renewal funds. Add USD balance and wait for an automatic retry, or cancel renewal.",
-    "ja": "更新の残高が不足しています。USD 残高を追加して自動再試行を待つか、更新を停止してください。",
-    "ru": "Недостаточно средств для продления. Пополните баланс USD и дождитесь автоматической попытки или отключите продление."
+  "续费余额不足，请补足 结算币种 余额后等待系统重试，或停止续费。": {
+    "en": "Insufficient renewal funds. Add settlement currency balance and wait for an automatic retry, or cancel renewal.",
+    "ja": "更新の残高が不足しています。決済通貨 残高を追加して自動再試行を待つか、更新を停止してください。",
+    "ru": "Недостаточно средств для продления. Пополните баланс валюта расчётов и дождитесь автоматической попытки или отключите продление."
   },
   "全部已授权模型（跟随上级）": {
     "en": "All authorized models (follow upstream)",
@@ -1784,10 +1784,10 @@
     "ja": "プランを作成",
     "ru": "Создать пакет"
   },
-  "售价 USD": {
-    "en": "Price in USD",
-    "ja": "販売価格 USD",
-    "ru": "Цена в USD"
+  "售价 结算币种": {
+    "en": "Price in settlement currency",
+    "ja": "販売価格 決済通貨",
+    "ru": "Цена в валюта расчётов"
   },
   "购买额度 ATG": {
     "en": "Purchased credits in ATG",
@@ -1859,10 +1859,10 @@
     "ja": "プランの更新が停止されました",
     "ru": "Продление пакета прекращено"
   },
-  "套餐「{name}」的后续续费条件已更新。下次报价为 {usd} USD，购买 {paid} ATG，赠送 {gift} ATG。价格上涨或权益减少须在套餐页面重新确认，否则不会扣款；当前已购权益不受影响。": {
-    "en": "Renewal terms for “{name}” have changed. The next price is {usd} USD for {paid} purchased ATG and {gift} bonus ATG. Confirm any price increase or reduced benefits on the packages page; otherwise no charge is made. Existing credits are unaffected.",
-    "ja": "「{name}」の更新条件が変更されました。次回は {usd} USD で購入 {paid} ATG、特典 {gift} ATG です。値上げや権利縮小はプランページで再確認が必要です。確認なしに課金されず、購入済みの権利は維持されます。",
-    "ru": "Условия продления «{name}» изменены. Следующая цена: {usd} USD за {paid} оплаченных ATG и {gift} бонусных ATG. Повышение цены или сокращение прав нужно подтвердить на странице пакетов, иначе списания не будет. Прежние права сохраняются."
+  "套餐「{name}」的后续续费条件已更新。下次报价为 {usd} 结算币种，购买 {paid} ATG，赠送 {gift} ATG。价格上涨或权益减少须在套餐页面重新确认，否则不会扣款；当前已购权益不受影响。": {
+    "en": "Renewal terms for “{name}” have changed. The next price is {usd} settlement currency for {paid} purchased ATG and {gift} bonus ATG. Confirm any price increase or reduced benefits on the packages page; otherwise no charge is made. Existing credits are unaffected.",
+    "ja": "「{name}」の更新条件が変更されました。次回は {usd} 決済通貨 で購入 {paid} ATG、特典 {gift} ATG です。値上げや権利縮小はプランページで再確認が必要です。確認なしに課金されず、購入済みの権利は維持されます。",
+    "ru": "Условия продления «{name}» изменены. Следующая цена: {usd} валюта расчётов за {paid} оплаченных ATG и {gift} бонусных ATG. Повышение цены или сокращение прав нужно подтвердить на странице пакетов, иначе списания не будет. Прежние права сохраняются."
   },
   "经营方已停止套餐「{name}」的后续续费，当前已购额度和有效期保持不变。可在套餐页面选择其他在售套餐。": {
     "en": "The operator has stopped future renewals of “{name}”. Existing credits and validity are unchanged. Choose another available package on the packages page.",
@@ -1998,11 +1998,6 @@
     "en": "Prepare the takeover, transfer customer rights and settle funds in one case.",
     "ja": "接管準備、顧客権利の引継ぎ、資金精算を同じ案件で続けて処理します。",
     "ru": "Подготовка передачи, перенос прав клиентов и расчёты сторон ведутся в одном деле."
-  },
-  "每 1 USD 购买 1 ATG，赠送按本单金额分段累加。": {
-    "en": "Each USD buys 1 ATG. Bonus credits accumulate across the tiers of this order.",
-    "ja": "1 USDで1 ATGを購入し、特典は注文金額の各段階に応じて加算されます。",
-    "ru": "За каждый USD начисляется 1 ATG. Бонус суммируется по ступеням суммы этого заказа."
   },
   "采购金额": {
     "en": "Purchase amount",
@@ -2149,11 +2144,6 @@
     "ja": "外貨決済の参考レート",
     "ru": "Курсы для оплаты в иностранной валюте"
   },
-  "用于向付款人展示外币应付金额。实际收款仍按真实付款时点核实入账，不锁汇。USD 收款不需要此配置。": {
-    "en": "Used to display the amount due in foreign currency. Receipts are valued at the actual payment time; exchange rates are not locked. USD payments need no rate configuration.",
-    "ja": "支払者に外貨の請求額を表示するために使用します。実際の入金は支払時点で評価し、為替レートは固定しません。USD入金には設定不要です。",
-    "ru": "Используется для отображения суммы к оплате в иностранной валюте. Поступления оцениваются на момент фактического платежа, курс не фиксируется. Для USD настройка не нужна."
-  },
   "附加付款凭据（可选）": {
     "en": "Attach payment evidence (optional)",
     "ja": "支払証憑を添付（任意）",
@@ -2219,10 +2209,10 @@
     "ja": "注文を関連付け（任意）",
     "ru": "Связать заказ (необязательно)"
   },
-  "已核实手续费 USD": {
-    "en": "Verified fee USD",
-    "ja": "確認済み手数料 USD",
-    "ru": "Подтверждённая комиссия USD"
+  "已核实手续费 结算币种": {
+    "en": "Verified fee settlement currency",
+    "ja": "確認済み手数料 決済通貨",
+    "ru": "Подтверждённая комиссия валюта расчётов"
   },
   "通道结算到账时间（可选）": {
     "en": "Provider settlement time (optional)",
@@ -2429,10 +2419,10 @@
     "ja": "活動名（空欄でプラン名を使用）",
     "ru": "Название акции (по умолчанию название пакета)"
   },
-  "活动售价 USD（留空使用套餐售价）": {
-    "en": "Activity price USD (defaults to package price)",
-    "ja": "活動価格 USD（空欄でプラン価格を使用）",
-    "ru": "Цена акции USD (по умолчанию цена пакета)"
+  "活动售价 结算币种（留空使用套餐售价）": {
+    "en": "Activity price settlement currency (defaults to package price)",
+    "ja": "活動価格 決済通貨（空欄でプラン価格を使用）",
+    "ru": "Цена акции валюта расчётов (по умолчанию цена пакета)"
   },
   "可以只降价、只加赠或同时使用。活动售价不得高于下单时的套餐售价；不会修改套餐基础额度。": {
     "en": "Offer a discount, extra credits, or both. The activity price cannot exceed the package price at checkout. Base package credits stay unchanged.",
@@ -2449,10 +2439,10 @@
     "ja": "0 は総枠数の個別制限なしを意味します。未払い注文は枠を予約し、成立時に利用済み、終了時に解放します。顧客別制限と履行能力も適用されます。",
     "ru": "0 означает отсутствие отдельного общего лимита. Неоплаченные заказы резервируют места; завершённые используют их, закрытые освобождают. Лимиты клиента и возможность исполнения сохраняются."
   },
-  "分佣资格门槛 USD": {
-    "en": "Commission qualification threshold USD",
-    "ja": "コミッション資格基準 USD",
-    "ru": "Порог получения комиссий USD"
+  "分佣资格门槛 结算币种": {
+    "en": "Commission qualification threshold settlement currency",
+    "ja": "コミッション資格基準 決済通貨",
+    "ru": "Порог получения комиссий валюта расчётов"
   },
   "同一 KOL 跨活动每人限次": {
     "en": "Per-customer limit across one KOL's activities",
@@ -2619,10 +2609,10 @@
     "ja": "終了",
     "ru": "Завершено"
   },
-  "活动价 {amount} USD": {
-    "en": "Activity price {amount} USD",
-    "ja": "活動価格 {amount} USD",
-    "ru": "Цена акции {amount} USD"
+  "活动价 {amount} 结算币种": {
+    "en": "Activity price {amount} settlement currency",
+    "ja": "活動価格 {amount} 決済通貨",
+    "ru": "Цена акции {amount} валюта расчётов"
   },
   "按套餐基础额度加赠 {amount}%": {
     "en": "Bonus of {amount}% of base package credits",
@@ -3034,10 +3024,10 @@
     "ja": "必要に応じて支払者・受取人名、受取場所、口座を入力してください。口座のない現金入金では空欄にでき、架空の銀行情報は不要です。",
     "ru": "При необходимости укажите имя плательщика или получателя, место получения либо счёт. Для наличных без счёта поле можно оставить пустым; выдумывать банковские данные не нужно."
   },
-  "可填写经办核实说明、现金收据、转账记录或文件引用，按当前字段要求提供。非USD付款还需保留当次真实估值依据。": {
-    "en": "Provide staff verification notes, a cash receipt, transfer record, or document reference as required by this field. Non-USD payments also need evidence of the actual valuation.",
-    "ja": "この項目の要件に応じて担当者の確認内容、現金領収書、振込記録、文書参照を入力してください。USD以外の支払いでは実際の評価額の根拠も必要です。",
-    "ru": "Укажите пояснение сотрудника, кассовую квитанцию, запись о переводе или ссылку на документ согласно требованиям поля. Для оплаты не в USD также нужно основание фактической оценки."
+  "可填写经办核实说明、现金收据、转账记录或文件引用，按当前字段要求提供。非结算币种付款还需保留当次真实估值依据。": {
+    "en": "Provide staff verification notes, a cash receipt, transfer record, or document reference as required by this field. Non-settlement currency payments also need evidence of the actual valuation.",
+    "ja": "この項目の要件に応じて担当者の確認内容、現金領収書、振込記録、文書参照を入力してください。決済通貨以外の支払いでは実際の評価額の根拠も必要です。",
+    "ru": "Укажите пояснение сотрудника, кассовую квитанцию, запись о переводе или ссылку на документ согласно требованиям поля. Для оплаты не в валюта расчётов также нужно основание фактической оценки."
   },
   "有转账流水或现金收据号时填写；没有可留空，系统自动生成登记编号。请勿重复登记同一笔款项。": {
     "en": "Enter a transfer reference or cash receipt number if available. Otherwise leave it blank; the system generates a record number. Do not record the same payment twice.",
@@ -3089,10 +3079,10 @@
     "ja": "残高は選択した終了時点、確認・返金待ちは今回の照会時点で表示します。",
     "ru": "Остатки рассчитаны на выбранную дату окончания; проверки и возвраты показаны на момент запроса."
   },
-  "供应商成本 USD": {
-    "en": "Supplier cost USD",
-    "ja": "供給元コスト USD",
-    "ru": "Затраты поставщика USD"
+  "供应商成本 原币种": {
+    "en": "Supplier cost original currency",
+    "ja": "供給元コスト 元通貨",
+    "ru": "Затраты поставщика исходная валюта"
   },
   "净扣费": {
     "en": "Net charges",
@@ -3124,10 +3114,10 @@
     "ja": "増減額",
     "ru": "Сумма изменения"
   },
-  "外部收款 USD": {
-    "en": "External payment USD",
-    "ja": "外部入金 USD",
-    "ru": "Внешняя оплата USD"
+  "外部收款 结算币种": {
+    "en": "External payment settlement currency",
+    "ja": "外部入金 決済通貨",
+    "ru": "Внешняя оплата валюта расчётов"
   },
   "套餐销售笔数": {
     "en": "Package orders",
@@ -3139,10 +3129,10 @@
     "ja": "プラン売上",
     "ru": "Продажи пакетов"
   },
-  "实收 USD": {
-    "en": "Received USD",
-    "ja": "受領額 USD",
-    "ru": "Получено USD"
+  "实收 结算币种": {
+    "en": "Received settlement currency",
+    "ja": "受領額 決済通貨",
+    "ru": "Получено валюта расчётов"
   },
   "实际收款": {
     "en": "Actual payment received",
@@ -3154,10 +3144,10 @@
     "ja": "実消費 ATG",
     "ru": "Фактическое потребление ATG"
   },
-  "客户 USD 余额": {
-    "en": "Customer USD balance",
-    "ja": "顧客 USD 残高",
-    "ru": "Баланс клиента USD"
+  "客户 结算币种 余额": {
+    "en": "Customer settlement currency balance",
+    "ja": "顧客 決済通貨 残高",
+    "ru": "Баланс клиента валюта расчётов"
   },
   "客户订单": {
     "en": "Customer orders",
@@ -3184,20 +3174,20 @@
     "ja": "出力形式が更新されました。再生成してください。",
     "ru": "Формат выгрузки обновлён. Создайте файл заново."
   },
-  "履约成本 USD": {
-    "en": "Fulfilment cost USD",
-    "ja": "履行コスト USD",
-    "ru": "Затраты на обслуживание USD"
+  "履约成本 结算币种": {
+    "en": "Fulfilment cost settlement currency",
+    "ja": "履行コスト 決済通貨",
+    "ru": "Затраты на обслуживание валюта расчётов"
   },
   "已付款待交付": {
     "en": "Paid, awaiting delivery",
     "ja": "支払い済み・提供待ち",
     "ru": "Оплачено, ожидает выдачи"
   },
-  "已关联 USD": {
-    "en": "Allocated USD",
-    "ja": "関連付け済み USD",
-    "ru": "Привязано USD"
+  "已关联 结算币种": {
+    "en": "Allocated settlement currency",
+    "ja": "関連付け済み 決済通貨",
+    "ru": "Привязано валюта расчётов"
   },
   "已冲正 ATG": {
     "en": "Reversed charges ATG",
@@ -3209,10 +3199,10 @@
     "ja": "完了した呼び出し",
     "ru": "Завершённые запросы"
   },
-  "已收款 USD": {
-    "en": "Collected USD",
-    "ja": "入金済み USD",
-    "ru": "Получено USD"
+  "已收款 结算币种": {
+    "en": "Collected settlement currency",
+    "ja": "入金済み 決済通貨",
+    "ru": "Получено валюта расчётов"
   },
   "已确认收入减去已确认成本。有待核实成本时，结果尚未最终确认。": {
     "en": "Confirmed revenue minus confirmed costs. Pending costs mean this result is not final.",
@@ -3399,10 +3389,10 @@
     "ja": "今月",
     "ru": "Текущий месяц"
   },
-  "查看销售、调用、资金收支和经营结果。金额以 USD 记账。": {
-    "en": "View sales, usage, cash flows and operating results. Amounts are recorded in USD.",
-    "ja": "売上・利用・入出金・経営結果を確認します。金額はUSDで記帳します。",
-    "ru": "Продажи, использование, движение средств и результаты деятельности. Суммы учитываются в USD."
+  "查看销售、调用、资金收支和经营结果。金额以 结算币种 记账。": {
+    "en": "View sales, usage, cash flows and operating results. Amounts are recorded in settlement currency.",
+    "ja": "売上・利用・入出金・経営結果を確認します。金額は決済通貨で記帳します。",
+    "ru": "Продажи, использование, движение средств и результаты деятельности. Суммы учитываются в валюта расчётов."
   },
   "模型响应": {
     "en": "Model responses",
@@ -3609,45 +3599,45 @@
     "ja": "手数料控除前の入金総額",
     "ru": "Сумма поступления до комиссии"
   },
-  "收款总额（扣手续费前） USD": {
-    "en": "Gross receipt before fees (USD)",
-    "ja": "手数料控除前の入金総額 USD",
-    "ru": "Сумма поступления до комиссии (USD)"
+  "收款总额（扣手续费前） 结算币种": {
+    "en": "Gross receipt before fees (settlement currency)",
+    "ja": "手数料控除前の入金総額 決済通貨",
+    "ru": "Сумма поступления до комиссии (валюта расчётов)"
   },
   "收款手续费核实状态": {
     "en": "Receipt fee verification",
     "ja": "入金手数料の確認状況",
     "ru": "Подтверждение комиссии за получение"
   },
-  "己方承担的收款手续费 USD": {
-    "en": "Our receipt fee (USD)",
-    "ja": "当方負担の入金手数料 USD",
-    "ru": "Наша комиссия за получение (USD)"
+  "己方承担的收款手续费 结算币种": {
+    "en": "Our receipt fee (settlement currency)",
+    "ja": "当方負担の入金手数料 決済通貨",
+    "ru": "Наша комиссия за получение (валюта расчётов)"
   },
   "己方收款手续费": {
     "en": "Our receipt fee",
     "ja": "当方の入金手数料",
     "ru": "Наша комиссия за получение"
   },
-  "己方收款手续费 USD": {
-    "en": "Our receipt fee (USD)",
-    "ja": "当方の入金手数料 USD",
-    "ru": "Наша комиссия за получение (USD)"
+  "己方收款手续费 结算币种": {
+    "en": "Our receipt fee (settlement currency)",
+    "ja": "当方の入金手数料 決済通貨",
+    "ru": "Наша комиссия за получение (валюта расчётов)"
   },
   "净到账金额": {
     "en": "Net receipt",
     "ja": "差引入金額",
     "ru": "Чистая сумма поступления"
   },
-  "净到账金额 USD": {
-    "en": "Net receipt (USD)",
-    "ja": "差引入金額 USD",
-    "ru": "Чистая сумма поступления (USD)"
+  "净到账金额 结算币种": {
+    "en": "Net receipt (settlement currency)",
+    "ja": "差引入金額 決済通貨",
+    "ru": "Чистая сумма поступления (валюта расчётов)"
   },
-  "净额 USD": {
-    "en": "Net amount (USD)",
-    "ja": "差引額 USD",
-    "ru": "Чистая сумма (USD)"
+  "净额 结算币种": {
+    "en": "Net amount (settlement currency)",
+    "ja": "差引額 決済通貨",
+    "ru": "Чистая сумма (валюта расчётов)"
   },
   "收款币种": {
     "en": "Receipt currency",
@@ -3684,15 +3674,15 @@
     "ja": "現在の受取事業者が負担する入金手数料のみ入力します。支払人が別途支払う振込・ブロックチェーン手数料は含めません。当方の手数料がない場合は0を入力してください。総額から手数料を差し引いて差引入金額を計算し、注文の提供残高は減らしません。",
     "ru": "Укажите только комиссию, которую несёт текущий получающий оператор. Отдельно оплаченные отправителем комиссии за перевод или блокчейн не включаются. Если нашей комиссии нет, введите 0. Система вычитает её из общей суммы; кредиты по заказу не уменьшаются."
   },
-  "填写用于支付订单的收款总额，尚未扣除己方收款手续费。例如订单1000 USD、己方手续费10 USD、净到账990 USD，此处填1000；订单仍按1000 USD交付。付款人另付的转账费或链上手续费不计入。": {
-    "en": "Enter the gross receipt used to pay the order, before our receipt fee. For a 1000 USD order with a 10 USD fee and 990 USD net receipt, enter 1000; delivery remains 1000 USD. Exclude transfer or blockchain fees paid separately by the payer.",
-    "ja": "注文の支払いに充当する、当方の入金手数料控除前の総額を入力します。注文1000 USD、当方手数料10 USD、差引入金990 USDなら1000を入力し、1000 USD分を提供します。支払人が別途支払う振込・ブロックチェーン手数料は含めません。",
-    "ru": "Укажите сумму в оплату заказа до нашей комиссии. Для заказа на 1000 USD с комиссией 10 USD и чистым поступлением 990 USD введите 1000; исполнение останется на 1000 USD. Отдельные комиссии отправителя не включаются."
+  "填写用于支付订单的收款总额，尚未扣除己方收款手续费。例如订单1000 结算币种、己方手续费10 结算币种、净到账990 结算币种，此处填1000；订单仍按1000 结算币种交付。付款人另付的转账费或链上手续费不计入。": {
+    "en": "Enter the gross receipt used to pay the order, before our receipt fee. For a 1000 settlement currency order with a 10 settlement currency fee and 990 settlement currency net receipt, enter 1000; delivery remains 1000 settlement currency. Exclude transfer or blockchain fees paid separately by the payer.",
+    "ja": "注文の支払いに充当する、当方の入金手数料控除前の総額を入力します。注文1000 決済通貨、当方手数料10 決済通貨、差引入金990 決済通貨なら1000を入力し、1000 決済通貨分を提供します。支払人が別途支払う振込・ブロックチェーン手数料は含めません。",
+    "ru": "Укажите сумму в оплату заказа до нашей комиссии. Для заказа на 1000 валюта расчётов с комиссией 10 валюта расчётов и чистым поступлением 990 валюта расчётов введите 1000; исполнение останется на 1000 валюта расчётов. Отдельные комиссии отправителя не включаются."
   },
-  "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合USD的收款总额与本次估值依据分别填写。": {
-    "en": "Enter the gross amount in the original currency before our receipt fee, excluding sending fees paid separately by the payer. Enter the USD gross receipt and the current valuation evidence separately.",
-    "ja": "当方の入金手数料控除前の元通貨額を入力し、支払人が別途負担する送金手数料は含めません。USD換算の入金総額と今回の換算根拠は別に入力します。",
-    "ru": "Укажите сумму в исходной валюте до нашей комиссии, без отдельно оплаченных отправителем расходов. Сумму поступления в USD и основание текущей оценки укажите отдельно."
+  "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合结算币种的收款总额与本次估值依据分别填写。": {
+    "en": "Enter the gross amount in the original currency before our receipt fee, excluding sending fees paid separately by the payer. Enter the settlement currency gross receipt and the current valuation evidence separately.",
+    "ja": "当方の入金手数料控除前の元通貨額を入力し、支払人が別途負担する送金手数料は含めません。決済通貨換算の入金総額と今回の換算根拠は別に入力します。",
+    "ru": "Укажите сумму в исходной валюте до нашей комиссии, без отдельно оплаченных отправителем расходов. Сумму поступления в валюта расчётов и основание текущей оценки укажите отдельно."
   },
   "渠道邀请": {
     "en": "Channel invitations",

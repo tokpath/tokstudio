@@ -49,7 +49,7 @@ func TestPostgresRefundPolicyDefaultsUsePolicyVersionInsteadOfRefundRow(t *testi
 		read("", float64(version+1), amount)
 	}
 	now, gross, zero := time.Now().Add(-time.Minute), ledger.MustDecimal("100"), ledger.Zero()
-	receipt, err := f.a.Commerce.RecordManualReceipt(context.Background(), nil, actor, commerce.VerifiedReceipt{OperatorID: op, ProviderReceiptID: "refund-policy-bank-receipt", GrossUSD: gross, NetUSD: &gross, FeeUSD: &zero, FeeStatus: "confirmed", Currency: "USD", OriginalAmount: "100", RecipientReference: "merchant-bank", PayerReference: "payer-bank", ValuationEvidence: "actual USD", VerificationEvidence: "verified bank receipt", PaidAt: &now, ObservedAt: now})
+	receipt, err := f.a.Commerce.RecordManualReceipt(context.Background(), nil, actor, commerce.VerifiedReceipt{OperatorID: op, ProviderReceiptID: "refund-policy-bank-receipt", GrossMoney: gross, NetMoney: &gross, FeeMoney: &zero, FeeStatus: "confirmed", Currency: "USD", OriginalAmount: "100", RecipientReference: "merchant-bank", PayerReference: "payer-bank", ValuationEvidence: "actual USD", VerificationEvidence: "verified bank receipt", PaidAt: &now, ObservedAt: now})
 	if err != nil {
 		t.Fatal(err)
 	}

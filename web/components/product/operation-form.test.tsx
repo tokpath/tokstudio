@@ -3,14 +3,15 @@ import {render,fireEvent,screen,waitFor,cleanup,within} from "@testing-library/r
 import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
 import {afterEach,expect,it,vi} from "vitest";
 import {OperationForm} from "./operation-form";
+import { MonetaryProvider } from "./monetary";
 import type {Operation,Entity,JSONValue} from "@/lib/contracts";
 afterEach(()=>{cleanup();vi.unstubAllGlobals()});
-function show(operation:Operation,row?:Entity){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><OperationForm operatorID={operation.path.startsWith("/api/v1/me/")?undefined:"operator-one"} operation={operation} row={row}/></QueryClientProvider>)}
+function show(operation:Operation,row?:Entity){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><MonetaryProvider value={{currency:"USD",atg_per_unit:"1",status:"locked",version:1}}><OperationForm operatorID={operation.path.startsWith("/api/v1/me/")?undefined:"operator-one"} operation={operation} row={row}/></MonetaryProvider></QueryClientProvider>)}
 
 const receiptOperation: Operation = {name:"receipt",label:"登记人工核实收款",method:"POST",path:"/api/v1/operators/operator-one/payments",fields:[
-  {name:"gross_usd",label:"收款总额（扣手续费前） USD",kind:"decimal",required:true},
+  {name:"gross_money",label:"收款总额（扣手续费前） 结算币种",kind:"decimal",required:true},
   {name:"fee_status",label:"收款手续费核实状态",kind:"select",required:true,default_value:"pending",options:[{value:"pending",label:"稍后核实"},{value:"confirmed",label:"金额已核实"}]},
-  {name:"fee_usd",label:"己方承担的收款手续费 USD",kind:"decimal",required:true,visible_when:{field:"fee_status",values:["confirmed"]}},
+  {name:"fee_money",label:"己方承担的收款手续费 结算币种",kind:"decimal",required:true,visible_when:{field:"fee_status",values:["confirmed"]}},
 ]};
 it("shows exact net receipt after merchant fees without submitting the derived amount",async()=>{
   const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"receipt-one",status:"confirmed"}),{status:200}));vi.stubGlobal("fetch",fetch);
@@ -21,7 +22,7 @@ it("shows exact net receipt after merchant fees without submitting the derived a
   fireEvent.change(screen.getByLabelText("己方承担的收款手续费 USD",{exact:true}),{target:{value:"10"}});
   expect(within(screen.getByRole("region",{name:"收款金额核对"})).getByLabelText("990.000000000000000001 USD")).toBeTruthy();
   fireEvent.click(screen.getByRole("button",{name:"登记人工核实收款",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
-  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({gross_usd:"1000.000000000000000001",fee_status:"confirmed",fee_usd:"10"});
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({gross_money:"1000.000000000000000001",fee_status:"confirmed",fee_money:"10"});
 });
 it("does not treat an unverified fee as zero or submit a stale hidden fee",async()=>{
   const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"receipt-two",status:"confirmed"}),{status:200}));vi.stubGlobal("fetch",fetch);
@@ -33,11 +34,11 @@ it("does not treat an unverified fee as zero or submit a stale hidden fee",async
   fireEvent.change(screen.getByLabelText("收款手续费核实状态",{exact:true}),{target:{value:"pending"}});
   expect(screen.getByText("手续费待核实，净到账金额暂不确定。")).toBeTruthy();
   fireEvent.click(screen.getByRole("button",{name:"登记人工核实收款",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
-  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({gross_usd:"1000",fee_status:"pending"});
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({gross_money:"1000",fee_status:"pending"});
 });
 it("uses the original gross receipt for later fee verification and blocks a negative net",async()=>{
   const fetch=vi.fn();vi.stubGlobal("fetch",fetch);
-  show({name:"accounting",label:"核实手续费与结算",method:"POST",path:"/api/v1/operators/operator-one/payments/{id}/accounting",fields:[{name:"fee_usd",label:"己方承担的收款手续费 USD",kind:"decimal",required:true}]},{id:"receipt-one",values:{gross_usd:"100"}});
+  show({name:"accounting",label:"核实手续费与结算",method:"POST",path:"/api/v1/operators/operator-one/payments/{id}/accounting",fields:[{name:"fee_money",label:"己方承担的收款手续费 结算币种",kind:"decimal",required:true}]},{id:"receipt-one",values:{gross_money:"100"}});
   fireEvent.change(screen.getByLabelText("己方承担的收款手续费 USD",{exact:true}),{target:{value:"1"}});
   expect(screen.getByLabelText("99 USD")).toBeTruthy();
   fireEvent.change(screen.getByLabelText("己方承担的收款手续费 USD",{exact:true}),{target:{value:"101"}});
@@ -105,7 +106,7 @@ it("renames a supplier key without showing its ids or requiring a new secret", a
 
 it("groups registration validity with gifts and confirmation with commissions", () => {
   show({ name: "policy", label: "发布资格与奖励政策", method: "POST", path: "/api/v1/operators/operator-one/commissions", fields: [
-    { name: "threshold_usd", label: "终身资格累计净消费门槛 USD", kind: "decimal", required: true },
+    { name: "threshold_money", label: "终身资格累计净消费门槛 结算币种", kind: "decimal", required: true },
     { name: "confirmation_days", label: "消费确认等待天数", kind: "integer", required: true, default_value: 30 },
     { name: "invitee_atg", label: "受邀人注册赠送 ATG", kind: "decimal", required: true },
     { name: "reward_validity_days", label: "注册奖励有效天数", kind: "integer", required: true, default_value: 30 },
@@ -119,7 +120,7 @@ it("groups registration validity with gifts and confirmation with commissions", 
   expect(qualification?.textContent).not.toContain("消费确认等待天数");
 });
 
-function mount(operation:Operation,props:Partial<React.ComponentProps<typeof OperationForm>>={}){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><OperationForm operatorID={operation.path.startsWith("/api/v1/me/")?undefined:"operator-one"} operation={operation} {...props}/></QueryClientProvider>)}
+function mount(operation:Operation,props:Partial<React.ComponentProps<typeof OperationForm>>={}){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><MonetaryProvider value={{currency:"USD",atg_per_unit:"1",status:"locked",version:1}}><OperationForm operatorID={operation.path.startsWith("/api/v1/me/")?undefined:"operator-one"} operation={operation} {...props}/></MonetaryProvider></QueryClientProvider>)}
 function priceOperation(configuration:JSONValue):Operation{return {name:"price",label:"发布价格版本",method:"POST",path:"/api/v1/operators/operator-one/pricing",fields:[{name:"configuration",label:"配置 JSON",kind:"json",required:true,default_value:configuration}]};}
 function priceConfig():JSONValue{return {action:"price",evidence:"verified-notice",price:{id:"price-new",model_id:"model-one",scope:{kind:"retail",seller_id:"operator-one"},layer:"regular",effective_at:"2026-12-01T00:00:00Z",rule:{mode:"manual",components:[{key:"input_tokens",unit:"token",per:"1000000",rate:"1.000000000000000001"}]},published:true},provider_extension:{exact:"0.000000000000000000000001"}};}
 function referenceFetch(){return vi.fn(async(input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify(String(input).includes("/references/")?{items:[{value:"model-one",label:"业务模型一"}]}:{id:"saved",status:"published"}),{status:200}));}
@@ -173,17 +174,17 @@ it("locates an invalid unit price without submitting or rounding its amount",asy
 
 it("locks a contextual order and retains the precise amount through submission",async()=>{
   const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"allocation",status:"allocated"}),{status:200}));vi.stubGlobal("fetch",fetch);
-  mount({name:"allocate",label:"关联款项",method:"POST",path:"/api/v1/operators/operator-one/payments/receipt/allocate",fields:[{name:"order_id",label:"业务订单",kind:"text",required:true},{name:"amount_usd",label:"分配金额 USD",kind:"decimal",required:true}]},{initialValues:{order_id:"exact-order",amount_usd:"1.000000000000000001"},lockedFields:["order_id"]});
+  mount({name:"allocate",label:"关联款项",method:"POST",path:"/api/v1/operators/operator-one/payments/receipt/allocate",fields:[{name:"order_id",label:"业务订单",kind:"text",required:true},{name:"amount_money",label:"分配金额 结算币种",kind:"decimal",required:true}]},{initialValues:{order_id:"exact-order",amount_money:"1.000000000000000001"},lockedFields:["order_id"]});
   expect((screen.getByLabelText("业务订单",{exact:false})as HTMLInputElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole("button",{name:"关联款项",exact:true}));
   await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
-  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({order_id:"exact-order",amount_usd:"1.000000000000000001"});
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({order_id:"exact-order",amount_money:"1.000000000000000001"});
 });
 
 it("prevents dismissal of an unknown result and retries the exact original command",async()=>{
   const close=vi.fn(),blocked=vi.fn();
   const fetch=vi.fn().mockRejectedValueOnce(new TypeError("connection lost")).mockImplementation(async()=>new Response(JSON.stringify({id:"withdrawal",status:"requested"}),{status:200}));vi.stubGlobal("fetch",fetch);
-  mount({name:"withdraw",label:"申请提现",method:"POST",path:"/api/v1/operators/operator-one/withdrawals",fields:[{name:"amount_usd",label:"申请金额 USD",kind:"decimal",required:true}]},{onClose:close,onBlockedChange:blocked});
+  mount({name:"withdraw",label:"申请提现",method:"POST",path:"/api/v1/operators/operator-one/withdrawals",fields:[{name:"amount_money",label:"申请金额 结算币种",kind:"decimal",required:true}]},{onClose:close,onBlockedChange:blocked});
   const amount=screen.getByLabelText("申请金额 USD",{exact:false});
   fireEvent.change(amount,{target:{value:"0.000000000000000001"}});
   fireEvent.click(screen.getByRole("button",{name:"申请提现",exact:true}));
@@ -214,15 +215,15 @@ it("keeps the route strategy version when another supplier model is selected",as
 });
 
 it("keeps reference defaults, the hidden revision and exact amounts together",async()=>{
-  const fetch=vi.fn(async(input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify(String(input).includes("/references/")?{items:[{value:"plan-one",label:"专业套餐",defaults:{expected_version:12,price_usd:"1.123456789012345678"}}]}:{id:"plan-one",status:"published"}),{status:200}));vi.stubGlobal("fetch",fetch);
-  mount({name:"publish",label:"保存套餐",method:"POST",path:"/api/v1/operators/operator-one/plans",fields:[{name:"package_id",label:"选择套餐",kind:"text",lookup_url:"/api/v1/operators/operator-one/references/plans"},{name:"price_usd",label:"售价 USD",kind:"decimal",required:true},{name:"expected_version",label:"版本",kind:"hidden",default_value:0}]});
+  const fetch=vi.fn(async(input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify(String(input).includes("/references/")?{items:[{value:"plan-one",label:"专业套餐",defaults:{expected_version:12,price_money:"1.123456789012345678"}}]}:{id:"plan-one",status:"published"}),{status:200}));vi.stubGlobal("fetch",fetch);
+  mount({name:"publish",label:"保存套餐",method:"POST",path:"/api/v1/operators/operator-one/plans",fields:[{name:"package_id",label:"选择套餐",kind:"text",lookup_url:"/api/v1/operators/operator-one/references/plans"},{name:"price_money",label:"售价 结算币种",kind:"decimal",required:true},{name:"expected_version",label:"版本",kind:"hidden",default_value:0}]});
   const select=screen.getByRole("combobox",{name:"选择套餐"});await waitFor(()=>expect((select as HTMLSelectElement).disabled).toBe(false));
   fireEvent.change(select,{target:{value:"plan-one"}});
   expect((screen.getByLabelText("售价 USD",{exact:false}) as HTMLInputElement).value).toBe("1.123456789012345678");
   expect(screen.queryByLabelText("版本")).toBeNull();
   fireEvent.click(screen.getByRole("button",{name:"保存套餐",exact:true}));
   await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
-  expect(JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body))).toEqual({package_id:"plan-one",price_usd:"1.123456789012345678",expected_version:12});
+  expect(JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body))).toEqual({package_id:"plan-one",price_money:"1.123456789012345678",expected_version:12});
 });
 
 it("uploads only the file visible for the selected business path",async()=>{
@@ -341,7 +342,7 @@ it("never prefills secrets from records and omits untouched optional secrets ins
 
 it("requires a new review after changed input and permits correction after a known rejection",async()=>{
   const fetch=vi.fn().mockImplementationOnce(async()=>new Response(JSON.stringify({error:{code:"invalid_amount",message:"核实金额后重试",request_id:"known-rejection",retryable:false}}),{status:400})).mockImplementation(async()=>new Response(JSON.stringify({id:"withdrawal",status:"requested"}),{status:200}));vi.stubGlobal("fetch",fetch);
-  mount({name:"withdraw",label:"申请提现",method:"POST",path:"/api/v1/operators/operator-one/withdrawals",confirmation:"确认已核实金额和收款资料",fields:[{name:"amount_usd",label:"申请金额 USD",kind:"decimal",required:true}]},{onClose:vi.fn()});
+  mount({name:"withdraw",label:"申请提现",method:"POST",path:"/api/v1/operators/operator-one/withdrawals",confirmation:"确认已核实金额和收款资料",fields:[{name:"amount_money",label:"申请金额 结算币种",kind:"decimal",required:true}]},{onClose:vi.fn()});
   const amount=screen.getByLabelText("申请金额 USD",{exact:false}),confirmation=screen.getByRole("checkbox",{name:"确认已核实金额和收款资料"});
   fireEvent.change(amount,{target:{value:"1"}});fireEvent.click(confirmation);fireEvent.click(screen.getByRole("button",{name:"申请提现",exact:true}));
   await screen.findByText("核实金额后重试");
@@ -349,13 +350,13 @@ it("requires a new review after changed input and permits correction after a kno
   fireEvent.change(amount,{target:{value:"1.000000000000000001"}});expect((confirmation as HTMLInputElement).checked).toBe(false);
   fireEvent.click(screen.getByRole("button",{name:"申请提现",exact:true}));expect(fetch).toHaveBeenCalledTimes(1);
   fireEvent.click(confirmation);fireEvent.click(screen.getByRole("button",{name:"申请提现",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(2));
-  expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({amount_usd:"1.000000000000000001"});
+  expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({amount_money:"1.000000000000000001"});
   expect(fetch.mock.calls[1][1].headers.get("Idempotency-Key")).not.toBe(fetch.mock.calls[0][1].headers.get("Idempotency-Key"));
 });
 
 it.each(["{malformed",JSON.stringify({unexpected:"response"})])("locks an unverified response and preserves the original operation",async response=>{
   const fetch=vi.fn(async()=>new Response(response,{status:200}));vi.stubGlobal("fetch",fetch);
-  mount({name:"allocate",label:"关联款项",method:"POST",path:"/api/v1/operators/operator-one/payments/receipt/allocate",fields:[{name:"amount_usd",label:"分配金额 USD",kind:"decimal",default_value:"0.000000000000000001"}]},{onClose:vi.fn()});
+  mount({name:"allocate",label:"关联款项",method:"POST",path:"/api/v1/operators/operator-one/payments/receipt/allocate",fields:[{name:"amount_money",label:"分配金额 结算币种",kind:"decimal",default_value:"0.000000000000000001"}]},{onClose:vi.fn()});
   fireEvent.click(screen.getByRole("button",{name:"关联款项",exact:true}));await screen.findByText("本次办理结果待核实");
   expect((screen.getByRole("button",{name:"关闭",exact:true})as HTMLButtonElement).disabled).toBe(true);
   expect((screen.getByLabelText("分配金额 USD")as HTMLInputElement).disabled).toBe(true);
@@ -381,11 +382,11 @@ it("types nested concurrency versions while preserving opaque execution keys and
 
 it("accepts the ledger's exact eighteenth decimal place and rejects a nineteenth before submitting",async()=>{
   const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"receipt",status:"saved"}),{status:200}));vi.stubGlobal("fetch",fetch);
-  mount({name:"receipt",label:"登记精确金额",method:"POST",path:"/api/v1/operators/operator-one/payments",fields:[{name:"amount_usd",label:"金额 USD",kind:"decimal",required:true}]});
+  mount({name:"receipt",label:"登记精确金额",method:"POST",path:"/api/v1/operators/operator-one/payments",fields:[{name:"amount_money",label:"金额 结算币种",kind:"decimal",required:true}]});
   const amount=screen.getByLabelText("金额 USD",{exact:false});fireEvent.change(amount,{target:{value:"0.0000000000000000001"}});fireEvent.click(screen.getByRole("button",{name:"登记精确金额",exact:true}));
   expect(screen.getByRole("alert").textContent).toContain("最多 18 位小数");expect(fetch).not.toHaveBeenCalled();
   fireEvent.change(amount,{target:{value:"0.000000000000000001"}});fireEvent.click(screen.getByRole("button",{name:"登记精确金额",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
-  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({amount_usd:"0.000000000000000001"});
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({amount_money:"0.000000000000000001"});
 });
 
 it("permits signed ledger thresholds for actual risk metrics",async()=>{
@@ -416,23 +417,23 @@ it.each(["/api/v1/operators/operator-one/marketing", "/api/v1/me/activities"])("
 });
 
 it("copies only explicit order and receipt dependencies without unrelated defaults",async()=>{
-  const fetch=vi.fn(async(input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify(String(input).includes("/references/orders")?{items:[{value:"order-one",label:"真实订单",defaults:{order_id:"order-one",customer_id:"customer-one",gift_atg:"900",expected_version:99}}]}:String(input).includes("/references/receipts")?{items:[{value:"receipt-one",label:"已核实收款",defaults:{receipt_id:"receipt-one",amount_usd:"4.123456789012345678",currency:"USD",issuer_id:"issuer-one",gift_atg:"800",expected_version:88}}]}:{id:"refund-one",status:"saved"}),{status:200}));vi.stubGlobal("fetch",fetch);
-  mount({name:"allocate",label:"关联收款",method:"POST",path:"/api/v1/operators/operator-one/refunds",fields:[{name:"order_id",label:"原订单",kind:"text",required:true,lookup_url:"/api/v1/operators/operator-one/references/orders"},{name:"customer_id",label:"原客户",kind:"text",required:true},{name:"receipt_id",label:"原收款",kind:"text",required:true,lookup_url:"/api/v1/operators/operator-one/references/receipts"},{name:"amount_usd",label:"可分配USD",kind:"decimal",required:true},{name:"currency",label:"原币种",kind:"text",required:true},{name:"issuer_id",label:"原开票方",kind:"text",required:true},{name:"gift_atg",label:"本次赠送",kind:"decimal",required:true,default_value:"2"},{name:"expected_version",label:"退款版本",kind:"hidden",default_value:7}]});
+  const fetch=vi.fn(async(input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify(String(input).includes("/references/orders")?{items:[{value:"order-one",label:"真实订单",defaults:{order_id:"order-one",customer_id:"customer-one",gift_atg:"900",expected_version:99}}]}:String(input).includes("/references/receipts")?{items:[{value:"receipt-one",label:"已核实收款",defaults:{receipt_id:"receipt-one",amount_money:"4.123456789012345678",currency:"USD",issuer_id:"issuer-one",gift_atg:"800",expected_version:88}}]}:{id:"refund-one",status:"saved"}),{status:200}));vi.stubGlobal("fetch",fetch);
+  mount({name:"allocate",label:"关联收款",method:"POST",path:"/api/v1/operators/operator-one/refunds",fields:[{name:"order_id",label:"原订单",kind:"text",required:true,lookup_url:"/api/v1/operators/operator-one/references/orders"},{name:"customer_id",label:"原客户",kind:"text",required:true},{name:"receipt_id",label:"原收款",kind:"text",required:true,lookup_url:"/api/v1/operators/operator-one/references/receipts"},{name:"amount_money",label:"可分配结算币种",kind:"decimal",required:true},{name:"currency",label:"原币种",kind:"text",required:true},{name:"issuer_id",label:"原开票方",kind:"text",required:true},{name:"gift_atg",label:"本次赠送",kind:"decimal",required:true,default_value:"2"},{name:"expected_version",label:"退款版本",kind:"hidden",default_value:7}]});
   for(const [label,value]of [["原订单","order-one"],["原收款","receipt-one"]]){const select=screen.getByRole("combobox",{name:label});await waitFor(()=>expect((select as HTMLSelectElement).disabled).toBe(false));fireEvent.change(select,{target:{value}});}
   fireEvent.click(screen.getByRole("button",{name:"关联收款",exact:true}));await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
-  expect(JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body))).toEqual({order_id:"order-one",customer_id:"customer-one",receipt_id:"receipt-one",amount_usd:"4.123456789012345678",currency:"USD",issuer_id:"issuer-one",gift_atg:"2",expected_version:7});
+  expect(JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body))).toEqual({order_id:"order-one",customer_id:"customer-one",receipt_id:"receipt-one",amount_money:"4.123456789012345678",currency:"USD",issuer_id:"issuer-one",gift_atg:"2",expected_version:7});
 });
 
 it("shows real FX fields for unknown and stablecoin currencies and omits them for native USD",async()=>{
   const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"refund",status:"verified"}),{status:200}));vi.stubGlobal("fetch",fetch);
-  mount({name:"verify",label:"核实退款",method:"POST",path:"/api/v1/operators/operator-one/exits/leg/verify_manual",fields:[{name:"proof.money.currency",label:"实际退款币种",kind:"text",required:true},{name:"proof.external_reference",label:"实际银行流水",kind:"text",required:true},{name:"valuation.usd_per_unit",label:"本次真实汇率",kind:"decimal",required:true,visible_when:{field:"proof.money.currency",values:["USD"],not:true,fallback_fields:["asset","currency"]}},{name:"fx_execution_reference",label:"真实换汇凭据",kind:"text",required:true,visible_when:{field:"proof.money.currency",values:["USD"],not:true,fallback_fields:["asset","currency"]}}]});
-  expect(screen.getByLabelText(/本次真实汇率/,{selector:"input"})).toBeTruthy();
+  mount({name:"verify",label:"核实退款",method:"POST",path:"/api/v1/operators/operator-one/exits/leg/verify_manual",fields:[{name:"proof.money.currency",label:"实际退款币种",kind:"text",required:true},{name:"proof.external_reference",label:"实际银行流水",kind:"text",required:true},{name:"settlement_amount",label:"核实结算金额",kind:"decimal",required:true,visible_when:{field:"proof.money.currency",values:["USD"],not:true,fallback_fields:["asset","currency"]}},{name:"settlement_evidence",label:"结算核实凭据",kind:"text",required:true,visible_when:{field:"proof.money.currency",values:["USD"],not:true,fallback_fields:["asset","currency"]}}]});
+  expect(screen.getByLabelText(/核实结算金额/,{selector:"input"})).toBeTruthy();
   fireEvent.change(screen.getByLabelText(/实际退款币种/,{selector:"input"}),{target:{value:"USDC"}});
-  expect(screen.getByLabelText(/真实换汇凭据/,{selector:"input"})).toBeTruthy();
+  expect(screen.getByLabelText(/结算核实凭据/,{selector:"input"})).toBeTruthy();
   fireEvent.change(screen.getByLabelText(/实际银行流水/,{selector:"input"}),{target:{value:"actual-bank-reference"}});
   fireEvent.change(screen.getByLabelText(/实际退款币种/,{selector:"input"}),{target:{value:"USD"}});
-  expect(screen.queryByLabelText(/本次真实汇率/,{selector:"input"})).toBeNull();
-  expect(screen.queryByLabelText(/真实换汇凭据/,{selector:"input"})).toBeNull();
+  expect(screen.queryByLabelText(/核实结算金额/,{selector:"input"})).toBeNull();
+  expect(screen.queryByLabelText(/结算核实凭据/,{selector:"input"})).toBeNull();
   fireEvent.click(screen.getByRole("button",{name:"核实退款",exact:true}));
   await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
   expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({proof:{money:{currency:"USD"},external_reference:"actual-bank-reference"}});
@@ -480,20 +481,20 @@ it("lets a model form be closed when the submit result is unknown", async () => 
 
 it("publishes procurement tiers through named controls and previews exact ATG",async()=>{
   const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"quote",status:"published"}),{status:200}));vi.stubGlobal("fetch",fetch);
-  show({name:"quote",label:"发布阶梯报价",method:"POST",path:"/api/v1/operators/operator-one/procurement",fields:[{name:"action",label:"办理类型",kind:"hidden",default_value:"quote"},{name:"gift_tiers",label:"阶梯赠送",kind:"json",required:true,default_value:[{from_usd:"0",gift_percent:"0"},{from_usd:"1000",gift_percent:"1"},{from_usd:"2000",gift_percent:"2"}]}]});
+  show({name:"quote",label:"发布阶梯报价",method:"POST",path:"/api/v1/operators/operator-one/procurement",fields:[{name:"action",label:"办理类型",kind:"hidden",default_value:"quote"},{name:"gift_tiers",label:"阶梯赠送",kind:"json",required:true,default_value:[{from_money:"0",gift_percent:"0"},{from_money:"1000",gift_percent:"1"},{from_money:"2000",gift_percent:"2"}]}]});
   expect(screen.getByText("购买 2000 ATG + 赠送 10 ATG = 合计 2010 ATG")).toBeTruthy();
   expect(screen.queryByRole("textbox",{name:/JSON/})).toBeNull();
-  expect((screen.getAllByLabelText("区间起点 USD")[0] as HTMLInputElement).disabled).toBe(true);
+  expect((screen.getAllByLabelText("区间起点（USD）")[0] as HTMLInputElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole("button",{name:"发布阶梯报价",exact:true}));
   await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
-  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body)).gift_tiers).toEqual([{from_usd:"0",gift_percent:"0"},{from_usd:"1000",gift_percent:"1"},{from_usd:"2000",gift_percent:"2"}]);
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body)).gift_tiers).toEqual([{from_money:"0",gift_percent:"0"},{from_money:"1000",gift_percent:"1"},{from_money:"2000",gift_percent:"2"}]);
 });
 it("buys any procurement amount using the quote preview and sends only that amount",async()=>{
   const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"order",status:"awaiting_payment"}),{status:200}));vi.stubGlobal("fetch",fetch);
-  show({name:"purchase",label:"按金额采购",method:"POST",path:"/api/v1/operators/operator-one/procurement/{id}/purchase",fields:[{name:"amount_usd",label:"本次采购USD",kind:"decimal",required:true}]},{id:"quote",values:{gift_tiers:[{from_usd:"0",gift_percent:"0"},{from_usd:"1000",gift_percent:"1"},{from_usd:"2000",gift_percent:"2"}]}});
+  show({name:"purchase",label:"按金额采购",method:"POST",path:"/api/v1/operators/operator-one/procurement/{id}/purchase",fields:[{name:"amount_money",label:"本次采购结算币种",kind:"decimal",required:true}]},{id:"quote",values:{gift_tiers:[{from_money:"0",gift_percent:"0"},{from_money:"1000",gift_percent:"1"},{from_money:"2000",gift_percent:"2"}]}});
   fireEvent.change(screen.getByLabelText("本次采购USD",{exact:false}),{target:{value:"2500"}});
   expect(screen.getByText("购买 2500 ATG + 赠送 20 ATG = 合计 2520 ATG")).toBeTruthy();
   fireEvent.click(screen.getByRole("button",{name:"按金额采购",exact:true}));
   await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
-  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({amount_usd:"2500"});
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({amount_money:"2500"});
 });

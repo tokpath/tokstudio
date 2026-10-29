@@ -22,17 +22,26 @@ import (
 
 func paymentTestOrder(m Merchant, currency string) Order {
 	at := time.Now().UTC()
-	return Order{ID: uuid.NewString(), OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: currency, Amount: ledger.MustDecimal("10")}, Valuation: Valuation{ID: "explicit-test-valuation", Currency: currency, USDPerUnit: ledger.MustDecimal("1"), Source: "integration-only-configured-rate", EffectiveAt: at.Add(-time.Hour), ExpiresAt: at.Add(time.Hour)}, AcceptedAt: at, ExpiresAt: at.Add(15 * time.Minute), NotifyURL: "https://example.com/payments/webhook", Description: "TokenHub protocol contract"}
+	o := Order{ID: uuid.NewString(), OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: currency, Amount: ledger.MustDecimal("10")}, AcceptedAt: at, ExpiresAt: at.Add(15 * time.Minute), NotifyURL: "https://example.com/payments/webhook", Description: "TokenHub protocol contract"}
+	if m.Driver == "nowpayments" {
+		o.SettlementMoney = Money{Currency: "USD", Amount: ledger.FromInt64(10)}
+	}
+	return o
 }
-func TestMoneyAndValuationNeverRoundAwayRemainders(t *testing.T) {
+func TestMoneyAndSettlementAmountsStayExact(t *testing.T) {
 	m := Money{Currency: "USD", Amount: ledger.MustDecimal("0.001")}
 	if _, e := m.Minor(2); e == nil {
 		t.Fatal("sub-cent actual debit silently rounded")
 	}
-	v := Valuation{ID: "rate", Currency: "CNY", USDPerUnit: ledger.MustDecimal("0.142857142857142857"), Source: "agreed-quote", EffectiveAt: time.Now().Add(-time.Hour), ExpiresAt: time.Now().Add(time.Hour)}
-	converted, e := v.Convert(Money{Currency: "CNY", Amount: ledger.MustDecimal("0.01")}, time.Now())
-	if e != nil || converted.RemainderNumerator == "0" || converted.RemainderDenominator == "0" {
-		t.Fatalf("conversion lost remainder: %#v %v", converted, e)
+	original := Money{Currency: "USDT", Amount: ledger.MustDecimal("17.123456789012345678")}
+	confirmation := Valuation{Currency: "EUR", Amount: ledger.MustDecimal("14.123456789012345678"), Source: "verified individual transaction"}
+	value, e := confirmation.Convert(original, time.Time{})
+	if e != nil || value.Amount.Cmp(confirmation.Amount) != 0 || value.OriginalMoney.Amount.Cmp(original.Amount) != 0 || value.Currency != "EUR" {
+		t.Fatal(value, e)
+	}
+	confirmation.Source = ""
+	if _, e = confirmation.Convert(original, time.Time{}); e == nil {
+		t.Fatal("cross-currency settlement lacked evidence")
 	}
 	fact := Fact{ID: "user-provided", proof: false}
 	raw, _ := json.Marshal(fact)
@@ -203,7 +212,7 @@ func TestExternalPaymentDriversAndSignedCallbacks(t *testing.T) {
 				}
 			}
 			if d.Name() != "nowpayments" {
-				refund := Refund{ID: uuid.NewString(), Order: o, Money: Money{Currency: currency, Amount: ledger.MustDecimal("3")}, USDAmount: ledger.MustDecimal("3"), RefundValuation: o.Valuation, ValuedAt: o.AcceptedAt, FXExecutionReference: "synthetic-current-refund-fx"}
+				refund := Refund{ID: uuid.NewString(), Order: o, Money: Money{Currency: currency, Amount: ledger.MustDecimal("3")}, MoneyAmount: ledger.MustDecimal("3"), RefundValuation: o.Valuation, ValuedAt: o.AcceptedAt, FXExecutionReference: "synthetic-current-refund-fx"}
 				result, e := d.Refund(context.Background(), m, refund)
 				if e != nil || result.State != "succeeded" || result.Fact == nil || !result.Fact.Verified() {
 					t.Fatalf("partial refund %#v %v", result, e)
@@ -252,20 +261,20 @@ func TestExternalEVMWalletConfirmationsReorgAndReadOnly(t *testing.T) {
 	}
 }
 
-func TestRefundUsesCurrentExecutionValuation(t *testing.T) {
+func TestRefundUsesExplicitExecutionSettlement(t *testing.T) {
 	m := Merchant{ID: "m", OperatorID: "operator", Driver: "alipay", Enabled: true}
 	now := time.Now().UTC()
-	o := Order{ID: "order", OperatorID: "operator", MerchantID: "m", Money: Money{Currency: "CNY", Amount: ledger.FromInt64(100)}, Valuation: Valuation{ID: "original", Currency: "CNY", USDPerUnit: ledger.MustDecimal("0.2"), Source: "original_quote", EffectiveAt: now.Add(-time.Hour), ExpiresAt: now.Add(time.Hour)}, AcceptedAt: now, ExpiresAt: now.Add(time.Hour)}
-	r := Refund{ID: "refund", Order: o, Money: Money{Currency: "CNY", Amount: ledger.FromInt64(10)}, USDAmount: ledger.MustDecimal("1.4"), RefundValuation: Valuation{ID: "current", Currency: "CNY", USDPerUnit: ledger.MustDecimal("0.14"), Source: "executed_exchange", EffectiveAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Minute)}, ValuedAt: now, FXExecutionReference: "exchange:executed"}
+	o := Order{ID: "order", OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: "CNY", Amount: ledger.FromInt64(100)}, SettlementMoney: Money{Currency: "EUR", Amount: ledger.FromInt64(20)}, AcceptedAt: now, ExpiresAt: now.Add(time.Hour)}
+	r := Refund{ID: "refund", Order: o, Money: Money{Currency: "CNY", Amount: ledger.FromInt64(10)}, MoneyAmount: ledger.FromInt64(2), RefundValuation: Valuation{ID: "actual", Currency: "EUR", Amount: ledger.MustDecimal("1.4"), Source: "verified actual transfer relation"}}
 	if e := r.Validate(m); e != nil {
 		t.Fatal(e)
 	}
-	f, e := refundFact(m, r, "actual-refund", r.Money, nil, map[string]any{"actual": "verified"})
-	if e != nil || f.ExecutionValue == nil || f.ExecutionValue.Amount.String() != "1.4" || f.ExecutionValue.Valuation.ID != "current" {
-		t.Fatalf("refund reused original FX: %+v %v", f, e)
+	f, e := refundFact(m, r, "actual-refund", r.Money, nil, map[string]string{"actual": "verified"})
+	if e != nil || f.ExecutionValue == nil || f.ExecutionValue.Amount.String() != "1.4" || f.ExecutionValue.Currency != "EUR" || f.Money.Amount.String() != "10" {
+		t.Fatal(f, e)
 	}
 	r.RefundValuation = Valuation{}
 	if r.Validate(m) == nil {
-		t.Fatal("nonUSD refund accepted without actual execution valuation")
+		t.Fatal("cross-currency refund silently used obligation amount")
 	}
 }

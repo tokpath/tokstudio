@@ -17,14 +17,14 @@ func TestPostgresNotificationAudienceUsesPersistedCustomersAndBeneficiariesWitho
 	f.qualify(t, a.Customer.ID, "qualify-recipient")
 	f.buy(t, b.Customer.ID, "commission-source", "100", ActivitySelection{})
 	consumption := f.consume(t, b.Customer.ID, "100")
-	if e := f.s.ReverseEvent(f.ctx, nil, CorrectionInput{ActorStaffID: f.owner, OperatorID: f.operator, OriginalEventID: consumption[0].ID, BusinessKey: "proven-source-correction", Evidence: "private-sensitive-evidence", AmountUSD: d("10")}); e != nil {
+	if e := f.s.ReverseEvent(f.ctx, nil, CorrectionInput{ActorStaffID: f.owner, OperatorID: f.operator, OriginalEventID: consumption[0].ID, BusinessKey: "proven-source-correction", Evidence: "private-sensitive-evidence", AmountMoney: d("10")}); e != nil {
 		t.Fatal(e)
 	}
-	policy, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumUSD: d("5"), FlatFeeUSD: d("1"), MethodReference: "private-bank-arrangement"}, 0)
+	policy, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumMoney: d("5"), FlatFeeMoney: d("1"), MethodReference: "private-bank-arrangement"}, 0)
 	if e != nil {
 		t.Fatal(e)
 	}
-	w, e := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: a.Customer.ID, BusinessKey: "notify-withdrawal", RecipientReference: "private-sensitive-bank-account", PolicyID: policy.ID, AmountUSD: d("10")})
+	w, e := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: a.Customer.ID, BusinessKey: "notify-withdrawal", RecipientReference: "private-sensitive-bank-account", PolicyID: policy.ID, AmountMoney: d("10")})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -79,7 +79,7 @@ func TestPostgresNotificationAudienceUsesPersistedCustomersAndBeneficiariesWitho
 			if strings.Contains(string(encoded), "private-sensitive") || strings.Contains(string(encoded), "bank-account") || strings.Contains(string(encoded), "forged") {
 				t.Fatal("notification exposed private payload", string(encoded))
 			}
-			if event.Kind == "withdrawal.outcome_unknown" && (rows[0].RecipientID != a.Customer.ID || rows[0].AmountUSD == nil || rows[0].AmountUSD.Cmp(d("10")) != 0) {
+			if event.Kind == "withdrawal.outcome_unknown" && (rows[0].RecipientID != a.Customer.ID || rows[0].AmountMoney == nil || rows[0].AmountMoney.Cmp(d("10")) != 0) {
 				t.Fatal(rows)
 			}
 		}

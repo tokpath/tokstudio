@@ -117,7 +117,7 @@ func TestPostgresPrivateCooperationContractUploadAndPartyBoundaries(t *testing.T
 	if status != 404 {
 		t.Fatal("unrelated buyer read private contract", status, string(data))
 	}
-	status, out, _ = f.call(t, "POST", "/v1/operators/"+parent+"/procurement", map[string]any{"action": "quote", "buyer_id": sibling.Operator.ID, "gift_tiers": []map[string]string{{"from_usd": "0", "gift_percent": "900"}}, "contract_attachment_id": id, "exit_policy": "remaining_paid_proportional", "enabled": true}, "")
+	status, out, _ = f.call(t, "POST", "/v1/operators/"+parent+"/procurement", map[string]any{"action": "quote", "buyer_id": sibling.Operator.ID, "gift_tiers": []map[string]string{{"from_money": "0", "gift_percent": "900"}}, "contract_attachment_id": id, "exit_policy": "remaining_paid_proportional", "enabled": true}, "")
 	mustOK(t, status, out)
 	status, data, _ = download(sibling.Operator.ID)
 	if status != 200 || !bytes.Equal(data, payload) {

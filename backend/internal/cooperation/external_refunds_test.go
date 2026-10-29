@@ -52,6 +52,9 @@ func testExternalStablecoinProcurement(t *testing.T, base, mode string) {
 	}
 	apply(organization.Migrations())
 	apply(ledger.Migrations())
+	if e := db.Exec("UPDATE ledger_monetary_settings SET effective_at=clock_timestamp()-interval '1 minute' WHERE id='platform'").Error; e != nil {
+		t.Fatal(e)
+	}
 	apply(commerce.Migrations())
 	apply(incentives.Migrations())
 	apply(cooperation.Migrations())
@@ -102,7 +105,7 @@ func testExternalStablecoinProcurement(t *testing.T, base, mode string) {
 	if _, e = pay.SaveMerchant(ctx, owner, m, 0); e != nil {
 		t.Fatal(e)
 	}
-	quote, e := coop.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: supplier, BuyerID: buyer, GiftTiers: []cooperation.PurchaseGiftTier{{FromUSD: ledger.Zero(), GiftPercent: ledger.FromInt64(900)}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"signed-original-source-return"}`), TermsReference: "signed-inclusive-final-price", Enabled: true})
+	quote, e := coop.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: supplier, BuyerID: buyer, GiftTiers: []cooperation.PurchaseGiftTier{{FromMoney: ledger.Zero(), GiftPercent: ledger.FromInt64(900)}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"signed-original-source-return"}`), TermsReference: "signed-inclusive-final-price", Enabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -111,8 +114,8 @@ func testExternalStablecoinProcurement(t *testing.T, base, mode string) {
 		t.Fatal(e)
 	}
 	now := time.Now().UTC()
-	valuation := payments.Valuation{ID: "verified-current-stablecoin-price", Currency: currency, USDPerUnit: ledger.FromInt64(1), Source: "independent contemporaneous price fixture", EffectiveAt: now.Add(-10 * time.Minute), ExpiresAt: now.Add(time.Hour)}
-	o := payments.Order{ID: order.ID, OperatorID: supplier, MerchantID: m.ID, Money: payments.Money{Currency: currency, Amount: ledger.FromInt64(10)}, Valuation: valuation, AcceptedAt: now, ExpiresAt: order.ExpiresAt, NotifyURL: "https://callback.example.test/verified"}
+	valuation := payments.Valuation{Currency: "USD", Amount: ledger.FromInt64(10), Source: "verified actual settlement obligation"}
+	o := payments.Order{ID: order.ID, OperatorID: supplier, MerchantID: m.ID, Money: payments.Money{Currency: currency, Amount: ledger.FromInt64(10)}, SettlementMoney: payments.Money{Currency: "USD", Amount: ledger.FromInt64(10)}, AcceptedAt: now, ExpiresAt: order.ExpiresAt, NotifyURL: "https://callback.example.test/verified"}
 	checkout, e := pay.Create(ctx, supplier, m.ID, o)
 	if e != nil {
 		t.Fatal(e)
@@ -141,7 +144,7 @@ func testExternalStablecoinProcurement(t *testing.T, base, mode string) {
 		if e = db.Transaction(func(tx *gorm.DB) error { return coop.RequireNoPendingProcurementReceipts(ctx, tx, buyer, pay) }); !errors.Is(e, cooperation.ErrLiability) {
 			t.Fatalf("closed historical procurement lost actual unvalued receipt: %v", e)
 		}
-		if _, e = pay.ConfirmReceiptValuation(ctx, owner, supplier, actual.ID, payments.ReceiptValuationConfirmation{BusinessKey: "independent-original-payment-valuation", Valuation: valuation, PaidAt: &now, PaymentTimeEvidence: "independent provider receipt actual transfer time verified", EvidenceReference: "contemporaneous independently verified USD valuation"}); e != nil {
+		if _, e = pay.ConfirmReceiptValuation(ctx, owner, supplier, actual.ID, payments.ReceiptValuationConfirmation{BusinessKey: "independent-original-payment-valuation", SettlementAmount: ledger.FromInt64(10), PaidAt: &now, PaymentTimeEvidence: "independent provider receipt actual transfer time verified", EvidenceReference: "contemporaneous independently verified USD valuation"}); e != nil {
 			t.Fatal(e)
 		}
 		if e = db.Transaction(func(tx *gorm.DB) error { return coop.RequireNoPendingProcurementReceipts(ctx, tx, buyer, pay) }); !errors.Is(e, cooperation.ErrLiability) {
@@ -252,7 +255,7 @@ func testExternalStablecoinProcurement(t *testing.T, base, mode string) {
 		t.Fatal(e)
 	}
 	if mode == "evm" {
-		if callErr != nil || result.State != "succeeded" || current.CompletedUSD.String() != "10" || !current.ReservedUSD.IsZero() {
+		if callErr != nil || result.State != "succeeded" || current.CompletedMoney.String() != "10" || !current.ReservedMoney.IsZero() {
 			t.Fatal(result, current, callErr)
 		}
 		return
@@ -265,11 +268,11 @@ func testExternalStablecoinProcurement(t *testing.T, base, mode string) {
 		t.Fatal(e)
 	}
 	if strings.HasPrefix(mode, "evm_replacement_") {
-		if current.CompletedUSD.String() != "9" || current.ReservedUSD.String() != "1" {
+		if current.CompletedMoney.String() != "9" || current.ReservedMoney.String() != "1" {
 			t.Fatal(current)
 		}
 		closed, e := refunds.CloseRefundRoute(ctx, owner, supplier, leg.ID, "original payment route permanently unavailable", "independently confirmed no remaining outgoing transaction on original route")
-		if e != nil || closed.RemainingUSD.String() != "1" {
+		if e != nil || closed.RemainingMoney.String() != "1" {
 			t.Fatal(closed, e)
 		}
 		if result.Fact == nil {
@@ -292,7 +295,7 @@ func testExternalStablecoinProcurement(t *testing.T, base, mode string) {
 	}
 	switch mode {
 	case "evm_partial":
-		if current.CompletedUSD.String() != "9" || current.ReservedUSD.String() != "1" || saved.ActualUSD.String() != "9" || saved.SettledUSD.String() != "9" {
+		if current.CompletedMoney.String() != "9" || current.ReservedMoney.String() != "1" || saved.ActualMoney.String() != "9" || saved.SettledMoney.String() != "9" {
 			t.Fatal(current, saved)
 		}
 		if _, e = refunds.BeginManualRefund(ctx, owner, leg.ID, "explicit-remaining-one", "fresh approval for remaining liability only"); e != nil {
@@ -305,15 +308,15 @@ func testExternalStablecoinProcurement(t *testing.T, base, mode string) {
 			t.Fatal(result, e)
 		}
 		current, e = capacity.ReceiptRefundCapacity(ctx, nil, supplier, receipt)
-		if e != nil || current.CompletedUSD.String() != "10" || !current.ReservedUSD.IsZero() {
+		if e != nil || current.CompletedMoney.String() != "10" || !current.ReservedMoney.IsZero() {
 			t.Fatal(current, e)
 		}
 	case "evm_overpaid":
-		if current.CompletedUSD.String() != "10" || saved.ActualUSD.String() != "11" || saved.ExcessUSD.String() != "1" || !current.ReservedUSD.IsZero() {
+		if current.CompletedMoney.String() != "10" || saved.ActualMoney.String() != "11" || saved.ExcessMoney.String() != "1" || !current.ReservedMoney.IsZero() {
 			t.Fatal(current, saved)
 		}
 	case "evm_misdirected":
-		if !current.CompletedUSD.IsZero() || current.ReservedUSD.String() != "10" || !saved.SettledUSD.IsZero() || saved.ActualUSD.String() != "10" {
+		if !current.CompletedMoney.IsZero() || current.ReservedMoney.String() != "10" || !saved.SettledMoney.IsZero() || saved.ActualMoney.String() != "10" {
 			t.Fatal(current, saved)
 		}
 	}
@@ -370,11 +373,11 @@ func testProcurementReplacement(ctx context.Context, t *testing.T, db *gorm.DB, 
 	if e = db.First(&saved, "id=?", leg.ID).Error; e != nil {
 		t.Fatal(e)
 	}
-	if saved.SettledUSD.String() != "10" || saved.State != "completed" {
+	if saved.SettledMoney.String() != "10" || saved.State != "completed" {
 		t.Fatal(saved)
 	}
 	cap, e := capacity.ReceiptRefundCapacity(ctx, nil, supplier, receipt)
-	if e != nil || cap.CompletedUSD.String() != "10" || !cap.ReservedUSD.IsZero() {
+	if e != nil || cap.CompletedMoney.String() != "10" || !cap.ReservedMoney.IsZero() {
 		t.Fatal(cap, e)
 	}
 	_, authorizations, e := refunds.RefundDestinations(ctx, buyerActor, buyer, leg.ID)
@@ -401,11 +404,11 @@ func testProcurementReplacement(ctx context.Context, t *testing.T, db *gorm.DB, 
 		if e = db.First(&saved, "id=?", leg.ID).Error; e != nil {
 			t.Fatal(e)
 		}
-		if saved.ActualUSD.String() != "12" || saved.SettledUSD.String() != "10" || saved.ExcessUSD.String() != "2" {
+		if saved.ActualMoney.String() != "12" || saved.SettledMoney.String() != "10" || saved.ExcessMoney.String() != "2" {
 			t.Fatal(saved)
 		}
 		cap, e = capacity.ReceiptRefundCapacity(ctx, nil, supplier, receipt)
-		if e != nil || cap.CompletedUSD.String() != "10" || !cap.ReservedUSD.IsZero() {
+		if e != nil || cap.CompletedMoney.String() != "10" || !cap.ReservedMoney.IsZero() {
 			t.Fatal(cap, e)
 		}
 		var cash ledger.Account

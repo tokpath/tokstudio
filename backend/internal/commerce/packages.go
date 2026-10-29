@@ -13,7 +13,7 @@ import (
 )
 
 func (s *Service) PublishPackage(ctx context.Context, tx *gorm.DB, in PublishPackageInput) (out PackageQuote, err error) {
-	if !validID(in.OperatorID) || strings.TrimSpace(in.Name) == "" || len(in.TermsSummary) > 10000 || in.PriceUSD.Sign() <= 0 || in.PaidATG.Sign() <= 0 || in.GiftATG.Sign() < 0 || !in.PriceUSD.Valid() || !in.PaidATG.Valid() || !in.GiftATG.Valid() {
+	if !validID(in.OperatorID) || strings.TrimSpace(in.Name) == "" || len(in.TermsSummary) > 10000 || in.PriceMoney.Sign() <= 0 || in.PaidATG.Sign() <= 0 || in.GiftATG.Sign() < 0 || !in.PriceMoney.Valid() || !in.PaidATG.Valid() || !in.GiftATG.Valid() {
 		return out, ErrInvalidInput
 	}
 	if in.Period == ledger.Lifetime && in.RenewalEnabled {
@@ -73,7 +73,7 @@ func (s *Service) PublishPackage(ctx context.Context, tx *gorm.DB, in PublishPac
 			terms = DefaultPackageTerms + "\n" + terms
 		}
 		quoteID := uuid.NewString()
-		q := quoteRow{ID: quoteID, PackageID: p.ID, OperatorID: in.OperatorID, Version: version, PriceUSD: in.PriceUSD, PaidATG: in.PaidATG, GiftATG: in.GiftATG, Period: in.Period, Timezone: in.Timezone, TermsReference: fmt.Sprintf("package-terms:%s:v%d", p.ID, version), TermsSummary: terms, CreatedAt: s.now()}
+		q := quoteRow{ID: quoteID, PackageID: p.ID, OperatorID: in.OperatorID, Version: version, PriceMoney: in.PriceMoney, PaidATG: in.PaidATG, GiftATG: in.GiftATG, Period: in.Period, Timezone: in.Timezone, TermsReference: fmt.Sprintf("package-terms:%s:v%d", p.ID, version), TermsSummary: terms, CreatedAt: s.now()}
 		if err := tx.Create(&q).Error; err != nil {
 			return err
 		}
@@ -106,7 +106,7 @@ func (s *Service) GetPackage(ctx context.Context, tx *gorm.DB, operator, id stri
 // higher USD debit always needs consent, even when the ATG quantity increases.
 func RequiresRenewalConfirmation(old, next PackageQuote) bool {
 	rank := map[ledger.Period]int{ledger.Month: 1, ledger.Quarter: 3, ledger.Year: 12, ledger.Lifetime: 100000}
-	return old.PackageID != next.PackageID || old.OperatorID != next.OperatorID || next.PriceUSD.Cmp(old.PriceUSD) > 0 || next.PaidATG.Add(next.GiftATG).Cmp(old.PaidATG.Add(old.GiftATG)) < 0 || next.PaidATG.Cmp(old.PaidATG) < 0 || rank[next.Period] < rank[old.Period] || old.Timezone != next.Timezone || packageTermsChanged(old, next)
+	return old.PackageID != next.PackageID || old.OperatorID != next.OperatorID || next.PriceMoney.Cmp(old.PriceMoney) > 0 || next.PaidATG.Add(next.GiftATG).Cmp(old.PaidATG.Add(old.GiftATG)) < 0 || next.PaidATG.Cmp(old.PaidATG) < 0 || rank[next.Period] < rank[old.Period] || old.Timezone != next.Timezone || packageTermsChanged(old, next)
 }
 func validity(d time.Duration) time.Duration {
 	if d == 0 {

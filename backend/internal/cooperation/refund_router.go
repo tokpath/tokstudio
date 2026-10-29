@@ -58,7 +58,7 @@ func (c CombinedRefundApproval) RequireResponsibleRefundExecution(ctx context.Co
 	return other.RequireResponsibleRefundExecution(ctx, tx, actor, operator, legID, d)
 }
 
-func (c CombinedRefundSink) RecordVerifiedRefund(ctx context.Context, tx *gorm.DB, m payments.Merchant, o payments.Order, r payments.Refund, f payments.Fact, v payments.USDValue) error {
+func (c CombinedRefundSink) RecordVerifiedRefund(ctx context.Context, tx *gorm.DB, m payments.Merchant, o payments.Order, r payments.Refund, f payments.Fact, v payments.MoneyValue) error {
 	if c.Procurement != nil {
 		e := c.Procurement.RecordVerifiedRefund(ctx, tx, m, o, r, f, v)
 		if !errors.Is(e, ErrNotProcurementRefund) {

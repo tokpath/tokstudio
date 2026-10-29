@@ -2,32 +2,29 @@ package cooperation
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
-	"github.com/tokpath/tokstudio/backend/internal/platform/db/dbtest"
-	"io/fs"
 	"testing"
 	"time"
 )
 
 func tierFixture() []PurchaseGiftTier {
-	return []PurchaseGiftTier{{FromUSD: amount("0"), GiftPercent: amount("0")}, {FromUSD: amount("1000"), GiftPercent: amount("1")}, {FromUSD: amount("2000"), GiftPercent: amount("2")}}
+	return []PurchaseGiftTier{{FromMoney: amount("0"), GiftPercent: amount("0")}, {FromMoney: amount("1000"), GiftPercent: amount("1")}, {FromMoney: amount("2000"), GiftPercent: amount("2")}}
 }
 func TestPurchaseProgressiveTiers(t *testing.T) {
 	for _, tc := range []struct{ usd, gift string }{{"999", "0"}, {"1000", "0"}, {"1000.01", "0.0001"}, {"2000", "10"}, {"2500", "20"}, {"3000", "30"}, {"4000", "50"}} {
-		r, e := CalculatePurchase(tierFixture(), amount(tc.usd))
+		r, e := CalculatePurchase(tierFixture(), amount(tc.usd), ledger.MonetarySnapshot{Currency: "USD", AtgPerUnit: amount("1")})
 		if e != nil || r.PaidATG.String() != tc.usd || r.GiftATG.String() != tc.gift {
 			t.Fatalf("%s: %+v %v", tc.usd, r, e)
 		}
 	}
-	for _, tiers := range [][]PurchaseGiftTier{nil, {{FromUSD: amount("1")}}, {{}, {FromUSD: amount("0")}}, {{}, {FromUSD: amount("1000")}, {FromUSD: amount("900")}}, {{GiftPercent: amount("-1")}}} {
+	for _, tiers := range [][]PurchaseGiftTier{nil, {{FromMoney: amount("1")}}, {{}, {FromMoney: amount("0")}}, {{}, {FromMoney: amount("1000")}, {FromMoney: amount("900")}}, {{GiftPercent: amount("-1")}}} {
 		if ValidatePurchaseTiers(tiers) == nil {
 			t.Fatal("invalid tiers accepted", tiers)
 		}
 	}
-	r, e := CalculatePurchase([]PurchaseGiftTier{{GiftPercent: amount("0.1")}}, amount("0.000000000000000001"))
+	r, e := CalculatePurchase([]PurchaseGiftTier{{GiftPercent: amount("0.1")}}, amount("0.000000000000000001"), ledger.MonetarySnapshot{Currency: "USD", AtgPerUnit: amount("1")})
 	if e != nil || !r.GiftATG.IsZero() || r.GiftRemainder == "0" {
 		t.Fatal("fractional calculation evidence lost", r, e)
 	}
@@ -52,7 +49,7 @@ func TestPostgresPurchaseOneWholePaymentAndOfflineDelivery(t *testing.T) {
 	receipt := func(key, usd string) commerce.Receipt {
 		t.Helper()
 		now := time.Now().UTC()
-		r, e := collector.RecordManualReceipt(f.ctx, nil, f.owner, commerce.VerifiedReceipt{OperatorID: f.platform, ProviderReceiptID: key, GrossUSD: amount(usd), FeeStatus: "pending", Currency: "USD", OriginalAmount: usd, RecipientReference: "synthetic supplier bank", PayerReference: "synthetic buyer bank", ValuationEvidence: "USD", VerificationEvidence: "synthetic verified transfer", PaidAt: &now, ObservedAt: now})
+		r, e := collector.RecordManualReceipt(f.ctx, nil, f.owner, commerce.VerifiedReceipt{OperatorID: f.platform, ProviderReceiptID: key, GrossMoney: amount(usd), FeeStatus: "pending", Currency: "USD", OriginalAmount: usd, RecipientReference: "synthetic supplier bank", PayerReference: "synthetic buyer bank", ValuationEvidence: "USD", VerificationEvidence: "synthetic verified transfer", PaidAt: &now, ObservedAt: now})
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -119,71 +116,57 @@ func TestPostgresPurchaseOneWholePaymentAndOfflineDelivery(t *testing.T) {
 	}
 }
 
-func TestPostgresTieredQuoteUpgradePreservesAcceptedOrders(t *testing.T) {
-	db := dbtest.New(t)
-	apply := func(_ string, files fs.FS) {
-		t.Helper()
-		entries, e := fs.ReadDir(files, ".")
-		if e != nil {
-			t.Fatal(e)
-		}
-		for _, entry := range entries {
-			if entry.Name() >= "0010_tiered_purchase_quotes.sql" {
-				continue
-			}
-			sql, e := fs.ReadFile(files, entry.Name())
-			if e != nil {
-				t.Fatal(e)
-			}
-			if e = db.Exec(string(sql)).Error; e != nil {
-				t.Fatal(e)
-			}
+func TestPurchaseUsesGlobalRatioForPaidAndProgressiveGift(t *testing.T) {
+	for _, tc := range []struct{ ratio, paid, gift string }{{"10", "20000", "100"}, {"0.125", "250", "1.25"}} {
+		out, e := CalculatePurchase(tierFixture(), amount("2000"), ledger.MonetarySnapshot{Currency: "CNY", AtgPerUnit: amount(tc.ratio), Version: 7})
+		if e != nil || out.PaidATG.String() != tc.paid || out.GiftATG.String() != tc.gift || out.MonetarySnapshot.Currency != "CNY" || out.MonetarySnapshot.Version != 7 {
+			t.Fatal(out, e)
 		}
 	}
-	apply(organization.Migrations())
-	apply(ledger.Migrations())
-	apply(commerce.Migrations())
-	apply(Migrations())
-	quoteID, orderID, authID, supplier, buyer, owner := uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString()
-	if e := db.Exec(`INSERT INTO cooperation_purchase_quotes(id,supplier_id,buyer_id,price_usd,paid_atg,gift_atg,exit_terms,terms_reference,enabled,created_by,created_at) VALUES(?,?,?,10,100,20,'{}','original-terms',true,?,clock_timestamp())`, quoteID, supplier, buyer, owner).Error; e != nil {
-		t.Fatal(e)
+	if _, e := CalculatePurchase(tierFixture(), amount("1"), ledger.MonetarySnapshot{}); e == nil {
+		t.Fatal("missing ratio silently defaulted to one")
 	}
-	if e := db.Exec(`INSERT INTO cooperation_purchase_orders(id,supplier_id,buyer_id,quote_id,business_key,fingerprint,due_usd,paid_atg,gift_atg,exit_terms,terms_reference,status,expires_at,created_at) VALUES(?,?,?,?,'accepted-order','original-fingerprint',10,100,20,'{}','original-terms','awaiting_payment','9999-01-01',clock_timestamp())`, orderID, supplier, buyer, quoteID).Error; e != nil {
-		t.Fatal(e)
-	}
-	if e := db.Exec(`INSERT INTO cooperation_replenishment_authorizations(id,buyer_id,supplier_id,quote_id,trigger_available_atg,single_limit_usd,period_limit_usd,period,mode,payment_ciphertext,consent_reference,enabled,version,authorized_by,updated_at) VALUES(?,?,?,?,0,10,10,'month','offline','original-evidence','original-consent',true,1,?,clock_timestamp())`, authID, buyer, supplier, quoteID, owner).Error; e != nil {
-		t.Fatal(e)
-	}
-	_, files := Migrations()
-	migration, e := fs.ReadFile(files, "0010_tiered_purchase_quotes.sql")
+}
+
+func TestPostgresNonUnitProcurementRatioPreservesFundingAndMovingCost(t *testing.T) {
+	f := setupMonetary(t, "CNY", "10")
+	inv, e := f.org.InviteStaff(f.ctx, nil, f.owner, f.channel, "non-unit-owner@example.test", "owner")
 	if e != nil {
 		t.Fatal(e)
 	}
-	if e = db.Exec(string(migration)).Error; e != nil {
+	if _, e = f.org.AcceptStaffInvitation(f.ctx, nil, inv.Token, organization.VerifiedStaff{ID: f.owner, Email: "non-unit-owner@example.test", EmailVerified: true}); e != nil {
 		t.Fatal(e)
 	}
-	var q PurchaseQuote
-	var order PurchaseOrder
-	var auth ReplenishmentAuthorization
-	if e = db.First(&q, "id=?", quoteID).Error; e != nil {
+	q, e := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: tierFixture(), Enabled: true})
+	if e != nil {
 		t.Fatal(e)
 	}
-	if q.Enabled || len(q.GiftTiers) > 0 || len(q.LegacyPricing) == 0 {
-		t.Fatal("old quote was reinterpreted instead of archived", q)
+	order, e := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, q.ID, "non-unit-ratio", amount("2000"))
+	if e != nil || order.PaidATG.String() != "20000" || order.GiftATG.String() != "100" || order.MonetarySnapshot.Currency != "CNY" || order.MonetarySnapshot.AtgPerUnit.String() != "10" {
+		t.Fatal(order, e)
 	}
-	if e = db.First(&order, "id=?", orderID).Error; e != nil {
+	collector := commerce.New(f.db)
+	fee, net := amount("20"), amount("1980")
+	receipt, e := collector.RecordManualReceipt(f.ctx, nil, f.owner, commerce.VerifiedReceipt{OperatorID: f.platform, ProviderReceiptID: "actual-cny-2000", GrossMoney: amount("2000"), FeeMoney: &fee, NetMoney: &net, FeeStatus: "confirmed", Currency: "CNY", OriginalAmount: "2000", ValuationEvidence: "same-currency actual payment", VerificationEvidence: "verified cashier receipt"})
+	if e != nil {
 		t.Fatal(e)
 	}
-	if order.DueUSD.String() != "10" || order.PaidATG.String() != "100" || order.GiftATG.String() != "20" || order.TermsReference != "original-terms" {
-		t.Fatal("accepted order changed", order)
-	}
-	if e = db.First(&auth, "id=?", authID).Error; e != nil {
+	if _, e = f.s.FundPurchase(f.ctx, nil, collector, f.owner, order.ID, receipt.ID, "whole-receipt", amount("2000")); e != nil {
 		t.Fatal(e)
 	}
-	if auth.Enabled || !auth.AmountUSD.IsZero() || auth.ConsentReference != "original-consent" {
-		t.Fatal("old consent silently became a new purchase amount", auth)
+	if _, e = f.s.FulfillPurchase(f.ctx, nil, order.ID, f.owner); e != nil {
+		t.Fatal(e)
 	}
-	if e = db.Model(&PurchaseQuote{}).Where("id=?", quoteID).Update("legacy_pricing", json.RawMessage(`{}`)).Error; e == nil {
-		t.Fatal("archived quote facts are mutable")
+	position, e := f.s.Position(f.ctx, nil, f.channel)
+	if e != nil || position.Quantity.String() != "20100" || position.Cost.String() != "2000" {
+		t.Fatal(position, e)
+	}
+	hold, e := f.s.ReserveProcurement(f.ctx, nil, f.channel, "actual-usage", amount("100.5"), time.Now().Add(time.Minute))
+	if e != nil {
+		t.Fatal(e)
+	}
+	settled, e := f.s.SettleProcurement(f.ctx, nil, f.channel, "actual-usage", hold.ID, amount("100.5"), time.Now())
+	if e != nil || settled.CostMoney.String() != "10" {
+		t.Fatal(settled, e)
 	}
 }

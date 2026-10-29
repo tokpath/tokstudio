@@ -1,113 +1,34 @@
 [
   {
     "resource": "receipt-valuations",
-    "confirmation": "确认独立真实付款时点和覆盖该时刻的本次估值窗口。只使原已收款事实一次入账，不生成新收款或重复交付。",
+    "confirmation": "确认原币真实收款与本次清算入账金额的关联。只使原已收款事实一次入账，不生成新收款或重复交付。",
     "description": "",
     "fields": [
       {
-        "name": "valuation.currency",
-        "label": "本次估值币种",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.usd_per_unit",
-        "label": "本次真实每单位USD",
+        "name": "settlement_amount",
+        "label": "已核实订单入账金额（结算币种）",
         "kind": "decimal",
-        "required": true,
-        "visible_when": {
-          "field": "currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "required": true
       },
       {
-        "name": "valuation.source",
-        "label": "本次授权汇率/实际换汇依据",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.effective_at",
-        "label": "本次估值生效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.expires_at",
-        "label": "本次估值失效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "name": "evidence_reference",
+        "label": "本次真实交易与入账关联凭证",
+        "kind": "textarea",
+        "required": true
       },
       {
         "name": "paid_at",
-        "label": "独立证明的真实付款时间（原事实缺失时必填）",
+        "label": "独立证明的真实付款时间（原事实缺失时填写）",
         "kind": "datetime"
       },
       {
         "name": "payment_time_evidence",
         "label": "独立付款时点证明（补时间时必填）",
         "kind": "textarea"
-      },
-      {
-        "name": "evidence_reference",
-        "label": "本次估值核实证据",
-        "kind": "textarea",
-        "required": true
       }
     ],
     "include_version": false,
-    "label": "核实原币实际付款时点估值",
+    "label": "核实本笔收款入账",
     "method": "POST",
     "name": "confirm",
     "path": "/v1/operators/{operatorId}/receipt-valuations/{id}/confirm",
@@ -361,8 +282,8 @@
         "required": true
       },
       {
-        "name": "price_usd",
-        "label": "售价 USD",
+        "name": "price_money",
+        "label": "售价 清算币种",
         "kind": "decimal",
         "required": true
       },
@@ -475,127 +396,85 @@
   {
     "resource": "payments",
     "confirmation": "",
-    "description": "",
+    "description": "实际原币收款与订单清算金额分别登记。原币和清算费用独立；同币金额一致时可推导，跨币必须有单笔交易关联凭证。",
     "fields": [
       {
-        "kind": "text",
+        "name": "order_id",
         "label": "关联订单（可选）",
-        "lookup_url": "/api/v1/operators/{operatorId}/references/orders?purpose=collection",
-        "name": "order_id"
+        "kind": "text",
+        "lookup_url": "/api/v1/operators/{operatorId}/references/orders?purpose=collection"
       },
       {
-        "kind": "text",
+        "name": "provider_receipt_id",
         "label": "收款流水或收据号（可选）",
-        "name": "provider_receipt_id"
+        "kind": "text"
       },
       {
-        "default_value": "USD",
-        "kind": "text",
-        "label": "收款币种",
         "name": "currency",
+        "label": "真实收款币种",
+        "kind": "text",
         "required": true
       },
       {
-        "kind": "decimal",
-        "label": "收款总额（扣手续费前） USD",
-        "name": "gross_usd",
-        "required": true,
-        "help": "填写用于支付订单的收款总额，尚未扣除己方收款手续费。例如订单1000 USD、己方手续费10 USD、净到账990 USD，此处填1000；订单仍按1000 USD交付。付款人另付的转账费或链上手续费不计入。"
-      },
-      {
-        "kind": "decimal",
-        "label": "原币收款总额（扣手续费前）",
         "name": "original_amount",
-        "required": true,
-        "visible_when": {
-          "field": "currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        },
-        "help": "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合USD的收款总额与本次估值依据分别填写。"
+        "label": "实际原币收款总额（扣己方手续费前）",
+        "kind": "decimal",
+        "help": "保留真实收款币种与金额。原币等于全局清算币种时可从清算金额推导；付款人另付的发送费或链上手续费不计入。"
       },
       {
-        "kind": "text",
-        "label": "本次USD估值依据",
-        "name": "valuation_evidence",
+        "name": "settlement_amount",
+        "label": "已核实订单入账金额（结算币种，扣己方手续费前）",
+        "kind": "decimal",
         "required": true,
-        "visible_when": {
-          "field": "currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "help": "仅登记本笔真实收款对应的订单清算金额。收款方承担的手续费不减少订单交付额度。"
       },
       {
-        "kind": "text",
+        "name": "settlement_evidence",
+        "label": "本笔交易与订单清算金额的核实依据",
+        "kind": "textarea"
+      },
+      {
+        "name": "recipient_reference",
         "label": "收款方资料（可选）",
-        "name": "recipient_reference"
+        "kind": "text"
       },
       {
-        "kind": "text",
+        "name": "payer_reference",
         "label": "付款方资料（可选）",
-        "name": "payer_reference"
+        "kind": "text"
       },
       {
-        "kind": "datetime",
-        "label": "真实付款时刻",
         "name": "paid_at",
+        "label": "真实付款时刻",
+        "kind": "datetime",
         "required": true
       },
       {
-        "kind": "textarea",
+        "name": "verification_evidence",
         "label": "收款说明或凭证（可选）",
-        "name": "verification_evidence"
+        "kind": "textarea"
       },
       {
-        "default_value": "pending",
-        "kind": "select",
-        "label": "收款手续费核实状态",
-        "name": "fee_status",
-        "options": [
-          {
-            "label": "稍后核实",
-            "value": "pending"
-          },
-          {
-            "label": "金额已核实",
-            "value": "confirmed"
-          }
-        ],
-        "required": true,
-        "help": "尚不清楚己方收款手续费时选“稍后核实”，净到账金额暂不确定；确实没有手续费时，选“金额已核实”并填写0。"
-      },
-      {
+        "name": "original_fee_amount",
+        "label": "己方收款手续费（原币，可稍后核实）",
         "kind": "decimal",
-        "label": "己方承担的收款手续费 USD",
-        "name": "fee_usd",
-        "required": true,
-        "visible_when": {
-          "field": "fee_status",
-          "values": [
-            "confirmed"
-          ]
-        },
-        "help": "只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。"
+        "help": "只记录收款方承担的真实原币费用。未核实时留空，确实没有时填0。"
       },
       {
-        "kind": "datetime",
-        "label": "通道结算到账时间（可选）",
+        "name": "fee_money",
+        "label": "已核实清算手续费（结算币种）",
+        "kind": "decimal",
+        "help": "仅在通道真实提供或人工明确核实结算币种费用时登记；不能按原币费用自动折算。该费用由收款方承担，不减少订单交付金额。付款人另付的费用不计入。"
+      },
+      {
         "name": "settled_at",
-        "visible_when": {
-          "field": "fee_status",
-          "values": [
-            "confirmed"
-          ]
-        }
+        "label": "通道结算到账时间（清算手续费已核实时填写）",
+        "kind": "datetime"
       },
       {
-        "kind": "text",
+        "name": "network",
         "label": "原网络（链上收款时填写）",
-        "name": "network"
+        "kind": "text"
       }
     ],
     "include_version": false,
@@ -703,7 +582,7 @@
           ]
         },
         "name": "credentials.currency",
-        "label": "收款币种（大写，例如USD/CNY）",
+        "label": "收款币种（大写，例如清算币种/CNY）",
         "kind": "text"
       },
       {
@@ -930,49 +809,6 @@
     "permission": "payments.manage"
   },
   {
-    "resource": "valuations",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "name": "currency",
-        "label": "币种",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "usd_per_unit",
-        "label": "每单位 USD",
-        "kind": "decimal",
-        "required": true
-      },
-      {
-        "name": "source",
-        "label": "授权依据/汇率来源",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "effective_at",
-        "label": "生效时间",
-        "kind": "datetime",
-        "required": true
-      },
-      {
-        "name": "expires_at",
-        "label": "失效时间",
-        "kind": "datetime",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "发布收款估值依据",
-    "method": "POST",
-    "name": "publish",
-    "path": "/v1/operators/{operatorId}/valuations",
-    "permission": "payments.manage"
-  },
-  {
     "resource": "evidence",
     "confirmation": "",
     "description": "",
@@ -1075,8 +911,8 @@
       {
         "help": "可以只降价、只加赠或同时使用。活动售价不得高于下单时的套餐售价；不会修改套餐基础额度。",
         "kind": "decimal",
-        "label": "活动售价 USD（留空使用套餐售价）",
-        "name": "final_price_usd"
+        "label": "活动售价 清算币种（留空使用套餐售价）",
+        "name": "final_price_money"
       },
       {
         "default_value": "0",
@@ -1262,8 +1098,8 @@
     "fields": [
       {
         "kind": "decimal",
-        "label": "分佣资格门槛 USD",
-        "name": "threshold_usd",
+        "label": "分佣资格门槛 清算币种",
+        "name": "threshold_money",
         "required": true
       },
       {
@@ -1484,7 +1320,7 @@
         "required": true,
         "default_value": [
           {
-            "from_usd": "0",
+            "from_money": "0",
             "gift_percent": "0"
           }
         ]
@@ -1557,8 +1393,8 @@
         "kind": "hidden"
       },
       {
-        "name": "amount_usd",
-        "label": "每次采购USD",
+        "name": "amount_money",
+        "label": "每次采购清算币种",
         "kind": "decimal",
         "required": true
       },
@@ -1569,8 +1405,8 @@
         "required": true
       },
       {
-        "name": "period_limit_usd",
-        "label": "周期最高USD",
+        "name": "period_limit_money",
+        "label": "周期最高清算币种",
         "kind": "decimal",
         "required": true
       },
@@ -1706,8 +1542,8 @@
         "kind": "hidden"
       },
       {
-        "name": "amount_usd",
-        "label": "每次采购USD",
+        "name": "amount_money",
+        "label": "每次采购清算币种",
         "kind": "decimal",
         "required": true
       },
@@ -1718,8 +1554,8 @@
         "required": true
       },
       {
-        "name": "period_limit_usd",
-        "label": "周期最高USD",
+        "name": "period_limit_money",
+        "label": "周期最高清算币种",
         "kind": "decimal",
         "required": true
       },
@@ -1832,8 +1668,8 @@
     "description": "",
     "fields": [
       {
-        "name": "amount_usd",
-        "label": "本次采购USD",
+        "name": "amount_money",
+        "label": "本次采购清算币种",
         "kind": "decimal",
         "required": true
       }
@@ -1983,8 +1819,8 @@
         "required": true
       },
       {
-        "name": "lines.0.amount_usd",
-        "label": "本次申请 USD",
+        "name": "lines.0.amount_money",
+        "label": "本次申请 清算币种",
         "kind": "decimal",
         "required": true
       },
@@ -2037,8 +1873,8 @@
         "required": true
       },
       {
-        "name": "lines.0.amount_usd",
-        "label": "本次申请 USD",
+        "name": "lines.0.amount_money",
+        "label": "本次申请 清算币种",
         "kind": "decimal",
         "required": true
       },
@@ -2462,8 +2298,8 @@
         "required": true
       },
       {
-        "name": "amount_usd",
-        "label": "本次合同退款USD",
+        "name": "amount_money",
+        "label": "本次合同退款清算币种",
         "kind": "decimal",
         "required": true
       }
@@ -2529,123 +2365,15 @@
         "required": true
       },
       {
-        "name": "valuation.currency",
-        "label": "本次估值币种",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "proof.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.usd_per_unit",
-        "label": "本次真实每单位USD",
+        "name": "settlement_amount",
+        "label": "本次已核实清偿金额（结算币种，跨币必填）",
         "kind": "decimal",
-        "required": true,
-        "visible_when": {
-          "field": "proof.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
       },
       {
-        "name": "valuation.source",
-        "label": "本次授权汇率/实际换汇依据",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "proof.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.effective_at",
-        "label": "本次估值生效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "proof.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.expires_at",
-        "label": "本次估值失效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "proof.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valued_at",
-        "label": "实际估值时刻",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "proof.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "fx_execution_reference",
-        "label": "本次执行凭证/原币种结算依据",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "proof.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "name": "settlement_evidence",
+        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
+        "kind": "textarea"
       }
     ],
     "include_version": false,
@@ -2657,7 +2385,7 @@
   },
   {
     "resource": "exits",
-    "confirmation": "使用本次真实执行汇率，退款ID固定为原leg；未知时只查询原交易。",
+    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
     "description": "",
     "fields": [
       {
@@ -2673,123 +2401,15 @@
         "required": true
       },
       {
-        "name": "valuation.currency",
-        "label": "本次估值币种",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.usd_per_unit",
-        "label": "本次真实每单位USD",
+        "name": "settlement_amount",
+        "label": "本次已核实清偿金额（结算币种，跨币必填）",
         "kind": "decimal",
-        "required": true,
-        "visible_when": {
-          "field": "money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
       },
       {
-        "name": "valuation.source",
-        "label": "本次授权汇率/实际换汇依据",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.effective_at",
-        "label": "本次估值生效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.expires_at",
-        "label": "本次估值失效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valued_at",
-        "label": "实际估值时刻",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "fx_execution_reference",
-        "label": "本次执行凭证/原币种结算依据",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "name": "settlement_evidence",
+        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
+        "kind": "textarea"
       }
     ],
     "include_version": false,
@@ -2824,8 +2444,8 @@
     "description": "",
     "fields": [
       {
-        "name": "fee_usd",
-        "label": "实际已核实手续费USD（确为零填0）",
+        "name": "fee_money",
+        "label": "实际已核实手续费清算币种（确为零填0）",
         "kind": "decimal",
         "required": true
       },
@@ -2967,7 +2587,7 @@
   },
   {
     "resource": "exits",
-    "confirmation": "依据已锁定本轮新商户与目的地只读核实真实付款，不签名或发送交易，不更改历史实际事实。",
+    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
     "description": "",
     "fields": [
       {
@@ -3006,123 +2626,15 @@
         "kind": "textarea"
       },
       {
-        "name": "valuation.currency",
-        "label": "本次估值币种",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.usd_per_unit",
-        "label": "本次真实每单位USD",
+        "name": "settlement_amount",
+        "label": "本次已核实清偿金额（结算币种，跨币必填）",
         "kind": "decimal",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
       },
       {
-        "name": "valuation.source",
-        "label": "本次授权汇率/实际换汇依据",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.effective_at",
-        "label": "本次估值生效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.expires_at",
-        "label": "本次估值失效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valued_at",
-        "label": "实际估值时刻",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "fx_execution_reference",
-        "label": "本次执行凭证/原币种结算依据",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "name": "settlement_evidence",
+        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
+        "kind": "textarea"
       }
     ],
     "include_version": false,
@@ -3201,7 +2713,7 @@
   },
   {
     "resource": "exits",
-    "confirmation": "只读查询真实链上执行；不签名、不发送、不按原sender猜目的地。",
+    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
     "description": "",
     "fields": [
       {
@@ -3217,123 +2729,15 @@
         "required": true
       },
       {
-        "name": "valuation.currency",
-        "label": "本次估值币种",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "asset",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.usd_per_unit",
-        "label": "本次真实每单位USD",
+        "name": "settlement_amount",
+        "label": "本次已核实清偿金额（结算币种，跨币必填）",
         "kind": "decimal",
-        "required": true,
-        "visible_when": {
-          "field": "asset",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
       },
       {
-        "name": "valuation.source",
-        "label": "本次授权汇率/实际换汇依据",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "asset",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.effective_at",
-        "label": "本次估值生效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "asset",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.expires_at",
-        "label": "本次估值失效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "asset",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valued_at",
-        "label": "实际估值时刻",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "asset",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "fx_execution_reference",
-        "label": "本次执行凭证/原币种结算依据",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "asset",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "name": "settlement_evidence",
+        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
+        "kind": "textarea"
       }
     ],
     "include_version": false,
@@ -3345,7 +2749,7 @@
   },
   {
     "resource": "exits",
-    "confirmation": "已在外部核实真实退款；系统只记录实际事实，不假称自动退款。",
+    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
     "description": "",
     "fields": [
       {
@@ -3379,123 +2783,15 @@
         "required": true
       },
       {
-        "name": "valuation.currency",
-        "label": "本次估值币种",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.usd_per_unit",
-        "label": "本次真实每单位USD",
+        "name": "settlement_amount",
+        "label": "本次已核实清偿金额（结算币种，跨币必填）",
         "kind": "decimal",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
       },
       {
-        "name": "valuation.source",
-        "label": "本次授权汇率/实际换汇依据",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.effective_at",
-        "label": "本次估值生效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valuation.expires_at",
-        "label": "本次估值失效",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "valued_at",
-        "label": "实际估值时刻",
-        "kind": "datetime",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
-      },
-      {
-        "name": "fx_execution_reference",
-        "label": "本次执行凭证/原币种结算依据",
-        "kind": "text",
-        "required": true,
-        "visible_when": {
-          "field": "external.money.currency",
-          "values": [
-            "USD"
-          ],
-          "not": true,
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ]
-        }
+        "name": "settlement_evidence",
+        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
+        "kind": "textarea"
       }
     ],
     "include_version": false,
@@ -4332,8 +3628,8 @@
       },
       {
         "kind": "decimal",
-        "label": "退回 USD",
-        "name": "amount_usd",
+        "label": "退回 清算币种",
+        "name": "amount_money",
         "required": true
       },
       {
@@ -4371,7 +3667,7 @@
       {
         "default_value": null,
         "kind": "decimal",
-        "label": "需独立复核的USD阈值（留空关闭）",
+        "label": "需独立复核的清算币种阈值（留空关闭）",
         "name": "second_review_above"
       },
       {
@@ -4473,7 +3769,7 @@
         "name": "reference"
       },
       {
-        "default_value": "USD",
+        "default_value": "清算币种",
         "kind": "text",
         "label": "实际付款币种",
         "name": "currency",
@@ -4487,23 +3783,15 @@
       },
       {
         "kind": "decimal",
-        "label": "本次折合USD",
-        "name": "actual_usd",
-        "required": true,
-        "visible_when": {
-          "field": "currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "label": "本笔已核实清偿金额（清算币种）",
+        "name": "actual_money",
+        "help": "原币与全局清算币种相同时按实际金额推导；跨币时必须填写本笔真实付款对应的清偿金额，不提供汇率。"
       },
       {
         "default_value": "0",
         "kind": "decimal",
-        "label": "付款方手续费USD",
-        "name": "fee_usd",
-        "required": true
+        "label": "付款方手续费清算币种",
+        "name": "fee_money"
       },
       {
         "kind": "datetime",
@@ -4512,8 +3800,23 @@
         "required": true
       },
       {
+        "name": "fee_status",
+        "label": "退款手续费状态",
+        "kind": "select",
+        "options": [
+          {
+            "value": "pending",
+            "label": "稍后核实"
+          },
+          {
+            "value": "confirmed",
+            "label": "已核实金额"
+          }
+        ]
+      },
+      {
         "kind": "textarea",
-        "label": "付款核实与估值说明",
+        "label": "本笔付款与清偿事实的核实说明",
         "name": "evidence",
         "required": true
       }
@@ -4546,7 +3849,7 @@
   },
   {
     "resource": "refunds",
-    "confirmation": "确认本次执行汇率与费用依据；只执行已批准原退款leg，不会重提未知退款。",
+    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
     "description": "",
     "fields": [
       {
@@ -4562,123 +3865,15 @@
         "required": true
       },
       {
-        "kind": "text",
-        "label": "本次估值币种",
-        "name": "refund_valuation.currency",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
+        "name": "settlement_amount",
+        "label": "本次已核实清偿金额（结算币种，跨币必填）",
         "kind": "decimal",
-        "label": "本次真实每单位USD",
-        "name": "refund_valuation.usd_per_unit",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
       },
       {
-        "kind": "text",
-        "label": "本次授权汇率/实际换汇依据",
-        "name": "refund_valuation.source",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值生效",
-        "name": "refund_valuation.effective_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值失效",
-        "name": "refund_valuation.expires_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "实际估值时刻",
-        "name": "valued_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "text",
-        "label": "本次执行凭证/原币种结算依据",
-        "name": "fx_execution_reference",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "name": "settlement_evidence",
+        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
+        "kind": "textarea"
       }
     ],
     "include_version": false,
@@ -4805,7 +4000,7 @@
   },
   {
     "resource": "refunds",
-    "confirmation": "本操作只读查询实际链上交易，不会签名或发送交易；准确接收地址由已锁定授权取值。",
+    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
     "description": "",
     "fields": [
       {
@@ -4827,123 +4022,15 @@
         "required": true
       },
       {
-        "kind": "text",
-        "label": "本次估值币种",
-        "name": "valuation.currency",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "asset",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
+        "name": "settlement_amount",
+        "label": "本次已核实清偿金额（结算币种，跨币必填）",
         "kind": "decimal",
-        "label": "本次真实每单位USD",
-        "name": "valuation.usd_per_unit",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "asset",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
       },
       {
-        "kind": "text",
-        "label": "本次授权汇率/实际换汇依据",
-        "name": "valuation.source",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "asset",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值生效",
-        "name": "valuation.effective_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "asset",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值失效",
-        "name": "valuation.expires_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "asset",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "实际估值时刻",
-        "name": "valued_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "asset",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "text",
-        "label": "本次执行凭证/原币种结算依据",
-        "name": "fx_execution_reference",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "asset",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "name": "settlement_evidence",
+        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
+        "kind": "textarea"
       }
     ],
     "include_version": false,
@@ -4955,7 +4042,7 @@
   },
   {
     "resource": "refunds",
-    "confirmation": "已在外部渠道核实实际转账。本操作登记真实执行事实，不调用自动退款API。",
+    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
     "description": "",
     "fields": [
       {
@@ -4995,123 +4082,15 @@
         "required": true
       },
       {
-        "kind": "text",
-        "label": "本次估值币种",
-        "name": "valuation.currency",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
+        "name": "settlement_amount",
+        "label": "本次已核实清偿金额（结算币种，跨币必填）",
         "kind": "decimal",
-        "label": "本次真实每单位USD",
-        "name": "valuation.usd_per_unit",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
       },
       {
-        "kind": "text",
-        "label": "本次授权汇率/实际换汇依据",
-        "name": "valuation.source",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值生效",
-        "name": "valuation.effective_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值失效",
-        "name": "valuation.expires_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "实际估值时刻",
-        "name": "valued_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "text",
-        "label": "本次执行凭证/原币种结算依据",
-        "name": "fx_execution_reference",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "name": "settlement_evidence",
+        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
+        "kind": "textarea"
       }
     ],
     "include_version": false,
@@ -5123,7 +4102,7 @@
   },
   {
     "resource": "refunds",
-    "confirmation": "只读查询当前责任经营方钱包的真实交易；不签名、不发送、不读取原经营方商户。",
+    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
     "description": "",
     "fields": [
       {
@@ -5152,123 +4131,15 @@
         "required": true
       },
       {
-        "kind": "text",
-        "label": "本次估值币种",
-        "name": "valuation.currency",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
+        "name": "settlement_amount",
+        "label": "本次已核实清偿金额（结算币种，跨币必填）",
         "kind": "decimal",
-        "label": "本次真实每单位USD",
-        "name": "valuation.usd_per_unit",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
       },
       {
-        "kind": "text",
-        "label": "本次授权汇率/实际换汇依据",
-        "name": "valuation.source",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值生效",
-        "name": "valuation.effective_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值失效",
-        "name": "valuation.expires_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "实际估值时刻",
-        "name": "valued_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "text",
-        "label": "本次执行凭证/原币种结算依据",
-        "name": "fx_execution_reference",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "name": "settlement_evidence",
+        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
+        "kind": "textarea"
       }
     ],
     "include_version": false,
@@ -5280,7 +4151,7 @@
   },
   {
     "resource": "refunds",
-    "confirmation": "已核实当前责任经营方的实际外部付款，系统不假称自动退款。",
+    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
     "description": "",
     "fields": [
       {
@@ -5327,123 +4198,15 @@
         "required": true
       },
       {
-        "kind": "text",
-        "label": "本次估值币种",
-        "name": "valuation.currency",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
+        "name": "settlement_amount",
+        "label": "本次已核实清偿金额（结算币种，跨币必填）",
         "kind": "decimal",
-        "label": "本次真实每单位USD",
-        "name": "valuation.usd_per_unit",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
       },
       {
-        "kind": "text",
-        "label": "本次授权汇率/实际换汇依据",
-        "name": "valuation.source",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值生效",
-        "name": "valuation.effective_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值失效",
-        "name": "valuation.expires_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "实际估值时刻",
-        "name": "valued_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "text",
-        "label": "本次执行凭证/原币种结算依据",
-        "name": "fx_execution_reference",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "name": "settlement_evidence",
+        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
+        "kind": "textarea"
       }
     ],
     "include_version": false,
@@ -5455,7 +4218,7 @@
   },
   {
     "resource": "refunds",
-    "confirmation": "已核实本责任经营方银行的实际付款，不使用原经营方资金，不把付款意图记为成功。",
+    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
     "description": "",
     "fields": [
       {
@@ -5502,123 +4265,15 @@
         "required": true
       },
       {
-        "kind": "text",
-        "label": "本次估值币种",
-        "name": "valuation.currency",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
+        "name": "settlement_amount",
+        "label": "本次已核实清偿金额（结算币种，跨币必填）",
         "kind": "decimal",
-        "label": "本次真实每单位USD",
-        "name": "valuation.usd_per_unit",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
       },
       {
-        "kind": "text",
-        "label": "本次授权汇率/实际换汇依据",
-        "name": "valuation.source",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值生效",
-        "name": "valuation.effective_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "本次估值失效",
-        "name": "valuation.expires_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "datetime",
-        "label": "实际估值时刻",
-        "name": "valued_at",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
-      },
-      {
-        "kind": "text",
-        "label": "本次执行凭证/原币种结算依据",
-        "name": "fx_execution_reference",
-        "required": true,
-        "visible_when": {
-          "fallback_fields": [
-            "asset",
-            "currency"
-          ],
-          "field": "external.money.currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "name": "settlement_evidence",
+        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
+        "kind": "textarea"
       }
     ],
     "include_version": false,
@@ -5641,8 +4296,8 @@
       },
       {
         "kind": "decimal",
-        "label": "实际已核实经营手续费USD（确为零时填0）",
-        "name": "fee_usd",
+        "label": "实际已核实经营手续费清算币种（确为零时填0）",
+        "name": "fee_money",
         "required": true
       },
       {
@@ -5788,15 +4443,15 @@
     "fields": [
       {
         "kind": "decimal",
-        "label": "最低提现 USD",
-        "name": "configuration.minimum_usd",
+        "label": "最低提现 清算币种",
+        "name": "configuration.minimum_money",
         "required": true
       },
       {
         "default_value": "0",
         "kind": "decimal",
-        "label": "固定手续费 USD",
-        "name": "configuration.flat_fee_usd",
+        "label": "固定手续费 清算币种",
+        "name": "configuration.flat_fee_money",
         "required": true
       },
       {
@@ -5879,7 +4534,7 @@
   },
   {
     "resource": "withdrawals",
-    "confirmation": "确认真实付款凭证与USD净额一致后释放占用并完成账务。",
+    "confirmation": "确认真实付款凭证与清算币种净额一致后释放占用并完成账务。",
     "description": "",
     "fields": [
       {
@@ -5894,7 +4549,7 @@
         "required": true
       },
       {
-        "default_value": "USD",
+        "default_value": "清算币种",
         "kind": "text",
         "label": "实际付款币种",
         "name": "currency",
@@ -5903,33 +4558,17 @@
       {
         "kind": "decimal",
         "label": "实际付款金额",
-        "name": "original_amount",
-        "required": true,
-        "visible_when": {
-          "field": "currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "name": "original_amount"
       },
       {
         "kind": "text",
-        "label": "本次真实换汇依据",
-        "name": "valuation_evidence",
-        "required": true,
-        "visible_when": {
-          "field": "currency",
-          "not": true,
-          "values": [
-            "USD"
-          ]
-        }
+        "label": "本笔原币付款与清算金额的关联凭证（跨币必填）",
+        "name": "valuation_evidence"
       },
       {
         "kind": "decimal",
-        "label": "已付净额USD",
-        "name": "paid_usd",
+        "label": "已付净额清算币种",
+        "name": "paid_money",
         "required": true
       },
       {
@@ -5991,8 +4630,8 @@
       },
       {
         "kind": "decimal",
-        "label": "已核实实际扣回USD",
-        "name": "amount_usd",
+        "label": "已核实实际扣回清算币种",
+        "name": "amount_money",
         "required": true
       },
       {
@@ -6080,8 +4719,8 @@
     "fields": [
       {
         "kind": "decimal",
-        "label": "本次真实追回USD",
-        "name": "amount_usd",
+        "label": "本次真实追回清算币种",
+        "name": "amount_money",
         "required": true
       },
       {
@@ -6687,8 +5326,14 @@
         "required": true
       },
       {
-        "name": "amount_usd",
-        "label": "实际费用 USD",
+        "name": "currency",
+        "label": "账单原币币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "amount",
+        "label": "账单原币实际费用",
         "kind": "decimal",
         "required": true
       },
@@ -6701,7 +5346,7 @@
     ],
     "include_version": false,
     "confirmation": "",
-    "description": "Platform only. Comparison only; never changes customer or supplier ledger entries."
+    "description": "按账单原币独立登记实际成本；Bifrost USD参考成本和供应商报告成本分别观察，不折算、不相减、不计入清算币种成本总计。财报按数据库登记时间汇总，服务期间单独保留。"
   },
   {
     "resource": "supplier-costs",
@@ -6748,8 +5393,14 @@
         "required": true
       },
       {
-        "name": "amount_usd",
-        "label": "实际费用 USD",
+        "name": "currency",
+        "label": "账单原币币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "amount",
+        "label": "账单原币实际费用",
         "kind": "decimal",
         "required": true
       },
@@ -6762,12 +5413,12 @@
     ],
     "include_version": false,
     "confirmation": "",
-    "description": ""
+    "description": "按账单原币独立登记实际成本；Bifrost USD参考成本和供应商报告成本分别观察，不折算、不相减、不计入清算币种成本总计。财报按数据库登记时间汇总，服务期间单独保留。"
   },
   {
     "resource": "procurement",
     "confirmation": "",
-    "description": "选择一笔尚未分配的收款，系统按该笔 USD 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。",
+    "description": "选择一笔尚未分配的收款，系统按该笔 清算币种 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。",
     "fields": [
       {
         "name": "receipt_id",
@@ -6789,21 +5440,26 @@
     "description": "",
     "fields": [
       {
+        "name": "original_fee_amount",
+        "label": "己方收款手续费（原币）",
         "kind": "decimal",
-        "label": "己方承担的收款手续费 USD",
-        "name": "fee_usd",
-        "required": true,
-        "help": "只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。"
+        "help": "只记录真实原币费用；未知时留空，已核实为零时填0。"
       },
       {
-        "kind": "datetime",
-        "label": "通道结算到账时间（可选）",
-        "name": "settled_at"
+        "name": "fee_money",
+        "label": "已核实清算手续费（结算币种）",
+        "kind": "decimal",
+        "help": "只登记己方承担的已核实清算币种费用，不按原币自动折算。同币两项同时提供必须一致。"
       },
       {
-        "kind": "textarea",
-        "label": "费用与结算核实依据",
+        "name": "settled_at",
+        "label": "真实通道结算时刻",
+        "kind": "datetime"
+      },
+      {
         "name": "evidence",
+        "label": "手续费与到账核实依据",
+        "kind": "textarea",
         "required": true
       }
     ],

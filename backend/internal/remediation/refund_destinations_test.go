@@ -117,11 +117,11 @@ func externalRefundSetupFor(t *testing.T, f fixture, request bool, registryAutho
 	if _, e = pay.SaveMerchant(f.ctx, f.owner, m, 0); e != nil {
 		t.Fatal(e)
 	}
-	topup, e := f.s.Commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "verified-chain-topup", ExpectedOwnershipVersion: 1, AmountUSD: d("100")})
+	topup, e := f.s.Commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "verified-chain-topup", ExpectedOwnershipVersion: 1, AmountMoney: d("100")})
 	if e != nil {
 		t.Fatal(e)
 	}
-	o := payments.Order{ID: topup.ID, OperatorID: f.operator, MerchantID: m.ID, Money: payments.Money{Currency: "USDT", Amount: d("100")}, Valuation: payments.Valuation{ID: "verified-original-stablecoin-usd", Currency: "USDT", USDPerUnit: d("1"), Source: "synthetic independently valued actual token", EffectiveAt: at.Add(-time.Hour), ExpiresAt: at.Add(time.Hour)}, AcceptedAt: at, ExpiresAt: at.Add(time.Hour)}
+	o := payments.Order{ID: topup.ID, OperatorID: f.operator, MerchantID: m.ID, Money: payments.Money{Currency: "USDT", Amount: d("100")}, SettlementMoney: payments.Money{Currency: "USD", Amount: d("100")}, AcceptedAt: at, ExpiresAt: at.Add(time.Hour)}
 	if _, e = pay.Create(f.ctx, f.operator, m.ID, o); e != nil {
 		t.Fatal(e)
 	}
@@ -130,14 +130,17 @@ func externalRefundSetupFor(t *testing.T, f fixture, request bool, registryAutho
 	if e != nil {
 		t.Fatal(e)
 	}
-	if e = pay.RecordFact(f.ctx, m, o, fact); e != nil {
+	if e = pay.RecordFact(f.ctx, m, o, fact); e != nil && !errors.Is(e, payments.ErrAwaitingSettlement) {
+		t.Fatal(e)
+	}
+	if _, e = pay.ConfirmReceiptValuation(f.ctx, f.owner, f.operator, fact.ID, payments.ReceiptValuationConfirmation{BusinessKey: "confirm-actual-receipt", SettlementAmount: d("100"), EvidenceReference: "verified source payment matched to this settlement obligation"}); e != nil {
 		t.Fatal(e)
 	}
 	var link struct{ ReceiptID string }
 	if e = f.db.Table("payments_verified_facts").Select("receipt_id").Where("id=?", fact.ID).Take(&link).Error; e != nil {
 		t.Fatal(e)
 	}
-	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, ReceiptID: link.ReceiptID, OrderID: topup.ID, BusinessKey: "verified-chain-allocation", AmountUSD: d("100")}); e != nil {
+	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, ReceiptID: link.ReceiptID, OrderID: topup.ID, BusinessKey: "verified-chain-allocation", AmountMoney: d("100")}); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = f.s.Commerce.Fulfill(f.ctx, nil, topup.ID, f.owner); e != nil {
@@ -147,7 +150,7 @@ func externalRefundSetupFor(t *testing.T, f fixture, request bool, registryAutho
 	if !request {
 		return out
 	}
-	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "stablecoin-refund-20", AmountUSD: d("20"), Reason: "unused deposit to verified original payer destination"})
+	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "stablecoin-refund-20", AmountMoney: d("20"), Reason: "unused deposit to verified original payer destination"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -180,7 +183,14 @@ func (f externalRefundFixture) authorize(t *testing.T) RefundDestinationAuthoriz
 }
 func (f externalRefundFixture) refund(t *testing.T, a RefundDestinationAuthorization, tx string) (payments.Refund, payments.EVMRefundVerification) {
 	t.Helper()
-	r := payments.Refund{ID: f.leg.ID, Order: f.order, USDAmount: d("20"), Money: payments.Money{Currency: "USDT", Amount: d("20")}, ValuedAt: f.blockTime, RefundValuation: payments.Valuation{ID: "actual-refund-fx", Currency: "USDT", USDPerUnit: d("1"), Source: "verified at actual execution", EffectiveAt: f.blockTime.Add(-time.Minute), ExpiresAt: f.blockTime.Add(time.Minute)}, FXExecutionReference: "independently verified refund execution rate"}
+	settled := d("20")
+	if tx == "4" || tx == "6" {
+		settled = d("19")
+	}
+	if tx == "5" || tx == "7" {
+		settled = d("1")
+	}
+	r := payments.Refund{ID: f.leg.ID, Order: f.order, MoneyAmount: d("20"), Money: payments.Money{Currency: "USDT", Amount: d("20")}, ValuedAt: f.blockTime, RefundValuation: payments.Valuation{Currency: "USD", Amount: settled, Source: "actual execution confirmation"}, FXExecutionReference: "independently verified refund execution rate"}
 	v := payments.EVMRefundVerification{ReceiptID: f.receipt, TransactionHash: "0x" + strings.Repeat(tx, 64), LogIndex: "0x0", Destination: payments.ExternalRefundDestination{Network: a.Network, Asset: a.Asset, TokenContract: a.TokenContract, Address: a.Address, AuthorizationReference: a.ID, VerificationEvidence: "lookup actual refund transaction"}}
 	return r, v
 }
@@ -226,7 +236,7 @@ func TestPostgresStablecoinRefundRequiresLatestCustomerAndOriginalPayerDestinati
 	if _, e = f.s.BeginManualRefund(f.ctx, f.owner, f.operator, f.leg.ID, "authorized-send", "finance instructed exact authorized account"); e != nil {
 		t.Fatal(e)
 	}
-	proof := ExecutionProof{BusinessKey: "untrusted-json", Reference: "txhash", Evidence: "claimed RPC", ActualUSD: d("20"), Currency: "USDT", Amount: "20", OccurredAt: f.blockTime}
+	proof := ExecutionProof{BusinessKey: "untrusted-json", Reference: "txhash", Evidence: "claimed RPC", ActualMoney: d("20"), Currency: "USDT", Amount: "20", OccurredAt: f.blockTime}
 	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, f.leg.ID, proof); !errors.Is(e, ErrReview) {
 		t.Fatal("manual JSON bypassed chain verifier", e)
 	}
@@ -313,7 +323,7 @@ func TestPostgresStablecoinRefundWrongRecipientAndFXMismatchRetainActualFactsWit
 			}
 			if tc.tx == "3" {
 				cap, e := f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, f.receipt)
-				if e != nil || !cap.CompletedUSD.IsZero() || cap.ReservedUSD.Cmp(d("20")) != 0 {
+				if e != nil || !cap.CompletedMoney.IsZero() || cap.ReservedMoney.Cmp(d("20")) != 0 {
 					t.Fatal("wrong recipient discharged customer debt", cap, e)
 				}
 			}
@@ -334,7 +344,7 @@ func TestPostgresStablecoinRefundSupplementPreservesBothRPCExecutionFacts(t *tes
 	if _, e := f.s.BeginManualRefund(f.ctx, f.owner, f.operator, f.leg.ID, "new-supplemental-instruction", "verified actual19; explicitly authorize remaining1"); e != nil {
 		t.Fatal(e)
 	}
-	_, v = f.refund(t, a, "5")
+	r, v = f.refund(t, a, "5")
 	if out, e := f.s.Payments.RecordEVMRefund(f.ctx, f.owner, f.operator, f.merchant.ID, r, v); e != nil || out.State != "succeeded" {
 		t.Fatal(out, e)
 	}
@@ -348,7 +358,7 @@ func TestPostgresStablecoinRefundSupplementPreservesBothRPCExecutionFacts(t *tes
 		t.Fatal("supplement rewrote original execution", facts, intents)
 	}
 	cap, e := f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, f.receipt)
-	if e != nil || cap.CompletedUSD.Cmp(d("20")) != 0 || !cap.ReservedUSD.IsZero() {
+	if e != nil || cap.CompletedMoney.Cmp(d("20")) != 0 || !cap.ReservedMoney.IsZero() {
 		t.Fatal(cap, e)
 	}
 }

@@ -42,7 +42,7 @@ func (s *Service) VerifyWalletReceipt(ctx context.Context, operator, merchant, o
 		return Fact{}, e
 	}
 	if e = s.RecordFact(ctx, m, o, fact); e != nil {
-		return Fact{}, e
+		return fact, e
 	}
 	return fact, nil
 }

@@ -2,7 +2,6 @@ package portal
 
 import (
 	"encoding/json"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -22,7 +21,7 @@ type withdrawalPreview struct {
 func (withdrawalPreview) TableName() string { return "portal_withdrawal_quotes" }
 func (a *Application) withdrawalQuote(c *gin.Context) {
 	var in struct {
-		Amount ledger.Decimal `json:"amount_usd"`
+		Amount ledger.Decimal `json:"amount_money"`
 	}
 	if !body(c, &in) {
 		return
@@ -33,12 +32,16 @@ func (a *Application) withdrawalQuote(c *gin.Context) {
 		if e != nil {
 			return nil, e
 		}
+		settings, e := ledger.GetMonetary(c.Request.Context(), tx)
+		if e != nil {
+			return nil, e
+		}
 		encoded, _ := json.Marshal(quote)
 		row := withdrawalPreview{ID: uuid.NewString(), CustomerID: id.Customer.Customer.ID, OperatorID: id.Customer.Ownership.OperatorID, Quote: encoded, ExpiresAt: time.Now().Add(15 * time.Minute), CreatedAt: time.Now()}
 		if e = tx.Create(&row).Error; e != nil {
 			return nil, e
 		}
-		return gin.H{"id": row.ID, "status": "quoted", "message": "总额 " + quote.AmountUSD.String() + " USD，手续费 " + quote.FeeUSD.String() + " USD，实付 " + quote.NetUSD.String() + " USD。请刷新列表核对后，在此报价行确认收款资料。"}, nil
+		return gin.H{"id": row.ID, "status": "quoted", "message": "总额 " + quote.AmountMoney.String() + " " + settings.Currency + "，手续费 " + quote.FeeMoney.String() + " " + settings.Currency + "，实付 " + quote.NetMoney.String() + " " + settings.Currency + "。请刷新列表核对后，在此报价行确认收款资料。"}, nil
 	})
 	jsonResponse(c, raw, e)
 }
@@ -60,7 +63,7 @@ func (a *Application) confirmWithdrawal(c *gin.Context) {
 		if e := json.Unmarshal(row.Quote, &q); e != nil {
 			return nil, e
 		}
-		out, e := a.Incentives.RequestWithdrawal(c.Request.Context(), tx, incentives.WithdrawalInput{OperatorID: row.OperatorID, CustomerID: row.CustomerID, BusinessKey: key, RecipientReference: in.Recipient, PolicyID: q.Policy.ID, AmountUSD: q.AmountUSD})
+		out, e := a.Incentives.RequestWithdrawal(c.Request.Context(), tx, incentives.WithdrawalInput{OperatorID: row.OperatorID, CustomerID: row.CustomerID, BusinessKey: key, RecipientReference: in.Recipient, PolicyID: q.Policy.ID, AmountMoney: q.AmountMoney})
 		if e != nil {
 			return nil, e
 		}
@@ -102,11 +105,11 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 	p["title"] = "提现办理"
 	p["items"] = items
 	p["next_cursor"] = next
-	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("amount_usd", "总额", "usd"), col("fee_usd", "手续费", "usd"), col("net_usd", "实付", "usd"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
-	minimum := f("configuration.minimum_usd", "最低提现 USD", "decimal")
+	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
+	minimum := f("configuration.minimum_money", "最低提现 结算币种", "decimal")
 	method := f("configuration.method_reference", "对客户公示付款方式规则", "text")
 	if policy.Version > 0 {
-		minimum.Default = policy.MinimumUSD
+		minimum.Default = policy.MinimumMoney
 		method.Default = policy.MethodReference
 	}
 	// Policy CAS belongs to the policy itself, independently of the first
@@ -114,7 +117,7 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 	// the generic resource presenter and decodeConfiguration reads this object.
 	p["operations"] = []operation{{Name: "policy", Label: "发布提现规则", Method: "POST", Path: base, Fields: []field{
 		minimum,
-		defaultField("configuration.flat_fee_usd", "固定手续费 USD", "decimal", policy.FlatFeeUSD),
+		defaultField("configuration.flat_fee_money", "固定手续费 结算币种", "decimal", policy.FlatFeeMoney),
 		defaultField("configuration.fee_rate", "手续费比例（0到1）", "decimal", policy.FeeRate),
 		defaultField("configuration.requires_dual_approval", "必须双人审批付款", "boolean", policy.RequiresDualApproval),
 		method,
@@ -173,10 +176,15 @@ func (a *Application) withdrawalStaffAction(c *gin.Context, op organization.Oper
 			handleError(c, incentives.ErrInvalidInput)
 			return
 		}
-		in.Currency = strings.ToUpper(strings.TrimSpace(in.Currency))
-		if in.Currency == "USD" {
-			in.OriginalAmount = in.PaidUSD.String()
-			in.ValuationEvidence = "Native USD payment; no currency conversion"
+		settings, err := ledger.GetMonetary(ctx, a.DB)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		in, e = normalizeWithdrawalPaymentProof(in, settings.Currency)
+		if e != nil {
+			handleError(c, e)
+			return
 		}
 		out, e = a.Incentives.VerifyWithdrawalPaid(ctx, nil, actor, op.ID, c.Param("id"), in)
 	case "fail":
@@ -204,7 +212,7 @@ func (a *Application) withdrawalStaffAction(c *gin.Context, op organization.Oper
 }
 
 func withdrawalRowOperations(base string) []operation {
-	return []operation{{Name: "approve", Label: "审批", Method: "POST", Path: base + "/{id}/approve", Fields: []field{}, Confirmation: "确认原申请费用、收款资料及权限。启用双人复核时付款人必须与审批人不同。"}, {Name: "begin_payment", Label: "登记开始真实付款", Method: "POST", Path: base + "/{id}/begin_payment", Fields: []field{}, Confirmation: "将保存付款意图，未知结果不得再次盲目付款。"}, {Name: "unknown", Label: "标记付款结果未知", Method: "POST", Path: base + "/{id}/unknown", Fields: []field{f("evidence", "查询与不确定性依据", "textarea")}}, {Name: "verify_paid", Label: "登记已核实实际付款", Method: "POST", Path: base + "/{id}/verify_paid", Fields: []field{jsonField("payment_reference、evidence、currency、original_amount、valuation_evidence、paid_usd；必须是本次真实付款事实。")}, Confirmation: "确认真实付款凭证与USD净额一致后释放占用并完成账务。"}, {Name: "fail", Label: "确认未付并终止", Method: "POST", Path: base + "/{id}/fail", Fields: []field{f("evidence", "已核实未付款依据", "textarea"), f("verified_unpaid", "已核实未付", "boolean")}, Confirmation: "未知结果不能终止并再次付款。"}}
+	return []operation{{Name: "approve", Label: "审批", Method: "POST", Path: base + "/{id}/approve", Fields: []field{}, Confirmation: "确认原申请费用、收款资料及权限。启用双人复核时付款人必须与审批人不同。"}, {Name: "begin_payment", Label: "登记开始真实付款", Method: "POST", Path: base + "/{id}/begin_payment", Fields: []field{}, Confirmation: "将保存付款意图，未知结果不得再次盲目付款。"}, {Name: "unknown", Label: "标记付款结果未知", Method: "POST", Path: base + "/{id}/unknown", Fields: []field{f("evidence", "查询与不确定性依据", "textarea")}}, {Name: "verify_paid", Label: "登记已核实实际付款", Method: "POST", Path: base + "/{id}/verify_paid", Fields: []field{jsonField("payment_reference、evidence、currency、original_amount、valuation_evidence、paid_money；必须是本次真实付款事实。")}, Confirmation: "确认真实付款凭证与结算币种净额一致后释放占用并完成账务。"}, {Name: "fail", Label: "确认未付并终止", Method: "POST", Path: base + "/{id}/fail", Fields: []field{f("evidence", "已核实未付款依据", "textarea"), f("verified_unpaid", "已核实未付", "boolean")}, Confirmation: "未知结果不能终止并再次付款。"}}
 }
 
 func withdrawalAllowedActions(status string) []string {

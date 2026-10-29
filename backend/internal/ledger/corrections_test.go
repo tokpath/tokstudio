@@ -17,7 +17,7 @@ func TestPostgresExpiredUsageCorrectionDoesNotRestoreUsableRights(t *testing.T) 
 	op, c := uuid.NewString(), uuid.NewString()
 	now := time.Now().UTC()
 	end := now.Add(time.Hour)
-	g, e := s.IssueGrant(ctx, nil, GrantInput{OperatorID: op, CustomerID: c, OrderID: "order", BusinessKey: "order", ActorID: "test", Reason: "paid sale", PaidUSD: FromInt64(80), Sources: []GrantSource{{Kind: "paid", Amount: FromInt64(80)}, {Kind: "package_gift", Amount: FromInt64(20)}}, EffectiveAt: now, ExpiresAt: &end})
+	g, e := s.IssueGrant(ctx, nil, GrantInput{OperatorID: op, CustomerID: c, OrderID: "order", BusinessKey: "order", ActorID: "test", Reason: "paid sale", PaidMoney: FromInt64(80), Sources: []GrantSource{{Kind: "paid", Amount: FromInt64(80)}, {Kind: "package_gift", Amount: FromInt64(20)}}, EffectiveAt: now, ExpiresAt: &end})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -37,14 +37,14 @@ func TestPostgresExpiredUsageCorrectionDoesNotRestoreUsableRights(t *testing.T) 
 	if e != nil {
 		t.Fatal(e)
 	}
-	if correction.Reversal.PaidUSD.String() != "16" || len(correction.ExpiryEvents) != 1 || correction.ExpiryEvents[0].PaidUSD.String() != "16" {
+	if correction.Reversal.PaidMoney.String() != "16" || len(correction.ExpiryEvents) != 1 || correction.ExpiryEvents[0].PaidMoney.String() != "16" {
 		t.Fatalf("reclassification %+v", correction)
 	}
 	current, e := s.GetGrant(ctx, nil, g.ID)
 	if e != nil {
 		t.Fatal(e)
 	}
-	if current.Consumed.String() != "30" || current.Expired.String() != "70" || current.ConsumedPaidUSD.String() != "24" || current.ExpiredPaidUSD.String() != "56" {
+	if current.Consumed.String() != "30" || current.Expired.String() != "70" || current.ConsumedPaidMoney.String() != "24" || current.ExpiredPaidMoney.String() != "56" {
 		t.Fatalf("incorrect attribution %+v", current)
 	}
 	balance, e := s.GetAccount(ctx, g.AccountID)
@@ -69,7 +69,7 @@ func TestPostgresCancellationIsSeparateFromConsumptionAndExpiry(t *testing.T) {
 	ctx := context.Background()
 	op, c := uuid.NewString(), uuid.NewString()
 	now := time.Now().UTC()
-	g, e := s.IssueGrant(ctx, nil, GrantInput{OperatorID: op, CustomerID: c, OrderID: "order", BusinessKey: "order", ActorID: "test", Reason: "funded sale", PaidUSD: FromInt64(80), Sources: []GrantSource{{Kind: "paid", Amount: FromInt64(80)}, {Kind: "package_gift", Amount: FromInt64(20)}}, EffectiveAt: now})
+	g, e := s.IssueGrant(ctx, nil, GrantInput{OperatorID: op, CustomerID: c, OrderID: "order", BusinessKey: "order", ActorID: "test", Reason: "funded sale", PaidMoney: FromInt64(80), Sources: []GrantSource{{Kind: "paid", Amount: FromInt64(80)}, {Kind: "package_gift", Amount: FromInt64(20)}}, EffectiveAt: now})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -81,11 +81,11 @@ func TestPostgresCancellationIsSeparateFromConsumptionAndExpiry(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if event.Kind != "cancellation" || event.PaidUSD.String() != "80" {
+	if event.Kind != "cancellation" || event.PaidMoney.String() != "80" {
 		t.Fatalf("cancellation %+v", event)
 	}
 	g, e = s.GetGrant(ctx, nil, g.ID)
-	if e != nil || g.Cancelled.String() != "100" || !g.ConsumedPaidUSD.IsZero() || !g.ExpiredPaidUSD.IsZero() {
+	if e != nil || g.Cancelled.String() != "100" || !g.ConsumedPaidMoney.IsZero() || !g.ExpiredPaidMoney.IsZero() {
 		t.Fatalf("cancel counted as spending %+v %v", g, e)
 	}
 }

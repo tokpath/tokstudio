@@ -20,7 +20,7 @@ func (a *Application) supplyOrderContext(c *gin.Context, tx *gorm.DB, actor, ope
 		return err
 	}
 	out.Subject = (salesOrder{ID: order.ID, Status: order.Status, supply: &order, Counterparty: buyer.Name}).row()
-	out.Subject["values"].(gin.H)["paid_usd"] = order.AllocatedUSD
+	out.Subject["values"].(gin.H)["paid_money"] = order.AllocatedMoney
 	switch order.Status {
 	case "awaiting_payment":
 		out.NextActions = append(out.NextActions, "核实供货订单的一笔足额收款，关联后自动交付采购额度。")
@@ -46,9 +46,9 @@ func (a *Application) supplyOrderContext(c *gin.Context, tx *gorm.DB, actor, ope
 	if err != nil {
 		return err
 	}
-	p := contextPage("关联收款", rows, []gin.H{col("provider", "通道", "text"), col("gross_usd", "收款总额（扣手续费前）", "usd"), col("fee_usd", "己方收款手续费", "usd"), col("net_usd", "净到账金额", "usd"), col("currency", "币种", "text"), col("verification_evidence", "核实证据", "text"), col("paid_at", "实际付款时间", "datetime")}, func(r linkedReceipt) gin.H { return entity(r.ID, r.FeeStatus, 1, r) })
+	p := contextPage("关联收款", rows, []gin.H{col("provider", "通道", "text"), col("gross_money", "收款总额（扣手续费前）", "money"), col("fee_money", "己方收款手续费", "money"), col("net_money", "净到账金额", "money"), col("currency", "币种", "text"), col("verification_evidence", "核实证据", "text"), col("paid_at", "实际付款时间", "datetime")}, func(r linkedReceipt) gin.H { return entity(r.ID, r.FeeStatus, 1, r) })
 	p["operations"] = []operation{}
-	if order.Status == "awaiting_payment" && order.AllocatedUSD.IsZero() {
+	if order.Status == "awaiting_payment" && order.AllocatedMoney.IsZero() {
 		fields := manualReceiptFields()
 		fields[0].Kind = "hidden"
 		fields[0].Default = order.ID

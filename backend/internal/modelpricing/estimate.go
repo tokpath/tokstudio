@@ -78,7 +78,10 @@ func (s *Service) Estimate(ctx context.Context, snapshot json.RawMessage, r mode
 		return nil
 	}
 	result := s.Observe(ctx, modelruntime.Attempt{CostSnapshot: snapshot}, response)
-	return result.CalculatedUSD
+	if result.ReferenceCost == nil || result.ReferenceCost.Currency != "USD" {
+		return nil
+	}
+	return &result.ReferenceCost.Amount
 }
 
 func requestType(op modelruntime.Operation) schemas.RequestType {

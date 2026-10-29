@@ -38,7 +38,11 @@ func LocalizedText(locale, source string) string {
 	}
 	for _, template := range requirementTemplates {
 		if match := template.pattern.FindStringSubmatch(source); match != nil {
-			text := uiCatalog[template.source][index]
+			message, ok := uiCatalog[template.source]
+			if !ok || message[index] == "" {
+				return source
+			}
+			text := message[index]
 			for i, key := range template.keys {
 				text = strings.ReplaceAll(text, "{"+key+"}", match[i+1])
 			}
@@ -55,9 +59,9 @@ var requirementTemplates = []struct {
 	source  string
 	keys    []string
 }{
-	{regexp.MustCompile(`^frozen commission USD: (-?[0-9.]+)$`), "frozen commission USD: {amount}", []string{"amount"}},
-	{regexp.MustCompile(`^pending commission recovery USD: (-?[0-9.]+)$`), "pending commission recovery USD: {amount}", []string{"amount"}},
-	{regexp.MustCompile(`^available/held commission USD: (-?[0-9.]+) / (-?[0-9.]+)$`), "available/held commission USD: {available} / {held}", []string{"available", "held"}},
+	{regexp.MustCompile(`^frozen commission 结算币种: (-?[0-9.]+)$`), "frozen commission 结算币种: {amount}", []string{"amount"}},
+	{regexp.MustCompile(`^pending commission recovery 结算币种: (-?[0-9.]+)$`), "pending commission recovery 结算币种: {amount}", []string{"amount"}},
+	{regexp.MustCompile(`^available/held commission 结算币种: (-?[0-9.]+) / (-?[0-9.]+)$`), "available/held commission 结算币种: {available} / {held}", []string{"available", "held"}},
 	{regexp.MustCompile(`^([0-9]+) actual original-currency receipts await verified valuation or receipt matching; ([0-9]+) recorded receipts retain unallocated principal$`), "{receipts} actual original-currency receipts await verified valuation or receipt matching; {recorded} recorded receipts retain unallocated principal", []string{"receipts", "recorded"}},
 }
 

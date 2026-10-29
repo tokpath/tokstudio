@@ -53,7 +53,7 @@ type ExternalRefundApproval interface {
 type ResponsibleRefundBasis struct {
 	RefundID, OperatorID, SourceOperatorID, ReceiptID, Currency string
 	ExecutionMerchantID                                         string
-	AmountUSD, RemainingUSD                                     ledger.Decimal
+	AmountMoney, RemainingMoney                                 ledger.Decimal
 	AuthorizedAt, CreatedAt                                     time.Time
 }
 type RefundSource struct {
@@ -156,7 +156,7 @@ func (s *Service) externalRefundContext(ctx context.Context, actor, op, merchant
 	if e := ValidateExternalRefundDestinationForSource(m, source, d); e != nil {
 		return m, r, e
 	}
-	if d.Asset != strings.ToUpper(r.Order.Money.Currency) || r.USDAmount.Sign() <= 0 || !r.USDAmount.Valid() {
+	if d.Asset != strings.ToUpper(r.Order.Money.Currency) || r.MoneyAmount.Sign() <= 0 || !r.MoneyAmount.Valid() {
 		return m, r, ErrInvalid
 	}
 	e = s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return approval.RequireExternalRefundFact(ctx, tx, actor, r, d) })
@@ -254,10 +254,10 @@ func externalValuationAt(r Refund, at *time.Time) error {
 	if r.Money.Validate() != nil || at == nil || at.IsZero() {
 		return ErrInvalid
 	}
-	if r.Money.Currency == "USD" {
+	if r.Money.Currency == r.Order.Settlement().Currency {
 		return nil
 	}
-	if r.ValuedAt.IsZero() || r.FXExecutionReference == "" || r.RefundValuation.Validate(r.Money.Currency, *at) != nil || r.ValuedAt.Before(at.Add(-5*time.Minute)) || r.ValuedAt.After(at.Add(5*time.Minute)) {
+	if r.RefundValuation.Validate("", time.Time{}) != nil || r.RefundValuation.Currency != r.Order.Settlement().Currency {
 		return ErrInvalid
 	}
 	return nil
@@ -351,7 +351,7 @@ func (s *Service) recordExternalRefund(ctx context.Context, actor string, m Merc
 					if e != nil {
 						return e
 					}
-					if basis.SourceOperatorID != f.RefundSource.SourceOperatorID || basis.ReceiptID != f.RefundSource.ReceiptID || basis.AmountUSD.Cmp(r.USDAmount) != 0 {
+					if basis.SourceOperatorID != f.RefundSource.SourceOperatorID || basis.ReceiptID != f.RefundSource.ReceiptID || basis.AmountMoney.Cmp(r.MoneyAmount) != 0 {
 						return ErrConflict
 					}
 				} else if e := s.RefundApproval.(ExternalRefundApproval).RequireExternalRefundFact(ctx, t, actor, r, d); e != nil {

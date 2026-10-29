@@ -24,8 +24,8 @@ import (
 func d(s string) ledger.Decimal   { return ledger.MustDecimal(s) }
 func dp(s string) *ledger.Decimal { v := d(s); return &v }
 func TestRenewalConsentComparison(t *testing.T) {
-	old := PackageQuote{PackageID: "package", OperatorID: "operator", PriceUSD: d("80"), PaidATG: d("100"), GiftATG: d("20"), Period: ledger.Month, Timezone: "Asia/Shanghai", TermsReference: "terms-v1"}
-	for _, change := range []func(*PackageQuote){func(q *PackageQuote) { q.PriceUSD = d("81"); q.PaidATG = d("200") }, func(q *PackageQuote) { q.PaidATG = d("99") }, func(q *PackageQuote) { q.GiftATG = d("19") }, func(q *PackageQuote) { q.TermsReference = "changed" }, func(q *PackageQuote) { q.Timezone = "UTC" }} {
+	old := PackageQuote{PackageID: "package", OperatorID: "operator", PriceMoney: d("80"), PaidATG: d("100"), GiftATG: d("20"), Period: ledger.Month, Timezone: "Asia/Shanghai", TermsReference: "terms-v1"}
+	for _, change := range []func(*PackageQuote){func(q *PackageQuote) { q.PriceMoney = d("81"); q.PaidATG = d("200") }, func(q *PackageQuote) { q.PaidATG = d("99") }, func(q *PackageQuote) { q.GiftATG = d("19") }, func(q *PackageQuote) { q.TermsReference = "changed" }, func(q *PackageQuote) { q.Timezone = "UTC" }} {
 		next := old
 		change(&next)
 		if !RequiresRenewalConfirmation(old, next) {
@@ -33,7 +33,7 @@ func TestRenewalConsentComparison(t *testing.T) {
 		}
 	}
 	better := old
-	better.PriceUSD = d("75")
+	better.PriceMoney = d("75")
 	better.PaidATG = d("110")
 	if RequiresRenewalConfirmation(old, better) {
 		t.Fatal("strict improvement requires consent")
@@ -227,7 +227,7 @@ func setup(t *testing.T) fixture {
 	s.SetCommissionFunding(commissionFundingDouble{})
 	cap := &capacityDouble{}
 	s.SetSalesCoverage(cap)
-	quote, err := s.PublishPackage(ctx, nil, PublishPackageInput{ActorStaffID: owner, OperatorID: p.Operator.ID, Name: "Monthly", TermsReference: "terms-v1", Timezone: "UTC", PriceUSD: d("80"), PaidATG: d("100"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
+	quote, err := s.PublishPackage(ctx, nil, PublishPackageInput{ActorStaffID: owner, OperatorID: p.Operator.ID, Name: "Monthly", TermsReference: "terms-v1", Timezone: "UTC", PriceMoney: d("80"), PaidATG: d("100"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,14 +235,14 @@ func setup(t *testing.T) fixture {
 }
 func (f fixture) order(t *testing.T, key, usd, commission string) Order {
 	t.Helper()
-	o, err := f.s.CreateOrder(f.ctx, nil, CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: key, ExpectedOwnershipVersion: 1, InternalUSD: d(usd), CommissionUSD: d(commission)})
+	o, err := f.s.CreateOrder(f.ctx, nil, CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: key, ExpectedOwnershipVersion: 1, InternalMoney: d(usd), CommissionMoney: d(commission)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	return o
 }
 func (f fixture) fact(key, amount, fee string, paid time.Time) VerifiedReceipt {
-	return VerifiedReceipt{OperatorID: f.operator, Provider: "test-verified-provider", ProviderReceiptID: key, GrossUSD: d(amount), NetUSD: dp(d(amount).Sub(d(fee)).String()), FeeUSD: dp(fee), Currency: "USD", OriginalAmount: amount, RecipientReference: "merchant-account-1", PayerReference: "external-payer-1", ValuationEvidence: "actual USD payment", VerificationEvidence: "test independently verified receipt", VerifiedBy: "provider:test", PaidAt: &paid}
+	return VerifiedReceipt{OperatorID: f.operator, Provider: "test-verified-provider", ProviderReceiptID: key, GrossMoney: d(amount), NetMoney: dp(d(amount).Sub(d(fee)).String()), FeeMoney: dp(fee), Currency: "USD", OriginalAmount: amount, RecipientReference: "merchant-account-1", PayerReference: "external-payer-1", ValuationEvidence: "actual USD payment", VerificationEvidence: "test independently verified receipt", VerifiedBy: "provider:test", PaidAt: &paid}
 }
 func (f fixture) receipt(t *testing.T, key, amount, fee string, paid time.Time) Receipt {
 	t.Helper()
@@ -254,7 +254,7 @@ func (f fixture) receipt(t *testing.T, key, amount, fee string, paid time.Time) 
 }
 func (f fixture) allocate(t *testing.T, key string, r Receipt, o Order, amount string) Allocation {
 	t.Helper()
-	a, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, BusinessKey: key, ReceiptID: r.ID, OrderID: o.ID, AmountUSD: d(amount)})
+	a, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, BusinessKey: key, ReceiptID: r.ID, OrderID: o.ID, AmountMoney: d(amount)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,9 +262,9 @@ func (f fixture) allocate(t *testing.T, key string, r Receipt, o Order, amount s
 }
 func (f fixture) seed(t *testing.T, purpose, amount string) {
 	t.Helper()
-	if purpose == "customer:usd" {
+	if purpose == "customer:money" {
 		key := "wallet-fixture:" + uuid.NewString()
-		o, err := f.s.CreateTopUpOrder(f.ctx, nil, CreateTopUpInput{CustomerID: f.customer, OperatorID: f.operator, BusinessKey: key, ExpectedOwnershipVersion: 1, AmountUSD: d(amount)})
+		o, err := f.s.CreateTopUpOrder(f.ctx, nil, CreateTopUpInput{CustomerID: f.customer, OperatorID: f.operator, BusinessKey: key, ExpectedOwnershipVersion: 1, AmountMoney: d(amount)})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -304,11 +304,11 @@ func TestPostgresDirectReceiptDeliveryFailureRetryAndImmutableQuote(t *testing.T
 	o := f.order(t, "direct", "0", "0")
 	r1 := f.receipt(t, "first", "30", "3", base)
 	r2 := f.receipt(t, "second", "80", "0", base)
-	if _, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, BusinessKey: "first-allocation", ReceiptID: r1.ID, OrderID: o.ID, AmountUSD: d("30")}); !errors.Is(err, ErrWholePayment) {
+	if _, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, BusinessKey: "first-allocation", ReceiptID: r1.ID, OrderID: o.ID, AmountMoney: d("30")}); !errors.Is(err, ErrWholePayment) {
 		t.Fatalf("partial payment accepted: %v", err)
 	}
 	partial, err := f.s.GetOrder(f.ctx, nil, f.customer, o.ID)
-	if err != nil || partial.Status != "pending" || !partial.ExternalAllocatedUSD.IsZero() {
+	if err != nil || partial.Status != "pending" || !partial.ExternalAllocatedMoney.IsZero() {
 		t.Fatalf("partial=%+v %v", partial, err)
 	}
 	if _, err = f.s.Fulfill(f.ctx, nil, o.ID, "worker:delivery"); !errors.Is(err, ErrNotPaid) {
@@ -327,7 +327,7 @@ func TestPostgresDirectReceiptDeliveryFailureRetryAndImmutableQuote(t *testing.T
 	if err != nil || len(grants) != 0 {
 		t.Fatalf("partial grant persisted: %+v %v", grants, err)
 	}
-	_, err = f.s.PublishPackage(f.ctx, nil, PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, PackageID: f.quote.PackageID, ExpectedVersion: 1, Name: "Monthly", TermsReference: "terms-v2", Timezone: "UTC", PriceUSD: d("120"), PaidATG: d("90"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
+	_, err = f.s.PublishPackage(f.ctx, nil, PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, PackageID: f.quote.PackageID, ExpectedVersion: 1, Name: "Monthly", TermsReference: "terms-v2", Timezone: "UTC", PriceMoney: d("120"), PaidATG: d("90"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -340,7 +340,7 @@ func TestPostgresDirectReceiptDeliveryFailureRetryAndImmutableQuote(t *testing.T
 		t.Fatalf("calendar expiry=%v", delivery.ExpiresAt)
 	}
 	grants, err = f.ledger.CustomerGrants(f.ctx, nil, f.operator, f.customer)
-	if err != nil || len(grants) != 1 || grants[0].Total.Cmp(d("120")) != 0 || grants[0].PaidUSD.Cmp(d("80")) != 0 {
+	if err != nil || len(grants) != 1 || grants[0].Total.Cmp(d("120")) != 0 || grants[0].PaidMoney.Cmp(d("80")) != 0 {
 		t.Fatalf("original sold terms lost: %+v %v", grants, err)
 	}
 	var wg sync.WaitGroup
@@ -363,7 +363,7 @@ func TestPostgresDirectReceiptDeliveryFailureRetryAndImmutableQuote(t *testing.T
 			t.Fatal(err)
 		}
 	}
-	if a := f.balance(t, "customer:usd"); !a.Balance.IsZero() {
+	if a := f.balance(t, "customer:money"); !a.Balance.IsZero() {
 		t.Fatalf("direct payment credited wallet: %s", a.Balance)
 	}
 	replay, err := f.s.RecordReceipt(f.ctx, nil, f.fact("first", "30", "3", base))
@@ -373,18 +373,18 @@ func TestPostgresDirectReceiptDeliveryFailureRetryAndImmutableQuote(t *testing.T
 	if _, err = f.s.RecordReceipt(f.ctx, nil, f.fact("first", "31", "3", base)); !errors.Is(err, ErrConflict) {
 		t.Fatalf("receipt mutation accepted: %v", err)
 	}
-	if err = f.db.Exec(`UPDATE commerce_package_quotes SET price_usd=1 WHERE id=?`, f.quote.ID).Error; err == nil {
+	if err = f.db.Exec(`UPDATE commerce_package_quotes SET price_money=1 WHERE id=?`, f.quote.ID).Error; err == nil {
 		t.Fatal("database rewrote sold quote")
 	}
 }
 
 func TestPostgresMixedInternalAndExternalFundsCaptureOnce(t *testing.T) {
 	f := setup(t)
-	f.seed(t, "customer:usd", "30")
+	f.seed(t, "customer:money", "30")
 	f.seed(t, "commission:available", "20")
 	f.seed(t, "commission:frozen", "500")
 	o := f.order(t, "mixed", "30", "20")
-	if a := f.balance(t, "customer:usd"); a.Balance.Cmp(d("30")) != 0 || a.Held.Cmp(d("30")) != 0 {
+	if a := f.balance(t, "customer:money"); a.Balance.Cmp(d("30")) != 0 || a.Held.Cmp(d("30")) != 0 {
 		t.Fatalf("wallet reservation=%+v", a)
 	}
 	r := f.receipt(t, "payer-receipt", "30", "2", o.CreatedAt)
@@ -392,7 +392,7 @@ func TestPostgresMixedInternalAndExternalFundsCaptureOnce(t *testing.T) {
 	if _, err := f.s.Fulfill(f.ctx, nil, o.ID, "worker:delivery"); err != nil {
 		t.Fatal(err)
 	}
-	for _, purpose := range []string{"customer:usd", "commission:available"} {
+	for _, purpose := range []string{"customer:money", "commission:available"} {
 		a := f.balance(t, purpose)
 		if !a.Balance.IsZero() || !a.Held.IsZero() {
 			t.Fatalf("funding source %s not captured: %+v", purpose, a)
@@ -401,7 +401,7 @@ func TestPostgresMixedInternalAndExternalFundsCaptureOnce(t *testing.T) {
 	if frozen := f.balance(t, "commission:frozen"); frozen.Balance.Cmp(d("500")) != 0 {
 		t.Fatal("purchase used frozen commission")
 	}
-	_, err := f.s.CreateOrder(f.ctx, nil, CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: "insufficient", ExpectedOwnershipVersion: 1, InternalUSD: d("1")})
+	_, err := f.s.CreateOrder(f.ctx, nil, CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: "insufficient", ExpectedOwnershipVersion: 1, InternalMoney: d("1")})
 	if !errors.Is(err, ledger.ErrInsufficient) {
 		t.Fatalf("insufficient internal funding: %v", err)
 	}
@@ -417,11 +417,11 @@ func TestPostgresReceiptAllocationConservationAndScope(t *testing.T) {
 	b := f.order(t, "b", "0", "0")
 	r := f.receipt(t, "split", "100", "0", a.CreatedAt)
 	f.allocate(t, "a-80", r, a, "80")
-	if _, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "b-20", ReceiptID: r.ID, OrderID: b.ID, AmountUSD: d("20")}); !errors.Is(err, ErrWholePayment) {
+	if _, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "b-20", ReceiptID: r.ID, OrderID: b.ID, AmountMoney: d("20")}); !errors.Is(err, ErrWholePayment) {
 		t.Fatalf("one receipt split across orders: %v", err)
 	}
-	replay, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "a-80", ReceiptID: r.ID, OrderID: a.ID, AmountUSD: d("80")})
-	if err != nil || replay.AmountUSD.Cmp(d("80")) != 0 {
+	replay, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "a-80", ReceiptID: r.ID, OrderID: a.ID, AmountMoney: d("80")})
+	if err != nil || replay.AmountMoney.Cmp(d("80")) != 0 {
 		t.Fatalf("allocation replay=%+v %v", replay, err)
 	}
 	r2 := f.receipt(t, "concurrent", "80", "0", a.CreatedAt)
@@ -436,7 +436,7 @@ func TestPostgresReceiptAllocationConservationAndScope(t *testing.T) {
 		go func(order Order) {
 			defer wg.Done()
 			<-start
-			_, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: order.ID, ReceiptID: r2.ID, OrderID: order.ID, AmountUSD: d("80")})
+			_, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: order.ID, ReceiptID: r2.ID, OrderID: order.ID, AmountMoney: d("80")})
 			if err == nil {
 				successes.Add(1)
 			}
@@ -456,7 +456,7 @@ func TestPostgresReceiptAllocationConservationAndScope(t *testing.T) {
 	}
 	shared := f.receipt(t, "shared-procurement", "80", "0", a.CreatedAt)
 	destination := uuid.NewString()
-	reserve := ReceiptFundsInput{OperatorID: f.operator, ReceiptID: shared.ID, DestinationID: destination, BusinessKey: "procurement-shared", ActorID: "system:procurement", AmountUSD: d("80"), Deadline: a.ExpiresAt}
+	reserve := ReceiptFundsInput{OperatorID: f.operator, ReceiptID: shared.ID, DestinationID: destination, BusinessKey: "procurement-shared", ActorID: "system:procurement", AmountMoney: d("80"), Deadline: a.ExpiresAt}
 	injected := errors.New("procurement update failed")
 	err = f.db.Transaction(func(tx *gorm.DB) error {
 		if _, err := f.s.ReserveReceiptFunds(f.ctx, tx, reserve); err != nil {
@@ -468,17 +468,17 @@ func TestPostgresReceiptAllocationConservationAndScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	unchanged, err := f.s.GetReceipt(f.ctx, nil, f.operator, shared.ID)
-	if err != nil || !unchanged.AllocatedUSD.IsZero() {
+	if err != nil || !unchanged.AllocatedMoney.IsZero() {
 		t.Fatalf("external transaction rollback lost receipt funds: %+v %v", unchanged, err)
 	}
 	if err = f.db.Transaction(func(tx *gorm.DB) error { _, err := f.s.ReserveReceiptFunds(f.ctx, tx, reserve); return err }); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "shared-customer", ReceiptID: shared.ID, OrderID: b.ID, AmountUSD: d("80")}); !errors.Is(err, ErrExcessAllocation) {
+	if _, err = f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "shared-customer", ReceiptID: shared.ID, OrderID: b.ID, AmountMoney: d("80")}); !errors.Is(err, ErrExcessAllocation) {
 		t.Fatal("procurement receipt reused by retail", err)
 	}
 	counted, err := f.s.GetReceipt(f.ctx, nil, f.operator, shared.ID)
-	if err != nil || counted.AllocatedUSD.Cmp(d("80")) != 0 {
+	if err != nil || counted.AllocatedMoney.Cmp(d("80")) != 0 {
 		t.Fatalf("external then retail shared receipt total=%+v %v", counted, err)
 	}
 	reverse := f.receipt(t, "retail-first-shared", "80", "0", a.CreatedAt)
@@ -491,11 +491,11 @@ func TestPostgresReceiptAllocationConservationAndScope(t *testing.T) {
 		t.Fatal("retail receipt reused by procurement", err)
 	}
 	counted, err = f.s.GetReceipt(f.ctx, nil, f.operator, reverse.ID)
-	if err != nil || counted.AllocatedUSD.Cmp(d("80")) != 0 {
+	if err != nil || counted.AllocatedMoney.Cmp(d("80")) != 0 {
 		t.Fatalf("retail then external shared receipt total=%+v %v", counted, err)
 	}
 	reserve.BusinessKey = "procurement-double-spend"
-	reserve.AmountUSD = d("1")
+	reserve.AmountMoney = d("1")
 	err = f.db.Transaction(func(tx *gorm.DB) error { _, err := f.s.ReserveReceiptFunds(f.ctx, tx, reserve); return err })
 	if !errors.Is(err, ErrExcessAllocation) {
 		t.Fatalf("customer and procurement double spent receipt: %v", err)
@@ -510,7 +510,7 @@ func TestPostgresReceiptAllocationConservationAndScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "cross", ReceiptID: foreignReceipt.ID, OrderID: b.ID, AmountUSD: d("1")}); !errors.Is(err, ErrScope) {
+	if _, err = f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "cross", ReceiptID: foreignReceipt.ID, OrderID: b.ID, AmountMoney: d("1")}); !errors.Is(err, ErrScope) {
 		t.Fatalf("cross-operator money mixed: %v", err)
 	}
 }
@@ -537,7 +537,7 @@ func TestPostgresTimelyLateNotificationRestoresAndActualLatePaymentWaits(t *test
 		t.Fatal(err)
 	}
 	late := f.receipt(t, "late", "80", "0", b.ExpiresAt.Add(time.Second))
-	if _, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "late-allocate", ReceiptID: late.ID, OrderID: b.ID, AmountUSD: d("80")}); !errors.Is(err, ErrLatePayment) {
+	if _, err := f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "late-allocate", ReceiptID: late.ID, OrderID: b.ID, AmountMoney: d("80")}); !errors.Is(err, ErrLatePayment) {
 		t.Fatalf("actual late money silently sold: %v", err)
 	}
 	left, err := f.s.UnallocatedReceipts(f.ctx, nil, f.owner, f.operator)
@@ -548,7 +548,7 @@ func TestPostgresTimelyLateNotificationRestoresAndActualLatePaymentWaits(t *test
 
 func TestPostgresTopupAndMissingSalesCoverage(t *testing.T) {
 	f := setup(t)
-	topup, err := f.s.CreateTopUpOrder(f.ctx, nil, CreateTopUpInput{CustomerID: f.customer, OperatorID: f.operator, BusinessKey: "topup", ExpectedOwnershipVersion: 1, AmountUSD: d("50")})
+	topup, err := f.s.CreateTopUpOrder(f.ctx, nil, CreateTopUpInput{CustomerID: f.customer, OperatorID: f.operator, BusinessKey: "topup", ExpectedOwnershipVersion: 1, AmountMoney: d("50")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -558,7 +558,7 @@ func TestPostgresTopupAndMissingSalesCoverage(t *testing.T) {
 	if err != nil || delivery.GrantID != nil {
 		t.Fatalf("topup delivery=%+v %v", delivery, err)
 	}
-	if a := f.balance(t, "customer:usd"); a.Balance.Cmp(d("50")) != 0 {
+	if a := f.balance(t, "customer:money"); a.Balance.Cmp(d("50")) != 0 {
 		t.Fatalf("net fee reduced wallet credit: %s", a.Balance)
 	}
 	f.s.SetSalesCoverage(nil)
@@ -576,12 +576,12 @@ func TestPostgresPendingFeeAndObservedPaymentUpperBound(t *testing.T) {
 	b := f.order(t, "observed-too-late", "0", "0")
 	fact := f.fact("fee-pending", "80", "0", base)
 	fact.FeeStatus = "pending"
-	fact.NetUSD = nil
-	fact.FeeUSD = nil
+	fact.NetMoney = nil
+	fact.FeeMoney = nil
 	fact.PaidAt = nil
 	fact.ObservedAt = base
 	r, err := f.s.RecordReceipt(f.ctx, nil, fact)
-	if err != nil || r.NetUSD != nil || r.FeeUSD != nil || r.PaidAt != nil || r.FeeStatus != "pending" {
+	if err != nil || r.NetMoney != nil || r.FeeMoney != nil || r.PaidAt != nil || r.FeeStatus != "pending" {
 		t.Fatalf("unknown values falsified: %+v %v", r, err)
 	}
 	allocation := f.allocate(t, "observed-bound", r, a, "80")
@@ -593,9 +593,9 @@ func TestPostgresPendingFeeAndObservedPaymentUpperBound(t *testing.T) {
 	}
 	settled := base.Add(time.Second)
 	base = settled
-	accounting := ReceiptAccounting{ReceiptID: r.ID, NetUSD: d("77"), FeeUSD: d("3"), SettledAt: &settled, Evidence: "verified settlement statement", VerifiedBy: "provider:test"}
+	accounting := ReceiptAccounting{SettlementFeeConfirmed: true, ReceiptID: r.ID, NetMoney: d("77"), FeeMoney: d("3"), SettledAt: &settled, Evidence: "verified settlement statement", VerifiedBy: "provider:test"}
 	confirmed, err := f.s.RecordReceiptAccounting(f.ctx, nil, accounting)
-	if err != nil || confirmed.FeeStatus != "confirmed" || confirmed.FeeUSD == nil || confirmed.FeeUSD.Cmp(d("3")) != 0 {
+	if err != nil || confirmed.FeeStatus != "confirmed" || confirmed.FeeMoney == nil || confirmed.FeeMoney.Cmp(d("3")) != 0 {
 		t.Fatalf("late fees=%+v %v", confirmed, err)
 	}
 	if _, err = f.s.RecordReceiptAccounting(f.ctx, nil, accounting); err != nil {
@@ -617,7 +617,7 @@ func TestPostgresPendingFeeAndObservedPaymentUpperBound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "unknown-timing", ReceiptID: late.ID, OrderID: b.ID, AmountUSD: d("80")}); !errors.Is(err, ErrTimingUnverified) {
+	if _, err = f.s.AllocateReceipt(f.ctx, nil, AllocateReceiptInput{OperatorID: f.operator, BusinessKey: "unknown-timing", ReceiptID: late.ID, OrderID: b.ID, AmountMoney: d("80")}); !errors.Is(err, ErrTimingUnverified) {
 		t.Fatalf("late observation invented paid time: %v", err)
 	}
 	if _, err = f.s.ConfirmReceiptPaymentTime(f.ctx, nil, late.ID, b.ExpiresAt.Add(-time.Second), "provider actual paid event timestamp", "provider:test"); err != nil {
@@ -681,7 +681,7 @@ func TestPostgresRenewalNoticeConsentFundingAndUniqueCycle(t *testing.T) {
 	base := time.Date(2030, 1, 31, 12, 0, 0, 0, time.UTC)
 	f.s.databaseFulfillmentClock = false
 	f.s.now = func() time.Time { return base }
-	f.seed(t, "customer:usd", "80")
+	f.seed(t, "customer:money", "80")
 	o := f.order(t, "initial", "80", "0")
 	if _, err := f.s.Fulfill(f.ctx, nil, o.ID, "worker:delivery"); err != nil {
 		t.Fatal(err)
@@ -703,7 +703,7 @@ func TestPostgresRenewalNoticeConsentFundingAndUniqueCycle(t *testing.T) {
 	if err != nil || result.Status != "needs_funds" {
 		t.Fatalf("unauthorized commission use: %+v %v", result, err)
 	}
-	f.seed(t, "customer:usd", "80")
+	f.seed(t, "customer:money", "80")
 	result, err = f.s.RenewSubscription(f.ctx, nil, sub.ID)
 	if err != nil || result.Status != "completed" || result.Order == nil || result.Order.Kind != "renewal" {
 		t.Fatalf("renewal=%+v %v", result, err)
@@ -733,7 +733,7 @@ func TestPostgresRenewalNoticeConsentFundingAndUniqueCycle(t *testing.T) {
 	if _, err = f.s.RenewSubscription(f.ctx, nil, sub.ID); !errors.Is(err, ErrRenewalNotDue) {
 		t.Fatalf("duplicate cycle renewed: %v", err)
 	}
-	worse, err := f.s.PublishPackage(f.ctx, nil, PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, PackageID: f.quote.PackageID, ExpectedVersion: 1, Name: "Monthly", TermsReference: "terms-v1", Timezone: "UTC", PriceUSD: d("100"), PaidATG: d("200"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
+	worse, err := f.s.PublishPackage(f.ctx, nil, PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, PackageID: f.quote.PackageID, ExpectedVersion: 1, Name: "Monthly", TermsReference: "terms-v1", Timezone: "UTC", PriceMoney: d("100"), PaidATG: d("200"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -757,7 +757,7 @@ func TestPostgresRenewalNoticeConsentFundingAndUniqueCycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	result, err = f.s.RenewSubscription(f.ctx, nil, sub.ID)
-	if err != nil || result.Status != "completed" || result.Order.CommissionUSD.Cmp(d("100")) != 0 {
+	if err != nil || result.Status != "completed" || result.Order.CommissionMoney.Cmp(d("100")) != 0 {
 		t.Fatalf("confirmed commission fallback=%+v %v", result, err)
 	}
 	if err = f.s.CancelAutoRenewal(f.ctx, nil, f.customer, sub.ID); err != nil {

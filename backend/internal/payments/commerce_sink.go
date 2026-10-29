@@ -28,7 +28,7 @@ func (s CommerceSink) ConfirmVerifiedPaymentTime(ctx context.Context, tx *gorm.D
 	return e
 }
 
-func (s CommerceSink) RecordVerifiedReceipt(ctx context.Context, tx *gorm.DB, m Merchant, o Order, f Fact, value USDValue) (string, error) {
+func (s CommerceSink) RecordVerifiedReceipt(ctx context.Context, tx *gorm.DB, m Merchant, o Order, f Fact, value MoneyValue) (string, error) {
 	if s.Commerce == nil || !f.Verified() {
 		return "", ErrNotConfigured
 	}
@@ -42,6 +42,6 @@ func (s CommerceSink) RecordVerifiedReceipt(ctx context.Context, tx *gorm.DB, m 
 		payer = e["payer_reference"]
 		verifiedBy = e["verified_by"]
 	}
-	receipt, e := s.Commerce.RecordReceipt(ctx, tx, commerce.VerifiedReceipt{OperatorID: f.OperatorID, Provider: f.Driver + ":" + m.ID, ProviderReceiptID: f.ProviderID, GrossUSD: value.Amount, FeeStatus: "pending", Currency: f.Money.Currency, OriginalAmount: f.Money.Amount.String(), RecipientReference: reference, PayerReference: payer, ValuationEvidence: string(valuation), VerificationEvidence: string(f.Evidence), VerifiedBy: verifiedBy, PaidAt: f.OccurredAt, ObservedAt: f.ObservedAt})
+	receipt, e := s.Commerce.RecordReceipt(ctx, tx, commerce.VerifiedReceipt{OperatorID: f.OperatorID, Provider: f.Driver + ":" + m.ID, ProviderReceiptID: f.ProviderID, GrossMoney: value.Amount, FeeStatus: "pending", Currency: f.Money.Currency, OriginalAmount: f.Money.Amount.String(), RecipientReference: reference, PayerReference: payer, ValuationEvidence: string(valuation), VerificationEvidence: string(f.Evidence), VerifiedBy: verifiedBy, PaidAt: f.OccurredAt, ObservedAt: f.ObservedAt})
 	return receipt.ID, e
 }

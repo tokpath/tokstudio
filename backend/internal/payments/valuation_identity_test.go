@@ -24,7 +24,7 @@ func TestPostgresReceiptValuationGeneratesStableIdentityWithoutInventingEvidence
 		t.Fatal(err)
 	}
 	accepted, paid := now.Add(-time.Hour), now.Add(-time.Minute)
-	o := Order{ID: uuid.NewString(), OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: "CNY", Amount: ledger.FromInt64(100)}, Valuation: Valuation{ID: uuid.NewString(), Currency: "CNY", USDPerUnit: ledger.MustDecimal("0.1"), Source: "historical indicative basis", EffectiveAt: accepted.Add(-time.Minute), ExpiresAt: accepted.Add(time.Minute)}, AcceptedAt: accepted, ExpiresAt: now.Add(time.Hour)}
+	o := Order{ID: uuid.NewString(), OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: "CNY", Amount: ledger.FromInt64(100)}, SettlementMoney: Money{Currency: "USD", Amount: ledger.FromInt64(10)}, AcceptedAt: accepted, ExpiresAt: now.Add(time.Hour)}
 	if _, err = s.Create(ctx, m.OperatorID, m.ID, o); err != nil {
 		t.Fatal(err)
 	}
@@ -35,9 +35,9 @@ func TestPostgresReceiptValuationGeneratesStableIdentityWithoutInventingEvidence
 	if err = s.RecordFact(ctx, m, o, fact); !errors.Is(err, ErrAwaitingValuation) {
 		t.Fatal("expired checkout estimate was reused", err)
 	}
-	in := ReceiptValuationConfirmation{BusinessKey: "same-valuation-confirmation", Valuation: Valuation{Currency: "CNY", USDPerUnit: ledger.MustDecimal("0.2"), Source: "actual independent FX evidence", EffectiveAt: paid.Add(-time.Second), ExpiresAt: paid.Add(time.Second)}, EvidenceReference: "actual valuation verification document"}
+	in := ReceiptValuationConfirmation{BusinessKey: "same-valuation-confirmation", SettlementAmount: ledger.FromInt64(20), EvidenceReference: "actual valuation verification document"}
 	bad := in
-	bad.Valuation.Source = ""
+	bad.SettlementAmount = ledger.Zero()
 	if _, err = s.ConfirmReceiptValuation(ctx, "finance", m.OperatorID, fact.ID, bad); !errors.Is(err, ErrInvalid) {
 		t.Fatal("server invented missing FX evidence", err)
 	}
@@ -81,7 +81,7 @@ func TestPostgresReceiptValuationGeneratesStableIdentityWithoutInventingEvidence
 		generated = id
 	}
 	changed := in
-	changed.Valuation.USDPerUnit = ledger.MustDecimal("0.3")
+	changed.SettlementAmount = ledger.FromInt64(30)
 	if _, err = s.ConfirmReceiptValuation(ctx, "finance", m.OperatorID, fact.ID, changed); !errors.Is(err, ErrConflict) {
 		t.Fatal("generated reference concealed different estimate semantics", err)
 	}

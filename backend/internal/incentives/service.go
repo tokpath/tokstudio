@@ -42,6 +42,10 @@ func New(db *gorm.DB) *Service {
 	return &Service{db: db, org: organization.New(db), ledger: ledger.New(db), commerce: commerce.New(db)}
 }
 func (s *Service) SetRegistrationCoverage(c RegistrationCoverage) { s.rewardCoverage = c }
+func (s *Service) SetMonetaryReadiness(check func(context.Context, *gorm.DB) error) {
+	s.org.SetMonetaryReadiness(check)
+	s.commerce.SetMonetaryReadiness(check)
+}
 func (s *Service) within(ctx context.Context, tx *gorm.DB, f func(*gorm.DB) error) error {
 	if tx != nil {
 		return classify(f(tx.WithContext(ctx)))
@@ -114,7 +118,7 @@ func (s *Service) event(tx *gorm.DB, operator, aggregate, kind string, payload a
 	return tx.Exec(`INSERT INTO incentives_events(id,operator_id,aggregate_id,kind,payload,created_at) VALUES(?,?,?,?,?::jsonb,clock_timestamp())`, uuid.NewString(), operator, aggregate, kind, string(b)).Error
 }
 func (s *Service) account(ctx context.Context, tx *gorm.DB, operator, customer, purpose string) (ledger.Account, error) {
-	return s.ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: operator, OwnerID: customer, Purpose: purpose, Unit: "USD", AllowNegative: len(purpose) >= 8 && purpose[:8] == "control:"})
+	return s.ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: operator, OwnerID: customer, Purpose: purpose, Unit: "MONEY", AllowNegative: len(purpose) >= 8 && purpose[:8] == "control:"})
 }
 func minimum(a, b ledger.Decimal) ledger.Decimal {
 	if a.Cmp(b) < 0 {
@@ -172,7 +176,7 @@ func (promiseRow) TableName() string { return "incentives_registration_promises"
 func (Event) TableName() string      { return "incentives_events" }
 
 func (s *Service) SetPolicy(ctx context.Context, tx *gorm.DB, actorID, operatorID string, in PolicyInput) (out Policy, err error) {
-	if !validID(operatorID) || in.ExpectedVersion < 0 || in.ThresholdUSD.Sign() < 0 || !in.ThresholdUSD.Valid() || !rateValid(in.DirectRate) || !rateValid(in.IndirectRate) || in.DirectRate.Add(in.IndirectRate).Cmp(ledger.FromInt64(1)) > 0 || in.ConfirmationSeconds < 0 || in.ConfirmationSeconds > 31536000 || in.InviteeATG.Sign() < 0 || in.InviterATG.Sign() < 0 || !in.InviteeATG.Valid() || !in.InviterATG.Valid() || in.RewardValiditySeconds <= 0 || in.RewardValiditySeconds > 315360000 || in.KOLCrossActivityLimit < 0 {
+	if !validID(operatorID) || in.ExpectedVersion < 0 || in.ThresholdMoney.Sign() < 0 || !in.ThresholdMoney.Valid() || !rateValid(in.DirectRate) || !rateValid(in.IndirectRate) || in.DirectRate.Add(in.IndirectRate).Cmp(ledger.FromInt64(1)) > 0 || in.ConfirmationSeconds < 0 || in.ConfirmationSeconds > 31536000 || in.InviteeATG.Sign() < 0 || in.InviterATG.Sign() < 0 || !in.InviteeATG.Valid() || !in.InviterATG.Valid() || in.RewardValiditySeconds <= 0 || in.RewardValiditySeconds > 315360000 || in.KOLCrossActivityLimit < 0 {
 		return out, ErrInvalidInput
 	}
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
@@ -194,7 +198,7 @@ func (s *Service) SetPolicy(ctx context.Context, tx *gorm.DB, actorID, operatorI
 		if err != nil {
 			return err
 		}
-		r := policyRow{ID: uuid.NewString(), OperatorID: operatorID, Version: current.Version + 1, ThresholdUSD: in.ThresholdUSD, DirectRate: in.DirectRate, IndirectRate: in.IndirectRate, ConfirmationSeconds: in.ConfirmationSeconds, InviteeATG: in.InviteeATG, InviterATG: in.InviterATG, RewardValiditySeconds: in.RewardValiditySeconds, KOLCrossActivityLimit: in.KOLCrossActivityLimit, EffectiveAt: instant.At, BusinessSequence: instant.Sequence}
+		r := policyRow{ID: uuid.NewString(), OperatorID: operatorID, Version: current.Version + 1, ThresholdMoney: in.ThresholdMoney, DirectRate: in.DirectRate, IndirectRate: in.IndirectRate, ConfirmationSeconds: in.ConfirmationSeconds, InviteeATG: in.InviteeATG, InviterATG: in.InviterATG, RewardValiditySeconds: in.RewardValiditySeconds, KOLCrossActivityLimit: in.KOLCrossActivityLimit, EffectiveAt: instant.At, BusinessSequence: instant.Sequence}
 		if err = tx.Create(&r).Error; err != nil {
 			return err
 		}

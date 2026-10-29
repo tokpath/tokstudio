@@ -25,11 +25,11 @@ import (
 
 func d(value string) ledger.Decimal { return ledger.MustDecimal(value) }
 func TestWithdrawalFeeAndRateBoundaries(t *testing.T) {
-	q, err := quoteWithdrawal(WithdrawalPolicy{MinimumUSD: d("5"), FlatFeeUSD: d("1"), FeeRate: d("0.1")}, d("10"))
-	if err != nil || q.FeeUSD.Cmp(d("2")) != 0 || q.NetUSD.Cmp(d("8")) != 0 {
+	q, err := quoteWithdrawal(WithdrawalPolicy{MinimumMoney: d("5"), FlatFeeMoney: d("1"), FeeRate: d("0.1")}, d("10"))
+	if err != nil || q.FeeMoney.Cmp(d("2")) != 0 || q.NetMoney.Cmp(d("8")) != 0 {
 		t.Fatalf("quote=%+v %v", q, err)
 	}
-	if _, err = quoteWithdrawal(WithdrawalPolicy{MinimumUSD: d("5"), FlatFeeUSD: d("10")}, d("5")); !errors.Is(err, ErrInvalidInput) {
+	if _, err = quoteWithdrawal(WithdrawalPolicy{MinimumMoney: d("5"), FlatFeeMoney: d("10")}, d("5")); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("negative payout accepted: %v", err)
 	}
 	if rateValid(d("1.01")) || rateValid(d("-0.01")) || !rateValid(d("0.000000000000000001")) {
@@ -180,7 +180,7 @@ func setupOnDB(t *testing.T, db *gorm.DB) fixture {
 		}
 	}
 	s := New(db)
-	policy, err := s.SetPolicy(ctx, nil, owner, platform.Operator.ID, PolicyInput{ThresholdUSD: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), RewardValiditySeconds: 3600, KOLCrossActivityLimit: 1})
+	policy, err := s.SetPolicy(ctx, nil, owner, platform.Operator.ID, PolicyInput{ThresholdMoney: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), RewardValiditySeconds: 3600, KOLCrossActivityLimit: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func setupOnDB(t *testing.T, db *gorm.DB) fixture {
 	cap := &coverageDouble{}
 	store.SetSalesCoverage(cap)
 	store.SetMarketing(s)
-	quote, err := store.PublishPackage(ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: platform.Operator.ID, Name: "Monthly", TermsReference: "terms-v1", Timezone: "UTC", PriceUSD: d("100"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true})
+	quote, err := store.PublishPackage(ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: platform.Operator.ID, Name: "Monthly", TermsReference: "terms-v1", Timezone: "UTC", PriceMoney: d("100"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,18 +211,18 @@ func (f fixture) register(t *testing.T, email, code string) organization.Registr
 }
 func (f fixture) seed(t *testing.T, customer, purpose, amount string) {
 	t.Helper()
-	if purpose == "customer:usd" {
+	if purpose == "customer:money" {
 		key := "wallet-fixture:" + uuid.NewString()
-		o, err := f.commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{CustomerID: customer, OperatorID: f.operator, BusinessKey: key, ExpectedOwnershipVersion: 1, AmountUSD: d(amount)})
+		o, err := f.commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{CustomerID: customer, OperatorID: f.operator, BusinessKey: key, ExpectedOwnershipVersion: 1, AmountMoney: d(amount)})
 		if err != nil {
 			t.Fatal(err)
 		}
 		zero, gross := d("0"), d(amount)
-		r, err := f.commerce.RecordReceipt(f.ctx, nil, commerce.VerifiedReceipt{OperatorID: f.operator, Provider: "test-verified-provider", ProviderReceiptID: key, GrossUSD: gross, NetUSD: &gross, FeeUSD: &zero, Currency: "USD", OriginalAmount: amount, RecipientReference: "test:merchant", PayerReference: "test:external-payer", ValuationEvidence: "verified USD", VerificationEvidence: "test verified receipt", VerifiedBy: "test:provider", PaidAt: &o.CreatedAt})
+		r, err := f.commerce.RecordReceipt(f.ctx, nil, commerce.VerifiedReceipt{OperatorID: f.operator, Provider: "test-verified-provider", ProviderReceiptID: key, GrossMoney: gross, NetMoney: &gross, FeeMoney: &zero, Currency: "USD", OriginalAmount: amount, RecipientReference: "test:merchant", PayerReference: "test:external-payer", ValuationEvidence: "verified USD", VerificationEvidence: "test verified receipt", VerifiedBy: "test:provider", PaidAt: &o.CreatedAt})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err = f.commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, BusinessKey: key, ReceiptID: r.ID, OrderID: o.ID, AmountUSD: gross}); err != nil {
+		if _, err = f.commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, BusinessKey: key, ReceiptID: r.ID, OrderID: o.ID, AmountMoney: gross}); err != nil {
 			t.Fatal(err)
 		}
 		if _, err = f.commerce.Fulfill(f.ctx, nil, o.ID, "test:verified-wallet-funding"); err != nil {
@@ -244,12 +244,12 @@ func (f fixture) seed(t *testing.T, customer, purpose, amount string) {
 }
 func (f fixture) buy(t *testing.T, customer, key, amount string, selection ActivitySelection) commerce.Order {
 	t.Helper()
-	f.seed(t, customer, "customer:usd", amount)
+	f.seed(t, customer, "customer:money", amount)
 	raw, err := json.Marshal(selection)
 	if err != nil {
 		t.Fatal(err)
 	}
-	o, err := f.commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{CustomerID: customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: key, ExpectedOwnershipVersion: 1, InternalUSD: d(amount), ActivitySelection: raw})
+	o, err := f.commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{CustomerID: customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: key, ExpectedOwnershipVersion: 1, InternalMoney: d(amount), ActivitySelection: raw})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,7 +326,7 @@ func TestPostgresCampaignCombinationLocksOriginalRatiosAndTwoHopScope(t *testing
 	f.qualify(t, a.Customer.ID, "qualify-a")
 	f.qualify(t, b.Customer.ID, "qualify-b")
 	now := time.Now().UTC()
-	merchant, err := f.s.PublishCampaign(f.ctx, nil, CampaignInput{ActorStaffID: f.owner, OperatorID: f.operator, Kind: "merchant", PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), FinalPriceUSD: func() *ledger.Decimal { v := d("80"); return &v }(), GiftATG: d("20"), PerCustomerLimit: 2})
+	merchant, err := f.s.PublishCampaign(f.ctx, nil, CampaignInput{ActorStaffID: f.owner, OperatorID: f.operator, Kind: "merchant", PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), FinalPriceMoney: func() *ledger.Decimal { v := d("80"); return &v }(), GiftATG: d("20"), PerCustomerLimit: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,8 +336,8 @@ func TestPostgresCampaignCombinationLocksOriginalRatiosAndTwoHopScope(t *testing
 	}
 	selection := ActivitySelection{MerchantCampaignID: merchant.CampaignID, KOLCampaignID: kol.CampaignID}
 	raw, _ := json.Marshal(selection)
-	f.seed(t, c.Customer.ID, "customer:usd", "80")
-	input := commerce.CreateOrderInput{CustomerID: c.Customer.ID, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: "combined", ExpectedOwnershipVersion: 1, InternalUSD: d("80"), ActivitySelection: raw}
+	f.seed(t, c.Customer.ID, "customer:money", "80")
+	input := commerce.CreateOrderInput{CustomerID: c.Customer.ID, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: "combined", ExpectedOwnershipVersion: 1, InternalMoney: d("80"), ActivitySelection: raw}
 	if _, err = f.commerce.CreateOrder(f.ctx, nil, input); !errors.Is(err, ErrCombination) {
 		t.Fatalf("implicit combination allowed: %v", err)
 	}
@@ -390,11 +390,11 @@ func TestPostgresCampaignCombinationLocksOriginalRatiosAndTwoHopScope(t *testing
 	}
 	beforeA := f.balance(t, a.Customer.ID, "commission:available").Balance
 	beforeB := f.balance(t, b.Customer.ID, "commission:available").Balance
-	if _, err = f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 1, ThresholdUSD: d("60"), DirectRate: d("0.10"), IndirectRate: d("0.03"), RewardValiditySeconds: 3600, KOLCrossActivityLimit: 1}); err != nil {
+	if _, err = f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 1, ThresholdMoney: d("60"), DirectRate: d("0.10"), IndirectRate: d("0.03"), RewardValiditySeconds: 3600, KOLCrossActivityLimit: 1}); err != nil {
 		t.Fatal(err)
 	}
 	events := f.consume(t, c.Customer.ID, "13")
-	if len(events) != 1 || events[0].PaidUSD.Cmp(d("8")) != 0 {
+	if len(events) != 1 || events[0].PaidMoney.Cmp(d("8")) != 0 {
 		t.Fatalf("paid base=%+v", events)
 	}
 	afterA := f.balance(t, a.Customer.ID, "commission:available").Balance
@@ -403,7 +403,7 @@ func TestPostgresCampaignCombinationLocksOriginalRatiosAndTwoHopScope(t *testing
 		t.Fatalf("original rates lost: indirect=%s direct=%s", afterA.Sub(beforeA), afterB.Sub(beforeB))
 	}
 	views, _, err := f.s.CommissionViews(f.ctx, nil, f.operator, b.Customer.ID, "", "", 20)
-	if err != nil || len(views) != 1 || views[0].SourceID != events[0].ID || views[0].BasisUSD.Cmp(d("8")) != 0 || views[0].AmountUSD.Cmp(d("0.4")) != 0 {
+	if err != nil || len(views) != 1 || views[0].SourceID != events[0].ID || views[0].BasisMoney.Cmp(d("8")) != 0 || views[0].AmountMoney.Cmp(d("0.4")) != 0 {
 		t.Fatalf("real commission base view=%+v %v", views, err)
 	}
 	matched, _, err := f.s.CommissionViews(f.ctx, nil, f.operator, b.Customer.ID, "", views[0].ID, 20)
@@ -414,7 +414,7 @@ func TestPostgresCampaignCombinationLocksOriginalRatiosAndTwoHopScope(t *testing
 	if err != nil || len(other) != 0 {
 		t.Fatalf("commission search ignored the query: %+v %v", other, err)
 	}
-	if err = f.s.AccrueGrantEvent(f.ctx, nil, GrantEventInput{EventID: events[0].ID, OperatorID: f.operator, CustomerID: c.Customer.ID, OrderID: order.ID, Kind: "usage", PaidUSD: events[0].PaidUSD, OccurredAt: events[0].CreatedAt}); err != nil {
+	if err = f.s.AccrueGrantEvent(f.ctx, nil, GrantEventInput{EventID: events[0].ID, OperatorID: f.operator, CustomerID: c.Customer.ID, OrderID: order.ID, Kind: "usage", PaidMoney: events[0].PaidMoney, OccurredAt: events[0].CreatedAt}); err != nil {
 		t.Fatal(err)
 	}
 	if got := f.balance(t, b.Customer.ID, "commission:available").Balance; got.Cmp(afterB) != 0 {
@@ -425,11 +425,11 @@ func TestPostgresCampaignCombinationLocksOriginalRatiosAndTwoHopScope(t *testing
 		t.Fatalf("KOL cross-activity limit bypassed: %v", err)
 	}
 	// Trusted expiry facts contribute qualification only, even with two eligible inviters.
-	if err = f.s.AccrueGrantEvent(f.ctx, nil, GrantEventInput{EventID: uuid.NewString(), OperatorID: f.operator, CustomerID: c.Customer.ID, OrderID: order.ID, Kind: "expiry", PaidUSD: d("72"), OccurredAt: time.Now().UTC()}); err != nil {
+	if err = f.s.AccrueGrantEvent(f.ctx, nil, GrantEventInput{EventID: uuid.NewString(), OperatorID: f.operator, CustomerID: c.Customer.ID, OrderID: order.ID, Kind: "expiry", PaidMoney: d("72"), OccurredAt: time.Now().UTC()}); err != nil {
 		t.Fatal(err)
 	}
 	q, err := f.s.GetQualification(f.ctx, nil, f.operator, c.Customer.ID)
-	if err != nil || q.ConfirmedUSD.Cmp(d("80")) != 0 || q.AcquiredAt == nil {
+	if err != nil || q.ConfirmedMoney.Cmp(d("80")) != 0 || q.AcquiredAt == nil {
 		t.Fatalf("expiry qualification=%+v %v", q, err)
 	}
 	if got := f.balance(t, b.Customer.ID, "commission:available").Balance; got.Cmp(afterB) != 0 {
@@ -441,7 +441,7 @@ func TestPostgresQualificationConfirmationDisputeAndProtection(t *testing.T) {
 	f := setup(t)
 	customer := f.register(t, "customer@example.test", "")
 	order := f.buy(t, customer.Customer.ID, "source", "100", ActivitySelection{})
-	if _, err := f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 1, ThresholdUSD: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 3600, RewardValiditySeconds: 3600}); err != nil {
+	if _, err := f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 1, ThresholdMoney: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 3600, RewardValiditySeconds: 3600}); err != nil {
 		t.Fatal(err)
 	}
 	instant, clockErr := f.s.BusinessInstant(f.ctx, nil)
@@ -449,16 +449,16 @@ func TestPostgresQualificationConfirmationDisputeAndProtection(t *testing.T) {
 		t.Fatal(clockErr)
 	}
 	occurred := instant.At
-	event := GrantEventInput{EventID: uuid.NewString(), OperatorID: f.operator, CustomerID: customer.Customer.ID, OrderID: order.ID, Kind: "usage", PaidUSD: d("80"), OccurredAt: occurred}
+	event := GrantEventInput{EventID: uuid.NewString(), OperatorID: f.operator, CustomerID: customer.Customer.ID, OrderID: order.ID, Kind: "usage", PaidMoney: d("80"), OccurredAt: occurred}
 	if err := f.s.AccrueGrantEvent(f.ctx, nil, event); err != nil {
 		t.Fatal(err)
 	}
 	q, err := f.s.GetQualification(f.ctx, nil, f.operator, customer.Customer.ID)
-	if err != nil || !q.ConfirmedUSD.IsZero() || q.AcquiredAt != nil {
+	if err != nil || !q.ConfirmedMoney.IsZero() || q.AcquiredAt != nil {
 		t.Fatalf("unmatured amount counted: %+v %v", q, err)
 	}
 	overview, err := f.s.PromotionOverview(f.ctx, nil, f.operator, customer.Customer.ID)
-	if err != nil || overview.PendingConsumptionUSD.Cmp(d("80")) != 0 || !overview.Qualification.PendingOffsetUSD.IsZero() {
+	if err != nil || overview.PendingConsumptionMoney.Cmp(d("80")) != 0 || !overview.Qualification.PendingOffsetMoney.IsZero() {
 		t.Fatalf("pending consumption confused with recovery=%+v %v", overview, err)
 	}
 	if err = f.s.SetEventDispute(f.ctx, nil, f.owner, f.operator, event.EventID, "test dispute evidence", true); err != nil {
@@ -475,14 +475,14 @@ func TestPostgresQualificationConfirmationDisputeAndProtection(t *testing.T) {
 	if err != nil || q.AcquiredAt == nil || !q.AcquiredAt.Equal(occurred.Add(time.Hour)) {
 		t.Fatalf("logical maturity time=%+v %v", q, err)
 	}
-	if _, err = f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 2, ThresholdUSD: d("500"), DirectRate: d("0.10"), IndirectRate: d("0.03"), RewardValiditySeconds: 3600}); err != nil {
+	if _, err = f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 2, ThresholdMoney: d("500"), DirectRate: d("0.10"), IndirectRate: d("0.03"), RewardValiditySeconds: 3600}); err != nil {
 		t.Fatal(err)
 	}
-	if err = f.s.ReverseEvent(f.ctx, nil, CorrectionInput{ActorStaffID: f.owner, OperatorID: f.operator, OriginalEventID: event.EventID, BusinessKey: "correct-80", Evidence: "proven duplicate usage", AmountUSD: d("80")}); err != nil {
+	if err = f.s.ReverseEvent(f.ctx, nil, CorrectionInput{ActorStaffID: f.owner, OperatorID: f.operator, OriginalEventID: event.EventID, BusinessKey: "correct-80", Evidence: "proven duplicate usage", AmountMoney: d("80")}); err != nil {
 		t.Fatal(err)
 	}
 	q, err = f.s.Advance(f.ctx, nil, f.operator, customer.Customer.ID, occurred.Add(2*time.Hour))
-	if err != nil || !q.ConfirmedUSD.IsZero() || q.AcquiredAt == nil {
+	if err != nil || !q.ConfirmedMoney.IsZero() || q.AcquiredAt == nil {
 		t.Fatalf("normal correction revoked acquired qualification: %+v %v", q, err)
 	}
 }
@@ -494,12 +494,12 @@ func TestPostgresWithdrawalUnknownRecoveryAndOffsetsNeverTouchOtherAssets(t *tes
 	f.qualify(t, a.Customer.ID, "a-source")
 	f.buy(t, b.Customer.ID, "b-source", "100", ActivitySelection{})
 	events := f.consume(t, b.Customer.ID, "100")
-	f.seed(t, a.Customer.ID, "customer:usd", "9")
-	policy, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumUSD: d("5"), FlatFeeUSD: d("1"), FeeRate: d("0.1"), MethodReference: "manual verified payout"}, 0)
+	f.seed(t, a.Customer.ID, "customer:money", "9")
+	policy, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumMoney: d("5"), FlatFeeMoney: d("1"), FeeRate: d("0.1"), MethodReference: "manual verified payout"}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: a.Customer.ID, BusinessKey: "withdrawal", RecipientReference: "private:recipient-profile-1", PolicyID: policy.ID, AmountUSD: d("10")})
+	w, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: a.Customer.ID, BusinessKey: "withdrawal", RecipientReference: "private:recipient-profile-1", PolicyID: policy.ID, AmountMoney: d("10")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -518,20 +518,20 @@ func TestPostgresWithdrawalUnknownRecoveryAndOffsetsNeverTouchOtherAssets(t *tes
 	if err = f.s.FailWithdrawal(f.ctx, nil, f.owner, f.operator, w.ID, "no proof", false); !errors.Is(err, ErrWithdrawalState) {
 		t.Fatalf("unknown payout released without proof: %v", err)
 	}
-	if err = f.s.ReverseEvent(f.ctx, nil, CorrectionInput{ActorStaffID: f.owner, OperatorID: f.operator, OriginalEventID: events[0].ID, BusinessKey: "reverse-original", Evidence: "proven wrong paid base", AmountUSD: d("100")}); err != nil {
+	if err = f.s.ReverseEvent(f.ctx, nil, CorrectionInput{ActorStaffID: f.owner, OperatorID: f.operator, OriginalEventID: events[0].ID, BusinessKey: "reverse-original", Evidence: "proven wrong paid base", AmountMoney: d("100")}); err != nil {
 		t.Fatal(err)
 	}
 	q, err := f.s.GetQualification(f.ctx, nil, f.operator, a.Customer.ID)
-	if err != nil || q.PendingOffsetUSD.Cmp(d("10")) != 0 {
+	if err != nil || q.PendingOffsetMoney.Cmp(d("10")) != 0 {
 		t.Fatalf("missing pending offset: %+v %v", q, err)
 	}
-	if account := f.balance(t, a.Customer.ID, "customer:usd"); account.Balance.Cmp(d("9")) != 0 {
+	if account := f.balance(t, a.Customer.ID, "customer:money"); account.Balance.Cmp(d("9")) != 0 {
 		t.Fatal("commission correction touched payment wallet")
 	}
 	if account := f.balance(t, a.Customer.ID, "commission:available"); account.Balance.Cmp(d("10")) != 0 || account.Held.Cmp(d("10")) != 0 {
 		t.Fatalf("unknown payment held amount taken: %+v", account)
 	}
-	proof := WithdrawalPaymentProof{Evidence: "Cash paid to the customer in person", Currency: "USD", OriginalAmount: "8", ValuationEvidence: "actual USD payout", PaidUSD: d("8"), PaidAt: time.Now().UTC()}
+	proof := WithdrawalPaymentProof{Evidence: "Cash paid to the customer in person", Currency: "USD", OriginalAmount: "8", ValuationEvidence: "actual USD payout", PaidMoney: d("8"), PaidAt: time.Now().UTC()}
 	if paid, err := f.s.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, proof); err != nil || paid.PaymentReference == nil || *paid.PaymentReference == "" {
 		t.Fatal(paid, err)
 	}
@@ -541,13 +541,13 @@ func TestPostgresWithdrawalUnknownRecoveryAndOffsetsNeverTouchOtherAssets(t *tes
 	f.buy(t, b.Customer.ID, "b-source-next", "100", ActivitySelection{})
 	f.consume(t, b.Customer.ID, "100")
 	q, err = f.s.GetQualification(f.ctx, nil, f.operator, a.Customer.ID)
-	if err != nil || !q.PendingOffsetUSD.IsZero() {
+	if err != nil || !q.PendingOffsetMoney.IsZero() {
 		t.Fatalf("new release failed offset: %+v %v", q, err)
 	}
 	if account := f.balance(t, a.Customer.ID, "commission:available"); account.Balance.Cmp(d("5")) != 0 || !account.Held.IsZero() {
 		t.Fatalf("offset net available=%+v", account)
 	}
-	w2, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: a.Customer.ID, BusinessKey: "withdrawal-fail", RecipientReference: "private:recipient-profile-1", PolicyID: policy.ID, AmountUSD: d("5")})
+	w2, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: a.Customer.ID, BusinessKey: "withdrawal-fail", RecipientReference: "private:recipient-profile-1", PolicyID: policy.ID, AmountMoney: d("5")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -568,7 +568,7 @@ func TestPostgresWithdrawalUnknownRecoveryAndOffsetsNeverTouchOtherAssets(t *tes
 func TestPostgresRegistrationRewardsPromiseOutageAndKOLHistory(t *testing.T) {
 	f := setup(t)
 	inviter := f.register(t, "inviter@example.test", "")
-	if _, err := f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 1, ThresholdUSD: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), InviteeATG: d("5"), InviterATG: d("2"), RewardValiditySeconds: 3600}); err != nil {
+	if _, err := f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 1, ThresholdMoney: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), InviteeATG: d("5"), InviterATG: d("2"), RewardValiditySeconds: 3600}); err != nil {
 		t.Fatal(err)
 	}
 	v, err := f.org.BeginRegistration(f.ctx, nil, organization.RegistrationIntentRequest{BrandID: f.brand, Email: "new@example.test", InviteCode: inviter.InviteCode, Password: "test-only-strong-password"})
@@ -643,7 +643,7 @@ func TestPostgresCampaignConcurrentCountAndGiftAccounting(t *testing.T) {
 		t.Fatal(err)
 	}
 	raw, _ := json.Marshal(ActivitySelection{KOLCampaignID: campaign.CampaignID})
-	f.seed(t, customer.Customer.ID, "customer:usd", "200")
+	f.seed(t, customer.Customer.ID, "customer:money", "200")
 	var successes atomic.Int64
 	errs := make(chan error, 2)
 	start := make(chan struct{})
@@ -653,7 +653,7 @@ func TestPostgresCampaignConcurrentCountAndGiftAccounting(t *testing.T) {
 		go func(key string) {
 			defer wg.Done()
 			<-start
-			_, err := f.commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{CustomerID: customer.Customer.ID, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: key, ExpectedOwnershipVersion: 1, InternalUSD: d("100"), ActivitySelection: raw})
+			_, err := f.commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{CustomerID: customer.Customer.ID, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: key, ExpectedOwnershipVersion: 1, InternalMoney: d("100"), ActivitySelection: raw})
 			if err == nil {
 				successes.Add(1)
 			}
@@ -683,14 +683,14 @@ func TestPostgresCampaignTotalPlacesReleaseWithoutBudgetCaps(t *testing.T) {
 	second := f.register(t, "second@example.test", "")
 	now := time.Now().UTC()
 	price := d("80")
-	input := CampaignInput{ActorStaffID: f.owner, OperatorID: f.operator, Kind: "merchant", Name: "  Summer bonus  ", PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), FinalPriceUSD: &price, GiftATG: d("1000"), PerCustomerLimit: 2, TotalUseLimit: 1}
+	input := CampaignInput{ActorStaffID: f.owner, OperatorID: f.operator, Kind: "merchant", Name: "  Summer bonus  ", PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), FinalPriceMoney: &price, GiftATG: d("1000"), PerCustomerLimit: 2, TotalUseLimit: 1}
 	bad := input
 	tooHigh := d("101")
-	bad.FinalPriceUSD = &tooHigh
+	bad.FinalPriceMoney = &tooHigh
 	if _, err := f.s.PublishCampaign(f.ctx, nil, bad); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("activity price above package price accepted: %v", err)
 	}
-	bad.FinalPriceUSD, bad.GiftATG = nil, ledger.Zero()
+	bad.FinalPriceMoney, bad.GiftATG = nil, ledger.Zero()
 	if _, err := f.s.PublishCampaign(f.ctx, nil, bad); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("enabled activity without a benefit accepted: %v", err)
 	}
@@ -703,7 +703,7 @@ func TestPostgresCampaignTotalPlacesReleaseWithoutBudgetCaps(t *testing.T) {
 		return f.commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{CustomerID: customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: key, ExpectedOwnershipVersion: 1, ActivitySelection: raw})
 	}
 	order, err := create(first.Customer.ID, "first-reserves-place")
-	if err != nil || order.MerchantGiftATG.Cmp(d("1000")) != 0 || order.DueUSD.Cmp(d("80")) != 0 {
+	if err != nil || order.MerchantGiftATG.Cmp(d("1000")) != 0 || order.DueMoney.Cmp(d("80")) != 0 {
 		t.Fatalf("gift or discount blocked without budget: %+v %v", order, err)
 	}
 	if _, err = create(second.Customer.ID, "second-no-place"); !errors.Is(err, ErrLimit) {
@@ -716,7 +716,7 @@ func TestPostgresCampaignTotalPlacesReleaseWithoutBudgetCaps(t *testing.T) {
 		t.Fatalf("closed order did not release place: %v", err)
 	}
 	var saved campaignRow
-	if err = f.db.First(&saved, "id=?", campaign.CampaignID).Error; err != nil || saved.ReservedUses != 1 || saved.ReservedGiftATG.Cmp(d("1000")) != 0 || saved.ReservedDiscountUSD.Cmp(d("20")) != 0 {
+	if err = f.db.First(&saved, "id=?", campaign.CampaignID).Error; err != nil || saved.ReservedUses != 1 || saved.ReservedGiftATG.Cmp(d("1000")) != 0 || saved.ReservedDiscountMoney.Cmp(d("20")) != 0 {
 		t.Fatalf("reservation accounting after close: %+v %v", saved, err)
 	}
 }
@@ -787,17 +787,17 @@ func TestPostgresWithdrawalIndependentReviewerAndActualPayment(t *testing.T) {
 	f := setup(t)
 	customer := f.register(t, "customer@example.test", "")
 	f.qualify(t, customer.Customer.ID, "independent-review-qualified")
-	if _, e := f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 1, ThresholdUSD: d("60"), DirectRate: d("0.1"), RewardValiditySeconds: 3600}); e != nil {
+	if _, e := f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 1, ThresholdMoney: d("60"), DirectRate: d("0.1"), RewardValiditySeconds: 3600}); e != nil {
 		t.Fatal(e)
 	}
 	peer := f.register(t, "commission-origin@example.test", customer.InviteCode)
 	f.buy(t, peer.Customer.ID, "real-commission-origin", "100", ActivitySelection{})
 	f.consume(t, peer.Customer.ID, "100")
-	policy, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumUSD: d("5"), FlatFeeUSD: d("1"), FeeRate: d("0.1"), MethodReference: "manual transfer", RequiresDualApproval: true}, 0)
+	policy, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumMoney: d("5"), FlatFeeMoney: d("1"), FeeRate: d("0.1"), MethodReference: "manual transfer", RequiresDualApproval: true}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: customer.Customer.ID, BusinessKey: "dual", RecipientReference: "private:payout-profile", PolicyID: policy.ID, AmountUSD: d("10")})
+	w, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: customer.Customer.ID, BusinessKey: "dual", RecipientReference: "private:payout-profile", PolicyID: policy.ID, AmountMoney: d("10")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -821,7 +821,7 @@ func TestPostgresWithdrawalIndependentReviewerAndActualPayment(t *testing.T) {
 	if account := f.balance(t, customer.Customer.ID, "commission:available"); account.Balance.Cmp(d("10")) != 0 || account.Held.Cmp(d("10")) != 0 {
 		t.Fatalf("approval treated as paid: %+v", account)
 	}
-	if _, err = f.s.VerifyWithdrawalPaid(f.ctx, nil, finance, f.operator, w.ID, WithdrawalPaymentProof{PaymentReference: "bank-actual-payout", Evidence: "verified bank execution", Currency: "USD", OriginalAmount: "8", ValuationEvidence: "actual USD", PaidUSD: d("8"), PaidAt: time.Now().UTC()}); err != nil {
+	if _, err = f.s.VerifyWithdrawalPaid(f.ctx, nil, finance, f.operator, w.ID, WithdrawalPaymentProof{PaymentReference: "bank-actual-payout", Evidence: "verified bank execution", Currency: "USD", OriginalAmount: "8", ValuationEvidence: "actual USD", PaidMoney: d("8"), PaidAt: time.Now().UTC()}); err != nil {
 		t.Fatal(err)
 	}
 	if account := f.balance(t, customer.Customer.ID, "commission:available"); !account.Balance.IsZero() || !account.Held.IsZero() {
@@ -831,12 +831,12 @@ func TestPostgresWithdrawalIndependentReviewerAndActualPayment(t *testing.T) {
 
 func TestPostgresSubAtomCommissionCarryAndCorrectionAreConserved(t *testing.T) {
 	f := setup(t)
-	if _, err := f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 1, ThresholdUSD: ledger.Zero(), DirectRate: d("0.1"), IndirectRate: ledger.Zero(), RewardValiditySeconds: 3600}); err != nil {
+	if _, err := f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ExpectedVersion: 1, ThresholdMoney: ledger.Zero(), DirectRate: d("0.1"), IndirectRate: ledger.Zero(), RewardValiditySeconds: 3600}); err != nil {
 		t.Fatal(err)
 	}
 	a := f.register(t, "a@example.test", "")
 	b := f.register(t, "b@example.test", a.InviteCode)
-	quote, err := f.commerce.PublishPackage(f.ctx, nil, commerce.PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, PackageID: f.quote.PackageID, ExpectedVersion: 1, Name: "Micro", TermsReference: "terms-v1", Timezone: "UTC", PriceUSD: d("0.00000000000000001"), PaidATG: d("1"), Period: ledger.Month, NewPurchaseEnabled: true})
+	quote, err := f.commerce.PublishPackage(f.ctx, nil, commerce.PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, PackageID: f.quote.PackageID, ExpectedVersion: 1, Name: "Micro", TermsReference: "terms-v1", Timezone: "UTC", PriceMoney: d("0.00000000000000001"), PaidATG: d("1"), Period: ledger.Month, NewPurchaseEnabled: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -852,14 +852,14 @@ func TestPostgresSubAtomCommissionCarryAndCorrectionAreConserved(t *testing.T) {
 	if balance := f.balance(t, a.Customer.ID, "commission:available").Balance; balance.Cmp(d("0.000000000000000001")) != 0 {
 		t.Fatalf("sub-atom commissions vanished or inflated: %s", balance)
 	}
-	if err = f.s.ReverseEvent(f.ctx, nil, CorrectionInput{ActorStaffID: f.owner, OperatorID: f.operator, OriginalEventID: original.ID, BusinessKey: "reverse-one-micro-base", Evidence: "source quantity proven wrong", AmountUSD: d("0.000000000000000001")}); err != nil {
+	if err = f.s.ReverseEvent(f.ctx, nil, CorrectionInput{ActorStaffID: f.owner, OperatorID: f.operator, OriginalEventID: original.ID, BusinessKey: "reverse-one-micro-base", Evidence: "source quantity proven wrong", AmountMoney: d("0.000000000000000001")}); err != nil {
 		t.Fatal(err)
 	}
 	if balance := f.balance(t, a.Customer.ID, "commission:available").Balance; !balance.IsZero() {
 		t.Fatalf("correction failed to reverse atom carried into a later event: %s", balance)
 	}
 	var carry commissionCarry
-	if err = f.db.Table("incentives_commission_carries").Where("beneficiary_id=?", a.Customer.ID).First(&carry).Error; err != nil || carry.BaseUSD.Cmp(d("0.000000000000000009")) != 0 || carry.CreditedUSD.Sub(carry.ReversedUSD).Sign() != 0 {
+	if err = f.db.Table("incentives_commission_carries").Where("beneficiary_id=?", a.Customer.ID).First(&carry).Error; err != nil || carry.BaseMoney.Cmp(d("0.000000000000000009")) != 0 || carry.CreditedMoney.Sub(carry.ReversedMoney).Sign() != 0 {
 		t.Fatalf("cumulative carry=%+v %v", carry, err)
 	}
 }

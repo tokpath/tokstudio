@@ -1,6 +1,7 @@
 "use client";
 import { useI18n } from "@/components/i18n";
 import { useProduct } from "./context";
+import { useMonetary } from "./monetary";
 import { FieldHelp } from "./field-help";
 import { businessFieldHelp } from "./business-field-help";
 import { YesNoChoice } from "./yes-no";
@@ -73,7 +74,7 @@ function matchesVisibility(field: CommandField, values: Record<string, string>, 
   const condition = field.visible_when;
   const value = [condition.field, ...(condition.fallback_fields || [])].map(name => values[name] || nested(row?.values, name)).find(value => value !== undefined && value !== null && String(value).trim() !== "");
   const matches = condition.values.includes(String(value || "").trim().toUpperCase());
-  // An unknown currency must keep real FX evidence visible and required.
+  // Visibility follows explicit server field metadata.
   return condition.not ? !matches : condition.values.includes(String(value || ""));
 }
 function visible(field: CommandField, values: Record<string, string>, row?: Entity) { return field.kind !== "hidden" && matchesVisibility(field, values, row); }
@@ -86,14 +87,14 @@ function group(field: CommandField): string {
 }
 const groupHelp: Record<string, string> = {
   "办理信息": "选择实际业务记录，并填写本次要办理的事项。",
-  "金额、额度与办理规则": "按字段标示的 USD、ATG 或原币种填写。比例使用 0 到 1 的小数；精确值按原样提交。",
+  "金额、额度与办理规则": "按字段标示的 结算币种、ATG 或原币种填写。比例使用 0 到 1 的小数；精确值按原样提交。",
   "时间与有效期": "时间按当前设备时区显示，提交时保存为统一时刻。",
   "依据与办理说明": "填写可追溯的原始凭证、规则或核实依据，便于后续复核。",
   "通道接入材料": "只展示所选通道需要的材料。启用前请确认材料与实际商户一致。",
 };
 function groupIntro(name: string, groupFields: CommandField[]) {
   if (name === "办理信息" && groupFields.every(field => !field.lookup_url)) return "填写本次要保存的内容。";
-  if(name==="金额、额度与办理规则" && !groupFields.some(field=>["direct_rate","indirect_rate","concession_rate","fee_rate","maximum_ratio"].includes(fieldName(field)))) return "按字段标示的 USD、ATG 或原币种填写，精确值按原样提交。";
+  if(name==="金额、额度与办理规则" && !groupFields.some(field=>["direct_rate","indirect_rate","concession_rate","fee_rate","maximum_ratio"].includes(fieldName(field)))) return "按字段标示的 结算币种、ATG 或原币种填写，精确值按原样提交。";
   return groupHelp[name];
 }
 
@@ -112,6 +113,7 @@ type OperationFormProps = {
 export function OperationForm({ operation, row, operatorID, initialValues, lockedFields = [], embedded = false, onBlockedChange, onClose, onAbandon }: OperationFormProps) {
   const { t, locale } = useI18n();
   const { session } = useProduct();
+  const monetary = useMonetary();
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const path = operation.path.replaceAll("{id}", encodeURIComponent(row?.id || "")).replaceAll("{operator_id}", encodeURIComponent(operatorID || ""));
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(operation.fields.map(field => [field.name, initial(field, operation, row, initialValues, operatorID)])));
@@ -136,13 +138,14 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   const finance = /\/(payments|orders|refunds|withdrawals|disputes|invoices|reconciliation|receipt-valuations|valuations)(\/|$)/.test(operation.path);
   const evidenceField = finance && operatorID && workspace?.permissions.some(permission => ["*","payments.manage"].includes(permission)) ? fields.find(field => ["verification_evidence","evidence","evidence_reference","proof.evidence_reference"].includes(field.name)) : undefined;
   const simpleProduct = finance || /\/(pricing|plans|catalog|providers|routes|bifrost|business-status|staff|restrictions|notifications|marketing|commissions|gifts|activities|mail|operators|procurement|coverage|contracts|branding|channel-themes|domains)$/.test(operation.path);
-  const fieldGroup = (field: CommandField) => (/\/staff(?:\/|$)/.test(operation.path) && field.name === "grants") ? "额外权限（可选）" : /\/notifications$/.test(operation.path) && ["severity","reference"].includes(field.name) ? "补充约定（可选）" : /\/commissions$/.test(operation.path) ? (["invitee_atg","inviter_atg","reward_validity_days"].includes(field.name) ? "注册赠送" : field.name === "threshold_usd" ? "成为 KOL" : "两级佣金") : /\/marketing$/.test(operation.path) && operation.name === "publish" ? (["starts_at","ends_at"].includes(field.name) ? "活动时间" : ["eligibility","per_customer_limit","total_use_limit"].includes(field.name) ? "参与范围与名额" : "优惠内容") : (/\/operators$/.test(operation.path) && ["supply_terms","contract_attachment_id"].includes(field.name) || /\/procurement$/.test(operation.path) && operation.name==="quote" && ["name","terms_summary","contract_attachment_id","valid_until"].includes(field.name)) ? "补充约定（可选）" : /\/plans$/.test(operation.path) ? (["new_purchase_enabled","renewal_enabled"].includes(field.name) ? "销售与续费" : field.name==="terms_summary" ? "补充说明" : "套餐内容") : group(field);
+  const fieldGroup = (field: CommandField) => (/\/staff(?:\/|$)/.test(operation.path) && field.name === "grants") ? "额外权限（可选）" : /\/notifications$/.test(operation.path) && ["severity","reference"].includes(field.name) ? "补充约定（可选）" : /\/commissions$/.test(operation.path) ? (["invitee_atg","inviter_atg","reward_validity_days"].includes(field.name) ? "注册赠送" : field.name === "threshold_money" ? "成为 KOL" : "两级佣金") : /\/marketing$/.test(operation.path) && operation.name === "publish" ? (["starts_at","ends_at"].includes(field.name) ? "活动时间" : ["eligibility","per_customer_limit","total_use_limit"].includes(field.name) ? "参与范围与名额" : "优惠内容") : (/\/operators$/.test(operation.path) && ["supply_terms","contract_attachment_id"].includes(field.name) || /\/procurement$/.test(operation.path) && operation.name==="quote" && ["name","terms_summary","contract_attachment_id","valid_until"].includes(field.name)) ? "补充约定（可选）" : /\/plans$/.test(operation.path) ? (["new_purchase_enabled","renewal_enabled"].includes(field.name) ? "销售与续费" : field.name==="terms_summary" ? "补充说明" : "套餐内容") : group(field);
   const groups = Array.from(new Set(fields.map(fieldGroup)));
   const schema = configurationSchema(operation, operatorID);
   const objectName = row?.presentation?.title || row && ["display_name", "name", "plan_name", "customer_name", "title"].map(key => row.values[key]).find(value => typeof value === "string" && value);
-  const receiptAmounts = /\/payments(?:\/[^/]+\/accounting)?$/.test(operation.path) && operation.fields.some(field => field.name === "fee_usd");
-  const receiptGross = values.gross_usd ?? String(row?.values.gross_usd ?? "");
-  const receiptFeeConfirmed = operation.fields.some(field => field.name === "fee_status") ? values.fee_status === "confirmed" : true;
+  const receiptAmounts = /\/payments(?:\/[^/]+\/accounting)?$/.test(operation.path) && operation.fields.some(field => field.name === "fee_money");
+  const receiptGross = values.settlement_amount ?? values.gross_money ?? String(row?.values.gross_money ?? "");
+  const receiptFeeConfirmed = operation.fields.some(field => field.name === "fee_status") ? values.fee_status === "confirmed" : !!values.fee_money?.trim();
+  const originalReceiptAmounts = receiptAmounts && operation.fields.some(field => field.name === "original_fee_amount");
 
   useEffect(() => { onBlockedChange?.(dismissLocked); }, [dismissLocked, onBlockedChange]);
   useEffect(() => {
@@ -201,9 +204,13 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
         else { if (field.kind === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) throw new ConfigurationError("请填写有效的{label}", "", { label: field.label }); parsed = value; }
         assign(payload, field.name, parsed);
       }
-      if (operation.name === "purchase" && /\/procurement\//.test(operation.path)) calculatePurchase(row?.values.gift_tiers,values.amount_usd);
-      if (receiptAmounts && receiptFeeConfirmed && Decimal.safeParse(receiptGross).success && Decimal.safeParse(values.fee_usd).success && compareDecimal(values.fee_usd, receiptGross) > 0) {
-        currentField = "fee_usd";
+      if (operation.name === "purchase" && /\/procurement\//.test(operation.path)) calculatePurchase(row?.values.gift_tiers, values.amount_money, monetary.atg_per_unit);
+      if (receiptAmounts && receiptFeeConfirmed && Decimal.safeParse(receiptGross).success && Decimal.safeParse(values.fee_money).success && compareDecimal(values.fee_money, receiptGross) > 0) {
+        currentField = "fee_money";
+        throw new Error("己方收款手续费不能超过收款总额。");
+      }
+      if (originalReceiptAmounts && Decimal.safeParse(values.original_amount).success && Decimal.safeParse(values.original_fee_amount).success && compareDecimal(values.original_fee_amount, values.original_amount) > 0) {
+        currentField = "original_fee_amount";
         throw new Error("己方收款手续费不能超过收款总额。");
       }
       if (operation.include_version && row?.version !== undefined) payload.version = row.version;
@@ -228,9 +235,9 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
         {field.name === "gift_tiers" ? <PurchaseTiersEditor value={values[field.name] || ""} disabled={disabled} change={value => change(field.name,value)} /> : field.kind === "json" && schema ? <ConfigurationEditor onPendingChange={setConfigurationPending} schema={schema} allowFollow={workspace?.operator.kind !== "platform"} allowDownstream={workspace?.operator.kind !== "channel"} modelProfiles={row?.values.billing} operatorID={operatorID} value={values[field.name] || ""} disabled={disabled || configurationPending || lockedFields.includes(field.name)} change={value => change(field.name, value)} /> : <Field field={{ ...field, lookup_url: field.name === "supplier_model_id" && field.lookup_url && /\/supplier-costs$/.test(operation.path) ? `${field.lookup_url}?provider_id=${encodeURIComponent(values.provider_id || "")}` : field.name === "kol_campaign_id" && field.lookup_url && row?.values.package_id ? `${field.lookup_url}&package_id=${encodeURIComponent(String(row.values.package_id))}` : field.lookup_url, help: businessFieldHelp(field.name === "warning" && /\/coverage(?:[?]|$)/.test(operation.path) ? "coverage.warning" : field.name, field.help, field.lookup_url) }} onLabel={label => setReferenceLabels(previous => previous[field.name] === label ? previous : { ...previous, [field.name]: label })} primaryReference={primaryReference(operation, field)} value={values[field.name] || ""} disabled={disabled || lockedFields.includes(field.name)} invalid={invalidField === field.name} change={value => change(field.name, value)} onChoice={defaults => { if (disabled) return; setConfirmed(false); setValues(previous => { const next = { ...previous }; for (const [name, value] of Object.entries(defaults)) { const target = operation.fields.find(item => item.name === name); if (target && !secretField(target) && value !== undefined && value !== null && !lockedFields.includes(name)) next[name] = fieldString(target, value); } return next; }); }} onFile={file => { if (disabled) return; setConfirmed(false); setFiles(previous => ({ ...previous, [field.name]: file })); }} />}
         {lockedFields.includes(field.name) && <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-mute"><LockKeyhole className="size-3" aria-hidden="true" />{t("已按当前业务对象带入")}</p>}
         {invalidField === field.name && validationError && <p className="mt-2 text-xs text-danger">{validationError instanceof ConfigurationError ? validationError.localized(locale) : t(validationError)}</p>}
-      </div>)}</div>{receiptAmounts && fields.some(field => ["gross_usd", "fee_usd"].includes(field.name) && fieldGroup(field) === name) && <ReceiptAmounts gross={receiptGross} fee={values.fee_usd || ""} confirmed={receiptFeeConfirmed} />}</Container>; })}
+      </div>)}</div>{originalReceiptAmounts && fields.some(field => field.name === "original_amount" && fieldGroup(field) === name) && <ReceiptAmounts gross={values.original_amount || ""} fee={values.original_fee_amount || ""} confirmed={!!values.original_fee_amount?.trim()} currency={values.currency || String(row?.values.currency || "") || t("原币")} original />}{receiptAmounts && fields.some(field => ["settlement_amount", "gross_money", "fee_money"].includes(field.name) && fieldGroup(field) === name) && <ReceiptAmounts gross={receiptGross} fee={values.fee_money || ""} confirmed={receiptFeeConfirmed} />}</Container>; })}
       {!command.result && evidenceField && operatorID && <FinanceEvidenceUpload operatorID={operatorID} disabled={frozen} onPendingChange={setEvidencePending} attach={reference => change(evidenceField.name, [values[evidenceField.name],reference].filter(Boolean).join("\n"))} />}
-      {!command.result && operation.name === "purchase" && /\/procurement\//.test(operation.path) && <PurchasePreview tiers={row?.values.gift_tiers} amount={values.amount_usd || ""} />}
+      {!command.result && operation.name === "purchase" && /\/procurement\//.test(operation.path) && <PurchasePreview tiers={row?.values.gift_tiers} amount={values.amount_money || ""} />}
       {!command.result && (!simpleProduct || operation.confirmation) && <div className="th-review"><h3 className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="size-4 text-brand-emphasis" aria-hidden="true" />{t("提交前核对")}</h3><Review fields={fields} values={values} files={files} referenceLabels={referenceLabels} /><p className="mt-3 text-xs leading-6 text-ink-mute">{t("本次操作将保存在当前经营范围。服务器核实成功后，最新结果会同步到业务记录。")}</p>{operation.confirmation && <label className="mt-4 flex items-start gap-3 border-t border-hairline pt-4 text-sm leading-7"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} className="mt-2 size-4 shrink-0" disabled={disabled} />{t(operation.confirmation)}</label>}</div>}
       {validationError && <div role="alert" className="rounded-control border border-danger/30 p-4 text-sm text-danger"><p>{validationError instanceof ConfigurationError ? validationError.localized(locale) : t(validationError)}</p>{invalidField && <button type="button" className="mt-2 underline underline-offset-4" onClick={() => focusField(invalidField, invalidConfigPath)}>{t("定位需要修改的字段")}</button>}</div>}
       {!!command.error && <ErrorPanel error={command.error} />}
@@ -290,7 +297,6 @@ function ConfigurationReview({ value }: { value: string }) {
   }
   if (price) {
     const scope = (price.scope || {}) as Record<string, JSONValue>, rule = (price.rule || {}) as Record<string, JSONValue>;
-    const unit = scope.kind === "supplier" ? "USD" : scope.kind === "supply" ? t("采购 ATG") : "ATG";
     const components = (Array.isArray(rule.components) ? rule.components : []) as Record<string, JSONValue>[];
     return <div className="space-y-3 text-sm text-ink-secondary"><p className="font-medium text-ink">{scope.kind === "supplier" ? t("供应商成本价") : scope.kind === "supply" ? t("对下级供货价") : t("客户零售价")} · {price.layer === "promotion" ? t("限时促销") : t("常规价格")}</p>{rule.mode === "follow" ? <p>{t("跟随上级供货价，倍率")} <strong className="break-all font-mono text-ink">{String(rule.multiplier || t("待填写"))}</strong></p> : <PriceRates components={components} />}<p className="text-xs leading-6">{t("价格按请求受理时固定。本次变更将按通知规则生效，并重算已售责任覆盖；已受理请求保留原价格。")}</p></div>;
   }
@@ -338,7 +344,7 @@ function ReferenceField({ field, value, disabled, invalid, change, choose, onLab
     const permitted = new Set([field.name]);
     if (field.name === "quote_id" && /\/purchase-quotes$/.test(path)) permitted.add("supplier_id");
     if (field.name === "order_id" && /\/orders$/.test(path)) permitted.add("customer_id");
-    if (fieldName(field) === "receipt_id" && /\/receipts$/.test(path)) ["amount_usd", "currency", "issuer_id"].forEach(key => permitted.add(key));
+    if (fieldName(field) === "receipt_id" && /\/receipts$/.test(path)) ["amount_money", "currency", "issuer_id"].forEach(key => permitted.add(key));
     if (field.name === "scope_id" && /\/scope-subjects$/.test(path)) permitted.add("scope_kind");
     if (field.name === "asset_network_version_id" && /\/payment-assets$/.test(path)) permitted.add("driver");
     choose(Object.fromEntries(Object.entries(defaults).filter(([key]) => permitted.has(key) && !["id", "version", "expected_version"].includes(key))));

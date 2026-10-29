@@ -28,7 +28,7 @@ type CustomerLifecycleHandler interface {
 	Close(context.Context, *gorm.DB, CustomerLifecycleInput) error
 }
 
-var CustomerClosureRequirements = []string{"in_flight", "pending_usage", "pending_receipts", "usd_balance", "commission_frozen", "commission_available", "payouts", "pending_offsets", "disputes", "remaining_paid_grants", "remaining_gifts"}
+var CustomerClosureRequirements = []string{"in_flight", "pending_usage", "pending_receipts", "money_balance", "commission_frozen", "commission_available", "payouts", "pending_offsets", "disputes", "remaining_paid_grants", "remaining_gifts"}
 
 func customerCanAuthenticate(status string) bool {
 	return status == "active" || status == "stopped" || status == "closing"

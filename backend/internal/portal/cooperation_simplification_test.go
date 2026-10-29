@@ -107,7 +107,7 @@ func TestPostgresProcurementCancellationKeepsUncertainOnlinePaymentReserved(t *t
 	}
 }
 
-func TestPostgresTakeoverSingleWorkspaceDerivesUSDSettlementFromActualAmount(t *testing.T) {
+func TestPostgresTakeoverSingleWorkspaceDerivesMoneySettlementFromActualAmount(t *testing.T) {
 	f := setupPortal(t)
 	ctx := context.Background()
 	parent, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
@@ -117,7 +117,7 @@ func TestPostgresTakeoverSingleWorkspaceDerivesUSDSettlementFromActualAmount(t *
 	}
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	base := "/v1/operators/" + parent + "/takeovers"
-	status, out, _ := f.call(t, "POST", base, map[string]any{"channel_id": child.Operator.ID, "method": "agreed_atg_value", "service_usd_per_atg": "1", "procurement_usd_per_atg": "1", "extra_usd": "5", "contract_reference": "synthetic agreed settlement", "evidence": "brand approved transfer and fixed USD settlement"}, uuid.NewString())
+	status, out, _ := f.call(t, "POST", base, map[string]any{"channel_id": child.Operator.ID, "method": "agreed_atg_value", "service_money_per_atg": "1", "procurement_money_per_atg": "1", "extra_money": "5", "contract_reference": "synthetic agreed settlement", "evidence": "brand approved transfer and fixed USD settlement"}, uuid.NewString())
 	mustOK(t, status, out)
 	id := out["id"].(string)
 	status, out, _ = f.call(t, "POST", base+"/"+id+"/refresh", map[string]any{}, uuid.NewString())
@@ -125,15 +125,15 @@ func TestPostgresTakeoverSingleWorkspaceDerivesUSDSettlementFromActualAmount(t *
 	status, out, _ = f.call(t, "POST", base+"/"+id+"/execute", map[string]any{"expected_snapshot": out["snapshot_fingerprint"]}, uuid.NewString())
 	mustOK(t, status, out)
 	key := uuid.NewString()
-	proof := map[string]any{"currency": "USD", "amount": "5", "fee_usd": "0", "reference": "bank-confirmed-single-usd", "evidence": "synthetic bank statement confirms USD 5 to the brand", "occurred_at": time.Now().UTC()}
+	proof := map[string]any{"currency": "USD", "amount": "5", "fee_money": "0", "reference": "bank-confirmed-single-usd", "evidence": "synthetic bank statement confirms USD 5 to the brand", "occurred_at": time.Now().UTC()}
 	status, out, _ = f.call(t, "POST", base+"/"+id+"/settle", proof, key)
 	mustOK(t, status, out)
-	if out["settled_usd"] != "5" {
+	if out["settled_money"] != "5" {
 		t.Fatal("USD amount required duplicate valuation", out)
 	}
 	status, out, _ = f.call(t, "POST", base+"/"+id+"/settle", proof, key)
 	mustOK(t, status, out)
-	if out["settled_usd"] != "5" {
+	if out["settled_money"] != "5" {
 		t.Fatal("retry duplicated settlement", out)
 	}
 }

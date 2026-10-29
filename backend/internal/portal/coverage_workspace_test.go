@@ -157,7 +157,7 @@ func TestPostgresCoverageWorkspaceParentScopeAndPolicyCAS(t *testing.T) {
 	}
 	// Existing rights without complete model configuration retain a provisional
 	// reservation; they cannot turn into zero responsibility or hide siblings.
-	_, err := f.a.Ledger.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: channel.ID, CustomerID: uuid.NewString(), OrderID: uuid.NewString(), BusinessKey: "coverage-price-not-ready", ActorID: owner, Reason: "existing service responsibility", PaidUSD: ledger.MustDecimal("1"), Sources: []ledger.GrantSource{{Kind: "paid", Amount: ledger.MustDecimal("5")}}, EffectiveAt: time.Now().Add(-time.Minute)})
+	_, err := f.a.Ledger.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: channel.ID, CustomerID: uuid.NewString(), OrderID: uuid.NewString(), BusinessKey: "coverage-price-not-ready", ActorID: owner, Reason: "existing service responsibility", PaidMoney: ledger.MustDecimal("1"), Sources: []ledger.GrantSource{{Kind: "paid", Amount: ledger.MustDecimal("5")}}, EffectiveAt: time.Now().Add(-time.Minute)})
 	if err != nil {
 		t.Fatal(err)
 	}

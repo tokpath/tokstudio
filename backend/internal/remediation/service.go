@@ -72,7 +72,7 @@ func instant(t *gorm.DB) (time.Time, error) {
 func validID(id string) bool            { _, e := uuid.Parse(id); return e == nil }
 func validAmount(d ledger.Decimal) bool { return d.Valid() && d.Sign() > 0 }
 func (s *Service) account(ctx context.Context, t *gorm.DB, op, owner, purpose string) (ledger.Account, error) {
-	return s.Ledger.EnsureAccount(ctx, t, ledger.Account{OperatorID: op, OwnerID: owner, Purpose: purpose, Unit: "USD", AllowNegative: strings.HasPrefix(purpose, "control:")})
+	return s.Ledger.EnsureAccount(ctx, t, ledger.Account{OperatorID: op, OwnerID: owner, Purpose: purpose, Unit: "MONEY", AllowNegative: strings.HasPrefix(purpose, "control:")})
 }
 func lock(t *gorm.DB, key string) error {
 	return t.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "remediation:"+key).Error
@@ -154,10 +154,10 @@ type Case struct {
 	OrderID         *string        `json:"order_id,omitempty"`
 	GrantID         *string        `json:"grant_id,omitempty"`
 	GrantHoldID     *string        `json:"grant_hold_id,omitempty"`
-	AmountUSD       ledger.Decimal `json:"amount_usd"`
+	AmountMoney     ledger.Decimal `json:"amount_money"`
 	CreditATG       ledger.Decimal `json:"credit_atg"`
-	InternalUSD     ledger.Decimal `json:"internal_usd"`
-	CommissionUSD   ledger.Decimal `json:"commission_usd"`
+	InternalMoney   ledger.Decimal `json:"internal_money"`
+	CommissionMoney ledger.Decimal `json:"commission_money"`
 	State           string         `json:"state"`
 	Reason          string         `json:"reason"`
 	Evidence        string         `json:"evidence"`
@@ -175,10 +175,10 @@ type RefundLeg struct {
 	OperatorID         string         `json:"operator_id"`
 	SourceOperatorID   string         `json:"source_operator_id"`
 	ReceiptID          string         `json:"receipt_id"`
-	AmountUSD          ledger.Decimal `json:"amount_usd"`
-	SettledUSD         ledger.Decimal `json:"settled_usd"`
-	ExcessUSD          ledger.Decimal `json:"excess_usd"`
-	MisdirectedUSD     ledger.Decimal `json:"misdirected_usd"`
+	AmountMoney        ledger.Decimal `json:"amount_money"`
+	SettledMoney       ledger.Decimal `json:"settled_money"`
+	ExcessMoney        ledger.Decimal `json:"excess_money"`
+	MisdirectedMoney   ledger.Decimal `json:"misdirected_money"`
 	HoldID             *string        `json:"hold_id,omitempty"`
 	SourceAccountID    *string        `json:"source_account_id,omitempty"`
 	State              string         `json:"state"`

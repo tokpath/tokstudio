@@ -6,7 +6,7 @@ const operator = { id: "operator-i18n", name: "星河渠道", kind: "channel", b
 const publicContext = { brand, operator, theme: {}, availability: [], payment_methods: [] };
 const customer = { kind: "customer", customer: { id: "customer-i18n", email: "customer@example.test", display_name: "林同学" }, brand, operator, csrf_token: "csrf_i18n" };
 const staff = { kind: "staff", staff: { id: "staff-i18n", email: "staff@example.test", display_name: "财务" }, workspaces: [{ operator, permissions: ["*"] }], active_operator_id: operator.id, csrf_token: "csrf_i18n" };
-const credits = { customer_atg: { available: "12.000000000000000001", held: "0.01", purchased_remaining: "10.000000000000000001", gift_remaining: "2" }, usd_balance: { available: "20", held: "0" }, commission_usd: { available: "3", held: "1", frozen: "0.000000000000000001", recovery_due: "0" }, qualification: { confirmed_usd: "50", pending_usd: "5", threshold_usd: "100", qualified_at: null, function_status: "normal" } };
+const credits = { customer_atg: { available: "12.000000000000000001", held: "0.01", purchased_remaining: "10.000000000000000001", gift_remaining: "2" }, money_balance: { available: "20", held: "0" }, commission_money: { available: "3", held: "1", frozen: "0.000000000000000001", recovery_due: "0" }, qualification: { confirmed_money: "50", pending_money: "5", threshold_money: "100", qualified_at: null, function_status: "normal" } };
 const model = { id: "public-chat", name: "公开文本模型", capabilities: ["chat"], status: "published", prices: [{ component: "输入", amount_atg: "0.00000001", unit: "token" }] };
 const existingKey = { id: "key-existing-i18n", name: "应用密钥", prefix: "th_existing_prefix", status: "active", model_ids: null, budget: { limit_atg: "5.000000000000000001", period: "month", timezone: "Asia/Shanghai", spent_atg: "0", held_atg: "0", overage_atg: "0", window_start: null, window_end: null }, rate_limit_rpm: null, concurrency_limit: null, version: 3, created_at: "2026-10-16T00:00:00Z" };
 function resource(title = "待复核事项") { return { title, description: "当前经营范围的真实记录；金额按原始高精度十进制展示", items: [], columns: [], operations: [], row_operations: [] }; }
@@ -96,7 +96,7 @@ test("customer Key edits retain authored input, precise money, and the existing 
 
 test("an unresolved financial modal switches language and retries the exact JSON and idempotency key", async ({ page }) => {
   await api(page); const attempts: { key: string; body: string | null }[] = [];
-  await page.route("**/api/v1/me/withdrawals/workspace", route => route.fulfill({ json: { ...resource("提现申请"), operations: [{ name: "apply", label: "确认费用并提交", method: "POST", path: "/api/v1/me/withdrawals", fields: [{ name: "amount_usd", label: "申请金额 USD", kind: "decimal", required: true }, { name: "evidence", label: "付款核实说明", kind: "text", required: true }], confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。" }] } }));
+  await page.route("**/api/v1/me/withdrawals/workspace", route => route.fulfill({ json: { ...resource("提现申请"), operations: [{ name: "apply", label: "确认费用并提交", method: "POST", path: "/api/v1/me/withdrawals", fields: [{ name: "amount_money", label: "申请金额 结算币种", kind: "decimal", required: true }, { name: "evidence", label: "付款核实说明", kind: "text", required: true }], confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。" }] } }));
   await page.route("**/api/v1/me/withdrawals", async route => {
     attempts.push({ key: route.request().headers()["idempotency-key"], body: route.request().postData() });
     if (attempts.length === 1) await route.abort("connectionreset");
@@ -104,25 +104,25 @@ test("an unresolved financial modal switches language and retries the exact JSON
   });
   await page.goto("/workspace/withdrawals"); await page.getByRole("button", { name: "确认费用并提交", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("申请金额 USD", { exact: false }).fill("0.000000000000000001"); await dialog.getByRole("textbox", { name: /^付款核实说明/ }).fill("查看详情");
+  await dialog.getByLabel("申请金额 结算币种", { exact: false }).fill("0.000000000000000001"); await dialog.getByRole("textbox", { name: /^付款核实说明/ }).fill("查看详情");
   await dialog.getByRole("checkbox").check(); await dialog.getByRole("button", { name: "确认费用并提交", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "重试本次操作", exact: true })).toBeVisible();
   await dialog.getByTestId("language-selector").selectOption("ru");
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
-  await expect(dialog.getByLabel(text("ru", "申请金额 USD"), { exact: false })).toHaveValue("0.000000000000000001");
-  await expect(dialog.getByLabel(text("ru", "申请金额 USD"), { exact: false })).toBeDisabled();
+  await expect(dialog.getByLabel(text("ru", "申请金额 结算币种"), { exact: false })).toHaveValue("0.000000000000000001");
+  await expect(dialog.getByLabel(text("ru", "申请金额 结算币种"), { exact: false })).toBeDisabled();
   await expect(dialog.getByRole("textbox", { name: new RegExp("^" + text("ru", "付款核实说明")) })).toHaveValue("查看详情");
   await expect(dialog.getByRole("button", { name: text("ru", "关闭办理面板"), exact: true })).toBeDisabled();
   await dialog.getByRole("button", { name: text("ru", "重试本次操作"), exact: true }).click();
   await expect(dialog.getByRole("button", { name: text("ru", "本次操作已完成，关闭后查看最新记录"), exact: true })).toBeVisible();
   expect(attempts).toHaveLength(2); expect(attempts[0]).toEqual(attempts[1]); expect(attempts[0].key).toMatch(/^[0-9a-f-]{36}$/);
-  expect(JSON.parse(attempts[0].body!)).toEqual({ amount_usd: "0.000000000000000001", evidence: "查看详情" });
+  expect(JSON.parse(attempts[0].body!)).toEqual({ amount_money: "0.000000000000000001", evidence: "查看详情" });
 });
 
 test("operator server metadata translates while authored Chinese names and evidence remain verbatim", async ({ page }) => {
   await api(page, staff);
-  await page.route(`**/api/v1/operators/${operator.id}/invoices**`, route => route.fulfill({ json: { ...resource(), items: [{ id: "invoice-i18n", status: "completed", values: { name: "核实收款", record_kind: "case", evidence: "查看详情", amount_usd: "1.000000000000000001" } }], columns: [{ key: "name", label: "显示名称", kind: "text" }, { key: "record_kind", label: "记录类型", kind: "text" }, { key: "evidence", label: "银行核实凭证", kind: "text" }, { key: "amount_usd", label: "申请金额 USD", kind: "usd" }] } }));
+  await page.route(`**/api/v1/operators/${operator.id}/invoices**`, route => route.fulfill({ json: { ...resource(), items: [{ id: "invoice-i18n", status: "completed", values: { name: "核实收款", record_kind: "case", evidence: "查看详情", amount_money: "1.000000000000000001" } }], columns: [{ key: "name", label: "显示名称", kind: "text" }, { key: "record_kind", label: "记录类型", kind: "text" }, { key: "evidence", label: "银行核实凭证", kind: "text" }, { key: "amount_money", label: "申请金额 结算币种", kind: "money" }] } }));
   await page.goto(`/manage/${operator.id}/invoices`); await page.getByTestId("language-selector").selectOption("en");
   await expect(page.getByRole("heading", { name: "Items awaiting review", exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: text("en", "名称与事项"), exact: true })).toBeVisible();

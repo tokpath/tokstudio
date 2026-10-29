@@ -13,7 +13,7 @@ async function businessAPI(page: Page, financeOnly = false, uncertainAllocation 
   let allocated = false, delivered = false;
   const mutations: { path: string; body: unknown; key?: string }[] = [];
   const exactRecords: string[] = [];
-  const order = () => ({ id: "order-one", status: delivered ? "fulfilled" : allocated ? "paid_pending_delivery" : "pending_payment", version: 1, allowed_actions: delivered ? [] : ["fulfill"], values: { kind: "package", customer_id: customer.id, due_usd: due, external_allocated_usd: allocated ? due : "0", internal_usd: "0", commission_usd: "0", paid_atg: quantity, created_at: "2026-10-16T01:00:00Z", completed_at: delivered ? "2026-10-17T01:00:00Z" : null } });
+  const order = () => ({ id: "order-one", status: delivered ? "fulfilled" : allocated ? "paid_pending_delivery" : "pending_payment", version: 1, allowed_actions: delivered ? [] : ["fulfill"], values: { kind: "package", customer_id: customer.id, due_money: due, external_allocated_money: allocated ? due : "0", internal_money: "0", commission_money: "0", paid_atg: quantity, created_at: "2026-10-16T01:00:00Z", completed_at: delivered ? "2026-10-17T01:00:00Z" : null } });
   await page.route("**/api/v1/**", async route => {
     const req = route.request(), url = new URL(req.url()), path = url.pathname;
     let data: unknown = resource("业务记录");
@@ -27,21 +27,21 @@ async function businessAPI(page: Page, financeOnly = false, uncertainAllocation 
       else throw new Error(`Unexpected mutation ${path}`);
     }
     else if (path === `${base}/customers`) data = resource("客户服务", [customer], { columns: [{ key: "name", label: "客户", kind: "text" }, { key: "email", label: "邮箱", kind: "text" }] });
-    else if (path === `${base}/orders`) data = resource("订单与交付", [order()], { columns: [{ key: "id", label: "订单", kind: "text" }, { key: "due_usd", label: "应付", kind: "usd" }], row_operations: [fulfill] });
+    else if (path === `${base}/orders`) data = resource("订单与交付", [order()], { columns: [{ key: "id", label: "订单", kind: "text" }, { key: "due_money", label: "应付", kind: "money" }], row_operations: [fulfill] });
     else if (path === `${base}/customer-context/customer-one`) data = { subject: customer, next_actions: [], sections: [
       { resource: "orders", title: "购买与交付", page: resource("购买与交付", [order()], { row_operations: [fulfill] }) },
-      { resource: "assets", title: "客户资产", page: resource("客户资产", [{ id: "wallet-one", status: "open", values: { balance: "3.000000000000000001", held: "0", purpose: "customer:usd" } }], { columns: [{ key: "purpose", label: "资产用途", kind: "text" }, { key: "balance", label: "余额", kind: "usd" }] }) },
+      { resource: "assets", title: "客户资产", page: resource("客户资产", [{ id: "wallet-one", status: "open", values: { balance: "3.000000000000000001", held: "0", purpose: "customer:money" } }], { columns: [{ key: "purpose", label: "资产用途", kind: "text" }, { key: "balance", label: "余额", kind: "money" }] }) },
       { resource: "requests", title: "模型调用", page: resource("模型调用", [{ id: "retail-request-one", presentation: {title:"公开聊天模型 · 10月16日调用",labels:{}}, status: "succeeded", values: { model_id: "public-chat", charged_atg: "0.001" } }]) },
       { resource: "commissions", title: "推广收益", page: resource("推广收益", [], { summary: [{ label: "分佣资格", value: "已正式取得" }] }) },
       { resource: "refunds", title: "退款与异常", page: resource("退款与异常", [{ id: "case-one", status: "pending_review", values: { manage_url: "/manage/operator-one/refunds?record=case-one" } }], { columns: [{ key: "id", label: "原申请", kind: "text" }, { key: "manage_url", label: "办理", kind: "link" }] }) },
     ] };
     else if (path === `${base}/order-context/order-one`) data = { subject: order(), subject_operations: [fulfill], next_actions: [delivered ? "权益已交付，查看原订单额度来源。" : allocated ? "客户已足额付款，核实可售空间并完成原订单交付。" : "核实收款并分配到此订单，足额后交付。"], sections: [
-      { resource: "payments", title: "关联收款", page: resource("关联收款", allocated ? [{ id: "receipt-one", status: "confirmed", values: { provider: "manual", gross_usd: due, order_allocated_usd: due, verification_evidence: "bank-evidence-one" } }] : [], { columns: [{ key: "provider", label: "通道", kind: "text" }, { key: "order_allocated_usd", label: "分配至此单", kind: "usd" }, { key: "verification_evidence", label: "核实证据", kind: "text" }], operations: [{ name: "allocate_existing", label: "关联已核实收款", method: "POST", path: `${base}/order-context/order-one/allocate`, permission: "payments.manage", confirmation: "只分配已经核实的原收款，不新建收付款事实。", fields: [{ name: "receipt_id", label: "选择已核实收款", kind: "text", lookup_url: `${base}/references/receipts`, required: true }] }] }) },
+      { resource: "payments", title: "关联收款", page: resource("关联收款", allocated ? [{ id: "receipt-one", status: "confirmed", values: { provider: "manual", gross_money: due, order_allocated_money: due, verification_evidence: "bank-evidence-one" } }] : [], { columns: [{ key: "provider", label: "通道", kind: "text" }, { key: "order_allocated_money", label: "分配至此单", kind: "money" }, { key: "verification_evidence", label: "核实证据", kind: "text" }], operations: [{ name: "allocate_existing", label: "关联已核实收款", method: "POST", path: `${base}/order-context/order-one/allocate`, permission: "payments.manage", confirmation: "只分配已经核实的原收款，不新建收付款事实。", fields: [{ name: "receipt_id", label: "选择已核实收款", kind: "text", lookup_url: `${base}/references/receipts`, required: true }] }] }) },
       { resource: "receipt-valuations", title: "原币待核实", page: resource("原币待核实") },
       { resource: "assets", title: "交付权益", page: resource("交付权益", delivered ? [{ id: "grant-one", status: "issued", values: { total: quantity, consumed: "0", effective_at: "2026-10-17T01:00:00Z" } }] : [], { columns: [{ key: "total", label: "已发放 ATG", kind: "atg" }, { key: "effective_at", label: "生效时间", kind: "datetime" }] }) },
     ] };
     else if (path === `${base}/references/receipts`) data = { items: [{ value: "receipt-one", label: "已核实银行收款 · 原流水 bank-one", defaults: { receipt_id: "receipt-one", currency: "USD" } }] };
-    else if (path === `${base}/refunds`) { exactRecords.push(url.searchParams.get("record") || ""); data = resource("退款与原路执行", [{ id: "case-one", status: "pending_review", values: { record_kind: "case" } }, { id: "leg-one", presentation: {title:"原银行付款退款 · 10 USD",labels:{}}, status: "pending", values: { record_kind: "leg", case_id: "case-one" } }]); }
+    else if (path === `${base}/refunds`) { exactRecords.push(url.searchParams.get("record") || ""); data = resource("退款与原路执行", [{ id: "case-one", status: "pending_review", values: { record_kind: "case" } }, { id: "leg-one", presentation: {title:"原银行付款退款 · 10 结算币种",labels:{}}, status: "pending", values: { record_kind: "leg", case_id: "case-one" } }]); }
     else throw new Error(`Unexpected read ${path}`);
     await route.fulfill({ json: data });
   });
@@ -89,7 +89,7 @@ test("operator handles customer, original receipt, delivery and precise refund c
   await workspace.getByRole("link", { name: "进入业务办理", exact: true }).click();
   await expect(page).toHaveURL(/\/refunds\?record=case-one$/);
   await expect(page.getByText("正在办理关联事项", { exact: false })).toBeVisible();
-  await expect(page.getByText("原银行付款退款 · 10 USD", { exact: true })).toBeVisible();
+  await expect(page.getByText("原银行付款退款 · 10 结算币种", { exact: true })).toBeVisible();
   expect(exactRecords).toContain("case-one");
   expect(mutations.map(item => item.path)).toEqual([`${base}/order-context/order-one/allocate`, `${base}/orders/order-one/fulfill`]);
   expect(mutations.every(item => /^[0-9a-f-]{36}$/.test(item.key || ""))).toBe(true);

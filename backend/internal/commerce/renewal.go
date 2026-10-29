@@ -234,12 +234,12 @@ func (s *Service) RenewSubscription(ctx context.Context, tx *gorm.DB, id string)
 			out.Status = "notification_required"
 			return nil
 		}
-		usd, err := s.account(ctx, tx, r.OperatorID, r.CustomerID, "customer:usd")
+		usd, err := s.account(ctx, tx, r.OperatorID, r.CustomerID, "customer:money")
 		if err != nil {
 			return err
 		}
-		fromUSD := minimum(usd.Available(), current.PriceUSD)
-		remainder := current.PriceUSD.Sub(fromUSD)
+		fromMoney := minimum(usd.Available(), current.PriceMoney)
+		remainder := current.PriceMoney.Sub(fromMoney)
 		fromCommission := ledger.Zero()
 		if remainder.Sign() > 0 && r.AllowCommission {
 			commission, err := s.account(ctx, tx, r.OperatorID, r.CustomerID, "commission:available")
@@ -258,10 +258,10 @@ func (s *Service) RenewSubscription(ctx context.Context, tx *gorm.DB, id string)
 				return err
 			}
 			out.Status = "needs_funds"
-			return s.event(tx, r.OperatorID, r.ID, "renewal.insufficient_funds", map[string]any{"cycle_due_at": r.NextDueAt, "missing_usd": remainder})
+			return s.event(tx, r.OperatorID, r.ID, "renewal.insufficient_funds", map[string]any{"cycle_due_at": r.NextDueAt, "missing_money": remainder})
 		}
 		cycle := r.NextDueAt.UTC()
-		order, err := s.CreateOrder(ctx, tx, CreateOrderInput{CustomerID: r.CustomerID, OperatorID: r.OperatorID, QuoteID: current.ID, BusinessKey: "renew:" + r.ID + ":" + cycle.Format(time.RFC3339Nano), ExpectedOwnershipVersion: own.Version, InternalUSD: fromUSD, CommissionUSD: fromCommission, Validity: 30 * time.Minute, SubscriptionID: &r.ID, CycleDueAt: &cycle, renewalAuthorized: true})
+		order, err := s.CreateOrder(ctx, tx, CreateOrderInput{CustomerID: r.CustomerID, OperatorID: r.OperatorID, QuoteID: current.ID, BusinessKey: "renew:" + r.ID + ":" + cycle.Format(time.RFC3339Nano), ExpectedOwnershipVersion: own.Version, InternalMoney: fromMoney, CommissionMoney: fromCommission, Validity: 30 * time.Minute, SubscriptionID: &r.ID, CycleDueAt: &cycle, renewalAuthorized: true})
 		if err != nil {
 			return err
 		}

@@ -160,8 +160,8 @@ func (s CommerceCatalog) rankRoutes(ctx context.Context, q *ModelQuote) error {
 	costs := map[string]*big.Rat{}
 	if p.Strategy == "lowest_cost" {
 		for _, p := range q.Supplier {
-			if p.EstimateUSD != nil {
-				if v, e := PriceDecimal(*p.EstimateUSD); e == nil {
+			if p.EstimateMoney != nil {
+				if v, e := PriceDecimal(*p.EstimateMoney); e == nil {
 					costs[p.UpstreamID] = v
 				}
 			}

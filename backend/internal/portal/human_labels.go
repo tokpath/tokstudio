@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
 )
 
@@ -96,6 +97,10 @@ func (a *Application) projectResourceLabels(c *gin.Context, p gin.H, resource st
 	}
 	if op == "" {
 		return nil
+	}
+	monetary, monetaryErr := ledger.GetMonetary(c.Request.Context(), a.DB)
+	if monetaryErr != nil {
+		return monetaryErr
 	}
 	refs := map[string][]string{}
 	add := func(group, value string) {
@@ -271,7 +276,7 @@ func (a *Application) projectResourceLabels(c *gin.Context, p gin.H, resource st
 	}
 	if len(refs["order"]) > 0 {
 		var found []struct{ ID, Kind, Price, Created, Package string }
-		q := db.Table("commerce_orders o").Select("o.id,o.kind,o.due_usd::text AS price,to_char(o.created_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS') AS created,coalesce(p.name,'') AS package").Joins("LEFT JOIN commerce_package_quotes q ON q.id=o.quote_id").Joins("LEFT JOIN commerce_packages p ON p.id=q.package_id").Where("o.id IN ?", refs["order"])
+		q := db.Table("commerce_orders o").Select("o.id,o.kind,o.due_money::text AS price,to_char(o.created_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS') AS created,coalesce(p.name,'') AS package").Joins("LEFT JOIN commerce_package_quotes q ON q.id=o.quote_id").Joins("LEFT JOIN commerce_packages p ON p.id=q.package_id").Where("o.id IN ?", refs["order"])
 		if customer != "" {
 			q = q.Where("o.customer_id=?", customer)
 		} else {
@@ -285,7 +290,7 @@ func (a *Application) projectResourceLabels(c *gin.Context, p gin.H, resource st
 			if kind == "" {
 				kind = "订单"
 			}
-			labels[r.ID] = humanJoin(kind, r.Package, r.Price+" USD", r.Created+" UTC")
+			labels[r.ID] = humanJoin(kind, r.Package, r.Price+" "+monetary.Currency, r.Created+" UTC")
 		}
 	}
 	if len(refs["receipt"]) > 0 {
@@ -306,12 +311,12 @@ func (a *Application) projectResourceLabels(c *gin.Context, p gin.H, resource st
 			// A purchase allocation permits only a minimal label for its
 			// original receipt, never the supplier's payer or merchant data.
 			var purchases []struct{ ID, Price, Created string }
-			if err := db.Table("commerce_receipts r").Select("DISTINCT r.id,a.amount_usd::text AS price,to_char(r.created_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS') AS created").Joins("JOIN cooperation_purchase_allocations a ON a.receipt_id=r.id").Joins("JOIN cooperation_purchase_orders o ON o.id=a.order_id").Where("r.id IN ? AND o.buyer_id=?", refs["receipt"], op).Scan(&purchases).Error; err != nil {
+			if err := db.Table("commerce_receipts r").Select("DISTINCT r.id,a.amount_money::text AS price,to_char(r.created_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS') AS created").Joins("JOIN cooperation_purchase_allocations a ON a.receipt_id=r.id").Joins("JOIN cooperation_purchase_orders o ON o.id=a.order_id").Where("r.id IN ? AND o.buyer_id=?", refs["receipt"], op).Scan(&purchases).Error; err != nil {
 				return err
 			}
 			for _, r := range purchases {
 				if labels[r.ID] == "" {
-					labels[r.ID] = humanJoin(r.Price+" USD", r.Created+" UTC")
+					labels[r.ID] = humanJoin(r.Price+" "+monetary.Currency, r.Created+" UTC")
 				}
 			}
 		}

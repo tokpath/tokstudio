@@ -14,7 +14,7 @@ import (
 
 func TestPostgresClosedOrderPendingOriginalMoneyBlocksTakeoverAndFormalExitUntilRepaid(t *testing.T) {
 	brand, channel, _, _ := takeoverFixture(t)
-	order, e := channel.s.Commerce.CreateTopUpOrder(channel.ctx, nil, commerce.CreateTopUpInput{OperatorID: channel.operator, CustomerID: channel.customer, BusinessKey: "late-foreign-payment", AmountUSD: d("20"), ExpectedOwnershipVersion: 1, Validity: 2 * time.Second})
+	order, e := channel.s.Commerce.CreateTopUpOrder(channel.ctx, nil, commerce.CreateTopUpInput{OperatorID: channel.operator, CustomerID: channel.customer, BusinessKey: "late-foreign-payment", AmountMoney: d("20"), ExpectedOwnershipVersion: 1, Validity: 2 * time.Second})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -27,8 +27,7 @@ func TestPostgresClosedOrderPendingOriginalMoneyBlocksTakeoverAndFormalExitUntil
 	if e != nil {
 		t.Fatal(e)
 	}
-	oldRate := payments.Valuation{ID: "indicative-checkout-quote", Currency: "CNY", USDPerUnit: d("0.2"), Source: "checkout indicative source", EffectiveAt: at.Add(-time.Minute), ExpiresAt: at.Add(200 * time.Millisecond)}
-	po := payments.Order{ID: order.ID, OperatorID: channel.operator, MerchantID: m.ID, Money: payments.Money{Currency: "CNY", Amount: d("100")}, Valuation: oldRate, AcceptedAt: at, ExpiresAt: order.ExpiresAt}
+	po := payments.Order{ID: order.ID, OperatorID: channel.operator, MerchantID: m.ID, Money: payments.Money{Currency: "CNY", Amount: d("100")}, SettlementMoney: payments.Money{Currency: "USD", Amount: d("20")}, AcceptedAt: at, ExpiresAt: order.ExpiresAt}
 	if _, e = pay.Create(channel.ctx, channel.operator, m.ID, po); e != nil {
 		t.Fatal(e)
 	}
@@ -98,7 +97,7 @@ func TestPostgresClosedOrderPendingOriginalMoneyBlocksTakeoverAndFormalExitUntil
 		if e != nil {
 			return e
 		}
-		if len(pending) != 1 || pending[0].Money.Currency != "CNY" || pending[0].Money.Amount.Cmp(d("100")) != 0 || pending[0].State != "awaiting_valuation" {
+		if len(pending) != 1 || pending[0].Money.Currency != "CNY" || pending[0].Money.Amount.Cmp(d("100")) != 0 || pending[0].State != "awaiting_settlement" {
 			t.Fatal("durable original money disappeared with the closed order", pending)
 		}
 		other, e := brand.s.CheckOperatorExit(brand.ctx, tx, brand.operator)
@@ -115,8 +114,7 @@ func TestPostgresClosedOrderPendingOriginalMoneyBlocksTakeoverAndFormalExitUntil
 	if e != nil {
 		t.Fatal(e)
 	}
-	actualRate := payments.Valuation{ID: "verified-at-actual-payment", Currency: "CNY", USDPerUnit: d("0.2"), Source: "independent contemporaneous valuation evidence", EffectiveAt: paidAt.Add(-time.Second), ExpiresAt: paidAt.Add(time.Second)}
-	confirmed, e := pay.ConfirmReceiptValuation(channel.ctx, channel.owner, channel.operator, result.fact.ID, payments.ReceiptValuationConfirmation{BusinessKey: "verified-late-cny-rate", Valuation: actualRate, EvidenceReference: "finance independently verified actual payment-time rate"})
+	confirmed, e := pay.ConfirmReceiptValuation(channel.ctx, channel.owner, channel.operator, result.fact.ID, payments.ReceiptValuationConfirmation{BusinessKey: "verified-late-cny-rate", SettlementAmount: d("20"), EvidenceReference: "finance independently verified actual payment-time rate"})
 	if e != nil || confirmed.ReceiptID == "" || confirmed.Value == nil || confirmed.Value.Amount.Cmp(d("20")) != 0 {
 		t.Fatal(confirmed, e)
 	}
@@ -141,10 +139,10 @@ func TestPostgresClosedOrderPendingOriginalMoneyBlocksTakeoverAndFormalExitUntil
 		t.Fatal(e)
 	}
 	at, _ = instant(brand.db)
-	if _, e = brand.s.RecordManualRefund(channel.ctx, channel.owner, channel.operator, legs[0].ID, ExecutionProof{BusinessKey: "actual-cny-return", Reference: "bank-actual-cny100-return", Evidence: "actual CNY100 return valued USD20 with contemporaneous execution evidence", Currency: "CNY", Amount: "100", ActualUSD: d("20"), FeeStatus: "pending", OccurredAt: at}); e != nil {
+	if _, e = brand.s.RecordManualRefund(channel.ctx, channel.owner, channel.operator, legs[0].ID, ExecutionProof{BusinessKey: "actual-cny-return", Reference: "bank-actual-cny100-return", Evidence: "actual CNY100 return valued Money20 with contemporaneous execution evidence", Currency: "CNY", Amount: "100", ActualMoney: d("20"), FeeStatus: "pending", OccurredAt: at}); e != nil {
 		t.Fatal(e)
 	}
-	// AllocatedUSD remains zero on this repaid original receipt. The real
+	// AllocatedMoney remains zero on this repaid original receipt. The real
 	// remaining receipt account, rather than Gross-Allocated, clears readiness.
 	e = brand.db.Transaction(func(tx *gorm.DB) error {
 		funds, e := brand.s.Commerce.UnsettledReceiptFunds(channel.ctx, tx, channel.operator, []string{confirmed.ReceiptID})

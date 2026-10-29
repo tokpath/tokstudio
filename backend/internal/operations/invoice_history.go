@@ -76,7 +76,7 @@ func (s *Service) RequestHistoricalInvoice(ctx context.Context, customer, issuer
 			if e != nil {
 				return e
 			}
-			if basis.ReceiptID != line.ReceiptID || basis.EligibleUSD.Sign() <= 0 {
+			if basis.ReceiptID != line.ReceiptID || basis.EligibleMoney.Sign() <= 0 {
 				return ErrForbidden
 			}
 		}

@@ -65,7 +65,7 @@ func TestPostgresProductPricingNeedsNoManualPublicationPaperwork(t *testing.T) {
 
 	// Package publishing accepts the business inputs without IDs, contract
 	// references or a manually chosen timezone. Editing preserves its timezone.
-	packageInput := map[string]any{"name": "Simple package", "price_usd": "80", "paid_atg": "80", "gift_atg": "20", "period": "month", "new_purchase_enabled": true, "renewal_enabled": true, "expected_version": 0}
+	packageInput := map[string]any{"name": "Simple package", "price_money": "80", "paid_atg": "80", "gift_atg": "20", "period": "month", "new_purchase_enabled": true, "renewal_enabled": true, "expected_version": 0}
 	status, out, _ = f.call(t, "POST", base+"/plans", packageInput, "")
 	mustOK(t, status, out)
 	pkg, err := f.a.Commerce.GetPackage(ctx, nil, operator, out["id"].(string))
@@ -73,7 +73,7 @@ func TestPostgresProductPricingNeedsNoManualPublicationPaperwork(t *testing.T) {
 		t.Fatal(err)
 	}
 	quote, err := f.a.Commerce.GetQuote(ctx, nil, *pkg.CurrentQuoteID)
-	if err != nil || quote.Timezone != "Asia/Shanghai" || quote.PriceUSD.Cmp(ledger.MustDecimal("80")) != 0 {
+	if err != nil || quote.Timezone != "Asia/Shanghai" || quote.PriceMoney.Cmp(ledger.MustDecimal("80")) != 0 {
 		t.Fatal(quote, err)
 	}
 	packageInput["package_id"], packageInput["expected_version"], packageInput["new_purchase_enabled"] = pkg.ID, 1, false

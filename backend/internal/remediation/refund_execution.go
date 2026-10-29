@@ -18,8 +18,8 @@ type ExecutionProof struct {
 	BusinessKey        string                            `json:"business_key"`
 	Reference          string                            `json:"reference"`
 	Evidence           string                            `json:"evidence"`
-	ActualUSD          ledger.Decimal                    `json:"actual_usd"`
-	FeeUSD             ledger.Decimal                    `json:"fee_usd"`
+	ActualMoney        ledger.Decimal                    `json:"actual_money"`
+	FeeMoney           ledger.Decimal                    `json:"fee_money"`
 	FeeStatus          string                            `json:"fee_status"`
 	Currency           string                            `json:"currency"`
 	Amount             string                            `json:"amount"`
@@ -59,7 +59,7 @@ func (s *Service) BeginManualRefund(ctx context.Context, actor, op, legID, key, 
 		}
 		caseOpen := c.State == "approved" || c.State == "paying" || c.State == "exception"
 		initial := l.State == "approved" && caseOpen
-		supplemental := l.State == "exception" && caseOpen && (l.SettledUSD.Sign() > 0 || l.MisdirectedUSD.Sign() > 0) && l.SettledUSD.Cmp(l.AmountUSD) < 0
+		supplemental := l.State == "exception" && caseOpen && (l.SettledMoney.Sign() > 0 || l.MisdirectedMoney.Sign() > 0) && l.SettledMoney.Cmp(l.AmountMoney) < 0
 		if !initial && !supplemental {
 			return ErrState
 		}
@@ -84,7 +84,7 @@ func (s *Service) BeginManualRefund(ctx context.Context, actor, op, legID, key, 
 			return e
 		}
 		out = l
-		return s.event(t, op, l.ID, "refund.manual_execution_started", actor, evidence, map[string]any{"case_id": c.ID, "execution_key": key, "supplemental": supplemental, "remaining_usd": l.AmountUSD.Sub(l.SettledUSD)})
+		return s.event(t, op, l.ID, "refund.manual_execution_started", actor, evidence, map[string]any{"case_id": c.ID, "execution_key": key, "supplemental": supplemental, "remaining_money": l.AmountMoney.Sub(l.SettledMoney)})
 	})
 	return out, e
 }
@@ -183,7 +183,7 @@ func (s *Service) RequireApprovedRefund(ctx context.Context, t *gorm.DB, actor s
 	if e != nil {
 		return e
 	}
-	if l.SourceOperatorID != op || l.RouteVersion > 1 || l.State != "approved" || c.State != "approved" && c.State != "paying" || r.USDAmount.Cmp(l.AmountUSD) != 0 {
+	if l.SourceOperatorID != op || l.RouteVersion > 1 || l.State != "approved" || c.State != "approved" && c.State != "paying" || r.MoneyAmount.Cmp(l.AmountMoney) != 0 {
 		return ErrState
 	}
 	if e = s.RequireReceiptRefundExecution(ctx, t, l.SourceOperatorID, l.ReceiptID, l.ID); e != nil {
@@ -211,7 +211,7 @@ func (s *Service) RequireApprovedRefund(ctx context.Context, t *gorm.DB, actor s
 	}
 	return s.event(t, op, l.ID, "refund.provider_execution_started", actor, "approved original-receipt refund", map[string]string{"case_id": c.ID, "merchant_id": source.MerchantID, "order_id": r.Order.ID})
 }
-func (s *Service) RecordVerifiedRefund(ctx context.Context, t *gorm.DB, m payments.Merchant, o payments.Order, r payments.Refund, f payments.Fact, value payments.USDValue) error {
+func (s *Service) RecordVerifiedRefund(ctx context.Context, t *gorm.DB, m payments.Merchant, o payments.Order, r payments.Refund, f payments.Fact, value payments.MoneyValue) error {
 	if t == nil || !f.Verified() || f.Kind != "refund" || m.OperatorID != o.OperatorID || f.OperatorID != m.OperatorID || f.OrderID != o.ID || f.MerchantID != m.ID || r.Order.ID != o.ID {
 		return ErrScope
 	}
@@ -219,7 +219,7 @@ func (s *Service) RecordVerifiedRefund(ctx context.Context, t *gorm.DB, m paymen
 	if e != nil {
 		return e
 	}
-	if r.USDAmount.Cmp(l.AmountUSD) != 0 {
+	if r.MoneyAmount.Cmp(l.AmountMoney) != 0 {
 		return ErrState
 	}
 	if f.ExternalRefund != nil {
@@ -248,7 +248,7 @@ func (s *Service) RecordVerifiedRefund(ctx context.Context, t *gorm.DB, m paymen
 	if f.OccurredAt != nil {
 		at = *f.OccurredAt
 	}
-	proof := ExecutionProof{BusinessKey: "provider:" + f.ID, Reference: f.ProviderID, Evidence: string(f.Evidence), ActualUSD: value.Amount, FeeStatus: "pending", Currency: f.Money.Currency, Amount: f.Money.Amount.String(), OccurredAt: at}
+	proof := ExecutionProof{BusinessKey: "provider:" + f.ID, Reference: f.ProviderID, Evidence: string(f.Evidence), ActualMoney: value.Amount, FeeStatus: "pending", Currency: f.Money.Currency, Amount: f.Money.Amount.String(), OccurredAt: at}
 	proof.ExternalRefund = f.ExternalRefund
 	// Preserve the verified fact and unknown liability on a conversion mismatch.
 	// Returning an error here would roll back that evidence and invite re-payment.
@@ -266,12 +266,12 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 	// An explicit nonzero verified fee remains a known cost for manual inputs.
 	if p.FeeStatus == "" {
 		p.FeeStatus = "pending"
-		if p.FeeUSD.Sign() > 0 {
+		if p.FeeMoney.Sign() > 0 {
 			p.FeeStatus = "confirmed"
 		}
 	}
 	amount, e := ledger.ParseDecimal(p.Amount)
-	if e != nil || amount.Sign() <= 0 || p.BusinessKey == "" || len(p.BusinessKey) > 150 || p.Reference == "" || p.Evidence == "" || !validAmount(p.ActualUSD) || !p.FeeUSD.Valid() || p.FeeUSD.Sign() < 0 || (p.FeeStatus != "pending" && p.FeeStatus != "confirmed") || (p.FeeStatus == "pending" && !p.FeeUSD.IsZero()) || p.Currency == "" || p.Currency != strings.ToUpper(p.Currency) || p.OccurredAt.IsZero() {
+	if e != nil || amount.Sign() <= 0 || p.BusinessKey == "" || len(p.BusinessKey) > 150 || p.Reference == "" || p.Evidence == "" || !validAmount(p.ActualMoney) || !p.FeeMoney.Valid() || p.FeeMoney.Sign() < 0 || (p.FeeStatus != "pending" && p.FeeStatus != "confirmed") || (p.FeeStatus == "pending" && !p.FeeMoney.IsZero()) || p.Currency == "" || p.Currency != strings.ToUpper(p.Currency) || p.OccurredAt.IsZero() {
 		return false, ErrInvalid
 	}
 	var old struct{ Fingerprint string }
@@ -281,7 +281,7 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 		if old.Fingerprint != fp {
 			return false, ErrConflict
 		}
-		return l.State == "exception" || l.ExcessUSD.Sign() > 0 || l.MisdirectedUSD.Sign() > 0, nil
+		return l.State == "exception" || l.ExcessMoney.Sign() > 0 || l.MisdirectedMoney.Sign() > 0, nil
 	}
 	if !errors.Is(e, gorm.ErrRecordNotFound) {
 		return false, e
@@ -332,9 +332,9 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 	observationID := uuid.NewString()
 	var knownFee any
 	if p.FeeStatus == "confirmed" {
-		knownFee = p.FeeUSD
+		knownFee = p.FeeMoney
 	}
-	if e = t.Exec("INSERT INTO remediation_payment_observations(id,leg_id,business_key,fingerprint,actual_usd,currency,amount,fee_status,fee_usd,evidence,occurred_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", observationID, l.ID, p.BusinessKey, fp, p.ActualUSD, p.Currency, p.Amount, p.FeeStatus, knownFee, p.Reference+" | "+p.Evidence, p.OccurredAt, at).Error; e != nil {
+	if e = t.Exec("INSERT INTO remediation_payment_observations(id,leg_id,business_key,fingerprint,actual_money,currency,amount,fee_status,fee_money,evidence,occurred_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", observationID, l.ID, p.BusinessKey, fp, p.ActualMoney, p.Currency, p.Amount, p.FeeStatus, knownFee, p.Reference+" | "+p.Evidence, p.OccurredAt, at).Error; e != nil {
 		return false, e
 	}
 	if e = t.Table("remediation_payment_fact_bindings").Create(map[string]any{"operator_id": c.OperatorID, "fact_id": factID, "leg_id": l.ID, "observation_id": observationID, "fingerprint": fp}).Error; e != nil {
@@ -347,7 +347,7 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 		}
 	}
 	if p.FeeStatus == "confirmed" {
-		if _, e = s.recordRefundFee(ctx, t, *l, observationID, RefundFeeInput{OperatorID: c.OperatorID, LegID: l.ID, PaymentBusinessKey: p.BusinessKey, BusinessKey: "execution:" + p.BusinessKey, ActorID: actor, Reference: p.Reference, Evidence: p.Evidence, FeeUSD: p.FeeUSD, OccurredAt: p.OccurredAt}); e != nil {
+		if _, e = s.recordRefundFee(ctx, t, *l, observationID, RefundFeeInput{OperatorID: c.OperatorID, LegID: l.ID, PaymentBusinessKey: p.BusinessKey, BusinessKey: "execution:" + p.BusinessKey, ActorID: actor, Reference: p.Reference, Evidence: p.Evidence, FeeMoney: p.FeeMoney, OccurredAt: p.OccurredAt}); e != nil {
 			return false, e
 		}
 	}
@@ -360,10 +360,10 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 		if e != nil {
 			return false, e
 		}
-		if _, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: c.OperatorID, BusinessKey: "refund-misdirected:" + observationID, Kind: "external_refund_misdirected", SourceID: l.ID, ActorID: actor, Reason: p.Reference + " | " + p.Evidence, Lines: []ledger.Line{{AccountID: cash.ID, Amount: p.ActualUSD}, {AccountID: loss.ID, Amount: p.ActualUSD.Neg()}}}); e != nil {
+		if _, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: c.OperatorID, BusinessKey: "refund-misdirected:" + observationID, Kind: "external_refund_misdirected", SourceID: l.ID, ActorID: actor, Reason: p.Reference + " | " + p.Evidence, Lines: []ledger.Line{{AccountID: cash.ID, Amount: p.ActualMoney}, {AccountID: loss.ID, Amount: p.ActualMoney.Neg()}}}); e != nil {
 			return false, e
 		}
-		l.MisdirectedUSD = l.MisdirectedUSD.Add(p.ActualUSD)
+		l.MisdirectedMoney = l.MisdirectedMoney.Add(p.ActualMoney)
 		l.State = "exception"
 		c.State = "exception"
 		if e = t.Save(l).Error; e != nil {
@@ -377,7 +377,7 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 	if l.HoldID == nil || l.SourceAccountID == nil {
 		return false, ErrConflict
 	}
-	capacityObservation, e := s.ObserveReceiptRefund(ctx, t, l.SourceOperatorID, l.ReceiptID, l.ID, factID, p.ActualUSD)
+	capacityObservation, e := s.ObserveReceiptRefund(ctx, t, l.SourceOperatorID, l.ReceiptID, l.ID, factID, p.ActualMoney)
 	if e != nil {
 		return false, e
 	}
@@ -397,12 +397,12 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 		for _, link := range links {
 			byID[link.AllocationID] = true
 		}
-		left := capacityObservation.SettledUSD
+		left := capacityObservation.SettledMoney
 		for _, a := range allocations {
 			if !byID[a.ID] || left.IsZero() {
 				continue
 			}
-			take := min(left, a.AmountUSD.Sub(a.RefundedUSD))
+			take := min(left, a.AmountMoney.Sub(a.RefundedMoney))
 			if take.Sign() <= 0 {
 				continue
 			}
@@ -431,19 +431,19 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 	if e != nil {
 		return false, e
 	}
-	lines := []ledger.Line{{AccountID: cash.ID, Amount: p.ActualUSD}}
-	if capacityObservation.SettledUSD.Sign() > 0 {
-		lines = append(lines, ledger.Line{AccountID: *l.SourceAccountID, Amount: capacityObservation.SettledUSD.Neg()})
+	lines := []ledger.Line{{AccountID: cash.ID, Amount: p.ActualMoney}}
+	if capacityObservation.SettledMoney.Sign() > 0 {
+		lines = append(lines, ledger.Line{AccountID: *l.SourceAccountID, Amount: capacityObservation.SettledMoney.Neg()})
 	}
-	if capacityObservation.ExcessUSD.Sign() > 0 {
+	if capacityObservation.ExcessMoney.Sign() > 0 {
 		loss, e := s.account(ctx, t, c.OperatorID, c.OperatorID, "control:refund_overpayment")
 		if e != nil {
 			return false, e
 		}
-		lines = append(lines, ledger.Line{AccountID: loss.ID, Amount: capacityObservation.ExcessUSD.Neg()})
+		lines = append(lines, ledger.Line{AccountID: loss.ID, Amount: capacityObservation.ExcessMoney.Neg()})
 	}
 	posting := ledger.Posting{OperatorID: c.OperatorID, BusinessKey: "refund-paid:" + observationID, Kind: "external_refund", SourceID: l.ID, ActorID: actor, Reason: p.Reference + " | " + p.Evidence, Lines: lines}
-	if capacityObservation.SettledUSD.Sign() > 0 {
+	if capacityObservation.SettledMoney.Sign() > 0 {
 		_, e = s.Ledger.Capture(ctx, t, *l.HoldID, posting, nil)
 	} else {
 		_, e = s.Ledger.Post(ctx, t, posting)
@@ -451,10 +451,10 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 	if e != nil {
 		return false, e
 	}
-	l.SettledUSD = l.SettledUSD.Add(capacityObservation.SettledUSD)
-	l.ExcessUSD = l.ExcessUSD.Add(capacityObservation.ExcessUSD)
-	if capacityObservation.RemainingUSD.Sign() > 0 {
-		next, e := s.Ledger.Reserve(ctx, t, ledger.Reservation{OperatorID: c.OperatorID, BusinessKey: "refund-remainder:" + observationID, Purpose: "refund", ExpiresAt: hold.ExpiresAt, Amounts: []ledger.Line{{AccountID: *l.SourceAccountID, Amount: capacityObservation.RemainingUSD}}})
+	l.SettledMoney = l.SettledMoney.Add(capacityObservation.SettledMoney)
+	l.ExcessMoney = l.ExcessMoney.Add(capacityObservation.ExcessMoney)
+	if capacityObservation.RemainingMoney.Sign() > 0 {
+		next, e := s.Ledger.Reserve(ctx, t, ledger.Reservation{OperatorID: c.OperatorID, BusinessKey: "refund-remainder:" + observationID, Purpose: "refund", ExpiresAt: hold.ExpiresAt, Amounts: []ledger.Line{{AccountID: *l.SourceAccountID, Amount: capacityObservation.RemainingMoney}}})
 		if e != nil {
 			return false, e
 		}
@@ -467,7 +467,7 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 		if e = t.Save(c).Error; e != nil {
 			return false, e
 		}
-		return true, s.event(t, c.OperatorID, l.ID, "refund.execution_amount_mismatch", actor, p.Evidence, map[string]any{"case_id": c.ID, "payment": p, "settled_usd": capacityObservation.SettledUSD, "remaining_usd": capacityObservation.RemainingUSD})
+		return true, s.event(t, c.OperatorID, l.ID, "refund.execution_amount_mismatch", actor, p.Evidence, map[string]any{"case_id": c.ID, "payment": p, "settled_money": capacityObservation.SettledMoney, "remaining_money": capacityObservation.RemainingMoney})
 	}
 	l.State = "completed"
 	l.CompletedAt = &at
@@ -478,5 +478,5 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 	if e = s.completeCase(ctx, t, c); e != nil {
 		return false, e
 	}
-	return capacityObservation.ExcessUSD.Sign() > 0, s.event(t, c.OperatorID, l.ID, "refund.completed", actor, p.Evidence, map[string]any{"case_id": c.ID, "payment": p, "excess_usd": capacityObservation.ExcessUSD})
+	return capacityObservation.ExcessMoney.Sign() > 0, s.event(t, c.OperatorID, l.ID, "refund.completed", actor, p.Evidence, map[string]any{"case_id": c.ID, "payment": p, "excess_money": capacityObservation.ExcessMoney})
 }

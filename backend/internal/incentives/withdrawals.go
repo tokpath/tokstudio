@@ -2,8 +2,10 @@ package incentives
 
 import (
 	"context"
+	"encoding/json"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
@@ -12,7 +14,7 @@ import (
 )
 
 func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, operator string, in WithdrawalPolicy, expectedVersion int64) (out WithdrawalPolicy, err error) {
-	if !validID(operator) || expectedVersion < 0 || in.MinimumUSD.Sign() <= 0 || !in.MinimumUSD.Valid() || in.FlatFeeUSD.Sign() < 0 || !in.FlatFeeUSD.Valid() || !rateValid(in.FeeRate) || in.FeeRate.Cmp(ledger.FromInt64(1)) == 0 || in.MethodReference == "" {
+	if !validID(operator) || expectedVersion < 0 || in.MinimumMoney.Sign() <= 0 || !in.MinimumMoney.Valid() || in.FlatFeeMoney.Sign() < 0 || !in.FlatFeeMoney.Valid() || !rateValid(in.FeeRate) || in.FeeRate.Cmp(ledger.FromInt64(1)) == 0 || in.MethodReference == "" {
 		return out, ErrInvalidInput
 	}
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
@@ -34,7 +36,7 @@ func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, o
 		if err != nil {
 			return err
 		}
-		r := withdrawalPolicyRow{ID: uuid.NewString(), OperatorID: operator, Version: old.Version + 1, MinimumUSD: in.MinimumUSD, FlatFeeUSD: in.FlatFeeUSD, FeeRate: in.FeeRate, RequiresDualApproval: in.RequiresDualApproval, MethodReference: in.MethodReference, EffectiveAt: instant.At}
+		r := withdrawalPolicyRow{ID: uuid.NewString(), OperatorID: operator, Version: old.Version + 1, MinimumMoney: in.MinimumMoney, FlatFeeMoney: in.FlatFeeMoney, FeeRate: in.FeeRate, RequiresDualApproval: in.RequiresDualApproval, MethodReference: in.MethodReference, EffectiveAt: instant.At}
 		if err = tx.Create(&r).Error; err != nil {
 			return err
 		}
@@ -59,16 +61,16 @@ func (s *Service) QuoteWithdrawal(ctx context.Context, tx *gorm.DB, operator str
 	return quoteWithdrawal(WithdrawalPolicy(policy), amount)
 }
 func quoteWithdrawal(policy WithdrawalPolicy, amount ledger.Decimal) (WithdrawalQuote, error) {
-	if amount.Sign() <= 0 || !amount.Valid() || amount.Cmp(policy.MinimumUSD) < 0 {
+	if amount.Sign() <= 0 || !amount.Valid() || amount.Cmp(policy.MinimumMoney) < 0 {
 		return WithdrawalQuote{}, ErrInvalidInput
 	}
-	exact := new(big.Rat).Add(policy.FlatFeeUSD.Rat(), new(big.Rat).Mul(amount.Rat(), policy.FeeRate.Rat()))
+	exact := new(big.Rat).Add(policy.FlatFeeMoney.Rat(), new(big.Rat).Mul(amount.Rat(), policy.FeeRate.Rat()))
 	fee, remainder := ledger.Quantize(exact)
 	net := amount.Sub(fee)
 	if net.Sign() <= 0 {
 		return WithdrawalQuote{}, ErrInvalidInput
 	}
-	return WithdrawalQuote{Policy: policy, AmountUSD: amount, FeeUSD: fee, NetUSD: net, FeeRemainder: remainder.RatString()}, nil
+	return WithdrawalQuote{Policy: policy, AmountMoney: amount, FeeMoney: fee, NetMoney: net, FeeRemainder: remainder.RatString()}, nil
 }
 func (s *Service) RequestWithdrawal(ctx context.Context, tx *gorm.DB, in WithdrawalInput) (out Withdrawal, err error) {
 	if !validID(in.OperatorID) || !validID(in.CustomerID) || !validID(in.PolicyID) || in.BusinessKey == "" || len(in.BusinessKey) > 150 || in.RecipientReference == "" {
@@ -121,7 +123,7 @@ func (s *Service) RequestWithdrawal(ctx context.Context, tx *gorm.DB, in Withdra
 		if state.ReleaseBlocked {
 			return ErrBlocked
 		}
-		quote, err := s.QuoteWithdrawal(ctx, tx, in.OperatorID, in.AmountUSD)
+		quote, err := s.QuoteWithdrawal(ctx, tx, in.OperatorID, in.AmountMoney)
 		if err != nil {
 			return err
 		}
@@ -133,14 +135,14 @@ func (s *Service) RequestWithdrawal(ctx context.Context, tx *gorm.DB, in Withdra
 			return err
 		}
 		id := uuid.NewString()
-		if _, err = s.reserveCommissionUse(ctx, tx, in.OperatorID, in.CustomerID, "withdrawal", id, in.AmountUSD, nil); err != nil {
+		if _, err = s.reserveCommissionUse(ctx, tx, in.OperatorID, in.CustomerID, "withdrawal", id, in.AmountMoney, nil); err != nil {
 			return err
 		}
-		hold, err := s.ledger.Reserve(ctx, tx, ledger.Reservation{OperatorID: in.OperatorID, BusinessKey: "withdrawal:" + id, Purpose: "commission_withdrawal", ExpiresAt: instant.At.AddDate(10, 0, 0), Amounts: []ledger.Line{{AccountID: account.ID, Amount: in.AmountUSD}}})
+		hold, err := s.ledger.Reserve(ctx, tx, ledger.Reservation{OperatorID: in.OperatorID, BusinessKey: "withdrawal:" + id, Purpose: "commission_withdrawal", ExpiresAt: instant.At.AddDate(10, 0, 0), Amounts: []ledger.Line{{AccountID: account.ID, Amount: in.AmountMoney}}})
 		if err != nil {
 			return err
 		}
-		r := withdrawalRow{ID: id, OperatorID: in.OperatorID, CustomerID: in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fp, PolicyID: quote.Policy.ID, AmountUSD: quote.AmountUSD, FeeUSD: quote.FeeUSD, NetUSD: quote.NetUSD, FeeRemainder: quote.FeeRemainder, RecipientReference: in.RecipientReference, HoldID: hold.ID, Status: "requested", CreatedAt: instant.At}
+		r := withdrawalRow{ID: id, OperatorID: in.OperatorID, CustomerID: in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fp, PolicyID: quote.Policy.ID, AmountMoney: quote.AmountMoney, FeeMoney: quote.FeeMoney, NetMoney: quote.NetMoney, FeeRemainder: quote.FeeRemainder, RecipientReference: in.RecipientReference, HoldID: hold.ID, Status: "requested", CreatedAt: instant.At}
 		if err = tx.Create(&r).Error; err != nil {
 			return err
 		}
@@ -251,11 +253,21 @@ func (s *Service) MarkWithdrawalUnknown(ctx context.Context, tx *gorm.DB, actor,
 }
 func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, operator, id string, proof WithdrawalPaymentProof) (out Withdrawal, err error) {
 	original, parseErr := ledger.ParseDecimal(proof.OriginalAmount)
-	if proof.Evidence == "" || proof.Currency == "" || proof.ValuationEvidence == "" || proof.PaidAt.IsZero() || parseErr != nil || original.Sign() <= 0 {
+	if proof.Evidence == "" || proof.Currency == "" || proof.Currency != strings.ToUpper(proof.Currency) || proof.ValuationEvidence == "" || proof.PaidAt.IsZero() || parseErr != nil || original.Sign() <= 0 || !proof.PaidMoney.Valid() || proof.PaidMoney.Sign() <= 0 {
 		return out, ErrInvalidInput
 	}
 	proof.PaidAt = proof.PaidAt.UTC()
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
+		monetary, e := ledger.GetMonetary(ctx, tx)
+		if e != nil {
+			return e
+		}
+		if proof.Currency == monetary.Currency && original.Cmp(proof.PaidMoney) != 0 {
+			return ErrInvalidInput
+		}
+		if proof.PaidAt.After(time.Now().UTC().Add(5 * time.Minute)) {
+			return ErrInvalidInput
+		}
 		r, err := s.withdrawalForStaff(ctx, tx, actor, operator, id)
 		if err != nil {
 			return err
@@ -264,7 +276,17 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 			proof.PaymentReference = "manual:withdrawal:" + r.ID
 		}
 		if r.Status == "paid" {
-			if r.PaymentReference == nil || *r.PaymentReference != proof.PaymentReference || r.NetUSD.Cmp(proof.PaidUSD) != 0 {
+			if r.PaymentReference == nil || *r.PaymentReference != proof.PaymentReference || r.NetMoney.Cmp(proof.PaidMoney) != 0 {
+				return ErrConflict
+			}
+			var previous struct{ Payload json.RawMessage }
+			if e := tx.Table("incentives_events").Select("payload").Where("operator_id=? AND aggregate_id=? AND kind='withdrawal.payment_verified'", operator, id).First(&previous).Error; e != nil {
+				return e
+			}
+			var saved struct {
+				Proof WithdrawalPaymentProof `json:"proof"`
+			}
+			if json.Unmarshal(previous.Payload, &saved) != nil || fingerprint(saved.Proof) != fingerprint(proof) {
 				return ErrConflict
 			}
 			out = Withdrawal(r)
@@ -273,7 +295,7 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 		if r.Status != "paying" && r.Status != "unknown" {
 			return ErrWithdrawalState
 		}
-		if r.NetUSD.Cmp(proof.PaidUSD) != 0 {
+		if r.NetMoney.Cmp(proof.PaidMoney) != 0 {
 			return ErrInvalidInput
 		}
 		before := Withdrawal(r)
@@ -285,13 +307,13 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 		if err != nil {
 			return err
 		}
-		lines := []ledger.Line{{AccountID: available.ID, Amount: r.AmountUSD.Neg()}, {AccountID: payouts.ID, Amount: r.NetUSD}}
-		if r.FeeUSD.Sign() > 0 {
+		lines := []ledger.Line{{AccountID: available.ID, Amount: r.AmountMoney.Neg()}, {AccountID: payouts.ID, Amount: r.NetMoney}}
+		if r.FeeMoney.Sign() > 0 {
 			fees, err := s.account(ctx, tx, operator, operator, "control:withdrawal_fees")
 			if err != nil {
 				return err
 			}
-			lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: r.FeeUSD})
+			lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: r.FeeMoney})
 		}
 		if _, err = s.ledger.Capture(ctx, tx, r.HoldID, ledger.Posting{OperatorID: operator, BusinessKey: "withdrawal-paid:" + r.ID, Kind: "commission_payout", SourceID: r.ID, ActorID: actor, Reason: proof.Evidence, Lines: lines}, nil); err != nil {
 			return err

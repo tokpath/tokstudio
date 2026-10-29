@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"time"
 )
@@ -113,24 +114,29 @@ func (a *Application) procurementDestinationAction(c *gin.Context, actor, operat
 		return true
 	case "verify_evm", "verify_external", "verify_replacement":
 		var in struct {
-			EVM       payments.EVMRefundVerification      `json:"evm"`
-			External  payments.ExternalRefundVerification `json:"external"`
-			Valuation payments.Valuation                  `json:"valuation"`
-			ValuedAt  time.Time                           `json:"valued_at"`
-			FX        string                              `json:"fx_execution_reference"`
+			EVM                payments.EVMRefundVerification      `json:"evm"`
+			External           payments.ExternalRefundVerification `json:"external"`
+			Valuation          payments.Valuation                  `json:"-"`
+			SettlementAmount   ledger.Decimal                      `json:"settlement_amount"`
+			SettlementEvidence string                              `json:"settlement_evidence"`
 		}
 		if !body(c, &in) {
 			return true
 		}
-		in.Valuation = payments.EnsureValuationIdentity(in.Valuation, "procurement-external:"+operator+":"+c.Param("id")+":"+in.External.ExternalReference+":"+in.EVM.TransactionHash+":"+in.EVM.LogIndex, in.External.Money.Currency)
+		confirmation, confirmationErr := a.refundSettlementConfirmation(c.Request.Context(), "procurement-external:"+operator+":"+c.Param("id")+":"+in.External.ExternalReference+":"+in.EVM.TransactionHash+":"+in.EVM.LogIndex, in.SettlementAmount, in.SettlementEvidence)
+		if confirmationErr != nil {
+			handleError(c, confirmationErr)
+			return true
+		}
+		in.Valuation = confirmation
 		var out payments.RefundStatus
 		var e error
 		if action == "verify_replacement" {
-			out, e = a.ProcurementRefunds.RecordReplacementRefund(c.Request.Context(), actor, operator, c.Param("id"), in.EVM, in.External, in.Valuation, in.ValuedAt, in.FX)
+			out, e = a.ProcurementRefunds.RecordReplacementRefund(c.Request.Context(), actor, operator, c.Param("id"), in.EVM, in.External, in.Valuation, time.Time{}, "")
 		} else if action == "verify_evm" {
-			out, e = a.ProcurementRefunds.RecordEVMRefund(c.Request.Context(), actor, c.Param("id"), in.EVM, in.Valuation, in.ValuedAt, in.FX)
+			out, e = a.ProcurementRefunds.RecordEVMRefund(c.Request.Context(), actor, c.Param("id"), in.EVM, in.Valuation, time.Time{}, "")
 		} else {
-			out, e = a.ProcurementRefunds.RecordExternalRefund(c.Request.Context(), actor, c.Param("id"), in.External, in.Valuation, in.ValuedAt, in.FX)
+			out, e = a.ProcurementRefunds.RecordExternalRefund(c.Request.Context(), actor, c.Param("id"), in.External, in.Valuation, time.Time{}, "")
 		}
 		if e != nil {
 			handleError(c, e)
@@ -190,7 +196,7 @@ func (a *Application) procurementDestinationFacts(c *gin.Context, actor, operato
 }
 func procurementDestinationOperations(base string) []operation {
 	return []operation{
-		{Name: "confirm_fee", Label: "核实采购退款实际手续费", Method: "POST", Path: base + "/{id}/confirm_fee", Fields: []field{f("fee_usd", "实际已核实手续费USD（确为零填0）", "decimal"), f("settled_at", "真实费用结算时刻", "datetime"), f("evidence", "费用结算独立证据", "textarea")}, Confirmation: "只补经营方实际费用，不更改原买方清偿金额。"},
+		{Name: "confirm_fee", Label: "核实采购退款实际手续费", Method: "POST", Path: base + "/{id}/confirm_fee", Fields: []field{f("fee_money", "实际已核实手续费结算币种（确为零填0）", "decimal"), f("settled_at", "真实费用结算时刻", "datetime"), f("evidence", "费用结算独立证据", "textarea")}, Confirmation: "只补经营方实际费用，不更改原买方清偿金额。"},
 		{Name: "close_route", Label: "封存旧采购退款路线并重授权剩余款", Method: "POST", Path: base + "/{id}/close_route", Fields: []field{f("reason", "已核实旧路线终止原因", "text"), f("evidence", "旧执行终态与不会再付的独立证明", "textarea")}, Confirmation: "原收款容量、待付本金与历史授权全部保留。未知付款不得关闭，后续须买方重新明确目的地、供方独立核实本方新商户。"},
 		{Name: "verify_manual_failure", Label: "核实原外部付款已失败或取消", Method: "POST", Path: base + "/{id}/verify_manual_failure", Fields: []field{f("expected_execution_key", "当前原执行编号", "hidden"), selectField("result", "执行方已核实终态", "failed|实际失败", "cancelled|实际取消"), f("external_reference", "外部终态核实流水", "text"), f("no_further_payment_reference", "执行方不会继续付款的独立证明", "textarea"), f("evidence", "真实外部核实凭证", "textarea"), f("verified_at", "真实核实时刻", "datetime")}},
 		{Name: "verify_replacement_destination", Label: "独立核实剩余款目的地与本方新商户", Method: "POST", Path: base + "/{id}/verify_replacement_destination", Fields: []field{f("proposal_id", "本轮买方提案", "hidden"), f("merchant_id", "本供方独立配置的新付款商户", "text"), f("evidence", "原付款人授权、地址及本方付款路线核实证据", "textarea")}},

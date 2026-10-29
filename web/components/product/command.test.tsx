@@ -11,8 +11,8 @@ it("retries the same unknown operation with its exact body, then gives a new act
   const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={cache}>{children}</QueryClientProvider>;
   const { result } = renderHook(() => useCommand("/api/v1/me/orders", CommandResultSchema), { wrapper });
-  await act(async () => { await result.current.run({ amount_usd: "1.000000000000000001" }); }); expect(result.current.unresolved).toBe(true);
-  await act(async () => { await result.current.run({ amount_usd: "999" }); });
+  await act(async () => { await result.current.run({ amount_money: "1.000000000000000001" }); }); expect(result.current.unresolved).toBe(true);
+  await act(async () => { await result.current.run({ amount_money: "999" }); });
   expect(fetch.mock.calls[0][1].headers.get("Idempotency-Key")).toBe(fetch.mock.calls[1][1].headers.get("Idempotency-Key")); expect(fetch.mock.calls[1][1].body).toBe(fetch.mock.calls[0][1].body);
-  await act(async () => { await result.current.run({ amount_usd: "2" }); }); expect(fetch.mock.calls[2][1].headers.get("Idempotency-Key")).not.toBe(fetch.mock.calls[1][1].headers.get("Idempotency-Key"));
+  await act(async () => { await result.current.run({ amount_money: "2" }); }); expect(fetch.mock.calls[2][1].headers.get("Idempotency-Key")).not.toBe(fetch.mock.calls[1][1].headers.get("Idempotency-Key"));
 });

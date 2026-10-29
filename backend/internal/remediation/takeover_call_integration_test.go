@@ -114,14 +114,14 @@ func TestExternalTakenOverCustomerKeepsKeyAndFutureCostBelongsToBrand(t *testing
 		t.Fatal("new use posted back to original channel", oldAfter, oldJournals, err)
 	}
 	grants, err := brand.s.Ledger.CustomerGrants(brand.ctx, nil, brand.operator, channel.customer)
-	if err != nil || len(grants) != 1 || grants[0].Consumed.String() != "0.017" || grants[0].ConsumedPaidUSD.String() != "0.0136" {
+	if err != nil || len(grants) != 1 || grants[0].Consumed.String() != "0.017" || grants[0].ConsumedPaidMoney.String() != "0.0136" {
 		t.Fatal("original paid basis changed", grants, err)
 	}
 	if err = brand.s.Ledger.Reconcile(brand.ctx, nil, grants[0].AccountID); err != nil {
 		t.Fatal(err)
 	}
 	var after Takeover
-	if err = brand.db.First(&after, "id=?", p.ID).Error; err != nil || after.SettlementDueUSD.Cmp(p.SettlementDueUSD) != 0 {
+	if err = brand.db.First(&after, "id=?", p.ID).Error; err != nil || after.SettlementDueMoney.Cmp(p.SettlementDueMoney) != 0 {
 		t.Fatal("future use changed closed channel valuation", err)
 	}
 	accounts, err := brand.s.Ledger.ListAccounts(brand.ctx, nil, brand.operator, brand.operator)

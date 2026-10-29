@@ -110,7 +110,7 @@ func (s *Service) EnsureAccount(ctx context.Context, tx *gorm.DB, a Account) (Ac
 	if _, e := uuid.Parse(a.OwnerID); e != nil {
 		return Account{}, ErrScope
 	}
-	if a.Purpose == "" || (a.Unit != "USD" && a.Unit != "ATG") || a.AllowNegative != strings.HasPrefix(a.Purpose, "control:") {
+	if a.Purpose == "" || (a.Unit != MoneyUnit && a.Unit != "ATG") || a.AllowNegative != strings.HasPrefix(a.Purpose, "control:") {
 		return Account{}, ErrScope
 	}
 	a.ID = uuid.NewString()

@@ -83,10 +83,10 @@ func (d DomainSource) Metrics(ctx context.Context, tx *gorm.DB, operator string,
 	if e != nil {
 		return nil, e
 	}
-	valuationCount := int64(0)
+	settlementCount := int64(0)
 	for _, fact := range funds {
-		if fact.State == "awaiting_valuation" {
-			valuationCount++
+		if fact.State == "awaiting_settlement" {
+			settlementCount++
 		}
 	}
 	coverage, e := d.Cooperation.Coverage(ctx, tx, operator, at)
@@ -101,7 +101,7 @@ func (d DomainSource) Metrics(ctx context.Context, tx *gorm.DB, operator string,
 	if oversellUsed.Sign() < 0 {
 		oversellUsed = ledger.Zero()
 	}
-	return map[string]ledger.Decimal{"sales_space_atg": coverage.Space, "procurement_available_atg": coverage.ProcurementAvailable, "oversell_used_atg": oversellUsed, "pending_usage": ledger.FromInt64(pending), "unverified_costs": ledger.FromInt64(unverified), "pending_receipt_facts": ledger.FromInt64(int64(len(funds))), "awaiting_valuation_receipts": ledger.FromInt64(valuationCount)}, nil
+	return map[string]ledger.Decimal{"sales_space_atg": coverage.Space, "procurement_available_atg": coverage.ProcurementAvailable, "oversell_used_atg": oversellUsed, "pending_usage": ledger.FromInt64(pending), "unverified_costs": ledger.FromInt64(unverified), "pending_receipt_facts": ledger.FromInt64(int64(len(funds))), "awaiting_settlement_receipts": ledger.FromInt64(settlementCount)}, nil
 }
 func jsonRows[T any](rows []T) ([]json.RawMessage, error) {
 	out := make([]json.RawMessage, 0, len(rows))
@@ -124,19 +124,19 @@ func (d DomainSource) Export(ctx context.Context, tx *gorm.DB, operator string, 
 		if e != nil {
 			return nil, e
 		}
-		return jsonRows(rows)
+		return jsonCurrencyRows(ctx, tx, rows)
 	case "requests":
 		rows, e := d.Usage.OperationalRequests(ctx, tx, operator, "", q.From, q.To, 100001)
 		if e != nil {
 			return nil, e
 		}
-		return jsonRows(rows)
+		return jsonCurrencyRows(ctx, tx, rows)
 	case "procurement":
 		rows, e := d.Cooperation.OperationalPurchaseOrders(ctx, tx, operator, "", q.From, q.To, 100001)
 		if e != nil {
 			return nil, e
 		}
-		return jsonRows(rows)
+		return jsonCurrencyRows(ctx, tx, rows)
 	case "financial":
 		report, e := d.FinancialReport(ctx, tx, operator, q.From, q.To)
 		if e != nil {

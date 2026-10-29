@@ -17,15 +17,15 @@ function show(operation: Operation) {
 }
 it("translates receipt net amounts without losing entered gross or fee values",()=>{
   show({name:"receipt",label:"登记人工核实收款",method:"POST",path:"/api/v1/operators/operator-one/payments",fields:[
-    {name:"gross_usd",label:"收款总额（扣手续费前） USD",kind:"decimal",required:true,default_value:"1000"},
+    {name:"gross_money",label:"收款总额（扣手续费前） 结算币种",kind:"decimal",required:true,default_value:"1000"},
     {name:"fee_status",label:"收款手续费核实状态",kind:"hidden",default_value:"confirmed"},
-    {name:"fee_usd",label:"己方承担的收款手续费 USD",kind:"decimal",required:true,default_value:"10"},
+    {name:"fee_money",label:"己方承担的收款手续费 结算币种",kind:"decimal",required:true,default_value:"10"},
   ]});
   for(const locale of ["en","ja","ru","zh"] as Locale[]) {
     fireEvent.click(screen.getByRole("button",{name:locale,exact:true}));
     expect(screen.getByRole("region",{name:translate(locale,"收款金额核对")})).toBeTruthy();
-    expect((screen.getByLabelText(translate(locale,"收款总额（扣手续费前） USD"),{exact:true}) as HTMLInputElement).value).toBe("1000");
-    expect((screen.getByLabelText(translate(locale,"己方承担的收款手续费 USD"),{exact:true}) as HTMLInputElement).value).toBe("10");
+    expect((screen.getByLabelText(translate(locale,"收款总额（扣手续费前） 结算币种"),{exact:true}) as HTMLInputElement).value).toBe("1000");
+    expect((screen.getByLabelText(translate(locale,"己方承担的收款手续费 结算币种"),{exact:true}) as HTMLInputElement).value).toBe("10");
     expect(screen.getByLabelText("990 USD")).toBeTruthy();
   }
 });

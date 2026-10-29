@@ -90,7 +90,7 @@ func TestPlatformAssetVersionsGateNewCollectionsPreserveHistoricalFacts(t *testi
 	if e != nil {
 		t.Fatal(e)
 	}
-	o := Order{ID: uuid.NewString(), OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: "USDC", Amount: ledger.FromInt64(10)}, Valuation: Valuation{ID: "contemporaneous-independent-price", Currency: "USDC", USDPerUnit: ledger.FromInt64(1), Source: "independent price evidence", EffectiveAt: now.Add(-time.Hour), ExpiresAt: now.Add(time.Hour)}, AcceptedAt: now, ExpiresAt: now.Add(time.Hour)}
+	o := Order{ID: uuid.NewString(), OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: "USDC", Amount: ledger.FromInt64(10)}, SettlementMoney: Money{Currency: "USD", Amount: ledger.FromInt64(10)}, AcceptedAt: now, ExpiresAt: now.Add(time.Hour)}
 	if _, e = s.Create(ctx, m.OperatorID, m.ID, o); e != nil {
 		t.Fatal(e)
 	}
@@ -136,7 +136,7 @@ func TestPlatformAssetVersionsGateNewCollectionsPreserveHistoricalFacts(t *testi
 		t.Fatalf("control status %d", response.StatusCode)
 	}
 	fact, e := s.VerifyWalletReceipt(ctx, m.OperatorID, m.ID, o.ID, txhash, "0x0")
-	if e != nil || !fact.Verified() {
+	if !errors.Is(e, ErrAwaitingSettlement) || !fact.Verified() {
 		t.Fatalf("historical receipt blocked by disable: %+v %v", fact, e)
 	}
 	// Re-enabling a new revision cannot rewrite the old checkout confirmation rule.

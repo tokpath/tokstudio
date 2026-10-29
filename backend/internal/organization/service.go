@@ -35,10 +35,15 @@ func Migrations() (string, fs.FS) {
 }
 
 type Service struct {
-	db          *gorm.DB
-	enforcer    *casbin.Enforcer
-	now         func() time.Time
-	exitChecker OperatorExitChecker
+	db            *gorm.DB
+	enforcer      *casbin.Enforcer
+	now           func() time.Time
+	exitChecker   OperatorExitChecker
+	monetaryReady func(context.Context, *gorm.DB) error
+}
+
+func (s *Service) SetMonetaryReadiness(check func(context.Context, *gorm.DB) error) {
+	s.monetaryReady = check
 }
 
 func New(db *gorm.DB) *Service {

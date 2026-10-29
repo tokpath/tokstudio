@@ -17,7 +17,7 @@ it("persists language, preserves field identity, and sends it without changing a
   const fetch = vi.fn(async () => new Response(JSON.stringify({ id: "same-operation", status: "pending" }), { status: 200 })); vi.stubGlobal("fetch", fetch);
   render(<I18nProvider><LanguageControl /><input aria-label="authored name" defaultValue="客户" /><Money value="12345.000000000000000001" unit="USD" /><When value="2026-10-18T12:34:00Z" /></I18nProvider>);
   const input = screen.getByRole("textbox"), date = new Date("2026-10-18T12:34:00Z");
-  const original = { name: "客户", amount_usd: "0.000000000000000001" };
+  const original = { name: "客户", amount_money: "0.000000000000000001" };
   for (const locale of ["en", "ja", "ru", "zh"] as const) {
     fireEvent.change(screen.getByTestId("language-selector"), { target: { value: locale } });
     expect(document.documentElement.lang).toBe(localeTags[locale]); expect(document.cookie).toContain(`NEXT_LOCALE=${locale}`);

@@ -72,6 +72,10 @@ func handleError(c *gin.Context, err error) {
 	}
 	status, code, msg, retry := 500, "internal_error", "处理失败，请沿用本次操作编号重试", true
 	switch {
+	case errors.Is(err, ledger.ErrMonetaryLocked):
+		status, code, msg, retry = 409, "monetary_locked", "清算币种和 ATG 基础比例已正式生效，永久锁定；暂停营业也不能修改。", false
+	case errors.Is(err, ledger.ErrMonetaryNotReady):
+		status, code, msg, retry = 409, "monetary_not_ready", "全系统清算币种和 ATG 基础比例尚未正式生效，请由平台负责人完成营业前设置。", false
 	case errors.Is(err, branding.ErrNotFound), errors.Is(err, gorm.ErrRecordNotFound), errors.Is(err, organization.ErrNotFound), errors.Is(err, commerce.ErrNotFound):
 		status, code, msg, retry = 404, "not_found", "记录不存在或不属于当前范围", false
 	case errors.Is(err, catalog.ErrResolutionPrice):
@@ -124,8 +128,10 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 409, "pending_configuration", "相关能力尚未完成配置或验证，请联系当前经营方", false
 	case errors.Is(err, remediation.ErrPaymentMismatch):
 		status, code, msg, retry = 409, "refund_execution_mismatch", "实际退款事实已保留；金额或收款方不符，剩余责任与资金占用须在原记录复核", false
-	case errors.Is(err, payments.ErrAwaitingValuation):
-		status, code, msg, retry = 409, "receipt_awaiting_valuation", "原币实际款已保留，等待财务核实真实付款时点估值；请勿重复付款", false
+	case errors.Is(err, payments.ErrUnsupported):
+		status, code, msg, retry = 400, "payment_currency_unsupported", "当前付款通道不支持本订单清算币种或操作，请选择其它方式。", false
+	case errors.Is(err, payments.ErrAwaitingSettlement):
+		status, code, msg, retry = 409, "receipt_awaiting_settlement", "原币实际款已保留，等待财务核实本笔收款对应的订单清算金额；请勿重复付款", false
 	case errors.Is(err, remediation.ErrReview):
 		status, code, msg, retry = 409, "independent_review_required", "此事项需要另一位有权限的人员独立复核", false
 	case errors.Is(err, commerce.ErrWholePayment):
@@ -141,7 +147,7 @@ func handleError(c *gin.Context, err error) {
 	case errors.Is(err, incentives.ErrLimit):
 		status, code, msg, retry = 409, "activity_limit", "活动名额或客户使用次数已达上限", false
 	case errors.Is(err, payments.ErrSettlementReview):
-		status, code, msg, retry = 409, "refund_valuation_mismatch", "真实退款事实已保留，本次换汇或金额差异需要核实；未清偿责任仍保留占用", false
+		status, code, msg, retry = 409, "refund_valuation_mismatch", "真实退款事实已保留，本次原币付款或清偿金额差异需要核实；未清偿责任仍保留占用", false
 	case errors.Is(err, commerce.ErrReceiptRestricted):
 		status, code, msg, retry = 409, "receipt_restricted", "原收款存在限制，真实收款事实已保留，不能继续新分配或重复支付", false
 	case errors.Is(err, payments.ErrOutcomeUnknown):
@@ -234,6 +240,9 @@ func (a *Application) Router() *gin.Engine {
 	v.Use(a.resolveBrand)
 	v.GET("/branding/assets/:id/content", a.publicLogo)
 	v.GET("/public/context", a.loadIdentity(false), a.publicContext)
+	v.GET("/monetary/settings", a.monetarySettings)
+	v.POST("/monetary/settings", a.loadIdentity(true), a.requireStaff, a.requireCSRF, a.monetaryCommand)
+	v.POST("/monetary/cancel", a.loadIdentity(true), a.requireStaff, a.requireCSRF, a.monetaryCommand)
 	v.GET("/public/models", a.loadIdentity(false), a.models)
 	v.GET("/public/plans", a.loadIdentity(false), a.plans)
 	v.GET("/public/payment-assets", a.publicPaymentAssets)
@@ -243,15 +252,15 @@ func (a *Application) Router() *gin.Engine {
 	v.POST("/auth/google/start", a.originGuard, a.googleStart)
 	v.POST("/auth/google/test", a.originGuard, a.googleTestStart)
 	v.POST("/auth/google/finish", a.originGuard, a.googleFinish)
-	v.POST("/auth/registrations", a.originGuard, a.register)
-	v.POST("/auth/verify", a.originGuard, a.verify)
+	v.POST("/auth/registrations", a.originGuard, a.monetaryTransactionGuard, a.register)
+	v.POST("/auth/verify", a.originGuard, a.monetaryTransactionGuard, a.verify)
 	v.POST("/auth/password-resets", a.originGuard, a.passwordReset)
 	v.POST("/auth/password-resets/complete", a.originGuard, a.passwordResetComplete)
 	v.POST("/auth/staff-password", a.loadIdentity(true), a.requireCSRF, a.changeStaffPassword)
 	v.POST("/auth/logout", a.loadIdentity(true), a.requireCSRF, a.logout)
-	me := v.Group("/me", a.loadIdentity(true), a.requireCustomer, a.requireCSRF)
+	me := v.Group("/me", a.loadIdentity(true), a.requireCustomer, a.requireCSRF, a.monetaryTransactionGuard)
 	a.customerRoutes(me)
-	staff := v.Group("/operators/:operatorId", a.loadIdentity(true), a.requireStaff, a.requireCSRF)
+	staff := v.Group("/operators/:operatorId", a.loadIdentity(true), a.requireStaff, a.requireCSRF, a.monetaryTransactionGuard)
 	a.operatorRoutes(staff)
 	a.modelRoutes(v)
 	v.POST("/payments/webhooks/kvoucher/:operatorId", a.kvoucherWebhook)

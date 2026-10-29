@@ -108,7 +108,7 @@ func (s *Service) TransferCustomerAssets(ctx context.Context, t *gorm.DB, in Cus
 		}
 		reservations = append(reservations, r)
 	}
-	for _, unit := range []string{"USD", "ATG"} {
+	for _, unit := range []string{"MONEY", "ATG"} {
 		fromLines, toLines := []Line{}, []Line{}
 		total := Zero()
 		for _, a := range accounts {

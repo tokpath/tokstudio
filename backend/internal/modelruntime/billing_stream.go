@@ -124,27 +124,31 @@ func (s *billingStream) cost(ctx context.Context, meter CostMeter, a Attempt, ch
 	}
 	s.imageCosts[image.Index] = observation
 	total := &CostObservation{Source: "unavailable"}
-	sum := func(field func(*CostObservation) *string) *string {
+	sum := func(field func(*CostObservation) *Money) *Money {
 		value := new(big.Rat)
+		currency := ""
 		for _, item := range s.imageCosts {
 			if item == nil || field(item) == nil {
 				return nil
 			}
-			n, ok := new(big.Rat).SetString(*field(item))
+			money := field(item)
+			if money.Currency == "" || currency != "" && money.Currency != currency {
+				return nil
+			}
+			currency = money.Currency
+			n, ok := new(big.Rat).SetString(money.Amount)
 			if !ok || n.Sign() < 0 {
 				return nil
 			}
 			value.Add(value, n)
 		}
-		text := value.FloatString(24)
-		return &text
+		return &Money{Currency: currency, Amount: value.FloatString(24)}
 	}
-	total.AmountUSD = sum(func(v *CostObservation) *string { return v.AmountUSD })
-	total.CalculatedUSD = sum(func(v *CostObservation) *string { return v.CalculatedUSD })
-	total.ReportedUSD = sum(func(v *CostObservation) *string { return v.ReportedUSD })
+	total.ReferenceCost = sum(func(v *CostObservation) *Money { return v.ReferenceCost })
+	total.ReportedCost = sum(func(v *CostObservation) *Money { return v.ReportedCost })
 	if observation != nil {
 		total.Version = observation.Version
-		if total.AmountUSD != nil {
+		if total.ReferenceCost != nil || total.ReportedCost != nil {
 			total.Source = observation.Source
 		}
 	}

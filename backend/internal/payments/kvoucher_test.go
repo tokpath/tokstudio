@@ -15,14 +15,11 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 )
 
-func TestMYRFaceCoversUSDDueAfterKVoucherFee(t *testing.T) {
-	face, err := myrFaceForUSD(ledger.MustDecimal("10"), ledger.MustDecimal("0.245"))
-	if err != nil || face != "40.02" {
-		t.Fatal(face, err)
-	}
-	whole, err := myrFaceForUSD(ledger.MustDecimal("1"), ledger.MustDecimal("0.245"))
-	if err != nil || whole != "4" {
-		t.Fatal(whole, err)
+func TestKVoucherRejectsForeignSettlementWithoutFetchingFX(t *testing.T) {
+	m := Merchant{ID: "m", OperatorID: "op", Driver: "kvoucher", Enabled: true, Credentials: map[string]string{"kvoucher_api_key": "key", "kvoucher_api_secret": "secret"}}
+	o := paymentTestOrder(m, "USD")
+	if _, e := (KVoucher{}).Create(context.Background(), m, o); !errors.Is(e, ErrUnsupported) {
+		t.Fatal(e)
 	}
 }
 
@@ -32,19 +29,17 @@ func TestKVoucherWebhookSignatureAndPaidRetrieval(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
-		case "/api/exchange-rates":
-			_, _ = w.Write([]byte(`{"base":"MYR","rates":{"USD":0.245}}`))
 		case "/api/kv/merchant/v1/orders":
 			_, _ = w.Write([]byte(`{"ok":true,"data":{"order":{"id":30,"status":"pending_payment"}}}`))
 		case "/api/kv/merchant/v1/orders/30/gkash-pay":
-			_, _ = w.Write([]byte(`{"ok":true,"data":{"payment":{"action":"https://pay.example.test/form","method":"POST","fields":{"v_amount":"1.05","v_currency":"MYR","CID":"M"}}}}`))
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"payment":{"action":"https://pay.example.test/form","method":"POST","fields":{"v_amount":"10","v_currency":"MYR","CID":"M"}}}}`))
 		case "/api/kv/merchant/v1/orders/30":
-			_, _ = w.Write([]byte(`{"ok":true,"data":{"order":{"id":30,"order_no":"B2B-1","status":"pins_loaded","items":[{"denomination":40.02,"qty":1}]}}}`))
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"order":{"id":30,"order_no":"B2B-1","status":"pins_loaded","items":[{"denomination":10,"qty":1}]}}}`))
 		case "/api/kv/merchant/v1/stock/redeemed":
 			_, _ = w.Write([]byte(`{"ok":true,"data":{"items":[]}}`))
 		case "/api/kv/merchant/v1/stock/retrieve":
 			retrieved = true
-			_, _ = w.Write([]byte(`{"ok":true,"data":{"retrieved":[{"pin_code":"0000-0000-TEST-0001","serial":"SN","expires_at":"2027-01-01","denomination":40.02}]}}`))
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"retrieved":[{"pin_code":"0000-0000-TEST-0001","serial":"SN","expires_at":"2027-01-01","denomination":10}]}}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -53,7 +48,7 @@ func TestKVoucherWebhookSignatureAndPaidRetrieval(t *testing.T) {
 	now := time.Now().UTC()
 	merchant := Merchant{ID: "merchant", OperatorID: "operator", Driver: "kvoucher", Enabled: true, APIBaseURL: server.URL + "/api/kv/merchant/v1", Credentials: map[string]string{"kvoucher_api_key": "key", "kvoucher_api_secret": "secret", "webhook_secret": secret}}
 	driver := KVoucher{HTTP: &Transport{Client: server.Client(), AllowTestLoopback: true}}
-	order := Order{ID: "order-1", OperatorID: merchant.OperatorID, MerchantID: merchant.ID, Money: Money{Currency: "USD", Amount: ledger.MustDecimal("10")}, Valuation: Valuation{ID: "usd", Currency: "USD", USDPerUnit: ledger.FromInt64(1), Source: "native", EffectiveAt: now.Add(-time.Second), ExpiresAt: now.Add(time.Hour)}, AcceptedAt: now, ExpiresAt: now.Add(30 * time.Minute)}
+	order := Order{ID: "order-1", OperatorID: merchant.OperatorID, MerchantID: merchant.ID, Money: Money{Currency: "MYR", Amount: ledger.MustDecimal("10")}, AcceptedAt: now, ExpiresAt: now.Add(30 * time.Minute)}
 	checkout, err := driver.Create(context.Background(), merchant, order)
 	if err != nil || checkout.ProviderID != "30" || checkout.URL != "https://pay.example.test/form" || checkout.FormFields["v_currency"] != "MYR" {
 		t.Fatal(checkout, err)
@@ -126,7 +121,7 @@ func TestKVoucherSandboxBooksACodeBeforeTheGatewayLeavesPending(t *testing.T) {
 			now := time.Now().UTC()
 			merchant := Merchant{ID: "merchant", OperatorID: "operator", Driver: "kvoucher", Enabled: true, APIBaseURL: server.URL + "/api/kv/merchant/v1", Credentials: map[string]string{"kvoucher_api_key": "key", "kvoucher_api_secret": "secret"}}
 			driver := KVoucher{HTTP: &Transport{Client: server.Client(), AllowTestLoopback: true}}
-			order := Order{ID: "order-1", OperatorID: merchant.OperatorID, MerchantID: merchant.ID, ProviderID: "30", Money: Money{Currency: "USD", Amount: ledger.MustDecimal("1")}, Valuation: Valuation{ID: "usd", Currency: "USD", USDPerUnit: ledger.FromInt64(1), Source: "native", EffectiveAt: now.Add(-time.Second), ExpiresAt: now.Add(time.Hour)}, AcceptedAt: now, ExpiresAt: now.Add(30 * time.Minute)}
+			order := Order{ID: "order-1", OperatorID: merchant.OperatorID, MerchantID: merchant.ID, ProviderID: "30", Money: Money{Currency: "MYR", Amount: ledger.MustDecimal("4")}, AcceptedAt: now, ExpiresAt: now.Add(30 * time.Minute)}
 			fact, err := driver.Lookup(context.Background(), merchant, order)
 			if tc.want != nil {
 				if !errors.Is(err, tc.want) || retrieved {

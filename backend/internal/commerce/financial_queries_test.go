@@ -18,7 +18,7 @@ func TestFinancialSalesSeparateWalletFundingFromExternalReceipts(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if facts.CompletedSales != 1 || facts.SalesUSD.String() != "80" || facts.WalletTopUps != 2 || facts.WalletTopUpUSD.String() != "100" || facts.VerifiedReceiptGrossUSD.String() != "120" {
+	if facts.CompletedSales != 1 || facts.SalesMoney.String() != "80" || facts.WalletTopUps != 2 || facts.WalletTopUpMoney.String() != "100" || facts.VerifiedReceiptGrossMoney.String() != "120" {
 		t.Fatalf("wallet funding was counted as a second external receipt: %+v", facts)
 	}
 }

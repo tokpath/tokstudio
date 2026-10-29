@@ -96,7 +96,7 @@ func (a *Application) referrals(c *gin.Context) {
 	if !a.Config.IsProduction() {
 		scheme = "http"
 	}
-	c.JSON(200, gin.H{"invite_code": code, "invite_url": scheme + "://" + a.requestHost(c) + "/register?invite=" + code, "direct_count": overview.DirectInvites, "indirect_count": overview.IndirectInvites, "qualified": overview.Qualification.AcquiredAt != nil, "function_status": overview.FunctionState.Status, "confirmed_usd": overview.Qualification.ConfirmedUSD, "pending_usd": overview.PendingConsumptionUSD, "threshold_usd": policy.ThresholdUSD, "direct_rate": policy.DirectRate, "indirect_rate": policy.IndirectRate})
+	c.JSON(200, gin.H{"invite_code": code, "invite_url": scheme + "://" + a.requestHost(c) + "/register?invite=" + code, "direct_count": overview.DirectInvites, "indirect_count": overview.IndirectInvites, "qualified": overview.Qualification.AcquiredAt != nil, "function_status": overview.FunctionState.Status, "confirmed_money": overview.Qualification.ConfirmedMoney, "pending_money": overview.PendingConsumptionMoney, "threshold_money": policy.ThresholdMoney, "direct_rate": policy.DirectRate, "indirect_rate": policy.IndirectRate})
 }
 func (a *Application) customerWorkspace(c *gin.Context) {
 	id := subject(c)
@@ -109,7 +109,7 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		a.refundWorkspace(c, p)
 		return
 	case "topups":
-		p["title"] = "USD 充值"
+		p["title"] = "结算币种 充值"
 		rows, e := a.Commerce.ListCustomerOrdersPage(ctx, nil, customer, c.Query("cursor"), "topup", 50)
 		if e != nil {
 			handleError(c, e)
@@ -120,7 +120,7 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 			items = append(items, entity(o.ID, o.Status, 1, o))
 		}
 		p["items"] = items
-		p["columns"] = []gin.H{col("id", "订单", "text"), col("due_usd", "应付", "usd"), col("external_allocated_usd", "已分配", "usd"), col("created_at", "创建时间", "datetime")}
+		p["columns"] = []gin.H{col("id", "订单", "text"), col("due_money", "应付", "money"), col("external_allocated_money", "已分配", "money"), col("created_at", "创建时间", "datetime")}
 		methods, e := a.Payments.PublicMethods(ctx, op)
 		if e != nil {
 			handleError(c, e)
@@ -133,7 +133,7 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		if len(options) > 0 {
 			method := f("external_method_id", "收款方式", "select")
 			method.Options = options
-			p["operations"] = []operation{{Name: "topup", Label: "创建充值订单", Method: "POST", Path: "/api/v1/me/topups", Fields: []field{f("amount_usd", "充值金额 USD", "decimal"), method}, Confirmation: "确认按当前经营方收款方式创建充值订单。支付完成并核实后才进入 USD 余额。"}}
+			p["operations"] = []operation{{Name: "topup", Label: "创建充值订单", Method: "POST", Path: "/api/v1/me/topups", Fields: []field{f("amount_money", "充值金额 结算币种", "decimal"), method}, Confirmation: "确认按当前经营方收款方式创建充值订单。支付完成并核实后才进入 结算币种 余额。"}}
 		}
 	case "activities":
 		rows, e := a.Incentives.OwnCampaigns(ctx, nil, op, customer)
@@ -191,15 +191,15 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 				handleError(c, incentives.ErrInvalidInput)
 				return
 			}
-			row := entity(preview.ID, "quoted", 1, gin.H{"amount_usd": quote.AmountUSD, "fee_usd": quote.FeeUSD, "net_usd": quote.NetUSD, "expires_at": preview.ExpiresAt})
+			row := entity(preview.ID, "quoted", 1, gin.H{"amount_money": quote.AmountMoney, "fee_money": quote.FeeMoney, "net_money": quote.NetMoney, "expires_at": preview.ExpiresAt})
 			row["allowed_actions"] = []string{"confirm"}
 			items = append(items, row)
 		}
 		p["row_operations"] = []operation{{Name: "confirm", Label: "确认费用并提交", Method: "POST", Path: "/api/v1/me/withdrawals/quotes/{id}/confirm", Fields: []field{f("recipient_reference", "本人真实收款资料", "textarea")}, Confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。"}, {Name: "cancel", Label: "取消提现申请", Method: "POST", Path: "/api/v1/me/withdrawals/{id}/cancel", Fields: []field{}, Description: "仅尚未审核的本人提现申请可以取消。", Confirmation: "确认取消这笔尚未审核的提现申请？取消成功后释放本笔佣金占用；已进入审核或付款环节的申请须按最新状态继续办理。"}}
 		p["title"] = "佣金提现"
 		p["items"] = items
-		p["columns"] = []gin.H{col("id", "提现申请", "text"), col("amount_usd", "总额", "usd"), col("fee_usd", "手续费", "usd"), col("net_usd", "实付", "usd"), col("status", "状态", "status")}
-		p["operations"] = []operation{{Name: "quote", Label: "核算提现费用", Method: "POST", Path: "/api/v1/me/withdrawals/quotes", Fields: []field{f("amount_usd", "提现总额 USD", "decimal")}}}
+		p["columns"] = []gin.H{col("id", "提现申请", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("status", "状态", "status")}
+		p["operations"] = []operation{{Name: "quote", Label: "核算提现费用", Method: "POST", Path: "/api/v1/me/withdrawals/quotes", Fields: []field{f("amount_money", "提现总额 结算币种", "decimal")}}}
 	case "account":
 		email, e := a.Organization.CustomerEmail(ctx, nil, customer)
 		if e != nil {
@@ -222,11 +222,11 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		}
 		accountRow := p["items"].([]any)[0].(gin.H)
 		accountRow["allowed_actions"] = actions
-		waiver := field{Name: "waiver_evidence", Label: "本人明确放弃剩余购买与赠送ATG的确认（可选）", Kind: "textarea", Help: "留空将保留全部ATG，余额未归零前不能完成注销。填写代表明确放弃剩余ATG；USD与佣金仍须真实结算，不会被删除。"}
+		waiver := field{Name: "waiver_evidence", Label: "本人明确放弃剩余购买与赠送ATG的确认（可选）", Kind: "textarea", Help: "留空将保留全部ATG，余额未归零前不能完成注销。填写代表明确放弃剩余ATG；结算币种与佣金仍须真实结算，不会被删除。"}
 		p["row_operations"] = []operation{{Name: "stop", Label: "停止使用服务", Method: "POST", Path: "/api/v1/me/account/lifecycle/stop", IncludeVersion: true, Fields: []field{f("evidence", "本人停止使用说明", "textarea")}, Confirmation: "停用Key及未来续费，保留全部资产、推广资格和历史佣金。恢复使用后需本人明确重新启用Key与续费。"}, {Name: "resume", Label: "恢复使用", Method: "POST", Path: "/api/v1/me/account/lifecycle/resume", IncludeVersion: true, Fields: []field{f("evidence", "本人恢复使用说明", "textarea")}}, {Name: "begin_close", Label: "开始注销清算", Method: "POST", Path: "/api/v1/me/account/lifecycle/begin-close", IncludeVersion: true, Fields: []field{f("evidence", "本人注销申请说明", "textarea"), waiver}, Confirmation: "开始注销会停止调用、续费与未来分佣，保留历史权利和资金清算。只有全部未决请求、退款、提现、争议与余额真实结清后才能完成。"}, {Name: "complete_close", Label: "核实清算并完成注销", Method: "POST", Path: "/api/v1/me/account/lifecycle/complete-close", IncludeVersion: true, Fields: []field{f("evidence", "本人确认清算完成", "textarea")}, Confirmation: "完成后撤销登录凭据。服务器逐项校验清算，不能通过点击抹去未结资产。"}}
 
 		rowOps := p["row_operations"].([]operation)
-		rowOps = append(rowOps, operation{Name: "waive", Label: "本人明确放弃剩余ATG", Method: "POST", Path: "/api/v1/me/account/waive-credits", IncludeVersion: true, Fields: []field{f("waiver_evidence", "本人明确放弃购买与赠送ATG的确认", "textarea")}, Confirmation: "仅注销清算中可执行。将真实撤销全部未使用购买与赠送ATG，不触碰USD或佣金。该放弃将保留不可变证据。"})
+		rowOps = append(rowOps, operation{Name: "waive", Label: "本人明确放弃剩余ATG", Method: "POST", Path: "/api/v1/me/account/waive-credits", IncludeVersion: true, Fields: []field{f("waiver_evidence", "本人明确放弃购买与赠送ATG的确认", "textarea")}, Confirmation: "仅注销清算中可执行。将真实撤销全部未使用购买与赠送ATG，不触碰结算币种或佣金。该放弃将保留不可变证据。"})
 		p["row_operations"] = rowOps
 		var closureChecks []organization.Requirement
 		if e := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -491,8 +491,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 			}
 			items = append(items, entity(row.ID, "configured", ver, v))
 		}
-		p["columns"] = []gin.H{col("name", "名称", "text"), col("price_usd", "价格", "usd"), col("paid_atg", "购买", "atg"), col("gift_atg", "赠送", "atg"), col("period", "有效期", "text"), col("terms_summary", "服务约定", "text"), col("new_purchase_enabled", "新购", "boolean"), col("renewal_enabled", "续费", "boolean")}
-		p["operations"] = []operation{{Name: "publish", Label: "创建套餐", Method: "POST", Path: base, Description: "填写售价、购买与赠送额度和有效期，分别控制新购与续费。保存即发布，已有订单仍按成交时条款履约。", Fields: []field{jsonField("name、package_id、price_usd、paid_atg、gift_atg、period、terms_summary、new_purchase_enabled、renewal_enabled、expected_version")}}}
+		p["columns"] = []gin.H{col("name", "名称", "text"), col("price_money", "价格", "money"), col("paid_atg", "购买", "atg"), col("gift_atg", "赠送", "atg"), col("period", "有效期", "text"), col("terms_summary", "服务约定", "text"), col("new_purchase_enabled", "新购", "boolean"), col("renewal_enabled", "续费", "boolean")}
+		p["operations"] = []operation{{Name: "publish", Label: "创建套餐", Method: "POST", Path: base, Description: "填写售价、购买与赠送额度和有效期，分别控制新购与续费。保存即发布，已有订单仍按成交时条款履约。", Fields: []field{jsonField("name、package_id、price_money、paid_atg、gift_atg、period、terms_summary、new_purchase_enabled、renewal_enabled、expected_version")}}}
 	case "orders":
 		p["search_supported"], p["status_supported"] = true, true
 		rows, e := a.salesOrders(ctx, op.ID, c.Query("cursor"), c.Query("q"), c.Query("status"), 51, false)
@@ -507,7 +507,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 		for _, row := range rows {
 			items = append(items, row.row())
 		}
-		p["columns"] = []gin.H{col("kind", "业务类型", "text"), col("counterparty_name", "客户或采购方", "text"), col("due_usd", "应付", "usd"), col("external_allocated_usd", "外部已分配", "usd"), col("paid_atg", "购买权益", "atg"), col("created_at", "创建", "datetime")}
+		p["columns"] = []gin.H{col("kind", "业务类型", "text"), col("counterparty_name", "客户或采购方", "text"), col("due_money", "应付", "money"), col("external_allocated_money", "外部已分配", "money"), col("paid_atg", "购买权益", "atg"), col("created_at", "创建", "datetime")}
 		p["row_operations"] = []operation{{Name: "fulfill", Label: "重试交付", Permission: "sales.manage", Method: "POST", Path: base + "/{id}/fulfill", Fields: []field{}, Confirmation: "核实原订单资金、覆盖及资格后重试，不能跳过付款条件。"}}
 		p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "fulfill_supply", Label: "重试供货交付", Permission: "payments.manage", Method: "POST", Path: base + "/{id}/fulfill_supply", Fields: []field{}})
 	case "payment-methods":
@@ -542,7 +542,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 		for _, row := range rows {
 			item := entity(row.ID, row.FeeStatus, 1, row)
 			actions := []string{}
-			if row.AllocatedUSD.IsZero() {
+			if row.AllocatedMoney.IsZero() {
 				actions = append(actions, "allocate")
 			}
 			if row.FeeStatus == "pending" || row.SettledAt == nil {
@@ -551,20 +551,12 @@ func (a *Application) operatorResource(c *gin.Context) {
 			item["allowed_actions"] = actions
 			items = append(items, item)
 		}
-		p["columns"] = []gin.H{col("id", "收款", "text"), col("provider", "通道", "text"), col("gross_usd", "收款总额（扣手续费前）", "usd"), col("fee_usd", "己方收款手续费", "usd"), col("net_usd", "净到账金额", "usd"), col("allocated_usd", "已分配", "usd"), col("fee_status", "收款手续费核实状态", "status"), col("paid_at", "实际付款时间", "datetime")}
-		p["operations"] = []operation{{Name: "receipt", Label: "登记人工核实收款", Method: "POST", Path: base, Fields: []field{jsonField("provider、provider_receipt_id、gross_usd、currency、original_amount、recipient_reference、payer_reference、verification_evidence、paid_at 等原始事实。")}}}
+		p["columns"] = []gin.H{col("id", "收款", "text"), col("provider", "通道", "text"), col("gross_money", "收款总额（扣手续费前）", "money"), col("fee_money", "己方收款手续费", "money"), col("net_money", "净到账金额", "money"), col("allocated_money", "已分配", "money"), col("fee_status", "收款手续费核实状态", "status"), col("paid_at", "实际付款时间", "datetime")}
+		p["operations"] = []operation{{Name: "receipt", Label: "登记人工核实收款", Method: "POST", Path: base, Fields: []field{jsonField("provider、provider_receipt_id、gross_money、currency、original_amount、recipient_reference、payer_reference、verification_evidence、paid_at 等原始事实。")}}}
 		p["row_operations"] = []operation{{Name: "allocate", Label: "关联原订单", Method: "POST", Path: base + "/{id}/allocate", Fields: []field{f("order_id", "原订单", "text")}, Description: "整笔收款关联一个金额一致的订单，足额后自动交付。"}, {Name: "accounting", Label: "核实手续费与结算", Method: "POST", Path: base + "/{id}/accounting", Fields: []field{receiptFeeField(), optional("settled_at", "通道结算到账时间（可选）", "datetime"), f("evidence", "费用与结算核实依据", "textarea")}}}
 	case "valuations":
-		var rows []valuationRow
-		if e := a.DB.WithContext(ctx).Where("operator_id=?", op.ID).Order("created_at DESC,id DESC").Limit(100).Find(&rows).Error; e != nil {
-			handleError(c, e)
-			return
-		}
-		for _, row := range rows {
-			items = append(items, entity(row.ID, "published", 1, row))
-		}
-		p["columns"] = []gin.H{col("Currency", "币种", "text"), col("USDPerUnit", "每单位 USD 估值", "decimal"), col("Source", "来源依据", "text"), col("ExpiresAt", "有效截止", "datetime")}
-		p["operations"] = []operation{{Name: "publish", Label: "发布收款估值依据", Method: "POST", Path: base, Fields: []field{f("currency", "币种", "text"), f("usd_per_unit", "每单位 USD", "decimal"), f("source", "授权依据/汇率来源", "text"), f("effective_at", "生效时间", "datetime"), f("expires_at", "失效时间", "datetime")}}}
+		fail(c, 404, "not_found", "汇率配置已移除", false)
+		return
 	case "ledger":
 		p["views"] = []gin.H{{"value": "accounts", "label": "资产账户"}, {"value": "journals", "label": "记账流水"}}
 		if c.Query("view") == "journals" {
@@ -662,8 +654,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 			shown["reward_validity_days"] = policyDays(policy.RewardValiditySeconds)
 			items = append(items, entity(policy.ID, "effective", policy.Version, shown))
 		}
-		p["columns"] = []gin.H{col("threshold_usd", "资格门槛", "usd"), col("direct_percent", "直接邀请佣金 %", "decimal"), col("indirect_percent", "间接邀请佣金 %", "decimal"), col("confirmation_days", "确认等待天数", "text"), col("reward_validity_days", "注册奖励有效天数", "text"), col("invitee_atg", "受邀奖励", "atg"), col("inviter_atg", "邀请奖励", "atg"), col("kol_cross_activity_limit", "同一 KOL 跨活动每人限次", "text")}
-		p["operations"] = []operation{{Name: "policy", Label: "设置邀请与分佣规则", Method: "POST", Path: base, Fields: []field{jsonField("threshold_usd、direct_percent、indirect_percent、confirmation_days、invitee_atg、inviter_atg、reward_validity_days、kol_cross_activity_limit、expected_version")}, Description: "注册赠送、资格门槛与两级佣金在此统一设置。比例填写百分数，例如 15 表示 15%。提高门槛不影响已取得的资格，已有订单保留成交规则。"}}
+		p["columns"] = []gin.H{col("threshold_money", "资格门槛", "money"), col("direct_percent", "直接邀请佣金 %", "decimal"), col("indirect_percent", "间接邀请佣金 %", "decimal"), col("confirmation_days", "确认等待天数", "text"), col("reward_validity_days", "注册奖励有效天数", "text"), col("invitee_atg", "受邀奖励", "atg"), col("inviter_atg", "邀请奖励", "atg"), col("kol_cross_activity_limit", "同一 KOL 跨活动每人限次", "text")}
+		p["operations"] = []operation{{Name: "policy", Label: "设置邀请与分佣规则", Method: "POST", Path: base, Fields: []field{jsonField("threshold_money、direct_percent、indirect_percent、confirmation_days、invitee_atg、inviter_atg、reward_validity_days、kol_cross_activity_limit、expected_version")}, Description: "注册赠送、资格门槛与两级佣金在此统一设置。比例填写百分数，例如 15 表示 15%。提高门槛不影响已取得的资格，已有订单保留成交规则。"}}
 	case "business-status":
 		row, e := a.Organization.GetBusinessStatus(ctx, nil, op.ID)
 		if e != nil {

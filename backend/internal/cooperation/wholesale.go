@@ -43,34 +43,35 @@ type PurchaseQuote struct {
 func (PurchaseQuote) TableName() string { return "cooperation_purchase_quotes" }
 
 type PurchaseOrder struct {
-	Name                 string          `json:"name"`
-	TermsSummary         string          `json:"terms_summary"`
-	ContractAttachmentID string          `json:"contract_attachment_id,omitempty"`
-	PricingSnapshot      json.RawMessage `json:"pricing_snapshot" gorm:"type:jsonb"`
-	QuoteVersion         int64           `json:"quote_version"`
-	ID                   string          `json:"id"`
-	SupplierID           string          `json:"supplier_id"`
-	BuyerID              string          `json:"buyer_id"`
-	QuoteID              string          `json:"quote_id"`
-	BusinessKey          string          `json:"business_key"`
-	Fingerprint          string          `json:"-"`
-	DueUSD               ledger.Decimal  `json:"due_usd"`
-	AllocatedUSD         ledger.Decimal  `json:"allocated_usd"`
-	PaidATG              ledger.Decimal  `json:"paid_atg"`
-	GiftATG              ledger.Decimal  `json:"gift_atg"`
-	ExitTerms            json.RawMessage `json:"exit_terms" gorm:"type:jsonb"`
-	TermsReference       string          `json:"terms_reference"`
-	Status               string          `json:"status"`
-	ExpiresAt            time.Time       `json:"expires_at"`
-	CreatedAt            time.Time       `json:"created_at"`
-	CompletedAt          *time.Time      `json:"completed_at"`
+	MonetarySnapshot     ledger.MonetarySnapshot `json:"monetary_snapshot" gorm:"serializer:json;type:jsonb"`
+	Name                 string                  `json:"name"`
+	TermsSummary         string                  `json:"terms_summary"`
+	ContractAttachmentID string                  `json:"contract_attachment_id,omitempty"`
+	PricingSnapshot      json.RawMessage         `json:"pricing_snapshot" gorm:"type:jsonb"`
+	QuoteVersion         int64                   `json:"quote_version"`
+	ID                   string                  `json:"id"`
+	SupplierID           string                  `json:"supplier_id"`
+	BuyerID              string                  `json:"buyer_id"`
+	QuoteID              string                  `json:"quote_id"`
+	BusinessKey          string                  `json:"business_key"`
+	Fingerprint          string                  `json:"-"`
+	DueMoney             ledger.Decimal          `json:"due_money"`
+	AllocatedMoney       ledger.Decimal          `json:"allocated_money"`
+	PaidATG              ledger.Decimal          `json:"paid_atg"`
+	GiftATG              ledger.Decimal          `json:"gift_atg"`
+	ExitTerms            json.RawMessage         `json:"exit_terms" gorm:"type:jsonb"`
+	TermsReference       string                  `json:"terms_reference"`
+	Status               string                  `json:"status"`
+	ExpiresAt            time.Time               `json:"expires_at"`
+	CreatedAt            time.Time               `json:"created_at"`
+	CompletedAt          *time.Time              `json:"completed_at"`
 }
 
 func (PurchaseOrder) TableName() string { return "cooperation_purchase_orders" }
 
 type PurchaseAllocation struct {
 	ID, OrderID, ReceiptReservationID, ReceiptID, BusinessKey, Fingerprint string
-	AmountUSD                                                              ledger.Decimal
+	AmountMoney                                                            ledger.Decimal
 	CreatedAt                                                              time.Time
 }
 
@@ -196,7 +197,11 @@ func (s *Service) createPurchaseOrder(ctx context.Context, tx *gorm.DB, actor, b
 		if e = s.Lock(ctx, t, buyer); e != nil {
 			return e
 		}
-		pricing, e := CalculatePurchase(q.GiftTiers, amount)
+		base, e := ledger.RequireMonetary(ctx, t)
+		if e != nil {
+			return e
+		}
+		pricing, e := CalculatePurchase(q.GiftTiers, amount, base.Snapshot())
 		if e != nil {
 			return e
 		}
@@ -211,7 +216,7 @@ func (s *Service) createPurchaseOrder(ctx context.Context, tx *gorm.DB, actor, b
 				return ErrCoverage
 			}
 		}
-		out = PurchaseOrder{Name: q.Name, TermsSummary: q.TermsSummary, ContractAttachmentID: q.ContractAttachmentID, QuoteVersion: q.Version, ID: uuid.NewString(), SupplierID: q.SupplierID, BuyerID: buyer, QuoteID: q.ID, BusinessKey: key, Fingerprint: fp, DueUSD: amount, PaidATG: pricing.PaidATG, GiftATG: pricing.GiftATG, PricingSnapshot: pricingSnapshot, ExitTerms: q.ExitTerms, TermsReference: q.TermsReference, Status: "awaiting_payment", ExpiresAt: openPurchaseDeadline, CreatedAt: now}
+		out = PurchaseOrder{MonetarySnapshot: base.Snapshot(), Name: q.Name, TermsSummary: q.TermsSummary, ContractAttachmentID: q.ContractAttachmentID, QuoteVersion: q.Version, ID: uuid.NewString(), SupplierID: q.SupplierID, BuyerID: buyer, QuoteID: q.ID, BusinessKey: key, Fingerprint: fp, DueMoney: amount, PaidATG: pricing.PaidATG, GiftATG: pricing.GiftATG, PricingSnapshot: pricingSnapshot, ExitTerms: q.ExitTerms, TermsReference: q.TermsReference, Status: "awaiting_payment", ExpiresAt: openPurchaseDeadline, CreatedAt: now}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
@@ -264,17 +269,17 @@ func (s *Service) fundPurchase(ctx context.Context, tx *gorm.DB, collector *comm
 		if found.Error != nil {
 			return found.Error
 		}
-		if found.RowsAffected > 0 && existing.AmountUSD.Cmp(amount) == 0 && out.AllocatedUSD.Cmp(out.DueUSD) == 0 {
+		if found.RowsAffected > 0 && existing.AmountMoney.Cmp(amount) == 0 && out.AllocatedMoney.Cmp(out.DueMoney) == 0 {
 			return nil
 		}
-		if out.Status != "awaiting_payment" || !out.AllocatedUSD.IsZero() || amount.Cmp(out.DueUSD) != 0 {
+		if out.Status != "awaiting_payment" || !out.AllocatedMoney.IsZero() || amount.Cmp(out.DueMoney) != 0 {
 			return ErrConflict
 		}
-		reservation, e := collector.ReserveReceiptFunds(ctx, t, commerce.ReceiptFundsInput{OperatorID: out.SupplierID, ReceiptID: receiptID, DestinationID: out.ID, BusinessKey: "wholesale:" + out.ID + ":" + key, ActorID: actor, AmountUSD: amount, Deadline: out.ExpiresAt})
+		reservation, e := collector.ReserveReceiptFunds(ctx, t, commerce.ReceiptFundsInput{OperatorID: out.SupplierID, ReceiptID: receiptID, DestinationID: out.ID, BusinessKey: "wholesale:" + out.ID + ":" + key, ActorID: actor, AmountMoney: amount, Deadline: out.ExpiresAt})
 		if e != nil {
 			return e
 		}
-		out.AllocatedUSD = amount
+		out.AllocatedMoney = amount
 		out.Status = "paid"
 		if e = t.Save(&out).Error; e != nil {
 			return e
@@ -283,7 +288,7 @@ func (s *Service) fundPurchase(ctx context.Context, tx *gorm.DB, collector *comm
 		if e != nil {
 			return e
 		}
-		allocation := PurchaseAllocation{ID: uuid.NewString(), OrderID: out.ID, ReceiptReservationID: reservation.ID, ReceiptID: receiptID, BusinessKey: key, Fingerprint: fp, AmountUSD: amount, CreatedAt: now}
+		allocation := PurchaseAllocation{ID: uuid.NewString(), OrderID: out.ID, ReceiptReservationID: reservation.ID, ReceiptID: receiptID, BusinessKey: key, Fingerprint: fp, AmountMoney: amount, CreatedAt: now}
 		return t.Create(&allocation).Error
 	})
 	return out, e
@@ -298,21 +303,21 @@ func (s *Service) FulfillPurchase(ctx context.Context, tx *gorm.DB, orderID, act
 		if o.Status == "completed" {
 			return t.First(&lot, "order_id=?", o.ID).Error
 		}
-		if o.Status != "paid" || o.AllocatedUSD.Cmp(o.DueUSD) != 0 {
+		if o.Status != "paid" || o.AllocatedMoney.Cmp(o.DueMoney) != 0 {
 			return commerce.ErrNotPaid
 		}
 		if e := s.Lock(ctx, t, o.BuyerID); e != nil {
 			return e
 		}
-		funds, e := s.Ledger.EnsureAccount(ctx, t, ledger.Account{OperatorID: o.SupplierID, OwnerID: o.ID, Purpose: "order:funds", Unit: "USD"})
+		funds, e := s.Ledger.EnsureAccount(ctx, t, ledger.Account{OperatorID: o.SupplierID, OwnerID: o.ID, Purpose: "order:funds", Unit: "MONEY"})
 		if e != nil {
 			return e
 		}
-		sales, e := s.Ledger.EnsureAccount(ctx, t, ledger.Account{OperatorID: o.SupplierID, OwnerID: o.SupplierID, Purpose: "control:wholesale_sales", Unit: "USD", AllowNegative: true})
+		sales, e := s.Ledger.EnsureAccount(ctx, t, ledger.Account{OperatorID: o.SupplierID, OwnerID: o.SupplierID, Purpose: "control:wholesale_sales", Unit: "MONEY", AllowNegative: true})
 		if e != nil {
 			return e
 		}
-		_, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: o.SupplierID, BusinessKey: "wholesale:" + o.ID, Kind: "wholesale_sale", SourceID: o.ID, ActorID: actor, Reason: "verified fully prepaid procurement delivery", Lines: []ledger.Line{{AccountID: funds.ID, Amount: o.DueUSD.Neg()}, {AccountID: sales.ID, Amount: o.DueUSD}}})
+		_, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: o.SupplierID, BusinessKey: "wholesale:" + o.ID, Kind: "wholesale_sale", SourceID: o.ID, ActorID: actor, Reason: "verified fully prepaid procurement delivery", Lines: []ledger.Line{{AccountID: funds.ID, Amount: o.DueMoney.Neg()}, {AccountID: sales.ID, Amount: o.DueMoney}}})
 		if e != nil {
 			return e
 		}
@@ -320,7 +325,7 @@ func (s *Service) FulfillPurchase(ctx context.Context, tx *gorm.DB, orderID, act
 		if e != nil {
 			return e
 		}
-		lot, e = s.DeliverPurchase(ctx, t, PurchaseInput{BuyerID: o.BuyerID, SupplierID: o.SupplierID, OrderID: o.ID, ReceiptReference: "purchase-order:" + o.ID, ActorID: actor, PaidUSD: o.DueUSD, PaidATG: o.PaidATG, GiftATG: o.GiftATG, ExitTerms: o.ExitTerms, At: now})
+		lot, e = s.DeliverPurchase(ctx, t, PurchaseInput{BuyerID: o.BuyerID, SupplierID: o.SupplierID, OrderID: o.ID, ReceiptReference: "purchase-order:" + o.ID, ActorID: actor, PaidMoney: o.DueMoney, PaidATG: o.PaidATG, GiftATG: o.GiftATG, ExitTerms: o.ExitTerms, At: now})
 		if e != nil {
 			return e
 		}
@@ -348,7 +353,7 @@ func (s *Service) ClosePurchase(ctx context.Context, tx *gorm.DB, actor, id stri
 		if o.Status == "closed" {
 			return nil
 		}
-		if o.Status != "awaiting_payment" || o.AllocatedUSD.Sign() > 0 {
+		if o.Status != "awaiting_payment" || o.AllocatedMoney.Sign() > 0 {
 			return commerce.ErrOrderState
 		}
 		if e := s.Lock(ctx, t, o.BuyerID); e != nil {
@@ -434,11 +439,11 @@ func (s *Service) PurchaseFromReceipt(ctx context.Context, tx *gorm.DB, collecto
 		}
 		// Receipt identity is part of the command, so a changed receipt cannot replay
 		// an earlier purchase even if it has the same amount.
-		out, e = s.createPurchaseOrder(ctx, t, actor, q.BuyerID, q.ID, "receipt:"+receiptID, receipt.GrossUSD, true)
+		out, e = s.createPurchaseOrder(ctx, t, actor, q.BuyerID, q.ID, "receipt:"+receiptID, receipt.GrossMoney, true)
 		if e != nil {
 			return e
 		}
-		out, e = s.FundPurchase(ctx, t, collector, actor, out.ID, receiptID, key, receipt.GrossUSD)
+		out, e = s.FundPurchase(ctx, t, collector, actor, out.ID, receiptID, key, receipt.GrossMoney)
 		if e != nil {
 			return e
 		}

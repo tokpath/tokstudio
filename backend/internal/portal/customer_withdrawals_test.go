@@ -24,7 +24,7 @@ func TestPostgresCustomerWithdrawalCancellationOnlyBeforeReview(t *testing.T) {
 	mustOK(t, status, me)
 	customer := me["customer"].(map[string]any)["id"].(string)
 	op := f.a.Installation.OperatorID
-	policy, err := f.a.Incentives.SetWithdrawalPolicy(context.Background(), nil, f.a.Installation.OwnerStaffID, op, incentives.WithdrawalPolicy{MinimumUSD: ledger.MustDecimal("1"), MethodReference: "synthetic reviewed bank rules"}, 0)
+	policy, err := f.a.Incentives.SetWithdrawalPolicy(context.Background(), nil, f.a.Installation.OwnerStaffID, op, incentives.WithdrawalPolicy{MinimumMoney: ledger.MustDecimal("1"), MethodReference: "synthetic reviewed bank rules"}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,12 +36,12 @@ func TestPostgresCustomerWithdrawalCancellationOnlyBeforeReview(t *testing.T) {
 		hold := ledger.Hold{ID: uuid.NewString(), OperatorID: op, BusinessKey: "withdrawal-view:" + state, Fingerprint: "synthetic fixture", Purpose: "commission_withdrawal", Status: "active", ExpiresAt: time.Now().Add(time.Hour), CreatedAt: time.Now()}
 		if state == "requested" {
 			ctx := context.Background()
-			account, err := f.a.Ledger.EnsureAccount(ctx, nil, ledger.Account{OperatorID: op, OwnerID: customer, Purpose: "commission:available", Unit: "USD"})
+			account, err := f.a.Ledger.EnsureAccount(ctx, nil, ledger.Account{OperatorID: op, OwnerID: customer, Purpose: "commission:available", Unit: ledger.MoneyUnit})
 			if err != nil {
 				t.Fatal(err)
 			}
 			commissionAccount = account.ID
-			control, err := f.a.Ledger.EnsureAccount(ctx, nil, ledger.Account{OperatorID: op, OwnerID: op, Purpose: "control:withdrawal-fixture", Unit: "USD", AllowNegative: true})
+			control, err := f.a.Ledger.EnsureAccount(ctx, nil, ledger.Account{OperatorID: op, OwnerID: op, Purpose: "control:withdrawal-fixture", Unit: ledger.MoneyUnit, AllowNegative: true})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -56,18 +56,18 @@ func TestPostgresCustomerWithdrawalCancellationOnlyBeforeReview(t *testing.T) {
 		} else if err := f.a.DB.Create(&hold).Error; err != nil {
 			t.Fatal(err)
 		}
-		row := incentives.Withdrawal{ID: uuid.NewString(), OperatorID: op, CustomerID: customer, PolicyID: policy.ID, BusinessKey: "withdrawal-view:" + state, Fingerprint: "synthetic fixture", AmountUSD: ledger.MustDecimal("5.000000000000000001"), NetUSD: ledger.MustDecimal("5.000000000000000001"), FeeRemainder: "0", RecipientReference: "synthetic recipient", HoldID: hold.ID, Status: state, CreatedAt: time.Now()}
+		row := incentives.Withdrawal{ID: uuid.NewString(), OperatorID: op, CustomerID: customer, PolicyID: policy.ID, BusinessKey: "withdrawal-view:" + state, Fingerprint: "synthetic fixture", AmountMoney: ledger.MustDecimal("5.000000000000000001"), NetMoney: ledger.MustDecimal("5.000000000000000001"), FeeRemainder: "0", RecipientReference: "synthetic recipient", HoldID: hold.ID, Status: state, CreatedAt: time.Now()}
 		if err := f.a.DB.Table("incentives_withdrawals").Create(&row).Error; err != nil {
 			t.Fatal(err)
 		}
 		if state == "requested" {
 			requestedID = row.ID
-			if err := f.a.DB.Exec("INSERT INTO incentives_commission_funding_commands(id,operator_id,customer_id,kind,reference,amount_usd,attempt,state) VALUES(?,?,?,'withdrawal',?,?,1,'reserved')", uuid.NewString(), op, customer, row.ID, row.AmountUSD).Error; err != nil {
+			if err := f.a.DB.Exec("INSERT INTO incentives_commission_funding_commands(id,operator_id,customer_id,kind,reference,amount_money,attempt,state) VALUES(?,?,?,'withdrawal',?,?,1,'reserved')", uuid.NewString(), op, customer, row.ID, row.AmountMoney).Error; err != nil {
 				t.Fatal(err)
 			}
 		}
 	}
-	status, quote, _ := f.call(t, "POST", "/v1/me/withdrawals/quotes", map[string]any{"amount_usd": "5.000000000000000001"}, "")
+	status, quote, _ := f.call(t, "POST", "/v1/me/withdrawals/quotes", map[string]any{"amount_money": "5.000000000000000001"}, "")
 	mustOK(t, status, quote)
 	status, page, _ := f.call(t, "GET", "/v1/me/withdrawals/workspace", nil, "")
 	mustOK(t, status, page)
@@ -194,22 +194,22 @@ func TestPostgresWithdrawalPolicyEditorUsesItsOwnVersionAndCurrentValues(t *test
 	if initial["expected_version"] != float64(0) {
 		t.Fatal("first policy must use version zero", initial)
 	}
-	first := map[string]any{"minimum_usd": "5.000000000000000001", "flat_fee_usd": "0.100000000000000001", "fee_rate": "0.01", "requires_dual_approval": true, "method_reference": "first published payout rules", "expected_version": 0}
+	first := map[string]any{"minimum_money": "5.000000000000000001", "flat_fee_money": "0.100000000000000001", "fee_rate": "0.01", "requires_dual_approval": true, "method_reference": "first published payout rules", "expected_version": 0}
 	status, out, _ := f.call(t, "POST", path, map[string]any{"configuration": first}, "")
 	mustOK(t, status, out)
 	current := defaults()
-	want := map[string]any{"minimum_usd": first["minimum_usd"], "flat_fee_usd": first["flat_fee_usd"], "fee_rate": first["fee_rate"], "requires_dual_approval": true, "method_reference": first["method_reference"], "expected_version": float64(1)}
+	want := map[string]any{"minimum_money": first["minimum_money"], "flat_fee_money": first["flat_fee_money"], "fee_rate": first["fee_rate"], "requires_dual_approval": true, "method_reference": first["method_reference"], "expected_version": float64(1)}
 	if !reflect.DeepEqual(current, want) {
 		t.Fatal("published policy was replaced by application-row defaults", current, want)
 	}
-	current["minimum_usd"] = "6.000000000000000001"
+	current["minimum_money"] = "6.000000000000000001"
 	status, out, _ = f.call(t, "POST", path, map[string]any{"configuration": current}, "")
 	mustOK(t, status, out)
 	if out["version"] != float64(2) {
 		t.Fatal("second policy edit used the wrong CAS", out)
 	}
 	current = defaults()
-	if current["expected_version"] != float64(2) || current["minimum_usd"] != "6.000000000000000001" || current["flat_fee_usd"] != first["flat_fee_usd"] {
+	if current["expected_version"] != float64(2) || current["minimum_money"] != "6.000000000000000001" || current["flat_fee_money"] != first["flat_fee_money"] {
 		t.Fatal("second policy revision did not become the next editor baseline", current)
 	}
 }

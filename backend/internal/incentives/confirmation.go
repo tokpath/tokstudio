@@ -14,10 +14,10 @@ import (
 // AccrueGrantEvent must join the usage/expiry settlement transaction (or be
 // replayed before any later incentive decision). Gift-only events are no-ops.
 func (s *Service) AccrueGrantEvent(ctx context.Context, tx *gorm.DB, in GrantEventInput) error {
-	if in.PaidUSD.IsZero() {
+	if in.PaidMoney.IsZero() {
 		return nil
 	}
-	if !validID(in.EventID) || !validID(in.OperatorID) || !validID(in.CustomerID) || !validID(in.OrderID) || (in.Kind != "usage" && in.Kind != "expiry") || in.PaidUSD.Sign() < 0 || !in.PaidUSD.Valid() || in.OccurredAt.IsZero() {
+	if !validID(in.EventID) || !validID(in.OperatorID) || !validID(in.CustomerID) || !validID(in.OrderID) || (in.Kind != "usage" && in.Kind != "expiry") || in.PaidMoney.Sign() < 0 || !in.PaidMoney.Valid() || in.OccurredAt.IsZero() {
 		return ErrInvalidInput
 	}
 	in.OccurredAt = in.OccurredAt.UTC().Truncate(time.Microsecond)
@@ -68,7 +68,7 @@ func (s *Service) AccrueGrantEvent(ctx context.Context, tx *gorm.DB, in GrantEve
 		}
 		sourceCommand.OperatorID = policy.OperatorID
 		fp = fingerprint(sourceCommand)
-		e := confirmationRow{ID: uuid.NewString(), OriginalOperatorID: policy.OperatorID, SourceEventID: in.EventID, OperatorID: in.OperatorID, CustomerID: in.CustomerID, OrderID: in.OrderID, Kind: in.Kind, PaidUSD: in.PaidUSD, PolicyID: policy.ID, OccurredAt: occurred, SourceOccurredAt: in.OccurredAt, ConfirmAt: occurred.Add(time.Duration(policy.ConfirmationSeconds) * time.Second), Status: "pending", Fingerprint: fp, BusinessSequence: sequence}
+		e := confirmationRow{ID: uuid.NewString(), OriginalOperatorID: policy.OperatorID, SourceEventID: in.EventID, OperatorID: in.OperatorID, CustomerID: in.CustomerID, OrderID: in.OrderID, Kind: in.Kind, PaidMoney: in.PaidMoney, PolicyID: policy.ID, OccurredAt: occurred, SourceOccurredAt: in.OccurredAt, ConfirmAt: occurred.Add(time.Duration(policy.ConfirmationSeconds) * time.Second), Status: "pending", Fingerprint: fp, BusinessSequence: sequence}
 		if err = tx.Create(&e).Error; err != nil {
 			return err
 		}
@@ -93,14 +93,14 @@ func (s *Service) AccrueGrantEvent(ctx context.Context, tx *gorm.DB, in GrantEve
 					}
 					return err
 				}
-				amount, err := s.commissionAmount(tx, in.OperatorID, in.OrderID, *hop.customer, e.ID, hop.number, in.PaidUSD, hop.rate)
+				amount, err := s.commissionAmount(tx, in.OperatorID, in.OrderID, *hop.customer, e.ID, hop.number, in.PaidMoney, hop.rate)
 				if err != nil {
 					return err
 				}
 				if amount.IsZero() {
 					continue
 				}
-				entry := commissionRow{ID: uuid.NewString(), EventID: e.ID, OperatorID: in.OperatorID, OrderID: in.OrderID, BeneficiaryID: *hop.customer, Hop: hop.number, AmountUSD: amount, Status: "frozen", ConfirmAt: e.ConfirmAt, CreatedAt: in.OccurredAt}
+				entry := commissionRow{ID: uuid.NewString(), EventID: e.ID, OperatorID: in.OperatorID, OrderID: in.OrderID, BeneficiaryID: *hop.customer, Hop: hop.number, AmountMoney: amount, Status: "frozen", ConfirmAt: e.ConfirmAt, CreatedAt: in.OccurredAt}
 				if err = tx.Create(&entry).Error; err != nil {
 					return err
 				}
@@ -125,10 +125,10 @@ func (s *Service) AccrueGrantEvent(ctx context.Context, tx *gorm.DB, in GrantEve
 }
 
 type commissionCarry struct {
-	OperatorID, OrderID, BeneficiaryID      string
-	Hop                                     int
-	BaseUSD, CreditedUSD, ReversedUSD, Rate ledger.Decimal
-	RemainderRat                            string
+	OperatorID, OrderID, BeneficiaryID            string
+	Hop                                           int
+	BaseMoney, CreditedMoney, ReversedMoney, Rate ledger.Decimal
+	RemainderRat                                  string
 }
 
 func (s *Service) commissionAmount(tx *gorm.DB, operator, order, customer, eventID string, hop int, base, rate ledger.Decimal) (ledger.Decimal, error) {
@@ -140,16 +140,16 @@ func (s *Service) commissionAmount(tx *gorm.DB, operator, order, customer, event
 	if q.RowsAffected > 0 && carry.Rate.Cmp(rate) != 0 {
 		return ledger.Zero(), ErrConflict
 	}
-	nextBase := carry.BaseUSD.Add(base)
+	nextBase := carry.BaseMoney.Add(base)
 	target, remainder := ledger.Quantize(new(big.Rat).Mul(nextBase.Rat(), rate.Rat()))
-	amount := target.Sub(carry.CreditedUSD.Sub(carry.ReversedUSD))
+	amount := target.Sub(carry.CreditedMoney.Sub(carry.ReversedMoney))
 	if amount.Sign() < 0 || !amount.Valid() || !nextBase.Valid() {
 		return ledger.Zero(), ErrConflict
 	}
-	if err := tx.Exec(`INSERT INTO incentives_commission_bases(event_id,order_id,beneficiary_id,hop,base_usd) VALUES(?,?,?,?,?)`, eventID, order, customer, hop, base).Error; err != nil {
+	if err := tx.Exec(`INSERT INTO incentives_commission_bases(event_id,order_id,beneficiary_id,hop,base_money) VALUES(?,?,?,?,?)`, eventID, order, customer, hop, base).Error; err != nil {
 		return ledger.Zero(), err
 	}
-	err := tx.Exec(`INSERT INTO incentives_commission_carries(operator_id,order_id,beneficiary_id,hop,base_usd,credited_usd,reversed_usd,rate,remainder_rat) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(order_id,beneficiary_id,hop) DO UPDATE SET base_usd=EXCLUDED.base_usd,credited_usd=EXCLUDED.credited_usd,remainder_rat=EXCLUDED.remainder_rat`, operator, order, customer, hop, nextBase, carry.CreditedUSD.Add(amount), carry.ReversedUSD, rate, remainder.RatString()).Error
+	err := tx.Exec(`INSERT INTO incentives_commission_carries(operator_id,order_id,beneficiary_id,hop,base_money,credited_money,reversed_money,rate,remainder_rat) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(order_id,beneficiary_id,hop) DO UPDATE SET base_money=EXCLUDED.base_money,credited_money=EXCLUDED.credited_money,remainder_rat=EXCLUDED.remainder_rat`, operator, order, customer, hop, nextBase, carry.CreditedMoney.Add(amount), carry.ReversedMoney, rate, remainder.RatString()).Error
 	return amount, err
 }
 
@@ -194,11 +194,11 @@ func (s *Service) advance(ctx context.Context, tx *gorm.DB, operator, customer s
 		if err != nil {
 			return err
 		}
-		next := q.ConfirmedUSD.Add(e.PaidUSD)
+		next := q.ConfirmedMoney.Add(e.PaidMoney)
 		if next.Sign() < 0 || !next.Valid() {
 			return ErrConflict
 		}
-		if err = tx.Model(&qualificationRow{}).Where("operator_id=? AND customer_id=?", operator, e.CustomerID).Update("confirmed_usd", next).Error; err != nil {
+		if err = tx.Model(&qualificationRow{}).Where("operator_id=? AND customer_id=?", operator, e.CustomerID).Update("confirmed_money", next).Error; err != nil {
 			return err
 		}
 		if err = tx.Model(&e).Update("status", "confirmed").Error; err != nil {
@@ -245,14 +245,14 @@ func (s *Service) maybeQualify(ctx context.Context, tx *gorm.DB, operator, custo
 		return err
 	}
 	var knownPendingCorrections ledger.Decimal
-	if err = tx.Model(&confirmationRow{}).Select("COALESCE(SUM(paid_usd),0)").Where("operator_id=? AND customer_id=? AND kind='correction' AND status='pending' AND confirm_at<=? AND occurred_at<=?", operator, customer, at, at).Scan(&knownPendingCorrections).Error; err != nil {
+	if err = tx.Model(&confirmationRow{}).Select("COALESCE(SUM(paid_money),0)").Where("operator_id=? AND customer_id=? AND kind='correction' AND status='pending' AND confirm_at<=? AND occurred_at<=?", operator, customer, at, at).Scan(&knownPendingCorrections).Error; err != nil {
 		return err
 	}
 	var confirmedAtTime ledger.Decimal
-	if err = tx.Model(&confirmationRow{}).Select("COALESCE(SUM(paid_usd),0)").Where("operator_id=? AND customer_id=? AND status='confirmed' AND confirm_at<=? AND (kind<>'correction' OR occurred_at<=?)", operator, customer, at, at).Scan(&confirmedAtTime).Error; err != nil {
+	if err = tx.Model(&confirmationRow{}).Select("COALESCE(SUM(paid_money),0)").Where("operator_id=? AND customer_id=? AND status='confirmed' AND confirm_at<=? AND (kind<>'correction' OR occurred_at<=?)", operator, customer, at, at).Scan(&confirmedAtTime).Error; err != nil {
 		return err
 	}
-	if confirmedAtTime.Add(knownPendingCorrections).Cmp(p.ThresholdUSD) < 0 {
+	if confirmedAtTime.Add(knownPendingCorrections).Cmp(p.ThresholdMoney) < 0 {
 		return nil
 	}
 	c, err := s.org.GetCustomer(ctx, tx, customer)
@@ -262,7 +262,7 @@ func (s *Service) maybeQualify(ctx context.Context, tx *gorm.DB, operator, custo
 	// Derive the logical qualification time from confirmed facts and the
 	// applicable threshold version, rather than the worker's catch-up time.
 	acquired := p.EffectiveAt
-	if p.ThresholdUSD.Sign() > 0 {
+	if p.ThresholdMoney.Sign() > 0 {
 		var events []confirmationRow
 		if err := tx.Where("operator_id=? AND customer_id=? AND status='confirmed' AND confirm_at<=? AND (kind<>'correction' OR occurred_at<=?)", operator, customer, at, at).Order("confirm_at,business_sequence").Find(&events).Error; err != nil {
 			return err
@@ -270,8 +270,8 @@ func (s *Service) maybeQualify(ctx context.Context, tx *gorm.DB, operator, custo
 		accumulated := ledger.Zero()
 		found := false
 		for _, event := range events {
-			accumulated = accumulated.Add(event.PaidUSD)
-			if accumulated.Cmp(p.ThresholdUSD) >= 0 {
+			accumulated = accumulated.Add(event.PaidMoney)
+			if accumulated.Cmp(p.ThresholdMoney) >= 0 {
 				if event.ConfirmAt.After(acquired) {
 					acquired = event.ConfirmAt
 				}
@@ -300,14 +300,14 @@ func (s *Service) settleAvailableOffsets(ctx context.Context, tx *gorm.DB, opera
 	if err != nil {
 		return err
 	}
-	if q.PendingOffsetUSD.IsZero() {
+	if q.PendingOffsetMoney.IsZero() {
 		return nil
 	}
 	account, err := s.account(ctx, tx, operator, customer, "commission:available")
 	if err != nil {
 		return err
 	}
-	amount := minimum(account.Available(), q.PendingOffsetUSD)
+	amount := minimum(account.Available(), q.PendingOffsetMoney)
 	spendable, err := s.commissionProvenanceSpendable(ctx, tx, operator, customer)
 	if err != nil {
 		return err
@@ -333,10 +333,10 @@ func (s *Service) settleAvailableOffsets(ctx context.Context, tx *gorm.DB, opera
 	if err = s.consumeOffsets(tx, operator, customer, amount); err != nil {
 		return err
 	}
-	if err = tx.Model(&qualificationRow{}).Where("operator_id=? AND customer_id=?", operator, customer).Update("pending_offset_usd", q.PendingOffsetUSD.Sub(amount)).Error; err != nil {
+	if err = tx.Model(&qualificationRow{}).Where("operator_id=? AND customer_id=?", operator, customer).Update("pending_offset_money", q.PendingOffsetMoney.Sub(amount)).Error; err != nil {
 		return err
 	}
-	return s.event(tx, operator, customer, "commission.pending_offset_recovered", map[string]any{"amount_usd": amount, "at": instant.At})
+	return s.event(tx, operator, customer, "commission.pending_offset_recovered", map[string]any{"amount_money": amount, "at": instant.At})
 }
 
 func (s *Service) releaseCommission(ctx context.Context, tx *gorm.DB, e CommissionEntry, asOf time.Time) error {
@@ -351,7 +351,7 @@ func (s *Service) releaseCommission(ctx context.Context, tx *gorm.DB, e Commissi
 	if state.ReleaseBlocked {
 		return nil
 	}
-	amount := e.AmountUSD.Sub(e.ReversedUSD)
+	amount := e.AmountMoney.Sub(e.ReversedMoney)
 	if amount.IsZero() {
 		return tx.Model(&commissionRow{}).Where("id=?", e.ID).Update("status", "reversed").Error
 	}
@@ -370,7 +370,7 @@ func (s *Service) releaseCommission(ctx context.Context, tx *gorm.DB, e Commissi
 	if err != nil {
 		return err
 	}
-	offset := minimum(q.PendingOffsetUSD, spendable)
+	offset := minimum(q.PendingOffsetMoney, spendable)
 	available := amount.Sub(offset)
 	frozen, err := s.account(ctx, tx, e.OperatorID, e.BeneficiaryID, "commission:frozen")
 	if err != nil {
@@ -400,28 +400,28 @@ func (s *Service) releaseCommission(ctx context.Context, tx *gorm.DB, e Commissi
 		if err = s.consumeOffsets(tx, e.OperatorID, e.BeneficiaryID, offset); err != nil {
 			return err
 		}
-		if err = tx.Model(&qualificationRow{}).Where("operator_id=? AND customer_id=?", e.OperatorID, e.BeneficiaryID).Update("pending_offset_usd", q.PendingOffsetUSD.Sub(offset)).Error; err != nil {
+		if err = tx.Model(&qualificationRow{}).Where("operator_id=? AND customer_id=?", e.OperatorID, e.BeneficiaryID).Update("pending_offset_money", q.PendingOffsetMoney.Sub(offset)).Error; err != nil {
 			return err
 		}
 	}
 	if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: e.OperatorID, BusinessKey: "commission-release:" + e.ID, Kind: "commission_release", SourceID: e.ID, ActorID: "system:confirmation", Reason: "confirmed commission; pending recovery settled first", Lines: lines}); err != nil {
 		return err
 	}
-	return tx.Model(&commissionRow{}).Where("id=?", e.ID).Updates(map[string]any{"status": "available", "offset_usd": offset}).Error
+	return tx.Model(&commissionRow{}).Where("id=?", e.ID).Updates(map[string]any{"status": "available", "offset_money": offset}).Error
 }
 func (s *Service) consumeOffsets(tx *gorm.DB, operator, customer string, amount ledger.Decimal) error {
 	var rows []struct {
-		ID                      string
-		AmountUSD, RecoveredUSD ledger.Decimal
+		ID                          string
+		AmountMoney, RecoveredMoney ledger.Decimal
 	}
-	if err := tx.Table("incentives_offsets").Where("operator_id=? AND customer_id=? AND recovered_usd<amount_usd", operator, customer).Order("created_at,id").Find(&rows).Error; err != nil {
+	if err := tx.Table("incentives_offsets").Where("operator_id=? AND customer_id=? AND recovered_money<amount_money", operator, customer).Order("created_at,id").Find(&rows).Error; err != nil {
 		return err
 	}
 	remaining := amount
 	for _, r := range rows {
-		take := minimum(r.AmountUSD.Sub(r.RecoveredUSD), remaining)
+		take := minimum(r.AmountMoney.Sub(r.RecoveredMoney), remaining)
 		if take.Sign() > 0 {
-			if err := tx.Table("incentives_offsets").Where("id=?", r.ID).Update("recovered_usd", r.RecoveredUSD.Add(take)).Error; err != nil {
+			if err := tx.Table("incentives_offsets").Where("id=?", r.ID).Update("recovered_money", r.RecoveredMoney.Add(take)).Error; err != nil {
 				return err
 			}
 			remaining = remaining.Sub(take)

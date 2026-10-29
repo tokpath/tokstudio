@@ -61,8 +61,8 @@ type RefundDestinationAuthorization struct {
 	ReceiptID                   string         `json:"receipt_id"`
 	ProposalID                  *string        `json:"proposal_id,omitempty"`
 	CustomerID                  *string        `json:"customer_id,omitempty"`
-	AmountUSD                   ledger.Decimal `json:"amount_usd"`
-	SettledBeforeUSD            ledger.Decimal `json:"settled_before_usd"`
+	AmountMoney                 ledger.Decimal `json:"amount_money"`
+	SettledBeforeMoney          ledger.Decimal `json:"settled_before_money"`
 	RouteVersion                int64          `json:"route_version"`
 	BusinessKey                 string         `json:"-"`
 	Fingerprint                 string         `json:"-"`
@@ -83,9 +83,9 @@ func (RefundDestinationAuthorization) TableName() string {
 // verification evidence to the customer.
 type RefundDestinationStatus struct {
 	LegID                 string                     `json:"leg_id"`
-	AmountUSD             ledger.Decimal             `json:"amount_usd"`
-	SettledUSD            ledger.Decimal             `json:"settled_usd"`
-	RemainingUSD          ledger.Decimal             `json:"remaining_usd"`
+	AmountMoney           ledger.Decimal             `json:"amount_money"`
+	SettledMoney          ledger.Decimal             `json:"settled_money"`
+	RemainingMoney        ledger.Decimal             `json:"remaining_money"`
 	OperatorID            string                     `json:"operator_id"`
 	SourceOperatorID      string                     `json:"source_operator_id"`
 	State                 string                     `json:"state"`
@@ -273,7 +273,7 @@ func (s *Service) AuthorizeRefundDestination(ctx context.Context, actor, op, leg
 		if e != nil {
 			return e
 		}
-		out = RefundDestinationAuthorization{ID: uuid.NewString(), LegID: l.ID, OperatorID: op, ReceiptID: l.ReceiptID, ProposalID: proposalID, CustomerID: c.CustomerID, AmountUSD: l.AmountUSD.Sub(l.SettledUSD), SettledBeforeUSD: l.SettledUSD, RouteVersion: l.RouteVersion, BusinessKey: key, Fingerprint: fp, RefundDestination: d, PayerAuthorizationReference: in.PayerAuthorizationReference, VerificationEvidence: in.VerificationEvidence, ResponsibleExecution: responsible, RouteExceptionReference: in.RouteExceptionReference, VerifiedBy: actor, CreatedAt: at}
+		out = RefundDestinationAuthorization{ID: uuid.NewString(), LegID: l.ID, OperatorID: op, ReceiptID: l.ReceiptID, ProposalID: proposalID, CustomerID: c.CustomerID, AmountMoney: l.AmountMoney.Sub(l.SettledMoney), SettledBeforeMoney: l.SettledMoney, RouteVersion: l.RouteVersion, BusinessKey: key, Fingerprint: fp, RefundDestination: d, PayerAuthorizationReference: in.PayerAuthorizationReference, VerificationEvidence: in.VerificationEvidence, ResponsibleExecution: responsible, RouteExceptionReference: in.RouteExceptionReference, VerifiedBy: actor, CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
@@ -331,7 +331,7 @@ func (s *Service) requireAuthorizedDestination(ctx context.Context, t *gorm.DB, 
 		}
 		return out, e
 	}
-	if out.ReceiptID != l.ReceiptID || out.SettledBeforeUSD.Add(out.AmountUSD).Cmp(l.AmountUSD) != 0 {
+	if out.ReceiptID != l.ReceiptID || out.SettledBeforeMoney.Add(out.AmountMoney).Cmp(l.AmountMoney) != 0 {
 		return out, ErrConflict
 	}
 	if out.ResponsibleExecution {
@@ -349,7 +349,7 @@ func (s *Service) destinationStatus(ctx context.Context, t *gorm.DB, l RefundLeg
 	if e = t.First(&c, "id=?", l.CaseID).Error; e != nil {
 		return RefundDestinationStatus{}, e
 	}
-	out := RefundDestinationStatus{LegID: l.ID, AmountUSD: l.AmountUSD, SettledUSD: l.SettledUSD, RemainingUSD: l.AmountUSD.Sub(l.SettledUSD), OperatorID: l.OperatorID, SourceOperatorID: l.SourceOperatorID, State: l.State, DestinationRequired: required, ResponsibleExecution: l.SourceOperatorID != l.OperatorID || l.RouteVersion > 1, RouteVersion: l.RouteVersion, DestinationMutable: destinationMutable(c, l)}
+	out := RefundDestinationStatus{LegID: l.ID, AmountMoney: l.AmountMoney, SettledMoney: l.SettledMoney, RemainingMoney: l.AmountMoney.Sub(l.SettledMoney), OperatorID: l.OperatorID, SourceOperatorID: l.SourceOperatorID, State: l.State, DestinationRequired: required, ResponsibleExecution: l.SourceOperatorID != l.OperatorID || l.RouteVersion > 1, RouteVersion: l.RouteVersion, DestinationMutable: destinationMutable(c, l)}
 	var proposal RefundDestinationProposal
 	e = t.Where("leg_id=? AND route_version=?", l.ID, l.RouteVersion).Order("created_at DESC,id DESC").First(&proposal).Error
 	if e == nil {
@@ -444,7 +444,7 @@ func (s *Service) RequireExternalRefundFact(ctx context.Context, t *gorm.DB, act
 }
 
 func (s *Service) matchExternalRefundFact(ctx context.Context, t *gorm.DB, l RefundLeg, r payments.Refund, d payments.ExternalRefundDestination) error {
-	if l.SourceOperatorID != r.Order.OperatorID || r.USDAmount.Cmp(l.AmountUSD) != 0 {
+	if l.SourceOperatorID != r.Order.OperatorID || r.MoneyAmount.Cmp(l.AmountMoney) != 0 {
 		return ErrState
 	}
 	if l.State != "executing" && l.State != "unknown" && l.State != "completed" && l.State != "exception" && !(l.RouteVersion > 1 && l.State == "approved") {

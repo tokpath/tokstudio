@@ -64,6 +64,9 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	}
 	apply(organization.Migrations())
 	apply(ledger.Migrations())
+	if e := db.Exec("UPDATE ledger_monetary_settings SET effective_at=clock_timestamp()-interval '1 minute' WHERE id='platform'").Error; e != nil {
+		t.Fatal(e)
+	}
 	apply(commerce.Migrations())
 	apply(incentives.Migrations())
 	apply(cooperation.Migrations())
@@ -107,7 +110,7 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	if _, e = pay.SaveMerchant(ctx, owner, m, 0); e != nil {
 		t.Fatal(e)
 	}
-	q, e := coop.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: supplier, BuyerID: buyer, GiftTiers: []cooperation.PurchaseGiftTier{{FromUSD: ledger.Zero(), GiftPercent: ledger.FromInt64(900)}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"signed-refund-v1"}`), TermsReference: "signed-v1", Enabled: true})
+	q, e := coop.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: supplier, BuyerID: buyer, GiftTiers: []cooperation.PurchaseGiftTier{{FromMoney: ledger.Zero(), GiftPercent: ledger.FromInt64(900)}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"signed-refund-v1"}`), TermsReference: "signed-v1", Enabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -116,7 +119,7 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 		t.Fatal(e)
 	}
 	now := time.Now().UTC()
-	externalOrder := payments.Order{ID: order.ID, OperatorID: supplier, MerchantID: m.ID, Money: payments.Money{Currency: "USD", Amount: order.DueUSD}, Valuation: payments.Valuation{ID: "native-usd", Currency: "USD", USDPerUnit: ledger.FromInt64(1), Source: "native_usd", EffectiveAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour)}, AcceptedAt: now, ExpiresAt: order.ExpiresAt}
+	externalOrder := payments.Order{ID: order.ID, OperatorID: supplier, MerchantID: m.ID, Money: payments.Money{Currency: "USD", Amount: order.DueMoney}, SettlementMoney: payments.Money{Currency: "USD", Amount: order.DueMoney}, AcceptedAt: now, ExpiresAt: order.ExpiresAt}
 	var checkout payments.Checkout
 	if !unlinked {
 		checkout, e = pay.Create(ctx, supplier, m.ID, externalOrder)
@@ -139,8 +142,8 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	receiptID := ""
 	if unlinked {
 		zero := ledger.Zero()
-		net := order.DueUSD
-		fact := commerce.VerifiedReceipt{OperatorID: supplier, ProviderReceiptID: "generic-bank-" + order.ID, GrossUSD: order.DueUSD, NetUSD: &net, FeeUSD: &zero, FeeStatus: "confirmed", Currency: "USD", OriginalAmount: order.DueUSD.String(), RecipientReference: "bank:supplier-account", PayerReference: "bank:original-buyer", ValuationEvidence: "native USD", VerificationEvidence: "independently verified bank statement", PaidAt: &now, ObservedAt: now, SettledAt: &now}
+		net := order.DueMoney
+		fact := commerce.VerifiedReceipt{OperatorID: supplier, ProviderReceiptID: "generic-bank-" + order.ID, GrossMoney: order.DueMoney, NetMoney: &net, FeeMoney: &zero, FeeStatus: "confirmed", Currency: "USD", OriginalAmount: order.DueMoney.String(), RecipientReference: "bank:supplier-account", PayerReference: "bank:original-buyer", ValuationEvidence: "native USD", VerificationEvidence: "independently verified bank statement", PaidAt: &now, ObservedAt: now, SettledAt: &now}
 		if mode == "manual_unlinked_cash" {
 			fact.Network = "cash"
 			fact.RecipientReference = ""
@@ -170,7 +173,7 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 		receiptID = links[0].ReceiptID
 	}
 	e = db.Transaction(func(tx *gorm.DB) error {
-		if _, e := coop.ApplyVerifiedPurchaseReceipt(ctx, tx, collector, order.ID, receiptID, "original", order.DueUSD); e != nil {
+		if _, e := coop.ApplyVerifiedPurchaseReceipt(ctx, tx, collector, order.ID, receiptID, "original", order.DueMoney); e != nil {
 			return e
 		}
 		_, e := coop.FulfillPurchase(ctx, tx, order.ID, owner)
@@ -184,15 +187,15 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	if _, e = invoiceService.SaveInvoicePolicy(ctx, owner, operations.InvoicePolicy{OperatorID: supplier, PartyKind: "procurement", Enabled: true, Stage: "purchase", MaximumRatio: ledger.FromInt64(1), RulesReference: "supplier-wholesale-invoice-terms"}, 0); e != nil {
 		t.Fatal(e)
 	}
-	invoice, e := invoiceService.RequestProcurementInvoice(ctx, owner, buyer, supplier, "purchase-invoice", []operations.InvoiceLine{{ReceiptID: receiptID, AmountUSD: ledger.FromInt64(10)}}, operations.InvoiceDetails{Title: "Actual Procurement Buyer"})
+	invoice, e := invoiceService.RequestProcurementInvoice(ctx, owner, buyer, supplier, "purchase-invoice", []operations.InvoiceLine{{ReceiptID: receiptID, AmountMoney: ledger.FromInt64(10)}}, operations.InvoiceDetails{Title: "Actual Procurement Buyer"})
 	if e != nil || invoice.PartyKind != "procurement" || invoice.CustomerID != "" || invoice.BuyerOperatorID == nil || *invoice.BuyerOperatorID != buyer {
 		t.Fatalf("purchase invoice impersonated customer or wrong buyer: %+v %v", invoice, e)
 	}
-	if _, e = invoiceService.RequestProcurementInvoice(ctx, owner, buyer, supplier, "duplicate-invoice", []operations.InvoiceLine{{ReceiptID: receiptID, AmountUSD: ledger.FromInt64(1)}}, operations.InvoiceDetails{Title: "Duplicate"}); !errors.Is(e, operations.ErrConflict) {
+	if _, e = invoiceService.RequestProcurementInvoice(ctx, owner, buyer, supplier, "duplicate-invoice", []operations.InvoiceLine{{ReceiptID: receiptID, AmountMoney: ledger.FromInt64(1)}}, operations.InvoiceDetails{Title: "Duplicate"}); !errors.Is(e, operations.ErrConflict) {
 		t.Fatalf("purchase source invoiced beyond actual payment: %v", e)
 	}
 	exit, e := coop.RequestProcurementExit(ctx, nil, owner, buyer, "exit-once", "voluntary_exit", "approved orderly exit", ledger.FromInt64(100), cooperation.CoverageRemovalGuard{Cooperation: coop, PaymentFacts: pay})
-	if e != nil || exit.ContractUSD.String() != "10" {
+	if e != nil || exit.ContractMoney.String() != "10" {
 		t.Fatal("gift refunded as cash or exit failed", exit, e)
 	}
 	refunds := &cooperation.ProcurementRefunds{Cooperation: coop, Payments: pay, Collector: collector, Capacity: capacity}
@@ -204,7 +207,7 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if views, err := refunds.BuyerRefundLegs(ctx, owner, buyer); err != nil || len(views) != 1 || views[0].AmountUSD.String() != "10" {
+	if views, err := refunds.BuyerRefundLegs(ctx, owner, buyer); err != nil || len(views) != 1 || views[0].AmountMoney.String() != "10" {
 		t.Fatalf("buyer refund projection failed: %+v %v", views, err)
 	}
 	if unlinked && (leg.SourceKind != "manual_receipt" || leg.MerchantID != "") {
@@ -217,7 +220,7 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	}
 	dispute := func() {
 		t.Helper()
-		if _, e = capacity.RecordChargeback(ctx, remediation.ChargebackInput{ActorID: owner, OperatorID: supplier, ReceiptID: receiptID, Provider: "synthetic-bank", ProviderCaseID: "later-dispute", AmountUSD: ledger.FromInt64(10), Reason: "external collection under dispute", Evidence: "verified-provider-dispute-case"}); e != nil {
+		if _, e = capacity.RecordChargeback(ctx, remediation.ChargebackInput{ActorID: owner, OperatorID: supplier, ReceiptID: receiptID, Provider: "synthetic-bank", ProviderCaseID: "later-dispute", AmountMoney: ledger.FromInt64(10), Reason: "external collection under dispute", Evidence: "verified-provider-dispute-case"}); e != nil {
 			t.Fatal(e)
 		}
 	}
@@ -279,7 +282,7 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 				t.Fatal("known actual payment was declared failed")
 			}
 			current, e := capacity.ReceiptRefundCapacity(ctx, nil, supplier, receiptID)
-			if e != nil || current.ReservedUSD.String() != "10" || !current.CompletedUSD.IsZero() {
+			if e != nil || current.ReservedMoney.String() != "10" || !current.CompletedMoney.IsZero() {
 				t.Fatal("unsettled fact released reserved funds", current, e)
 			}
 			refunds.ObserveReceiptRefund = observe
@@ -298,7 +301,7 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 				t.Fatalf("actual bank refund fact was lost: %d %v", facts, e)
 			}
 			current, e := capacity.ReceiptRefundCapacity(ctx, nil, supplier, receiptID)
-			if e != nil || current.ReservedUSD.String() != "1" || current.CompletedUSD.String() != "9" {
+			if e != nil || current.ReservedMoney.String() != "1" || current.CompletedMoney.String() != "9" {
 				t.Fatalf("actual partial transfer not recognized or full obligation falsely discharged: %+v %v", current, e)
 			}
 			if _, e = refunds.BeginManualRefund(ctx, owner, leg.ID, "explicit-supplement-one", "approved remaining USD obligation only"); e != nil {
@@ -311,7 +314,7 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 				t.Fatalf("explicit remaining supplement failed: %+v %v", completed, e)
 			}
 			current, e = capacity.ReceiptRefundCapacity(ctx, nil, supplier, receiptID)
-			if e != nil || !current.ReservedUSD.IsZero() || current.CompletedUSD.String() != "10" {
+			if e != nil || !current.ReservedMoney.IsZero() || current.CompletedMoney.String() != "10" {
 				t.Fatalf("supplement did not close exact remaining capacity: %+v %v", current, e)
 			}
 			return
@@ -347,7 +350,7 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 			t.Fatalf("original pending refund query %s %v", result.State, e)
 		}
 		current, e := capacity.ReceiptRefundCapacity(ctx, nil, supplier, receiptID)
-		if e != nil || current.ReservedUSD.String() != "10" || !current.CompletedUSD.IsZero() {
+		if e != nil || current.ReservedMoney.String() != "10" || !current.CompletedMoney.IsZero() {
 			t.Fatal("pending refund treated as settled", current, e)
 		}
 		control("/__control/refunds/"+result.ProviderID+"/settle", map[string]any{"status": "succeeded"})
@@ -356,25 +359,25 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 		}
 	}
 	current, e := capacity.ReceiptRefundCapacity(ctx, nil, supplier, receiptID)
-	if e != nil || current.CompletedUSD.String() != "10" || !current.ReservedUSD.IsZero() {
+	if e != nil || current.CompletedMoney.String() != "10" || !current.ReservedMoney.IsZero() {
 		t.Fatal("verified refund not settled shared capacity", current, e)
 	}
 	var final cooperation.ProcurementExit
-	if e = db.First(&final, "id=?", exit.ID).Error; e != nil || final.State != "settled" || final.RefundedUSD.String() != "10" {
+	if e = db.First(&final, "id=?", exit.ID).Error; e != nil || final.State != "settled" || final.RefundedMoney.String() != "10" {
 		t.Fatal("exit obligation left incorrect", final, e)
 	}
 	var finalLeg cooperation.ProcurementExitRefund
-	if e = db.First(&finalLeg, "id=?", leg.ID).Error; e != nil || finalLeg.FeeStatus != "pending" || finalLeg.FeeUSD != nil {
+	if e = db.First(&finalLeg, "id=?", leg.ID).Error; e != nil || finalLeg.FeeStatus != "pending" || finalLeg.FeeMoney != nil {
 		t.Fatalf("unknown refund fee became a confirmed zero: %+v %v", finalLeg, e)
 	}
-	accounting := cooperation.ProcurementRefundAccounting{RefundID: leg.ID, BusinessKey: "provider-refund-fee", FeeUSD: ledger.MustDecimal("0.2"), SettledAt: time.Now().UTC(), Evidence: "verified-provider-refund-fee-statement"}
+	accounting := cooperation.ProcurementRefundAccounting{RefundID: leg.ID, BusinessKey: "provider-refund-fee", FeeMoney: ledger.MustDecimal("0.2"), SettledAt: time.Now().UTC(), Evidence: "verified-provider-refund-fee-statement"}
 	if _, e = refunds.ConfirmRefundAccounting(ctx, owner, accounting); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = refunds.ConfirmRefundAccounting(ctx, owner, accounting); e != nil {
 		t.Fatal("same fee statement repeated", e)
 	}
-	accounting.FeeUSD = ledger.MustDecimal("0.3")
+	accounting.FeeMoney = ledger.MustDecimal("0.3")
 	if _, e = refunds.ConfirmRefundAccounting(ctx, owner, accounting); e == nil {
 		t.Fatal("changed fee rewrote immutable statement")
 	}
@@ -386,7 +389,7 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 		t.Fatal(e)
 	}
 	adjustments, e := capacity.InvoiceReceiptAdjustments(ctx, nil, supplier, []string{receiptID})
-	if e != nil || len(adjustments) != 1 || adjustments[0].RemovedUSD.String() != "10" {
+	if e != nil || len(adjustments) != 1 || adjustments[0].RemovedMoney.String() != "10" {
 		t.Fatal("wholesale refund missing from original receipt invoice adjustment", adjustments, e)
 	}
 	if reviewed, e := invoiceService.ReviewInvoices(ctx, supplier, 50); e != nil || reviewed != 1 {

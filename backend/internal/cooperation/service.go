@@ -99,7 +99,7 @@ func (ProcurementPosition) TableName() string { return "cooperation_procurement_
 
 type ProcurementLot struct {
 	ID, BuyerID, OrderID, ReceiptReference string
-	PaidUSD, PaidATG, GiftATG, Remaining   ledger.Decimal
+	PaidMoney, PaidATG, GiftATG, Remaining ledger.Decimal
 	PaidConsumed, GiftConsumed             ledger.Decimal
 	PaidRemoved, GiftRemoved               ledger.Decimal
 	Fingerprint                            string
@@ -111,7 +111,7 @@ func (ProcurementLot) TableName() string { return "cooperation_procurement_lots"
 
 type PurchaseInput struct {
 	BuyerID, SupplierID, OrderID, ReceiptReference, ActorID string
-	PaidUSD, PaidATG, GiftATG                               ledger.Decimal
+	PaidMoney, PaidATG, GiftATG                             ledger.Decimal
 	ExitTerms                                               json.RawMessage
 	At                                                      time.Time
 }
@@ -125,7 +125,7 @@ func (s *Service) Position(ctx context.Context, tx *gorm.DB, buyer string) (Proc
 // DeliverPurchase consumes an already verified full payment fact. The application
 // validates its allocation to the immutable wholesale quote in the same transaction.
 func (s *Service) DeliverPurchase(ctx context.Context, tx *gorm.DB, in PurchaseInput) (ProcurementLot, error) {
-	if in.OrderID == "" || in.ReceiptReference == "" || in.ActorID == "" || in.At.IsZero() || !json.Valid(in.ExitTerms) || in.PaidUSD.Sign() < 0 || in.PaidATG.Sign() < 0 || in.GiftATG.Sign() < 0 || in.PaidATG.Add(in.GiftATG).Sign() <= 0 || (in.PaidUSD.Sign() > 0 && in.PaidATG.Sign() <= 0) {
+	if in.OrderID == "" || in.ReceiptReference == "" || in.ActorID == "" || in.At.IsZero() || !json.Valid(in.ExitTerms) || in.PaidMoney.Sign() < 0 || in.PaidATG.Sign() < 0 || in.GiftATG.Sign() < 0 || in.PaidATG.Add(in.GiftATG).Sign() <= 0 || (in.PaidMoney.Sign() > 0 && in.PaidATG.Sign() <= 0) {
 		return ProcurementLot{}, ledger.ErrAmount
 	}
 	var result ProcurementLot
@@ -171,7 +171,7 @@ func (s *Service) DeliverPurchase(ctx context.Context, tx *gorm.DB, in PurchaseI
 			return e
 		}
 		qty := in.PaidATG.Add(in.GiftATG)
-		position, e := (ledger.Position{Quantity: p.Quantity, Cost: p.Cost}).Receive(qty, in.PaidUSD)
+		position, e := (ledger.Position{Quantity: p.Quantity, Cost: p.Cost}).Receive(qty, in.PaidMoney)
 		if e != nil {
 			return e
 		}
@@ -182,7 +182,7 @@ func (s *Service) DeliverPurchase(ctx context.Context, tx *gorm.DB, in PurchaseI
 		if e = t.Model(&ProcurementPosition{}).Where("buyer_id=?", in.BuyerID).Updates(map[string]any{"quantity": position.Quantity, "cost": position.Cost, "version": gorm.Expr("version+1")}).Error; e != nil {
 			return e
 		}
-		result = ProcurementLot{ID: uuid.NewString(), BuyerID: in.BuyerID, OrderID: in.OrderID, ReceiptReference: in.ReceiptReference, PaidUSD: in.PaidUSD, PaidATG: in.PaidATG, GiftATG: in.GiftATG, Remaining: qty, Fingerprint: hash(in), ExitTerms: in.ExitTerms, DeliveredAt: in.At}
+		result = ProcurementLot{ID: uuid.NewString(), BuyerID: in.BuyerID, OrderID: in.OrderID, ReceiptReference: in.ReceiptReference, PaidMoney: in.PaidMoney, PaidATG: in.PaidATG, GiftATG: in.GiftATG, Remaining: qty, Fingerprint: hash(in), ExitTerms: in.ExitTerms, DeliveredAt: in.At}
 		return t.Create(&result).Error
 	})
 	return result, err
@@ -211,7 +211,7 @@ type ProcurementSettlement struct {
 	Actual            ledger.Decimal  `json:"actual"`
 	Deducted          ledger.Decimal  `json:"deducted"`
 	PlatformShortfall ledger.Decimal  `json:"platform_shortfall"`
-	CostUSD           ledger.Decimal  `json:"cost_usd"`
+	CostMoney         ledger.Decimal  `json:"cost_money"`
 	SourceAllocations json.RawMessage `json:"source_allocations" gorm:"type:jsonb"`
 	CreatedAt         time.Time       `json:"created_at"`
 }
@@ -279,7 +279,7 @@ func (s *Service) SettleProcurement(ctx context.Context, tx *gorm.DB, buyer, req
 		if e != nil {
 			return e
 		}
-		result.CostUSD = cost
+		result.CostMoney = cost
 		if e = t.Model(&ProcurementPosition{}).Where("buyer_id=?", buyer).Updates(map[string]any{"quantity": remaining.Quantity, "cost": remaining.Cost, "version": gorm.Expr("version+1")}).Error; e != nil {
 			return e
 		}

@@ -174,10 +174,10 @@
     "ja": "記録種別",
     "ru": "Тип записи"
   },
-  "成交USD": {
-    "en": "Sale value USD",
-    "ja": "成約額 USD",
-    "ru": "Стоимость продажи USD"
+  "成交结算币种": {
+    "en": "Sale value settlement currency",
+    "ja": "成約額 決済通貨",
+    "ru": "Стоимость продажи валюта расчётов"
   },
   "赠送库存": {
     "en": "Gift inventory",
@@ -189,10 +189,10 @@
     "ja": "直属購入者へ供給見積もりを公開",
     "ru": "Опубликовать предложение прямому покупателю"
   },
-  "收款USD": {
-    "en": "Receipt USD",
-    "ja": "入金 USD",
-    "ru": "Поступление USD"
+  "收款结算币种": {
+    "en": "Receipt settlement currency",
+    "ja": "入金 決済通貨",
+    "ru": "Поступление валюта расчётов"
   },
   "成交条款编号": {
     "en": "Sale terms reference",
@@ -399,10 +399,10 @@
     "ja": "審査待ち案件",
     "ru": "Позиции к проверке"
   },
-  "责任USD": {
-    "en": "Obligation USD",
-    "ja": "責任額 USD",
-    "ru": "Обязательство USD"
+  "责任结算币种": {
+    "en": "Obligation settlement currency",
+    "ja": "責任額 決済通貨",
+    "ru": "Обязательство валюта расчётов"
   },
   "进入原业务复核": {
     "en": "Review original operation",
@@ -419,10 +419,10 @@
     "ja": "原価証憑の状態",
     "ru": "Статус подтверждения затрат"
   },
-  " USD，手续费 ": {
-    "en": " USD, fee ",
-    "ja": " USD、手数料 ",
-    "ru": " USD, комиссия "
+  " 结算币种，手续费 ": {
+    "en": " settlement currency, fee ",
+    "ja": " 決済通貨、手数料 ",
+    "ru": " валюта расчётов, комиссия "
   },
   "总额": {
     "en": "Total",
@@ -719,20 +719,20 @@
     "ja": "無効化後、元の出所で再発行を申請",
     "ru": "Запросить перевыпуск по исходному источнику после аннулирования"
   },
-  "仅可退本人未使用的USD余额，按原始收款来源退回。已购ATG不能按现价或普通退订兑现；错误交易由经营方按原成交证据处理。": {
-    "en": "Only your own unused USD balance can be refunded to its original payment sources. Purchased ATG cannot be cashed out at current prices or through ordinary cancellation. The operator handles erroneous transactions using the original sale evidence.",
-    "ja": "本人の未使用 USD 残高のみ、元の入金元へ返金できます。購入済み ATG は現価格や通常解約で換金できません。誤取引は事業者が元の成約証憑で処理します。",
-    "ru": "Возврату подлежит только ваш неиспользованный баланс USD на исходные источники платежей. Купленные ATG нельзя обналичить по текущей цене или обычной отменой. Ошибочные сделки оператор обрабатывает по исходным подтверждениям."
+  "仅可退本人未使用的结算币种余额，按原始收款来源退回。已购ATG不能按现价或普通退订兑现；错误交易由经营方按原成交证据处理。": {
+    "en": "Only your own unused settlement currency balance can be refunded to its original payment sources. Purchased ATG cannot be cashed out at current prices or through ordinary cancellation. The operator handles erroneous transactions using the original sale evidence.",
+    "ja": "本人の未使用 決済通貨 残高のみ、元の入金元へ返金できます。購入済み ATG は現価格や通常解約で換金できません。誤取引は事業者が元の成約証憑で処理します。",
+    "ru": "Возврату подлежит только ваш неиспользованный баланс валюта расчётов на исходные источники платежей. Купленные ATG нельзя обналичить по текущей цене или обычной отменой. Ошибочные сделки оператор обрабатывает по исходным подтверждениям."
   },
   "处理状态": {
     "en": "Processing status",
     "ja": "処理状態",
     "ru": "Статус обработки"
   },
-  "申请金额 USD": {
-    "en": "Requested amount USD",
-    "ja": "申請額 USD",
-    "ru": "Запрошенная сумма USD"
+  "申请金额 结算币种": {
+    "en": "Requested amount settlement currency",
+    "ja": "申請額 決済通貨",
+    "ru": "Запрошенная сумма валюта расчётов"
   },
   "撤销未执行申请": {
     "en": "Withdraw unexecuted request",
@@ -774,15 +774,15 @@
     "ja": "ルートバージョン",
     "ru": "Версия маршрута"
   },
-  "USD责任": {
-    "en": "USD obligation",
-    "ja": "USD 責任額",
-    "ru": "Обязательство USD"
+  "结算币种责任": {
+    "en": "settlement currency obligation",
+    "ja": "決済通貨 責任額",
+    "ru": "Обязательство валюта расчётов"
   },
-  "多付经营异常USD": {
-    "en": "Overpayment business exception USD",
-    "ja": "過払いによる事業例外 USD",
-    "ru": "Исключение переплаты USD"
+  "多付经营异常结算币种": {
+    "en": "Overpayment business exception settlement currency",
+    "ja": "過払いによる事業例外 決済通貨",
+    "ru": "Исключение переплаты валюта расчётов"
   },
   "退回未分配收款": {
     "en": "Return unallocated receipt",
@@ -813,11 +813,6 @@
     "en": "Evidence for unknown result",
     "ja": "結果不明の根拠",
     "ru": "Основание неизвестного результата"
-  },
-  "确认本次执行汇率与费用依据；只执行已批准原退款leg，不会重提未知退款。": {
-    "en": "Confirm this execution's exchange rate and fees. Execute only the approved original refund leg; do not resubmit an unknown refund.",
-    "ja": "今回の為替レートと手数料根拠を確認します。承認済みの元返金明細のみ実行し、結果不明の返金は再発行しません。",
-    "ru": "Подтвердите курс и комиссии текущего исполнения. Исполняется только одобренная исходная составляющая возврата; возврат с неизвестным результатом не отправляется повторно."
   },
   "明确接收地址": {
     "en": "Exact recipient address",
@@ -964,10 +959,10 @@
     "ja": "現在の事業範囲の実記録です。金額は元の高精度十進数で表示します",
     "ru": "Фактические записи текущего оператора; суммы показаны в исходном высокоточном десятичном виде"
   },
-  "充值金额 USD": {
-    "en": "Top-up amount USD",
-    "ja": "チャージ額 USD",
-    "ru": "Сумма пополнения USD"
+  "充值金额 结算币种": {
+    "en": "Top-up amount settlement currency",
+    "ja": "チャージ額 決済通貨",
+    "ru": "Сумма пополнения валюта расчётов"
   },
   "套餐": {
     "en": "Package",
@@ -1019,10 +1014,10 @@
     "ja": "新しいメールアドレス",
     "ru": "Новая почта"
   },
-  "留空将保留全部ATG，余额未归零前不能完成注销。填写代表明确放弃剩余ATG；USD与佣金仍须真实结算，不会被删除。": {
-    "en": "Leave blank to retain all ATG; account closure cannot complete until balances reach zero. Filling this explicitly waives remaining ATG. USD and commissions still require actual settlement and will not be deleted.",
-    "ja": "空欄では全 ATG を保持し、残高がゼロになるまで退会を完了できません。入力は残り ATG の明示放棄を意味します。USD と紹介報酬は実際の精算が必要で、削除されません。",
-    "ru": "Пустое поле сохраняет все ATG; закрытие невозможно до нулевых остатков. Заполнение означает явный отказ от оставшихся ATG. USD и вознаграждения требуют фактического расчёта и не удаляются."
+  "留空将保留全部ATG，余额未归零前不能完成注销。填写代表明确放弃剩余ATG；结算币种与佣金仍须真实结算，不会被删除。": {
+    "en": "Leave blank to retain all ATG; account closure cannot complete until balances reach zero. Filling this explicitly waives remaining ATG. settlement currency and commissions still require actual settlement and will not be deleted.",
+    "ja": "空欄では全 ATG を保持し、残高がゼロになるまで退会を完了できません。入力は残り ATG の明示放棄を意味します。決済通貨 と紹介報酬は実際の精算が必要で、削除されません。",
+    "ru": "Пустое поле сохраняет все ATG; закрытие невозможно до нулевых остатков. Заполнение означает явный отказ от оставшихся ATG. валюта расчётов и вознаграждения требуют фактического расчёта и не удаляются."
   },
   "停用Key及未来续费，保留全部资产、推广资格和历史佣金。恢复使用后需本人明确重新启用Key与续费。": {
     "en": "Disable the Key and future renewals while retaining all assets, referral eligibility, and past commissions. You must explicitly reenable the Key and renewals after resuming use.",
@@ -1094,25 +1089,25 @@
     "ja": "手数料証憑",
     "ru": "Подтверждение комиссии"
   },
-  "provider、provider_receipt_id、gross_usd、currency、original_amount、recipient_reference、payer_reference、verification_evidence、paid_at 等原始事实。": {
-    "en": "Original facts including provider, provider_receipt_id, gross_usd, currency, original_amount, recipient_reference, payer_reference, verification_evidence, and paid_at.",
-    "ja": "provider、provider_receipt_id、gross_usd、currency、original_amount、recipient_reference、payer_reference、verification_evidence、paid_at などの元の事実。",
-    "ru": "Исходные факты: provider, provider_receipt_id, gross_usd, currency, original_amount, recipient_reference, payer_reference, verification_evidence, paid_at."
+  "provider、provider_receipt_id、gross_money、currency、original_amount、recipient_reference、payer_reference、verification_evidence、paid_at 等原始事实。": {
+    "en": "Original facts including provider, provider_receipt_id, gross_money, currency, original_amount, recipient_reference, payer_reference, verification_evidence, and paid_at.",
+    "ja": "provider、provider_receipt_id、gross_money、currency、original_amount、recipient_reference、payer_reference、verification_evidence、paid_at などの元の事実。",
+    "ru": "Исходные факты: provider, provider_receipt_id, gross_money, currency, original_amount, recipient_reference, payer_reference, verification_evidence, paid_at."
   },
-  "分配金额 USD": {
-    "en": "Allocation amount USD",
-    "ja": "割当額 USD",
-    "ru": "Сумма распределения USD"
+  "分配金额 结算币种": {
+    "en": "Allocation amount settlement currency",
+    "ja": "割当額 決済通貨",
+    "ru": "Сумма распределения валюта расчётов"
   },
   "来源依据": {
     "en": "Source evidence",
     "ja": "出所の根拠",
     "ru": "Основание источника"
   },
-  "每单位 USD": {
-    "en": "USD per unit",
-    "ja": "単位あたり USD",
-    "ru": "USD за единицу"
+  "每单位 结算币种": {
+    "en": "settlement currency per unit",
+    "ja": "単位あたり 決済通貨",
+    "ru": "валюта расчётов за единицу"
   },
   "所属主体": {
     "en": "Owning entity",
@@ -1489,20 +1484,20 @@
     "ja": "承認・事実・元案件との関連付けの根拠",
     "ru": "Основание разрешения, фактов и связи с исходным делом"
   },
-  "USD余额及占用须通过原路退款等真实结算归零": {
-    "en": "USD balance and holds must reach zero through actual settlement such as original-route refunds",
-    "ja": "USD 残高と保留額は元経路返金などの実際の精算でゼロにする必要があります",
-    "ru": "Баланс USD и резервы должны быть обнулены фактическими расчётами, например возвратом по исходному маршруту"
+  "结算币种余额及占用须通过原路退款等真实结算归零": {
+    "en": "settlement currency balance and holds must reach zero through actual settlement such as original-route refunds",
+    "ja": "決済通貨 残高と保留額は元経路返金などの実際の精算でゼロにする必要があります",
+    "ru": "Баланс валюта расчётов и резервы должны быть обнулены фактическими расчётами, например возвратом по исходному маршруту"
   },
   "收款估值待办": {
     "en": "Receipt valuation tasks",
     "ja": "入金評価タスク",
     "ru": "Задачи оценки поступлений"
   },
-  "原币实际款已记录，尚未计入USD或交付。以真实付款时点的独立估值证据核实；不能让客户重复付款，也不能用下单时旧估值追认。": {
-    "en": "The actual original currency payment is recorded but not posted to USD or delivered. Verify using independent evidence at the actual payment time. Do not ask the customer to pay again or apply an old order-time valuation retroactively.",
-    "ja": "原通貨の実入金は記録済みですが、USD 計上・提供は未完了です。実際の支払時点の独立した評価根拠で確認してください。再支払いの要求や、注文時の旧評価の遡及適用はできません。",
-    "ru": "Фактический платёж в исходной валюте записан, но не зачислен в USD и не исполнен. Используйте независимую оценку на момент платежа. Нельзя требовать повторную оплату или задним числом применять старую оценку заказа."
+  "原币实际款已记录，尚未计入结算币种或交付。以真实付款时点的独立估值证据核实；不能让客户重复付款，也不能用下单时旧估值追认。": {
+    "en": "The actual original currency payment is recorded but not posted to settlement currency or delivered. Verify using independent evidence at the actual payment time. Do not ask the customer to pay again or apply an old order-time valuation retroactively.",
+    "ja": "原通貨の実入金は記録済みですが、決済通貨 計上・提供は未完了です。実際の支払時点の独立した評価根拠で確認してください。再支払いの要求や、注文時の旧評価の遡及適用はできません。",
+    "ru": "Фактический платёж в исходной валюте записан, но не зачислен в валюта расчётов и не исполнен. Используйте независимую оценку на момент платежа. Нельзя требовать повторную оплату или задним числом применять старую оценку заказа."
   },
   "原事实实际付款时间": {
     "en": "Actual payment time of the original fact",
@@ -1524,10 +1519,10 @@
     "ja": "請求書発行可能額",
     "ru": "Обязательство, доступное для счёта"
   },
-  "lines:[{receipt_id,amount_usd}]、details:{title,tax_id,email,address}。同一外部收款跨充值与购包只可开票一次。": {
-    "en": "lines:[{receipt_id,amount_usd}], details:{title,tax_id,email,address}. The same external receipt can be invoiced only once across top-ups and package purchases.",
-    "ja": "lines:[{receipt_id,amount_usd}]、details:{title,tax_id,email,address}。同じ外部入金はチャージ・プラン購入を通じて一度のみ発行できます。",
-    "ru": "lines:[{receipt_id,amount_usd}], details:{title,tax_id,email,address}. По одному внешнему поступлению счёт оформляется лишь один раз для пополнений и покупок пакетов."
+  "lines:[{receipt_id,amount_money}]、details:{title,tax_id,email,address}。同一外部收款跨充值与购包只可开票一次。": {
+    "en": "lines:[{receipt_id,amount_money}], details:{title,tax_id,email,address}. The same external receipt can be invoiced only once across top-ups and package purchases.",
+    "ja": "lines:[{receipt_id,amount_money}]、details:{title,tax_id,email,address}。同じ外部入金はチャージ・プラン購入を通じて一度のみ発行できます。",
+    "ru": "lines:[{receipt_id,amount_money}], details:{title,tax_id,email,address}. По одному внешнему поступлению счёт оформляется лишь один раз для пополнений и покупок пакетов."
   },
   "办理规则": {
     "en": "Processing rules",
@@ -1604,10 +1599,10 @@
     "ja": "現在のバージョン（初回 0）",
     "ru": "Текущая версия (сначала укажите 0)"
   },
-  "成交价格 USD": {
-    "en": "Agreed price USD",
-    "ja": "成約価格 USD",
-    "ru": "Согласованная цена USD"
+  "成交价格 结算币种": {
+    "en": "Agreed price settlement currency",
+    "ja": "成約価格 決済通貨",
+    "ru": "Согласованная цена валюта расчётов"
   },
   "对客户公示条款编号": {
     "en": "Public customer terms reference",
@@ -1644,10 +1639,10 @@
     "ja": "現在のキャンペーン資格を満たす",
     "ru": "Соответствует условиям текущей акции"
   },
-  "最终成交价 USD（无折扣留空）": {
-    "en": "Final sale price USD (blank if no discount)",
-    "ja": "最終成約価格 USD（割引なしは空欄）",
-    "ru": "Окончательная цена USD (пусто без скидки)"
+  "最终成交价 结算币种（无折扣留空）": {
+    "en": "Final sale price settlement currency (blank if no discount)",
+    "ja": "最終成約価格 決済通貨（割引なしは空欄）",
+    "ru": "Окончательная цена валюта расчётов (пусто без скидки)"
   },
   "开始时间": {
     "en": "Start time",
@@ -1719,25 +1714,25 @@
     "ja": "規則を有効化",
     "ru": "Включить правило"
   },
-  "实际入账总额USD": {
-    "en": "Actual gross posted USD",
-    "ja": "実際の総計上額 USD",
-    "ru": "Фактическое валовое зачисление USD"
+  "实际入账总额结算币种": {
+    "en": "Actual gross posted settlement currency",
+    "ja": "実際の総計上額 決済通貨",
+    "ru": "Фактическое валовое зачисление валюта расчётов"
   },
-  "已核实净入账USD": {
-    "en": "Verified net posted USD",
-    "ja": "確認済み純計上額 USD",
-    "ru": "Проверенное чистое зачисление USD"
+  "已核实净入账结算币种": {
+    "en": "Verified net posted settlement currency",
+    "ja": "確認済み純計上額 決済通貨",
+    "ru": "Проверенное чистое зачисление валюта расчётов"
   },
   "原网络（链上收款必填）": {
     "en": "Original network (required for on-chain receipt)",
     "ja": "元のネットワーク（オンチェーン入金は必須）",
     "ru": "Исходная сеть (обязательна для поступления в блокчейне)"
   },
-  "本次USD估值依据": {
-    "en": "Current USD valuation evidence",
-    "ja": "今回の USD 評価根拠",
-    "ru": "Основание текущей оценки USD"
+  "本次结算币种估值依据": {
+    "en": "Current settlement currency valuation evidence",
+    "ja": "今回の 決済通貨 評価根拠",
+    "ru": "Основание текущей оценки валюта расчётов"
   },
   "核实时刻": {
     "en": "Verification time",
@@ -1763,11 +1758,6 @@
     "en": "Bank verification evidence",
     "ja": "銀行確認根拠",
     "ru": "Основание банковской проверки"
-  },
-  "本次真实换汇依据": {
-    "en": "Actual exchange evidence for this execution",
-    "ja": "今回の実際の両替根拠",
-    "ru": "Основание фактического текущего обмена валюты"
   },
   "原始收款编号": {
     "en": "Original receipt ID",
@@ -2054,10 +2044,10 @@
     "ja": "実際の供給違反と引受責任の根拠",
     "ru": "Подтверждение фактического нарушения поставки и принятых обязательств"
   },
-  "本次合同退款USD": {
-    "en": "Current contract refund USD",
-    "ja": "今回の契約返金 USD",
-    "ru": "Текущий возврат по договору USD"
+  "本次合同退款结算币种": {
+    "en": "Current contract refund settlement currency",
+    "ja": "今回の契約返金 決済通貨",
+    "ru": "Текущий возврат по договору валюта расчётов"
   },
   "仅保存唯一付款意图，不能把计划当作银行退款成功。": {
     "en": "Only a unique payment intent is saved; a plan is not a successful bank refund.",
@@ -2084,10 +2074,10 @@
     "ja": "未実行の予約を取り消す",
     "ru": "Отменить неисполненный резерв"
   },
-  "待付余量USD": {
-    "en": "Remaining payable USD",
-    "ja": "支払待ち残額 USD",
-    "ru": "Остаток к выплате USD"
+  "待付余量结算币种": {
+    "en": "Remaining payable settlement currency",
+    "ja": "支払待ち残額 決済通貨",
+    "ru": "Остаток к выплате валюта расчётов"
   },
   "独立核实授权": {
     "en": "Independently verified authorization",
@@ -2098,11 +2088,6 @@
     "en": "Current valuation fact ID",
     "ja": "今回の評価事実番号",
     "ru": "ID текущего факта оценки"
-  },
-  "本次授权汇率/实际换汇依据": {
-    "en": "Current authorized exchange rate / actual exchange evidence",
-    "ja": "今回の承認為替レート / 実際の両替根拠",
-    "ru": "Текущий разрешённый курс / основание фактического обмена"
   },
   "实际估值时刻": {
     "en": "Actual valuation time",
@@ -2174,10 +2159,10 @@
     "ja": "元の入金 ID",
     "ru": "Идентификатор исходного поступления"
   },
-  "已核实实际扣回USD": {
-    "en": "Verified actual chargeback USD",
-    "ja": "確認済みの実際の差引返還 USD",
-    "ru": "Подтверждённое фактическое возвратное списание USD"
+  "已核实实际扣回结算币种": {
+    "en": "Verified actual chargeback settlement currency",
+    "ja": "確認済みの実際の差引返還 決済通貨",
+    "ru": "Подтверждённое фактическое возвратное списание валюта расчётов"
   },
   "确认这是已核实的外部扣回事实。登记将记录真实收款损失，不能用一般投诉替代资金证据。": {
     "en": "Confirm this is a verified external chargeback. Recording it recognizes an actual payment loss; general complaints cannot replace financial evidence.",
@@ -2199,10 +2184,10 @@
     "ja": "独立した再確認と分類の証拠",
     "ru": "Подтверждение независимой проверки и классификации"
   },
-  "本次真实追回USD": {
-    "en": "Actual USD recovered this time",
-    "ja": "今回実際に回収した USD",
-    "ru": "Фактически возвращённые USD в этот раз"
+  "本次真实追回结算币种": {
+    "en": "Actual settlement currency recovered this time",
+    "ja": "今回実際に回収した 決済通貨",
+    "ru": "Фактически возвращённые валюта расчётов в этот раз"
   },
   "API Key 不可用或不属于当前品牌": {
     "en": "The API key is unavailable or belongs to another brand",
@@ -2284,10 +2269,10 @@
     "ja": "購入事業者",
     "ru": "Покупатель"
   },
-  "已分配USD": {
-    "en": "Allocated USD",
-    "ja": "割当済み USD",
-    "ru": "Распределённые USD"
+  "已分配结算币种": {
+    "en": "Allocated settlement currency",
+    "ja": "割当済み 決済通貨",
+    "ru": "Распределённые валюта расчётов"
   },
   "原退出条款": {
     "en": "Original exit terms",
@@ -2324,10 +2309,10 @@
     "ja": "固定取引見積もり ID",
     "ru": "Идентификатор фиксированного предложения сделки"
   },
-  "每次最高USD": {
-    "en": "Maximum USD per payment",
-    "ja": "1 回あたりの最大 USD",
-    "ru": "Максимум USD на платёж"
+  "每次最高结算币种": {
+    "en": "Maximum settlement currency per payment",
+    "ja": "1 回あたりの最大 決済通貨",
+    "ru": "Максимум валюта расчётов на платёж"
   },
   "月": {
     "en": "Month",
@@ -2429,25 +2414,25 @@
     "ja": "実際の請求 ATG",
     "ru": "Фактически списанные ATG"
   },
-  " USD，实付 ": {
-    "en": " USD, actual payment ",
-    "ja": " USD、実支払額 ",
-    "ru": " USD, фактически оплачено "
+  " 结算币种，实付 ": {
+    "en": " settlement currency, actual payment ",
+    "ja": " 決済通貨、実支払額 ",
+    "ru": " валюта расчётов, фактически оплачено "
   },
   "手续费": {
     "en": "Fee",
     "ja": "手数料",
     "ru": "Комиссия"
   },
-  "最低提现 USD": {
-    "en": "Minimum withdrawal USD",
-    "ja": "最低出金 USD",
-    "ru": "Минимум вывода USD"
+  "最低提现 结算币种": {
+    "en": "Minimum withdrawal settlement currency",
+    "ja": "最低出金 決済通貨",
+    "ru": "Минимум вывода валюта расчётов"
   },
-  "固定手续费 USD": {
-    "en": "Fixed fee USD",
-    "ja": "固定手数料 USD",
-    "ru": "Фиксированная комиссия USD"
+  "固定手续费 结算币种": {
+    "en": "Fixed fee settlement currency",
+    "ja": "固定手数料 決済通貨",
+    "ru": "Фиксированная комиссия валюта расчётов"
   },
   "当前规则版本": {
     "en": "Current rule version",
@@ -2464,10 +2449,10 @@
     "ja": "支払結果を不明として記録",
     "ru": "Отметить результат оплаты как неизвестный"
   },
-  "payment_reference、evidence、currency、original_amount、valuation_evidence、paid_usd；必须是本次真实付款事实。": {
-    "en": "payment_reference, evidence, currency, original_amount, valuation_evidence, paid_usd; must describe this actual payment.",
-    "ja": "payment_reference、evidence、currency、original_amount、valuation_evidence、paid_usd。今回の実際の支払事実を入力してください。",
-    "ru": "payment_reference, evidence, currency, original_amount, valuation_evidence, paid_usd; укажите факты именно этого реального платежа."
+  "payment_reference、evidence、currency、original_amount、valuation_evidence、paid_money；必须是本次真实付款事实。": {
+    "en": "payment_reference, evidence, currency, original_amount, valuation_evidence, paid_money; must describe this actual payment.",
+    "ja": "payment_reference、evidence、currency、original_amount、valuation_evidence、paid_money。今回の実際の支払事実を入力してください。",
+    "ru": "payment_reference, evidence, currency, original_amount, valuation_evidence, paid_money; укажите факты именно этого реального платежа."
   },
   "已核实未付款依据": {
     "en": "Verified evidence of nonpayment",
@@ -2769,10 +2754,10 @@
     "ja": "責任者による支払いを明示的に選択します",
     "ru": "Я явно выбираю оплату ответственной стороной"
   },
-  "需独立复核的USD阈值（留空关闭）": {
-    "en": "USD threshold for independent review (blank disables)",
-    "ja": "独立再確認が必要な USD しきい値（空欄で無効）",
-    "ru": "Порог USD для независимой проверки (пусто — отключить)"
+  "需独立复核的结算币种阈值（留空关闭）": {
+    "en": "settlement currency threshold for independent review (blank disables)",
+    "ja": "独立再確認が必要な 決済通貨 しきい値（空欄で無効）",
+    "ru": "Порог валюта расчётов для независимой проверки (пусто — отключить)"
   },
   "二次复核阈值": {
     "en": "Second review threshold",
@@ -2784,10 +2769,10 @@
     "ja": "封存済みの実行と承認",
     "ru": "Архив исполнений и разрешений"
   },
-  "已真实清偿USD": {
-    "en": "Actual USD settled",
-    "ja": "実際に清算した USD",
-    "ru": "Фактически погашенные USD"
+  "已真实清偿结算币种": {
+    "en": "Actual settlement currency settled",
+    "ja": "実際に清算した 決済通貨",
+    "ru": "Фактически погашенные валюта расчётов"
   },
   "登记真实套餐异常": {
     "en": "Record an actual plan exception",
@@ -2814,10 +2799,10 @@
     "ja": "銀行支払計画と根拠",
     "ru": "План банковского платежа и подтверждение"
   },
-  "reference、evidence、actual_usd、fee_usd、currency、amount、occurred_at。必须填写本次实际付款证据。": {
-    "en": "reference, evidence, actual_usd, fee_usd, currency, amount, occurred_at. Provide evidence of this actual payment.",
-    "ja": "reference、evidence、actual_usd、fee_usd、currency、amount、occurred_at。今回の実際の支払証拠を入力してください。",
-    "ru": "reference, evidence, actual_usd, fee_usd, currency, amount, occurred_at. Укажите подтверждение именно этого реального платежа."
+  "reference、evidence、actual_money、fee_money、currency、amount、occurred_at。必须填写本次实际付款证据。": {
+    "en": "reference, evidence, actual_money, fee_money, currency, amount, occurred_at. Provide evidence of this actual payment.",
+    "ja": "reference、evidence、actual_money、fee_money、currency、amount、occurred_at。今回の実際の支払証拠を入力してください。",
+    "ru": "reference, evidence, actual_money, fee_money, currency, amount, occurred_at. Укажите подтверждение именно этого реального платежа."
   },
   "通过原通道执行": {
     "en": "Execute through the original channel",
@@ -2879,10 +2864,10 @@
     "ja": "最終手数料の確認証拠",
     "ru": "Подтверждение проверки итоговой комиссии"
   },
-  "本次实际支付USD": {
-    "en": "Actual USD paid this time",
-    "ja": "今回実際に支払った USD",
-    "ru": "Фактически оплаченные USD в этот раз"
+  "本次实际支付结算币种": {
+    "en": "Actual settlement currency paid this time",
+    "ja": "今回実際に支払った 決済通貨",
+    "ru": "Фактически оплаченные валюта расчётов в этот раз"
   },
   "当前实际付款指令": {
     "en": "Current actual payment instruction",
@@ -2974,10 +2959,10 @@
     "ja": "支払予定額",
     "ru": "К оплате"
   },
-  "确认按当前经营方收款方式创建充值订单。支付完成并核实后才进入 USD 余额。": {
-    "en": "Confirm a top-up order using the current operator's payment methods. USD balance is credited only after payment is completed and verified.",
-    "ja": "現在の事業者の支払方法でチャージ注文を作成することを確認してください。支払い完了と確認後に USD 残高へ反映します。",
-    "ru": "Подтвердите заказ пополнения со способом оплаты текущего оператора. Баланс USD пополняется только после завершения и проверки оплаты."
+  "确认按当前经营方收款方式创建充值订单。支付完成并核实后才进入 结算币种 余额。": {
+    "en": "Confirm a top-up order using the current operator's payment methods. settlement currency balance is credited only after payment is completed and verified.",
+    "ja": "現在の事業者の支払方法でチャージ注文を作成することを確認してください。支払い完了と確認後に 決済通貨 残高へ反映します。",
+    "ru": "Подтвердите заказ пополнения со способом оплаты текущего оператора. Баланс валюта расчётов пополняется только после завершения и проверки оплаты."
   },
   "赠送": {
     "en": "Bonus",
@@ -3054,10 +3039,10 @@
     "ja": "新規購入",
     "ru": "Новая покупка"
   },
-  "name、package_id（新建留空）、price_usd、paid_atg、gift_atg、period(lifetime/month/quarter/year)、timezone、terms_reference、new_purchase_enabled、renewal_enabled、expected_version": {
-    "en": "name, package_id (blank for new), price_usd, paid_atg, gift_atg, period(lifetime/month/quarter/year), timezone, terms_reference, new_purchase_enabled, renewal_enabled, expected_version",
-    "ja": "name、package_id（新規は空欄）、price_usd、paid_atg、gift_atg、period(lifetime/month/quarter/year)、timezone、terms_reference、new_purchase_enabled、renewal_enabled、expected_version",
-    "ru": "name, package_id (пусто для нового), price_usd, paid_atg, gift_atg, period(lifetime/month/quarter/year), timezone, terms_reference, new_purchase_enabled, renewal_enabled, expected_version"
+  "name、package_id（新建留空）、price_money、paid_atg、gift_atg、period(lifetime/month/quarter/year)、timezone、terms_reference、new_purchase_enabled、renewal_enabled、expected_version": {
+    "en": "name, package_id (blank for new), price_money, paid_atg, gift_atg, period(lifetime/month/quarter/year), timezone, terms_reference, new_purchase_enabled, renewal_enabled, expected_version",
+    "ja": "name、package_id（新規は空欄）、price_money、paid_atg、gift_atg、period(lifetime/month/quarter/year)、timezone、terms_reference、new_purchase_enabled、renewal_enabled、expected_version",
+    "ru": "name, package_id (пусто для нового), price_money, paid_atg, gift_atg, period(lifetime/month/quarter/year), timezone, terms_reference, new_purchase_enabled, renewal_enabled, expected_version"
   },
   "重试交付": {
     "en": "Retry delivery",
@@ -3093,11 +3078,6 @@
     "en": "Valid until",
     "ja": "有効期限",
     "ru": "Действует до"
-  },
-  "授权依据/汇率来源": {
-    "en": "Authorization evidence / exchange rate source",
-    "ja": "承認根拠 / 為替レート出所",
-    "ru": "Основание разрешения / источник курса"
   },
   "账户目的": {
     "en": "Account purpose",
@@ -3194,10 +3174,10 @@
     "ja": "招待ロール",
     "ru": "Приглашённая роль"
   },
-  "实际已核实手续费USD（确为零填0）": {
-    "en": "Verified actual fee USD (enter 0 only if truly zero)",
-    "ja": "確認済み実手数料 USD（実際にゼロなら 0）",
-    "ru": "Подтверждённая фактическая комиссия USD (0 только если действительно нулевая)"
+  "实际已核实手续费结算币种（确为零填0）": {
+    "en": "Verified actual fee settlement currency (enter 0 only if truly zero)",
+    "ja": "確認済み実手数料 決済通貨（実際にゼロなら 0）",
+    "ru": "Подтверждённая фактическая комиссия валюта расчётов (0 только если действительно нулевая)"
   },
   "只补经营方实际费用，不更改原买方清偿金额。": {
     "en": "Supplement only the operator's actual fee, without changing the original buyer's settled amount.",
@@ -3449,10 +3429,10 @@
     "ja": "検証済み最低原価",
     "ru": "Минимальная проверенная стоимость"
   },
-  "独立赠送来源，PaidUSD为0，不修改正确原交易、现金或佣金。必须有明确原因、凭据和真实销售覆盖。列表可按客户编号查询。": {
-    "en": "A separate bonus source with PaidUSD set to 0, without changing a correct original transaction, cash, or commissions. A clear reason, evidence, and actual sales coverage are required. Search the list by customer ID.",
-    "ja": "PaidUSD が 0 の独立した特典出所で、正しい元取引、現金、報酬は変更しません。明確な理由、証憑、実際の販売カバーが必要です。一覧は顧客 ID で検索できます。",
-    "ru": "Отдельный источник бонуса с PaidUSD 0 без изменения корректной исходной операции, денег или комиссий. Требуются ясная причина, подтверждение и реальное покрытие продаж. Список можно искать по ID клиента."
+  "独立赠送来源，Paid结算币种为0，不修改正确原交易、现金或佣金。必须有明确原因、凭据和真实销售覆盖。列表可按客户编号查询。": {
+    "en": "A separate bonus source with Paidsettlement currency set to 0, without changing a correct original transaction, cash, or commissions. A clear reason, evidence, and actual sales coverage are required. Search the list by customer ID.",
+    "ja": "Paid決済通貨 が 0 の独立した特典出所で、正しい元取引、現金、報酬は変更しません。明確な理由、証憑、実際の販売カバーが必要です。一覧は顧客 ID で検索できます。",
+    "ru": "Отдельный источник бонуса с Paidвалюта расчётов 0 без изменения корректной исходной операции, денег или комиссий. Требуются ясная причина, подтверждение и реальное покрытие продаж. Список можно искать по ID клиента."
   },
   "关联事实与依据": {
     "en": "Related facts and evidence",
@@ -3614,10 +3594,10 @@
     "ja": "OEM ブランド名",
     "ru": "Название бренда OEM"
   },
-  "终身资格累计净消费门槛 USD": {
-    "en": "Lifetime eligibility cumulative net spending threshold USD",
-    "ja": "生涯資格の累計純消費しきい値 USD",
-    "ru": "Порог совокупных чистых расходов USD для пожизненного права"
+  "终身资格累计净消费门槛 结算币种": {
+    "en": "Lifetime eligibility cumulative net spending threshold settlement currency",
+    "ja": "生涯資格の累計純消費しきい値 決済通貨",
+    "ru": "Порог совокупных чистых расходов валюта расчётов для пожизненного права"
   },
   "消费确认等待秒数": {
     "en": "Spending confirmation wait seconds",
@@ -3784,15 +3764,15 @@
     "ja": "実際の支払通貨",
     "ru": "Фактическая валюта оплаты"
   },
-  "已付净额USD": {
-    "en": "Net USD paid",
-    "ja": "支払済み純額 USD",
-    "ru": "Оплаченная чистая сумма USD"
+  "已付净额结算币种": {
+    "en": "Net settlement currency paid",
+    "ja": "支払済み純額 決済通貨",
+    "ru": "Оплаченная чистая сумма валюта расчётов"
   },
-  "本次申请 USD": {
-    "en": "USD requested this time",
-    "ja": "今回の申請 USD",
-    "ru": "Запрашиваемые USD в этот раз"
+  "本次申请 结算币种": {
+    "en": "settlement currency requested this time",
+    "ja": "今回の申請 決済通貨",
+    "ru": "Запрашиваемые валюта расчётов в этот раз"
   },
   "真实异常原因": {
     "en": "Actual exception reason",
@@ -3804,20 +3784,20 @@
     "ja": "事実の証拠",
     "ru": "Фактическое подтверждение"
   },
-  "本次折合USD": {
-    "en": "USD equivalent this time",
-    "ja": "今回の USD 換算額",
-    "ru": "Эквивалент USD в этот раз"
+  "本次折合结算币种": {
+    "en": "settlement currency equivalent this time",
+    "ja": "今回の 決済通貨 換算額",
+    "ru": "Эквивалент валюта расчётов в этот раз"
   },
   "原付款币种": {
     "en": "Original payment currency",
     "ja": "元の支払通貨",
     "ru": "Исходная валюта оплаты"
   },
-  "收款币种（大写，例如USD/CNY）": {
-    "en": "Receiving currency (uppercase, e.g. USD/CNY)",
-    "ja": "受取通貨（大文字、例：USD/CNY）",
-    "ru": "Валюта поступления (заглавными, например USD/CNY)"
+  "收款币种（大写，例如结算币种/CNY）": {
+    "en": "Receiving currency (uppercase, e.g. settlement currency/CNY)",
+    "ja": "受取通貨（大文字、例：決済通貨/CNY）",
+    "ru": "Валюта поступления (заглавными, например валюта расчётов/CNY)"
   },
   "Stripe服务端密钥": {
     "en": "Stripe server secret key",
@@ -4089,15 +4069,15 @@
     "ja": "今回の実際の実行金額",
     "ru": "Фактически исполненная сумма в этот раз"
   },
-  "实际累计退付USD": {
-    "en": "Actual cumulative refunded USD",
-    "ja": "実際の累計返金 USD",
-    "ru": "Фактический совокупный возврат USD"
+  "实际累计退付结算币种": {
+    "en": "Actual cumulative refunded settlement currency",
+    "ja": "実際の累計返金 決済通貨",
+    "ru": "Фактический совокупный возврат валюта расчётов"
   },
-  "多付异常USD": {
-    "en": "Overpayment exception USD",
-    "ja": "過払い例外 USD",
-    "ru": "Избыточная оплата USD"
+  "多付异常结算币种": {
+    "en": "Overpayment exception settlement currency",
+    "ja": "過払い例外 決済通貨",
+    "ru": "Избыточная оплата валюта расчётов"
   },
   "剩余款路线版本": {
     "en": "Remaining-payment route version",
@@ -4159,10 +4139,10 @@
     "ja": " · コントラクト ",
     "ru": " · Контракт "
   },
-  " USD · 原开票方 ": {
-    "en": " USD · Original issuer ",
-    "ja": " USD · 元の発行者 ",
-    "ru": " USD · Исходный выставитель счёта "
+  " 结算币种 · 原开票方 ": {
+    "en": " settlement currency · Original issuer ",
+    "ja": " 決済通貨 · 元の発行者 ",
+    "ru": " валюта расчётов · Исходный выставитель счёта "
   },
   "外部真实拒付先登记损失，再追溯原收款来源。无效付款与经营方收款风险分别处理，不能把正常客户权益直接抹去。": {
     "en": "Record actual external chargeback losses first, then trace the original receipt sources. Invalid payments and the operator's collection risks are handled separately; valid customer entitlements must not be erased.",
@@ -4334,10 +4314,10 @@
     "ja": "見積もりの供給元 ID",
     "ru": "ID поставщика расчёта"
   },
-  "周期最高USD": {
-    "en": "Maximum USD per period",
-    "ja": "期間あたりの USD 上限",
-    "ru": "Максимум USD за период"
+  "周期最高结算币种": {
+    "en": "Maximum settlement currency per period",
+    "ja": "期間あたりの 決済通貨 上限",
+    "ru": "Максимум валюта расчётов за период"
   },
   "季": {
     "en": "Quarter",
@@ -4379,10 +4359,10 @@
     "ja": "元の EVM ウォレット決済にのみ対応します。サーバーがネットワーク、コントラクト、アドレス、確認数を独立に検証します。照会情報の送信は支払成功を意味しません。",
     "ru": "Только для исходной оплаты EVM-кошельком. Сервер независимо проверяет сеть, контракт, адрес и подтверждения. Передача данных поиска не означает успешную оплату."
   },
-  "本次分配USD": {
-    "en": "USD allocated this time",
-    "ja": "今回の配分 USD",
-    "ru": "Распределено в этот раз, USD"
+  "本次分配结算币种": {
+    "en": "settlement currency allocated this time",
+    "ja": "今回の配分 決済通貨",
+    "ru": "Распределено в этот раз, валюта расчётов"
   },
   "修订本方自动补货授权": {
     "en": "Revise our automatic restocking authorization",
@@ -4449,20 +4429,20 @@
     "ja": "実使用量と受付時に固定した販売価格から計算した請求額です。顧客残高が足りる場合は実請求額と一致します。",
     "ru": "Сумма к оплате по реальному расходу и продажной цене, зафиксированной при приёме. Совпадает со списанием, если баланса клиента достаточно."
   },
-  "已核实供应成本USD": {
-    "en": "Verified supply cost (USD)",
-    "ja": "確認済み供給原価 USD",
-    "ru": "Проверенная себестоимость поставки, USD"
+  "已核实供应成本结算币种": {
+    "en": "Verified supply cost (settlement currency)",
+    "ja": "確認済み供給原価 決済通貨",
+    "ru": "Проверенная себестоимость поставки, валюта расчётов"
   },
   "总额 ": {
     "en": "Total ",
     "ja": "総額 ",
     "ru": "Всего "
   },
-  " USD。请刷新列表核对后，在此报价行确认收款资料。": {
-    "en": " USD. Refresh the list to check it, then confirm receiving details in this quote row.",
-    "ja": " USD。一覧を更新して確認し、この見積もり行で受取情報を確定してください。",
-    "ru": " USD. Обновите список и проверьте данные, затем подтвердите реквизиты в строке этого расчёта."
+  " 结算币种。请刷新列表核对后，在此报价行确认收款资料。": {
+    "en": " settlement currency. Refresh the list to check it, then confirm receiving details in this quote row.",
+    "ja": " 決済通貨。一覧を更新して確認し、この見積もり行で受取情報を確定してください。",
+    "ru": " валюта расчётов. Обновите список и проверьте данные, затем подтвердите реквизиты в строке этого расчёта."
   },
   "实付": {
     "en": "Net paid",
@@ -4494,10 +4474,10 @@
     "ja": "照会・不確実性の根拠",
     "ru": "Основание проверки и неопределённости"
   },
-  "确认真实付款凭证与USD净额一致后释放占用并完成账务。": {
-    "en": "Verify actual payment evidence matches the net USD amount before releasing the hold and completing accounting.",
-    "ja": "実際の支払証明と USD 純額の一致を確認してから、確保を解除して会計処理を完了してください。",
-    "ru": "Перед снятием резерва и завершением учёта проверьте, что подтверждение реального платежа соответствует чистой сумме USD."
+  "确认真实付款凭证与结算币种净额一致后释放占用并完成账务。": {
+    "en": "Verify actual payment evidence matches the net settlement currency amount before releasing the hold and completing accounting.",
+    "ja": "実際の支払証明と 決済通貨 純額の一致を確認してから、確保を解除して会計処理を完了してください。",
+    "ru": "Перед снятием резерва и завершением учёта проверьте, что подтверждение реального платежа соответствует чистой сумме валюта расчётов."
   },
   "已核实未付": {
     "en": "Verified unpaid",
@@ -4754,25 +4734,25 @@
     "ja": "実際の供給元 ID",
     "ru": "ID фактического поставщика"
   },
-  "USD 余额原路退款": {
-    "en": "Refund USD balance to original source",
-    "ja": "USD 残高を元の支払元に返金",
-    "ru": "Возврат USD-баланса исходным способом"
+  "结算币种 余额原路退款": {
+    "en": "Refund settlement currency balance to original source",
+    "ja": "決済通貨 残高を元の支払元に返金",
+    "ru": "Возврат валюта расчётов-баланса исходным способом"
   },
-  "申请USD": {
-    "en": "Requested USD",
-    "ja": "申請 USD",
-    "ru": "Заявленная сумма USD"
+  "申请结算币种": {
+    "en": "Requested settlement currency",
+    "ja": "申請 決済通貨",
+    "ru": "Заявленная сумма валюта расчётов"
   },
-  "申请USD余额原路退回": {
-    "en": "Request USD balance refund to original source",
-    "ja": "USD 残高の元の支払元への返金を申請",
-    "ru": "Запросить возврат USD-баланса исходным способом"
+  "申请结算币种余额原路退回": {
+    "en": "Request settlement currency balance refund to original source",
+    "ja": "決済通貨 残高の元の支払元への返金を申請",
+    "ru": "Запросить возврат валюта расчётов-баланса исходным способом"
   },
-  "将占用本人未使用USD余额并进入原路退款审核；未知支付结果期间不会重复付款。": {
-    "en": "Your unused USD balance will be reserved for review of a refund to the original source. Unknown payment results do not cause repeated payments.",
-    "ja": "未使用の USD 残高を確保し、元の支払元への返金審査に入ります。支払結果が不明な間に重複支払は行いません。",
-    "ru": "Неиспользованный USD-баланс будет зарезервирован для проверки возврата исходным способом. При неизвестном результате повторная оплата не производится."
+  "将占用本人未使用结算币种余额并进入原路退款审核；未知支付结果期间不会重复付款。": {
+    "en": "Your unused settlement currency balance will be reserved for review of a refund to the original source. Unknown payment results do not cause repeated payments.",
+    "ja": "未使用の 決済通貨 残高を確保し、元の支払元への返金審査に入ります。支払結果が不明な間に重複支払は行いません。",
+    "ru": "Неиспользованный валюта расчётов-баланс будет зарезервирован для проверки возврата исходным способом. При неизвестном результате повторная оплата не производится."
   },
   "退款网络": {
     "en": "Refund network",
@@ -4809,10 +4789,10 @@
     "ja": "元の申請",
     "ru": "Исходная заявка"
   },
-  "仍占用待付USD": {
-    "en": "USD still reserved for payment",
-    "ja": "支払待ちで確保中の USD",
-    "ru": "USD, всё ещё зарезервированные к выплате"
+  "仍占用待付结算币种": {
+    "en": "settlement currency still reserved for payment",
+    "ja": "支払待ちで確保中の 決済通貨",
+    "ru": "валюта расчётов, всё ещё зарезервированные к выплате"
   },
   "action:'package_exception'、customer_id、order_id、reason(transaction_error/unable_to_fulfill)、evidence；只按原成交剩余责任退款，撤销未用权益与赠送。": {
     "en": "action:'package_exception', customer_id, order_id, reason(transaction_error/unable_to_fulfill), evidence. Refund only the remaining original liability; revoke unused credits and bonuses.",
@@ -4843,11 +4823,6 @@
     "en": "Unknown result — keep reservation",
     "ja": "結果不明・確保を維持",
     "ru": "Результат неизвестен — сохранить резерв"
-  },
-  "money:{currency,amount}、refund_valuation（非USD必填本次FX实际报价）、valued_at、fx_execution_reference；原merchant/order由服务器解析。": {
-    "en": "money:{currency,amount}, refund_valuation (actual FX quote required for non-USD), valued_at, fx_execution_reference; original merchant/order resolved by the server.",
-    "ja": "money:{currency,amount}、refund_valuation（USD 以外は今回の実際の FX 見積もり必須）、valued_at、fx_execution_reference。元の merchant/order はサーバーで特定します。",
-    "ru": "money:{currency,amount}, refund_valuation (для не-USD нужен фактический курс FX), valued_at, fx_execution_reference; исходные merchant/order определяет сервер."
   },
   "本人最新确认": {
     "en": "My latest confirmation",
@@ -4889,10 +4864,10 @@
     "ja": "実際の送金を外部経路で確認済みです。この操作は実行の事実を記録し、自動返金 API は呼び出しません。",
     "ru": "Фактический перевод проверен во внешнем канале. Операция регистрирует факт исполнения и не вызывает API автоматического возврата."
   },
-  "实际已核实经营手续费USD（确为零时填0）": {
-    "en": "Verified actual operating fee (USD; enter 0 only if truly zero)",
-    "ja": "確認済みの実際の運営手数料 USD（実際にゼロの場合のみ 0）",
-    "ru": "Проверенная фактическая комиссия оператора, USD (0 только при нулевой комиссии)"
+  "实际已核实经营手续费结算币种（确为零时填0）": {
+    "en": "Verified actual operating fee (settlement currency; enter 0 only if truly zero)",
+    "ja": "確認済みの実際の運営手数料 決済通貨（実際にゼロの場合のみ 0）",
+    "ru": "Проверенная фактическая комиссия оператора, валюта расчётов (0 только при нулевой комиссии)"
   },
   "实际费用发生时刻": {
     "en": "Actual fee incurred at",
@@ -5019,10 +4994,10 @@
     "ja": "審査前のこの出金申請を取り消しますか？取消成功後にコミッションの確保を解除します。審査・支払中の申請は最新の状態に従って処理してください。",
     "ru": "Отменить ещё не проверенную заявку на вывод? После успешной отмены резерв комиссии освобождается. Если проверка или оплата уже началась, действуйте по текущему статусу."
   },
-  "提现总额 USD": {
-    "en": "Withdrawal total (USD)",
-    "ja": "出金総額 USD",
-    "ru": "Общая сумма вывода, USD"
+  "提现总额 结算币种": {
+    "en": "Withdrawal total (settlement currency)",
+    "ja": "出金総額 決済通貨",
+    "ru": "Общая сумма вывода, валюта расчётов"
   },
   "品牌身份范围": {
     "en": "Brand identity scope",
@@ -5059,10 +5034,10 @@
     "ja": "完了後はログイン情報を無効化します。サーバーが清算を項目ごとに検証するため、操作だけで未精算資産を消去することはできません。",
     "ru": "После завершения данные входа отзываются. Сервер проверяет каждый расчёт; нажатие кнопки не удаляет неурегулированные активы."
   },
-  "仅注销清算中可执行。将真实撤销全部未使用购买与赠送ATG，不触碰USD或佣金。该放弃将保留不可变证据。": {
-    "en": "Available only during account closure settlement. Revokes all unused purchased and bonus ATG without touching USD or commission. An immutable record of the waiver is retained.",
-    "ja": "閉鎖清算中のみ実行できます。未使用の購入分・付与分 ATG をすべて取消し、USD やコミッションには影響しません。放棄の証拠は変更不能な形で保持します。",
-    "ru": "Доступно только при расчётах закрытия аккаунта. Отзывает все неиспользованные купленные и бонусные ATG, не затрагивая USD или комиссию. Неизменяемое подтверждение отказа сохраняется."
+  "仅注销清算中可执行。将真实撤销全部未使用购买与赠送ATG，不触碰结算币种或佣金。该放弃将保留不可变证据。": {
+    "en": "Available only during account closure settlement. Revokes all unused purchased and bonus ATG without touching settlement currency or commission. An immutable record of the waiver is retained.",
+    "ja": "閉鎖清算中のみ実行できます。未使用の購入分・付与分 ATG をすべて取消し、決済通貨 やコミッションには影響しません。放棄の証拠は変更不能な形で保持します。",
+    "ru": "Доступно только при расчётах закрытия аккаунта. Отзывает все неиспользованные купленные и бонусные ATG, не затрагивая валюта расчётов или комиссию. Неизменяемое подтверждение отказа сохраняется."
   },
   "经营资源不存在": {
     "en": "Business resource not found",
@@ -5114,10 +5089,10 @@
     "ja": "注文 ID",
     "ru": "ID заказа"
   },
-  "每单位 USD 估值": {
-    "en": "USD value per unit",
-    "ja": "1 単位あたりの USD 評価額",
-    "ru": "Оценка USD за единицу"
+  "每单位 结算币种 估值": {
+    "en": "settlement currency value per unit",
+    "ja": "1 単位あたりの 決済通貨 評価額",
+    "ru": "Оценка валюта расчётов за единицу"
   },
   "发布收款估值依据": {
     "en": "Publish receipt valuation basis",
@@ -5149,10 +5124,10 @@
     "ja": "利用回数",
     "ru": "Число использований"
   },
-  "campaign_id、package_id、final_price_usd、gift_atg、starts_at、ends_at、per_customer_limit、total_limit、gift_budget_atg、allow_combination、enabled、expected_version 等": {
-    "en": "campaign_id, package_id, final_price_usd, gift_atg, starts_at, ends_at, per_customer_limit, total_limit, gift_budget_atg, allow_combination, enabled, expected_version, etc.",
-    "ja": "campaign_id、package_id、final_price_usd、gift_atg、starts_at、ends_at、per_customer_limit、total_limit、gift_budget_atg、allow_combination、enabled、expected_version など",
-    "ru": "campaign_id, package_id, final_price_usd, gift_atg, starts_at, ends_at, per_customer_limit, total_limit, gift_budget_atg, allow_combination, enabled, expected_version и др."
+  "campaign_id、package_id、final_price_money、gift_atg、starts_at、ends_at、per_customer_limit、total_limit、gift_budget_atg、allow_combination、enabled、expected_version 等": {
+    "en": "campaign_id, package_id, final_price_money, gift_atg, starts_at, ends_at, per_customer_limit, total_limit, gift_budget_atg, allow_combination, enabled, expected_version, etc.",
+    "ja": "campaign_id、package_id、final_price_money、gift_atg、starts_at、ends_at、per_customer_limit、total_limit、gift_budget_atg、allow_combination、enabled、expected_version など",
+    "ru": "campaign_id, package_id, final_price_money, gift_atg, starts_at, ends_at, per_customer_limit, total_limit, gift_budget_atg, allow_combination, enabled, expected_version и др."
   },
   "推广功能状态": {
     "en": "Promotion feature status",
@@ -5364,10 +5339,10 @@
     "ja": "確認の証拠",
     "ru": "Доказательство проверки"
   },
-  "本次分配 USD": {
-    "en": "USD allocated this time",
-    "ja": "今回の配分 USD",
-    "ru": "Распределено в этот раз, USD"
+  "本次分配 结算币种": {
+    "en": "settlement currency allocated this time",
+    "ja": "今回の配分 決済通貨",
+    "ru": "Распределено в этот раз, валюта расчётов"
   },
   "已收到原币": {
     "en": "Original currency received",
@@ -5514,10 +5489,10 @@
     "ja": "残りの付与 ATG は正式閉鎖と同じトランザクションで失効します。付与分のみの消去のために購入資産を放棄する必要はありません",
     "ru": "Остаток бонусных ATG истекает в той же транзакции, что и окончательное закрытие аккаунта. Для удаления только бонусов не требуется отказываться от купленных активов"
   },
-  "包含估值、精度及收款匹配待办；未折算或假定为0 USD": {
-    "en": "Includes pending valuation, precision and receipt matching; amounts are not converted or assumed to be 0 USD.",
-    "ja": "評価・精度・入金照合の未処理項目を含みます。未換算額を 0 USD と仮定していません",
-    "ru": "Включает ожидающие оценки, точности и сопоставления поступлений; суммы не конвертированы и не считаются равными 0 USD"
+  "包含估值、精度及收款匹配待办；未折算或假定为0 结算币种": {
+    "en": "Includes pending valuation, precision and receipt matching; amounts are not converted or assumed to be 0 settlement currency.",
+    "ja": "評価・精度・入金照合の未処理項目を含みます。未換算額を 0 決済通貨 と仮定していません",
+    "ru": "Включает ожидающие оценки, точности и сопоставления поступлений; суммы не конвертированы и не считаются равными 0 валюта расчётов"
   },
   "已实际收到原币": {
     "en": "Original currency actually received",
@@ -5679,10 +5654,10 @@
     "ja": "顧客ごとの回数制限",
     "ru": "Лимит на клиента"
   },
-  "折扣总预算 USD": {
-    "en": "Total discount budget (USD)",
-    "ja": "割引総予算 USD",
-    "ru": "Общий бюджет скидок, USD"
+  "折扣总预算 结算币种": {
+    "en": "Total discount budget (settlement currency)",
+    "ja": "割引総予算 決済通貨",
+    "ru": "Общий бюджет скидок, валюта расчётов"
   },
   "主色（留空继承，#RRGGBB）": {
     "en": "Primary color (blank to inherit, #RRGGBB)",
@@ -5744,10 +5719,10 @@
     "ja": "外部入金の一意の取引番号",
     "ru": "Уникальный номер внешнего поступления"
   },
-  "已核实手续费USD": {
-    "en": "Verified fee (USD)",
-    "ja": "確認済み手数料 USD",
-    "ru": "Проверенная комиссия, USD"
+  "已核实手续费结算币种": {
+    "en": "Verified fee (settlement currency)",
+    "ja": "確認済み手数料 決済通貨",
+    "ru": "Проверенная комиссия, валюта расчётов"
   },
   "原币种实收金额": {
     "en": "Actual receipts in original currency",
@@ -5809,15 +5784,15 @@
     "ja": "取引エラー",
     "ru": "Ошибка транзакции"
   },
-  "退回 USD": {
-    "en": "USD to refund",
-    "ja": "返金 USD",
-    "ru": "USD к возврату"
+  "退回 结算币种": {
+    "en": "settlement currency to refund",
+    "ja": "返金 決済通貨",
+    "ru": "валюта расчётов к возврату"
   },
-  "付款方手续费USD": {
-    "en": "Payer fee (USD)",
-    "ja": "支払者の手数料 USD",
-    "ru": "Комиссия плательщика, USD"
+  "付款方手续费结算币种": {
+    "en": "Payer fee (settlement currency)",
+    "ja": "支払者の手数料 決済通貨",
+    "ru": "Комиссия плательщика, валюта расчётов"
   },
   "本次实际执行币种金额": {
     "en": "Amount in actual execution currency",
@@ -5924,10 +5899,10 @@
     "ja": "プラン更新条件・資金の通知",
     "ru": "Напоминание об условиях и средствах для продления"
   },
-  " USD，购买 ": {
-    "en": " USD, purchased ",
-    "ja": " USD、購入分 ",
-    "ru": " USD, куплено "
+  " 结算币种，购买 ": {
+    "en": " settlement currency, purchased ",
+    "ja": " 決済通貨、購入分 ",
+    "ru": " валюта расчётов, куплено "
   },
   "。请核对条款；不利变化需要本人重新确认，资金不足不会产生客户欠款。": {
     "en": ". Review the terms; adverse changes require your new confirmation. Insufficient funds do not create customer debt.",
@@ -6154,15 +6129,10 @@
     "ja": "元の確認済み支払者口座",
     "ru": "Исходный проверенный счёт плательщика"
   },
-  "使用本次真实执行汇率，退款ID固定为原leg；未知时只查询原交易。": {
-    "en": "Use the actual execution exchange rate. The refund ID remains the original leg; unknown results require checking the original transaction only.",
-    "ja": "今回の実際の実行為替レートを使用します。返金 ID は元の leg に固定し、結果不明時は元の取引のみ照会します。",
-    "ru": "Используйте фактический курс исполнения. ID возврата остаётся исходным leg; при неизвестном результате проверяйте только исходную транзакцию."
-  },
-  "清偿责任USD": {
-    "en": "Liability settled (USD)",
-    "ja": "清算した責任 USD",
-    "ru": "Погашенное обязательство, USD"
+  "清偿责任结算币种": {
+    "en": "Liability settled (settlement currency)",
+    "ja": "清算した責任 決済通貨",
+    "ru": "Погашенное обязательство, валюта расчётов"
   },
   "明确授权地址": {
     "en": "Explicitly authorized address",
@@ -6174,10 +6144,10 @@
     "ja": "封印済み履歴",
     "ru": "Архивная история"
   },
-  "本次真实每单位USD": {
-    "en": "Actual USD per unit this time",
-    "ja": "今回の実際の 1 単位あたり USD",
-    "ru": "Фактические USD за единицу в этот раз"
+  "本次真实每单位结算币种": {
+    "en": "Actual settlement currency per unit this time",
+    "ja": "今回の実際の 1 単位あたり 決済通貨",
+    "ru": "Фактические валюта расчётов за единицу в этот раз"
   },
   "本次估值失效": {
     "en": "This valuation expires",
@@ -6692,23 +6662,23 @@
     "ja": "退出前に供給元が実際に受領した仕入代金の評価と照合を完了してください",
     "ru": "Перед выходом необходимо оценить и сопоставить закупочные платежи, фактически полученные поставщиками"
   },
-  "frozen commission USD: {amount}": {
-    "zh": "冻结佣金 USD：{amount}",
-    "en": "frozen commission USD: {amount}",
-    "ja": "凍結中の報酬 USD：{amount}",
-    "ru": "Замороженная комиссия USD: {amount}"
+  "frozen commission 结算币种: {amount}": {
+    "zh": "冻结佣金 结算币种：{amount}",
+    "en": "frozen commission settlement currency: {amount}",
+    "ja": "凍結中の報酬 決済通貨：{amount}",
+    "ru": "Замороженная комиссия валюта расчётов: {amount}"
   },
-  "available/held commission USD: {available} / {held}": {
-    "zh": "可用／已占用佣金 USD：{available} / {held}",
-    "en": "available/held commission USD: {available} / {held}",
-    "ja": "利用可能／確保中の報酬 USD：{available} / {held}",
-    "ru": "Доступная / зарезервированная комиссия USD: {available} / {held}"
+  "available/held commission 结算币种: {available} / {held}": {
+    "zh": "可用／已占用佣金 结算币种：{available} / {held}",
+    "en": "available/held commission settlement currency: {available} / {held}",
+    "ja": "利用可能／確保中の報酬 決済通貨：{available} / {held}",
+    "ru": "Доступная / зарезервированная комиссия валюта расчётов: {available} / {held}"
   },
-  "pending commission recovery USD: {amount}": {
-    "zh": "佣金待抵扣 USD：{amount}",
-    "en": "pending commission recovery USD: {amount}",
-    "ja": "未相殺の報酬回収額 USD：{amount}",
-    "ru": "Комиссия к удержанию USD: {amount}"
+  "pending commission recovery 结算币种: {amount}": {
+    "zh": "佣金待抵扣 结算币种：{amount}",
+    "en": "pending commission recovery settlement currency: {amount}",
+    "ja": "未相殺の報酬回収額 決済通貨：{amount}",
+    "ru": "Комиссия к удержанию валюта расчётов: {amount}"
   },
   "{receipts} actual original-currency receipts await verified valuation or receipt matching; {recorded} recorded receipts retain unallocated principal": {
     "zh": "{receipts} 笔原币实际收款待核实估值或匹配；{recorded} 笔已登记收款仍有未分配本金",
@@ -6876,30 +6846,30 @@
     "ja": "このモデルを公開する前に、能力を少なくとも一つ選んでください",
     "ru": "Отметьте хотя бы одну возможность, прежде чем открывать эту модель"
   },
-  "先添加供应商密钥。再为这个供应商登记模型：供应商那边的模型名称、怎么读取用量，以及 USD 成本价。客户零售价仍在模型与定价。": {
-    "en": "Add the supplier secret first. Then register that supplier's models: the supplier model name, how usage is read, and the USD cost. Customer retail prices stay on model pricing.",
-    "ja": "まず供給元の鍵を追加します。次にその供給元のモデルを登録します。供給元のモデル名、使用量の読み取り方、USD コストです。顧客の小売価格はモデルと価格に残します。",
-    "ru": "Сначала добавьте ключ поставщика. Затем зарегистрируйте его модели: имя у поставщика, способ чтения расхода и себестоимость в USD. Розница для клиента остаётся в ценах моделей."
+  "先添加供应商密钥。再为这个供应商登记模型：供应商那边的模型名称、怎么读取用量，以及 原币种 成本价。客户零售价仍在模型与定价。": {
+    "en": "Add the supplier secret first. Then register that supplier's models: the supplier model name, how usage is read, and the original currency cost. Customer retail prices stay on model pricing.",
+    "ja": "まず供給元の鍵を追加します。次にその供給元のモデルを登録します。供給元のモデル名、使用量の読み取り方、元通貨 コストです。顧客の小売価格はモデルと価格に残します。",
+    "ru": "Сначала добавьте ключ поставщика. Затем зарегистрируйте его модели: имя у поставщика, способ чтения расхода и себестоимость в исходная валюта. Розница для клиента остаётся в ценах моделей."
   },
   "配置供应商模型": {
     "en": "Configure a supplier model",
     "ja": "供給元モデルを設定",
     "ru": "Настроить модель поставщика"
   },
-  "选择已经保存的供应商密钥，填写供应商那边的模型名称、用量读取方式和 USD 成本价。": {
-    "en": "Choose a saved supplier secret, then enter the supplier model name, how usage is read, and the USD cost.",
-    "ja": "保存済みの供給元の鍵を選び、供給元のモデル名、使用量の読み取り方、USD コストを記入します。",
-    "ru": "Выберите сохранённый ключ поставщика и укажите имя модели, способ чтения расхода и себестоимость в USD."
+  "选择已经保存的供应商密钥，填写供应商那边的模型名称、用量读取方式和 原币种 成本价。": {
+    "en": "Choose a saved supplier secret, then enter the supplier model name, how usage is read, and the original currency cost.",
+    "ja": "保存済みの供給元の鍵を選び、供給元のモデル名、使用量の読み取り方、元通貨 コストを記入します。",
+    "ru": "Выберите сохранённый ключ поставщика и укажите имя модели, способ чтения расхода и себестоимость в исходная валюта."
   },
   "编辑供应商模型": {
     "en": "Edit supplier model",
     "ja": "供給元モデルを編集",
     "ru": "Изменить модель поставщика"
   },
-  "修改这个供应商模型的调用、用量读取和 USD 成本价。已经绑定的路由会跟着更新。": {
-    "en": "Change how this supplier model is called, how usage is read, and the USD cost. Routes already bound to it follow the change.",
-    "ja": "この供給元モデルの呼び出し、使用量の読み取り、USD コストを変更します。すでに紐付いたルートも更新されます。",
-    "ru": "Измените вызов этой модели поставщика, чтение расхода и себестоимость в USD. Уже привязанные маршруты обновятся вместе с ней."
+  "修改这个供应商模型的调用、用量读取和 原币种 成本价。已经绑定的路由会跟着更新。": {
+    "en": "Change how this supplier model is called, how usage is read, and the original currency cost. Routes already bound to it follow the change.",
+    "ja": "この供給元モデルの呼び出し、使用量の読み取り、元通貨 コストを変更します。すでに紐付いたルートも更新されます。",
+    "ru": "Измените вызов этой модели поставщика, чтение расхода и себестоимость в исходная валюта. Уже привязанные маршруты обновятся вместе с ней."
   },
   "为一个公开模型绑上一个或多个供应商模型，并选择先用哪一条。连续失败或读不到用量时，按每条绑定上的数字暂时停用。": {
     "en": "Bind one or more supplier models to a public model and choose which one is used first. After repeated failures or unreadable usage, that binding pauses according to its numbers.",

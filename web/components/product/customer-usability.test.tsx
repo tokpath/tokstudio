@@ -13,11 +13,11 @@ import customerUX from "@/locales/customer-ux.json";
 
 const product = vi.hoisted(() => ({ baseURL: "https://brand.example.test/v1" }));
 vi.mock("./context", () => ({ useProduct: () => ({ context: { brand: { api_base_url: product.baseURL }, payment_methods: [{ id: "bank", name: "银行转账", status: "ready" }] } }) }));
-const credits = { customer_atg: { available: "100", held: "2", purchased_remaining: "90", gift_remaining: "10" }, usd_balance: { available: "3.000000000000000001", held: "0" }, commission_usd: { available: "2", held: "0", frozen: "1", recovery_due: "0" }, qualification: { confirmed_usd: "0", pending_usd: "0", threshold_usd: "100", qualified_at: null, function_status: "normal" } };
+const credits = { customer_atg: { available: "100", held: "2", purchased_remaining: "90", gift_remaining: "10" }, money_balance: { available: "3.000000000000000001", held: "0" }, commission_money: { available: "2", held: "0", frozen: "1", recovery_due: "0" }, qualification: { confirmed_money: "0", pending_money: "0", threshold_money: "100", qualified_at: null, function_status: "normal" } };
 const apiKey = { id: "key-one", name: "生产应用", prefix: "th_production", status: "active", model_ids: null, budget: { limit_atg: "20", period: "month", timezone: "Asia/Shanghai", spent_atg: "1", held_atg: "0", overage_atg: "0", window_start: null, window_end: null }, rate_limit_rpm: null, concurrency_limit: null, version: 1, created_at: "2026-10-18T00:00:00Z" };
 const call = { id: "request-one", model_id: "public-model", key_name: "生产应用", status: "completed", charged_atg: "0.01", held_atg: "0", created_at: "2026-10-18T00:00:00Z" };
-const plan = { id: "plan-one", name: "按需套餐", price_usd: "10", purchase_atg: "20.000000000000000000000001", gift_atg: "2", validity: "month", auto_renew_available: true, status: "active", version: 1 };
-const quote = { id: "quote-one", plan_id: "plan-one", plan_name: "按需套餐", operator_name: "经营方", amount_usd: "10", purchase_atg: "20", plan_gift_atg: "2", operator_gift_atg: "0", kol_gift_atg: "0", total_atg: "22", validity: "month", terms_version: "terms-one", expires_at: "2099-10-18T00:00:00Z", warnings: [] };
+const plan = { id: "plan-one", name: "按需套餐", price_money: "10", purchase_atg: "20.000000000000000000000001", gift_atg: "2", validity: "month", auto_renew_available: true, status: "active", version: 1 };
+const quote = { id: "quote-one", plan_id: "plan-one", plan_name: "按需套餐", operator_name: "经营方", amount_money: "10", purchase_atg: "20", plan_gift_atg: "2", operator_gift_atg: "0", kol_gift_atg: "0", total_atg: "22", validity: "month", terms_version: "terms-one", expires_at: "2099-10-18T00:00:00Z", warnings: [] };
 const response = (data: unknown) => new Response(JSON.stringify(data), { status: 200 });
 function mount(children: ReactNode) { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return render(<QueryClientProvider client={cache}>{children}</QueryClientProvider>); }
 function overviewFetch(items: unknown[]) { return vi.fn(async (path: RequestInfo | URL) => { const url = String(path); return response(url.endsWith("/credits") ? credits : { items: url.endsWith("/requests") ? items : url.endsWith("/keys") ? [apiKey] : [] }); }); }
@@ -90,13 +90,13 @@ it("shows exact total plan credits and puts funding tools after the product cata
 it("starts with a collapsed exact allocation and keeps commission an explicit choice", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => response(credits)));
   mount(<Checkout quote={quote} supportsRenewal changeOffers={vi.fn()} />);
-  await waitFor(() => expect((screen.getByLabelText("本次使用 USD 支付余额") as HTMLInputElement).value).toBe(credits.usd_balance.available));
+  await waitFor(() => expect((screen.getByLabelText("本次使用 结算币种 支付余额") as HTMLInputElement).value).toBe(credits.money_balance.available));
   const details = screen.getByText("精确调整抵扣金额").closest("details")!;
   expect(details.open).toBe(false);
   expect((screen.getByLabelText(/使用可用佣金补足/) as HTMLInputElement).checked).toBe(false);
   expect(screen.getByLabelText("6.999999999999999999 USD")).toBeTruthy();
   fireEvent.click(screen.getByText("精确调整抵扣金额")); expect(details.open).toBe(true);
-  fireEvent.change(screen.getByLabelText("本次使用 USD 支付余额"), { target: { value: "1.000000000000000001" } });
+  fireEvent.change(screen.getByLabelText("本次使用 结算币种 支付余额"), { target: { value: "1.000000000000000001" } });
   expect(screen.getByLabelText("8.999999999999999999 USD")).toBeTruthy();
 });
 

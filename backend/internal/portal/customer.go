@@ -91,6 +91,11 @@ func (a *Application) publicOperator(c *gin.Context) (organization.Operator, err
 }
 func (a *Application) publicContext(c *gin.Context) {
 	ctx := c.Request.Context()
+	monetary, err := ledger.GetMonetary(ctx, a.DB)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 	b := brand(c)
 	op, e := a.Organization.GetOperator(ctx, nil, b.OwnerOperatorID)
 	if e != nil {
@@ -136,6 +141,11 @@ func (a *Application) publicContext(c *gin.Context) {
 	}
 	available := []gin.H{{"capability": "registration", "enabled": status.Registration && a.Mail.Available()}, {"capability": "new_purchase", "enabled": status.NewPurchase}, {"capability": "renewal", "enabled": status.Renewal}, {"capability": "model_usage", "enabled": status.ModelUsage}, {"capability": "activity", "enabled": status.Activity}, {"capability": "settlement", "enabled": status.Settlement}}
 	for _, entry := range available {
+		if monetary.Status!="locked" {
+			entry["enabled"]=false
+			entry["reason"]="全系统清算币种和 ATG 基础比例尚未正式生效，请由平台负责人完成营业前设置。"
+			continue
+		}
 		if !entry["enabled"].(bool) {
 			entry["reason"] = "当前经营方尚未开放或配置未完成"
 		}
@@ -158,7 +168,7 @@ func (a *Application) publicContext(c *gin.Context) {
 	}
 	_, googleErr := a.Organization.OpenGoogleCredential(ctx, nil, b.ID, a.googleRedirectURI(c), a.Config.AppKey, false)
 	// 官方品牌没有单独的开关，登录页和注册页始终提供 Google 登录。OEM 仍要配置并验证后才显示。
-	result := gin.H{"brand": a.brandDTO(ctx, b), "operator": a.operatorDTO(ctx, op), "theme": theme.Theme, "availability": available, "payment_methods": pm, "google_sign_in": b.ID == a.Installation.BrandID || googleErr == nil}
+	result := gin.H{"monetary": monetary, "brand": a.brandDTO(ctx, b), "operator": a.operatorDTO(ctx, op), "theme": theme.Theme, "availability": available, "payment_methods": pm, "google_sign_in": b.ID == a.Installation.BrandID || googleErr == nil}
 	if invitation != nil {
 		result["invitation"] = invitation
 	}
@@ -235,7 +245,7 @@ func (a *Application) plans(c *gin.Context) {
 		if p.NewPurchaseEnabled {
 			status = "active"
 		}
-		items = append(items, gin.H{"id": p.ID, "name": p.Name, "price_usd": q.PriceUSD, "purchase_atg": q.PaidATG, "gift_atg": q.GiftATG, "validity": validity(q.Period), "auto_renew_available": p.RenewalEnabled && q.Period != ledger.Lifetime, "status": status, "version": q.Version, "quote_id": q.ID, "terms_summary": commerce.PackageTermsSummary(q), "description": commerce.PackageTermsSummary(q)})
+		items = append(items, gin.H{"id": p.ID, "name": p.Name, "price_money": q.PriceMoney, "purchase_atg": q.PaidATG, "gift_atg": q.GiftATG, "validity": validity(q.Period), "auto_renew_available": p.RenewalEnabled && q.Period != ledger.Lifetime, "status": status, "version": q.Version, "quote_id": q.ID, "terms_summary": commerce.PackageTermsSummary(q), "description": commerce.PackageTermsSummary(q)})
 	}
 	c.JSON(200, gin.H{"items": items})
 }
@@ -255,7 +265,7 @@ func (a *Application) credits(c *gin.Context) {
 		}
 		return row, e
 	}
-	usd, e := account("customer:usd")
+	usd, e := account("customer:money")
 	if e != nil {
 		handleError(c, e)
 		return
@@ -293,7 +303,7 @@ func (a *Application) credits(c *gin.Context) {
 	} else {
 		spendable = comm.Available()
 	}
-	c.JSON(200, gin.H{"customer_atg": gin.H{"available": summary.AvailableATG, "held": summary.HeldATG, "purchased_remaining": summary.PurchasedRemainingATG, "gift_remaining": summary.GiftRemainingATG, "expired": summary.ExpiredATG}, "usd_balance": gin.H{"available": usd.Available(), "held": usd.Held}, "commission_usd": gin.H{"available": spendable, "source_restricted": restricted, "held": comm.Held, "frozen": frozen.Balance, "recovery_due": q.PendingOffsetUSD}, "qualification": gin.H{"confirmed_usd": q.ConfirmedUSD, "pending_usd": overview.PendingConsumptionUSD, "pending_correction_usd": overview.PendingCorrectionUSD, "threshold_usd": policy.ThresholdUSD, "qualified_at": q.AcquiredAt, "function_status": overview.FunctionState.Status}})
+	c.JSON(200, gin.H{"customer_atg": gin.H{"available": summary.AvailableATG, "held": summary.HeldATG, "purchased_remaining": summary.PurchasedRemainingATG, "gift_remaining": summary.GiftRemainingATG, "expired": summary.ExpiredATG}, "money_balance": gin.H{"available": usd.Available(), "held": usd.Held}, "commission_money": gin.H{"available": spendable, "source_restricted": restricted, "held": comm.Held, "frozen": frozen.Balance, "recovery_due": q.PendingOffsetMoney}, "qualification": gin.H{"confirmed_money": q.ConfirmedMoney, "pending_money": overview.PendingConsumptionMoney, "pending_correction_money": overview.PendingCorrectionMoney, "threshold_money": policy.ThresholdMoney, "qualified_at": q.AcquiredAt, "function_status": overview.FunctionState.Status}})
 }
 func (a *Application) keyDTO(ctx context.Context, k usage.Key) (gin.H, error) {
 	return a.keyDTOIn(ctx, nil, k)

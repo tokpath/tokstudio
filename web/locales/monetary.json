@@ -1,0 +1,582 @@
+{
+  "营业前请选择全系统的结算币种和 ATG 基础比例。": {
+    "en": "Choose the system settlement currency and base ATG rate before opening for business.",
+    "ja": "営業開始前にシステム全体の決済通貨と ATG 基準比率を選んでください。",
+    "ru": "Перед открытием выберите валюту расчётов системы и базовое соотношение ATG."
+  },
+  "预约基础规则：每 1 {currency} 对应 {ratio} ATG，将于预约时间生效。": {
+    "en": "Scheduled base rules: 1 {currency} equals {ratio} ATG, effective at the scheduled time.",
+    "ja": "予約済みの基準規則：1 {currency} は {ratio} ATG に相当し、予約時刻に発効します。",
+    "ru": "Запланированные базовые правила: 1 {currency} соответствует {ratio} ATG; они вступят в силу в назначенное время."
+  },
+  "已核实订单入账金额（结算币种）": {
+    "en": "Verified order settlement amount (settlement currency)",
+    "ja": "確認済み注文計上額（決済通貨）",
+    "ru": "Подтверждённая сумма по заказу (валюта расчётов)"
+  },
+  "已核实订单入账金额（结算币种，扣己方手续费前）": {
+    "en": "Verified order settlement amount before our fees (settlement currency)",
+    "ja": "当方手数料控除前の確認済み注文計上額（決済通貨）",
+    "ru": "Подтверждённая сумма по заказу до нашей комиссии (валюта расчётов)"
+  },
+  "已核实清算手续费（结算币种）": {
+    "en": "Verified settlement fee (settlement currency)",
+    "ja": "確認済み決済手数料（決済通貨）",
+    "ru": "Подтверждённая комиссия расчёта (валюта расчётов)"
+  },
+  "实际原币收款总额（扣己方手续费前）": {
+    "en": "Original currency gross receipt before our fees",
+    "ja": "当方手数料控除前の元通貨入金総額",
+    "ru": "Валовое поступление в исходной валюте до нашей комиссии"
+  },
+  "己方收款手续费（原币，可稍后核实）": {
+    "en": "Our receipt fee in the original currency (may be verified later)",
+    "ja": "当方の入金手数料（元通貨、後で確認可）",
+    "ru": "Наша комиссия за поступление в исходной валюте (можно подтвердить позже)"
+  },
+  "真实收款币种": {
+    "en": "Actual receipt currency",
+    "ja": "実際の入金通貨",
+    "ru": "Фактическая валюта поступления"
+  },
+  "本笔交易与订单清算金额的核实依据": {
+    "en": "Evidence linking this transaction to the order settlement amount",
+    "ja": "今回の取引と注文決済額の対応を確認する根拠",
+    "ru": "Основание связи этой транзакции с суммой расчёта по заказу"
+  },
+  "仅登记这笔真实原币收款对应的订单清算金额。收款方承担的手续费不减少订单交付额度。": {
+    "en": "Record only the order settlement amount verified for this original currency receipt. Fees paid by the recipient do not reduce order delivery.",
+    "ja": "この実際の元通貨入金に対応する確認済み注文決済額のみを記録します。受取人負担の手数料は注文の提供額を減らしません。",
+    "ru": "Укажите только подтверждённую сумму расчёта по заказу для этого поступления в исходной валюте. Комиссии получателя не уменьшают объём исполнения заказа."
+  },
+  "保留真实收款币种与金额；付款人另付的发送费或链上手续费不计入。": {
+    "en": "Keep the actual receipt currency and amount. Exclude sending or blockchain fees paid separately by the payer.",
+    "ja": "実際の入金通貨と金額を保持します。支払者が別途負担する送金手数料やチェーン手数料は含めません。",
+    "ru": "Сохраните фактическую валюту и сумму поступления. Отдельно оплаченные отправителем комиссии перевода или блокчейна не включаются."
+  },
+  "只记录收款方承担的真实原币费用。未核实时留空，确实没有时填0。": {
+    "en": "Record only actual original currency fees paid by the recipient. Leave blank until verified; enter 0 only when no fee was incurred.",
+    "ja": "受取人が負担した実際の元通貨手数料のみを記録します。未確認時は空欄にし、手数料がないと確認した場合のみ 0 を入力してください。",
+    "ru": "Укажите только фактические комиссии получателя в исходной валюте. До подтверждения оставьте поле пустым; вводите 0 только при подтверждённом отсутствии комиссии."
+  },
+  "仅在通道真实提供或人工明确核实结算币种费用时登记。同币费用可直接记录；不能按原币费用自动折算。该费用由收款方承担，不减少订单交付金额。": {
+    "en": "Record settlement currency fees only when supplied by the payment provider or explicitly verified by staff. Same-currency fees can be recorded directly; original currency fees are never converted automatically. The recipient pays these fees without reducing order delivery.",
+    "ja": "決済通貨の手数料は通道から実際に提供された場合、または担当者が明確に確認した場合のみ記録します。同通貨の手数料は直接記録でき、元通貨の手数料を自動換算しません。受取人負担のため注文の提供額は減りません。",
+    "ru": "Записывайте комиссии в валюте расчётов только по данным платёжного провайдера или после явной проверки сотрудником. Комиссии в той же валюте записываются напрямую; автоматического пересчёта из исходной валюты нет. Эти комиссии оплачивает получатель, и они не уменьшают исполнение заказа."
+  },
+  "通道结算到账时间（清算手续费已核实时填写）": {
+    "en": "Provider settlement time (when settlement fees are verified)",
+    "ja": "決済通道の着金日時（決済手数料確認済みの場合）",
+    "ru": "Время зачисления от провайдера (при подтверждённой комиссии расчёта)"
+  },
+  "实际原币付款金额（同结算币种可省略）": {
+    "en": "Actual original currency payment amount (optional for settlement currency)",
+    "ja": "実際の元通貨支払額（決済通貨と同じ場合は省略可）",
+    "ru": "Фактическая сумма платежа в исходной валюте (для валюты расчётов можно не указывать)"
+  },
+  "本笔原币付款与清偿金额关联凭证（跨币必填）": {
+    "en": "Evidence linking the original currency payment to the settled obligation (required across currencies)",
+    "ja": "元通貨の支払いと弁済額の対応証憑（異通貨の場合は必須）",
+    "ru": "Документ связи платежа в исходной валюте с погашенной суммой (обязателен при разных валютах)"
+  },
+  "已核实清偿净额（结算币种）": {
+    "en": "Verified net obligation settled (settlement currency)",
+    "ja": "確認済み弁済純額（決済通貨）",
+    "ru": "Подтверждённая чистая сумма погашения (валюта расчётов)"
+  },
+  "已核实本次清偿金额（结算币种）": {
+    "en": "Verified amount settled this time (settlement currency)",
+    "ja": "今回の確認済み弁済額（決済通貨）",
+    "ru": "Подтверждённая сумма этого погашения (валюта расчётов)"
+  },
+  "付款方已核实清算手续费（可稍后核实）": {
+    "en": "Verified settlement fee paid by the payer (may be verified later)",
+    "ja": "支払者負担の確認済み決済手数料（後で確認可）",
+    "ru": "Подтверждённая комиссия расчёта плательщика (можно подтвердить позже)"
+  },
+  "本笔付款与清偿金额的核实说明": {
+    "en": "Verification of this payment and the settled obligation amount",
+    "ja": "今回の支払いと弁済額の確認説明",
+    "ru": "Пояснение к подтверждению этого платежа и суммы погашения"
+  },
+  "本次已核实清偿金额（结算币种，跨币必填）": {
+    "en": "Verified amount settled this time (settlement currency; required across currencies)",
+    "ja": "今回の確認済み弁済額（決済通貨、異通貨の場合は必須）",
+    "ru": "Подтверждённая сумма погашения (валюта расчётов; обязательна при разных валютах)"
+  },
+  "本笔付款与清偿金额关联凭证（跨币必填）": {
+    "en": "Evidence linking this payment to the settled amount (required across currencies)",
+    "ja": "今回の支払いと弁済額の対応証憑（異通貨の場合は必須）",
+    "ru": "Документ связи этого платежа с суммой погашения (обязателен при разных валютах)"
+  },
+  "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。": {
+    "en": "Verify only the obligation amount settled by this actual payment. Payments in the same currency settle at the actual amount; payments across currencies are never posted automatically at 1:1.",
+    "ja": "今回の実際の支払いに対応する弁済額のみを確認します。同通貨では実際の支払額で弁済し、異通貨を 1:1 で自動計上しません。",
+    "ru": "Подтвердите только сумму обязательства, погашенную этим фактическим платежом. В одной валюте используется фактически уплаченная сумма; для разных валют автоматической проводки 1:1 нет."
+  },
+  "money:{currency,amount}、settlement_amount、settlement_evidence；跨币填写本笔真实交易对应的清偿清算金额，原merchant/order由服务器解析。": {
+    "en": "money:{currency,amount}, settlement_amount, settlement_evidence. For different currencies, enter the verified obligation amount settled by this transaction. The server resolves the original merchant/order.",
+    "ja": "money:{currency,amount}、settlement_amount、settlement_evidence。異通貨では今回の実取引に対応する確認済み弁済額を入力します。元の merchant/order はサーバーで特定します。",
+    "ru": "money:{currency,amount}, settlement_amount, settlement_evidence. При разных валютах укажите подтверждённую сумму обязательства, погашенную этой транзакцией. Исходные merchant/order определяет сервер."
+  },
+  "确认本次实际付款与清偿金额依据；只执行已批准原退款leg，不会重提未知退款。": {
+    "en": "Confirm the actual payment and evidence for the settled amount. Execute only the approved original refund leg; do not resubmit a refund with an unknown result.",
+    "ja": "今回の実際の支払いと弁済額の根拠を確認します。承認済みの元の返金 leg のみを実行し、結果不明の返金を再送しません。",
+    "ru": "Подтвердите фактический платёж и основание суммы погашения. Исполняется только одобренная исходная часть возврата; возврат с неизвестным результатом повторно не отправляется."
+  },
+  "核实本次原币付款与清偿金额，退款ID固定为原leg；未知时只查询原交易。": {
+    "en": "Verify this original currency payment and the settled amount. Keep the original refund leg ID; if the result is unknown, query only the original transaction.",
+    "ja": "今回の元通貨支払いと弁済額を確認します。返金 ID は元の leg に固定し、結果不明時は元の取引のみを照会します。",
+    "ru": "Подтвердите платёж в исходной валюте и сумму погашения. Сохраняйте исходный ID части возврата; при неизвестном результате запрашивайте только исходную транзакцию."
+  },
+  "真实原币款待核实/入账事项": {
+    "en": "Actual original currency receipts awaiting verification or posting",
+    "ja": "確認・計上待ちの実際の元通貨入金",
+    "ru": "Фактические поступления в исходной валюте, ожидающие проверки или проводки"
+  },
+  "包含原币收款与订单入账匹配待办；未核实前不计入订单交付": {
+    "en": "Includes original currency receipts awaiting matching to orders. Unverified amounts do not count toward order delivery.",
+    "ja": "元通貨の入金と注文計上の照合待ちを含みます。確認前は注文の提供額に算入しません。",
+    "ru": "Включает поступления в исходной валюте, ожидающие сопоставления с заказами. До подтверждения они не учитываются в исполнении заказа."
+  },
+  "原币实际收款已记录。请依据本笔真实交易核实对应的订单清算金额；保留原币收支，不能要求客户重复付款。": {
+    "en": "The actual original currency receipt is recorded. Verify the corresponding order settlement amount using this transaction. Preserve original currency flows and do not ask the customer to pay again.",
+    "ja": "元通貨の実際の入金は記録済みです。この実取引に基づき注文の決済額を確認してください。元通貨の収支を保持し、顧客に再度支払いを求めないでください。",
+    "ru": "Фактическое поступление в исходной валюте записано. Подтвердите соответствующую сумму расчёта по заказу на основании этой транзакции. Сохраните исходные денежные потоки и не требуйте от клиента повторной оплаты."
+  },
+  "本次真实交易与入账关联凭证": {
+    "en": "Evidence linking the actual transaction to the posted amount",
+    "ja": "今回の実取引と計上額の対応証憑",
+    "ru": "Документ связи фактической транзакции с проводкой"
+  },
+  "独立证明的真实付款时间（原事实缺失时填写）": {
+    "en": "Independently evidenced actual payment time (if missing from the original fact)",
+    "ja": "独立した証拠による実際の支払日時（元の記録にない場合）",
+    "ru": "Независимо подтверждённое время фактического платежа (если отсутствует в исходном факте)"
+  },
+  "核实本笔收款入账": {
+    "en": "Verify and post this receipt",
+    "ja": "今回の入金を確認して計上",
+    "ru": "Подтвердить и провести это поступление"
+  },
+  "确认原币真实收款与本次清算入账金额的关联。只使原已收款事实一次入账，不生成新收款或重复交付。": {
+    "en": "Confirm the link between the actual original currency receipt and this settlement posting. Post the existing receipt once, without creating a new receipt or duplicating delivery.",
+    "ja": "元通貨の実際の入金と今回の決済計上額の対応を確認します。既存の入金事実を一度だけ計上し、新たな入金や重複提供は作成しません。",
+    "ru": "Подтвердите связь фактического поступления в исходной валюте с этой проводкой расчёта. Существующее поступление проводится один раз, без нового поступления и повторного исполнения."
+  },
+  "按全系统基础比例计算购买额度，赠送按本单金额分段累加。每单一笔线上或线下付款，足额核实后自动交付。待付款订单持续占用供货库存，取消后释放。": {
+    "en": "Purchased credits use the system base rate, with bonuses accumulated across this order's tiers. Each order has one online or offline payment and is delivered after full payment is verified. Unpaid orders reserve supply inventory until cancellation.",
+    "ja": "購入枠はシステム全体の基準比率で計算し、特典は本注文の金額を段階別に累積します。注文ごとにオンラインまたはオフラインの一回の支払いを使用し、全額確認後に自動提供します。未払い注文は供給在庫を確保し、取消後に解放します。",
+    "ru": "Покупаемый объём рассчитывается по базовому соотношению системы; бонусы суммируются по ступеням суммы этого заказа. На заказ приходится один онлайн- или офлайн-платёж; после подтверждения полной оплаты объём предоставляется автоматически. Неоплаченные заказы резервируют запас до отмены."
+  },
+  "同一数据库快照列示清算币种业务事实与各币种原始收支。供应商参考、报告与登记成本分别呈现，不折算，不计算跨币种利润。": {
+    "en": "One database snapshot shows settlement currency business facts and original flows in each currency. Supplier reference, reported, and recorded costs are presented separately, without conversion or profit calculations across currencies.",
+    "ja": "同じデータベーススナップショットで決済通貨の業務事実と各通貨の元の収支を表示します。供給元の参考・報告・登録コストは別々に示し、換算や異通貨間の利益計算は行いません。",
+    "ru": "Один снимок базы данных показывает операции в валюте расчётов и исходные потоки по каждой валюте. Справочные, сообщённые и зарегистрированные затраты поставщиков показаны отдельно, без пересчёта и расчёта прибыли между валютами."
+  },
+  "供应商报告成本（原币）": {
+    "en": "Supplier reported cost (original currency)",
+    "ja": "供給元報告コスト（元通貨）",
+    "ru": "Сообщённые поставщиком затраты (исходная валюта)"
+  },
+  "参考成本（原币）": {
+    "en": "Reference cost (original currency)",
+    "ja": "参考コスト（元通貨）",
+    "ru": "Справочные затраты (исходная валюта)"
+  },
+  "清算币种业务成本": {
+    "en": "Business costs in the settlement currency",
+    "ja": "決済通貨の業務コスト",
+    "ru": "Операционные затраты в валюте расчётов"
+  },
+  "清算责任": {
+    "en": "Settlement obligations",
+    "ja": "決済債務",
+    "ru": "Обязательства по расчётам"
+  },
+  "Bifrost 参考成本": {
+    "en": "Bifrost reference cost",
+    "ja": "Bifrost 参考コスト",
+    "ru": "Справочные затраты Bifrost"
+  },
+  "参考币种": {
+    "en": "Reference currency",
+    "ja": "参考通貨",
+    "ru": "Справочная валюта"
+  },
+  "账单币种": {
+    "en": "Invoice currency",
+    "ja": "請求書通貨",
+    "ru": "Валюта счёта"
+  },
+  "登记实际成本": {
+    "en": "Recorded actual cost",
+    "ja": "登録実費",
+    "ru": "Зарегистрированные фактические затраты"
+  },
+  "账单原币币种": {
+    "en": "Original invoice currency",
+    "ja": "請求書の元通貨",
+    "ru": "Исходная валюта счёта"
+  },
+  "账单原币实际费用": {
+    "en": "Actual invoice cost in its original currency",
+    "ja": "請求書の元通貨での実費",
+    "ru": "Фактические затраты по счёту в исходной валюте"
+  },
+  "同步 Bifrost 的 USD 模型参考价目，用于参考成本观察和选路。供应商实际账单按原币独立登记。客户与下级经营方按各自 ATG 价目计费。": {
+    "en": "Sync Bifrost model reference prices in USD for reference cost monitoring and routing. Record actual supplier invoices independently in their original currencies. Customers and downstream operators use their respective ATG price lists.",
+    "ja": "参考コストの観察と経路選択に Bifrost の USD モデル参考価格を同期します。供給元の実際の請求書は元通貨で独立して登録します。顧客と下位事業者はそれぞれの ATG 価格表で課金します。",
+    "ru": "Синхронизируйте справочные цены моделей Bifrost в USD для наблюдения за затратами и выбора маршрута. Фактические счета поставщиков записываются отдельно в исходных валютах. Клиенты и нижестоящие операторы тарифицируются по своим прайс-листам ATG."
+  },
+  "按账单原币登记供应商实际费用，并列展示同一供应商、模型及期间的 Bifrost USD 参考成本。两者独立列示，不折算、不相减、不重复计入总成本。财务按登记时间汇总，服务期间结束时间不包含在统计内。": {
+    "en": "Record actual supplier costs in the invoice currency alongside Bifrost USD reference costs for the same supplier, model, and period. They remain separate, without conversion, subtraction, or duplicate cost totals. Financial reports use the recording time; the service period end is exclusive.",
+    "ja": "供給元の実費を請求書の元通貨で登録し、同じ供給元・モデル・期間の Bifrost USD 参考コストと並べて表示します。換算・差引・総コストへの重複算入は行いません。財務集計は登録日時に基づき、サービス期間の終了日時は含みません。",
+    "ru": "Записывайте фактические затраты поставщика в валюте счёта рядом со справочными затратами Bifrost в USD для того же поставщика, модели и периода. Показатели остаются отдельными, без пересчёта, вычитания и двойного учёта. Финансовые отчёты используют время регистрации; конец периода услуг не включается."
+  },
+  "汇率配置已移除": {
+    "en": "Exchange rate configuration has been removed",
+    "ja": "為替レート設定は廃止されました",
+    "ru": "Настройка валютных курсов удалена"
+  },
+  "汇率配置已移除，请核实真实收款及本次订单入账金额。": {
+    "en": "Exchange rate configuration has been removed. Verify the actual receipt and this order's posted amount.",
+    "ja": "為替レート設定は廃止されました。実際の入金と今回の注文計上額を確認してください。",
+    "ru": "Настройка валютных курсов удалена. Подтвердите фактическое поступление и сумму проводки по этому заказу."
+  },
+  "活动售价": {
+    "en": "Promotion price",
+    "ja": "キャンペーン価格",
+    "ru": "Акционная цена"
+  },
+  "额外赠送": {
+    "en": "Additional bonus",
+    "ja": "追加特典",
+    "ru": "Дополнительный бонус"
+  },
+  "收款账号": {
+    "en": "Receiving account",
+    "ja": "受取口座",
+    "ru": "Счёт получателя"
+  },
+  "结算币种": {
+    "en": "Settlement currency",
+    "ja": "決済通貨",
+    "ru": "Валюта расчётов"
+  },
+  "请核对已录入的套餐、报价和费率：其中金额将按本次选定币种解释，ATG 数量保持原值；系统不会按外汇汇率换算已有配置。生效前资金与模型调用业务尚未开放，生效后规则永久锁定。": {
+    "en": "Review existing packages, quotes, and fees: their amounts will be denominated in the selected currency, while ATG quantities stay unchanged. Existing settings will not be converted using exchange rates. Money operations and model calls remain closed until activation; the rules then lock permanently.",
+    "ja": "登録済みのプラン、見積もり、手数料を確認してください。金額は今回選んだ通貨として扱い、ATG 数量は元の値を維持します。既存設定を為替レートで換算しません。発効まで資金取引とモデル呼び出しは開放されず、発効後は規則が永久に固定されます。",
+    "ru": "Проверьте уже введённые пакеты, предложения и комиссии: суммы будут выражены в выбранной валюте, а количество ATG останется прежним. Существующие настройки не пересчитываются по валютным курсам. Денежные операции и вызовы моделей закрыты до вступления правил в силу; затем правила фиксируются навсегда."
+  },
+  "原币实际款已保留，等待收款方核实本笔交易对应的订单清算金额，请勿重复付款。": {
+    "en": "The original-currency receipt has been preserved. The recipient must verify the settlement amount for this order. Please do not pay again.",
+    "ja": "元通貨の実際の入金は保存されています。受取側による注文決済額の確認をお待ちください。重複して支払わないでください。",
+    "ru": "Фактическое поступление в исходной валюте сохранено. Получатель должен подтвердить сумму расчёта по заказу. Не оплачивайте повторно."
+  },
+  "付款页金额按实际收款币种展示。本订单按已核实的结算金额入账。": {
+    "en": "The payment page shows the actual receipt currency. This order is recorded using the verified settlement amount.",
+    "ja": "支払ページには実際の入金通貨を表示します。注文は確認済みの決済額で記帳します。",
+    "ru": "На странице оплаты показана фактическая валюта поступления. Заказ учитывается по подтверждённой сумме расчёта."
+  },
+  "已核实原币收款手续费": {
+    "en": "Verified receipt fees in original currency",
+    "ja": "確認済みの元通貨入金手数料",
+    "ru": "Подтверждённые комиссии за поступления в исходной валюте"
+  },
+  "已核实原币净入账": {
+    "en": "Verified net receipts in original currency",
+    "ja": "確認済みの元通貨差引入金額",
+    "ru": "Подтверждённые чистые поступления в исходной валюте"
+  },
+  "另有 {count} 笔手续费待核实": {
+    "en": "{count} additional fees await verification",
+    "ja": "ほかに {count} 件の手数料が確認待ちです",
+    "ru": "Ещё {count} комиссий ожидают подтверждения"
+  },
+  "生效前全系统资金与模型调用业务尚未开放。生效时间即基础规则正式启用的时间，无需另外开业。": {
+    "en": "Financial and model usage operations remain closed system-wide until activation. The scheduled time activates the base rules; no separate opening action is required.",
+    "ja": "発効前はシステム全体の資金業務とモデル利用は開始されません。指定日時に基準ルールが正式に有効になり、別の開業操作は不要です。",
+    "ru": "До вступления в силу финансовые операции и вызовы моделей закрыты во всей системе. В указанное время базовые правила активируются; отдельное открытие не требуется."
+  },
+  "待核实结算金额": {
+    "en": "Awaiting settlement confirmation",
+    "ja": "決済額の確認待ち",
+    "ru": "Ожидается подтверждение суммы расчёта"
+  },
+  "订单冻结基础比例": {
+    "en": "Frozen order conversion rate",
+    "ja": "注文確定時の基準換算比率",
+    "ru": "Зафиксированное соотношение заказа"
+  },
+  "每 1 {currency} = {ratio} ATG（版本 {version}）": {
+    "en": "1 {currency} = {ratio} ATG (version {version})",
+    "ja": "1 {currency} = {ratio} ATG（バージョン {version}）",
+    "ru": "1 {currency} = {ratio} ATG (версия {version})"
+  },
+  "本单结算应付": {
+    "en": "Settlement amount due for this order",
+    "ja": "この注文の決済支払額",
+    "ru": "Сумма к оплате по заказу в валюте расчётов"
+  },
+  "按本单说明核实原币付款，结算金额以经营方核实为准": {
+    "en": "Follow this order’s instructions for payment in the original currency. The operator confirms the settlement amount.",
+    "ja": "この注文の案内に従って元の通貨で支払い、決済額は運営者の確認に従います。",
+    "ru": "Следуйте инструкциям заказа для оплаты в исходной валюте. Сумму расчёта подтверждает оператор."
+  },
+  "配置实际收款通道。原币收款与已核实的结算金额分别记录，不设置汇率。": {
+    "en": "Configure payment channels. Record original-currency receipts and verified settlement amounts separately, without exchange rates.",
+    "ja": "入金経路を設定します。元通貨の入金と確認済み決済額を別々に記録し、為替レートは設定しません。",
+    "ru": "Настройте способы приёма платежей. Поступления в исходной валюте и подтверждённые суммы расчёта учитываются отдельно, без валютных курсов."
+  },
+  "查看销售、调用和资金收支；不同币种的原始金额分别列示，不计算利润。": {
+    "en": "View sales, usage, and cash flows. Original amounts are shown separately by currency, without profit calculations.",
+    "ja": "売上、利用、入出金を確認します。元の金額を通貨別に表示し、利益は計算しません。",
+    "ru": "Просматривайте продажи, использование и движение средств. Исходные суммы показаны отдельно по валютам, без расчёта прибыли."
+  },
+  "仍有成本待核实，请结合各币种原始记录查看。": {
+    "en": "Some costs remain unverified. Review the original records for each currency.",
+    "ja": "未確認のコストがあります。各通貨の元の記録と合わせて確認してください。",
+    "ru": "Некоторые затраты ещё не подтверждены. Сверяйтесь с исходными записями по каждой валюте."
+  },
+  "各币种原始收支与供应商成本": {
+    "en": "Original cash flows and supplier costs by currency",
+    "ja": "通貨別の元の入出金と供給元コスト",
+    "ru": "Исходные поступления, расходы и затраты поставщиков по валютам"
+  },
+  "各币种分别汇总，不折算、不相减。供应商报告成本、参考成本与实际账单分别展示，不能相加作为同一成本。": {
+    "en": "Each currency is totaled separately, without conversion or subtraction. Reported supplier costs, reference costs, and actual bills are shown independently and must not be added as one cost.",
+    "ja": "通貨ごとに集計し、換算や差引きは行いません。供給元の報告コスト、参考コスト、実際の請求は別々に表示し、同一コストとして合算できません。",
+    "ru": "Каждая валюта суммируется отдельно, без пересчёта и вычитания. Заявленные и справочные затраты поставщика и фактические счета показаны отдельно; их нельзя складывать в одну сумму затрат."
+  },
+  "原币收入": {
+    "en": "Original-currency income",
+    "ja": "元通貨の収入",
+    "ru": "Доход в исходной валюте"
+  },
+  "原币支出": {
+    "en": "Original-currency expenses",
+    "ja": "元通貨の支出",
+    "ru": "Расходы в исходной валюте"
+  },
+  "供应商报告成本": {
+    "en": "Supplier-reported cost",
+    "ja": "供給元の報告コスト",
+    "ru": "Затраты по данным поставщика"
+  },
+  "供应商参考成本": {
+    "en": "Supplier reference cost",
+    "ja": "供給元の参考コスト",
+    "ru": "Справочные затраты поставщика"
+  },
+  "供应商实际账单": {
+    "en": "Actual supplier bill",
+    "ja": "供給元の実際の請求",
+    "ru": "Фактический счёт поставщика"
+  },
+  "全系统结算币种与 ATG 基础比例": {
+    "en": "System settlement currency and base ATG rate",
+    "ja": "システム全体の決済通貨と ATG 基準比率",
+    "ru": "Валюта расчётов и базовое соотношение ATG для всей системы"
+  },
+  "全系统使用同一结算币种。每 1 {currency} 对应 {ratio} ATG。": {
+    "en": "The entire system uses one settlement currency. 1 {currency} equals {ratio} ATG.",
+    "ja": "システム全体で同じ決済通貨を使用します。1 {currency} は {ratio} ATG に相当します。",
+    "ru": "Вся система использует одну валюту расчётов. 1 {currency} соответствует {ratio} ATG."
+  },
+  "结算币种（ISO 代码）": {
+    "en": "Settlement currency (ISO code)",
+    "ja": "決済通貨（ISO コード）",
+    "ru": "Валюта расчётов (код ISO)"
+  },
+  "每 1 单位结算币种购买的 ATG": {
+    "en": "ATG purchased per unit of settlement currency",
+    "ja": "決済通貨 1 単位で購入する ATG",
+    "ru": "ATG за единицу валюты расчётов"
+  },
+  "核对并查看风险说明": {
+    "en": "Review settings and risks",
+    "ja": "設定とリスクを確認",
+    "ru": "Проверить настройки и риски"
+  },
+  "请再次确认：{currency}，每 1 单位购买 {ratio} ATG，生效于：": {
+    "en": "Confirm again: {currency}, {ratio} ATG per unit, effective at:",
+    "ja": "再確認：{currency}、1 単位あたり {ratio} ATG、発効日時：",
+    "ru": "Подтвердите ещё раз: {currency}, {ratio} ATG за единицу, вступает в силу:"
+  },
+  "生效后币种和基础比例永久锁定，暂停营业也无法修改。该比例只用于购买 ATG 换算和采购阶梯赠送；套餐等明确配置的 ATG 数量不会自动改变。系统不提供手工或自动汇率，不汇总跨币种利润。": {
+    "en": "The currency and base rate are permanently locked when effective, including during a business pause. The rate applies only to ATG purchases and tiered procurement bonuses; explicitly configured ATG amounts, including packages, do not change automatically. The system provides no manual or automatic exchange rates and does not aggregate profit across currencies.",
+    "ja": "発効後は通貨と基準比率が永久に固定され、営業停止中も変更できません。この比率は ATG 購入と調達の段階別特典にのみ適用され、プランなどで明示した ATG 数量は自動変更されません。手動・自動の為替レートは提供せず、異なる通貨の利益は合算しません。",
+    "ru": "После вступления в силу валюта и базовое соотношение фиксируются навсегда, в том числе при приостановке работы. Соотношение применяется только к покупке ATG и ступенчатым закупочным бонусам; явно заданные объёмы ATG, включая пакеты, автоматически не меняются. Система не использует ручные или автоматические валютные курсы и не суммирует прибыль в разных валютах."
+  },
+  "我已核对并理解永久锁定及换算规则": {
+    "en": "I have reviewed and understand the permanent lock and conversion rules",
+    "ja": "永久固定と換算ルールを確認し、理解しました",
+    "ru": "Я понимаю правила постоянной фиксации и пересчёта"
+  },
+  "返回修改": {
+    "en": "Back to edit",
+    "ja": "編集に戻る",
+    "ru": "Вернуться к изменению"
+  },
+  "基础比例尚未生效，暂不提供采购换算。": {
+    "en": "The base rate is not effective yet. Procurement conversion is unavailable.",
+    "ja": "基準比率はまだ発効していないため、調達換算は利用できません。",
+    "ru": "Базовое соотношение ещё не вступило в силу. Пересчёт закупок пока недоступен."
+  },
+  "每 1 {currency} 购买 {ratio} ATG；赠送按本单金额分段累加，不跨订单累计。": {
+    "en": "1 {currency} purchases {ratio} ATG. Bonuses accumulate by tier within this order only.",
+    "ja": "1 {currency} で {ratio} ATG を購入します。特典はこの注文の金額を段階別に累計し、注文間では累計しません。",
+    "ru": "1 {currency} позволяет купить {ratio} ATG. Бонусы суммируются по ступеням только в рамках этого заказа."
+  },
+  "每 1 {currency} 购买 {ratio} ATG。赠送只计算落在本阶区间的金额，填 1 表示 1%，最后一阶没有上限。": {
+    "en": "1 {currency} purchases {ratio} ATG. A tier’s bonus applies only to the amount within that tier. Enter 1 for 1%; the final tier has no upper limit.",
+    "ja": "1 {currency} で {ratio} ATG を購入します。特典は各段階の範囲内の金額にのみ適用され、1 は 1% を表します。最終段階に上限はありません。",
+    "ru": "1 {currency} позволяет купить {ratio} ATG. Бонус ступени применяется только к сумме в её диапазоне. Введите 1 для 1%; последняя ступень не ограничена сверху."
+  },
+  "区间起点（结算币种）": {
+    "en": "Tier start (settlement currency)",
+    "ja": "段階の開始額（決済通貨）",
+    "ru": "Начало ступени (валюта расчётов)"
+  },
+  "试算采购金额（结算币种）": {
+    "en": "Preview purchase amount (settlement currency)",
+    "ja": "調達額の試算（決済通貨）",
+    "ru": "Сумма закупки для расчёта (валюта расчётов)"
+  },
+  "{direction}。分别核实原币收付款事实、结算金额和付款方手续费，不填写汇率。": {
+    "en": "{direction}. Verify original-currency payment facts, the settlement amount, and payer fees separately, without entering an exchange rate.",
+    "ja": "{direction}。元通貨の入出金事実、決済額、支払者の手数料をそれぞれ確認し、為替レートは入力しません。",
+    "ru": "{direction}. Подтвердите отдельно факты платежа в исходной валюте, сумму расчёта и комиссии плательщика, без ввода валютного курса."
+  },
+  "收付款核实依据": {
+    "en": "Payment verification evidence",
+    "ja": "入出金の確認根拠",
+    "ru": "Основание подтверждения платежа"
+  },
+  "已生效并永久锁定。暂停营业不会解锁。": {
+    "en": "Effective and permanently locked. Pausing business does not unlock these settings.",
+    "ja": "発効済みで永久に固定されています。営業を停止しても解除されません。",
+    "ru": "Вступило в силу и зафиксировано навсегда. Приостановка работы не снимает блокировку."
+  },
+  "已预约生效；生效前可取消并重新设置。": {
+    "en": "Scheduled. You can cancel and reconfigure before it takes effect.",
+    "ja": "発効予約済みです。発効前は取り消して再設定できます。",
+    "ru": "Запланировано. До вступления в силу можно отменить и настроить заново."
+  },
+  "尚未设置，营业前须由平台负责人完成。": {
+    "en": "Not configured. The platform owner must complete this before business opens.",
+    "ja": "未設定です。営業開始前にプラットフォーム所有者が設定する必要があります。",
+    "ru": "Не настроено. Владелец платформы должен завершить настройку до начала работы."
+  },
+  "确认预约生效": {
+    "en": "Confirm scheduled activation",
+    "ja": "発効予約を確定",
+    "ru": "Подтвердить запланированное вступление в силу"
+  },
+  "取消预约并重新设置": {
+    "en": "Cancel schedule and reconfigure",
+    "ja": "予約を取り消して再設定",
+    "ru": "Отменить расписание и настроить заново"
+  },
+  "请填写有效的三位 ISO 币种、正数 ATG 比例和未来生效时间。": {
+    "en": "Enter a valid three-letter ISO currency code, a positive ATG rate, and a future activation time.",
+    "ja": "有効な 3 文字の ISO 通貨コード、正の ATG 比率、将来の発効日時を入力してください。",
+    "ru": "Введите корректный трёхбуквенный код валюты ISO, положительное соотношение ATG и будущее время вступления в силу."
+  },
+  "ATG 基础比例必须大于 0。": {
+    "en": "The base ATG rate must be greater than zero.",
+    "ja": "ATG 基準比率は 0 より大きくする必要があります。",
+    "ru": "Базовое соотношение ATG должно быть больше нуля."
+  },
+  "首阶从 0 开始，后续起点必须依次递增。": {
+    "en": "The first tier starts at 0; subsequent starts must increase.",
+    "ja": "最初の段階は 0 から始め、以降の開始額は順に増やしてください。",
+    "ru": "Первая ступень начинается с 0; начала следующих ступеней должны возрастать."
+  },
+  " 本次申请金额 {amount} {currency}。": {
+    "en": " Requested amount: {amount} {currency}.",
+    "ja": " 今回の申請額は {amount} {currency} です。",
+    "ru": " Сумма заявки: {amount} {currency}."
+  },
+  "收款待核实结算金额": {
+    "en": "Receipt awaiting settlement confirmation",
+    "ja": "決済額の確認待ち入金",
+    "ru": "Поступление ожидает подтверждения суммы расчёта"
+  },
+  "核实收款结算金额": {
+    "en": "Verify receipt settlement amount",
+    "ja": "入金の決済額を確認",
+    "ru": "Подтвердить сумму расчёта по поступлению"
+  },
+  "核实实际收款事实及订单结算金额。": {
+    "en": "Verify the actual receipt and the order settlement amount.",
+    "ja": "実際の入金事実と注文の決済額を確認します。",
+    "ru": "Подтвердите фактическое поступление и сумму расчёта по заказу."
+  },
+  "包含结算币种的履约、佣金、手续费和异常损失；供应商原币成本独立列示。": {
+    "en": "Includes fulfillment, commissions, fees, and exceptional losses in the settlement currency. Supplier costs in their original currencies are listed separately.",
+    "ja": "決済通貨の履行費用、コミッション、手数料、例外損失を含みます。供給元の元通貨コストは別に表示します。",
+    "ru": "Включает исполнение, комиссии, сборы и исключительные убытки в валюте расчётов. Затраты поставщиков в исходных валютах показаны отдельно."
+  },
+  "时间按当前设备时区 {timezone} 输入，保存为统一时刻。": {
+    "en": "Enter the time in your device time zone, {timezone}; it is saved as one universal instant.",
+    "ja": "現在の端末のタイムゾーン {timezone} で入力してください。同じ時刻として保存されます。",
+    "ru": "Введите время в часовом поясе устройства {timezone}; оно сохраняется как единый момент времени."
+  },
+  "采购金额过小，换算后不足最小 ATG 单位。": {
+    "en": "The purchase amount converts to less than the smallest ATG unit.",
+    "ja": "購入金額を換算すると ATG の最小単位を下回ります。",
+    "ru": "Сумма покупки после пересчёта меньше минимальной единицы ATG."
+  },
+  "原币收款金额核对": {
+    "en": "Original currency receipt check",
+    "ja": "元通貨の入金額確認",
+    "ru": "Проверка поступления в исходной валюте"
+  },
+  "原币净到账金额＝原币收款总额－原币手续费；订单交付按已核实结算金额计算。": {
+    "en": "Original currency net receipt = gross receipt minus the original currency fee. Order delivery uses the verified settlement amount.",
+    "ja": "元通貨の差引入金額＝元通貨の入金総額－元通貨の手数料。注文の提供額は確認済み決済額に基づきます。",
+    "ru": "Чистое поступление в исходной валюте = валовая сумма минус комиссия в той же валюте. Исполнение заказа рассчитывается по подтверждённой сумме расчёта."
+  },
+  "清算币种和 ATG 基础比例已正式生效，永久锁定；暂停营业也不能修改。": {
+    "en": "The settlement currency and ATG base ratio are effective and permanently locked. Pausing business does not unlock them.",
+    "ja": "決済通貨と ATG 基本比率は発効済みで永久に固定されています。営業を停止しても変更できません。",
+    "ru": "Расчётная валюта и базовое соотношение ATG вступили в силу и заблокированы навсегда. Приостановка работы не снимает блокировку."
+  },
+  "全系统清算币种和 ATG 基础比例尚未正式生效，请由平台负责人完成营业前设置。": {
+    "en": "The system settlement currency and ATG base ratio are not effective yet. The platform owner must complete the pre-opening setup.",
+    "ja": "システム全体の決済通貨と ATG 基本比率はまだ発効していません。プラットフォーム責任者が営業開始前の設定を完了してください。",
+    "ru": "Расчётная валюта системы и базовое соотношение ATG ещё не вступили в силу. Владелец платформы должен завершить настройки до начала работы."
+  },
+  "真实退款事实已保留，本次原币付款或清偿金额差异需要核实；未清偿责任仍保留占用": {
+    "en": "The actual refund is recorded. Verify the original-currency payment or confirmed settlement amount discrepancy; the outstanding obligation remains reserved.",
+    "ja": "実際の返金は記録済みです。原通貨の支払額または確認済みの弁済額の差異を確認してください。未弁済分の引当は維持されます。",
+    "ru": "Фактический возврат записан. Проверьте расхождение исходного платежа или подтверждённой суммы погашения; остаток обязательства остаётся зарезервированным."
+  },
+  "按原币分别汇总收支和成本，不做汇率换算或利润计算。": {
+    "en": "Receipts, payments and costs are grouped by original currency, without currency conversion or profit calculation.",
+    "ja": "収支と費用は原通貨別に集計し、為替換算や利益計算は行いません。",
+    "ru": "Поступления, платежи и затраты сгруппированы по исходным валютам без пересчёта и расчёта прибыли."
+  },
+  "参考成本、供应商报告成本与登记账单分别展示，不应相加为一个总成本。": {
+    "en": "Reference costs, provider-reported costs and recorded statements are shown separately and must not be added into one total.",
+    "ja": "参考費用、プロバイダー報告費用、登録済み請求書は個別に表示され、合算して一つの総費用にしないでください。",
+    "ru": "Справочные затраты, данные поставщиков и зарегистрированные счета показаны отдельно; их нельзя складывать в общую сумму затрат."
+  },
+  "收支按所选期间统计，期末余额截至结束时刻，待处理项反映查询时状态。": {
+    "en": "Transfers use the selected period, closing balances use its end time, and pending items reflect the query time.",
+    "ja": "収支は選択期間、期末残高は終了時刻まで、未処理項目は照会時点の状態を示します。",
+    "ru": "Движение средств относится к выбранному периоду, остатки — к его концу, а незавершённые операции отражают состояние на момент запроса."
+  },
+  "实际账单按登记时间汇总并保留原服务期间；来源不明的费用保持待核实。": {
+    "en": "Actual statements are grouped by registration time and retain their service period. Unverified costs remain pending.",
+    "ja": "実際の請求書は登録時刻で集計し、元のサービス期間を保持します。未確認の費用は確認待ちとして残します。",
+    "ru": "Фактические счета учитываются по времени регистрации с сохранением периода услуг. Неподтверждённые расходы остаются на проверке."
+  },
+  "接管款同时保留独立明细和原币收支，采购付款仅在整笔收款可明确归属采购方时纳入该方原币支出。": {
+    "en": "Takeover payments retain separate details and original-currency transfers. Procurement outflows are attributed only when the full receipt belongs to one buyer.",
+    "ja": "引継ぎ代金は個別明細と原通貨収支を保持します。調達支払は入金全額の帰属先が一つの購入者と確認できる場合にのみ計上します。",
+    "ru": "Платежи при передаче сохраняются в отдельных деталях и движении исходной валюты. Закупочные платежи относятся к покупателю только при однозначной принадлежности всей суммы."
+  }
+}

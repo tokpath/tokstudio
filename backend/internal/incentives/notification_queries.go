@@ -15,7 +15,7 @@ type NotificationAudience struct {
 	RecipientID string          `json:"recipient_id"`
 	Reference   string          `json:"reference"`
 	Kind        string          `json:"kind"`
-	AmountUSD   *ledger.Decimal `json:"amount_usd,omitempty"`
+	AmountMoney *ledger.Decimal `json:"amount_money,omitempty"`
 	OccurredAt  time.Time       `json:"occurred_at"`
 }
 
@@ -56,7 +56,7 @@ func (s *Service) NotificationEventAudience(ctx context.Context, tx *gorm.DB, in
 			return nil, e
 		}
 		ids[withdrawal.CustomerID] = true
-		value := withdrawal.AmountUSD
+		value := withdrawal.AmountMoney
 		amount = &value
 	case event.Kind == "qualification.acquired" || event.Kind == "commission.function_changed" || event.Kind == "commission.pending_offset_recovered":
 		ids[event.AggregateID] = true
@@ -107,7 +107,7 @@ func (s *Service) NotificationEventAudience(ctx context.Context, tx *gorm.DB, in
 	sort.Strings(ordered)
 	out := make([]NotificationAudience, 0, len(ordered))
 	for _, id := range ordered {
-		out = append(out, NotificationAudience{OperatorID: event.OperatorID, RecipientID: id, Reference: event.ID, Kind: event.Kind, AmountUSD: amount, OccurredAt: event.CreatedAt})
+		out = append(out, NotificationAudience{OperatorID: event.OperatorID, RecipientID: id, Reference: event.ID, Kind: event.Kind, AmountMoney: amount, OccurredAt: event.CreatedAt})
 	}
 	return out, nil
 }

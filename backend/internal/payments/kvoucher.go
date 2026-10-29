@@ -8,7 +8,6 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
-	"math/big"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -22,7 +21,7 @@ const kvoucherOfficialBase = "https://kvoucher.com/api/kv/merchant/v1"
 
 // KVoucher collects a customer payment through a merchant's own KVoucher account.
 // Gkash charges MYR. Retrieving the reload code is the receipt; the recorded
-// amount stays the original USD due.
+// amount remains the actual MYR transaction.
 type KVoucher struct{ HTTP *Transport }
 
 func (KVoucher) Name() string { return "kvoucher" }
@@ -37,17 +36,16 @@ func (k KVoucher) Create(ctx context.Context, m Merchant, o Order) (Checkout, er
 	if e := ready(m, k); e != nil {
 		return Checkout{}, e
 	}
-	if o.Validate(m) != nil || o.Money.Currency != "USD" {
+	if o.Settlement().Currency != "MYR" {
+		return Checkout{}, ErrUnsupported
+	}
+	if o.Validate(m) != nil || o.Money.Currency != "MYR" {
 		return Checkout{}, ErrInvalid
 	}
-	rate, e := k.usdPerMYR(ctx, m)
-	if e != nil {
+	if _, e := o.Money.Minor(2); e != nil {
 		return Checkout{}, e
 	}
-	face, e := myrFaceForUSD(o.Money.Amount, rate)
-	if e != nil {
-		return Checkout{}, e
-	}
+	face := o.Money.Amount.String()
 	created, e := k.order(ctx, m, http.MethodPost, "/orders", map[string]any{
 		"custom_items":    []map[string]any{{"denomination": json.Number(face), "quantity": 1, "description": "Order " + o.ID}},
 		"currency":        "MYR",
@@ -72,7 +70,10 @@ func (k KVoucher) Create(ctx context.Context, m Merchant, o Order) (Checkout, er
 	if e != nil {
 		return Checkout{}, e
 	}
-	return Checkout{ProviderID: order.ID.String(), State: "pending", URL: form.Action, FormFields: form.Fields, Instructions: "请在 Gkash 完成付款。付款页金额含通道手续费，本订单仍按应付美元入账。付完后回到此页并核实原通道。", PayMoney: form.Money}, nil
+	if form.Money == nil || form.Money.Currency != "MYR" || form.Money.Amount.Cmp(o.Settlement().Amount) != 0 {
+		return Checkout{}, ErrUnsupported
+	}
+	return Checkout{ProviderID: order.ID.String(), State: "pending", URL: form.Action, FormFields: form.Fields, Instructions: "请在 Gkash 完成付款。付款币种为MYR，订单按实际核实的收款总额入账。付完后回到此页并核实原通道。", PayMoney: form.Money}, nil
 }
 func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 	if o.ProviderID == "" {
@@ -120,7 +121,12 @@ func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error)
 	}
 	now := time.Now().UTC()
 	evidence := map[string]any{"kvoucher_order_id": order.ID.String(), "kvoucher_order_no": order.OrderNo, "status": order.Status, "pins": pins}
-	return receiptFact(m, o, order.ID.String(), o.Money, &now, evidence)
+	amount, e := ledger.ParseDecimal(order.Items[0].Denomination.String())
+	if e != nil {
+		return Fact{}, ErrProvider
+	}
+	gross := Money{Currency: "MYR", Amount: amount}
+	return receiptFact(m, o, order.ID.String(), gross, &now, evidence)
 }
 func (KVoucher) Refund(context.Context, Merchant, Refund) (RefundStatus, error) {
 	return RefundStatus{}, ErrUnsupported
@@ -224,27 +230,6 @@ func (k KVoucher) sandbox(ctx context.Context, m Merchant) (bool, error) {
 		return false, ErrProvider
 	}
 	return account.Test, nil
-}
-func (k KVoucher) usdPerMYR(ctx context.Context, m Merchant) (ledger.Decimal, error) {
-	origin, e := k.origin(m)
-	if e != nil {
-		return ledger.Decimal{}, e
-	}
-	raw, _, e := k.HTTP.do(ctx, http.MethodGet, origin+"/api/exchange-rates?base=MYR", nil, http.Header{"Accept": []string{"application/json"}, "User-Agent": []string{"Tokpath"}})
-	if e != nil {
-		return ledger.Decimal{}, e
-	}
-	var rates struct {
-		Rates map[string]json.Number `json:"rates"`
-	}
-	if json.Unmarshal(raw, &rates) != nil || rates.Rates["USD"] == "" {
-		return ledger.Decimal{}, ErrProvider
-	}
-	rate, e := ledger.ParseDecimal(rates.Rates["USD"].String())
-	if e != nil || rate.Sign() <= 0 {
-		return ledger.Decimal{}, ErrProvider
-	}
-	return rate, nil
 }
 func (k KVoucher) pins(ctx context.Context, m Merchant, reference, denomination string, quantity int) ([]map[string]any, error) {
 	if found, e := k.redeemed(ctx, m, reference); e != nil || len(found) > 0 {
@@ -384,33 +369,6 @@ func kvoucherSignature(secret string, body []byte, header string) bool {
 	mac.Write(body)
 	expect := "sha256=" + hex.EncodeToString(mac.Sum(nil))
 	return subtle.ConstantTimeCompare([]byte(expect), []byte(strings.TrimSpace(header))) == 1
-}
-func myrFaceForUSD(due, usdPerMYR ledger.Decimal) (string, error) {
-	if due.Sign() <= 0 || usdPerMYR.Sign() <= 0 {
-		return "", ErrInvalid
-	}
-	// Gkash bills MYR. One MYR buys usdPerMYR dollars, and KVoucher adds 2%.
-	// Face = due USD / (USD per MYR × 1.02), rounded to the nearest sen.
-	fee := big.NewRat(102, 100)
-	divisor := new(big.Rat).Mul(usdPerMYR.Rat(), fee)
-	face := new(big.Rat).Quo(due.Rat(), divisor)
-	cents := new(big.Rat).Mul(face, big.NewRat(100, 1))
-	rounded := new(big.Int).Quo(new(big.Int).Add(new(big.Int).Mul(cents.Num(), big.NewInt(2)), cents.Denom()), new(big.Int).Mul(cents.Denom(), big.NewInt(2)))
-	whole := new(big.Int).Quo(rounded, big.NewInt(100))
-	frac := new(big.Int).Rem(rounded, big.NewInt(100))
-	if frac.Sign() < 0 {
-		frac.Abs(frac)
-	}
-	// KVoucher verifies the raw JSON. A trailing zero such as 4.00 is rewritten
-	// before verification and then rejected as a bad signature. 4 and 40.02 are stable.
-	if frac.Sign() == 0 {
-		return whole.String(), nil
-	}
-	text := frac.String()
-	if len(text) == 1 {
-		text = "0" + text
-	}
-	return whole.String() + "." + strings.TrimRight(text, "0"), nil
 }
 func normalizeRefundChannels(value string) []string {
 	allowed := map[string]string{"bank": "银行卡", "alipay": "支付宝", "wechat": "微信支付", "tng": "Touch 'n Go", "duitnow": "DuitNow"}

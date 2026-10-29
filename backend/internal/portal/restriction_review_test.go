@@ -51,7 +51,7 @@ func reviewChannel(t *testing.T, f *testApp) (organization.OperatorCreated, Staf
 func reviewCustomer(t *testing.T, f *testApp, actor, operator, code, email string) string {
 	t.Helper()
 	ctx := context.Background()
-	if _, e := f.a.Incentives.SetPolicy(ctx, nil, actor, operator, incentives.PolicyInput{ThresholdUSD: ledger.MustDecimal("1"), DirectRate: ledger.MustDecimal("0.1"), IndirectRate: ledger.MustDecimal("0.02"), RewardValiditySeconds: 86400}); e != nil {
+	if _, e := f.a.Incentives.SetPolicy(ctx, nil, actor, operator, incentives.PolicyInput{ThresholdMoney: ledger.MustDecimal("1"), DirectRate: ledger.MustDecimal("0.1"), IndirectRate: ledger.MustDecimal("0.02"), RewardValiditySeconds: 86400}); e != nil {
 		t.Fatal(e)
 	}
 	state, e := f.a.Organization.GetBusinessStatus(ctx, nil, operator)

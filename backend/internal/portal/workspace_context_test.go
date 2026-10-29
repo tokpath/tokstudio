@@ -68,7 +68,7 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		row, err := f.a.Commerce.CreateTopUpOrder(ctx, nil, commerce.CreateTopUpInput{CustomerID: cid, OperatorID: op, BusinessKey: fmt.Sprintf("context-%d", i), ExpectedOwnershipVersion: own.Version, AmountUSD: ledger.MustDecimal("10.123456789123456789"), Validity: time.Hour})
+		row, err := f.a.Commerce.CreateTopUpOrder(ctx, nil, commerce.CreateTopUpInput{CustomerID: cid, OperatorID: op, BusinessKey: fmt.Sprintf("context-%d", i), ExpectedOwnershipVersion: own.Version, AmountMoney: ledger.MustDecimal("10.123456789123456789"), Validity: time.Hour})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -114,7 +114,7 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 	}
 	status, out, _ = f.call(t, "GET", scope+"/order-context/"+order.ID, nil, "")
 	mustOK(t, status, out)
-	if out["subject"].(map[string]any)["values"].(map[string]any)["due_usd"] != "10.123456789123456789" {
+	if out["subject"].(map[string]any)["values"].(map[string]any)["due_money"] != "10.123456789123456789" {
 		t.Fatal("lost decimal precision")
 	}
 	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.a.Installation.OwnerStaffID, ParentOperatorID: op, Kind: organization.Channel, Name: "Context channel", LegalName: "Context channel legal"})
@@ -169,7 +169,7 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 		t.Fatal("finance cannot allocate original receipt", out)
 	}
 	amount := ledger.MustDecimal("10.123456789123456789")
-	receipt, err := f.a.Commerce.RecordManualReceipt(ctx, nil, f.a.Installation.OwnerStaffID, commerce.VerifiedReceipt{OperatorID: op, ProviderReceiptID: uuid.NewString(), GrossUSD: amount, FeeStatus: "pending", Currency: "USD", OriginalAmount: amount.String(), RecipientReference: "synthetic recipient", PayerReference: "synthetic payer", ValuationEvidence: "synthetic USD", VerificationEvidence: "synthetic isolated fixture"})
+	receipt, err := f.a.Commerce.RecordManualReceipt(ctx, nil, f.a.Installation.OwnerStaffID, commerce.VerifiedReceipt{OperatorID: op, ProviderReceiptID: uuid.NewString(), GrossMoney: amount, FeeStatus: "pending", Currency: "USD", OriginalAmount: amount.String(), RecipientReference: "synthetic recipient", PayerReference: "synthetic payer", ValuationEvidence: "synthetic USD", VerificationEvidence: "synthetic isolated fixture"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 	status, out, _ = f.call(t, "GET", scope+"/order-context/"+order.ID, nil, "")
 	mustOK(t, status, out)
 	allocations := find(out, "payments")["items"].([]any)
-	if len(allocations) != 1 || allocations[0].(map[string]any)["values"].(map[string]any)["order_allocated_usd"] != amount.String() {
+	if len(allocations) != 1 || allocations[0].(map[string]any)["values"].(map[string]any)["order_allocated_money"] != amount.String() {
 		t.Fatal("original receipt allocation duplicated or lost precision", allocations)
 	}
 	status, _, _ = f.call(t, "POST", scope+"/orders/"+order.ID+"/fulfill", map[string]any{}, uuid.NewString())

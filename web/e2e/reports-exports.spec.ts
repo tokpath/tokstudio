@@ -20,7 +20,7 @@ test("operator reviews sales then exports the same period as a private CSV",asyn
   const submitted=page.waitForResponse(r=>r.request().method()==="POST"&&r.url().endsWith("/exports"));await page.getByRole("button",{name:"生成 CSV",exact:true}).click();
   const result=await submitted;expect(result.status()).toBe(200);const exportResult=await result.json();const body=result.request().postDataJSON();expect(body).toEqual({kind:"financial",from:target.searchParams.get("from"),to:target.searchParams.get("to")});
   const download=page.getByRole("link",{name:"下载 CSV",exact:true}).and(page.locator(`[href="/api/v1/operators/${f.operator_id}/exports/${exportResult.id}/download"]`));await expect(download).toBeVisible({timeout:15_000});
-  const event=page.waitForEvent("download");await download.click();const file=await event;const path=info.outputPath("financial.csv");await file.saveAs(path);const csv=readFileSync(path,"utf8");expect(csv).toContain("批发销售额,1000,USD");expect(file.suggestedFilename()).toMatch(/\.csv$/);
+  const event=page.waitForEvent("download");await download.click();const file=await event;const path=info.outputPath("financial.csv");await file.saveAs(path);const csv=readFileSync(path,"utf8");expect(csv).toContain("批发销售额,1000,结算币种");expect(file.suggestedFilename()).toMatch(/\.csv$/);
   await page.screenshot({path:info.outputPath("exports-desktop.png"),fullPage:true});
   await page.setViewportSize({width:390,height:844});await expect(download).toBeVisible();await page.screenshot({path:info.outputPath("exports-mobile.png"),fullPage:true});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);

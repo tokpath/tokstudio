@@ -77,20 +77,20 @@ func takeoverFixture(t *testing.T) (fixture, fixture, commerce.Order, usage.KeyS
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = brand.s.Incentives.SetPolicy(brand.ctx, nil, owner, created.Operator.ID, incentives.PolicyInput{ThresholdUSD: d("100"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 3600, RewardValiditySeconds: 86400, KOLCrossActivityLimit: 10}); e != nil {
+	if _, e = brand.s.Incentives.SetPolicy(brand.ctx, nil, owner, created.Operator.ID, incentives.PolicyInput{ThresholdMoney: d("100"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 3600, RewardValiditySeconds: 86400, KOLCrossActivityLimit: 10}); e != nil {
 		t.Fatal(e)
 	}
 	// Verified wholesale fact: paid 60 USD for 100 purchased + 100 gift ATG.
-	if _, e = brand.s.Cooperation.DeliverPurchase(brand.ctx, nil, cooperation.PurchaseInput{BuyerID: created.Operator.ID, SupplierID: brand.operator, OrderID: uuid.NewString(), ReceiptReference: "verified-wholesale-bank-fact", ActorID: brand.owner, PaidUSD: d("60"), PaidATG: d("100"), GiftATG: d("100"), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"signed-wholesale-v1"}`), At: time.Now().UTC()}); e != nil {
+	if _, e = brand.s.Cooperation.DeliverPurchase(brand.ctx, nil, cooperation.PurchaseInput{BuyerID: created.Operator.ID, SupplierID: brand.operator, OrderID: uuid.NewString(), ReceiptReference: "verified-wholesale-bank-fact", ActorID: brand.owner, PaidMoney: d("60"), PaidATG: d("100"), GiftATG: d("100"), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"signed-wholesale-v1"}`), At: time.Now().UTC()}); e != nil {
 		t.Fatal(e)
 	}
-	quote, e := brand.s.Commerce.PublishPackage(brand.ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: created.Operator.ID, Name: "Channel monthly", TermsReference: "channel-terms", Timezone: "UTC", PriceUSD: d("80"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
+	quote, e := brand.s.Commerce.PublishPackage(brand.ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: created.Operator.ID, Name: "Channel monthly", TermsReference: "channel-terms", Timezone: "UTC", PriceMoney: d("80"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
 	channel := fixture{brand.ctx, brand.db, brand.s, owner, created.Operator.ID, reg.Customer.ID, quote}
 	channel.topup(t, "channel-deposit", "105")
-	order, e := channel.s.Commerce.CreateOrder(channel.ctx, nil, commerce.CreateOrderInput{OperatorID: channel.operator, CustomerID: channel.customer, QuoteID: quote.ID, BusinessKey: "channel-package", ExpectedOwnershipVersion: 1, InternalUSD: d("80")})
+	order, e := channel.s.Commerce.CreateOrder(channel.ctx, nil, commerce.CreateOrderInput{OperatorID: channel.operator, CustomerID: channel.customer, QuoteID: quote.ID, BusinessKey: "channel-package", ExpectedOwnershipVersion: 1, InternalMoney: d("80")})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -106,7 +106,7 @@ func takeoverFixture(t *testing.T) (fixture, fixture, commerce.Order, usage.KeyS
 }
 func beginTakeover(t *testing.T, brand, channel fixture) Takeover {
 	t.Helper()
-	p, e := brand.s.BeginTakeover(brand.ctx, TakeoverInput{ActorID: brand.owner, ChannelID: channel.operator, BrandOperatorID: brand.operator, BusinessKey: "agreed-channel-exit", Method: "agreed_atg_value", ServiceUSDPerATG: d("0.8"), ProcurementUSDPerATG: d("0.8"), ContractReference: "signed-takeover-contract", Evidence: "brand approved complete obligations transfer"})
+	p, e := brand.s.BeginTakeover(brand.ctx, TakeoverInput{ActorID: brand.owner, ChannelID: channel.operator, BrandOperatorID: brand.operator, BusinessKey: "agreed-channel-exit", Method: "agreed_atg_value", ServiceMoneyPerATG: d("0.8"), ProcurementMoneyPerATG: d("0.8"), ContractReference: "signed-takeover-contract", Evidence: "brand approved complete obligations transfer"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -130,7 +130,7 @@ func TestPostgresTakeoverKeepsRightsAndSettlesContractValueOnce(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if p.ServiceUSD.Cmp(d("80")) != 0 || p.CashUSD.Cmp(d("25")) != 0 || p.ProcurementOffsetATG.Cmp(d("100")) != 0 || p.RemainingProcurementRefundUSD.Cmp(d("30")) != 0 || p.SettlementDueUSD.Cmp(d("-5")) != 0 {
+	if p.ServiceMoney.Cmp(d("80")) != 0 || p.CashMoney.Cmp(d("25")) != 0 || p.ProcurementOffsetATG.Cmp(d("100")) != 0 || p.RemainingProcurementRefundMoney.Cmp(d("30")) != 0 || p.SettlementDueMoney.Cmp(d("-5")) != 0 {
 		t.Fatalf("closing valuation %+v", p)
 	}
 	done, e := brand.s.ExecuteTakeover(brand.ctx, brand.owner, brand.operator, p.ID, p.SnapshotFingerprint)
@@ -164,7 +164,7 @@ func TestPostgresTakeoverKeepsRightsAndSettlesContractValueOnce(t *testing.T) {
 	if grants[0].OperatorID != brand.operator || grants[0].OriginalOperatorID != channel.operator || grants[0].Total.Cmp(d("100")) != 0 || !grants[0].Consumed.IsZero() {
 		t.Fatal(grants[0])
 	}
-	wallet, e := brand.s.account(brand.ctx, brand.db, brand.operator, channel.customer, "customer:usd")
+	wallet, e := brand.s.account(brand.ctx, brand.db, brand.operator, channel.customer, "customer:money")
 	if e != nil || wallet.Balance.Cmp(d("25")) != 0 {
 		t.Fatal(wallet, e)
 	}
@@ -179,7 +179,7 @@ func TestPostgresTakeoverKeepsRightsAndSettlesContractValueOnce(t *testing.T) {
 		t.Fatal("takeover fabricated upstream inventory", e)
 	}
 	// An outstanding brand/channel debt never blocks customer wallet refund.
-	refund, e := brand.s.RequestWalletRefund(brand.ctx, WalletRefundInput{OperatorID: brand.operator, CustomerID: channel.customer, BusinessKey: "refund-after-takeover", AmountUSD: d("5"), Reason: "unused deposit"})
+	refund, e := brand.s.RequestWalletRefund(brand.ctx, WalletRefundInput{OperatorID: brand.operator, CustomerID: channel.customer, BusinessKey: "refund-after-takeover", AmountMoney: d("5"), Reason: "unused deposit"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -187,9 +187,9 @@ func TestPostgresTakeoverKeepsRightsAndSettlesContractValueOnce(t *testing.T) {
 	if e != nil || len(legs) != 1 || legs[0].SourceOperatorID != channel.operator {
 		t.Fatal(legs, e)
 	}
-	proof := ExecutionProof{BusinessKey: "settle-part-1", Reference: "bank-transfer-1", Evidence: "verified actual USD received", ActualUSD: d("2"), FeeUSD: d("0.1"), Currency: "USD", Amount: "2", OccurredAt: time.Now().UTC()}
+	proof := ExecutionProof{BusinessKey: "settle-part-1", Reference: "bank-transfer-1", Evidence: "verified actual USD received", ActualMoney: d("2"), FeeMoney: d("0.1"), Currency: "USD", Amount: "2", OccurredAt: time.Now().UTC()}
 	paid, e := brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof)
-	if e != nil || paid.SettledUSD.Cmp(d("2")) != 0 {
+	if e != nil || paid.SettledMoney.Cmp(d("2")) != 0 {
 		t.Fatal(paid, e)
 	}
 	if _, e = brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof); e != nil {
@@ -202,14 +202,14 @@ func TestPostgresTakeoverKeepsRightsAndSettlesContractValueOnce(t *testing.T) {
 	proof.BusinessKey = "settle-part-2"
 	proof.Reference = ""
 	proof.Evidence = "Cash received in person without an external reference"
-	proof.ActualUSD = d("3")
+	proof.ActualMoney = d("3")
 	proof.Amount = "3"
-	proof.FeeUSD = d("0")
+	proof.FeeMoney = d("0")
 	paid, e = brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof)
-	if e != nil || paid.SettledUSD.Cmp(d("5")) != 0 {
+	if e != nil || paid.SettledMoney.Cmp(d("5")) != 0 {
 		t.Fatal(paid, e)
 	}
-	if repeated, err := brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof); err != nil || repeated.SettledUSD.Cmp(d("5")) != 0 {
+	if repeated, err := brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof); err != nil || repeated.SettledMoney.Cmp(d("5")) != 0 {
 		t.Fatal("cash settlement replay", repeated, err)
 	}
 	payable, e := brand.s.account(brand.ctx, brand.db, brand.operator, p.ID, "counterparty:takeover_payable")

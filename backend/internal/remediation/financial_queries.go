@@ -10,7 +10,7 @@ import (
 type RefundFinancialFacts struct {
 	PendingFees       int64          `json:"pending_fees"`
 	PendingExecutions int64          `json:"pending_executions"`
-	OutstandingUSD    ledger.Decimal `json:"outstanding_usd"`
+	OutstandingMoney  ledger.Decimal `json:"outstanding_money"`
 	MismatchCount     int64          `json:"mismatch_count"`
 }
 
@@ -29,10 +29,10 @@ func (s *Service) FinancialRefundFacts(ctx context.Context, t *gorm.DB, op strin
 		if e := t.Model(&RefundLeg{}).Where("operator_id=? AND state IN ('executing','unknown')", op).Count(&out.PendingExecutions).Error; e != nil {
 			return e
 		}
-		if e := t.Model(&RefundLeg{}).Where("operator_id=? AND (state='exception' OR excess_usd>0 OR misdirected_usd>0)", op).Count(&out.MismatchCount).Error; e != nil {
+		if e := t.Model(&RefundLeg{}).Where("operator_id=? AND (state='exception' OR excess_money>0 OR misdirected_money>0)", op).Count(&out.MismatchCount).Error; e != nil {
 			return e
 		}
-		return t.Raw(`SELECT COALESCE(sum(l.amount_usd-l.settled_usd),0)::text FROM remediation_refund_legs l JOIN remediation_cases c ON c.id=l.case_id WHERE l.operator_id=? AND c.state IN ('approved','paying','exception') AND l.state NOT IN ('completed','cancelled')`, op).Row().Scan(&out.OutstandingUSD)
+		return t.Raw(`SELECT COALESCE(sum(l.amount_money-l.settled_money),0)::text FROM remediation_refund_legs l JOIN remediation_cases c ON c.id=l.case_id WHERE l.operator_id=? AND c.state IN ('approved','paying','exception') AND l.state NOT IN ('completed','cancelled')`, op).Row().Scan(&out.OutstandingMoney)
 	})
 	return out, e
 }

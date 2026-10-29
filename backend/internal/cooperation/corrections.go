@@ -13,7 +13,7 @@ import (
 
 type ProcurementReversal struct {
 	ID, BuyerID, RequestID, BusinessKey, Fingerprint string
-	Quantity, CostUSD                                ledger.Decimal
+	Quantity, CostMoney                              ledger.Decimal
 	Sources                                          json.RawMessage `gorm:"type:jsonb"`
 	JournalID, ActorID, Evidence                     string
 	CreatedAt                                        time.Time
@@ -60,7 +60,7 @@ func (s *Service) ReverseProcurementUsage(ctx context.Context, tx *gorm.DB, buye
 		restored := map[string]SourceConsumption{}
 		for _, r := range previous {
 			reversed = reversed.Add(r.Quantity)
-			costReversed = costReversed.Add(r.CostUSD)
+			costReversed = costReversed.Add(r.CostMoney)
 			var sources []SourceConsumption
 			if json.Unmarshal(r.Sources, &sources) != nil {
 				return ErrConflict
@@ -76,7 +76,7 @@ func (s *Service) ReverseProcurementUsage(ctx context.Context, tx *gorm.DB, buye
 		if cumulative.Cmp(original.Deducted) > 0 {
 			return ErrConflict
 		}
-		exact := new(big.Rat).Mul(original.CostUSD.Rat(), new(big.Rat).Quo(cumulative.Rat(), original.Deducted.Rat()))
+		exact := new(big.Rat).Mul(original.CostMoney.Rat(), new(big.Rat).Quo(cumulative.Rat(), original.Deducted.Rat()))
 		cumulativeCost, _ := ledger.Quantize(exact)
 		cost := cumulativeCost.Sub(costReversed)
 		if cost.Sign() < 0 {
@@ -142,7 +142,7 @@ func (s *Service) ReverseProcurementUsage(ctx context.Context, tx *gorm.DB, buye
 			return e
 		}
 		raw, _ := json.Marshal(sources)
-		out = ProcurementReversal{ID: uuid.NewString(), BuyerID: buyer, RequestID: requestID, BusinessKey: businessKey, Fingerprint: fp, Quantity: amount, CostUSD: cost, Sources: raw, JournalID: journal.ID, ActorID: actor, Evidence: evidence, CreatedAt: at.UTC()}
+		out = ProcurementReversal{ID: uuid.NewString(), BuyerID: buyer, RequestID: requestID, BusinessKey: businessKey, Fingerprint: fp, Quantity: amount, CostMoney: cost, Sources: raw, JournalID: journal.ID, ActorID: actor, Evidence: evidence, CreatedAt: at.UTC()}
 		return t.Create(&out).Error
 	})
 	return out, e

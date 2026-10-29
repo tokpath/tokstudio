@@ -21,15 +21,15 @@ type WalletFundingAllocation struct {
 	OrderID          string         `json:"order_id,omitempty"`
 	RefundID         string         `json:"refund_id,omitempty"`
 	RestorationID    string         `json:"restoration_id,omitempty"`
-	AmountUSD        ledger.Decimal `json:"amount_usd"`
-	RestoredUSD      ledger.Decimal `json:"restored_usd"`
-	RefundedUSD      ledger.Decimal `json:"refunded_usd"`
+	AmountMoney      ledger.Decimal `json:"amount_money"`
+	RestoredMoney    ledger.Decimal `json:"restored_money"`
+	RefundedMoney    ledger.Decimal `json:"refunded_money"`
 	Status           string         `json:"status"`
 }
 
 type walletLot struct {
 	ID, OperatorID, SourceOperatorID, CustomerID, TopUpOrderID, ReceiptID, ReceiptAllocationID string
-	AmountUSD, ReservedUSD, SpentUSD                                                           ledger.Decimal
+	AmountMoney, ReservedMoney, SpentMoney                                                     ledger.Decimal
 	CreatedAt                                                                                  time.Time
 }
 
@@ -40,16 +40,16 @@ type walletCommand struct {
 	SourceOrderID                                         *string
 	RestrictedReceiptID                                   *string
 	Attempt                                               int
-	AmountUSD                                             ledger.Decimal
+	AmountMoney                                           ledger.Decimal
 	CreatedAt                                             time.Time
 }
 
 func (walletCommand) TableName() string { return "commerce_wallet_funding_commands" }
 
 type walletAllocation struct {
-	ID, CommandID, LotID, Status        string
-	AmountUSD, RestoredUSD, RefundedUSD ledger.Decimal
-	OriginalAllocationID                *string
+	ID, CommandID, LotID, Status              string
+	AmountMoney, RestoredMoney, RefundedMoney ledger.Decimal
+	OriginalAllocationID                      *string
 }
 
 func (walletAllocation) TableName() string { return "commerce_wallet_funding_allocations" }
@@ -82,13 +82,13 @@ func (s *Service) createWalletLots(tx *gorm.DB, o Order) error {
 		if a.OperatorID != o.OperatorID {
 			return ErrScope
 		}
-		total = total.Add(a.AmountUSD)
-		r := walletLot{ID: uuid.NewString(), OperatorID: o.OperatorID, SourceOperatorID: o.OperatorID, CustomerID: o.CustomerID, TopUpOrderID: o.ID, ReceiptID: a.ReceiptID, ReceiptAllocationID: a.ID, AmountUSD: a.AmountUSD, CreatedAt: a.CreatedAt}
+		total = total.Add(a.AmountMoney)
+		r := walletLot{ID: uuid.NewString(), OperatorID: o.OperatorID, SourceOperatorID: o.OperatorID, CustomerID: o.CustomerID, TopUpOrderID: o.ID, ReceiptID: a.ReceiptID, ReceiptAllocationID: a.ID, AmountMoney: a.AmountMoney, CreatedAt: a.CreatedAt}
 		if err := tx.Create(&r).Error; err != nil {
 			return err
 		}
 	}
-	if total.Cmp(o.DueUSD) != 0 {
+	if total.Cmp(o.DueMoney) != 0 {
 		return ErrNotPaid
 	}
 	return nil
@@ -96,7 +96,7 @@ func (s *Service) createWalletLots(tx *gorm.DB, o Order) error {
 
 func (s *Service) fundingAllocations(tx *gorm.DB, command walletCommand) ([]WalletFundingAllocation, error) {
 	var out []WalletFundingAllocation
-	err := tx.Table("commerce_wallet_funding_allocations a").Select("a.id,a.lot_id,l.receipt_id,l.top_up_order_id,l.source_operator_id,a.amount_usd,a.restored_usd,a.refunded_usd,a.status").Joins("JOIN commerce_wallet_funding_lots l ON l.id=a.lot_id").Where("a.command_id=?", command.ID).Order("l.created_at,l.id,a.id").Scan(&out).Error
+	err := tx.Table("commerce_wallet_funding_allocations a").Select("a.id,a.lot_id,l.receipt_id,l.top_up_order_id,l.source_operator_id,a.amount_money,a.restored_money,a.refunded_money,a.status").Joins("JOIN commerce_wallet_funding_lots l ON l.id=a.lot_id").Where("a.command_id=?", command.ID).Order("l.created_at,l.id,a.id").Scan(&out).Error
 	for i := range out {
 		switch command.Kind {
 		case "order":
@@ -134,7 +134,7 @@ func (s *Service) reserveWalletFunding(tx *gorm.DB, operator, customer, kind, re
 	if err != nil {
 		return old, err
 	}
-	if found && old.AmountUSD.Cmp(amount) != 0 {
+	if found && old.AmountMoney.Cmp(amount) != 0 {
 		return old, ErrConflict
 	}
 	var restricted *string
@@ -148,7 +148,7 @@ func (s *Service) reserveWalletFunding(tx *gorm.DB, operator, customer, kind, re
 		return old, nil
 	}
 	var lots []walletLot
-	query := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("operator_id=? AND customer_id=? AND amount_usd>reserved_usd+spent_usd", operator, customer)
+	query := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("operator_id=? AND customer_id=? AND amount_money>reserved_money+spent_money", operator, customer)
 	if restricted != nil {
 		query = query.Where("receipt_id=?", *restricted)
 	}
@@ -157,12 +157,12 @@ func (s *Service) reserveWalletFunding(tx *gorm.DB, operator, customer, kind, re
 	}
 	available := ledger.Zero()
 	for _, l := range lots {
-		available = available.Add(l.AmountUSD.Sub(l.ReservedUSD).Sub(l.SpentUSD))
+		available = available.Add(l.AmountMoney.Sub(l.ReservedMoney).Sub(l.SpentMoney))
 	}
 	if available.Cmp(amount) < 0 {
 		return walletCommand{}, ledger.ErrInsufficient
 	}
-	c := walletCommand{ID: uuid.NewString(), OperatorID: operator, CustomerID: customer, Kind: kind, ReferenceID: reference, Attempt: 1, AmountUSD: amount, Status: "reserved", CreatedAt: s.now()}
+	c := walletCommand{ID: uuid.NewString(), OperatorID: operator, CustomerID: customer, Kind: kind, ReferenceID: reference, Attempt: 1, AmountMoney: amount, Status: "reserved", CreatedAt: s.now()}
 	c.RestrictedReceiptID = restricted
 	if found {
 		c.Attempt = old.Attempt + 1
@@ -175,15 +175,15 @@ func (s *Service) reserveWalletFunding(tx *gorm.DB, operator, customer, kind, re
 		if remaining.IsZero() {
 			break
 		}
-		take := l.AmountUSD.Sub(l.ReservedUSD).Sub(l.SpentUSD)
+		take := l.AmountMoney.Sub(l.ReservedMoney).Sub(l.SpentMoney)
 		if take.Cmp(remaining) > 0 {
 			take = remaining
 		}
-		a := walletAllocation{ID: uuid.NewString(), CommandID: c.ID, LotID: l.ID, AmountUSD: take, Status: "reserved"}
+		a := walletAllocation{ID: uuid.NewString(), CommandID: c.ID, LotID: l.ID, AmountMoney: take, Status: "reserved"}
 		if err = tx.Create(&a).Error; err != nil {
 			return c, err
 		}
-		if err = tx.Model(&walletLot{}).Where("id=?", l.ID).Update("reserved_usd", gorm.Expr("reserved_usd+?", take)).Error; err != nil {
+		if err = tx.Model(&walletLot{}).Where("id=?", l.ID).Update("reserved_money", gorm.Expr("reserved_money+?", take)).Error; err != nil {
 			return c, err
 		}
 		remaining = remaining.Sub(take)
@@ -192,7 +192,7 @@ func (s *Service) reserveWalletFunding(tx *gorm.DB, operator, customer, kind, re
 }
 
 func (s *Service) resolveOrderWalletFunding(tx *gorm.DB, o Order, consume bool) error {
-	if o.InternalUSD.IsZero() {
+	if o.InternalMoney.IsZero() {
 		return nil
 	}
 	if err := walletScope(tx, o.OperatorID, o.CustomerID); err != nil {
@@ -202,7 +202,7 @@ func (s *Service) resolveOrderWalletFunding(tx *gorm.DB, o Order, consume bool) 
 	if err != nil {
 		return err
 	}
-	if !found || c.AmountUSD.Cmp(o.InternalUSD) != 0 {
+	if !found || c.AmountMoney.Cmp(o.InternalMoney) != 0 {
 		return ErrNotPaid
 	}
 	return s.resolveWalletFunding(tx, c, "", consume)
@@ -270,17 +270,17 @@ func (s *Service) resolveWalletFunding(tx *gorm.DB, c walletCommand, allocationI
 		if a.Status != "reserved" {
 			return ErrOrderState
 		}
-		remaining := a.AmountUSD.Sub(a.RefundedUSD)
-		changes := map[string]any{"reserved_usd": gorm.Expr("reserved_usd-?", remaining)}
+		remaining := a.AmountMoney.Sub(a.RefundedMoney)
+		changes := map[string]any{"reserved_money": gorm.Expr("reserved_money-?", remaining)}
 		if consume {
-			changes["spent_usd"] = gorm.Expr("spent_usd+?", remaining)
+			changes["spent_money"] = gorm.Expr("spent_money+?", remaining)
 		}
 		if err := tx.Model(&walletLot{}).Where("id=?", a.LotID).Updates(changes).Error; err != nil {
 			return err
 		}
 		allocationChanges := map[string]any{"status": target}
 		if consume && c.Kind == "refund" {
-			allocationChanges["refunded_usd"] = a.AmountUSD
+			allocationChanges["refunded_money"] = a.AmountMoney
 		}
 		if err := tx.Model(&walletAllocation{}).Where("id=?", a.ID).Updates(allocationChanges).Error; err != nil {
 			return err
@@ -358,7 +358,7 @@ func (s *Service) RestoreWalletFunding(ctx context.Context, tx *gorm.DB, operato
 			return e
 		}
 		if found {
-			if old.SourceOrderID == nil || *old.SourceOrderID != orderID || old.AmountUSD.Cmp(amount) != 0 {
+			if old.SourceOrderID == nil || *old.SourceOrderID != orderID || old.AmountMoney.Cmp(amount) != 0 {
 				return ErrConflict
 			}
 			out, e = s.fundingAllocations(t, old)
@@ -377,12 +377,12 @@ func (s *Service) RestoreWalletFunding(ctx context.Context, tx *gorm.DB, operato
 		}
 		available := ledger.Zero()
 		for _, a := range sources {
-			available = available.Add(a.AmountUSD.Sub(a.RestoredUSD))
+			available = available.Add(a.AmountMoney.Sub(a.RestoredMoney))
 		}
 		if amount.Cmp(available) > 0 {
 			return ErrExcessAllocation
 		}
-		c := walletCommand{ID: uuid.NewString(), OperatorID: operator, CustomerID: customer, Kind: "restore", ReferenceID: restorationID, SourceOrderID: &orderID, Attempt: 1, AmountUSD: amount, Status: "restored", CreatedAt: s.now()}
+		c := walletCommand{ID: uuid.NewString(), OperatorID: operator, CustomerID: customer, Kind: "restore", ReferenceID: restorationID, SourceOrderID: &orderID, Attempt: 1, AmountMoney: amount, Status: "restored", CreatedAt: s.now()}
 		if e = t.Create(&c).Error; e != nil {
 			return e
 		}
@@ -391,21 +391,21 @@ func (s *Service) RestoreWalletFunding(ctx context.Context, tx *gorm.DB, operato
 			if remaining.IsZero() {
 				break
 			}
-			take := a.AmountUSD.Sub(a.RestoredUSD)
+			take := a.AmountMoney.Sub(a.RestoredMoney)
 			if take.IsZero() {
 				continue
 			}
 			if take.Cmp(remaining) > 0 {
 				take = remaining
 			}
-			r := walletAllocation{ID: uuid.NewString(), CommandID: c.ID, LotID: a.LotID, AmountUSD: take, Status: "restored", OriginalAllocationID: &a.ID}
+			r := walletAllocation{ID: uuid.NewString(), CommandID: c.ID, LotID: a.LotID, AmountMoney: take, Status: "restored", OriginalAllocationID: &a.ID}
 			if e = t.Create(&r).Error; e != nil {
 				return e
 			}
-			if e = t.Model(&walletAllocation{}).Where("id=?", a.ID).Update("restored_usd", gorm.Expr("restored_usd+?", take)).Error; e != nil {
+			if e = t.Model(&walletAllocation{}).Where("id=?", a.ID).Update("restored_money", gorm.Expr("restored_money+?", take)).Error; e != nil {
 				return e
 			}
-			if e = t.Model(&walletLot{}).Where("id=?", a.LotID).Update("spent_usd", gorm.Expr("spent_usd-?", take)).Error; e != nil {
+			if e = t.Model(&walletLot{}).Where("id=?", a.LotID).Update("spent_money", gorm.Expr("spent_money-?", take)).Error; e != nil {
 				return e
 			}
 			remaining = remaining.Sub(take)

@@ -37,15 +37,15 @@ it("opens a customer as a linked main page and restores the original search and 
 
 it("keeps the full order page and its original uncertain operation mounted for a precise retry", async () => {
   window.history.replaceState(null, "", "/manage/operator-one/orders?record=order-a");
-  const order = { id: "order-a", status: "pending_payment", values: { due_usd: "3" } };
+  const order = { id: "order-a", status: "pending_payment", values: { due_money: "3" } };
   const attempts: { key: string | null; body: unknown }[] = [];
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "POST") { attempts.push({ key: new Headers(init.headers).get("Idempotency-Key"), body: JSON.parse(String(init.body)) }); if (attempts.length === 1) throw new TypeError("connection reset"); return response({ id: "receipt-a", status: "allocated" }); }
-    return response(String(input).includes("order-context") ? { subject: order, sections: [{ resource: "payments", title: "原收款", page: page([], { operations: [{ name: "allocate", label: "分配原收款", method: "POST", path: "/api/v1/operators/operator-one/order-context/order-a/allocate", fields: [{ name: "amount_usd", label: "分配 USD", kind: "decimal", required: true }] }] }) }] } : page([order]));
+    return response(String(input).includes("order-context") ? { subject: order, sections: [{ resource: "payments", title: "原收款", page: page([], { operations: [{ name: "allocate", label: "分配原收款", method: "POST", path: "/api/v1/operators/operator-one/order-context/order-a/allocate", fields: [{ name: "amount_money", label: "分配 结算币种", kind: "decimal", required: true }] }] }) }] } : page([order]));
   }));
   show(<OperatorWorkflowScreen operatorID="operator-one" resource="orders" record="order-a" />);
   fireEvent.click(await screen.findByRole("button", { name: "分配原收款" }));
-  fireEvent.change(screen.getByLabelText("分配 USD", { exact: false }), { target: { value: "3.000000000000000001" } });
+  fireEvent.change(screen.getByLabelText("分配 结算币种", { exact: false }), { target: { value: "3.000000000000000001" } });
   fireEvent.click(screen.getByRole("button", { name: "分配原收款", exact: true }));
   await screen.findByRole("button", { name: "重试本次操作" });
   await waitFor(() => expect((screen.getByRole("button", { name: "返回原列表与筛选", hidden: true }) as HTMLButtonElement).disabled).toBe(true));
@@ -54,7 +54,7 @@ it("keeps the full order page and its original uncertain operation mounted for a
   await screen.findByRole("button", { name: "本次操作已完成，关闭后查看最新记录" });
   expect(attempts).toHaveLength(2);
   expect(attempts[1]).toEqual(attempts[0]);
-  expect(attempts[0].body).toEqual({ amount_usd: "3.000000000000000001" });
+  expect(attempts[0].body).toEqual({ amount_money: "3.000000000000000001" });
 });
 
 it("shows which procurement order holds supplier inventory and who can release it", () => {
@@ -93,12 +93,12 @@ it("separates procurement quotes, orders, authorizations and attempts", () => {
 
 it("organizes refund cases with exact related legs and payments while retaining unknown fees", () => {
   show(<ResourceCollection operatorID="operator-one" resource="refunds" embedded record="case-a" page={page([
-    { id: "case-a", status: "paying", values: { record_kind: "case", amount_usd: "3" } },
-    { id: "leg-a", status: "unknown", values: { record_kind: "leg", case_id: "case-a", amount_usd: "1", settled_usd: "0.000000000000000001", remaining_usd: "0.999999999999999999" } },
-    { id: "leg-b", values: { record_kind: "leg", case_id: "case-a", amount_usd: "2", settled_usd: "0.000000000000000002", remaining_usd: "1.999999999999999998" } },
-    { id: "payment-a", values: { record_kind: "actual_refund_payment", leg_id: "leg-a", actual_payment_usd: "0.000000000000000001", fee_usd: null } },
+    { id: "case-a", status: "paying", values: { record_kind: "case", amount_money: "3" } },
+    { id: "leg-a", status: "unknown", values: { record_kind: "leg", case_id: "case-a", amount_money: "1", settled_money: "0.000000000000000001", remaining_money: "0.999999999999999999" } },
+    { id: "leg-b", values: { record_kind: "leg", case_id: "case-a", amount_money: "2", settled_money: "0.000000000000000002", remaining_money: "1.999999999999999998" } },
+    { id: "payment-a", values: { record_kind: "actual_refund_payment", leg_id: "leg-a", actual_payment_money: "0.000000000000000001", fee_money: null } },
     { id: "unrelated-leg", values: { record_kind: "leg", case_id: "other-case" } },
-  ], { columns: [{ key: "amount_usd", label: "退款责任", kind: "usd" }] })} />);
+  ], { columns: [{ key: "amount_money", label: "退款责任", kind: "money" }] })} />);
   const refund = screen.getByText("case-a").closest("section")!;
   expect(within(refund).getByLabelText("0.000000000000000003 USD")).toBeTruthy();
   expect(within(refund).getByLabelText("2.999999999999999997 USD")).toBeTruthy();

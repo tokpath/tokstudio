@@ -445,21 +445,21 @@ test("platform configures input and output modality billing, synchronizes Bifros
     await chooseControl(dialog.getByRole("combobox", { name: "供应商", exact: true }), suppliers.items[0].value);
     await control(dialog, "期间开始", true).fill(localTime(new Date(Date.now() - 86_400_000)));
     await control(dialog, "期间结束", true).fill(localTime(new Date(Date.now() + 60_000)));
-    await control(dialog, "实际费用 USD", true).fill("92");
+    await control(dialog, "实际费用 结算币种", true).fill("92");
     await control(dialog, "备注", true).fill(note);
     const recorded = await submit(page, dialog, "登记实际费用", `${base}/supplier-costs`); const actual = await recorded.json(); await close(dialog);
     let row = page.getByRole("row").filter({ hasText: note });
     await expect(row).toBeVisible();
     dialog = await panel(page, "修改登记", row);
-    await control(dialog, "实际费用 USD", true).fill("91");
+    await control(dialog, "实际费用 结算币种", true).fill("91");
     await submit(page, dialog, "修改登记", `${base}/supplier-costs`); await close(dialog);
     const actuals = await (await page.request.get(`${base}/supplier-costs`)).json();
-    expect(actuals.items.find((item: any) => item.id === actual.id).values.amount_usd).toBe("91");
+    expect(actuals.items.find((item: any) => item.id === actual.id).values.amount_money).toBe("91");
     for (const locale of ["en", "ja", "ru", "zh"]) {
       await page.getByTestId("language-selector").selectOption(locale);
       await expect(page.locator("html")).toHaveAttribute("lang", locale === "zh" ? "zh-CN" : locale);
       await page.screenshot({ path: testInfo.outputPath(`supplier-costs-${locale}.png`), fullPage: true });
     }
-    await evidence(testInfo, "model-pricing-acceptance", { model, input_and_output_combined: true, sync_hours: 24, actual_record_id: actual.id, actual_usd: "91" });
+    await evidence(testInfo, "model-pricing-acceptance", { model, input_and_output_combined: true, sync_hours: 24, actual_record_id: actual.id, actual_money: "91" });
   } finally { await context.close(); }
 });

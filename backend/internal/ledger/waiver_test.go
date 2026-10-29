@@ -24,7 +24,7 @@ func TestClosureGiftsDoNotRequirePaidWaiverOrDiscardOtherAssets(t *testing.T) {
 			end := now.Add(time.Second)
 			expires = &end
 		}
-		g, err := s.IssueGrant(ctx, nil, GrantInput{OperatorID: op, CustomerID: customer, BusinessKey: key, ActorID: "test", Reason: "closure fixture", PaidUSD: paid, Sources: []GrantSource{{Kind: kind, Amount: FromInt64(value)}}, EffectiveAt: now, ExpiresAt: expires})
+		g, err := s.IssueGrant(ctx, nil, GrantInput{OperatorID: op, CustomerID: customer, BusinessKey: key, ActorID: "test", Reason: "closure fixture", PaidMoney: paid, Sources: []GrantSource{{Kind: kind, Amount: FromInt64(value)}}, EffectiveAt: now, ExpiresAt: expires})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -61,11 +61,11 @@ func TestClosureGiftsDoNotRequirePaidWaiverOrDiscardOtherAssets(t *testing.T) {
 	if _, err = s.Release(ctx, nil, op, hold.ID, "finished without usage"); err != nil {
 		t.Fatal(err)
 	}
-	cash, err := s.EnsureAccount(ctx, nil, Account{OperatorID: op, OwnerID: customer, Purpose: "customer:usd", Unit: "USD"})
+	cash, err := s.EnsureAccount(ctx, nil, Account{OperatorID: op, OwnerID: customer, Purpose: "customer:money", Unit: "MONEY"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	control, err := s.EnsureAccount(ctx, nil, Account{OperatorID: op, OwnerID: op, Purpose: "control:cash", Unit: "USD", AllowNegative: true})
+	control, err := s.EnsureAccount(ctx, nil, Account{OperatorID: op, OwnerID: op, Purpose: "control:cash", Unit: "MONEY", AllowNegative: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestClosureGiftsDoNotRequirePaidWaiverOrDiscardOtherAssets(t *testing.T) {
 		t.Fatal("gift closure affected cash", gotCash, err)
 	}
 	var events []GrantEvent
-	if err = s.db.Where("grant_id=? AND kind='cancellation'", gift.ID).Find(&events).Error; err != nil || len(events) != 1 || events[0].Amount.String() != "7" || !events[0].PaidUSD.IsZero() {
+	if err = s.db.Where("grant_id=? AND kind='cancellation'", gift.ID).Find(&events).Error; err != nil || len(events) != 1 || events[0].Amount.String() != "7" || !events[0].PaidMoney.IsZero() {
 		t.Fatal("gift cancellation was lost or duplicated", events, err)
 	}
 	for _, id := range []string{gift.AccountID, paid.AccountID, cash.ID, control.ID} {

@@ -12,17 +12,17 @@ import (
 )
 
 type FinancialSnapshot struct {
-	CompletedRequests           int64          `json:"completed_requests"`
-	PaidInvocationUSD           ledger.Decimal `json:"paid_invocation_usd"`
-	CorrectionPaidUSD           ledger.Decimal `json:"correction_paid_usd"`
-	ChargedATG                  ledger.Decimal `json:"charged_atg"`
-	ActualATG                   ledger.Decimal `json:"actual_atg"`
-	CorrectionATG               ledger.Decimal `json:"correction_atg"`
-	ShortfallATG                ledger.Decimal `json:"shortfall_atg"`
-	OwnRetailFulfillmentCostUSD ledger.Decimal `json:"own_retail_fulfillment_cost_usd"`
-	OwnRetailGiftCostUSD        ledger.Decimal `json:"own_retail_gift_cost_usd"`
-	SupplierCostUSD             ledger.Decimal `json:"supplier_cost_usd"`
-	PendingSupplierCosts        int64          `json:"pending_supplier_costs"`
+	CompletedRequests             int64                   `json:"completed_requests"`
+	PaidInvocationMoney           ledger.Decimal          `json:"paid_invocation_money"`
+	CorrectionPaidMoney           ledger.Decimal          `json:"correction_paid_money"`
+	ChargedATG                    ledger.Decimal          `json:"charged_atg"`
+	ActualATG                     ledger.Decimal          `json:"actual_atg"`
+	CorrectionATG                 ledger.Decimal          `json:"correction_atg"`
+	ShortfallATG                  ledger.Decimal          `json:"shortfall_atg"`
+	OwnRetailFulfillmentCostMoney ledger.Decimal          `json:"own_retail_fulfillment_cost_money"`
+	OwnRetailGiftCostMoney        ledger.Decimal          `json:"own_retail_gift_cost_money"`
+	SupplierCosts                 []SupplierCurrencyCosts `json:"supplier_costs"`
+	PendingSupplierCosts          int64                   `json:"pending_supplier_costs"`
 }
 
 // FinancialFacts recognizes retail at completion and corrections when posted.
@@ -43,44 +43,25 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 		var batch []Request
 		q := t.Where("operator_id=? AND status='completed' AND completed_at>=? AND completed_at<?", operator, from, to)
 		if e := q.FindInBatches(&batch, 500, func(batchTx *gorm.DB, _ int) error {
-			costs := map[string]ledger.Decimal{}
-			if operator == s.Catalog.PlatformOperatorID {
-				ids := make([]string, 0, len(batch))
-				for _, r := range batch {
-					ids = append(ids, r.ID)
-				}
-				var rows []struct {
-					RequestID string
-					Cost      ledger.Decimal
-				}
-				if e := t.Model(&AttemptRecord{}).Where("request_id IN ? AND cost_status='confirmed' AND cost_recorded_at<?", ids, to).Select("request_id,COALESCE(sum(supplier_cost_usd),0)::text AS cost").Group("request_id").Scan(&rows).Error; e != nil {
-					return e
-				}
-				for _, r := range rows {
-					costs[r.RequestID] = r.Cost
-				}
-			}
 			for _, r := range batch {
 				var settlement Settlement
 				if e := json.Unmarshal(r.Settlement, &settlement); e != nil {
 					return e
 				}
 				out.CompletedRequests++
-				out.PaidInvocationUSD = out.PaidInvocationUSD.Add(settlement.Customer.PaidUSD)
+				out.PaidInvocationMoney = out.PaidInvocationMoney.Add(settlement.Customer.PaidMoney)
 				out.ChargedATG = out.ChargedATG.Add(r.ChargedATG)
 				out.ActualATG = out.ActualATG.Add(r.ActualATG)
 				out.ShortfallATG = out.ShortfallATG.Add(r.MerchantShortfall)
 				cost := ledger.Zero()
-				if operator == s.Catalog.PlatformOperatorID {
-					cost = costs[r.ID]
-				} else {
+				if operator != s.Catalog.PlatformOperatorID {
 					for _, p := range settlement.Procurement {
 						if p.BuyerID == operator {
-							cost = cost.Add(p.CostUSD)
+							cost = cost.Add(p.CostMoney)
 						}
 					}
 				}
-				out.OwnRetailFulfillmentCostUSD = out.OwnRetailFulfillmentCostUSD.Add(cost)
+				out.OwnRetailFulfillmentCostMoney = out.OwnRetailFulfillmentCostMoney.Add(cost)
 				gift := ledger.Zero()
 				for _, e := range settlement.Customer.Events {
 					var sources []ledger.GrantSource
@@ -101,18 +82,20 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 		}).Error; e != nil {
 			return e
 		}
-		out.OwnRetailGiftCostUSD, _ = ledger.Quantize(giftCost)
+		out.OwnRetailGiftCostMoney, _ = ledger.Quantize(giftCost)
 		var correction struct{ Paid, Amount, Returned ledger.Decimal }
-		if e := t.Table("usage_charge_corrections").Where("operator_id=? AND created_at>=? AND created_at<?", operator, from, to).Select("COALESCE(sum(paid_usd),0)::text AS paid,COALESCE(sum(amount_atg),0)::text AS amount,COALESCE(sum(returned_atg),0)::text AS returned").Scan(&correction).Error; e != nil {
+		if e := t.Table("usage_charge_corrections").Where("operator_id=? AND created_at>=? AND created_at<?", operator, from, to).Select("COALESCE(sum(paid_money),0)::text AS paid,COALESCE(sum(amount_atg),0)::text AS amount,COALESCE(sum(returned_atg),0)::text AS returned").Scan(&correction).Error; e != nil {
 			return e
 		}
-		out.CorrectionPaidUSD = correction.Paid
+		out.CorrectionPaidMoney = correction.Paid
 		out.CorrectionATG = correction.Amount
 		// The forgiven over-estimate is corrected before any actual customer debit.
 		out.ShortfallATG = out.ShortfallATG.Sub(correction.Amount.Sub(correction.Returned))
 		if operator == s.Catalog.PlatformOperatorID {
-			if e := t.Model(&AttemptRecord{}).Where("cost_status='confirmed' AND cost_recorded_at>=? AND cost_recorded_at<?", from, to).Select("COALESCE(sum(supplier_cost_usd),0)::text").Row().Scan(&out.SupplierCostUSD); e != nil {
-				return e
+			var err error
+			out.SupplierCosts, err = supplierCurrencyCosts(ctx, t, from, to)
+			if err != nil {
+				return err
 			}
 			if e := t.Model(&AttemptRecord{}).Where("cost_status='pending'").Count(&out.PendingSupplierCosts).Error; e != nil {
 				return e
@@ -121,4 +104,21 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 		return nil
 	})
 	return out, e
+}
+
+// SupplierCurrencyCosts keeps independent cost bases side by side. These
+// observations are not expenses and are never summed across currencies.
+type SupplierCurrencyCosts struct {
+	Currency      string         `json:"currency"`
+	ReferenceCost ledger.Decimal `json:"reference_cost"`
+	ReportedCost  ledger.Decimal `json:"reported_cost"`
+}
+
+func supplierCurrencyCosts(ctx context.Context, tx *gorm.DB, from, to time.Time) ([]SupplierCurrencyCosts, error) {
+	out := []SupplierCurrencyCosts{}
+	err := tx.WithContext(ctx).Raw(`SELECT currency,ROUND(sum(reference_cost),18)::text AS reference_cost,ROUND(sum(reported_cost),18)::text AS reported_cost FROM (
+ SELECT reference_cost_currency AS currency,reference_cost_amount AS reference_cost,0::numeric AS reported_cost FROM usage_attempts WHERE reference_cost_amount IS NOT NULL AND cost_recorded_at>=? AND cost_recorded_at<?
+ UNION ALL SELECT reported_cost_currency,0::numeric,reported_cost_amount FROM usage_attempts WHERE reported_cost_amount IS NOT NULL AND cost_recorded_at>=? AND cost_recorded_at<?
+ ) costs GROUP BY currency ORDER BY currency`, from, to, from, to).Scan(&out).Error
+	return out, err
 }

@@ -54,7 +54,7 @@ func TestExternalFailedAttemptRetriesSameModelAndPreservesAcceptedSupplierPrice(
 	if e = f.db.Where("request_id=?", ex.Request.ID).Order("started_at,id").Find(&attempts).Error; e != nil || len(attempts) != 2 {
 		t.Fatal("expected exactly one failed and one successful actual attempt", attempts, e)
 	}
-	if attempts[0].CostStatus != "pending" || !attempts[0].SupplierCostUSD.IsZero() || attempts[1].CostStatus != "confirmed" || attempts[1].SupplierCostUSD.String() != "0.017" {
+	if attempts[0].CostStatus != "pending" || attempts[0].ReferenceCostAmount != nil || attempts[1].CostStatus != "confirmed" || attempts[1].ReferenceCostAmount == nil || *attempts[1].ReferenceCostAmount != "0.017" || attempts[1].ReferenceCostCurrency != "USD" {
 		t.Fatal("unknown cost must remain pending; accepted supplier price must remain fixed", attempts)
 	}
 	replay, e := f.s.Execute(f.ctx, f.key.Key, "retry-at-original-price", request(t, true), func(context.Context, modelruntime.Event) error { return nil })

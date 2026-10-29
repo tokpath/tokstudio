@@ -195,6 +195,11 @@ func (s *Service) GetBusinessStatus(ctx context.Context, tx *gorm.DB, operatorID
 	return BusinessStatus(r), classify(err)
 }
 func (s *Service) RequireBusiness(ctx context.Context, tx *gorm.DB, operatorID string, feature BusinessFeature) error {
+	if s.monetaryReady != nil {
+		if e := s.monetaryReady(ctx, s.dbFor(ctx, tx)); e != nil {
+			return e
+		}
+	}
 	if !validFeature(feature) {
 		return ErrInvalidInput
 	}
@@ -237,6 +242,11 @@ func (s *Service) SetBusinessStatus(ctx context.Context, tx *gorm.DB, in SetBusi
 		return out, ErrInvalidInput
 	}
 	err = s.withTx(ctx, tx, func(tx *gorm.DB) error {
+		if in.Enabled && s.monetaryReady != nil {
+			if e := s.monetaryReady(ctx, tx); e != nil {
+				return e
+			}
+		}
 		if err := s.RequirePermission(ctx, tx, in.ActorStaffID, in.OperatorID, "business.manage"); err != nil {
 			return err
 		}

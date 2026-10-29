@@ -57,6 +57,9 @@ func setup(t *testing.T) fixture {
 	}
 	apply(organization.Migrations())
 	apply(ledger.Migrations())
+	if e := db.Exec("UPDATE ledger_monetary_settings SET effective_at=clock_timestamp()-interval '1 minute' WHERE id='platform'").Error; e != nil {
+		t.Fatal(e)
+	}
 	apply(commerce.Migrations())
 	apply(cooperation.Migrations())
 	apply(incentives.Migrations())
@@ -101,10 +104,10 @@ func setup(t *testing.T) fixture {
 	com.SetSalesCoverage(coop)
 	com.SetMarketing(inc)
 	inc.SetRegistrationCoverage(coop)
-	if _, e = inc.SetPolicy(ctx, nil, owner, p.Operator.ID, incentives.PolicyInput{ThresholdUSD: d("100"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 3600, RewardValiditySeconds: 86400, KOLCrossActivityLimit: 10}); e != nil {
+	if _, e = inc.SetPolicy(ctx, nil, owner, p.Operator.ID, incentives.PolicyInput{ThresholdMoney: d("100"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 3600, RewardValiditySeconds: 86400, KOLCrossActivityLimit: 10}); e != nil {
 		t.Fatal(e)
 	}
-	quote, e := com.PublishPackage(ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: p.Operator.ID, Name: "80+20 monthly", TermsReference: "fixture terms", Timezone: "UTC", PriceUSD: d("80"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
+	quote, e := com.PublishPackage(ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: p.Operator.ID, Name: "80+20 monthly", TermsReference: "fixture terms", Timezone: "UTC", PriceMoney: d("80"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -119,7 +122,7 @@ func (f fixture) receipt(t *testing.T, key, amount string) commerce.Receipt {
 	now := time.Now().Add(-time.Minute)
 	gross := d(amount)
 	zero := d("0")
-	r, e := f.s.Commerce.RecordReceipt(f.ctx, nil, commerce.VerifiedReceipt{OperatorID: f.operator, Provider: "independently_verified_fixture", ProviderReceiptID: key, GrossUSD: gross, NetUSD: &gross, FeeUSD: &zero, FeeStatus: "confirmed", Currency: "USD", OriginalAmount: amount, RecipientReference: "merchant-bank", PayerReference: "customer-bank", ValuationEvidence: "actual USD", VerificationEvidence: "verified bank receipt", VerifiedBy: f.owner, PaidAt: &now, ObservedAt: now})
+	r, e := f.s.Commerce.RecordReceipt(f.ctx, nil, commerce.VerifiedReceipt{OperatorID: f.operator, Provider: "independently_verified_fixture", ProviderReceiptID: key, GrossMoney: gross, NetMoney: &gross, FeeMoney: &zero, FeeStatus: "confirmed", Currency: "USD", OriginalAmount: amount, RecipientReference: "merchant-bank", PayerReference: "customer-bank", ValuationEvidence: "actual USD", VerificationEvidence: "verified bank receipt", VerifiedBy: f.owner, PaidAt: &now, ObservedAt: now})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -127,12 +130,12 @@ func (f fixture) receipt(t *testing.T, key, amount string) commerce.Receipt {
 }
 func (f fixture) topup(t *testing.T, key, amount string) {
 	t.Helper()
-	o, e := f.s.Commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: key, ExpectedOwnershipVersion: 1, AmountUSD: d(amount)})
+	o, e := f.s.Commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: key, ExpectedOwnershipVersion: 1, AmountMoney: d(amount)})
 	if e != nil {
 		t.Fatal(e)
 	}
 	r := f.receipt(t, key, amount)
-	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: key, AmountUSD: d(amount)}); e != nil {
+	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: key, AmountMoney: d(amount)}); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = f.s.Commerce.Fulfill(f.ctx, nil, o.ID, f.owner); e != nil {
@@ -141,7 +144,7 @@ func (f fixture) topup(t *testing.T, key, amount string) {
 }
 func (f fixture) balance(t *testing.T) ledger.Account {
 	t.Helper()
-	a, e := f.s.account(f.ctx, f.db, f.operator, f.customer, "customer:usd")
+	a, e := f.s.account(f.ctx, f.db, f.operator, f.customer, "customer:money")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -152,7 +155,7 @@ func (f fixture) pay(t *testing.T, leg RefundLeg) {
 	if _, e := f.s.BeginManualRefund(f.ctx, f.owner, f.operator, leg.ID, "bank-payment:"+leg.ID, "finance scheduled original payer return"); e != nil {
 		t.Fatal(e)
 	}
-	p := ExecutionProof{BusinessKey: "confirmed-bank-payment", Reference: "bank-" + leg.ID, Evidence: "verified completed transfer", ActualUSD: leg.AmountUSD, FeeUSD: d("1"), Currency: "USD", Amount: leg.AmountUSD.String(), OccurredAt: time.Now().UTC()}
+	p := ExecutionProof{BusinessKey: "confirmed-bank-payment", Reference: "bank-" + leg.ID, Evidence: "verified completed transfer", ActualMoney: leg.AmountMoney, FeeMoney: d("1"), Currency: "USD", Amount: leg.AmountMoney.String(), OccurredAt: time.Now().UTC()}
 	if _, e := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p); e != nil {
 		t.Fatal(e)
 	}
@@ -164,7 +167,7 @@ func TestPostgresWalletRefundPreservesOriginsUnknownAndExactlyOnce(t *testing.T)
 	f := setup(t)
 	f.topup(t, "first", "40")
 	f.topup(t, "second", "60")
-	in := WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "return-70", AmountUSD: d("70"), Reason: "return unused balance"}
+	in := WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "return-70", AmountMoney: d("70"), Reason: "return unused balance"}
 	c, e := f.s.RequestWalletRefund(f.ctx, in)
 	if e != nil {
 		t.Fatal(e)
@@ -196,7 +199,7 @@ func TestPostgresWalletRefundPreservesOriginsUnknownAndExactlyOnce(t *testing.T)
 	if a := f.balance(t); a.Available().Cmp(d("30")) != 0 {
 		t.Fatal(a)
 	}
-	p := ExecutionProof{BusinessKey: "verified-later", Reference: "bank-final", Evidence: "bank queried original payment", ActualUSD: legs[1].AmountUSD, Currency: "USD", Amount: legs[1].AmountUSD.String(), OccurredAt: time.Now()}
+	p := ExecutionProof{BusinessKey: "verified-later", Reference: "bank-final", Evidence: "bank queried original payment", ActualMoney: legs[1].AmountMoney, Currency: "USD", Amount: legs[1].AmountMoney.String(), OccurredAt: time.Now()}
 	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, legs[1].ID, p); e != nil {
 		t.Fatal(e)
 	}
@@ -209,7 +212,7 @@ func TestPostgresWalletRefundPreservesOriginsUnknownAndExactlyOnce(t *testing.T)
 	}
 	for _, leg := range legs {
 		adj, e := f.s.InvoiceReceiptAdjustments(f.ctx, nil, f.operator, []string{leg.ReceiptID})
-		if e != nil || len(adj) != 1 || adj[0].RemovedUSD.Cmp(leg.AmountUSD) != 0 || adj[0].ReviewRequired {
+		if e != nil || len(adj) != 1 || adj[0].RemovedMoney.Cmp(leg.AmountMoney) != 0 || adj[0].ReviewRequired {
 			t.Fatal(adj, e)
 		}
 	}
@@ -224,7 +227,7 @@ func TestPostgresWalletRefundConcurrentReservationsAndCancel(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: uuid.NewString(), AmountUSD: d("30"), Reason: "unused"})
+			c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: uuid.NewString(), AmountMoney: d("30"), Reason: "unused"})
 			if e == nil {
 				successes.Add(1)
 				cases <- c
@@ -252,7 +255,7 @@ func TestPostgresPackageExceptionRefundDoesNotRepriceConsumedOrRetainGift(t *tes
 		t.Fatal(e)
 	}
 	r := f.receipt(t, "discounted", "80")
-	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ActorStaffID: f.owner, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "paid", AmountUSD: d("80")}); e != nil {
+	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ActorStaffID: f.owner, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "paid", AmountMoney: d("80")}); e != nil {
 		t.Fatal(e)
 	}
 	del, e := f.s.Commerce.Fulfill(f.ctx, nil, o.ID, f.owner)
@@ -274,14 +277,14 @@ func TestPostgresPackageExceptionRefundDoesNotRepriceConsumedOrRetainGift(t *tes
 	if e != nil {
 		t.Fatal(e)
 	}
-	if c.AmountUSD.Cmp(d("60")) != 0 || c.CreditATG.Cmp(d("75")) != 0 {
+	if c.AmountMoney.Cmp(d("60")) != 0 || c.CreditATG.Cmp(d("75")) != 0 {
 		t.Fatal(c)
 	}
 	if _, e = f.s.ReviewRefund(f.ctx, f.owner, f.operator, c.ID, "approve", "verified non-fulfillment"); e != nil {
 		t.Fatal(e)
 	}
 	g, e := f.s.Ledger.GetGrant(f.ctx, nil, *del.GrantID)
-	if e != nil || g.Cancelled.Cmp(d("75")) != 0 || g.CancelledPaidUSD.Cmp(d("60")) != 0 || g.ConsumedPaidUSD.Cmp(d("20")) != 0 {
+	if e != nil || g.Cancelled.Cmp(d("75")) != 0 || g.CancelledPaidMoney.Cmp(d("60")) != 0 || g.ConsumedPaidMoney.Cmp(d("20")) != 0 {
 		t.Fatal(g, e)
 	}
 	legs, e := f.s.Legs(f.ctx, nil, f.operator, c.ID)

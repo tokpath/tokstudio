@@ -192,7 +192,7 @@ func (s *Service) deliverRegistration(ctx context.Context, tx *gorm.DB, p Regist
 		if ownership.OperatorID != p.OperatorID {
 			return organization.ErrStaleOwnership
 		}
-		grant, err := s.ledger.IssueGrant(ctx, tx, ledger.GrantInput{OperatorID: p.OperatorID, CustomerID: *reward.customer, OrderID: "", BusinessKey: "registration:" + p.IntentID + ":" + *reward.customer, ActorID: "system:registration", Reason: "funded formal registration reward", PaidUSD: ledger.Zero(), Sources: []ledger.GrantSource{{Kind: "registration_gift", Amount: reward.amount}}, EffectiveAt: *p.RegisteredAt, ExpiresAt: &end})
+		grant, err := s.ledger.IssueGrant(ctx, tx, ledger.GrantInput{OperatorID: p.OperatorID, CustomerID: *reward.customer, OrderID: "", BusinessKey: "registration:" + p.IntentID + ":" + *reward.customer, ActorID: "system:registration", Reason: "funded formal registration reward", PaidMoney: ledger.Zero(), Sources: []ledger.GrantSource{{Kind: "registration_gift", Amount: reward.amount}}, EffectiveAt: *p.RegisteredAt, ExpiresAt: &end})
 		if err != nil {
 			return err
 		}

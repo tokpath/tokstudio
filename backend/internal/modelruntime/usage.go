@@ -125,7 +125,7 @@ func extractUsage(response any, c Capability) Usage {
 	// SDK prices use float64 and may be estimates. They never enter a money
 	// decision or the persisted evidence accepted by the billing domain.
 	delete(facts, "cost")
-	delete(facts, "cost_in_usd_ticks")
+	delete(facts, "cost_in_money_ticks")
 	if videoNativeSeconds != nil {
 		facts["provider"] = map[string]any{"seconds": videoNativeSeconds}
 		source = "provider_metadata"

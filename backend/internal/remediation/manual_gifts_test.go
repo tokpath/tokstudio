@@ -106,7 +106,7 @@ func TestPostgresManualGiftUsesCoverageZeroPaidBasisAndTransfersWithoutRewriting
 			manual = g
 		}
 	}
-	if manual.ID == "" || manual.OrderID != "" || !manual.PaidUSD.IsZero() || manual.Total.Cmp(d("80")) != 0 {
+	if manual.ID == "" || manual.OrderID != "" || !manual.PaidMoney.IsZero() || manual.Total.Cmp(d("80")) != 0 {
 		t.Fatal("gift fabricated a paid sale", manual)
 	}
 	var fakeOrders, giftSources int64
@@ -134,7 +134,7 @@ func TestPostgresManualGiftUsesCoverageZeroPaidBasisAndTransfersWithoutRewriting
 		if err != nil {
 			return err
 		}
-		if !result.PaidUSD.IsZero() || len(result.Events) != 1 || result.Events[0].GrantID != gift.GrantID {
+		if !result.PaidMoney.IsZero() || len(result.Events) != 1 || result.Events[0].GrantID != gift.GrantID {
 			t.Fatal("gift usage acquired paid basis", result)
 		}
 		return brand.s.Incentives.ObserveGrantEvent(channel.ctx, tx, manual, result.Events[0])
@@ -143,7 +143,7 @@ func TestPostgresManualGiftUsesCoverageZeroPaidBasisAndTransfersWithoutRewriting
 		t.Fatal(e)
 	}
 	q, e := brand.s.Incentives.GetQualification(channel.ctx, nil, channel.operator, channel.customer)
-	if e != nil || !q.ConfirmedUSD.IsZero() || q.AcquiredAt != nil {
+	if e != nil || !q.ConfirmedMoney.IsZero() || q.AcquiredAt != nil {
 		t.Fatal(q, e)
 	}
 	if a := channel.balance(t); a.Balance.Cmp(d("25")) != 0 || !a.Held.IsZero() {

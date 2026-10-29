@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { NextIntlClientProvider } from "next-intl";
 import { Globe } from "lucide-react";
 import { localeCookie, localeNames, localeTags, locales, normalizeLocale, translate, type Locale, type Translator } from "@/lib/i18n";
+import { useMonetary } from "./product/monetary";
 
 type I18nContext = { locale: Locale; t: Translator; setLocale: (locale: Locale) => void };
 const Context = createContext<I18nContext>({ locale: "zh", t: (source, values) => translate("zh", source, values), setLocale: () => {} });
@@ -21,7 +22,12 @@ export function I18nProvider({ initialLocale = "zh", children }: { initialLocale
   return <Context.Provider value={value}><NextIntlClientProvider locale={localeTags[locale]} messages={{}} timeZone="Asia/Shanghai">{children}</NextIntlClientProvider></Context.Provider>;
 }
 
-export function useI18n() { return useContext(Context); }
+export function useI18n() {
+  const context = useContext(Context), monetary = useMonetary();
+  const currency = monetary.status === "unconfigured" ? undefined : monetary.currency;
+  const t = useCallback<Translator>((source, values) => translate(context.locale, source, values, currency), [context.locale, currency]);
+  return { ...context, t };
+}
 
 export function LanguageControl() {
   const { locale, t, setLocale } = useI18n();

@@ -15,7 +15,7 @@ import (
 
 type chargebackOrder struct {
 	OperatorID, CustomerID, OrderID, Status string
-	DueUSD, FundingUSD                      ledger.Decimal
+	DueMoney, FundingMoney                  ledger.Decimal
 }
 
 func (s *Service) lockReceiptBusiness(ctx context.Context, t *gorm.DB, op, receipt string) error {
@@ -69,19 +69,19 @@ func (s *Service) flagChargebackCommissionSources(ctx context.Context, t *gorm.D
 			continue
 		}
 		var refunded ledger.Decimal
-		if e = t.Model(&Case{}).Select("COALESCE(sum(amount_usd),0)::text").Where("order_id=? AND kind='package_exception' AND state NOT IN ('pending_review','rejected','cancelled')", order.OrderID).Row().Scan(&refunded); e != nil {
+		if e = t.Model(&Case{}).Select("COALESCE(sum(amount_money),0)::text").Where("order_id=? AND kind='package_exception' AND state NOT IN ('pending_review','rejected','cancelled')", order.OrderID).Row().Scan(&refunded); e != nil {
 			return e
 		}
-		basis := order.DueUSD.Sub(refunded)
+		basis := order.DueMoney.Sub(refunded)
 		var invalid ledger.Decimal
-		if e = t.Table("remediation_chargeback_order_claims").Select("COALESCE(sum(amount_usd),0)::text").Where("order_id=? AND state='invalid'", order.OrderID).Row().Scan(&invalid); e != nil {
+		if e = t.Table("remediation_chargeback_order_claims").Select("COALESCE(sum(amount_money),0)::text").Where("order_id=? AND state='invalid'", order.OrderID).Row().Scan(&invalid); e != nil {
 			return e
 		}
 		basis = basis.Sub(invalid)
 		if basis.Sign() <= 0 {
 			continue
 		}
-		claim := fraction(order.FundingUSD, cb.AmountUSD, gross)
+		claim := fraction(order.FundingMoney, cb.AmountMoney, gross)
 		if claim.Sign() <= 0 {
 			continue
 		}
@@ -99,10 +99,10 @@ func (s *Service) chargebackOrders(ctx context.Context, t *gorm.DB, op, receipt 
 	}
 	orders := make([]chargebackOrder, 0, len(exposure.Orders))
 	for _, o := range exposure.Orders {
-		orders = append(orders, chargebackOrder{OperatorID: o.OperatorID, CustomerID: o.CustomerID, OrderID: o.OrderID, Status: "completed", DueUSD: o.DueUSD, FundingUSD: o.FundingUSD})
+		orders = append(orders, chargebackOrder{OperatorID: o.OperatorID, CustomerID: o.CustomerID, OrderID: o.OrderID, Status: "completed", DueMoney: o.DueMoney, FundingMoney: o.FundingMoney})
 	}
 	var pending []chargebackOrder
-	if e = t.Raw(`SELECT o.operator_id,o.customer_id,o.id AS order_id,o.status,o.due_usd,sum(a.amount_usd)::text AS funding_usd FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id WHERE a.operator_id=? AND a.receipt_id=? AND o.status<>'completed' GROUP BY o.operator_id,o.customer_id,o.id,o.status,o.due_usd ORDER BY o.id`, op, receipt).Scan(&pending).Error; e != nil {
+	if e = t.Raw(`SELECT o.operator_id,o.customer_id,o.id AS order_id,o.status,o.due_money,sum(a.amount_money)::text AS funding_money FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id WHERE a.operator_id=? AND a.receipt_id=? AND o.status<>'completed' GROUP BY o.operator_id,o.customer_id,o.id,o.status,o.due_money ORDER BY o.id`, op, receipt).Scan(&pending).Error; e != nil {
 		return nil, nil, e
 	}
 	orders = append(orders, pending...)
@@ -227,17 +227,17 @@ func (s *Service) applyChargebackRestrictions(ctx context.Context, t *gorm.DB, a
 		return e
 	}
 	var reserved, returned, claimed ledger.Decimal
-	if e = t.Model(&capacity{}).Select("COALESCE(sum(CASE WHEN state='reserved' THEN amount_usd-completed_usd ELSE 0 END),0)::text,COALESCE(sum(completed_usd),0)::text").Where("operator_id=? AND receipt_id=?", op, cb.ReceiptID).Row().Scan(&reserved, &returned); e != nil {
+	if e = t.Model(&capacity{}).Select("COALESCE(sum(CASE WHEN state='reserved' THEN amount_money-completed_money ELSE 0 END),0)::text,COALESCE(sum(completed_money),0)::text").Where("operator_id=? AND receipt_id=?", op, cb.ReceiptID).Row().Scan(&reserved, &returned); e != nil {
 		return e
 	}
 	if reserved.Sign() > 0 {
 		return ErrReview
 	}
-	if e = t.Model(&Chargeback{}).Select("COALESCE(sum(amount_usd),0)::text").Where("operator_id=? AND receipt_id=? AND id<>? AND (state='invalid_payment' OR (state='disputed' AND restrictions_applied_at IS NOT NULL))", op, cb.ReceiptID, id).Row().Scan(&claimed); e != nil {
+	if e = t.Model(&Chargeback{}).Select("COALESCE(sum(amount_money),0)::text").Where("operator_id=? AND receipt_id=? AND id<>? AND (state='invalid_payment' OR (state='disputed' AND restrictions_applied_at IS NOT NULL))", op, cb.ReceiptID, id).Row().Scan(&claimed); e != nil {
 		return e
 	}
-	basis := r.GrossUSD.Sub(returned).Sub(claimed)
-	if basis.Sign() <= 0 || cb.AmountUSD.Cmp(basis) > 0 {
+	basis := r.GrossMoney.Sub(returned).Sub(claimed)
+	if basis.Sign() <= 0 || cb.AmountMoney.Cmp(basis) > 0 {
 		return ErrReview
 	}
 	orders, wallets, e := s.chargebackOrders(ctx, t, op, cb.ReceiptID)
@@ -266,18 +266,18 @@ func (s *Service) applyChargebackRestrictions(ctx context.Context, t *gorm.DB, a
 	if e != nil {
 		return e
 	}
-	if e = freeze(unallocated, nil, nil, nil, nil, fraction(unallocated.Available(), cb.AmountUSD, basis), "unallocated"); e != nil {
+	if e = freeze(unallocated, nil, nil, nil, nil, fraction(unallocated.Available(), cb.AmountMoney, basis), "unallocated"); e != nil {
 		return e
 	}
 	for _, w := range wallets {
 		if w.OperatorID != op {
 			continue
 		}
-		amount := fraction(w.AvailableUSD, cb.AmountUSD, basis)
+		amount := fraction(w.AvailableMoney, cb.AmountMoney, basis)
 		if amount.IsZero() {
 			continue
 		}
-		account, e := s.account(ctx, t, op, w.CustomerID, "customer:usd")
+		account, e := s.account(ctx, t, op, w.CustomerID, "customer:money")
 		if e != nil {
 			return e
 		}
@@ -301,28 +301,28 @@ func (s *Service) applyChargebackRestrictions(ctx context.Context, t *gorm.DB, a
 			continue
 		}
 		var refunds, receiptRefunds, allClaims, sourceClaims ledger.Decimal
-		if e = t.Model(&Case{}).Select("COALESCE(sum(amount_usd),0)::text").Where("order_id=? AND kind='package_exception' AND state NOT IN ('pending_review','rejected','cancelled')", o.OrderID).Row().Scan(&refunds); e != nil {
+		if e = t.Model(&Case{}).Select("COALESCE(sum(amount_money),0)::text").Where("order_id=? AND kind='package_exception' AND state NOT IN ('pending_review','rejected','cancelled')", o.OrderID).Row().Scan(&refunds); e != nil {
 			return e
 		}
-		if e = t.Table("remediation_refund_legs l").Select("COALESCE(sum(l.amount_usd),0)::text").Joins("JOIN remediation_cases c ON c.id=l.case_id").Where("c.order_id=? AND c.kind='package_exception' AND c.state NOT IN ('pending_review','rejected','cancelled') AND l.receipt_id=?", o.OrderID, cb.ReceiptID).Row().Scan(&receiptRefunds); e != nil {
+		if e = t.Table("remediation_refund_legs l").Select("COALESCE(sum(l.amount_money),0)::text").Joins("JOIN remediation_cases c ON c.id=l.case_id").Where("c.order_id=? AND c.kind='package_exception' AND c.state NOT IN ('pending_review','rejected','cancelled') AND l.receipt_id=?", o.OrderID, cb.ReceiptID).Row().Scan(&receiptRefunds); e != nil {
 			return e
 		}
-		if e = t.Table("remediation_chargeback_order_claims").Select("COALESCE(sum(amount_usd),0)::text,COALESCE(sum(CASE WHEN receipt_id=? THEN amount_usd ELSE 0 END),0)::text", cb.ReceiptID).Where("order_id=? AND state IN ('active','invalid')", o.OrderID).Row().Scan(&allClaims, &sourceClaims); e != nil {
+		if e = t.Table("remediation_chargeback_order_claims").Select("COALESCE(sum(amount_money),0)::text,COALESCE(sum(CASE WHEN receipt_id=? THEN amount_money ELSE 0 END),0)::text", cb.ReceiptID).Where("order_id=? AND state IN ('active','invalid')", o.OrderID).Row().Scan(&allClaims, &sourceClaims); e != nil {
 			return e
 		}
-		sourceFunding := o.FundingUSD.Sub(receiptRefunds).Sub(sourceClaims)
-		orderBasis := o.DueUSD.Sub(refunds).Sub(allClaims)
+		sourceFunding := o.FundingMoney.Sub(receiptRefunds).Sub(sourceClaims)
+		orderBasis := o.DueMoney.Sub(refunds).Sub(allClaims)
 		if sourceFunding.Sign() <= 0 || orderBasis.Sign() <= 0 {
 			continue
 		}
-		claim := fraction(sourceFunding, cb.AmountUSD, basis)
+		claim := fraction(sourceFunding, cb.AmountMoney, basis)
 		if claim.Sign() <= 0 {
 			continue
 		}
 		if claim.Cmp(orderBasis) > 0 {
 			return ErrConflict
 		}
-		if e = t.Exec(`INSERT INTO remediation_chargeback_order_claims(chargeback_id,receipt_id,order_id,amount_usd,state) VALUES(?,?,?,?,'active')`, id, cb.ReceiptID, o.OrderID, claim).Error; e != nil {
+		if e = t.Exec(`INSERT INTO remediation_chargeback_order_claims(chargeback_id,receipt_id,order_id,amount_money,state) VALUES(?,?,?,?,'active')`, id, cb.ReceiptID, o.OrderID, claim).Error; e != nil {
 			return e
 		}
 		customer := o.CustomerID
@@ -353,10 +353,10 @@ func (s *Service) applyChargebackRestrictions(ctx context.Context, t *gorm.DB, a
 		}
 		for _, event := range events {
 			var pendingClaims ledger.Decimal
-			if e = t.Model(&chargebackEvent{}).Select("COALESCE(sum(amount_usd),0)::text").Where("source_event_id=? AND state IN ('disputed','observed')", event.SourceEventID).Row().Scan(&pendingClaims); e != nil {
+			if e = t.Model(&chargebackEvent{}).Select("COALESCE(sum(amount_money),0)::text").Where("source_event_id=? AND state IN ('disputed','observed')", event.SourceEventID).Row().Scan(&pendingClaims); e != nil {
 				return e
 			}
-			remaining := event.PaidUSD.Sub(event.ReversedUSD).Sub(pendingClaims)
+			remaining := event.PaidMoney.Sub(event.ReversedMoney).Sub(pendingClaims)
 			amount := fraction(remaining, claim, orderBasis)
 			if amount.Sign() <= 0 {
 				continue
@@ -374,7 +374,7 @@ func (s *Service) applyChargebackRestrictions(ctx context.Context, t *gorm.DB, a
 				}
 				state = "disputed"
 			}
-			if e = t.Create(&chargebackEvent{ChargebackID: id, SourceEventID: event.SourceEventID, OperatorID: op, AmountUSD: amount, State: state}).Error; e != nil {
+			if e = t.Create(&chargebackEvent{ChargebackID: id, SourceEventID: event.SourceEventID, OperatorID: op, AmountMoney: amount, State: state}).Error; e != nil {
 				return e
 			}
 		}
@@ -385,5 +385,5 @@ func (s *Service) applyChargebackRestrictions(ctx context.Context, t *gorm.DB, a
 	if e = t.Model(&Chargeback{}).Where("id=?", id).Update("restrictions_applied_at", at).Error; e != nil {
 		return e
 	}
-	return s.event(t, op, id, "chargeback.source_restrictions_applied", actor, evidence, map[string]any{"remaining_receipt_basis_usd": basis, "claimed_usd": cb.AmountUSD})
+	return s.event(t, op, id, "chargeback.source_restrictions_applied", actor, evidence, map[string]any{"remaining_receipt_basis_money": basis, "claimed_money": cb.AmountMoney})
 }

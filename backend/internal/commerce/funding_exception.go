@@ -31,5 +31,5 @@ func (s *Service) MarkFundingException(ctx context.Context, tx *gorm.DB, operato
 	if e := tx.Model(&o).Updates(map[string]any{"status": "exception", "exception_reason": "verified allocated payment loss: " + evidence}).Error; e != nil {
 		return e
 	}
-	return s.event(tx, operator, orderID, "order.payment_funding_exception", map[string]any{"evidence": evidence, "original_external_allocated_usd": o.ExternalAllocatedUSD})
+	return s.event(tx, operator, orderID, "order.payment_funding_exception", map[string]any{"evidence": evidence, "original_external_allocated_money": o.ExternalAllocatedMoney})
 }

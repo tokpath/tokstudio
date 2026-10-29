@@ -13,22 +13,22 @@ import (
 
 type InvoiceBasis struct {
 	ReceiptID           string          `json:"receipt_id"`
-	EligibleUSD         ledger.Decimal  `json:"eligible_usd"`
+	EligibleMoney         ledger.Decimal  `json:"eligible_money"`
 	AdjustmentReference string          `json:"adjustment_reference"`
 	ReviewRequired      bool            `json:"review_required"`
 	Evidence            string          `json:"evidence"`
-	ReceiptUSD          *ledger.Decimal `json:"receipt_usd,omitempty"`
-	TopUpUSD            ledger.Decimal  `json:"top_up_usd"`
-	PurchaseUSD         ledger.Decimal  `json:"purchase_usd"`
-	ConsumptionUSD      ledger.Decimal  `json:"consumption_usd"`
-	GlobalEligibleUSD   *ledger.Decimal `json:"global_eligible_usd,omitempty"`
+	ReceiptMoney          *ledger.Decimal `json:"receipt_money,omitempty"`
+	TopUpMoney            ledger.Decimal  `json:"top_up_money"`
+	PurchaseMoney         ledger.Decimal  `json:"purchase_money"`
+	ConsumptionMoney      ledger.Decimal  `json:"consumption_money"`
+	GlobalEligibleMoney   *ledger.Decimal `json:"global_eligible_money,omitempty"`
 }
 type InvoiceSource interface {
 	InvoiceBasis(context.Context, *gorm.DB, string, string, string) (InvoiceBasis, error)
 }
 type InvoiceLine struct {
 	ReceiptID string         `json:"receipt_id"`
-	AmountUSD ledger.Decimal `json:"amount_usd"`
+	AmountMoney ledger.Decimal `json:"amount_money"`
 }
 type InvoiceDetails struct {
 	Title   string `json:"title"`
@@ -45,7 +45,7 @@ type Invoice struct {
 	ReplacesInvoiceID *string        `json:"replaces_invoice_id,omitempty"`
 	BusinessKey       string         `json:"business_key"`
 	Fingerprint       string         `json:"-"`
-	AmountUSD         ledger.Decimal `json:"amount_usd"`
+	AmountMoney         ledger.Decimal `json:"amount_money"`
 	State             string         `json:"state"`
 	DetailsCiphertext string         `json:"-"`
 	CreatedAt         time.Time      `json:"created_at"`
@@ -78,10 +78,10 @@ func (s *Service) requestInvoice(ctx context.Context, partyKind, party, operator
 	sort.Slice(lines, func(i, j int) bool { return lines[i].ReceiptID < lines[j].ReceiptID })
 	amount := ledger.Zero()
 	for i, l := range lines {
-		if !validID(l.ReceiptID) || l.AmountUSD.Sign() <= 0 || !l.AmountUSD.Valid() || (i > 0 && lines[i-1].ReceiptID == l.ReceiptID) {
+		if !validID(l.ReceiptID) || l.AmountMoney.Sign() <= 0 || !l.AmountMoney.Valid() || (i > 0 && lines[i-1].ReceiptID == l.ReceiptID) {
 			return out, ErrInvalid
 		}
-		amount = amount.Add(l.AmountUSD)
+		amount = amount.Add(l.AmountMoney)
 	}
 	if !amount.Valid() {
 		return out, ErrInvalid
@@ -130,7 +130,7 @@ func (s *Service) requestInvoice(ctx context.Context, partyKind, party, operator
 				return ErrConflict
 			}
 			var used ledger.Decimal
-			if e = t.Raw(`SELECT COALESCE(sum(src.amount_usd),0)::text FROM operations_invoice_sources src JOIN operations_invoices i ON i.id=src.invoice_id WHERE i.operator_id=? AND src.receipt_id=? AND i.state NOT IN ('rejected','voided')`, operator, l.ReceiptID).Row().Scan(&used); e != nil {
+			if e = t.Raw(`SELECT COALESCE(sum(src.amount_money),0)::text FROM operations_invoice_sources src JOIN operations_invoices i ON i.id=src.invoice_id WHERE i.operator_id=? AND src.receipt_id=? AND i.state NOT IN ('rejected','voided')`, operator, l.ReceiptID).Row().Scan(&used); e != nil {
 				return e
 			}
 			eligible, e := eligibleInvoiceAmount(basis, policy.Stage, policy.MaximumRatio)
@@ -138,14 +138,14 @@ func (s *Service) requestInvoice(ctx context.Context, partyKind, party, operator
 				return e
 			}
 			global := eligible
-			if basis.GlobalEligibleUSD != nil {
-				global = *basis.GlobalEligibleUSD
+			if basis.GlobalEligibleMoney != nil {
+				global = *basis.GlobalEligibleMoney
 			}
 			var partyUsed ledger.Decimal
-			if e = t.Raw(`SELECT COALESCE(sum(src.amount_usd),0)::text FROM operations_invoice_sources src JOIN operations_invoices i ON i.id=src.invoice_id WHERE i.operator_id=? AND i.party_kind=? AND i.`+partyColumn+`=? AND src.receipt_id=? AND i.state NOT IN ('rejected','voided')`, operator, partyKind, party, l.ReceiptID).Row().Scan(&partyUsed); e != nil {
+			if e = t.Raw(`SELECT COALESCE(sum(src.amount_money),0)::text FROM operations_invoice_sources src JOIN operations_invoices i ON i.id=src.invoice_id WHERE i.operator_id=? AND i.party_kind=? AND i.`+partyColumn+`=? AND src.receipt_id=? AND i.state NOT IN ('rejected','voided')`, operator, partyKind, party, l.ReceiptID).Row().Scan(&partyUsed); e != nil {
 				return e
 			}
-			if used.Add(l.AmountUSD).Cmp(global) > 0 || partyUsed.Add(l.AmountUSD).Cmp(eligible) > 0 {
+			if used.Add(l.AmountMoney).Cmp(global) > 0 || partyUsed.Add(l.AmountMoney).Cmp(eligible) > 0 {
 				return ErrConflict
 			}
 		}
@@ -153,7 +153,7 @@ func (s *Service) requestInvoice(ctx context.Context, partyKind, party, operator
 		if e != nil {
 			return e
 		}
-		out = Invoice{ID: uuid.NewString(), OperatorID: operator, PartyKind: partyKind, BusinessKey: key, Fingerprint: fp, AmountUSD: amount, State: "requested", PolicyStage: policy.Stage, PolicyVersion: policy.Version, PolicyRatio: policy.MaximumRatio, DetailsCiphertext: cipher, CreatedAt: time.Now().UTC()}
+		out = Invoice{ID: uuid.NewString(), OperatorID: operator, PartyKind: partyKind, BusinessKey: key, Fingerprint: fp, AmountMoney: amount, State: "requested", PolicyStage: policy.Stage, PolicyVersion: policy.Version, PolicyRatio: policy.MaximumRatio, DetailsCiphertext: cipher, CreatedAt: time.Now().UTC()}
 		if partyKind == "procurement" {
 			out.BuyerOperatorID = &party
 		} else {
@@ -163,7 +163,7 @@ func (s *Service) requestInvoice(ctx context.Context, partyKind, party, operator
 			return e
 		}
 		for _, l := range lines {
-			if e = t.Table("operations_invoice_sources").Create(map[string]any{"invoice_id": out.ID, "receipt_id": l.ReceiptID, "amount_usd": l.AmountUSD.String()}).Error; e != nil {
+			if e = t.Table("operations_invoice_sources").Create(map[string]any{"invoice_id": out.ID, "receipt_id": l.ReceiptID, "amount_money": l.AmountMoney.String()}).Error; e != nil {
 				return e
 			}
 		}
@@ -253,8 +253,8 @@ func (s *Service) RegisterInvoice(ctx context.Context, actor, operator, id, stat
 					return e
 				}
 				global := eligible
-				if basis.GlobalEligibleUSD != nil {
-					global = *basis.GlobalEligibleUSD
+				if basis.GlobalEligibleMoney != nil {
+					global = *basis.GlobalEligibleMoney
 				}
 				if basis.ReviewRequired || partyReserved.Cmp(eligible) > 0 || globalReserved.Cmp(global) > 0 {
 					return ErrConflict
@@ -318,8 +318,8 @@ func (s *Service) ReviewInvoices(ctx context.Context, operator string, limit int
 					return e
 				}
 				global := eligible
-				if basis.GlobalEligibleUSD != nil {
-					global = *basis.GlobalEligibleUSD
+				if basis.GlobalEligibleMoney != nil {
+					global = *basis.GlobalEligibleMoney
 				}
 				if basis.ReviewRequired || partyReserved.Cmp(eligible) > 0 || globalReserved.Cmp(global) > 0 {
 					review = true
@@ -339,7 +339,7 @@ func (s *Service) ReviewInvoices(ctx context.Context, operator string, limit int
 
 func (s *Service) invoiceReserved(ctx context.Context, tx *gorm.DB, i Invoice, receipt string) (ledger.Decimal, ledger.Decimal, error) {
 	var global, party ledger.Decimal
-	if e := tx.WithContext(ctx).Raw(`SELECT COALESCE(sum(src.amount_usd),0)::text FROM operations_invoice_sources src JOIN operations_invoices i ON i.id=src.invoice_id WHERE i.operator_id=? AND src.receipt_id=? AND i.state NOT IN ('rejected','voided')`, i.OperatorID, receipt).Row().Scan(&global); e != nil {
+	if e := tx.WithContext(ctx).Raw(`SELECT COALESCE(sum(src.amount_money),0)::text FROM operations_invoice_sources src JOIN operations_invoices i ON i.id=src.invoice_id WHERE i.operator_id=? AND src.receipt_id=? AND i.state NOT IN ('rejected','voided')`, i.OperatorID, receipt).Row().Scan(&global); e != nil {
 		return global, party, e
 	}
 	column, owner := "customer_id", i.CustomerID
@@ -350,6 +350,6 @@ func (s *Service) invoiceReserved(ctx context.Context, tx *gorm.DB, i Invoice, r
 		}
 		owner = *i.BuyerOperatorID
 	}
-	e := tx.WithContext(ctx).Raw(`SELECT COALESCE(sum(src.amount_usd),0)::text FROM operations_invoice_sources src JOIN operations_invoices i ON i.id=src.invoice_id WHERE i.operator_id=? AND i.party_kind=? AND i.`+column+`=? AND src.receipt_id=? AND i.state NOT IN ('rejected','voided')`, i.OperatorID, i.PartyKind, owner, receipt).Row().Scan(&party)
+	e := tx.WithContext(ctx).Raw(`SELECT COALESCE(sum(src.amount_money),0)::text FROM operations_invoice_sources src JOIN operations_invoices i ON i.id=src.invoice_id WHERE i.operator_id=? AND i.party_kind=? AND i.`+column+`=? AND src.receipt_id=? AND i.state NOT IN ('rejected','voided')`, i.OperatorID, i.PartyKind, owner, receipt).Row().Scan(&party)
 	return global, party, e
 }

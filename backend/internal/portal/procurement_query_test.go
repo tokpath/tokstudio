@@ -84,7 +84,7 @@ func TestPostgresProcurementFiltersEntireScopeBeforePaging(t *testing.T) {
 	}
 	// The unfiltered summary covers all open orders, independently of the page.
 	for i := 0; i < 52; i++ {
-		o := cooperation.PurchaseOrder{ID: uuid.NewString(), SupplierID: op, BuyerID: child.Operator.ID, QuoteID: target, BusinessKey: fmt.Sprintf("summary-%d", i), Fingerprint: "synthetic", DueUSD: ledger.FromInt64(1), PaidATG: ledger.FromInt64(1), ExitTerms: json.RawMessage(`{}`), TermsReference: "synthetic", Name: "summary order", QuoteVersion: 1, Status: "awaiting_payment", ExpiresAt: now.Add(time.Hour), CreatedAt: now}
+		o := cooperation.PurchaseOrder{ID: uuid.NewString(), SupplierID: op, BuyerID: child.Operator.ID, QuoteID: target, BusinessKey: fmt.Sprintf("summary-%d", i), Fingerprint: "synthetic", DueMoney: ledger.FromInt64(1), PaidATG: ledger.FromInt64(1), ExitTerms: json.RawMessage(`{}`), TermsReference: "synthetic", Name: "summary order", QuoteVersion: 1, Status: "awaiting_payment", ExpiresAt: now.Add(time.Hour), CreatedAt: now}
 		if e = f.a.DB.Create(&o).Error; e != nil {
 			t.Fatal(e)
 		}
@@ -104,12 +104,12 @@ func TestPostgresProcurementOfflineReceiptCreatesAndDeliversOneOrder(t *testing.
 	if e != nil {
 		t.Fatal(e)
 	}
-	q, e := f.a.Cooperation.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: parent, BuyerID: child.Operator.ID, GiftTiers: []cooperation.PurchaseGiftTier{{}, {FromUSD: ledger.FromInt64(1000), GiftPercent: ledger.FromInt64(1)}, {FromUSD: ledger.FromInt64(2000), GiftPercent: ledger.FromInt64(2)}}, Enabled: true})
+	q, e := f.a.Cooperation.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: parent, BuyerID: child.Operator.ID, GiftTiers: []cooperation.PurchaseGiftTier{{}, {FromMoney: ledger.FromInt64(1000), GiftPercent: ledger.FromInt64(1)}, {FromMoney: ledger.FromInt64(2000), GiftPercent: ledger.FromInt64(2)}}, Enabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
 	now := time.Now().UTC()
-	receipt, e := f.a.Commerce.RecordManualReceipt(ctx, nil, owner, commerce.VerifiedReceipt{OperatorID: parent, ProviderReceiptID: "offline-purchase-bank", GrossUSD: ledger.FromInt64(2000), FeeStatus: "pending", Currency: "USD", OriginalAmount: "2000", RecipientReference: "supplier bank", PayerReference: "buyer bank", ValuationEvidence: "USD", VerificationEvidence: "synthetic transfer verified independently", PaidAt: &now, ObservedAt: now})
+	receipt, e := f.a.Commerce.RecordManualReceipt(ctx, nil, owner, commerce.VerifiedReceipt{OperatorID: parent, ProviderReceiptID: "offline-purchase-bank", GrossMoney: ledger.FromInt64(2000), FeeStatus: "pending", Currency: "USD", OriginalAmount: "2000", RecipientReference: "supplier bank", PayerReference: "buyer bank", ValuationEvidence: "USD", VerificationEvidence: "synthetic transfer verified independently", PaidAt: &now, ObservedAt: now})
 	if e != nil {
 		t.Fatal(e)
 	}

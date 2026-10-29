@@ -39,23 +39,23 @@ func (d DomainProcurementInvoiceSource) ProcurementInvoiceBasis(ctx context.Cont
 		return out, ErrNotReady
 	}
 	a := adjustments[0]
-	global := r.GrossUSD.Sub(a.RemovedUSD)
+	global := r.GrossMoney.Sub(a.RemovedMoney)
 	if global.Sign() < 0 {
 		global = ledger.Zero()
 	}
-	out.GlobalEligibleUSD = &global
-	out.EligibleUSD = b.AllocatedUSD.Sub(b.RefundedUSD)
-	if out.EligibleUSD.Sign() < 0 {
-		out.EligibleUSD = ledger.Zero()
+	out.GlobalEligibleMoney = &global
+	out.EligibleMoney = b.AllocatedMoney.Sub(b.RefundedMoney)
+	if out.EligibleMoney.Sign() < 0 {
+		out.EligibleMoney = ledger.Zero()
 	}
-	out.ReceiptUSD = &out.EligibleUSD
-	out.PurchaseUSD = b.PurchaseUSD.Sub(b.RefundedUSD)
-	if out.PurchaseUSD.Sign() < 0 {
-		out.PurchaseUSD = ledger.Zero()
+	out.ReceiptMoney = &out.EligibleMoney
+	out.PurchaseMoney = b.PurchaseMoney.Sub(b.RefundedMoney)
+	if out.PurchaseMoney.Sign() < 0 {
+		out.PurchaseMoney = ledger.Zero()
 	}
-	out.ConsumptionUSD = b.ConsumptionUSD
-	if out.ConsumptionUSD.Cmp(out.EligibleUSD) > 0 {
-		out.ConsumptionUSD = out.EligibleUSD
+	out.ConsumptionMoney = b.ConsumptionMoney
+	if out.ConsumptionMoney.Cmp(out.EligibleMoney) > 0 {
+		out.ConsumptionMoney = out.EligibleMoney
 	}
 	out.ReviewRequired = a.ReviewRequired
 	out.AdjustmentReference = a.Reference

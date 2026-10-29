@@ -6,6 +6,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"strings"
@@ -20,6 +21,11 @@ type referenceChoice struct {
 
 func (a *Application) references(c *gin.Context) {
 	ctx := c.Request.Context()
+	monetary, monetaryErr := ledger.GetMonetary(ctx, a.DB)
+	if monetaryErr != nil {
+		handleError(c, monetaryErr)
+		return
+	}
 	kind := c.Param("reference")
 	id := subject(c)
 	customer := id.Session.Kind == "customer"
@@ -342,7 +348,7 @@ func (a *Application) references(c *gin.Context) {
 						defaults[k] = v
 					}
 				}
-				label += " · " + q.PriceUSD.String() + " USD"
+				label += " · " + q.PriceMoney.String() + " " + monetary.Currency
 			}
 			add(r.ID, label, defaults)
 		}
@@ -369,7 +375,7 @@ func (a *Application) references(c *gin.Context) {
 			}
 			for _, r := range rows {
 				v := r.row()["values"].(gin.H)
-				add(r.ID, humanJoin(map[string]string{"topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费", "supply": "供货采购"}[r.Kind], r.Counterparty, fmt.Sprint(v["due_usd"])+" USD", r.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC")), gin.H{"order_id": r.ID})
+				add(r.ID, humanJoin(map[string]string{"topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费", "supply": "供货采购"}[r.Kind], r.Counterparty, fmt.Sprint(v["due_money"])+" "+monetary.Currency, r.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC")), gin.H{"order_id": r.ID})
 			}
 			break
 		}
@@ -383,7 +389,7 @@ func (a *Application) references(c *gin.Context) {
 			next = commerce.NextOrderCursor(rows[49])
 		}
 		for _, r := range rows {
-			add(r.ID, humanJoin(map[string]string{"topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费"}[r.Kind], r.DueUSD.String()+" USD", r.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC")), gin.H{"order_id": r.ID, "customer_id": r.CustomerID})
+			add(r.ID, humanJoin(map[string]string{"topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费"}[r.Kind], r.DueMoney.String()+" "+monetary.Currency, r.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC")), gin.H{"order_id": r.ID, "customer_id": r.CustomerID})
 		}
 	case "receipts":
 		if customer {
@@ -403,7 +409,7 @@ func (a *Application) references(c *gin.Context) {
 				}
 			}
 			for _, r := range rows {
-				add(r.ID, humanJoin(r.Provider, r.GrossUSD.String()+" USD", readableIdentifier(r.ProviderReceiptID)), gin.H{"issuer_id": r.OperatorID})
+				add(r.ID, humanJoin(r.Provider, r.GrossMoney.String()+" "+monetary.Currency, readableIdentifier(r.ProviderReceiptID)), gin.H{"issuer_id": r.OperatorID})
 			}
 			break
 		}
@@ -426,7 +432,7 @@ func (a *Application) references(c *gin.Context) {
 			}
 		}
 		for _, r := range rows {
-			add(r.ID, r.Provider+" · "+r.GrossUSD.String()+" USD · "+r.ProviderReceiptID, gin.H{"receipt_id": r.ID, "amount_usd": r.GrossUSD.Sub(r.AllocatedUSD).String(), "currency": r.Currency})
+			add(r.ID, r.Provider+" · "+r.GrossMoney.String()+" "+monetary.Currency+" · "+r.ProviderReceiptID, gin.H{"receipt_id": r.ID, "amount_money": r.GrossMoney.Sub(r.AllocatedMoney).String(), "currency": r.Currency})
 		}
 	case "supplier-models", "cost-models":
 		permission := "catalog.manage"
@@ -570,7 +576,7 @@ func (a *Application) references(c *gin.Context) {
 		}
 		for _, r := range rows {
 			if r.Enabled && len(r.GiftTiers) > 0 && (r.ValidUntil == nil || time.Now().Before(*r.ValidUntil)) {
-				add(r.ID, humanJoin(r.Name, "1 USD = 1 ATG + 阶梯赠送"), gin.H{"quote_id": r.ID, "supplier_id": r.SupplierID, "gift_tiers": r.GiftTiers})
+				add(r.ID, humanJoin(r.Name, "1 "+monetary.Currency+" = "+monetary.AtgPerUnit.String()+" ATG + 阶梯赠送"), gin.H{"quote_id": r.ID, "supplier_id": r.SupplierID, "gift_tiers": r.GiftTiers})
 			}
 		}
 	case "campaigns":

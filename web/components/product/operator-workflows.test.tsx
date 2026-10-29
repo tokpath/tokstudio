@@ -86,8 +86,8 @@ it("opens exact customer context and pages one section while retaining its busin
 
 it("uses the selected order as the locked allocation context and submits the original receipt path", async () => {
   staff(["orders.read", "payments.read", "payments.manage"]);
-  const order: Entity = { id: "order-a", status: "partially_paid", values: { kind: "package", due_usd: "10", external_allocated_usd: "2" } };
-  const context = { subject: order, sections: [{ resource: "payments", title: "关联收款", page: page([{ id: "receipt-a", status: "confirmed", values: { gross_usd: "8" }, allowed_actions: ["allocate"] }], { row_operations: [{ name: "allocate", label: "分配至原订单", method: "POST", path: "/api/v1/operators/operator-one/payments/{id}/allocate", permission: "payments.manage", fields: [{ name: "order_id", label: "原订单", kind: "text", required: true }, { name: "amount_usd", label: "分配金额 USD", kind: "decimal", required: true }] }] }) }] };
+  const order: Entity = { id: "order-a", status: "partially_paid", values: { kind: "package", due_money: "10", external_allocated_money: "2" } };
+  const context = { subject: order, sections: [{ resource: "payments", title: "关联收款", page: page([{ id: "receipt-a", status: "confirmed", values: { gross_money: "8" }, allowed_actions: ["allocate"] }], { row_operations: [{ name: "allocate", label: "分配至原订单", method: "POST", path: "/api/v1/operators/operator-one/payments/{id}/allocate", permission: "payments.manage", fields: [{ name: "order_id", label: "原订单", kind: "text", required: true }, { name: "amount_money", label: "分配金额 结算币种", kind: "decimal", required: true }] }] }) }] };
   let submitted: unknown;
   const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "POST") { expect(String(input)).toContain("/payments/receipt-a/allocate"); submitted = JSON.parse(String(init.body)); return response({ id: "receipt-a", status: "allocated" }); }
@@ -97,9 +97,9 @@ it("uses the selected order as the locked allocation context and submits the ori
   show(<OperatorSubjectPanel operatorID="operator-one" resource="orders" row={order} close={() => {}} />);
   fireEvent.click(await screen.findByRole("button", { name: "分配至原订单" }));
   const allocation = screen.getAllByRole("dialog").at(-1)!;
-  fireEvent.change(within(allocation).getByLabelText("分配金额 USD", { exact: false }), { target: { value: "8.000000000000000001" } });
+  fireEvent.change(within(allocation).getByLabelText("分配金额 结算币种", { exact: false }), { target: { value: "8.000000000000000001" } });
   fireEvent.click(within(allocation).getByRole("button", { name: "分配至原订单", exact: true }));
-  await waitFor(() => expect(submitted).toEqual({ order_id: "order-a", amount_usd: "8.000000000000000001" }));
+  await waitFor(() => expect(submitted).toEqual({ order_id: "order-a", amount_money: "8.000000000000000001" }));
 });
 
 it("turns known ledger metrics into Chinese operator tasks without fetching ungranted source pages", async () => {
@@ -170,20 +170,20 @@ it("shows server-authorized retail request context for OEM customer support", as
 it("keeps an uncertain financial operation panel open for the original retry", async () => {
   staff(["payments.read"]);
   vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("connection reset"); }));
-  show(<ResourceCollection embedded operatorID="operator-one" resource="payments" page={page([], { operations: [{ name: "receipt", label: "登记实际收款", method: "POST", path: "/api/v1/operators/operator-one/payments", fields: [{ name: "gross_usd", label: "实收 USD", kind: "decimal", required: true }] }] })} />);
+  show(<ResourceCollection embedded operatorID="operator-one" resource="payments" page={page([], { operations: [{ name: "receipt", label: "登记实际收款", method: "POST", path: "/api/v1/operators/operator-one/payments", fields: [{ name: "gross_money", label: "实收 结算币种", kind: "decimal", required: true }] }] })} />);
   fireEvent.click(screen.getByRole("button", { name: "登记实际收款" }));
-  fireEvent.change(screen.getByLabelText("实收 USD", { exact: false }), { target: { value: "3" } });
+  fireEvent.change(screen.getByLabelText("实收 结算币种", { exact: false }), { target: { value: "3" } });
   fireEvent.click(screen.getByRole("button", { name: "登记实际收款", exact: true }));
   await screen.findByRole("button", { name: "重试本次操作" });
   await waitFor(() => expect((screen.getByRole("button", { name: "关闭办理面板" }) as HTMLButtonElement).disabled).toBe(true));
   fireEvent.keyDown(document, { key: "Escape" });
   expect(screen.getByRole("dialog")).toBeTruthy();
-  expect((screen.getByLabelText("实收 USD", { exact: false }) as HTMLInputElement).disabled).toBe(true);
+  expect((screen.getByLabelText("实收 结算币种", { exact: false }) as HTMLInputElement).disabled).toBe(true);
 });
 
 it("offers the original order delivery action inside its context with allowed_actions intact", async () => {
   staff(["orders.read", "sales.manage"]);
-  const order: Entity = { id: "order-a", status: "paid_pending_delivery", allowed_actions: ["fulfill"], values: { due_usd: "10", paid_atg: "20" } };
+  const order: Entity = { id: "order-a", status: "paid_pending_delivery", allowed_actions: ["fulfill"], values: { due_money: "10", paid_atg: "20" } };
   let submitted: string | undefined;
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "POST") { submitted = String(input); return response({ id: "order-a", status: "fulfilled" }); }
@@ -199,7 +199,7 @@ it("offers the original order delivery action inside its context with allowed_ac
 it("locks every customer and order ancestor until an uncertain allocation is retried with its original identity", async () => {
   staff(["customers.read", "orders.read", "payments.read", "payments.manage"]);
   const customer: Entity = { id: "customer-a", values: { name: "林同学" } };
-  const order: Entity = { id: "order-a", status: "pending_payment", values: { due_usd: "3" } };
+  const order: Entity = { id: "order-a", status: "pending_payment", values: { due_money: "3" } };
   const submissions: { body: unknown; key: string | null }[] = [];
   const close = vi.fn();
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -210,12 +210,12 @@ it("locks every customer and order ancestor until an uncertain allocation is ret
     }
     return response(String(input).includes("customer-context")
       ? { subject: customer, sections: [{ resource: "orders", title: "客户订单", page: page([order]) }, { resource: "assets", title: "客户资产", page: page() }] }
-      : { subject: order, sections: [{ resource: "payments", title: "关联收款", page: page([], { next_cursor: "receipt-next", operations: [{ name: "allocate", label: "分配原收款", method: "POST", path: "/api/v1/operators/operator-one/order-context/order-a/allocate", permission: "payments.manage", fields: [{ name: "amount_usd", label: "分配 USD", kind: "decimal", required: true }] }] }) }, { resource: "assets", title: "交付权益", page: page() }] });
+      : { subject: order, sections: [{ resource: "payments", title: "关联收款", page: page([], { next_cursor: "receipt-next", operations: [{ name: "allocate", label: "分配原收款", method: "POST", path: "/api/v1/operators/operator-one/order-context/order-a/allocate", permission: "payments.manage", fields: [{ name: "amount_money", label: "分配 结算币种", kind: "decimal", required: true }] }] }) }, { resource: "assets", title: "交付权益", page: page() }] });
   }));
   show(<OperatorSubjectPanel operatorID="operator-one" resource="customers" row={customer} close={close} />);
   fireEvent.click(await screen.findByRole("button", { name: "查看并办理" }));
   fireEvent.click(await screen.findByRole("button", { name: "分配原收款" }));
-  fireEvent.change(screen.getByLabelText("分配 USD", { exact: false }), { target: { value: "3.000000000000000001" } });
+  fireEvent.change(screen.getByLabelText("分配 结算币种", { exact: false }), { target: { value: "3.000000000000000001" } });
   fireEvent.click(screen.getByRole("button", { name: "分配原收款", exact: true }));
   await screen.findByRole("button", { name: "重试本次操作" });
   await waitFor(() => {
@@ -233,7 +233,7 @@ it("locks every customer and order ancestor until an uncertain allocation is ret
   await waitFor(() => expect(screen.getAllByRole("button", { name: "关闭办理面板", hidden: true }).every(button => !(button as HTMLButtonElement).disabled)).toBe(true));
   expect(submissions).toHaveLength(2);
   expect(submissions[0]).toEqual(submissions[1]);
-  expect(submissions[0].body).toEqual({ amount_usd: "3.000000000000000001" });
+  expect(submissions[0].body).toEqual({ amount_money: "3.000000000000000001" });
   expect(submissions[0].key).toMatch(/^[0-9a-f-]{36}$/);
 });
 
@@ -250,7 +250,7 @@ it("revises an existing plan with its saved values and optimistic version", asyn
   staff(["plans.read", "sales.manage"]);
   let submitted: unknown;
   vi.stubGlobal("fetch", vi.fn(async (_input, init) => { submitted = JSON.parse(String(init?.body)); return response({ id: "plan-a", status: "published" }); }));
-  show(<ResourceCollection embedded operatorID="operator-one" resource="plans" page={page([{ id: "plan-a", version: 7, values: { package_id: "plan-a", name: "月度套餐", paid_atg: "21.000000000000000001", gift_atg:"0", price_usd:"20", period:"month", new_purchase_enabled:true,renewal_enabled:true } }], { operations: [{ name: "publish", label: "发布套餐版本", method: "POST", path: "/api/v1/operators/operator-one/plans", permission: "sales.manage", fields: [{ name: "package_id", label: "现有套餐", kind: "text" }, { name: "name", label: "套餐名称", kind: "text", required: true }, { name: "paid_atg", label: "购买 ATG", kind: "decimal", required: true }, { name: "expected_version", label: "当前版本", kind: "hidden", default_value: 0 }] }] })} />);
+  show(<ResourceCollection embedded operatorID="operator-one" resource="plans" page={page([{ id: "plan-a", version: 7, values: { package_id: "plan-a", name: "月度套餐", paid_atg: "21.000000000000000001", gift_atg:"0", price_money:"20", period:"month", new_purchase_enabled:true,renewal_enabled:true } }], { operations: [{ name: "publish", label: "发布套餐版本", method: "POST", path: "/api/v1/operators/operator-one/plans", permission: "sales.manage", fields: [{ name: "package_id", label: "现有套餐", kind: "text" }, { name: "name", label: "套餐名称", kind: "text", required: true }, { name: "paid_atg", label: "购买 ATG", kind: "decimal", required: true }, { name: "expected_version", label: "当前版本", kind: "hidden", default_value: 0 }] }] })} />);
   fireEvent.click(screen.getByRole("button", { name: "编辑套餐" }));
   const dialog = screen.getByRole("dialog");
   expect((within(dialog).getByLabelText("套餐名称", { exact: false }) as HTMLInputElement).value).toBe("月度套餐");
@@ -291,19 +291,22 @@ it("edits a directly managed channel coverage policy with that row's actual vers
 it("retains unresolved financial facts and validates the selected calendar date range", async () => {
   staff(["reports.view"]);
   const report = {
-    operator_id: "operator-one", from: "2026-10-01T00:00:00Z", to: "2026-10-18T00:00:00Z", captured_at: "2026-10-18T00:00:00Z", status: "pending_verification", operating_result_usd: "-3.000000000000000001",
-    sales:{completed_sales:2,sales_usd:"20",wallet_top_ups:1,wallet_top_up_usd:"5",pending_deliveries:0},procurement:{purchase_orders:1,purchases_usd:"4",wholesale_orders:1,wholesale_sales_usd:"30"},usage:{completed_requests:4,charged_atg:"8",correction_atg:"1",shortfall_atg:"0"},
-    revenue: { paid_invocation_usd: "1", expired_unused_paid_usd: "2", wholesale_consumed_usd: "3", withdrawal_fees_retained_usd: "4", total_usd: "10" },
-    costs: { fulfillment_usd: "5", retail_gift_subset_usd: "1", commission_usd: "2", payment_fees_usd: "3", exception_loss_usd: "3.000000000000000001", total_usd: "13.000000000000000001", pending_fees: 1, pending_supplier_costs: 2 },
-    cash: { recorded_in_usd: "20", recorded_out_usd: "7", procurement_payments_usd: "4", commission_payouts_usd: "3", takeover_in_usd: "0", takeover_out_usd: "0", provider_receivable_usd: "1" },
-    liabilities: { wholesale_prepayment_usd:"0", customer_wallet_usd: "2", outstanding_grant_paid_usd: "5", outstanding_grant_atg: "8", commission_usd: "3", unfulfilled_order_funds_usd: "4", supplier_payable_usd: "1" },
-    payments: { pending_receipt_facts: 3, awaiting_valuation: 2, original_money: [{ currency: "CNY", amount: "99.000000000000000001", facts: 1 }] },
-    refunds: { pending_fees: 1, pending_executions: 2, outstanding_usd: "9", mismatch_count: 1 }, takeover_flows: [], takeover_balances: [], notes: ["历史责任按原始经营范围保留。"],
+    operator_id: "operator-one", from: "2026-10-01T00:00:00Z", to: "2026-10-18T00:00:00Z", captured_at: "2026-10-18T00:00:00Z", status: "pending_verification", settlement_currency: "CNY", original_currency_totals: [{currency:"EUR",income:"12",expense:"3",receipt_fees:"0.5",net_receipts:"11.5",pending_receipt_fees:1,supplier_reported_cost:"2",supplier_reference_cost:"0",supplier_actual_cost:"5"}],
+    sales:{completed_sales:2,sales_money:"20",wallet_top_ups:1,wallet_top_up_money:"5",pending_deliveries:0},procurement:{purchase_orders:1,purchases_money:"4",wholesale_orders:1,wholesale_sales_money:"30"},usage:{completed_requests:4,charged_atg:"8",correction_atg:"1",shortfall_atg:"0"},
+    revenue: { paid_invocation_money: "1", expired_unused_paid_money: "2", wholesale_consumed_money: "3", withdrawal_fees_retained_money: "4", total_money: "10" },
+    costs: { fulfillment_money: "5", retail_gift_subset_money: "1", commission_money: "2", payment_fees_money: "3", exception_loss_money: "3.000000000000000001", total_money: "13.000000000000000001", pending_fees: 1, pending_supplier_costs: 2 },
+    cash: { recorded_in_money: "20", recorded_out_money: "7", procurement_payments_money: "4", commission_payouts_money: "3", takeover_in_money: "0", takeover_out_money: "0", provider_receivable_money: "1" },
+    liabilities: { wholesale_prepayment_money:"0", customer_wallet_money: "2", outstanding_grant_paid_money: "5", outstanding_grant_atg: "8", commission_money: "3", unfulfilled_order_funds_money: "4", supplier_payable_money: "1" },
+    payments: { pending_receipt_facts: 3, awaiting_settlement: 2, original_money: [{ currency: "CNY", amount: "99.000000000000000001", facts: 1 }] },
+    refunds: { pending_fees: 1, pending_executions: 2, outstanding_money: "9", mismatch_count: 1 }, takeover_flows: [], takeover_balances: [], notes: ["历史责任按原始经营范围保留。"],
   };
   const fetch = vi.fn(async () => response(report)); vi.stubGlobal("fetch", fetch);
   show(<FinancialReportScreen operatorID="operator-one" />);
   await screen.findByLabelText("99.000000000000000001 CNY");
-  expect(screen.getByLabelText("-3.000000000000000001 USD")).toBeTruthy();
+  expect(screen.queryByText("经营结果")).toBeNull();
+  expect(screen.getByLabelText("12 EUR")).toBeTruthy();
+  expect(screen.getByLabelText("5 EUR")).toBeTruthy();
+  expect(screen.getByLabelText("13.000000000000000001 CNY")).toBeTruthy();
   expect(screen.getByText("未核实供应成本 · 2", { exact: false })).toBeTruthy();
   expect(screen.queryByRole("link", { name: "处理退款未决" })).toBeNull();
   fireEvent.change(screen.getByLabelText("开始日期"), {target:{value:"2026-01-01"}});
@@ -322,7 +325,7 @@ it("retains unresolved financial facts and validates the selected calendar date 
 });
 
 const takeover = {
-  id: "takeover-one", channel_id: "channel-one", brand_operator_id: "operator-one", state: "completed", method: "agreed_atg_value", service_usd_per_atg: "1", procurement_usd_per_atg: "1", extra_usd: "0", contract_reference: "contract-one", evidence: "双方已核实", requested_by: "staff-1", snapshot: null, snapshot_fingerprint: "snapshot-one", service_usd: "3", cash_usd: "4", procurement_offset_atg: "2", procurement_offset_usd: "2", remaining_procurement_refund_usd: "0", settlement_due_usd: "5", settled_usd: "0", created_at: "2026-10-16T00:00:00Z",
+  id: "takeover-one", channel_id: "channel-one", brand_operator_id: "operator-one", state: "completed", method: "agreed_atg_value", service_money_per_atg: "1", procurement_money_per_atg: "1", extra_money: "0", contract_reference: "contract-one", evidence: "双方已核实", requested_by: "staff-1", snapshot: null, snapshot_fingerprint: "snapshot-one", service_money: "3", cash_money: "4", procurement_offset_atg: "2", procurement_offset_money: "2", remaining_procurement_refund_money: "0", settlement_due_money: "5", settled_money: "0", created_at: "2026-10-16T00:00:00Z",
 };
 
 it("shows takeover facts without offering ungranted financial or preparation actions", async () => {
@@ -341,13 +344,13 @@ it("retries an uncertain takeover settlement with the original proof and action 
     if (init?.method === "POST") {
       submissions.push({ body: JSON.parse(String(init.body)), key: new Headers(init.headers).get("Idempotency-Key") });
       if (submissions.length === 1) throw new TypeError("connection reset");
-      return response({ ...takeover, settled_usd: "5" });
+      return response({ ...takeover, settled_money: "5" });
     }
     return response({ items: [takeover], channels: [] });
   }));
   show(<TakeoversScreen operatorID="operator-one" />);
   fireEvent.click(await screen.findByRole("button", { name: "登记实际收付款" }));
-  for (const [label, value] of [["实际币种金额", "5.000000000000000001"], ["收付款流水或收据号（可选）", "bank-one"], ["核实依据与当次估值证据", "bank-proof-one"], ["实际收付款时间", "2026-10-18T12:34"]]) fireEvent.change(screen.getByLabelText(label, { exact: true }), { target: { value } });
+  for (const [label, value] of [["实际币种金额", "5.000000000000000001"], ["收付款流水或收据号（可选）", "bank-one"], ["收付款核实依据", "bank-proof-one"], ["实际收付款时间", "2026-10-18T12:34"]]) fireEvent.change(screen.getByLabelText(label, { exact: true }), { target: { value } });
   fireEvent.click(screen.getByRole("checkbox"));
   fireEvent.click(screen.getByRole("button", { name: "确认提交" }));
   await screen.findByRole("button", { name: "重试原操作" });
@@ -358,6 +361,6 @@ it("retries an uncertain takeover settlement with the original proof and action 
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(submissions).toHaveLength(2);
   expect(submissions[0]).toEqual(submissions[1]);
-  expect(submissions[0].body).toMatchObject({ actual_usd: "5.000000000000000001", amount: "5.000000000000000001", fee_usd: "0", reference: "bank-one" });
+  expect(submissions[0].body).toMatchObject({ actual_money: "5.000000000000000001", amount: "5.000000000000000001", fee_money: "0", reference: "bank-one" });
   expect(submissions[0].key).toMatch(/^[0-9a-f-]{36}$/);
 });

@@ -26,7 +26,12 @@ func (d Manual) Create(_ context.Context, m Merchant, o Order) (Checkout, error)
 	if o.Validate(m) != nil || o.Money.Currency != m.Credentials["currency"] {
 		return Checkout{}, ErrInvalid
 	}
-	return Checkout{State: "pending", PaymentAddress: m.Credentials["recipient_reference"], Instructions: m.Credentials["instructions"], PayMoney: &o.Money}, nil
+	settlement := o.Settlement()
+	checkout := Checkout{State: "pending", PaymentAddress: m.Credentials["recipient_reference"], Instructions: m.Credentials["instructions"], SettlementMoney: &settlement}
+	if o.Money.Currency == settlement.Currency {
+		checkout.PayMoney = &o.Money
+	}
+	return checkout, nil
 }
 func (Manual) Lookup(context.Context, Merchant, Order) (Fact, error) { return Fact{}, ErrNotFinal }
 func (Manual) Refund(context.Context, Merchant, Refund) (RefundStatus, error) {
@@ -40,11 +45,12 @@ func (Manual) VerifyWebhook(context.Context, Merchant, Webhook) (Hint, error) {
 }
 
 type ManualVerification struct {
-	ExternalReference string    `json:"external_reference"`
-	Money             Money     `json:"money"`
-	PaidAt            time.Time `json:"paid_at"`
-	EvidenceReference string    `json:"evidence_reference"`
-	PayerReference    string    `json:"payer_reference"`
+	ExternalReference string         `json:"external_reference"`
+	Money             Money          `json:"money"`
+	PaidAt            time.Time      `json:"paid_at"`
+	EvidenceReference string         `json:"evidence_reference"`
+	PayerReference    string         `json:"payer_reference"`
+	SettlementAmount  ledger.Decimal `json:"settlement_amount,omitempty"`
 }
 
 func (s *Service) RecordManual(ctx context.Context, actor, operator, merchant, orderID string, v ManualVerification) (Fact, error) {
@@ -72,9 +78,20 @@ func (s *Service) RecordManual(ctx context.Context, actor, operator, merchant, o
 	if e != nil {
 		return Fact{}, e
 	}
+	if !v.SettlementAmount.Valid() || v.SettlementAmount.Sign() < 0 || (v.Money.Currency == o.Settlement().Currency && !v.SettlementAmount.IsZero() && v.SettlementAmount.Cmp(v.Money.Amount) != 0) {
+		return Fact{}, ErrInvalid
+	}
 	fact, e := receiptFact(m, o, v.ExternalReference, v.Money, &v.PaidAt, map[string]string{"verified_by": "staff:" + actor, "evidence_reference": v.EvidenceReference, "payer_reference": v.PayerReference, "recipient_reference": m.Credentials["recipient_reference"]})
 	if e != nil {
 		return Fact{}, e
+	}
+	if v.Money.Currency != o.Settlement().Currency && v.SettlementAmount.Sign() > 0 {
+		value, e := (Valuation{Currency: o.Settlement().Currency, Amount: v.SettlementAmount, Source: v.EvidenceReference}).Convert(v.Money, time.Time{})
+		if e != nil {
+			return Fact{}, e
+		}
+		value.VerifiedBy = "staff:" + actor
+		fact.ExecutionValue = &value
 	}
 	fact.ID = manualBankFactID("receipt", ManualAccountScope(operator, m.Credentials["recipient_reference"]), v.ExternalReference)
 	e = s.RecordFact(ctx, m, o, fact)

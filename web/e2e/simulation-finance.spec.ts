@@ -54,11 +54,11 @@ test("finance records one whole payment, links private evidence, reviews a refun
     await login(customer, "customer", persona.customer);
     await login(finance, "staff", persona.finance);
     await login(reviewer, "staff", persona.reviewer);
-    const startingBalance = Number((await (await customer.request.get("/api/v1/me/credits")).json()).usd_balance.available);
-    const startingFees = Number((await (await finance.request.get(`${base}/reports/financial`)).json()).costs.payment_fees_usd);
+    const startingBalance = Number((await (await customer.request.get("/api/v1/me/credits")).json()).money_balance.available);
+    const startingFees = Number((await (await finance.request.get(`${base}/reports/financial`)).json()).costs.payment_fees_money);
     await customer.goto("/workspace/topups");
     await customer.getByRole("button", { name: "创建充值订单", exact: true }).click();
-    const order = await submit(customer, "创建充值订单", "/api/v1/me/topups", { amount_usd: "100", external_method_id: fixture.manual_method_id });
+    const order = await submit(customer, "创建充值订单", "/api/v1/me/topups", { amount_money: "100", external_method_id: fixture.manual_method_id });
     const orderID = order.id || order.order?.id;
     expect(orderID).toBeTruthy();
     const receipts: string[] = [];
@@ -66,31 +66,31 @@ test("finance records one whole payment, links private evidence, reviews a refun
     await expect(finance.getByRole("heading", { name: "订单与收款办理", exact: true })).toBeVisible();
     await finance.getByRole("button", { name: "登记本单线下收款", exact: true }).click();
     const receiptPanel=finance.getByRole("dialog").last();
-    for(const name of ["original_amount","net_usd","observed_at","valuation_evidence"]) await expect(receiptPanel.locator(`[data-command-field="${name}"]`)).toHaveCount(0);
+    for(const name of ["original_amount","net_money","observed_at","valuation_evidence"]) await expect(receiptPanel.locator(`[data-command-field="${name}"]`)).toHaveCount(0);
     await receiptPanel.getByText("附加付款凭据（可选）",{exact:true}).click();
     await receiptPanel.getByLabel("选择付款凭据").setInputFiles({name:"synthetic-bank.png",mimeType:"image/png",buffer:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+cWZkAAAAASUVORK5CYII=","base64")});
     await receiptPanel.getByRole("button",{name:"上传并关联凭据",exact:true}).click();
     await expect(receiptPanel.getByText("凭据已关联",{exact:false})).toBeVisible();
     const marker=await receiptPanel.locator('[data-command-field="verification_evidence"] textarea').inputValue();
     const receipt = await submit(finance, "登记本单线下收款", `${base}/payments`, {
-      provider_receipt_id: `simulation-bank-${randomUUID()}`, gross_usd: "100", currency: "USD",
+      provider_receipt_id: `simulation-bank-${randomUUID()}`, gross_money: "100", currency: "USD",
       recipient_reference: "SYNTHETIC finance merchant", payer_reference: "SYNTHETIC customer bank",
       verification_evidence: "SYNTHETIC local acceptance bank fact\n"+marker, fee_status: "pending", paid_at: localNow(),
     });
     receipts.push(receipt.id);
     await finance.goto(`${manage}/payments?q=${receipt.id}`);
     await finance.getByRole("button",{name:"核实手续费与结算",exact:true}).click();
-    await submit(finance,"核实手续费与结算",`${base}/payments/${receipt.id}/accounting`,{fee_usd:"3",evidence:"Independent synthetic bank fee statement"});
+    await submit(finance,"核实手续费与结算",`${base}/payments/${receipt.id}/accounting`,{fee_money:"3",evidence:"Independent synthetic bank fee statement"});
     // Finance allocates verified receipts; the durable worker delivers the
     // funded order. Allow its discovery interval and the shared queue backlog.
-    await expect.poll(async () => (await (await customer.request.get("/api/v1/me/credits")).json()).usd_balance.available, { timeout: 60_000 }).toBe(String(startingBalance + 100));
+    await expect.poll(async () => (await (await customer.request.get("/api/v1/me/credits")).json()).money_balance.available, { timeout: 60_000 }).toBe(String(startingBalance + 100));
     await finance.goto(`${manage}/refunds`);
     await finance.getByText("办理设置",{exact:true}).click();
     await finance.getByRole("button", { name: "设置独立复核阈值", exact: true }).click();
     await submit(finance, "设置独立复核阈值", `${base}/refunds`, { second_review_above: "10" });
     await customer.goto("/workspace/refunds");
-    await customer.getByRole("button", { name: "申请USD余额原路退回", exact: true }).click();
-    const refund = await submit(customer, "申请USD余额原路退回", "/api/v1/me/refunds", { amount_usd: "20", reason: "Synthetic unused payment balance return" });
+    await customer.getByRole("button", { name: "申请结算币种余额原路退回", exact: true }).click();
+    const refund = await submit(customer, "申请结算币种余额原路退回", "/api/v1/me/refunds", { amount_money: "20", reason: "Synthetic unused payment balance return" });
     const readCase = async () => (await (await finance.request.get(`${base}/refunds?record=${refund.id}`)).json()).items as { id: string; status: string; values: Record<string, unknown>; presentation?: { title?: string } }[];
     for (const staff of [finance, reviewer]) {
       await staff.goto(`${manage}/refunds?record=${refund.id}`);
@@ -110,17 +110,17 @@ test("finance records one whole payment, links private evidence, reviews a refun
     await submit(finance, "结果未知，保留占用", `${base}/refunds/${legID}/unknown`, { evidence: "Synthetic bank acknowledgement delayed" });
     await expect(finance.getByRole("button", { name: "登记外部退款执行意图", exact: true })).toHaveCount(0);
     const held = await (await customer.request.get("/api/v1/me/credits")).json();
-    expect(held.usd_balance.available).toBe(String(startingBalance + 80)); expect(held.usd_balance.held).toBe("20");
+    expect(held.money_balance.available).toBe(String(startingBalance + 80)); expect(held.money_balance.held).toBe("20");
     await finance.getByRole("button", { name: "核实实际线下退款", exact: true }).click();
-    await submit(finance, "核实实际线下退款", `${base}/refunds/${legID}/verify_manual`, { reference: `simulation-refund-${randomUUID()}`, currency: "USD", amount: "20", fee_usd: "0.5", occurred_at: localNow(), evidence: "SYNTHETIC settled bank statement; original payer; actual USD" });
+    await submit(finance, "核实实际线下退款", `${base}/refunds/${legID}/verify_manual`, { reference: `simulation-refund-${randomUUID()}`, currency: "USD", amount: "20", fee_money: "0.5", occurred_at: localNow(), evidence: "SYNTHETIC settled bank statement; original payer; actual USD" });
     const settled = await readCase();
     expect(settled.find(row => row.id === refund.id)?.status).toBe("completed");
     const credits = await (await customer.request.get("/api/v1/me/credits")).json();
-    expect(credits.usd_balance.available).toBe(String(startingBalance + 80)); expect(credits.usd_balance.held).toBe("0");
+    expect(credits.money_balance.available).toBe(String(startingBalance + 80)); expect(credits.money_balance.held).toBe("0");
     const reportResponse = finance.waitForResponse(r => new URL(r.url()).pathname === `${base}/reports/financial`);
     await finance.goto(`${manage}/reports`);
     const report = await (await reportResponse).json();
-    expect(report.costs.payment_fees_usd, "default current report must include the just-confirmed fees").toBe(String(startingFees + 3.5));
+    expect(report.costs.payment_fees_money, "default current report must include the just-confirmed fees").toBe(String(startingFees + 3.5));
 
     await finance.goto(`${manage}/invoices`);
     await finance.getByText("办理设置",{exact:true}).click();
@@ -128,7 +128,7 @@ test("finance records one whole payment, links private evidence, reviews a refun
     await submit(finance, "设置零售客户开票规则", `${base}/invoices`, { enabled: true, stage: "top_up", maximum_ratio: "1", rules_reference: "Synthetic original receipt invoice policy" });
     await customer.goto("/workspace/invoices");
     await customer.getByRole("button", { name: "按原始收款申请发票", exact: true }).click();
-    const invoice = await submit(customer, "按原始收款申请发票", "/api/v1/me/invoices", { "lines.0.receipt_id": receipts[0], "lines.0.amount_usd": "40", "details.title": "合成仿真客户", "details.tax_id": "SYNTHETIC-NOT-A-TAX-ID", "details.email": persona.customer.email });
+    const invoice = await submit(customer, "按原始收款申请发票", "/api/v1/me/invoices", { "lines.0.receipt_id": receipts[0], "lines.0.amount_money": "40", "details.title": "合成仿真客户", "details.tax_id": "SYNTHETIC-NOT-A-TAX-ID", "details.email": persona.customer.email });
     await finance.goto(`${manage}/invoices`);
     await control(finance, "搜索记录").fill(invoice.id);
     await finance.getByRole("button", { name: "查询", exact: true }).click();
@@ -181,6 +181,6 @@ test("finance records one whole payment, links private evidence, reviews a refun
     expect(settled.filter(row => row.values.record_kind === "actual_refund_payment")).toHaveLength(1);
     await finance.screenshot({ path: info.outputPath("finance-refund-reconciled.png"), fullPage: true });
     expect(errors).toEqual([]);
-    await info.attach("synthetic-finance-facts", { body: JSON.stringify({ order_id: orderID, receipt_ids: receipts, initial_customer_available_usd: String(startingBalance), credited_usd: "100", merchant_receipt_fees_usd: "3", refund_usd: "20", merchant_refund_fee_usd: "0.5", final_customer_available_usd: credits.usd_balance.available, final_customer_held_usd: credits.usd_balance.held, distinct_reviewers: 2, invoice_id: invoice.id, private_invoice_downloaded: true, other_customer_download_status: 404 }), contentType: "application/json" });
+    await info.attach("synthetic-finance-facts", { body: JSON.stringify({ order_id: orderID, receipt_ids: receipts, initial_customer_available_money: String(startingBalance), credited_money: "100", merchant_receipt_fees_money: "3", refund_money: "20", merchant_refund_fee_money: "0.5", final_customer_available_money: credits.money_balance.available, final_customer_held_money: credits.money_balance.held, distinct_reviewers: 2, invoice_id: invoice.id, private_invoice_downloaded: true, other_customer_download_status: 404 }), contentType: "application/json" });
   } finally { await customerContext.close(); await financeContext.close(); await reviewerContext.close(); }
 });

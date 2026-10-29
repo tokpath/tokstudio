@@ -58,13 +58,13 @@ func correctionFixture(t *testing.T) (fixture, *incentives.Service, Request) {
 	}
 	inc := incentives.New(f.db)
 	inc.SetRegistrationCoverage(f.coop)
-	if _, e = inc.SetPolicy(f.ctx, nil, f.owner, f.operator, incentives.PolicyInput{ThresholdUSD: d("50"), RewardValiditySeconds: 3600, KOLCrossActivityLimit: 1}); e != nil {
+	if _, e = inc.SetPolicy(f.ctx, nil, f.owner, f.operator, incentives.PolicyInput{ThresholdMoney: d("50"), RewardValiditySeconds: 3600, KOLCrossActivityLimit: 1}); e != nil {
 		t.Fatal(e)
 	}
 	c := commerce.New(f.db)
 	c.SetSalesCoverage(f.coop)
 	c.SetMarketing(inc)
-	q, e := c.PublishPackage(f.ctx, nil, commerce.PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, Name: "Mixed paid and gift", TermsReference: "correction-terms", Timezone: "UTC", PriceUSD: d("80"), PaidATG: d("0.5"), GiftATG: d("0.2"), Period: ledger.Month, NewPurchaseEnabled: true})
+	q, e := c.PublishPackage(f.ctx, nil, commerce.PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, Name: "Mixed paid and gift", TermsReference: "correction-terms", Timezone: "UTC", PriceMoney: d("80"), PaidATG: d("0.5"), GiftATG: d("0.2"), Period: ledger.Month, NewPurchaseEnabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -73,11 +73,11 @@ func correctionFixture(t *testing.T) (fixture, *incentives.Service, Request) {
 		t.Fatal(e)
 	}
 	gross, zero := d("80"), ledger.Zero()
-	r, e := c.RecordReceipt(f.ctx, nil, commerce.VerifiedReceipt{OperatorID: f.operator, Provider: "verified-test-bank", ProviderReceiptID: "actual-paid-receipt", GrossUSD: gross, NetUSD: &gross, FeeUSD: &zero, Currency: "USD", OriginalAmount: "80", RecipientReference: "merchant", PayerReference: "external-payer", ValuationEvidence: "USD original", VerificationEvidence: "queried settled receipt", VerifiedBy: "test:bank", PaidAt: &o.CreatedAt})
+	r, e := c.RecordReceipt(f.ctx, nil, commerce.VerifiedReceipt{OperatorID: f.operator, Provider: "verified-test-bank", ProviderReceiptID: "actual-paid-receipt", GrossMoney: gross, NetMoney: &gross, FeeMoney: &zero, Currency: "USD", OriginalAmount: "80", RecipientReference: "merchant", PayerReference: "external-payer", ValuationEvidence: "USD original", VerificationEvidence: "queried settled receipt", VerifiedBy: "test:bank", PaidAt: &o.CreatedAt})
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = c.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "fund-order", AmountUSD: gross}); e != nil {
+	if _, e = c.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "fund-order", AmountMoney: gross}); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = c.Fulfill(f.ctx, nil, o.ID, f.owner); e != nil {
@@ -101,7 +101,7 @@ func correctionFixture(t *testing.T) (fixture, *incentives.Service, Request) {
 func TestPostgresChargeCorrectionConservesActualFundingAndOriginalKeyBudget(t *testing.T) {
 	f, inc, req := correctionFixture(t)
 	q, e := inc.GetQualification(f.ctx, nil, f.operator, f.customer)
-	if e != nil || q.ConfirmedUSD.Cmp(d("80")) != 0 || q.AcquiredAt == nil {
+	if e != nil || q.ConfirmedMoney.Cmp(d("80")) != 0 || q.AcquiredAt == nil {
 		t.Fatalf("qualification before correction=%+v %v", q, e)
 	}
 	reset, e := f.s.ResetKey(f.ctx, f.customer, f.key.Key.ID, "rotate-before-correction", 1)
@@ -110,7 +110,7 @@ func TestPostgresChargeCorrectionConservesActualFundingAndOriginalKeyBudget(t *t
 	}
 	input := ChargeCorrectionInput{OperatorID: f.operator, RequestID: req.ID, BusinessKey: "shortfall-only", ActorID: f.owner, Evidence: "verified retail mischarge", AmountATG: d("0.05")}
 	first, e := f.s.CorrectCustomerCharge(f.ctx, nil, input, inc)
-	if e != nil || !first.ReturnedATG.IsZero() || !first.PaidUSD.IsZero() {
+	if e != nil || !first.ReturnedATG.IsZero() || !first.PaidMoney.IsZero() {
 		t.Fatalf("merchant shortfall refunded customer=%+v %v", first, e)
 	}
 	input.BusinessKey, input.AmountATG = "partial-return", d("0.15")
@@ -128,11 +128,11 @@ func TestPostgresChargeCorrectionConservesActualFundingAndOriginalKeyBudget(t *t
 	}
 	input.BusinessKey, input.AmountATG = "final-return", d("0.6")
 	last, e := f.s.CorrectCustomerCharge(f.ctx, nil, input, inc)
-	if e != nil || last.ReturnedATG.Cmp(d("0.6")) != 0 || partial.PaidUSD.Add(last.PaidUSD).Cmp(d("80")) != 0 {
+	if e != nil || last.ReturnedATG.Cmp(d("0.6")) != 0 || partial.PaidMoney.Add(last.PaidMoney).Cmp(d("80")) != 0 {
 		t.Fatalf("paid discount attribution lost=%+v / %+v %v", partial, last, e)
 	}
 	q, e = inc.GetQualification(f.ctx, nil, f.operator, f.customer)
-	if e != nil || !q.ConfirmedUSD.IsZero() || q.AcquiredAt == nil {
+	if e != nil || !q.ConfirmedMoney.IsZero() || q.AcquiredAt == nil {
 		t.Fatalf("correction erased acquisition or retained consumption=%+v %v", q, e)
 	}
 	b, e := f.s.KeyBudget(f.ctx, nil, reset.Key, time.Now())

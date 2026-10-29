@@ -90,7 +90,7 @@ func (a *Application) appendContextSection(c *gin.Context, out *workspaceContext
 }
 func orderContextRow(row commerce.Order) gin.H {
 	v := values(row)
-	v["paid_usd"] = row.InternalUSD.Add(row.CommissionUSD).Add(row.ExternalAllocatedUSD)
+	v["paid_money"] = row.InternalMoney.Add(row.CommissionMoney).Add(row.ExternalAllocatedMoney)
 	r := entity(row.ID, row.Status, 1, v)
 	r["allowed_actions"] = []string{}
 	if row.Status == "paid" || row.Status == "paid_pending_delivery" || row.Status == "partially_paid" || row.Status == "pending_payment" || row.Status == "pending" {
@@ -131,7 +131,7 @@ func (a *Application) customerContext(c *gin.Context) {
 			if err != nil {
 				return err
 			}
-			p := contextPage("购买与交付", rows, []gin.H{col("id", "订单", "text"), col("kind", "类型", "text"), col("due_usd", "应付", "usd"), col("paid_usd", "已付", "usd"), col("status", "交付状态", "status"), col("created_at", "创建时间", "datetime")}, orderContextRow)
+			p := contextPage("购买与交付", rows, []gin.H{col("id", "订单", "text"), col("kind", "类型", "text"), col("due_money", "应付", "money"), col("paid_money", "已付", "money"), col("status", "交付状态", "status"), col("created_at", "创建时间", "datetime")}, orderContextRow)
 			p["row_operations"] = contextOrderOperations(op.ID)
 			a.appendContextSection(c, &out, "orders", "购买与交付", p)
 		}
@@ -164,7 +164,7 @@ func (a *Application) customerContext(c *gin.Context) {
 			if err != nil {
 				return err
 			}
-			p := contextPage("推广收益", rows, []gin.H{col("order_id", "来源订单", "text"), col("hop", "邀请层级", "text"), col("amount_usd", "应计", "usd"), col("reversed_usd", "已冲正", "usd"), col("status", "状态", "status"), col("confirm_at", "确认时间", "datetime")}, func(r incentives.CommissionEntry) gin.H { return entity(r.ID, r.Status, 1, r) })
+			p := contextPage("推广收益", rows, []gin.H{col("order_id", "来源订单", "text"), col("hop", "邀请层级", "text"), col("amount_money", "应计", "money"), col("reversed_money", "已冲正", "money"), col("status", "状态", "status"), col("confirm_at", "确认时间", "datetime")}, func(r incentives.CommissionEntry) gin.H { return entity(r.ID, r.Status, 1, r) })
 			var qualification incentives.Qualification
 			if err := tx.Table("incentives_qualification_accounts").Where("operator_id=? AND customer_id=?", op.ID, customerID).Find(&qualification).Error; err != nil {
 				return err
@@ -173,7 +173,7 @@ func (a *Application) customerContext(c *gin.Context) {
 			if qualification.AcquiredAt != nil {
 				state = "已正式取得"
 			}
-			p["summary"] = []gin.H{{"label": "已确认真实支出", "value": qualification.ConfirmedUSD.String(), "unit": "USD"}, {"label": "分佣资格", "value": state, "detail": "资格累计包含确认的到期购买价值；佣金仅来自实际有偿调用。"}}
+			p["summary"] = []gin.H{{"label": "已确认真实支出", "value": qualification.ConfirmedMoney.String(), "unit": "MONEY"}, {"label": "分佣资格", "value": state, "detail": "资格累计包含确认的到期购买价值；佣金仅来自实际有偿调用。"}}
 			promotion, err := a.Incentives.FunctionStateForOperator(ctx, tx, actor, op.ID, customerID)
 			if err != nil {
 				return err
@@ -196,7 +196,7 @@ func (a *Application) customerContext(c *gin.Context) {
 			if err != nil {
 				return err
 			}
-			p := contextPage("佣金提现", rows, []gin.H{col("amount_usd", "总额", "usd"), col("fee_usd", "手续费", "usd"), col("net_usd", "实付", "usd"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}, func(r incentives.Withdrawal) gin.H {
+			p := contextPage("佣金提现", rows, []gin.H{col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}, func(r incentives.Withdrawal) gin.H {
 				row := entity(r.ID, r.Status, 1, r)
 				row["allowed_actions"] = withdrawalAllowedActions(r.Status)
 				return row
@@ -209,7 +209,7 @@ func (a *Application) customerContext(c *gin.Context) {
 			if err != nil {
 				return err
 			}
-			p := contextPage("客户票据", rows, []gin.H{col("amount_usd", "金额", "usd"), col("state", "状态", "status"), col("invoice_reference", "凭证编号", "text"), col("created_at", "申请时间", "datetime")}, func(r operations.Invoice) gin.H { return entity(r.ID, r.State, 1, r) })
+			p := contextPage("客户票据", rows, []gin.H{col("amount_money", "金额", "money"), col("state", "状态", "status"), col("invoice_reference", "凭证编号", "text"), col("created_at", "申请时间", "datetime")}, func(r operations.Invoice) gin.H { return entity(r.ID, r.State, 1, r) })
 			p["row_operations"] = []operation{{Name: "register", Label: "登记实际开票结果", Method: "POST", Path: "/api/v1/operators/" + op.ID + "/invoices/{id}/register", Fields: []field{selectField("state", "实际办理状态", "issued|已开具", "rejected|不予办理", "voided|已作废"), f("invoice_reference", "发票凭证编号", "text"), f("evidence", "证据引用", "text"), f("reason", "说明", "textarea")}}}
 			a.appendContextSection(c, &out, "invoices", "客户票据", p)
 		}
@@ -239,7 +239,7 @@ func (a *Application) customerContext(c *gin.Context) {
 	c.JSON(200, out)
 }
 func refundContextPage(op string, rows []remediation.Case) gin.H {
-	return contextPage("退款与异常", rows, []gin.H{col("kind", "类型", "text"), col("amount_usd", "USD责任", "usd"), col("state", "状态", "status"), col("reason", "原因", "text"), col("manage_url", "办理", "link")}, func(r remediation.Case) gin.H {
+	return contextPage("退款与异常", rows, []gin.H{col("kind", "类型", "text"), col("amount_money", "结算币种责任", "money"), col("state", "状态", "status"), col("reason", "原因", "text"), col("manage_url", "办理", "link")}, func(r remediation.Case) gin.H {
 		v := values(r)
 		v["manage_url"] = "/manage/" + op + "/refunds?record=" + r.ID
 		row := entity(r.ID, r.State, 1, v)
@@ -280,20 +280,20 @@ func (a *Application) orderContext(c *gin.Context) {
 		if (c.Query("section") == "" || c.Query("section") == "payments" || c.Query("section") == "receipt-valuations") && a.Organization.RequirePermission(ctx, tx, actor, op.ID, permissionFor("payments")) == nil {
 			type linkedReceipt struct {
 				commerce.Receipt
-				OrderAllocatedUSD ledger.Decimal `json:"order_allocated_usd"`
+				OrderAllocatedMoney ledger.Decimal `json:"order_allocated_money"`
 			}
-			q := tx.Table("commerce_receipts AS r").Select("r.*, x.order_allocated_usd").Joins("JOIN (SELECT receipt_id, SUM(amount_usd) AS order_allocated_usd FROM commerce_receipt_allocations WHERE operator_id=? AND order_id=? GROUP BY receipt_id) x ON x.receipt_id=r.id", op.ID, orderID).Where("r.operator_id=?", op.ID)
+			q := tx.Table("commerce_receipts AS r").Select("r.*, x.order_allocated_money").Joins("JOIN (SELECT receipt_id, SUM(amount_money) AS order_allocated_money FROM commerce_receipt_allocations WHERE operator_id=? AND order_id=? GROUP BY receipt_id) x ON x.receipt_id=r.id", op.ID, orderID).Where("r.operator_id=?", op.ID)
 			rows, err := contextRows[linkedReceipt](q, cursor)
 			if err != nil {
 				return err
 			}
-			p := contextPage("关联收款", rows, []gin.H{col("provider", "通道", "text"), col("gross_usd", "收款总额（扣手续费前）", "usd"), col("fee_usd", "己方收款手续费", "usd"), col("net_usd", "净到账金额", "usd"), col("order_allocated_usd", "分配至此单", "usd"), col("original_amount", "原币收款总额（扣手续费前）", "text"), col("currency", "币种", "text"), col("verification_evidence", "核实证据", "text"), col("paid_at", "实际付款时间", "datetime")}, func(r linkedReceipt) gin.H {
+			p := contextPage("关联收款", rows, []gin.H{col("provider", "通道", "text"), col("gross_money", "收款总额（扣手续费前）", "money"), col("fee_money", "己方收款手续费", "money"), col("net_money", "净到账金额", "money"), col("order_allocated_money", "分配至此单", "money"), col("original_amount", "原币收款总额（扣手续费前）", "text"), col("currency", "币种", "text"), col("verification_evidence", "核实证据", "text"), col("paid_at", "实际付款时间", "datetime")}, func(r linkedReceipt) gin.H {
 				v := values(r)
 				v["order_id"] = orderID
 				return entity(r.ID, r.FeeStatus, 1, v)
 			})
 			p["operations"] = []operation{}
-			if order.Status == "pending" && order.ExternalAllocatedUSD.IsZero() {
+			if order.Status == "pending" && order.ExternalAllocatedMoney.IsZero() {
 				p["operations"] = []operation{{Name: "receipt", Label: "登记本单线下收款", Method: "POST", Path: "/api/v1/operators/" + op.ID + "/payments", Fields: manualReceiptFields(), Permission: "payments.manage", Description: "核实到账后登记本单收款，系统自动关联并跟进交付。"}, {Name: "allocate_existing", Label: "关联已核实收款", Method: "POST", Path: "/api/v1/operators/" + op.ID + "/order-context/" + orderID + "/allocate", Fields: []field{f("receipt_id", "选择已核实收款", "text")}, Permission: "payments.manage", Description: "整笔关联一笔与本单外部应付金额相同的收款。"}}
 			}
 			a.appendContextSection(c, &out, "payments", "关联收款", p)

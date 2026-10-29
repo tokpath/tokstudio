@@ -69,7 +69,7 @@ it("keeps public model identifiers readable and never disguises an internal UUID
 
 it("keeps supplier USD cost off the customer price form",()=>{
  show(<OperationForm operatorID="workspace" operation={{name:"price",label:"发布模型价格",method:"POST",path:"/api/v1/operators/workspace/pricing",fields:[{name:"configuration",label:"配置 JSON",kind:"json",required:true}]}} />);
- expect(screen.queryByRole("option",{name:"供应商成本价（USD）"})).toBeNull();
+ expect(screen.queryByRole("option",{name:"供应商成本价（结算币种）"})).toBeNull();
 });
 
 it("explains the warning buffer inside the editable coverage form",()=>{

@@ -35,7 +35,7 @@ func TestPostgresRemovalSeparatesConsumptionAndBookCost(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if removal.BookCostUSD.String() != "58" {
+	if removal.BookCostMoney.String() != "58" {
 		t.Fatalf("current moving-average book cost %+v", removal)
 	}
 	p, e := f.s.Position(f.ctx, nil, f.channel)
@@ -43,7 +43,7 @@ func TestPostgresRemovalSeparatesConsumptionAndBookCost(t *testing.T) {
 		t.Fatal("position removal mismatch", p, e)
 	}
 	var historical ProcurementSettlement
-	if e = f.db.First(&historical, "buyer_id=? AND request_id=?", f.channel, original.RequestID).Error; e != nil || historical.CostUSD.String() != "24" || historical.Deducted.String() != "30" {
+	if e = f.db.First(&historical, "buyer_id=? AND request_id=?", f.channel, original.RequestID).Error; e != nil || historical.CostMoney.String() != "24" || historical.Deducted.String() != "30" {
 		t.Fatal("removal rewrote original usage")
 	}
 	var lots []ProcurementLot
@@ -88,7 +88,7 @@ func TestPostgresReversalRestoresOriginalCostAfterDifferentPricePurchase(t *test
 		return result, e
 	}
 	first, e := reverse("one", "10")
-	if e != nil || first.CostUSD.String() != "8" {
+	if e != nil || first.CostMoney.String() != "8" {
 		t.Fatal("correction used current average cost", first, e)
 	}
 	again, e := reverse("one", "10")
@@ -96,7 +96,7 @@ func TestPostgresReversalRestoresOriginalCostAfterDifferentPricePurchase(t *test
 		t.Fatal("reversal replay duplicated assets")
 	}
 	second, e := reverse("two", "20")
-	if e != nil || second.CostUSD.String() != "16" {
+	if e != nil || second.CostMoney.String() != "16" {
 		t.Fatal("historical remainder lost", second, e)
 	}
 	if _, e = reverse("three", "0.000000000000000001"); !errors.Is(e, ErrConflict) {

@@ -13,7 +13,7 @@ export function MarketingCard({ row, children, packageName, ownerName }: { row: 
     <div className="flex items-start justify-between gap-3"><div><p className="mb-2 text-xs text-ink-mute">{t(kol ? "KOL 推广" : "经营方活动")}{kol && ownerName ? ` · ${ownerName}` : ""}</p><h3 className="font-semibold">{String(v.name || packageName)}</h3><p className="mt-2 text-sm text-ink-secondary">{packageName}</p></div><Status value={row.status || "active"} /></div>
     <div className="my-5 flex flex-wrap gap-x-6 gap-y-3 text-lg font-semibold text-brand-emphasis">
       {kol ? <span>{t("让利 {points} 个百分点", { points: String(v.concession_percent) })}</span> : <>
-        {v.final_price_usd != null && <span><Money value={String(v.final_price_usd)} unit="USD" /></span>}
+        {v.final_price_money != null && <span><Money value={String(v.final_price_money)} unit="MONEY" /></span>}
         {String(v.gift_atg || "0") !== "0" && <span>+<Money value={String(v.gift_atg)} unit="ATG" /></span>}
       </>}
     </div>
@@ -32,7 +32,7 @@ export function ReferralPolicyCard({ row, children }: { row: Entity; children: R
   return <Card>
     <div className="grid gap-6 md:grid-cols-3">
       <section><h3 className="font-semibold">{t("注册赠送")}</h3><p className="mt-4 text-sm">{t("受邀客户")} · <Money value={String(v.invitee_atg)} unit="ATG" /></p><p className="mt-2 text-sm">{t("普通邀请人")} · <Money value={String(v.inviter_atg)} unit="ATG" /></p><p className="mt-3 text-xs leading-6 text-ink-mute">{t("有效 {days} 天；KOL 邀请人不再获得注册赠送。", { days: String(v.reward_validity_days) })}</p></section>
-      <section><h3 className="font-semibold">{t("成为 KOL")}</h3><p className="mt-4 text-lg font-semibold"><Money value={String(v.threshold_usd)} unit="USD" /></p><p className="mt-3 text-xs leading-6 text-ink-mute">{t("本人已确认的真实支出达标后自动取得资格，赠送不计入。提高门槛保留已有资格。")}</p></section>
+      <section><h3 className="font-semibold">{t("成为 KOL")}</h3><p className="mt-4 text-lg font-semibold"><Money value={String(v.threshold_money)} unit="MONEY" /></p><p className="mt-3 text-xs leading-6 text-ink-mute">{t("本人已确认的真实支出达标后自动取得资格，赠送不计入。提高门槛保留已有资格。")}</p></section>
       <section><h3 className="font-semibold">{t("两级佣金")}</h3><p className="mt-4 text-sm">{t("直接邀请佣金 %")} · {String(v.direct_percent)}%</p><p className="mt-2 text-sm">{t("间接邀请佣金 %")} · {String(v.indirect_percent)}%</p><p className="mt-3 text-xs leading-6 text-ink-mute">{t("有偿调用确认等待 {days} 天，确认后计入资格并解冻佣金。", { days: String(v.confirmation_days) })}</p><p className="mt-2 text-xs text-ink-mute">{Number(v.kol_cross_activity_limit) > 0 ? t("同一 KOL 跨活动每人最多 {count} 次", { count: String(v.kol_cross_activity_limit) }) : t("同一 KOL 跨活动不单独限次")}</p></section>
     </div>
     <div className="mt-6 border-t border-hairline pt-4">{children}</div>

@@ -10,23 +10,23 @@ import (
 )
 
 type FinancialSnapshot struct {
-	PurchaseOrders                 int64          `json:"purchase_orders"`
-	PurchasesUSD                   ledger.Decimal `json:"purchases_usd"`
-	WholesaleOrders                int64          `json:"wholesale_orders"`
-	WholesaleSalesUSD              ledger.Decimal `json:"wholesale_sales_usd"`
-	ProcurementCostUSD             ledger.Decimal `json:"procurement_cost_usd"`
-	ProcurementCorrectionUSD       ledger.Decimal `json:"procurement_correction_usd"`
-	WholesaleEarnedUSD             ledger.Decimal `json:"wholesale_earned_usd"`
-	WholesaleCorrectionUSD         ledger.Decimal `json:"wholesale_correction_usd"`
-	ClosingInventoryCostUSD        ledger.Decimal `json:"closing_inventory_cost_usd"`
-	PendingRefundFees              int64          `json:"pending_refund_fees"`
-	PendingRefundExecutions        int64          `json:"pending_refund_executions"`
-	RefundMismatchCount            int64          `json:"refund_mismatch_count"`
-	OutstandingRefundUSD           ledger.Decimal `json:"outstanding_refund_usd"`
-	VerifiedProcurementPaymentsUSD ledger.Decimal `json:"verified_procurement_payments_usd"`
-	ClosingProcurementPaymentsUSD  ledger.Decimal `json:"closing_procurement_payments_usd"`
-	ClosingWholesalePrepaymentUSD  ledger.Decimal `json:"closing_wholesale_prepayment_usd"`
-	ProcurementExitAdjustmentUSD   ledger.Decimal `json:"procurement_exit_adjustment_usd"`
+	PurchaseOrders                   int64          `json:"purchase_orders"`
+	PurchasesMoney                   ledger.Decimal `json:"purchases_money"`
+	WholesaleOrders                  int64          `json:"wholesale_orders"`
+	WholesaleSalesMoney              ledger.Decimal `json:"wholesale_sales_money"`
+	ProcurementCostMoney             ledger.Decimal `json:"procurement_cost_money"`
+	ProcurementCorrectionMoney       ledger.Decimal `json:"procurement_correction_money"`
+	WholesaleEarnedMoney             ledger.Decimal `json:"wholesale_earned_money"`
+	WholesaleCorrectionMoney         ledger.Decimal `json:"wholesale_correction_money"`
+	ClosingInventoryCostMoney        ledger.Decimal `json:"closing_inventory_cost_money"`
+	PendingRefundFees                int64          `json:"pending_refund_fees"`
+	PendingRefundExecutions          int64          `json:"pending_refund_executions"`
+	RefundMismatchCount              int64          `json:"refund_mismatch_count"`
+	OutstandingRefundMoney           ledger.Decimal `json:"outstanding_refund_money"`
+	VerifiedProcurementPaymentsMoney ledger.Decimal `json:"verified_procurement_payments_money"`
+	ClosingProcurementPaymentsMoney  ledger.Decimal `json:"closing_procurement_payments_money"`
+	ClosingWholesalePrepaymentMoney  ledger.Decimal `json:"closing_wholesale_prepayment_money"`
+	ProcurementExitAdjustmentMoney   ledger.Decimal `json:"procurement_exit_adjustment_money"`
 }
 
 // FinancialFacts reads real lots, consumption and reversals. Cash purchases
@@ -43,12 +43,12 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 			Where  string
 			Count  *int64
 			Amount *ledger.Decimal
-		}{{"buyer_id=?", &out.PurchaseOrders, &out.PurchasesUSD}, {"supplier_id=?", &out.WholesaleOrders, &out.WholesaleSalesUSD}} {
+		}{{"buyer_id=?", &out.PurchaseOrders, &out.PurchasesMoney}, {"supplier_id=?", &out.WholesaleOrders, &out.WholesaleSalesMoney}} {
 			var r struct {
 				Count  int64
 				Amount ledger.Decimal
 			}
-			if e := t.Model(&PurchaseOrder{}).Where(q.Where, operator).Where("status='completed' AND completed_at>=? AND completed_at<?", from, to).Select("count(*) AS count,COALESCE(sum(due_usd),0)::text AS amount").Scan(&r).Error; e != nil {
+			if e := t.Model(&PurchaseOrder{}).Where(q.Where, operator).Where("status='completed' AND completed_at>=? AND completed_at<?", from, to).Select("count(*) AS count,COALESCE(sum(due_money),0)::text AS amount").Scan(&r).Error; e != nil {
 				return e
 			}
 			*q.Count = r.Count
@@ -58,29 +58,29 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 			SQL    string
 			Target *ledger.Decimal
 		}{
-			{`SELECT COALESCE(sum(cost_usd),0)::text FROM cooperation_procurement_settlements WHERE buyer_id=? AND created_at>=? AND created_at<?`, &out.ProcurementCostUSD},
-			{`SELECT COALESCE(sum(cost_usd),0)::text FROM cooperation_procurement_reversals WHERE buyer_id=? AND created_at>=? AND created_at<?`, &out.ProcurementCorrectionUSD},
-			{`SELECT COALESCE(sum(c.cost_usd),0)::text FROM cooperation_procurement_settlements c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at>=? AND c.created_at<?`, &out.WholesaleEarnedUSD},
-			{`SELECT COALESCE(sum(c.cost_usd),0)::text FROM cooperation_procurement_reversals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at>=? AND c.created_at<?`, &out.WholesaleCorrectionUSD},
-			{`SELECT COALESCE(sum(a.amount_usd),0)::text FROM cooperation_purchase_allocations a JOIN cooperation_purchase_orders o ON o.id=a.order_id WHERE o.buyer_id=? AND a.created_at>=? AND a.created_at<?`, &out.VerifiedProcurementPaymentsUSD},
+			{`SELECT COALESCE(sum(cost_money),0)::text FROM cooperation_procurement_settlements WHERE buyer_id=? AND created_at>=? AND created_at<?`, &out.ProcurementCostMoney},
+			{`SELECT COALESCE(sum(cost_money),0)::text FROM cooperation_procurement_reversals WHERE buyer_id=? AND created_at>=? AND created_at<?`, &out.ProcurementCorrectionMoney},
+			{`SELECT COALESCE(sum(c.cost_money),0)::text FROM cooperation_procurement_settlements c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at>=? AND c.created_at<?`, &out.WholesaleEarnedMoney},
+			{`SELECT COALESCE(sum(c.cost_money),0)::text FROM cooperation_procurement_reversals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at>=? AND c.created_at<?`, &out.WholesaleCorrectionMoney},
+			{`SELECT COALESCE(sum(a.amount_money),0)::text FROM cooperation_purchase_allocations a JOIN cooperation_purchase_orders o ON o.id=a.order_id WHERE o.buyer_id=? AND a.created_at>=? AND a.created_at<?`, &out.VerifiedProcurementPaymentsMoney},
 		} {
 			if e := t.Raw(q.SQL, operator, from, to).Row().Scan(q.Target); e != nil {
 				return e
 			}
 		}
-		if e := t.Raw(`SELECT (COALESCE((SELECT sum(paid_usd) FROM cooperation_procurement_lots WHERE buyer_id=? AND delivered_at<?),0)-COALESCE((SELECT sum(cost_usd) FROM cooperation_procurement_settlements WHERE buyer_id=? AND created_at<?),0)+COALESCE((SELECT sum(cost_usd) FROM cooperation_procurement_reversals WHERE buyer_id=? AND created_at<?),0)-COALESCE((SELECT sum(book_cost_usd) FROM cooperation_procurement_removals WHERE buyer_id=? AND created_at<?),0))::text`, operator, to, operator, to, operator, to, operator, to).Row().Scan(&out.ClosingInventoryCostUSD); e != nil {
+		if e := t.Raw(`SELECT (COALESCE((SELECT sum(paid_money) FROM cooperation_procurement_lots WHERE buyer_id=? AND delivered_at<?),0)-COALESCE((SELECT sum(cost_money) FROM cooperation_procurement_settlements WHERE buyer_id=? AND created_at<?),0)+COALESCE((SELECT sum(cost_money) FROM cooperation_procurement_reversals WHERE buyer_id=? AND created_at<?),0)-COALESCE((SELECT sum(book_cost_money) FROM cooperation_procurement_removals WHERE buyer_id=? AND created_at<?),0))::text`, operator, to, operator, to, operator, to, operator, to).Row().Scan(&out.ClosingInventoryCostMoney); e != nil {
 			return e
 		}
-		if e := t.Raw(`SELECT COALESCE(sum(a.amount_usd),0)::text FROM cooperation_purchase_allocations a JOIN cooperation_purchase_orders o ON o.id=a.order_id WHERE o.buyer_id=? AND a.created_at<?`, operator, to).Row().Scan(&out.ClosingProcurementPaymentsUSD); e != nil {
+		if e := t.Raw(`SELECT COALESCE(sum(a.amount_money),0)::text FROM cooperation_purchase_allocations a JOIN cooperation_purchase_orders o ON o.id=a.order_id WHERE o.buyer_id=? AND a.created_at<?`, operator, to).Row().Scan(&out.ClosingProcurementPaymentsMoney); e != nil {
 			return e
 		}
-		if e := t.Raw(`SELECT (COALESCE((SELECT sum(l.paid_usd) FROM cooperation_procurement_lots l JOIN cooperation_procurement_positions p ON p.buyer_id=l.buyer_id WHERE p.supplier_id=? AND l.delivered_at<?),0)-COALESCE((SELECT sum(c.cost_usd) FROM cooperation_procurement_settlements c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0)+COALESCE((SELECT sum(c.cost_usd) FROM cooperation_procurement_reversals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0)-COALESCE((SELECT sum(c.book_cost_usd) FROM cooperation_procurement_removals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0))::text`, operator, to, operator, to, operator, to, operator, to).Row().Scan(&out.ClosingWholesalePrepaymentUSD); e != nil {
+		if e := t.Raw(`SELECT (COALESCE((SELECT sum(l.paid_money) FROM cooperation_procurement_lots l JOIN cooperation_procurement_positions p ON p.buyer_id=l.buyer_id WHERE p.supplier_id=? AND l.delivered_at<?),0)-COALESCE((SELECT sum(c.cost_money) FROM cooperation_procurement_settlements c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0)+COALESCE((SELECT sum(c.cost_money) FROM cooperation_procurement_reversals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0)-COALESCE((SELECT sum(c.book_cost_money) FROM cooperation_procurement_removals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0))::text`, operator, to, operator, to, operator, to, operator, to).Row().Scan(&out.ClosingWholesalePrepaymentMoney); e != nil {
 			return e
 		}
-		if e := t.Model(&ProcurementExit{}).Where("buyer_id=? AND created_at>=? AND created_at<?", operator, from, to).Select("COALESCE(sum(cost_difference_usd),0)::text").Row().Scan(&out.ProcurementExitAdjustmentUSD); e != nil {
+		if e := t.Model(&ProcurementExit{}).Where("buyer_id=? AND created_at>=? AND created_at<?", operator, from, to).Select("COALESCE(sum(cost_difference_money),0)::text").Row().Scan(&out.ProcurementExitAdjustmentMoney); e != nil {
 			return e
 		}
-		if e := t.Model(&ProcurementExitRefund{}).Where("supplier_id=? AND actual_usd>0 AND fee_status='pending'", operator).Count(&out.PendingRefundFees).Error; e != nil {
+		if e := t.Model(&ProcurementExitRefund{}).Where("supplier_id=? AND actual_money>0 AND fee_status='pending'", operator).Count(&out.PendingRefundFees).Error; e != nil {
 			return e
 		}
 		if e := t.Model(&ProcurementExitRefund{}).Where("supplier_id=? AND state IN ('executing','unknown','manual_executing')", operator).Count(&out.PendingRefundExecutions).Error; e != nil {
@@ -89,7 +89,7 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 		if e := t.Model(&ProcurementExitRefund{}).Where("supplier_id=? AND state='exception'", operator).Count(&out.RefundMismatchCount).Error; e != nil {
 			return e
 		}
-		return t.Model(&ProcurementExit{}).Where("supplier_id=? AND state IN ('awaiting_refund','refund_exception')", operator).Select("COALESCE(sum(contract_usd-refunded_usd),0)::text").Row().Scan(&out.OutstandingRefundUSD)
+		return t.Model(&ProcurementExit{}).Where("supplier_id=? AND state IN ('awaiting_refund','refund_exception')", operator).Select("COALESCE(sum(contract_money-refunded_money),0)::text").Row().Scan(&out.OutstandingRefundMoney)
 	})
 	return out, e
 }

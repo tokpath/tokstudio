@@ -98,27 +98,27 @@ func TestExternalConcurrentCallingAndSalesSoak(t *testing.T) {
 	c := commerce.New(f.db)
 	c.SetSalesCoverage(f.coop)
 	c.SetMarketing(inc)
-	q, e := c.PublishPackage(f.ctx, nil, commerce.PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, Name: "Load package", TermsReference: "load-terms", Timezone: "UTC", PriceUSD: d("1"), PaidATG: d("800"), GiftATG: d("200"), Period: ledger.Month, NewPurchaseEnabled: true})
+	q, e := c.PublishPackage(f.ctx, nil, commerce.PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, Name: "Load package", TermsReference: "load-terms", Timezone: "UTC", PriceMoney: d("1"), PaidATG: d("800"), GiftATG: d("200"), Period: ledger.Month, NewPurchaseEnabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
-	top, e := c.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{CustomerID: f.customer, OperatorID: f.operator, BusinessKey: "load-wallet", ExpectedOwnershipVersion: 1, AmountUSD: d("1000000")})
+	top, e := c.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{CustomerID: f.customer, OperatorID: f.operator, BusinessKey: "load-wallet", ExpectedOwnershipVersion: 1, AmountMoney: d("1000000")})
 	if e != nil {
 		t.Fatal(e)
 	}
 	gross, zero := d("1000000"), ledger.Zero()
-	receipt, e := c.RecordManualReceipt(f.ctx, nil, f.owner, commerce.VerifiedReceipt{OperatorID: f.operator, ProviderReceiptID: "load-synthetic-bank", GrossUSD: gross, NetUSD: &gross, FeeUSD: &zero, Currency: "USD", OriginalAmount: "1000000", RecipientReference: "synthetic-merchant", PayerReference: "synthetic-payer", ValuationEvidence: "USD original", VerificationEvidence: "isolated test bank statement", PaidAt: &top.CreatedAt, SettledAt: &top.CreatedAt})
+	receipt, e := c.RecordManualReceipt(f.ctx, nil, f.owner, commerce.VerifiedReceipt{OperatorID: f.operator, ProviderReceiptID: "load-synthetic-bank", GrossMoney: gross, NetMoney: &gross, FeeMoney: &zero, Currency: "USD", OriginalAmount: "1000000", RecipientReference: "synthetic-merchant", PayerReference: "synthetic-payer", ValuationEvidence: "USD original", VerificationEvidence: "isolated test bank statement", PaidAt: &top.CreatedAt, SettledAt: &top.CreatedAt})
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = c.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, BusinessKey: "fund-load-wallet", ReceiptID: receipt.ID, OrderID: top.ID, AmountUSD: gross}); e != nil {
+	if _, e = c.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, BusinessKey: "fund-load-wallet", ReceiptID: receipt.ID, OrderID: top.ID, AmountMoney: gross}); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = c.Fulfill(f.ctx, nil, top.ID, f.owner); e != nil {
 		t.Fatal(e)
 	}
 	buy := func(ctx context.Context, key string) error {
-		o, e := c.CreateOrder(ctx, nil, commerce.CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: q.ID, BusinessKey: key, ExpectedOwnershipVersion: 1, InternalUSD: d("1")})
+		o, e := c.CreateOrder(ctx, nil, commerce.CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: q.ID, BusinessKey: key, ExpectedOwnershipVersion: 1, InternalMoney: d("1")})
 		if e != nil {
 			return e
 		}

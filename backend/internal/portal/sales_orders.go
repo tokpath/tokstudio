@@ -32,7 +32,7 @@ func (r salesOrder) row() gin.H {
 	} else {
 		v = values(*r.supply)
 		v["kind"] = "supply"
-		v["external_allocated_usd"] = r.supply.AllocatedUSD
+		v["external_allocated_money"] = r.supply.AllocatedMoney
 		if r.Status == "paid" {
 			actions = append(actions, "fulfill_supply")
 		}
@@ -57,14 +57,14 @@ func (a *Application) salesOrders(ctx context.Context, operator, cursor, search,
 	 SELECT o.id,o.created_at,o.status,o.kind,
 	 COALESCE(NULLIF(c.display_name,''),i.email_normalized,'') AS counterparty,
 	 concat_ws(' ',o.id::text,o.kind,o.status,c.display_name,i.email_normalized) AS search_text,
-	 (o.status='pending' AND o.external_allocated_usd=0 AND o.due_usd>o.internal_usd+o.commission_usd) AS collectable
+	 (o.status='pending' AND o.external_allocated_money=0 AND o.due_money>o.internal_money+o.commission_money) AS collectable
 	 FROM commerce_orders o JOIN organization_customers c ON c.id=o.customer_id
 	 LEFT JOIN organization_customer_identities i ON i.customer_id=c.id AND i.is_current=true
 	 WHERE o.operator_id=?
 	 UNION ALL
 	 SELECT o.id,o.created_at,o.status,'supply' AS kind,b.name AS counterparty,
 	 concat_ws(' ',o.id::text,o.name,o.status,'supply 供货采购',b.name) AS search_text,
-	 (o.status='awaiting_payment' AND o.allocated_usd=0) AS collectable
+	 (o.status='awaiting_payment' AND o.allocated_money=0) AS collectable
 	 FROM cooperation_purchase_orders o JOIN organization_operators b ON b.id=o.buyer_id
 	 WHERE o.supplier_id=?
 	) AS sales_orders`

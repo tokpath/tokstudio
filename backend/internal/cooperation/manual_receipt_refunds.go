@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -95,7 +96,7 @@ func (p *ProcurementRefunds) recordManualReceiptRefund(ctx context.Context, acto
 		if q.Error != nil {
 			return q.Error
 		}
-		var value payments.USDValue
+		var value payments.MoneyValue
 		if q.RowsAffected > 0 {
 			if old.LegID != leg.ID || old.Fingerprint != fingerprint {
 				return ErrConflict
@@ -111,10 +112,14 @@ func (p *ProcurementRefunds) recordManualReceiptRefund(ctx context.Context, acto
 			if leg.State != "manual_executing" || existing != 0 {
 				return ErrConflict
 			}
-			if proof.Money.Currency == "USD" {
-				value = payments.USDValue{Amount: proof.Money.Amount, RemainderNumerator: "0", RemainderDenominator: "1"}
+			base, baseErr := ledger.GetMonetary(ctx, tx)
+			if baseErr != nil {
+				return baseErr
+			}
+			if proof.Money.Currency == base.Currency {
+				value = payments.MoneyValue{Currency: base.Currency, Amount: proof.Money.Amount, OriginalMoney: proof.Money, EvidenceReference: proof.EvidenceReference}
 			} else {
-				if fxReference == "" || valuedAt.IsZero() || valuedAt.After(now.Add(5*time.Minute)) {
+				if valuation.Currency != base.Currency {
 					return payments.ErrInvalid
 				}
 				value, e = valuation.Convert(proof.Money, valuedAt)

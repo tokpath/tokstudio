@@ -13,7 +13,7 @@ import (
 )
 
 func validFunding(in CreateOrderInput) bool {
-	return validID(in.CustomerID) && validID(in.OperatorID) && validID(in.QuoteID) && in.ExpectedOwnershipVersion > 0 && strings.TrimSpace(in.BusinessKey) != "" && len(in.BusinessKey) <= 150 && in.InternalUSD.Sign() >= 0 && in.CommissionUSD.Sign() >= 0 && in.InternalUSD.Valid() && in.CommissionUSD.Valid() && validity(in.Validity) > 0 && validity(in.Validity) <= 24*time.Hour
+	return validID(in.CustomerID) && validID(in.OperatorID) && validID(in.QuoteID) && in.ExpectedOwnershipVersion > 0 && strings.TrimSpace(in.BusinessKey) != "" && len(in.BusinessKey) <= 150 && in.InternalMoney.Sign() >= 0 && in.CommissionMoney.Sign() >= 0 && in.InternalMoney.Valid() && in.CommissionMoney.Valid() && validity(in.Validity) > 0 && validity(in.Validity) <= 24*time.Hour
 }
 func (s *Service) CreateOrder(ctx context.Context, tx *gorm.DB, in CreateOrderInput) (out Order, err error) {
 	if !validFunding(in) {
@@ -84,7 +84,11 @@ func (s *Service) CreateOrder(ctx context.Context, tx *gorm.DB, in CreateOrderIn
 		if (kind == "package" && !p.NewPurchaseEnabled) || (kind == "renewal" && !p.RenewalEnabled) {
 			return organization.ErrBusinessClosed
 		}
-		o := Order{ID: uuid.NewString(), OperatorID: in.OperatorID, BrandID: own.BrandID, CustomerID: in.CustomerID, OwnershipVersion: own.Version, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: kind, QuoteID: &quote.ID, DueUSD: quote.PriceUSD, PaidATG: quote.PaidATG, PackageGiftATG: quote.GiftATG, InternalUSD: in.InternalUSD, CommissionUSD: in.CommissionUSD, InternalStatus: "none", CoverageStatus: "none", Status: "pending", Period: quote.Period, Timezone: quote.Timezone, SubscriptionID: in.SubscriptionID, CycleDueAt: in.CycleDueAt, ExpiresAt: s.now().Add(validity(in.Validity)), CreatedAt: s.now()}
+		base, baseErr := ledger.GetMonetary(ctx, tx)
+		if baseErr != nil {
+			return baseErr
+		}
+		o := Order{MonetarySnapshot: base.Snapshot(), ID: uuid.NewString(), OperatorID: in.OperatorID, BrandID: own.BrandID, CustomerID: in.CustomerID, OwnershipVersion: own.Version, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: kind, QuoteID: &quote.ID, DueMoney: quote.PriceMoney, PaidATG: quote.PaidATG, PackageGiftATG: quote.GiftATG, InternalMoney: in.InternalMoney, CommissionMoney: in.CommissionMoney, InternalStatus: "none", CoverageStatus: "none", Status: "pending", Period: quote.Period, Timezone: quote.Timezone, SubscriptionID: in.SubscriptionID, CycleDueAt: in.CycleDueAt, ExpiresAt: s.now().Add(validity(in.Validity)), CreatedAt: s.now()}
 		o.OriginalOperatorID = o.OperatorID
 		o.OriginalOwnershipVersion = o.OwnershipVersion
 		if s.marketing != nil {
@@ -92,10 +96,10 @@ func (s *Service) CreateOrder(ctx context.Context, tx *gorm.DB, in CreateOrderIn
 			if err != nil {
 				return err
 			}
-			if m.FinalUSD.Sign() <= 0 || !m.FinalUSD.Valid() || m.MerchantGiftATG.Sign() < 0 || m.KOLGiftATG.Sign() < 0 || !m.MerchantGiftATG.Valid() || !m.KOLGiftATG.Valid() {
+			if m.FinalMoney.Sign() <= 0 || !m.FinalMoney.Valid() || m.MerchantGiftATG.Sign() < 0 || m.KOLGiftATG.Sign() < 0 || !m.MerchantGiftATG.Valid() || !m.KOLGiftATG.Valid() {
 				return ErrInvalidInput
 			}
-			o.DueUSD = m.FinalUSD
+			o.DueMoney = m.FinalMoney
 			o.MerchantGiftATG = m.MerchantGiftATG
 			o.KOLGiftATG = m.KOLGiftATG
 			o.MarketingReference = m.Reference
@@ -103,7 +107,7 @@ func (s *Service) CreateOrder(ctx context.Context, tx *gorm.DB, in CreateOrderIn
 		} else if len(in.ActivitySelection) > 0 && string(in.ActivitySelection) != "null" {
 			return ErrNotReady
 		}
-		if internalTotal(o).Cmp(o.DueUSD) > 0 {
+		if internalTotal(o).Cmp(o.DueMoney) > 0 {
 			return ErrInvalidInput
 		}
 		if !orderTotalATG(o).Valid() {
@@ -143,7 +147,7 @@ func (s *Service) CreateOrder(ctx context.Context, tx *gorm.DB, in CreateOrderIn
 	return
 }
 func (s *Service) CreateTopUpOrder(ctx context.Context, tx *gorm.DB, in CreateTopUpInput) (out Order, err error) {
-	if !validID(in.CustomerID) || !validID(in.OperatorID) || strings.TrimSpace(in.BusinessKey) == "" || len(in.BusinessKey) > 150 || in.ExpectedOwnershipVersion < 1 || in.AmountUSD.Sign() <= 0 || !in.AmountUSD.Valid() || validity(in.Validity) <= 0 || validity(in.Validity) > 24*time.Hour {
+	if !validID(in.CustomerID) || !validID(in.OperatorID) || strings.TrimSpace(in.BusinessKey) == "" || len(in.BusinessKey) > 150 || in.ExpectedOwnershipVersion < 1 || in.AmountMoney.Sign() <= 0 || !in.AmountMoney.Valid() || validity(in.Validity) <= 0 || validity(in.Validity) > 24*time.Hour {
 		return out, ErrInvalidInput
 	}
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
@@ -182,7 +186,11 @@ func (s *Service) CreateTopUpOrder(ctx context.Context, tx *gorm.DB, in CreateTo
 		if err = s.org.RequireBusiness(ctx, tx, in.OperatorID, organization.NewPurchase); err != nil {
 			return err
 		}
-		o := Order{ID: uuid.NewString(), OperatorID: in.OperatorID, BrandID: own.BrandID, CustomerID: in.CustomerID, OwnershipVersion: own.Version, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "topup", DueUSD: in.AmountUSD, InternalStatus: "none", CoverageStatus: "none", Status: "pending", Period: ledger.Lifetime, Timezone: "UTC", ExpiresAt: s.now().Add(validity(in.Validity)), CreatedAt: s.now()}
+		base, baseErr := ledger.GetMonetary(ctx, tx)
+		if baseErr != nil {
+			return baseErr
+		}
+		o := Order{MonetarySnapshot: base.Snapshot(), ID: uuid.NewString(), OperatorID: in.OperatorID, BrandID: own.BrandID, CustomerID: in.CustomerID, OwnershipVersion: own.Version, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "topup", DueMoney: in.AmountMoney, InternalStatus: "none", CoverageStatus: "none", Status: "pending", Period: ledger.Lifetime, Timezone: "UTC", ExpiresAt: s.now().Add(validity(in.Validity)), CreatedAt: s.now()}
 		o.OriginalOperatorID = o.OperatorID
 		o.OriginalOwnershipVersion = o.OwnershipVersion
 		r := orderRow(o)
@@ -195,16 +203,16 @@ func (s *Service) CreateTopUpOrder(ctx context.Context, tx *gorm.DB, in CreateTo
 	return
 }
 func (s *Service) reserveInternal(ctx context.Context, tx *gorm.DB, o Order, restored bool) (ledger.Hold, error) {
-	if o.CommissionUSD.Sign() > 0 {
+	if o.CommissionMoney.Sign() > 0 {
 		if s.commissionFunding == nil {
 			return ledger.Hold{}, ErrNotReady
 		}
-		if err := s.commissionFunding.ReserveCommissionFunding(ctx, tx, o.OperatorID, o.CustomerID, o.ID, o.CommissionUSD); err != nil {
+		if err := s.commissionFunding.ReserveCommissionFunding(ctx, tx, o.OperatorID, o.CustomerID, o.ID, o.CommissionMoney); err != nil {
 			return ledger.Hold{}, err
 		}
 	}
-	if o.InternalUSD.Sign() > 0 {
-		c, err := s.reserveWalletFunding(tx, o.OperatorID, o.CustomerID, "order", o.ID, o.InternalUSD, restored)
+	if o.InternalMoney.Sign() > 0 {
+		c, err := s.reserveWalletFunding(tx, o.OperatorID, o.CustomerID, "order", o.ID, o.InternalMoney, restored)
 		if err != nil {
 			return ledger.Hold{}, err
 		}
@@ -216,7 +224,7 @@ func (s *Service) reserveInternal(ctx context.Context, tx *gorm.DB, o Order, res
 	for _, fund := range []struct {
 		purpose string
 		amount  ledger.Decimal
-	}{{"customer:usd", o.InternalUSD}, {"commission:available", o.CommissionUSD}} {
+	}{{"customer:money", o.InternalMoney}, {"commission:available", o.CommissionMoney}} {
 		if fund.amount.Sign() > 0 {
 			a, err := s.account(ctx, tx, o.OperatorID, o.CustomerID, fund.purpose)
 			if err != nil {
@@ -266,11 +274,11 @@ func (s *Service) CloseOrder(ctx context.Context, tx *gorm.DB, customerID, order
 			out = o
 			return nil
 		}
-		if o.Status != "pending" || o.ExternalAllocatedUSD.Sign() > 0 {
+		if o.Status != "pending" || o.ExternalAllocatedMoney.Sign() > 0 {
 			return ErrOrderState
 		}
 		if o.InternalStatus == "held" && o.HoldID != nil {
-			if o.CommissionUSD.Sign() > 0 {
+			if o.CommissionMoney.Sign() > 0 {
 				if s.commissionFunding == nil {
 					return ErrNotReady
 				}

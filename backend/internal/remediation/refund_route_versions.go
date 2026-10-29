@@ -35,8 +35,8 @@ type RefundExecutionClosure struct {
 	NoFurtherPaymentReference string         `json:"no_further_payment_reference"`
 	Evidence                  string         `json:"evidence"`
 	ActorID                   string         `json:"actor_id"`
-	SettledUSD                ledger.Decimal `json:"settled_usd"`
-	RemainingUSD              ledger.Decimal `json:"remaining_usd"`
+	SettledMoney              ledger.Decimal `json:"settled_money"`
+	RemainingMoney            ledger.Decimal `json:"remaining_money"`
 	CreatedAt                 time.Time      `json:"created_at"`
 }
 
@@ -99,7 +99,7 @@ func (s *Service) RecordManualRefundFailure(ctx context.Context, actor, op, legI
 		if !errors.Is(e, gorm.ErrRecordNotFound) {
 			return e
 		}
-		if l.ExecutionMode != "manual" || l.ExecutionKey != in.ExpectedExecutionKey || (l.State != "executing" && l.State != "unknown" && l.State != "exception") || l.SettledUSD.Cmp(l.AmountUSD) >= 0 {
+		if l.ExecutionMode != "manual" || l.ExecutionKey != in.ExpectedExecutionKey || (l.State != "executing" && l.State != "unknown" && l.State != "exception") || l.SettledMoney.Cmp(l.AmountMoney) >= 0 {
 			return ErrState
 		}
 		at, e := instant(t)
@@ -155,13 +155,13 @@ func (s *Service) CloseRefundExecution(ctx context.Context, actor, op, legID str
 		if l.State == "unknown" {
 			return ErrReview
 		}
-		if l.ExecutionKey != in.ExpectedExecutionKey || (l.State != "executing" && l.State != "exception") || (l.ExecutionMode != "manual" && l.ExecutionMode != "provider") || l.SettledUSD.Cmp(l.AmountUSD) >= 0 {
+		if l.ExecutionKey != in.ExpectedExecutionKey || (l.State != "executing" && l.State != "exception") || (l.ExecutionMode != "manual" && l.ExecutionMode != "provider") || l.SettledMoney.Cmp(l.AmountMoney) >= 0 {
 			return ErrState
 		}
-		if in.Reason == "settled_partial" && l.SettledUSD.Sign() <= 0 {
+		if in.Reason == "settled_partial" && l.SettledMoney.Sign() <= 0 {
 			return ErrState
 		}
-		if l.ExecutionMode == "manual" && l.SettledUSD.IsZero() && l.MisdirectedUSD.IsZero() {
+		if l.ExecutionMode == "manual" && l.SettledMoney.IsZero() && l.MisdirectedMoney.IsZero() {
 			var n int64
 			if e = t.Model(&ManualRefundFailure{}).Where("leg_id=? AND route_version=? AND execution_key=?", legID, l.RouteVersion, l.ExecutionKey).Count(&n).Error; e != nil {
 				return e
@@ -203,7 +203,7 @@ func (s *Service) CloseRefundExecution(ctx context.Context, actor, op, legID str
 		if e != nil {
 			return e
 		}
-		out = RefundExecutionClosure{ID: uuid.NewString(), LegID: legID, OperatorID: op, RouteVersion: l.RouteVersion, ExecutionKey: l.ExecutionKey, ExecutionMode: l.ExecutionMode, PaymentRefundID: l.PaymentRefundID, BusinessKey: in.BusinessKey, Fingerprint: fp, Reason: in.Reason, NoFurtherPaymentReference: in.NoFurtherPaymentReference, Evidence: in.Evidence, ActorID: actor, SettledUSD: l.SettledUSD, RemainingUSD: l.AmountUSD.Sub(l.SettledUSD), CreatedAt: at}
+		out = RefundExecutionClosure{ID: uuid.NewString(), LegID: legID, OperatorID: op, RouteVersion: l.RouteVersion, ExecutionKey: l.ExecutionKey, ExecutionMode: l.ExecutionMode, PaymentRefundID: l.PaymentRefundID, BusinessKey: in.BusinessKey, Fingerprint: fp, Reason: in.Reason, NoFurtherPaymentReference: in.NoFurtherPaymentReference, Evidence: in.Evidence, ActorID: actor, SettledMoney: l.SettledMoney, RemainingMoney: l.AmountMoney.Sub(l.SettledMoney), CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
@@ -232,7 +232,7 @@ func (s *Service) destinationForProof(t *gorm.DB, l RefundLeg, authorizationID s
 	if e := t.First(&a, "id=? AND leg_id=? AND operator_id=?", authorizationID, l.ID, l.OperatorID).Error; e != nil {
 		return a, e
 	}
-	if a.ReceiptID != l.ReceiptID || a.SettledBeforeUSD.Add(a.AmountUSD).Cmp(l.AmountUSD) != 0 || a.RouteVersion > l.RouteVersion {
+	if a.ReceiptID != l.ReceiptID || a.SettledBeforeMoney.Add(a.AmountMoney).Cmp(l.AmountMoney) != 0 || a.RouteVersion > l.RouteVersion {
 		return a, ErrConflict
 	}
 	if a.RouteVersion < l.RouteVersion {
@@ -258,8 +258,8 @@ type RefundRouteVersion struct {
 	AuthorizationID      string             `json:"authorization_id,omitempty"`
 	Destination          *RefundDestination `json:"destination,omitempty"`
 	AuthorizedAt         *time.Time         `json:"authorized_at,omitempty"`
-	AmountUSD            ledger.Decimal     `json:"amount_usd"`
-	SettledBeforeUSD     ledger.Decimal     `json:"settled_before_usd"`
+	AmountMoney          ledger.Decimal     `json:"amount_money"`
+	SettledBeforeMoney   ledger.Decimal     `json:"settled_before_money"`
 	ClosureID            string             `json:"closure_id,omitempty"`
 	ClosedAt             *time.Time         `json:"closed_at,omitempty"`
 	ClosedReason         string             `json:"closed_reason,omitempty"`
@@ -279,13 +279,13 @@ func (s *Service) refundRouteHistory(t *gorm.DB, l RefundLeg) ([]RefundRouteVers
 	byVersion := map[int64]RefundRouteVersion{}
 	for _, a := range auths {
 		d, at := a.RefundDestination, a.CreatedAt
-		byVersion[a.RouteVersion] = RefundRouteVersion{Version: a.RouteVersion, AuthorizationID: a.ID, Destination: &d, AuthorizedAt: &at, AmountUSD: a.AmountUSD, SettledBeforeUSD: a.SettledBeforeUSD, ResponsibleExecution: a.ResponsibleExecution}
+		byVersion[a.RouteVersion] = RefundRouteVersion{Version: a.RouteVersion, AuthorizationID: a.ID, Destination: &d, AuthorizedAt: &at, AmountMoney: a.AmountMoney, SettledBeforeMoney: a.SettledBeforeMoney, ResponsibleExecution: a.ResponsibleExecution}
 	}
 	for _, c := range closures {
 		v := byVersion[c.RouteVersion]
 		v.Version, v.ClosureID, v.ClosedAt, v.ClosedReason = c.RouteVersion, c.ID, &c.CreatedAt, c.Reason
 		if v.AuthorizationID == "" {
-			v.AmountUSD = c.SettledUSD.Add(c.RemainingUSD)
+			v.AmountMoney = c.SettledMoney.Add(c.RemainingMoney)
 		}
 		byVersion[c.RouteVersion] = v
 	}

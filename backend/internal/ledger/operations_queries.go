@@ -89,7 +89,7 @@ func (s *Service) PaidConsumptionByOrder(ctx context.Context, tx *gorm.DB, custo
 		Amount  Decimal
 	}
 	e := s.within(ctx, tx, func(t *gorm.DB) error {
-		return t.Model(&Grant{}).Select("order_id,COALESCE(sum(consumed_paid_usd),0)::text AS amount").Where("customer_id=? AND order_id IN ?", customer, orders).Group("order_id").Scan(&rows).Error
+		return t.Model(&Grant{}).Select("order_id,COALESCE(sum(consumed_paid_money),0)::text AS amount").Where("customer_id=? AND order_id IN ?", customer, orders).Group("order_id").Scan(&rows).Error
 	})
 	for _, r := range rows {
 		out[r.OrderID] = r.Amount

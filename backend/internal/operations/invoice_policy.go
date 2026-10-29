@@ -129,18 +129,18 @@ func (s *Service) GetIssuerInvoicePolicy(ctx context.Context, actor, issuer, par
 	return out, e
 }
 func eligibleInvoiceAmount(b InvoiceBasis, stage string, ratio ledger.Decimal) (ledger.Decimal, error) {
-	value := b.EligibleUSD
+	value := b.EligibleMoney
 	switch stage {
 	case "receipt":
-		if b.ReceiptUSD != nil {
-			value = *b.ReceiptUSD
+		if b.ReceiptMoney != nil {
+			value = *b.ReceiptMoney
 		}
 	case "top_up":
-		value = b.TopUpUSD
+		value = b.TopUpMoney
 	case "purchase":
-		value = b.PurchaseUSD
+		value = b.PurchaseMoney
 	case "consumption":
-		value = b.ConsumptionUSD
+		value = b.ConsumptionMoney
 	default:
 		return ledger.Zero(), ErrInvalid
 	}

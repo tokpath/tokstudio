@@ -16,13 +16,13 @@ type WalletRefundInput struct {
 	OperatorID  string         `json:"operator_id"`
 	CustomerID  string         `json:"customer_id"`
 	BusinessKey string         `json:"business_key"`
-	AmountUSD   ledger.Decimal `json:"amount_usd"`
+	AmountMoney ledger.Decimal `json:"amount_money"`
 	Reason      string         `json:"reason"`
 }
 
 func (s *Service) RequestWalletRefund(ctx context.Context, in WalletRefundInput) (Case, error) {
 	var out Case
-	if !validID(in.OperatorID) || !validID(in.CustomerID) || in.BusinessKey == "" || len(in.BusinessKey) > 150 || !validAmount(in.AmountUSD) || in.Reason == "" {
+	if !validID(in.OperatorID) || !validID(in.CustomerID) || in.BusinessKey == "" || len(in.BusinessKey) > 150 || !validAmount(in.AmountMoney) || in.Reason == "" {
 		return out, ErrInvalid
 	}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
@@ -47,24 +47,24 @@ func (s *Service) RequestWalletRefund(ctx context.Context, in WalletRefundInput)
 		if e != nil {
 			return e
 		}
-		reviews, e := s.reviews(t, in.OperatorID, in.AmountUSD)
+		reviews, e := s.reviews(t, in.OperatorID, in.AmountMoney)
 		if e != nil {
 			return e
 		}
-		out = Case{ID: uuid.NewString(), OperatorID: in.OperatorID, CustomerID: &in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "wallet", AmountUSD: in.AmountUSD, State: "pending_review", Reason: in.Reason, Evidence: "customer requested unused USD return", RequestedBy: in.CustomerID, RequiredReviews: reviews, CreatedAt: at}
+		out = Case{ID: uuid.NewString(), OperatorID: in.OperatorID, CustomerID: &in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "wallet", AmountMoney: in.AmountMoney, State: "pending_review", Reason: in.Reason, Evidence: "customer requested unused USD return", RequestedBy: in.CustomerID, RequiredReviews: reviews, CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
-		allocations, e := s.Commerce.ReserveWalletRefund(ctx, t, in.OperatorID, in.CustomerID, out.ID, in.AmountUSD)
+		allocations, e := s.Commerce.ReserveWalletRefund(ctx, t, in.OperatorID, in.CustomerID, out.ID, in.AmountMoney)
 		if e != nil {
 			return e
 		}
 		grouped := map[string]ledger.Decimal{}
 		for _, a := range allocations {
 
-			grouped[a.ReceiptID] = grouped[a.ReceiptID].Add(a.AmountUSD)
+			grouped[a.ReceiptID] = grouped[a.ReceiptID].Add(a.AmountMoney)
 		}
-		account, e := s.account(ctx, t, in.OperatorID, in.CustomerID, "customer:usd")
+		account, e := s.account(ctx, t, in.OperatorID, in.CustomerID, "customer:money")
 		if e != nil {
 			return e
 		}
@@ -136,7 +136,7 @@ func (s *Service) RequestUnallocatedRefund(ctx context.Context, actor, op, recei
 		if e != nil {
 			return e
 		}
-		out = Case{ID: uuid.NewString(), OperatorID: op, BusinessKey: key, Fingerprint: fp, Kind: "unallocated", AmountUSD: amount, State: "pending_review", Reason: reason, Evidence: evidence, RequestedBy: actor, RequiredReviews: reviews, CreatedAt: at}
+		out = Case{ID: uuid.NewString(), OperatorID: op, BusinessKey: key, Fingerprint: fp, Kind: "unallocated", AmountMoney: amount, State: "pending_review", Reason: reason, Evidence: evidence, RequestedBy: actor, RequiredReviews: reviews, CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
@@ -161,12 +161,12 @@ func (s *Service) createLegs(ctx context.Context, t *gorm.DB, c Case, amounts ma
 		if e := t.Table("commerce_receipts").Select("operator_id").Where("id=?", id).Row().Scan(&origin); e != nil {
 			return e
 		}
-		leg := RefundLeg{SourceOperatorID: origin, ID: uuid.NewString(), CaseID: c.ID, OperatorID: c.OperatorID, ReceiptID: id, AmountUSD: amounts[id], State: "reserved", CreatedAt: c.CreatedAt}
-		if e := s.ReserveReceiptRefund(ctx, t, origin, id, leg.ID, leg.AmountUSD); e != nil {
+		leg := RefundLeg{SourceOperatorID: origin, ID: uuid.NewString(), CaseID: c.ID, OperatorID: c.OperatorID, ReceiptID: id, AmountMoney: amounts[id], State: "reserved", CreatedAt: c.CreatedAt}
+		if e := s.ReserveReceiptRefund(ctx, t, origin, id, leg.ID, leg.AmountMoney); e != nil {
 			return e
 		}
 		if source != nil {
-			h, e := s.Ledger.Reserve(ctx, t, ledger.Reservation{OperatorID: c.OperatorID, BusinessKey: "refund:" + leg.ID, Purpose: "refund", ExpiresAt: c.CreatedAt.AddDate(10, 0, 0), Amounts: []ledger.Line{{AccountID: source.ID, Amount: leg.AmountUSD}}})
+			h, e := s.Ledger.Reserve(ctx, t, ledger.Reservation{OperatorID: c.OperatorID, BusinessKey: "refund:" + leg.ID, Purpose: "refund", ExpiresAt: c.CreatedAt.AddDate(10, 0, 0), Amounts: []ledger.Line{{AccountID: source.ID, Amount: leg.AmountMoney}}})
 			if e != nil {
 				return e
 			}
@@ -247,7 +247,7 @@ func (s *Service) RequestPackageException(ctx context.Context, in PackageExcepti
 		if a.Balance.Sign() <= 0 || a.Held.Sign() > 0 || g.ExpiresAt != nil && !g.ExpiresAt.After(at) {
 			return ErrState
 		}
-		amount := g.PaidUSD.Sub(g.ConsumedPaidUSD).Sub(g.ExpiredPaidUSD).Sub(g.CancelledPaidUSD)
+		amount := g.PaidMoney.Sub(g.ConsumedPaidMoney).Sub(g.ExpiredPaidMoney).Sub(g.CancelledPaidMoney)
 		if !validAmount(amount) {
 			return ErrState
 		}
@@ -255,29 +255,29 @@ func (s *Service) RequestPackageException(ctx context.Context, in PackageExcepti
 		if e != nil {
 			return e
 		}
-		out = Case{ID: uuid.NewString(), OperatorID: in.OperatorID, CustomerID: &in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "package_exception", OrderID: &o.ID, GrantID: &g.ID, AmountUSD: amount, CreditATG: a.Balance, State: "pending_review", Reason: in.Reason, Evidence: in.Evidence, RequestedBy: in.ActorStaffID, RequiredReviews: reviews, CreatedAt: at}
-		weights := []ledger.Decimal{o.InternalUSD, o.CommissionUSD}
+		out = Case{ID: uuid.NewString(), OperatorID: in.OperatorID, CustomerID: &in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "package_exception", OrderID: &o.ID, GrantID: &g.ID, AmountMoney: amount, CreditATG: a.Balance, State: "pending_review", Reason: in.Reason, Evidence: in.Evidence, RequestedBy: in.ActorStaffID, RequiredReviews: reviews, CreatedAt: at}
+		weights := []ledger.Decimal{o.InternalMoney, o.CommissionMoney}
 		var allocs []struct {
-			ReceiptID string
-			AmountUSD ledger.Decimal
+			ReceiptID   string
+			AmountMoney ledger.Decimal
 		}
-		if e = t.Table("commerce_receipt_allocations").Select("receipt_id,sum(amount_usd) AS amount_usd").Where("order_id=?", o.ID).Group("receipt_id").Order("receipt_id").Scan(&allocs).Error; e != nil {
+		if e = t.Table("commerce_receipt_allocations").Select("receipt_id,sum(amount_money) AS amount_money").Where("order_id=?", o.ID).Group("receipt_id").Order("receipt_id").Scan(&allocs).Error; e != nil {
 			return e
 		}
-		sum := o.InternalUSD.Add(o.CommissionUSD)
+		sum := o.InternalMoney.Add(o.CommissionMoney)
 		for _, a := range allocs {
-			weights = append(weights, a.AmountUSD)
-			sum = sum.Add(a.AmountUSD)
+			weights = append(weights, a.AmountMoney)
+			sum = sum.Add(a.AmountMoney)
 		}
-		if sum.Cmp(o.DueUSD) != 0 {
+		if sum.Cmp(o.DueMoney) != 0 {
 			return ErrConflict
 		}
 		parts, e := ledger.Proportional(amount, weights)
 		if e != nil {
 			return e
 		}
-		out.InternalUSD = parts[0]
-		out.CommissionUSD = parts[1]
+		out.InternalMoney = parts[0]
+		out.CommissionMoney = parts[1]
 		h, e := s.Ledger.Reserve(ctx, t, ledger.Reservation{OperatorID: in.OperatorID, BusinessKey: "exception:" + out.ID, Purpose: "refund", ExpiresAt: at.AddDate(10, 0, 0), Amounts: []ledger.Line{{AccountID: g.AccountID, Amount: out.CreditATG}}})
 		if e != nil {
 			return e

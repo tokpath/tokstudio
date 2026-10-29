@@ -9,7 +9,7 @@ import (
 )
 
 type RefundFactSink interface {
-	RecordVerifiedRefund(context.Context, *gorm.DB, Merchant, Order, Refund, Fact, USDValue) error
+	RecordVerifiedRefund(context.Context, *gorm.DB, Merchant, Order, Refund, Fact, MoneyValue) error
 }
 
 // ErrSettlementReview means a sink committed an actual payment observation and
@@ -96,6 +96,9 @@ func (s *Service) SubmitRefund(ctx context.Context, actor, operator, merchant st
 		return RefundStatus{}, ErrConflict
 	}
 	r.Order = original
+	if r.Validate(m) != nil {
+		return RefundStatus{}, ErrInvalid
+	}
 	hash := fingerprint(r)
 	fresh := false
 	var previous refundIntentRow
@@ -119,11 +122,6 @@ func (s *Service) SubmitRefund(ctx context.Context, actor, operator, merchant st
 		now, e := databaseTime(ctx, tx)
 		if e != nil {
 			return e
-		}
-		if r.Money.Currency != "USD" {
-			if r.ValuedAt.After(now.Add(30*time.Second)) || now.Sub(r.ValuedAt) > 5*time.Minute || r.RefundValuation.Validate(r.Money.Currency, now) != nil {
-				return ErrInvalid
-			}
 		}
 		if e := s.RefundApproval.RequireApprovedRefund(ctx, tx, actor, r); e != nil {
 			return e

@@ -44,7 +44,7 @@ func replenishmentFixture(t *testing.T, base string) (fixture, *Replenisher, pay
 	if _, e = pay.SaveMerchant(f.ctx, f.owner, m, 0); e != nil {
 		t.Fatal(e)
 	}
-	quote, e := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: []PurchaseGiftTier{{FromUSD: amount("0"), GiftPercent: amount("900")}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"accepted-exit-v1"}`), TermsReference: "quote-v1", Enabled: true})
+	quote, e := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: []PurchaseGiftTier{{FromMoney: amount("0"), GiftPercent: amount("900")}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"accepted-exit-v1"}`), TermsReference: "quote-v1", Enabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -54,7 +54,7 @@ func replenishmentFixture(t *testing.T, base string) (fixture, *Replenisher, pay
 func authorizeReplenishment(t *testing.T, f fixture, r *Replenisher, m payments.Merchant, q PurchaseQuote, mode string) ReplenishmentAuthorization {
 	t.Helper()
 	merchant := m.ID
-	a, e := r.SaveAuthorization(f.ctx, f.owner, ReplenishmentAuthorizationInput{ReplenishmentAuthorization: ReplenishmentAuthorization{BuyerID: f.channel, SupplierID: f.platform, QuoteID: q.ID, AmountUSD: amount("10"), TriggerAvailableATG: amount("200"), PeriodLimitUSD: amount("10"), Period: "month", Mode: mode, MerchantID: &merchant, ConsentReference: "explicit-consent:one", Enabled: true}, Payment: ReplenishmentPayment{PaymentMethod: "pm_synthetic", CustomerRef: "cus_synthetic"}})
+	a, e := r.SaveAuthorization(f.ctx, f.owner, ReplenishmentAuthorizationInput{ReplenishmentAuthorization: ReplenishmentAuthorization{BuyerID: f.channel, SupplierID: f.platform, QuoteID: q.ID, AmountMoney: amount("10"), TriggerAvailableATG: amount("200"), PeriodLimitMoney: amount("10"), Period: "month", Mode: mode, MerchantID: &merchant, ConsentReference: "explicit-consent:one", Enabled: true}, Payment: ReplenishmentPayment{PaymentMethod: "pm_synthetic", CustomerRef: "cus_synthetic"}})
 	if e != nil {
 		t.Fatal(e)
 	}

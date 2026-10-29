@@ -13,23 +13,23 @@ import (
 )
 
 type ProcurementRefundRouteClosure struct {
-	ID           string          `json:"id"`
-	LegID        string          `json:"leg_id"`
-	Version      int64           `json:"version"`
-	RemainingUSD ledger.Decimal  `json:"remaining_usd"`
-	Reason       string          `json:"reason"`
-	Evidence     string          `json:"evidence"`
-	PaymentFacts json.RawMessage `json:"payment_facts" gorm:"type:jsonb"`
-	ClosedBy     string          `json:"closed_by"`
-	CreatedAt    time.Time       `json:"created_at"`
+	ID             string          `json:"id"`
+	LegID          string          `json:"leg_id"`
+	Version        int64           `json:"version"`
+	RemainingMoney ledger.Decimal  `json:"remaining_money"`
+	Reason         string          `json:"reason"`
+	Evidence       string          `json:"evidence"`
+	PaymentFacts   json.RawMessage `json:"payment_facts" gorm:"type:jsonb"`
+	ClosedBy       string          `json:"closed_by"`
+	CreatedAt      time.Time       `json:"created_at"`
 }
 
 type ProcurementRefundRouteStatus struct {
-	LegID        string                          `json:"leg_id"`
-	Version      int64                           `json:"version"`
-	RemainingUSD ledger.Decimal                  `json:"remaining_usd"`
-	State        string                          `json:"state"`
-	Closures     []ProcurementRefundRouteClosure `json:"closures"`
+	LegID          string                          `json:"leg_id"`
+	Version        int64                           `json:"version"`
+	RemainingMoney ledger.Decimal                  `json:"remaining_money"`
+	State          string                          `json:"state"`
+	Closures       []ProcurementRefundRouteClosure `json:"closures"`
 }
 
 func (p *ProcurementRefunds) RefundRouteStatus(ctx context.Context, actor, operator, legID string) (ProcurementRefundRouteStatus, error) {
@@ -52,7 +52,7 @@ func (p *ProcurementRefunds) RefundRouteStatus(ctx context.Context, actor, opera
 		}
 		out.Version = version
 		out.State = leg.State
-		out.RemainingUSD = leg.AmountUSD.Sub(leg.SettledUSD)
+		out.RemainingMoney = leg.AmountMoney.Sub(leg.SettledMoney)
 		if e = tx.Where("leg_id=?", legID).Order("version").Find(&out.Closures).Error; e != nil {
 			return e
 		}
@@ -130,7 +130,7 @@ func (p *ProcurementRefunds) RecordManualRefundFailure(ctx context.Context, acto
 			}
 			return nil
 		}
-		if leg.ExecutionMode != "manual" || leg.ExecutionKey != in.ExpectedExecutionKey || leg.State != "manual_executing" || leg.AmountUSD.Cmp(leg.SettledUSD) <= 0 {
+		if leg.ExecutionMode != "manual" || leg.ExecutionKey != in.ExpectedExecutionKey || leg.State != "manual_executing" || leg.AmountMoney.Cmp(leg.SettledMoney) <= 0 {
 			return ErrConflict
 		}
 		if leg.SourceKind == "manual_receipt" {
@@ -189,7 +189,7 @@ func (p *ProcurementRefunds) CloseRefundRoute(ctx context.Context, actor, suppli
 		if q.RowsAffected > 0 {
 			return nil
 		}
-		if leg.AmountUSD.Cmp(leg.SettledUSD) <= 0 || leg.State != "prepared" && leg.State != "exception" {
+		if leg.AmountMoney.Cmp(leg.SettledMoney) <= 0 || leg.State != "prepared" && leg.State != "exception" {
 			return ErrConflict
 		}
 		version, e := p.refundRouteVersion(ctx, tx, leg.ID)
@@ -248,7 +248,7 @@ func (p *ProcurementRefunds) CloseRefundRoute(ctx context.Context, actor, suppli
 			return e
 		}
 		raw, _ := json.Marshal(facts)
-		out = ProcurementRefundRouteClosure{ID: uuid.NewString(), LegID: legID, Version: version, RemainingUSD: leg.AmountUSD.Sub(leg.SettledUSD), Reason: reason, Evidence: evidence, PaymentFacts: raw, ClosedBy: actor, CreatedAt: now}
+		out = ProcurementRefundRouteClosure{ID: uuid.NewString(), LegID: legID, Version: version, RemainingMoney: leg.AmountMoney.Sub(leg.SettledMoney), Reason: reason, Evidence: evidence, PaymentFacts: raw, ClosedBy: actor, CreatedAt: now}
 		if e = p.Payments.SealRefundExecutions(ctx, tx, supplier, legID, out.ID); e != nil {
 			return e
 		}
@@ -294,7 +294,7 @@ func (p *ProcurementRefunds) RequireResponsibleRefundExecution(ctx context.Conte
 	if n == 0 {
 		return basis, ErrConflict
 	}
-	return payments.ResponsibleRefundBasis{RefundID: leg.ID, OperatorID: operator, SourceOperatorID: leg.SupplierID, ReceiptID: leg.ReceiptID, Currency: d.Asset, ExecutionMerchantID: a.ExecutionMerchantID, AmountUSD: leg.AmountUSD, RemainingUSD: leg.AmountUSD.Sub(leg.SettledUSD), AuthorizedAt: a.CreatedAt, CreatedAt: leg.CreatedAt}, nil
+	return payments.ResponsibleRefundBasis{RefundID: leg.ID, OperatorID: operator, SourceOperatorID: leg.SupplierID, ReceiptID: leg.ReceiptID, Currency: d.Asset, ExecutionMerchantID: a.ExecutionMerchantID, AmountMoney: leg.AmountMoney, RemainingMoney: leg.AmountMoney.Sub(leg.SettledMoney), AuthorizedAt: a.CreatedAt, CreatedAt: leg.CreatedAt}, nil
 }
 
 // RecordReplacementRefund verifies an externally executed return using the

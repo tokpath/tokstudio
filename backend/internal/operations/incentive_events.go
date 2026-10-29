@@ -53,8 +53,8 @@ func (c IncentiveNotifications) EnqueueIncentiveEvent(ctx context.Context, tx *g
 			return ErrInvalid
 		}
 		body := message[1]
-		if recipient.AmountUSD != nil {
-			body += " 本次申请金额 " + recipient.AmountUSD.String() + " USD。"
+		if recipient.AmountMoney != nil {
+			body += " 本次申请金额 " + recipient.AmountMoney.String() + " USD。"
 		}
 		if _, e = c.Operations.Emit(ctx, tx, Notification{OperatorID: recipient.OperatorID, RecipientID: recipient.RecipientID, BusinessKey: "incentive:" + event.ID, Category: "mandatory", Severity: "info", Title: message[0], Body: body, Reference: "incentive-event:" + recipient.Reference}); e != nil {
 			return e

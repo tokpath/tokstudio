@@ -50,15 +50,15 @@ func TestPostgresResourceSearchRunsBeforePaginationAndKeepsOperatorScope(t *test
 		if i >= 60 {
 			orderStatus = "closed"
 		}
-		order := commerce.Order{ID: orderID, OperatorID: operator, BrandID: brand, CustomerID: id, OwnershipVersion: 1, BusinessKey: fmt.Sprintf("search-order-%d", i), Fingerprint: "synthetic", Kind: "topup", DueUSD: ledger.MustDecimal("1"), InternalStatus: "none", CoverageStatus: "none", Status: orderStatus, Period: "lifetime", Timezone: "UTC", ExpiresAt: now.Add(time.Hour), CreatedAt: now.Add(-time.Duration(i) * time.Minute)}
+		order := commerce.Order{ID: orderID, OperatorID: operator, BrandID: brand, CustomerID: id, OwnershipVersion: 1, BusinessKey: fmt.Sprintf("search-order-%d", i), Fingerprint: "synthetic", Kind: "topup", DueMoney: ledger.MustDecimal("1"), InternalStatus: "none", CoverageStatus: "none", Status: orderStatus, Period: "lifetime", Timezone: "UTC", ExpiresAt: now.Add(time.Hour), CreatedAt: now.Add(-time.Duration(i) * time.Minute)}
 		if err = f.a.DB.Table("commerce_orders").Create(&order).Error; err != nil {
 			t.Fatal(err)
 		}
 		receiptID := fmt.Sprintf("10000000-0000-4000-8000-%012d", 1000+i)
-		receipt := commerce.Receipt{ID: receiptID, OperatorID: operator, Provider: "manual", ProviderReceiptID: fmt.Sprintf("bank-%d", i), Fingerprint: "synthetic", GrossUSD: ledger.MustDecimal("1"), FeeStatus: "pending", Currency: "USD", OriginalAmount: "1", PayerReference: "synthetic payer", RecipientReference: "synthetic bank", VerificationEvidence: "synthetic evidence", VerifiedBy: owner, ObservedAt: now, CreatedAt: now}
+		receipt := commerce.Receipt{ID: receiptID, OperatorID: operator, Provider: "manual", ProviderReceiptID: fmt.Sprintf("bank-%d", i), Fingerprint: "synthetic", GrossMoney: ledger.MustDecimal("1"), FeeStatus: "pending", Currency: "USD", OriginalAmount: "1", PayerReference: "synthetic payer", RecipientReference: "synthetic bank", VerificationEvidence: "synthetic evidence", VerifiedBy: owner, ObservedAt: now, CreatedAt: now}
 		if i >= 60 {
 			net, fee := ledger.MustDecimal("1"), ledger.Zero()
-			receipt.NetUSD, receipt.FeeUSD, receipt.FeeStatus = &net, &fee, "confirmed"
+			receipt.NetMoney, receipt.FeeMoney, receipt.FeeStatus = &net, &fee, "confirmed"
 			receipt.ProviderReceiptID = "needle-bank"
 		}
 		if err = f.a.DB.Table("commerce_receipts").Create(&receipt).Error; err != nil {
@@ -104,7 +104,7 @@ func TestPostgresRefundSearchPagesCasesBeforeLoadingTheirDetails(t *testing.T) {
 	now := time.Now().UTC()
 	target := ""
 	for i := 0; i < 55; i++ {
-		r := remediation.Case{ID: uuid.NewString(), OperatorID: op, BusinessKey: fmt.Sprintf("search-refund-%d", i), Fingerprint: "synthetic", Kind: "unallocated", AmountUSD: ledger.MustDecimal("1"), State: "pending_review", Reason: "ordinary", Evidence: "synthetic", RequestedBy: f.a.Installation.OwnerStaffID, RequiredReviews: 1, CreatedAt: now.Add(-time.Duration(i) * time.Minute)}
+		r := remediation.Case{ID: uuid.NewString(), OperatorID: op, BusinessKey: fmt.Sprintf("search-refund-%d", i), Fingerprint: "synthetic", Kind: "unallocated", AmountMoney: ledger.MustDecimal("1"), State: "pending_review", Reason: "ordinary", Evidence: "synthetic", RequestedBy: f.a.Installation.OwnerStaffID, RequiredReviews: 1, CreatedAt: now.Add(-time.Duration(i) * time.Minute)}
 		if i == 54 {
 			r.Reason = "needle-refund"
 			target = r.ID

@@ -59,40 +59,44 @@ func fromMinor(currency string, value int64, decimals uint8) (Money, error) {
 	return Money{Currency: strings.ToUpper(currency), Amount: amount}, nil
 }
 
-// Valuation records the operator's explicitly authorized USD conversion basis.
-// A stablecoin is not assumed to be permanently worth one USD.
+// Valuation is a confirmation of the settlement amount attached to one real
+// transfer. It is never an exchange rate or a reusable currency quote.
 type Valuation struct {
-	ID          string         `json:"id"`
-	Currency    string         `json:"currency"`
-	USDPerUnit  ledger.Decimal `json:"usd_per_unit"`
-	Source      string         `json:"source"`
-	EffectiveAt time.Time      `json:"effective_at"`
-	ExpiresAt   time.Time      `json:"expires_at"`
+	ID       string         `json:"id"`
+	Currency string         `json:"currency"`
+	Amount   ledger.Decimal `json:"settlement_amount"`
+	Source   string         `json:"evidence_reference"`
 }
 
-func (v Valuation) Validate(currency string, at time.Time) error {
-	if v.ID == "" || v.Currency != currency || v.USDPerUnit.Sign() <= 0 || !v.USDPerUnit.Valid() || v.Source == "" || v.EffectiveAt.IsZero() || v.ExpiresAt.IsZero() || at.Before(v.EffectiveAt) || !at.Before(v.ExpiresAt) {
+func (v Valuation) Validate(_ string, _ time.Time) error {
+	if v.Currency == "" || v.Currency != strings.ToUpper(v.Currency) || v.Amount.Sign() <= 0 || !v.Amount.Valid() || strings.TrimSpace(v.Source) == "" {
 		return ErrInvalid
 	}
 	return nil
 }
 
-type USDValue struct {
-	Amount               ledger.Decimal `json:"amount"`
-	RemainderNumerator   string         `json:"remainder_numerator"`
-	RemainderDenominator string         `json:"remainder_denominator"`
-	Valuation            Valuation      `json:"valuation"`
+type MoneyValue struct {
+	Amount            ledger.Decimal `json:"amount"`
+	Currency          string         `json:"currency"`
+	OriginalMoney     Money          `json:"original_money"`
+	EvidenceReference string         `json:"evidence_reference"`
+	VerifiedBy        string         `json:"verified_by,omitempty"`
+	Valuation         Valuation      `json:"settlement_confirmation"`
 }
 
-func (v Valuation) Convert(m Money, executionAt time.Time) (USDValue, error) {
-	if m.Validate() != nil || v.Validate(m.Currency, executionAt) != nil {
-		return USDValue{}, ErrInvalid
+// Convert preserves the explicitly confirmed amount. It performs no conversion.
+func (v Valuation) Convert(m Money, _ time.Time) (MoneyValue, error) {
+	if m.Validate() != nil || v.Validate("", time.Time{}) != nil {
+		return MoneyValue{}, ErrInvalid
 	}
-	amount, remainder := ledger.Quantize(new(big.Rat).Mul(m.Amount.Rat(), v.USDPerUnit.Rat()))
-	if !amount.Valid() {
-		return USDValue{}, ErrInvalid
+	if m.Currency == v.Currency && m.Amount.Cmp(v.Amount) != 0 {
+		return MoneyValue{}, ErrInvalid
 	}
-	return USDValue{Amount: amount, RemainderNumerator: remainder.Num().String(), RemainderDenominator: remainder.Denom().String(), Valuation: v}, nil
+	return MoneyValue{Amount: v.Amount, Currency: v.Currency, OriginalMoney: m, EvidenceReference: v.Source, Valuation: v}, nil
+}
+
+func nativeValue(m Money, evidence string) MoneyValue {
+	return MoneyValue{Amount: m.Amount, Currency: m.Currency, OriginalMoney: m, EvidenceReference: evidence, Valuation: Valuation{Currency: m.Currency, Amount: m.Amount, Source: evidence}}
 }
 
 type Merchant struct {
@@ -113,7 +117,8 @@ type Order struct {
 	OperatorID            string    `json:"operator_id"`
 	MerchantID            string    `json:"merchant_id"`
 	Money                 Money     `json:"money"`
-	Valuation             Valuation `json:"valuation"`
+	SettlementMoney       Money     `json:"settlement_money"`
+	Valuation             Valuation `json:"settlement_confirmation,omitempty"`
 	AcceptedAt            time.Time `json:"accepted_at"`
 	ExpiresAt             time.Time `json:"expires_at"`
 	NotifyURL             string    `json:"notify_url"`
@@ -131,23 +136,32 @@ type Order struct {
 	AuthorizationID string `json:"authorization_id,omitempty"`
 }
 
+// Settlement is the order obligation in the globally configured currency.
+func (o Order) Settlement() Money {
+	if o.SettlementMoney.Currency != "" {
+		return o.SettlementMoney
+	}
+	return o.Money
+}
 func (o Order) Validate(m Merchant) error {
-	if o.ID == "" || o.OperatorID != m.OperatorID || o.MerchantID != m.ID || o.Money.Validate() != nil || o.AcceptedAt.IsZero() || !o.ExpiresAt.After(o.AcceptedAt) || o.Valuation.Validate(o.Money.Currency, o.AcceptedAt) != nil {
+	settlement := o.Settlement()
+	if o.ID == "" || o.OperatorID != m.OperatorID || o.MerchantID != m.ID || settlement.Validate() != nil || o.Money.Currency == "" || o.Money.Currency != strings.ToUpper(o.Money.Currency) || o.Money.Amount.Sign() < 0 || !o.Money.Amount.Valid() || (o.Money.Currency == settlement.Currency && (o.Money.Validate() != nil || o.Money.Amount.Cmp(settlement.Amount) != 0)) || o.AcceptedAt.IsZero() || !o.ExpiresAt.After(o.AcceptedAt) {
 		return ErrInvalid
 	}
 	return nil
 }
 
 type Checkout struct {
-	ProviderID     string            `json:"provider_id"`
-	State          string            `json:"state"` // pending | requires_action | processing
-	URL            string            `json:"url,omitempty"`
-	ClientSecret   string            `json:"client_secret,omitempty"`
-	PublishableKey string            `json:"publishable_key,omitempty"`
-	PaymentAddress string            `json:"payment_address,omitempty"`
-	Instructions   string            `json:"instructions,omitempty"`
-	PayMoney       *Money            `json:"pay_money,omitempty"`
-	FormFields     map[string]string `json:"form_fields,omitempty"`
+	ProviderID      string            `json:"provider_id"`
+	State           string            `json:"state"` // pending | requires_action | processing
+	URL             string            `json:"url,omitempty"`
+	ClientSecret    string            `json:"client_secret,omitempty"`
+	PublishableKey  string            `json:"publishable_key,omitempty"`
+	PaymentAddress  string            `json:"payment_address,omitempty"`
+	Instructions    string            `json:"instructions,omitempty"`
+	PayMoney        *Money            `json:"pay_money,omitempty"`
+	SettlementMoney *Money            `json:"settlement_money,omitempty"`
+	FormFields      map[string]string `json:"form_fields,omitempty"`
 }
 type Refund struct {
 	ID                   string         `json:"id"`
@@ -155,27 +169,20 @@ type Refund struct {
 	Order                Order          `json:"order"`
 	Money                Money          `json:"money"`
 	ProviderID           string         `json:"provider_id,omitempty"`
-	USDAmount            ledger.Decimal `json:"usd_amount"`
-	RefundValuation      Valuation      `json:"refund_valuation"`
-	ValuedAt             time.Time      `json:"valued_at"`
-	FXExecutionReference string         `json:"fx_execution_reference"`
+	MoneyAmount          ledger.Decimal `json:"money_amount"`
+	RefundValuation      Valuation      `json:"settlement_confirmation,omitempty"`
+	SettlementAmount     ledger.Decimal `json:"settlement_amount,omitempty"`
+	SettlementEvidence   string         `json:"settlement_evidence,omitempty"`
+	ValuedAt             time.Time      `json:"-"`
+	FXExecutionReference string         `json:"-"`
 }
 
 func (r Refund) Validate(m Merchant) error {
-	if r.ID == "" || r.Order.Validate(m) != nil || r.Money.Validate() != nil || r.Money.Currency != r.Order.Money.Currency || r.Money.Amount.Cmp(r.Order.Money.Amount) > 0 {
+	if r.ID == "" || r.Order.Validate(m) != nil || r.Money.Validate() != nil || r.Money.Currency != r.Order.Money.Currency || (r.Order.Money.Amount.Sign() > 0 && r.Money.Amount.Cmp(r.Order.Money.Amount) > 0) || r.MoneyAmount.Sign() <= 0 || !r.MoneyAmount.Valid() {
 		return ErrInvalid
 	}
-	if r.USDAmount.Sign() <= 0 || !r.USDAmount.Valid() {
+	if r.Money.Currency != r.Order.Settlement().Currency && (r.RefundValuation.Validate("", time.Time{}) != nil || r.RefundValuation.Currency != r.Order.Settlement().Currency) {
 		return ErrInvalid
-	}
-	if r.Money.Currency == "USD" {
-		if r.USDAmount.Cmp(r.Money.Amount) != 0 {
-			return ErrInvalid
-		}
-	} else {
-		if r.ValuedAt.IsZero() || r.FXExecutionReference == "" || r.RefundValuation.Validate(r.Money.Currency, r.ValuedAt) != nil {
-			return ErrInvalid
-		}
 	}
 	return nil
 }
@@ -216,7 +223,7 @@ type Fact struct {
 	OccurredAt     *time.Time               `json:"occurred_at,omitempty"`
 	ObservedAt     time.Time                `json:"observed_at"`
 	Evidence       json.RawMessage          `json:"evidence"`
-	ExecutionValue *USDValue                `json:"execution_value,omitempty"`
+	ExecutionValue *MoneyValue              `json:"execution_value,omitempty"`
 	ExternalRefund *ExternalRefundExecution `json:"external_refund,omitempty"`
 	RefundSource   *RefundSource            `json:"refund_source,omitempty"`
 	proof          bool
@@ -242,15 +249,14 @@ func refundFact(m Merchant, r Refund, providerID string, money Money, at *time.T
 	if e != nil {
 		return f, e
 	}
-	var v USDValue
-	if r.Money.Currency == "USD" {
-		at := f.ObservedAt
-		v, e = (Valuation{ID: "usd-native:" + f.ID, Currency: "USD", USDPerUnit: ledger.FromInt64(1), Source: "native_usd_refund", EffectiveAt: at.Add(-time.Second), ExpiresAt: at.Add(time.Second)}).Convert(money, at)
+	var v MoneyValue
+	if money.Currency == r.Order.Settlement().Currency {
+		v = nativeValue(money, "Verified original-currency refund")
 	} else {
-		v, e = r.RefundValuation.Convert(money, r.ValuedAt)
-	}
-	if e != nil {
-		return f, e
+		v, e = r.RefundValuation.Convert(money, time.Time{})
+		if e != nil || v.Currency != r.Order.Settlement().Currency {
+			return f, ErrInvalid
+		}
 	}
 	f.ExecutionValue = &v
 	return f, nil

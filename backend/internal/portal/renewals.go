@@ -48,7 +48,7 @@ func (a *Application) runRenewal(ctx context.Context, p workerPayload) error {
 			return q.Error
 		}
 		if q.RowsAffected == 0 {
-			n, e := a.Operations.Emit(ctx, tx, operations.Notification{OperatorID: s.OperatorID, RecipientID: s.CustomerID, BusinessKey: "renewal-notice:" + s.ID + ":" + s.NextDueAt.UTC().Format(time.RFC3339Nano) + ":" + quote.ID, Category: "mandatory", Severity: "info", Title: "套餐续费条款与资金提醒", Body: "下次续费于 " + s.NextDueAt.UTC().Format(time.RFC3339) + " 到期，价格 " + quote.PriceUSD.String() + " USD，购买 " + quote.PaidATG.String() + " ATG，赠送 " + quote.GiftATG.String() + " ATG，有效期 " + string(quote.Period) + "。请核对条款；不利变化需要本人重新确认，资金不足不会产生客户欠款。\n" + commerce.PackageTermsSummary(quote), Reference: "subscription:" + s.ID})
+			n, e := a.Operations.Emit(ctx, tx, operations.Notification{OperatorID: s.OperatorID, RecipientID: s.CustomerID, BusinessKey: "renewal-notice:" + s.ID + ":" + s.NextDueAt.UTC().Format(time.RFC3339Nano) + ":" + quote.ID, Category: "mandatory", Severity: "info", Title: "套餐续费条款与资金提醒", Body: "下次续费于 " + s.NextDueAt.UTC().Format(time.RFC3339) + " 到期，价格 " + quote.PriceMoney.String() + " 结算币种，购买 " + quote.PaidATG.String() + " ATG，赠送 " + quote.GiftATG.String() + " ATG，有效期 " + string(quote.Period) + "。请核对条款；不利变化需要本人重新确认，资金不足不会产生客户欠款。\n" + commerce.PackageTermsSummary(quote), Reference: "subscription:" + s.ID})
 			if e != nil {
 				return e
 			}
@@ -111,7 +111,7 @@ func (a *Application) runPackageChange(ctx context.Context, p workerPayload) err
 			return err
 		}
 		for _, subscription := range subscribers {
-			title, text := "套餐续费条件更新", "套餐「"+pkg.Name+"」的后续续费条件已更新。下次报价为 "+quote.PriceUSD.String()+" USD，购买 "+quote.PaidATG.String()+" ATG，赠送 "+quote.GiftATG.String()+" ATG。价格上涨或权益减少须在套餐页面重新确认，否则不会扣款；当前已购权益不受影响。"
+			title, text := "套餐续费条件更新", "套餐「"+pkg.Name+"」的后续续费条件已更新。下次报价为 "+quote.PriceMoney.String()+" 结算币种，购买 "+quote.PaidATG.String()+" ATG，赠送 "+quote.GiftATG.String()+" ATG。价格上涨或权益减少须在套餐页面重新确认，否则不会扣款；当前已购权益不受影响。"
 			if !pkg.RenewalEnabled {
 				title, text = "套餐已停止续费", "经营方已停止套餐「"+pkg.Name+"」的后续续费，当前已购额度和有效期保持不变。可在套餐页面选择其他在售套餐。"
 			}

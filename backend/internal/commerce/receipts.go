@@ -46,16 +46,28 @@ func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedRece
 		f.SettledAt = &t
 	}
 	original, parseErr := ledger.ParseDecimal(f.OriginalAmount)
+	if f.OriginalFeeAmount != nil {
+		if !f.OriginalFeeAmount.Valid() || f.OriginalFeeAmount.Sign() < 0 || f.OriginalFeeAmount.Cmp(original) > 0 {
+			return out, ErrInvalidInput
+		}
+		net := original.Sub(*f.OriginalFeeAmount)
+		if f.OriginalNetAmount != nil && f.OriginalNetAmount.Cmp(net) != 0 {
+			return out, ErrInvalidInput
+		}
+		f.OriginalNetAmount = &net
+	} else if f.OriginalNetAmount != nil {
+		return out, ErrInvalidInput
+	}
 	manual := (f.Provider == "manual" || strings.HasPrefix(f.Provider, "manual:")) && strings.HasPrefix(f.VerifiedBy, "staff:") && strings.TrimSpace(strings.TrimPrefix(f.VerifiedBy, "staff:")) != ""
-	if !validID(f.OperatorID) || strings.TrimSpace(f.Provider) == "" || strings.TrimSpace(f.ProviderReceiptID) == "" || f.GrossUSD.Sign() <= 0 || !f.GrossUSD.Valid() || f.Currency == "" || parseErr != nil || original.Sign() <= 0 || (!manual && (f.RecipientReference == "" || f.PayerReference == "" || f.VerificationEvidence == "")) || f.ValuationEvidence == "" || f.VerifiedBy == "" || (f.PaidAt != nil && (f.PaidAt.IsZero() || f.PaidAt.After(s.now().Add(5*time.Minute)))) || (f.SettledAt != nil && f.PaidAt != nil && f.SettledAt.Before(*f.PaidAt)) || (!f.ObservedAt.IsZero() && f.ObservedAt.After(s.now().Add(5*time.Minute))) {
+	if !validID(f.OperatorID) || strings.TrimSpace(f.Provider) == "" || strings.TrimSpace(f.ProviderReceiptID) == "" || f.GrossMoney.Sign() <= 0 || !f.GrossMoney.Valid() || f.Currency == "" || parseErr != nil || original.Sign() <= 0 || (!manual && (f.RecipientReference == "" || f.PayerReference == "" || f.VerificationEvidence == "")) || f.ValuationEvidence == "" || f.VerifiedBy == "" || (f.PaidAt != nil && (f.PaidAt.IsZero() || f.PaidAt.After(s.now().Add(5*time.Minute)))) || (f.SettledAt != nil && f.PaidAt != nil && f.SettledAt.Before(*f.PaidAt)) || (!f.ObservedAt.IsZero() && f.ObservedAt.After(s.now().Add(5*time.Minute))) {
 		return out, ErrInvalidInput
 	}
 	if f.FeeStatus == "pending" {
-		if f.NetUSD != nil || f.FeeUSD != nil || f.SettledAt != nil {
+		if f.NetMoney != nil || f.FeeMoney != nil || f.SettledAt != nil {
 			return out, ErrInvalidInput
 		}
 	} else if f.FeeStatus == "confirmed" {
-		if f.NetUSD == nil || f.FeeUSD == nil || f.NetUSD.Sign() < 0 || f.FeeUSD.Sign() < 0 || !f.NetUSD.Valid() || !f.FeeUSD.Valid() || f.NetUSD.Add(*f.FeeUSD).Cmp(f.GrossUSD) != 0 {
+		if f.NetMoney == nil || f.FeeMoney == nil || f.NetMoney.Sign() < 0 || f.FeeMoney.Sign() < 0 || !f.NetMoney.Valid() || !f.FeeMoney.Valid() || f.NetMoney.Add(*f.FeeMoney).Cmp(f.GrossMoney) != 0 {
 			return out, ErrInvalidInput
 		}
 	} else {
@@ -63,6 +75,22 @@ func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedRece
 	}
 	f.OriginalAmount = original.String()
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
+		base, e := ledger.GetMonetary(ctx, tx)
+		if e != nil {
+			return e
+		}
+		if f.Currency == base.Currency {
+			if original.Cmp(f.GrossMoney) != 0 {
+				return ErrInvalidInput
+			}
+			if f.FeeMoney != nil {
+				if f.OriginalFeeAmount != nil && f.OriginalFeeAmount.Cmp(*f.FeeMoney) != 0 {
+					return ErrInvalidInput
+				}
+				fee, net := *f.FeeMoney, original.Sub(*f.FeeMoney)
+				f.OriginalFeeAmount, f.OriginalNetAmount = &fee, &net
+			}
+		}
 		if _, err := s.org.GetOperator(ctx, tx, f.OperatorID); err != nil {
 			return err
 		}
@@ -89,7 +117,7 @@ func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedRece
 			out = Receipt(old)
 			return nil
 		}
-		r := receiptRow{ID: uuid.NewString(), OperatorID: f.OperatorID, Provider: f.Provider, ProviderReceiptID: f.ProviderReceiptID, Fingerprint: fp, GrossUSD: f.GrossUSD, NetUSD: f.NetUSD, FeeUSD: f.FeeUSD, FeeStatus: f.FeeStatus, Currency: f.Currency, OriginalAmount: f.OriginalAmount, Network: f.Network, RecipientReference: f.RecipientReference, PayerReference: f.PayerReference, ValuationEvidence: f.ValuationEvidence, VerificationEvidence: f.VerificationEvidence, VerifiedBy: f.VerifiedBy, PaidAt: f.PaidAt, ObservedAt: f.ObservedAt, SettledAt: f.SettledAt, CreatedAt: s.now()}
+		r := receiptRow{OriginalFeeAmount: f.OriginalFeeAmount, OriginalNetAmount: f.OriginalNetAmount, ID: uuid.NewString(), OperatorID: f.OperatorID, Provider: f.Provider, ProviderReceiptID: f.ProviderReceiptID, Fingerprint: fp, GrossMoney: f.GrossMoney, NetMoney: f.NetMoney, FeeMoney: f.FeeMoney, FeeStatus: f.FeeStatus, Currency: f.Currency, OriginalAmount: f.OriginalAmount, Network: f.Network, RecipientReference: f.RecipientReference, PayerReference: f.PayerReference, ValuationEvidence: f.ValuationEvidence, VerificationEvidence: f.VerificationEvidence, VerifiedBy: f.VerifiedBy, PaidAt: f.PaidAt, ObservedAt: f.ObservedAt, SettledAt: f.SettledAt, CreatedAt: s.now()}
 		if err := tx.Create(&r).Error; err != nil {
 			return err
 		}
@@ -105,17 +133,17 @@ func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedRece
 		if err != nil {
 			return err
 		}
-		net := f.GrossUSD
-		if f.NetUSD != nil {
-			net = *f.NetUSD
+		net := f.GrossMoney
+		if f.NetMoney != nil {
+			net = *f.NetMoney
 		}
-		lines := []ledger.Line{{AccountID: unallocated.ID, Amount: f.GrossUSD}, {AccountID: cash.ID, Amount: net.Neg()}}
-		if f.FeeUSD != nil && f.FeeUSD.Sign() > 0 {
+		lines := []ledger.Line{{AccountID: unallocated.ID, Amount: f.GrossMoney}, {AccountID: cash.ID, Amount: net.Neg()}}
+		if f.FeeMoney != nil && f.FeeMoney.Sign() > 0 {
 			fees, err := s.account(ctx, tx, f.OperatorID, f.OperatorID, "control:merchant_fees")
 			if err != nil {
 				return err
 			}
-			lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: f.FeeUSD.Neg()})
+			lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: f.FeeMoney.Neg()})
 		}
 		reason := f.VerificationEvidence
 		if strings.TrimSpace(reason) == "" {
@@ -134,7 +162,7 @@ func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedRece
 // or finance staff (nonempty actor, permission checked here). HTTP handlers
 // must never expose the empty-actor path directly to customers.
 func (s *Service) AllocateReceipt(ctx context.Context, tx *gorm.DB, in AllocateReceiptInput) (out Allocation, err error) {
-	if !validID(in.OperatorID) || !validID(in.ReceiptID) || !validID(in.OrderID) || strings.TrimSpace(in.BusinessKey) == "" || len(in.BusinessKey) > 150 || in.AmountUSD.Sign() <= 0 || !in.AmountUSD.Valid() {
+	if !validID(in.OperatorID) || !validID(in.ReceiptID) || !validID(in.OrderID) || strings.TrimSpace(in.BusinessKey) == "" || len(in.BusinessKey) > 150 || in.AmountMoney.Sign() <= 0 || !in.AmountMoney.Valid() {
 		return out, ErrInvalidInput
 	}
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
@@ -152,7 +180,7 @@ func (s *Service) AllocateReceipt(ctx context.Context, tx *gorm.DB, in AllocateR
 			return q.Error
 		}
 		if q.RowsAffected > 0 {
-			if previous.ReceiptID != in.ReceiptID || previous.OrderID != in.OrderID || previous.AmountUSD.Cmp(in.AmountUSD) != 0 {
+			if previous.ReceiptID != in.ReceiptID || previous.OrderID != in.OrderID || previous.AmountMoney.Cmp(in.AmountMoney) != 0 {
 				return ErrConflict
 			}
 			out = Allocation(previous)
@@ -201,17 +229,17 @@ func (s *Service) AllocateReceipt(ctx context.Context, tx *gorm.DB, in AllocateR
 		if o.Status == "completed" {
 			return ErrOrderState
 		}
-		if receipt.GrossUSD.Sub(receipt.AllocatedUSD).Cmp(in.AmountUSD) < 0 || externalDue(o).Sub(o.ExternalAllocatedUSD).Cmp(in.AmountUSD) < 0 {
+		if receipt.GrossMoney.Sub(receipt.AllocatedMoney).Cmp(in.AmountMoney) < 0 || externalDue(o).Sub(o.ExternalAllocatedMoney).Cmp(in.AmountMoney) < 0 {
 			return ErrExcessAllocation
 		}
-		if !receipt.AllocatedUSD.IsZero() || !o.ExternalAllocatedUSD.IsZero() || in.AmountUSD.Cmp(externalDue(o)) != 0 {
+		if !receipt.AllocatedMoney.IsZero() || !o.ExternalAllocatedMoney.IsZero() || in.AmountMoney.Cmp(externalDue(o)) != 0 {
 			return ErrWholePayment
 		}
 		timingProof := "actual_provider_time"
 		if receipt.PaidAt == nil {
 			timingProof = "observed_before_expiry"
 		}
-		a := allocationRow{ID: uuid.NewString(), OperatorID: in.OperatorID, BusinessKey: in.BusinessKey, ReceiptID: receipt.ID, OrderID: o.ID, AmountUSD: in.AmountUSD, TimingProof: timingProof, CreatedAt: s.now()}
+		a := allocationRow{ID: uuid.NewString(), OperatorID: in.OperatorID, BusinessKey: in.BusinessKey, ReceiptID: receipt.ID, OrderID: o.ID, AmountMoney: in.AmountMoney, TimingProof: timingProof, CreatedAt: s.now()}
 		if err := tx.Create(&a).Error; err != nil {
 			return err
 		}
@@ -227,10 +255,10 @@ func (s *Service) AllocateReceipt(ctx context.Context, tx *gorm.DB, in AllocateR
 		if actor == "" {
 			actor = "system:verified-receipt-matching"
 		}
-		if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: o.OperatorID, BusinessKey: "allocation:" + a.ID, Kind: "receipt_allocation", SourceID: a.ID, ActorID: actor, Reason: "verified receipt assigned to original order", Lines: []ledger.Line{{AccountID: from.ID, Amount: in.AmountUSD.Neg()}, {AccountID: to.ID, Amount: in.AmountUSD}}}); err != nil {
+		if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: o.OperatorID, BusinessKey: "allocation:" + a.ID, Kind: "receipt_allocation", SourceID: a.ID, ActorID: actor, Reason: "verified receipt assigned to original order", Lines: []ledger.Line{{AccountID: from.ID, Amount: in.AmountMoney.Neg()}, {AccountID: to.ID, Amount: in.AmountMoney}}}); err != nil {
 			return err
 		}
-		o.ExternalAllocatedUSD = o.ExternalAllocatedUSD.Add(in.AmountUSD)
+		o.ExternalAllocatedMoney = o.ExternalAllocatedMoney.Add(in.AmountMoney)
 		if o.Status == "closed" || o.CoverageStatus == "released" || o.InternalStatus == "released" {
 			o.Status = "exception"
 			o.ExceptionReason = "timely_payment_requires_commitment_restoration"
@@ -251,7 +279,7 @@ func (s *Service) UnallocatedReceipts(ctx context.Context, tx *gorm.DB, actorID,
 		return nil, err
 	}
 	var rows []receiptRow
-	if err := s.dbFor(ctx, tx).Where("operator_id=? AND allocated_usd<gross_usd", operatorID).Order("paid_at,id").Find(&rows).Error; err != nil {
+	if err := s.dbFor(ctx, tx).Where("operator_id=? AND allocated_money<gross_money", operatorID).Order("paid_at,id").Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]Receipt, len(rows))

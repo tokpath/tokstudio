@@ -17,7 +17,7 @@ func (f fixture) separatelyFundedTopups(t *testing.T) ([]Order, []Receipt) {
 	var receipts []Receipt
 	for _, amount := range []string{"30", "70"} {
 		key := uuid.NewString()
-		o, err := f.s.CreateTopUpOrder(f.ctx, nil, CreateTopUpInput{CustomerID: f.customer, OperatorID: f.operator, BusinessKey: key, ExpectedOwnershipVersion: 1, AmountUSD: d(amount)})
+		o, err := f.s.CreateTopUpOrder(f.ctx, nil, CreateTopUpInput{CustomerID: f.customer, OperatorID: f.operator, BusinessKey: key, ExpectedOwnershipVersion: 1, AmountMoney: d(amount)})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -40,7 +40,7 @@ func TestPostgresWalletFundingPreservesReceiptsAcrossCloseRestoreAndPartialRefun
 	if err != nil || len(sources) != 2 {
 		t.Fatalf("reserved sources=%+v %v", sources, err)
 	}
-	if sources[0].ReceiptID != receipts[0].ID || sources[0].AmountUSD.Cmp(d("30")) != 0 || sources[1].AmountUSD.Cmp(d("30")) != 0 {
+	if sources[0].ReceiptID != receipts[0].ID || sources[0].AmountMoney.Cmp(d("30")) != 0 || sources[1].AmountMoney.Cmp(d("30")) != 0 {
 		t.Fatalf("FIFO source split=%+v", sources)
 	}
 	if _, err = f.s.CloseOrder(f.ctx, nil, f.customer, o.ID, PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "provider verified unpaid"}); err != nil {
@@ -56,7 +56,7 @@ func TestPostgresWalletFundingPreservesReceiptsAcrossCloseRestoreAndPartialRefun
 	if err != nil || len(sources) != 2 || sources[0].Status != "consumed" {
 		t.Fatalf("consumed sources=%+v %v", sources, err)
 	}
-	wallet := f.balance(t, "customer:usd")
+	wallet := f.balance(t, "customer:money")
 	if wallet.Balance.Cmp(d("40")) != 0 {
 		t.Fatal(wallet)
 	}
@@ -95,7 +95,7 @@ func TestPostgresWalletFundingPreservesReceiptsAcrossCloseRestoreAndPartialRefun
 	}
 	restored := ledger.Zero()
 	for _, a := range sources {
-		restored = restored.Add(a.RestoredUSD)
+		restored = restored.Add(a.RestoredMoney)
 		want := topups[0].ID
 		if a.ReceiptID == receipts[1].ID {
 			want = topups[1].ID
@@ -117,7 +117,7 @@ func TestPostgresWalletFundingPreservesReceiptsAcrossCloseRestoreAndPartialRefun
 			return e
 		}
 		for _, a := range refund {
-			h, e := f.ledger.Reserve(f.ctx, tx, ledger.Reservation{OperatorID: f.operator, BusinessKey: "refund-hold:" + a.ID, Purpose: "wallet_refund", ExpiresAt: time.Now().Add(time.Hour), Amounts: []ledger.Line{{AccountID: wallet.ID, Amount: a.AmountUSD}}})
+			h, e := f.ledger.Reserve(f.ctx, tx, ledger.Reservation{OperatorID: f.operator, BusinessKey: "refund-hold:" + a.ID, Purpose: "wallet_refund", ExpiresAt: time.Now().Add(time.Hour), Amounts: []ledger.Line{{AccountID: wallet.ID, Amount: a.AmountMoney}}})
 			if e != nil {
 				return e
 			}
@@ -128,7 +128,7 @@ func TestPostgresWalletFundingPreservesReceiptsAcrossCloseRestoreAndPartialRefun
 	if err != nil || len(refund) != 2 {
 		t.Fatalf("refund sources=%+v %v", refund, err)
 	}
-	if a := f.balance(t, "customer:usd"); a.Held.Cmp(d("70")) != 0 {
+	if a := f.balance(t, "customer:money"); a.Held.Cmp(d("70")) != 0 {
 		t.Fatal(a)
 	}
 	paid, unpaid := refund[0], refund[1]
@@ -140,7 +140,7 @@ func TestPostgresWalletFundingPreservesReceiptsAcrossCloseRestoreAndPartialRefun
 		if e != nil {
 			return e
 		}
-		_, e = f.ledger.Capture(f.ctx, tx, holds[paid.ID].ID, ledger.Posting{OperatorID: f.operator, BusinessKey: "actual-refund:" + paid.ID, Kind: "verified_wallet_refund", SourceID: refundID, ActorID: "test:verified-payment", Reason: "actual receipt refund leg", Lines: []ledger.Line{{AccountID: wallet.ID, Amount: paid.AmountUSD.Neg()}, {AccountID: control.ID, Amount: paid.AmountUSD}}}, nil)
+		_, e = f.ledger.Capture(f.ctx, tx, holds[paid.ID].ID, ledger.Posting{OperatorID: f.operator, BusinessKey: "actual-refund:" + paid.ID, Kind: "verified_wallet_refund", SourceID: refundID, ActorID: "test:verified-payment", Reason: "actual receipt refund leg", Lines: []ledger.Line{{AccountID: wallet.ID, Amount: paid.AmountMoney.Neg()}, {AccountID: control.ID, Amount: paid.AmountMoney}}}, nil)
 		return e
 	})
 	if err != nil {
@@ -160,7 +160,7 @@ func TestPostgresWalletFundingPreservesReceiptsAcrossCloseRestoreAndPartialRefun
 	if err != nil {
 		t.Fatal(err)
 	}
-	if a := f.balance(t, "customer:usd"); a.Balance.Cmp(d("70")) != 0 || !a.Held.IsZero() {
+	if a := f.balance(t, "customer:money"); a.Balance.Cmp(d("70")) != 0 || !a.Held.IsZero() {
 		t.Fatalf("partial real refund cash=%+v", a)
 	}
 	err = f.db.Transaction(func(tx *gorm.DB) error {
@@ -188,7 +188,7 @@ func TestPostgresWalletFundingPreservesReceiptsAcrossCloseRestoreAndPartialRefun
 func TestPostgresWalletFundingConcurrentOrderAndRefundCannotUseSameSource(t *testing.T) {
 	f := setup(t)
 	f.separatelyFundedTopups(t)
-	wallet := f.balance(t, "customer:usd")
+	wallet := f.balance(t, "customer:money")
 	start := make(chan struct{})
 	results := make(chan error, 2)
 	var wg sync.WaitGroup
@@ -196,7 +196,7 @@ func TestPostgresWalletFundingConcurrentOrderAndRefundCannotUseSameSource(t *tes
 	go func() {
 		defer wg.Done()
 		<-start
-		_, e := f.s.CreateOrder(f.ctx, nil, CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: "race-purchase", ExpectedOwnershipVersion: 1, InternalUSD: d("80")})
+		_, e := f.s.CreateOrder(f.ctx, nil, CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: "race-purchase", ExpectedOwnershipVersion: 1, InternalMoney: d("80")})
 		results <- e
 	}()
 	go func() {
@@ -226,17 +226,17 @@ func TestPostgresWalletFundingConcurrentOrderAndRefundCannotUseSameSource(t *tes
 		t.Fatalf("source used %d times", success)
 	}
 	var reserved ledger.Decimal
-	if err := f.db.Raw(`SELECT COALESCE(sum(reserved_usd),0)::text FROM commerce_wallet_funding_lots`).Row().Scan(&reserved); err != nil {
+	if err := f.db.Raw(`SELECT COALESCE(sum(reserved_money),0)::text FROM commerce_wallet_funding_lots`).Row().Scan(&reserved); err != nil {
 		t.Fatal(err)
 	}
-	if reserved.Cmp(d("80")) != 0 || f.balance(t, "customer:usd").Held.Cmp(d("80")) != 0 {
+	if reserved.Cmp(d("80")) != 0 || f.balance(t, "customer:money").Held.Cmp(d("80")) != 0 {
 		t.Fatalf("provenance/cash conservation=%s", reserved)
 	}
 }
 
 func TestPostgresWalletFundingRejectsCashWithoutVerifiedOrigin(t *testing.T) {
 	f := setup(t)
-	wallet := f.balance(t, "customer:usd")
+	wallet := f.balance(t, "customer:money")
 	control, err := f.s.account(f.ctx, nil, f.operator, f.operator, "control:test-fixture")
 	if err != nil {
 		t.Fatal(err)
@@ -244,7 +244,7 @@ func TestPostgresWalletFundingRejectsCashWithoutVerifiedOrigin(t *testing.T) {
 	if _, err = f.ledger.Post(f.ctx, nil, ledger.Posting{OperatorID: f.operator, BusinessKey: "unproven-cash", Kind: "test_fixture", SourceID: uuid.NewString(), ActorID: "test:fixture", Reason: "deliberately unproven origin", Lines: []ledger.Line{{AccountID: wallet.ID, Amount: d("80")}, {AccountID: control.ID, Amount: d("-80")}}}); err != nil {
 		t.Fatal(err)
 	}
-	_, err = f.s.CreateOrder(f.ctx, nil, CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: "no-provenance", ExpectedOwnershipVersion: 1, InternalUSD: d("80")})
+	_, err = f.s.CreateOrder(f.ctx, nil, CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: "no-provenance", ExpectedOwnershipVersion: 1, InternalMoney: d("80")})
 	if !errors.Is(err, ledger.ErrInsufficient) {
 		t.Fatalf("invented wallet source: %v", err)
 	}
@@ -277,7 +277,7 @@ func TestPostgresWalletReceiptFreezeNeverFallsBackToUnrelatedFunding(t *testing.
 	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("freeze idempotency switched receipt: %v", err)
 	}
-	_, err = f.s.CreateOrder(f.ctx, nil, CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: "cannot-spend-frozen-origin", ExpectedOwnershipVersion: 1, InternalUSD: d("80")})
+	_, err = f.s.CreateOrder(f.ctx, nil, CreateOrderInput{CustomerID: f.customer, OperatorID: f.operator, QuoteID: f.quote.ID, BusinessKey: "cannot-spend-frozen-origin", ExpectedOwnershipVersion: 1, InternalMoney: d("80")})
 	if !errors.Is(err, ledger.ErrInsufficient) {
 		t.Fatalf("spent disputed receipt despite provenance freeze: %v", err)
 	}

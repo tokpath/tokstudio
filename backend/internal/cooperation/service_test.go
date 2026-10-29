@@ -38,7 +38,8 @@ type fixture struct {
 	platform, channel, owner string
 }
 
-func setup(t *testing.T) fixture {
+func setup(t *testing.T) fixture { return setupMonetary(t, "USD", "1") }
+func setupMonetary(t *testing.T, currency, ratio string) fixture {
 	t.Helper()
 	db := dbtest.New(t)
 	apply := func(_ string, files fs.FS) {
@@ -60,6 +61,9 @@ func setup(t *testing.T) fixture {
 	apply(ledger.Migrations())
 	apply(commerce.Migrations())
 	apply(Migrations())
+	if e := db.Exec("UPDATE ledger_monetary_settings SET currency=?,atg_per_unit=?,effective_at=clock_timestamp()-interval '1 minute',configured_by='synthetic fixture' WHERE id='platform'", currency, ratio).Error; e != nil {
+		t.Fatal(e)
+	}
 	ctx := context.Background()
 	org := organization.New(db)
 	l := ledger.New(db)
@@ -78,7 +82,7 @@ func setup(t *testing.T) fixture {
 }
 func (f fixture) purchase(t *testing.T, key, usd, paid, gift string) ProcurementLot {
 	t.Helper()
-	lot, e := f.s.DeliverPurchase(f.ctx, nil, PurchaseInput{BuyerID: f.channel, SupplierID: f.platform, OrderID: key, ReceiptReference: "verified:" + key, ActorID: f.owner, PaidUSD: amount(usd), PaidATG: amount(paid), GiftATG: amount(gift), ExitTerms: json.RawMessage(`{"voluntary_refund":false}`), At: time.Now().UTC()})
+	lot, e := f.s.DeliverPurchase(f.ctx, nil, PurchaseInput{BuyerID: f.channel, SupplierID: f.platform, OrderID: key, ReceiptReference: "verified:" + key, ActorID: f.owner, PaidMoney: amount(usd), PaidATG: amount(paid), GiftATG: amount(gift), ExitTerms: json.RawMessage(`{"voluntary_refund":false}`), At: time.Now().UTC()})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -95,11 +99,11 @@ func TestPostgresProcurementMovingAverageBoundAndSourceConservation(t *testing.T
 	if e != nil {
 		t.Fatal(e)
 	}
-	if r.Deducted.String() != "30" || r.PlatformShortfall.String() != "10" || r.CostUSD.String() != "24" {
+	if r.Deducted.String() != "30" || r.PlatformShortfall.String() != "10" || r.CostMoney.String() != "24" {
 		t.Fatalf("unexpected bound or cost: %+v", r)
 	}
 	again, e := f.s.SettleProcurement(f.ctx, nil, f.channel, "r1", h.ID, amount("40"), time.Now())
-	if e != nil || again.CostUSD.Cmp(r.CostUSD) != 0 {
+	if e != nil || again.CostMoney.Cmp(r.CostMoney) != 0 {
 		t.Fatalf("idempotent settlement: %+v %v", again, e)
 	}
 	f.purchase(t, "p2", "60", "100", "0")
@@ -118,8 +122,8 @@ func TestPostgresProcurementMovingAverageBoundAndSourceConservation(t *testing.T
 	if e != nil {
 		t.Fatal(e)
 	}
-	if r.CostUSD.String() != "116" {
-		t.Fatalf("final cost %s", r.CostUSD)
+	if r.CostMoney.String() != "116" {
+		t.Fatalf("final cost %s", r.CostMoney)
 	}
 	var lots []ProcurementLot
 	if e = f.db.Find(&lots).Error; e != nil {
@@ -179,7 +183,7 @@ func TestPostgresCoverageCountsValidUnheldRightsAndPendingOnlyOnce(t *testing.T)
 	f.s.Rates = fixedRates{big.NewRat(3, 5)}
 	f.purchase(t, "p", "100", "100", "0")
 	customer := uuid.NewString()
-	g, e := f.l.IssueGrant(f.ctx, nil, ledger.GrantInput{OperatorID: f.channel, CustomerID: customer, OrderID: "delivered", BusinessKey: "rights", ActorID: f.owner, Reason: "test liability", PaidUSD: amount("80"), Sources: []ledger.GrantSource{{Kind: "paid", Amount: amount("100")}, {Kind: "package_gift", Amount: amount("20")}}, EffectiveAt: time.Now().Add(-time.Minute)})
+	g, e := f.l.IssueGrant(f.ctx, nil, ledger.GrantInput{OperatorID: f.channel, CustomerID: customer, OrderID: "delivered", BusinessKey: "rights", ActorID: f.owner, Reason: "test liability", PaidMoney: amount("80"), Sources: []ledger.GrantSource{{Kind: "paid", Amount: amount("100")}, {Kind: "package_gift", Amount: amount("20")}}, EffectiveAt: time.Now().Add(-time.Minute)})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -223,7 +227,7 @@ func TestPostgresUnpaidPurchaseHoldsInventoryUntilCancelled(t *testing.T) {
 		t.Fatal(err)
 	}
 	until := time.Now().Add(time.Minute)
-	quote, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, Name: "不限时占用", GiftTiers: []PurchaseGiftTier{{FromUSD: ledger.Zero(), GiftPercent: amount("1100")}}, ExitPolicy: "non_refundable", Enabled: true, ValidUntil: &until})
+	quote, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, Name: "不限时占用", GiftTiers: []PurchaseGiftTier{{FromMoney: ledger.Zero(), GiftPercent: amount("1100")}}, ExitPolicy: "non_refundable", Enabled: true, ValidUntil: &until})
 	if err != nil {
 		t.Fatal(err)
 	}

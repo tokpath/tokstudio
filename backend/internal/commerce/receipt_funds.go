@@ -16,7 +16,7 @@ type ReceiptFundsInput struct {
 	DestinationID string         `json:"destination_id"`
 	BusinessKey   string         `json:"business_key"`
 	ActorID       string         `json:"actor_id"`
-	AmountUSD     ledger.Decimal `json:"amount_usd"`
+	AmountMoney   ledger.Decimal `json:"amount_money"`
 	Deadline      time.Time      `json:"deadline"`
 }
 type ReceiptFundsReservation struct {
@@ -25,7 +25,7 @@ type ReceiptFundsReservation struct {
 	ReceiptID     string         `json:"receipt_id"`
 	DestinationID string         `json:"destination_id"`
 	BusinessKey   string         `json:"business_key"`
-	AmountUSD     ledger.Decimal `json:"amount_usd"`
+	AmountMoney   ledger.Decimal `json:"amount_money"`
 	Deadline      time.Time      `json:"deadline"`
 	TimingProof   string         `json:"timing_proof"`
 	CreatedAt     time.Time      `json:"created_at"`
@@ -49,7 +49,7 @@ func (s *Service) GetReceipt(ctx context.Context, tx *gorm.DB, operatorID, recei
 // order under a lock and must use this same transaction for its own allocation.
 // It is never an HTTP action and does not grant a customer transfer capability.
 func (s *Service) ReserveReceiptFunds(ctx context.Context, tx *gorm.DB, in ReceiptFundsInput) (out ReceiptFundsReservation, err error) {
-	if tx == nil || !validID(in.OperatorID) || !validID(in.ReceiptID) || !validID(in.DestinationID) || in.BusinessKey == "" || len(in.BusinessKey) > 150 || in.ActorID == "" || in.Deadline.IsZero() || in.AmountUSD.Sign() <= 0 || !in.AmountUSD.Valid() {
+	if tx == nil || !validID(in.OperatorID) || !validID(in.ReceiptID) || !validID(in.DestinationID) || in.BusinessKey == "" || len(in.BusinessKey) > 150 || in.ActorID == "" || in.Deadline.IsZero() || in.AmountMoney.Sign() <= 0 || !in.AmountMoney.Valid() {
 		return out, ErrInvalidInput
 	}
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
@@ -62,7 +62,7 @@ func (s *Service) ReserveReceiptFunds(ctx context.Context, tx *gorm.DB, in Recei
 			return q.Error
 		}
 		if q.RowsAffected > 0 {
-			if existing.ReceiptID != in.ReceiptID || existing.DestinationID != in.DestinationID || existing.AmountUSD.Cmp(in.AmountUSD) != 0 || !existing.Deadline.Equal(in.Deadline) {
+			if existing.ReceiptID != in.ReceiptID || existing.DestinationID != in.DestinationID || existing.AmountMoney.Cmp(in.AmountMoney) != 0 || !existing.Deadline.Equal(in.Deadline) {
 				return ErrConflict
 			}
 			out = existing
@@ -91,13 +91,13 @@ func (s *Service) ReserveReceiptFunds(ctx context.Context, tx *gorm.DB, in Recei
 			}
 			proof = "observed_before_expiry"
 		}
-		if !r.AllocatedUSD.IsZero() || r.GrossUSD.Cmp(in.AmountUSD) != 0 {
+		if !r.AllocatedMoney.IsZero() || r.GrossMoney.Cmp(in.AmountMoney) != 0 {
 			return ErrExcessAllocation
 		}
-		if r.GrossUSD.Sub(r.AllocatedUSD).Cmp(in.AmountUSD) < 0 {
+		if r.GrossMoney.Sub(r.AllocatedMoney).Cmp(in.AmountMoney) < 0 {
 			return ErrExcessAllocation
 		}
-		out = ReceiptFundsReservation{ID: uuid.NewString(), OperatorID: in.OperatorID, ReceiptID: in.ReceiptID, DestinationID: in.DestinationID, BusinessKey: in.BusinessKey, AmountUSD: in.AmountUSD, Deadline: in.Deadline.UTC(), TimingProof: proof, CreatedAt: s.now()}
+		out = ReceiptFundsReservation{ID: uuid.NewString(), OperatorID: in.OperatorID, ReceiptID: in.ReceiptID, DestinationID: in.DestinationID, BusinessKey: in.BusinessKey, AmountMoney: in.AmountMoney, Deadline: in.Deadline.UTC(), TimingProof: proof, CreatedAt: s.now()}
 		if err := tx.Create(&out).Error; err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ func (s *Service) ReserveReceiptFunds(ctx context.Context, tx *gorm.DB, in Recei
 		if err != nil {
 			return err
 		}
-		if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: in.OperatorID, BusinessKey: "external-allocation:" + out.ID, Kind: "receipt_allocation", SourceID: out.ID, ActorID: in.ActorID, Reason: "verified receipt assigned to trusted external order", Lines: []ledger.Line{{AccountID: from.ID, Amount: in.AmountUSD.Neg()}, {AccountID: to.ID, Amount: in.AmountUSD}}}); err != nil {
+		if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: in.OperatorID, BusinessKey: "external-allocation:" + out.ID, Kind: "receipt_allocation", SourceID: out.ID, ActorID: in.ActorID, Reason: "verified receipt assigned to trusted external order", Lines: []ledger.Line{{AccountID: from.ID, Amount: in.AmountMoney.Neg()}, {AccountID: to.ID, Amount: in.AmountMoney}}}); err != nil {
 			return err
 		}
 		return s.event(tx, in.OperatorID, in.DestinationID, "receipt.external_order_allocated", out)

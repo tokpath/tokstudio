@@ -30,10 +30,10 @@ func (s *Service) publishCampaign(ctx context.Context, tx *gorm.DB, in CampaignI
 	if !validID(in.OperatorID) || !validID(in.PackageID) || (in.Kind != "merchant" && in.Kind != "kol") || (in.Eligibility != "any" && in.Eligibility != "first_order" && in.Eligibility != "existing") || !in.EndsAt.After(in.StartsAt) || in.PerCustomerLimit <= 0 || in.TotalUseLimit < 0 || in.GiftATG.Sign() < 0 || !in.GiftATG.Valid() || !rateValid(in.ConcessionRate) || utf8.RuneCountInString(strings.TrimSpace(in.Name)) > 100 {
 		return out, ErrInvalidInput
 	}
-	if in.FinalPriceUSD != nil && (in.FinalPriceUSD.Sign() <= 0 || !in.FinalPriceUSD.Valid()) {
+	if in.FinalPriceMoney != nil && (in.FinalPriceMoney.Sign() <= 0 || !in.FinalPriceMoney.Valid()) {
 		return out, ErrInvalidInput
 	}
-	if in.Kind == "kol" && (!validID(in.OwnerCustomerID) || in.FinalPriceUSD != nil || !in.GiftATG.IsZero() || in.ConcessionRate.Sign() <= 0) {
+	if in.Kind == "kol" && (!validID(in.OwnerCustomerID) || in.FinalPriceMoney != nil || !in.GiftATG.IsZero() || in.ConcessionRate.Sign() <= 0) {
 		return out, ErrInvalidInput
 	}
 	if in.Kind == "merchant" && (!in.ConcessionRate.IsZero() || in.OwnerCustomerID != "") {
@@ -65,10 +65,10 @@ func (s *Service) publishCampaign(ctx context.Context, tx *gorm.DB, in CampaignI
 			in.Name = p.Name
 		}
 		if in.Kind == "merchant" && in.Enabled {
-			if in.FinalPriceUSD == nil && in.GiftATG.IsZero() {
+			if in.FinalPriceMoney == nil && in.GiftATG.IsZero() {
 				return ErrInvalidInput
 			}
-			if in.FinalPriceUSD != nil {
+			if in.FinalPriceMoney != nil {
 				if p.CurrentQuoteID == nil {
 					return ErrNotReady
 				}
@@ -76,7 +76,7 @@ func (s *Service) publishCampaign(ctx context.Context, tx *gorm.DB, in CampaignI
 				if err != nil {
 					return err
 				}
-				if in.FinalPriceUSD.Cmp(quote.PriceUSD) > 0 {
+				if in.FinalPriceMoney.Cmp(quote.PriceMoney) > 0 {
 					return ErrInvalidInput
 				}
 			}
@@ -124,7 +124,7 @@ func (s *Service) publishCampaign(ctx context.Context, tx *gorm.DB, in CampaignI
 			}
 			before = CampaignVersion(previous)
 		}
-		r := campaignVersionRow{Name: in.Name, ID: uuid.NewString(), CampaignID: campaign.ID, PackageID: in.PackageID, Version: campaign.CurrentVersion + 1, Enabled: in.Enabled, StartsAt: in.StartsAt.UTC(), EndsAt: in.EndsAt.UTC(), Eligibility: in.Eligibility, FinalPriceUSD: in.FinalPriceUSD, GiftATG: in.GiftATG, ConcessionRate: in.ConcessionRate, PerCustomerLimit: in.PerCustomerLimit, TotalUseLimit: in.TotalUseLimit, CreatedAt: instant.At}
+		r := campaignVersionRow{Name: in.Name, ID: uuid.NewString(), CampaignID: campaign.ID, PackageID: in.PackageID, Version: campaign.CurrentVersion + 1, Enabled: in.Enabled, StartsAt: in.StartsAt.UTC(), EndsAt: in.EndsAt.UTC(), Eligibility: in.Eligibility, FinalPriceMoney: in.FinalPriceMoney, GiftATG: in.GiftATG, ConcessionRate: in.ConcessionRate, PerCustomerLimit: in.PerCustomerLimit, TotalUseLimit: in.TotalUseLimit, CreatedAt: instant.At}
 		if err = tx.Create(&r).Error; err != nil {
 			return err
 		}
@@ -242,7 +242,7 @@ func (s *Service) Quote(ctx context.Context, tx *gorm.DB, o commerce.Order, sele
 		if err != nil {
 			return err
 		}
-		if o.CommissionUSD.Sign() > 0 {
+		if o.CommissionMoney.Sign() > 0 {
 			if err = s.advance(ctx, tx, o.OperatorID, o.CustomerID, instant.At); err != nil {
 				return err
 			}
@@ -274,7 +274,7 @@ func (s *Service) Quote(ctx context.Context, tx *gorm.DB, o commerce.Order, sele
 			v := chain[1].InviterID
 			snap.IndirectCustomerID = &v
 		}
-		price := o.DueUSD
+		price := o.DueMoney
 		if chosen.MerchantCampaignID != "" && chosen.KOLCampaignID != "" {
 			var count int64
 			if err = tx.Table("incentives_combinations").Where("operator_id=? AND merchant_campaign_id=? AND kol_campaign_id=?", o.OperatorID, chosen.MerchantCampaignID, chosen.KOLCampaignID).Count(&count).Error; err != nil {
@@ -314,17 +314,17 @@ func (s *Service) Quote(ctx context.Context, tx *gorm.DB, o commerce.Order, sele
 			}
 			gift, discount := v.GiftATG, ledger.Zero()
 			if selected.kind == "merchant" {
-				if v.FinalPriceUSD != nil {
-					if v.FinalPriceUSD.Cmp(o.DueUSD) > 0 {
+				if v.FinalPriceMoney != nil {
+					if v.FinalPriceMoney.Cmp(o.DueMoney) > 0 {
 						return ErrNotEligible
 					}
-					price = *v.FinalPriceUSD
-					discount = o.DueUSD.Sub(price)
+					price = *v.FinalPriceMoney
+					discount = o.DueMoney.Sub(price)
 				}
 				snap.MerchantCampaignID = &c.ID
 				snap.MerchantVersionID = &v.ID
 				snap.MerchantGiftATG = gift
-				snap.DiscountUSD = discount
+				snap.DiscountMoney = discount
 			} else {
 				if c.OwnerCustomerID == nil || snap.DirectCustomerID == nil || *c.OwnerCustomerID != *snap.DirectCustomerID {
 					return ErrNotEligible
@@ -359,7 +359,7 @@ func (s *Service) Quote(ctx context.Context, tx *gorm.DB, o commerce.Order, sele
 		if err != nil {
 			return err
 		}
-		out = commerce.MarketingQuote{FinalUSD: price, MerchantGiftATG: snap.MerchantGiftATG, KOLGiftATG: snap.KOLGiftATG, Reference: o.ID, CommissionSnapshot: b}
+		out = commerce.MarketingQuote{FinalMoney: price, MerchantGiftATG: snap.MerchantGiftATG, KOLGiftATG: snap.KOLGiftATG, Reference: o.ID, CommissionSnapshot: b}
 		return nil
 	})
 	return
@@ -382,7 +382,7 @@ func (s *Service) reserveCampaign(tx *gorm.DB, c Campaign, v CampaignVersion, cu
 	if err := tx.Exec(`UPDATE incentives_campaign_customer_counts SET reserved=reserved+1 WHERE campaign_id=? AND customer_id=?`, c.ID, customer).Error; err != nil {
 		return err
 	}
-	return tx.Model(&campaignRow{}).Where("id=?", c.ID).Updates(map[string]any{"reserved_uses": c.ReservedUses + 1, "reserved_gift_atg": c.ReservedGiftATG.Add(gift), "reserved_discount_usd": c.ReservedDiscountUSD.Add(discount)}).Error
+	return tx.Model(&campaignRow{}).Where("id=?", c.ID).Updates(map[string]any{"reserved_uses": c.ReservedUses + 1, "reserved_gift_atg": c.ReservedGiftATG.Add(gift), "reserved_discount_money": c.ReservedDiscountMoney.Add(discount)}).Error
 }
 func (s *Service) reserveKOLCross(tx *gorm.DB, operator, kol, customer string, limit int) error {
 	if err := tx.Exec(`INSERT INTO incentives_kol_customer_counts(operator_id,kol_customer_id,customer_id) VALUES(?,?,?) ON CONFLICT DO NOTHING`, operator, kol, customer).Error; err != nil {
@@ -433,7 +433,7 @@ func (s *Service) resolveCampaigns(ctx context.Context, tx *gorm.DB, o commerce.
 		for _, item := range []struct {
 			id             *string
 			gift, discount ledger.Decimal
-		}{{snap.MerchantCampaignID, snap.MerchantGiftATG, snap.DiscountUSD}, {snap.KOLCampaignID, snap.KOLGiftATG, ledger.Zero()}} {
+		}{{snap.MerchantCampaignID, snap.MerchantGiftATG, snap.DiscountMoney}, {snap.KOLCampaignID, snap.KOLGiftATG, ledger.Zero()}} {
 			if item.id == nil {
 				continue
 			}
@@ -452,7 +452,7 @@ func (s *Service) resolveCampaigns(ctx context.Context, tx *gorm.DB, o commerce.
 				giftUsed = item.gift
 				discountUsed = item.discount
 			}
-			if err := tx.Exec(`UPDATE incentives_campaigns SET reserved_uses=reserved_uses+?,used_uses=used_uses+?,reserved_gift_atg=reserved_gift_atg+?,used_gift_atg=used_gift_atg+?,reserved_discount_usd=reserved_discount_usd+?,used_discount_usd=used_discount_usd+? WHERE id=?`, reservedDelta, usedDelta, giftReserved, giftUsed, discountReserved, discountUsed, *item.id).Error; err != nil {
+			if err := tx.Exec(`UPDATE incentives_campaigns SET reserved_uses=reserved_uses+?,used_uses=used_uses+?,reserved_gift_atg=reserved_gift_atg+?,used_gift_atg=used_gift_atg+?,reserved_discount_money=reserved_discount_money+?,used_discount_money=used_discount_money+? WHERE id=?`, reservedDelta, usedDelta, giftReserved, giftUsed, discountReserved, discountUsed, *item.id).Error; err != nil {
 				return err
 			}
 			if err := tx.Exec(`UPDATE incentives_campaign_customer_counts SET reserved=reserved+?,used=used+? WHERE campaign_id=? AND customer_id=?`, reservedDelta, usedDelta, *item.id, o.CustomerID).Error; err != nil {

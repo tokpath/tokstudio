@@ -45,7 +45,7 @@ func (s *Service) responsibleRefundContext(ctx context.Context, actor, op, merch
 	if e != nil {
 		return m, r, basis, e
 	}
-	if basis.RefundID != r.ID || basis.OperatorID != op || basis.SourceOperatorID == "" || basis.ReceiptID == "" || basis.Currency != d.Asset || basis.AmountUSD.Sign() <= 0 || !basis.AmountUSD.Valid() {
+	if basis.RefundID != r.ID || basis.OperatorID != op || basis.SourceOperatorID == "" || basis.ReceiptID == "" || basis.Currency != d.Asset || basis.AmountMoney.Sign() <= 0 || !basis.AmountMoney.Valid() {
 		return m, r, basis, ErrConflict
 	}
 	if basis.ExecutionMerchantID != "" && basis.ExecutionMerchantID != merchant {
@@ -71,18 +71,16 @@ func (s *Service) responsibleRefundContext(ctx context.Context, actor, op, merch
 			return m, r, basis, ErrInvalid
 		}
 	}
-	valuation := r.RefundValuation
-	if basis.Currency == "USD" {
-		valuation = Valuation{ID: "native-responsible-refund:" + r.ID, Currency: "USD", USDPerUnit: ledger.FromInt64(1), Source: "native_usd_refund", EffectiveAt: at.Add(-time.Minute), ExpiresAt: at.Add(time.Minute)}
+	settings, e := ledger.GetMonetary(ctx, s.DB)
+	if e != nil {
+		return m, r, basis, e
 	}
-	if valuation.Validate(basis.Currency, at) != nil {
-		return m, r, basis, ErrInvalid
+	// The real transfer is independently read or verified before it is recorded.
+	r.Order = Order{ID: r.ID, ContextKind: "refund_execution", OperatorID: op, MerchantID: m.ID, Money: Money{Currency: basis.Currency}, SettlementMoney: Money{Currency: settings.Currency, Amount: basis.AmountMoney}, AcceptedAt: at, ExpiresAt: at.Add(time.Hour)}
+	if basis.Currency == settings.Currency {
+		r.Order.Money.Amount = basis.AmountMoney
 	}
-	// This is explicitly an execution context, not a customer purchase or a
-	// synthetic payment checkout. Its persisted Money is replaced by verified
-	// actual transfer money before any financial fact is written.
-	r.Order = Order{ID: r.ID, ContextKind: "refund_execution", OperatorID: op, MerchantID: m.ID, Money: Money{Currency: basis.Currency, Amount: ledger.FromInt64(1)}, Valuation: valuation, AcceptedAt: at, ExpiresAt: at.Add(time.Hour)}
-	r.USDAmount = basis.AmountUSD
+	r.MoneyAmount = basis.AmountMoney
 	return m, r, basis, nil
 }
 
@@ -116,7 +114,6 @@ func (s *Service) RecordResponsibleEVMRefund(ctx context.Context, actor, op, mer
 		return RefundStatus{}, e
 	}
 	r.Money = transfer.Money
-	r.Order.Money = transfer.Money
 	r.ExecutionID = "external:" + fingerprint([]string{r.ID, "evm", d.Network, strings.ToLower(v.TransactionHash), index.Text(16)})
 	if e = externalValuationAt(r, transfer.OccurredAt); e != nil {
 		return RefundStatus{}, e
@@ -163,7 +160,6 @@ func (s *Service) recordResponsibleExternal(ctx context.Context, actor, op, merc
 		return RefundStatus{}, ErrInvalid
 	}
 	r.Money = v.Money
-	r.Order.Money = v.Money
 	r.ExecutionID = "external:" + fingerprint([]string{r.ID, driver, d.Network, v.ExternalReference})
 	if e = externalValuationAt(r, &v.ExecutedAt); e != nil {
 		return RefundStatus{}, e

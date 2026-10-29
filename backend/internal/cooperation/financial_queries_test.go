@@ -29,14 +29,14 @@ func TestFinancialProcurementUsesHistoricalCostAndDirectSupplyOnly(t *testing.T)
 	if e != nil {
 		t.Fatal(e)
 	}
-	if buyer.ProcurementCostUSD.String() != "24" || buyer.ProcurementCorrectionUSD.String() != "8" || buyer.ClosingInventoryCostUSD.String() != "124" || !buyer.WholesaleEarnedUSD.IsZero() {
+	if buyer.ProcurementCostMoney.String() != "24" || buyer.ProcurementCorrectionMoney.String() != "8" || buyer.ClosingInventoryCostMoney.String() != "124" || !buyer.WholesaleEarnedMoney.IsZero() {
 		t.Fatalf("purchase updated old weighted cost or buyer counted supplier revenue: %+v", buyer)
 	}
 	supplier, e := f.s.FinancialFacts(f.ctx, nil, f.platform, from, to)
 	if e != nil {
 		t.Fatal(e)
 	}
-	if supplier.WholesaleEarnedUSD.String() != "24" || supplier.WholesaleCorrectionUSD.String() != "8" || supplier.ClosingWholesalePrepaymentUSD.String() != "124" || !supplier.ProcurementCostUSD.IsZero() {
+	if supplier.WholesaleEarnedMoney.String() != "24" || supplier.WholesaleCorrectionMoney.String() != "8" || supplier.ClosingWholesalePrepaymentMoney.String() != "124" || !supplier.ProcurementCostMoney.IsZero() {
 		t.Fatalf("direct wholesale recognition or deferred obligation wrong: %+v", supplier)
 	}
 }

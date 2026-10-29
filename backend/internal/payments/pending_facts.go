@@ -61,7 +61,7 @@ func (s *Service) PendingReceiptObligations(ctx context.Context, tx *gorm.DB, op
 	if len(orderIDs) > 1000 {
 		return out, ErrInvalid
 	}
-	q := tx.WithContext(ctx).Table("payments_verified_facts").Where("operator_id=? AND kind='receipt' AND COALESCE(receipt_id,'')='' AND state IN ('awaiting_valuation','verified_pending_receipt','awaiting_precision','verified')", operator)
+	q := tx.WithContext(ctx).Table("payments_verified_facts").Where("operator_id=? AND kind='receipt' AND COALESCE(receipt_id,'')='' AND state IN ('awaiting_settlement','verified_pending_receipt','verified')", operator)
 	if orderIDs != nil {
 		q = q.Where("order_id IN ?", orderIDs)
 	}
@@ -88,7 +88,7 @@ func (s *Service) RunPendingFacts(ctx context.Context, limit int) ([]InboxAttemp
 	}
 	var rows []receiptFactRow
 	e := s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if e := tx.Table("payments_verified_facts").Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("kind='receipt' AND COALESCE(receipt_id,'')='' AND state IN ('awaiting_valuation','verified_pending_receipt','verified') AND fact_recovery_after<=clock_timestamp()").Order("fact_recovery_after,id").Limit(limit).Find(&rows).Error; e != nil {
+		if e := tx.Table("payments_verified_facts").Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("kind='receipt' AND COALESCE(receipt_id,'')='' AND state IN ('awaiting_settlement','verified_pending_receipt','verified') AND fact_recovery_after<=clock_timestamp()").Order("fact_recovery_after,id").Limit(limit).Find(&rows).Error; e != nil {
 			return e
 		}
 		for _, row := range rows {
@@ -117,7 +117,7 @@ func (s *Service) RunPendingFacts(ctx context.Context, limit int) ([]InboxAttemp
 					e = ErrInvalid
 				} else {
 					fact.proof = true
-					if row.State == "awaiting_valuation" && row.ValuationReason == "payment_time_unverified" && m.Driver != "manual" {
+					if row.State == "awaiting_settlement" && row.ValuationReason == "payment_time_unverified" && m.Driver != "manual" {
 						driver := s.Drivers[m.Driver]
 						if driver == nil {
 							e = ErrUnsupported
@@ -137,7 +137,7 @@ func (s *Service) RunPendingFacts(ctx context.Context, limit int) ([]InboxAttemp
 			attempt.State = "pending"
 			attempt.ErrorCode = "receipt_reconciliation_pending"
 			if errors.Is(e, ErrAwaitingValuation) {
-				attempt.ErrorCode = "execution_valuation_required"
+				attempt.ErrorCode = "settlement_confirmation_required"
 			}
 		}
 		out = append(out, attempt)

@@ -29,7 +29,7 @@ func (p *ProcurementRefunds) BeginManualRefund(ctx context.Context, actor, id, k
 			}
 			return nil
 		}
-		if out.State != "prepared" && !(out.State == "exception" && out.SettledUSD.Cmp(out.AmountUSD) < 0) {
+		if out.State != "prepared" && !(out.State == "exception" && out.SettledMoney.Cmp(out.AmountMoney) < 0) {
 			return ErrConflict
 		}
 		if out.SourceKind == "manual_receipt" {
@@ -95,7 +95,7 @@ func (p *ProcurementRefunds) BeginManualRefund(ctx context.Context, actor, id, k
 		if e != nil {
 			return e
 		}
-		if e = tx.Table("cooperation_procurement_refund_instructions").Create(map[string]any{"leg_id": out.ID, "execution_key": key, "remaining_usd": out.AmountUSD.Sub(out.SettledUSD), "evidence": evidence, "authorized_by": actor, "created_at": now, "authorization_id": authorizationID}).Error; e != nil {
+		if e = tx.Table("cooperation_procurement_refund_instructions").Create(map[string]any{"leg_id": out.ID, "execution_key": key, "remaining_money": out.AmountMoney.Sub(out.SettledMoney), "evidence": evidence, "authorized_by": actor, "created_at": now, "authorization_id": authorizationID}).Error; e != nil {
 			return e
 		}
 		return tx.Model(&out).Updates(map[string]any{"state": out.State, "execution_mode": out.ExecutionMode, "execution_key": key, "execution_evidence": evidence}).Error
@@ -127,5 +127,5 @@ func (p *ProcurementRefunds) RecordManualRefund(ctx context.Context, actor, id s
 	service := *p.Payments
 	service.RefundApproval = p
 	service.RefundSink = p
-	return service.RecordManualRefund(ctx, actor, leg.SupplierID, leg.MerchantID, payments.Refund{ID: leg.ID, Order: source.OriginalOrder, Money: proof.Money, USDAmount: leg.AmountUSD, RefundValuation: valuation, ValuedAt: valuedAt, FXExecutionReference: fxReference}, proof)
+	return service.RecordManualRefund(ctx, actor, leg.SupplierID, leg.MerchantID, payments.Refund{ID: leg.ID, Order: source.OriginalOrder, Money: proof.Money, MoneyAmount: leg.AmountMoney, RefundValuation: valuation, ValuedAt: valuedAt, FXExecutionReference: fxReference}, proof)
 }

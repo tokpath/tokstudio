@@ -34,9 +34,9 @@ type ReplenishmentAuthorization struct {
 	BuyerID             string         `json:"buyer_id"`
 	SupplierID          string         `json:"supplier_id"`
 	QuoteID             string         `json:"quote_id"`
-	AmountUSD           ledger.Decimal `json:"amount_usd"`
+	AmountMoney         ledger.Decimal `json:"amount_money"`
 	TriggerAvailableATG ledger.Decimal `json:"trigger_available_atg"`
-	PeriodLimitUSD      ledger.Decimal `json:"period_limit_usd"`
+	PeriodLimitMoney    ledger.Decimal `json:"period_limit_money"`
 	Period              ledger.Period  `json:"period"`
 	Mode                string         `json:"mode"`
 	MerchantID          *string        `json:"merchant_id,omitempty"`
@@ -70,7 +70,7 @@ type ReplenishmentAttempt struct {
 	SnapshotCiphertext   string         `json:"-"`
 	PeriodStart          time.Time      `json:"period_start"`
 	PeriodEnd            time.Time      `json:"period_end"`
-	AmountUSD            ledger.Decimal `json:"amount_usd"`
+	AmountMoney          ledger.Decimal `json:"amount_money"`
 	State                string         `json:"state"`
 	ProviderID           string         `json:"provider_id,omitempty"`
 	ErrorCode            string         `json:"error_code,omitempty"`
@@ -114,7 +114,7 @@ func (r *Replenisher) SaveAuthorization(ctx context.Context, actor string, in Re
 	if e := r.ready(); e != nil {
 		return a, e
 	}
-	if !a.AmountUSD.Valid() || a.AmountUSD.Sign() <= 0 || a.TriggerAvailableATG.Sign() < 0 || a.PeriodLimitUSD.Cmp(a.AmountUSD) < 0 || !a.TriggerAvailableATG.Valid() || !a.PeriodLimitUSD.Valid() || a.ConsentReference == "" || (a.Period != ledger.Month && a.Period != ledger.Quarter && a.Period != ledger.Year) || (a.Mode != "automatic" && a.Mode != "offline") {
+	if !a.AmountMoney.Valid() || a.AmountMoney.Sign() <= 0 || a.TriggerAvailableATG.Sign() < 0 || a.PeriodLimitMoney.Cmp(a.AmountMoney) < 0 || !a.TriggerAvailableATG.Valid() || !a.PeriodLimitMoney.Valid() || a.ConsentReference == "" || (a.Period != ledger.Month && a.Period != ledger.Quarter && a.Period != ledger.Year) || (a.Mode != "automatic" && a.Mode != "offline") {
 		return a, ErrReplenishment
 	}
 	e := r.Cooperation.within(ctx, nil, func(t *gorm.DB) error {
@@ -250,14 +250,14 @@ func (r *Replenisher) prepare(ctx context.Context, a ReplenishmentAuthorization)
 			return ErrReplenishment
 		}
 		var committed ledger.Decimal
-		if e = t.Model(&ReplenishmentAttempt{}).Where("buyer_id=? AND created_at>=? AND created_at<? AND state NOT IN ('cancelled_unpaid','failed_unpaid')", a.BuyerID, window.Start, *window.End).Select("COALESCE(sum(amount_usd),0)::text").Row().Scan(&committed); e != nil {
+		if e = t.Model(&ReplenishmentAttempt{}).Where("buyer_id=? AND created_at>=? AND created_at<? AND state NOT IN ('cancelled_unpaid','failed_unpaid')", a.BuyerID, window.Start, *window.End).Select("COALESCE(sum(amount_money),0)::text").Row().Scan(&committed); e != nil {
 			return e
 		}
-		if ValidatePurchaseTiers(quote.GiftTiers) != nil || a.AmountUSD.Sign() <= 0 || committed.Add(a.AmountUSD).Cmp(a.PeriodLimitUSD) > 0 {
+		if ValidatePurchaseTiers(quote.GiftTiers) != nil || a.AmountMoney.Sign() <= 0 || committed.Add(a.AmountMoney).Cmp(a.PeriodLimitMoney) > 0 {
 			return ErrReplenishment
 		}
 		id := uuid.NewString()
-		order, e := r.Cooperation.CreatePurchaseOrder(ctx, t, a.AuthorizedBy, a.BuyerID, a.QuoteID, "auto:"+id, a.AmountUSD)
+		order, e := r.Cooperation.CreatePurchaseOrder(ctx, t, a.AuthorizedBy, a.BuyerID, a.QuoteID, "auto:"+id, a.AmountMoney)
 		if e != nil {
 			return e
 		}
@@ -269,7 +269,7 @@ func (r *Replenisher) prepare(ctx context.Context, a ReplenishmentAuthorization)
 		if e != nil {
 			return e
 		}
-		attempt := ReplenishmentAttempt{ID: id, BuyerID: a.BuyerID, AuthorizationID: a.ID, AuthorizationVersion: a.Version, PurchaseOrderID: order.ID, SnapshotCiphertext: cipher, PeriodStart: window.Start, PeriodEnd: *window.End, AmountUSD: a.AmountUSD, State: "prepared", CreatedAt: now, UpdatedAt: now}
+		attempt := ReplenishmentAttempt{ID: id, BuyerID: a.BuyerID, AuthorizationID: a.ID, AuthorizationVersion: a.Version, PurchaseOrderID: order.ID, SnapshotCiphertext: cipher, PeriodStart: window.Start, PeriodEnd: *window.End, AmountMoney: a.AmountMoney, State: "prepared", CreatedAt: now, UpdatedAt: now}
 		if a.Mode == "offline" {
 			attempt.State = "awaiting_manual_payment"
 		}
@@ -415,7 +415,11 @@ func (r *Replenisher) process(ctx context.Context, j ReplenishmentAttempt) (stat
 			if clockErr != nil {
 				return "needs_attention", j.ProviderID, "business_clock_unavailable"
 			}
-			checkout, e := r.Payments.Create(ctx, a.SupplierID, *a.MerchantID, payments.Order{ID: order.ID, OperatorID: a.SupplierID, MerchantID: *a.MerchantID, Money: payments.Money{Currency: "USD", Amount: order.DueUSD}, Valuation: payments.Valuation{ID: "native-usd-procurement:" + j.ID, Currency: "USD", USDPerUnit: ledger.FromInt64(1), Source: "native_usd", EffectiveAt: now.Add(-time.Second), ExpiresAt: now.Add(time.Hour)}, AcceptedAt: now, ExpiresAt: order.ExpiresAt, Description: "Authorized prepaid procurement", PaymentMethod: snapshot.Payment.PaymentMethod, CustomerRef: snapshot.Payment.CustomerRef, AuthorizationID: a.ConsentReference})
+			base, baseErr := ledger.RequireMonetary(ctx, r.Cooperation.DB)
+			if baseErr != nil {
+				return "needs_attention", j.ProviderID, "monetary_not_ready"
+			}
+			checkout, e := r.Payments.Create(ctx, a.SupplierID, *a.MerchantID, payments.Order{ID: order.ID, OperatorID: a.SupplierID, MerchantID: *a.MerchantID, SettlementMoney: payments.Money{Currency: base.Currency, Amount: order.DueMoney}, Money: payments.Money{Currency: base.Currency, Amount: order.DueMoney}, AcceptedAt: now, ExpiresAt: order.ExpiresAt, Description: "Authorized prepaid procurement", PaymentMethod: snapshot.Payment.PaymentMethod, CustomerRef: snapshot.Payment.CustomerRef, AuthorizationID: a.ConsentReference})
 			provider = checkout.ProviderID
 			if e != nil {
 				return "outcome_unknown", provider, "payment_requires_verification"
@@ -455,7 +459,7 @@ func (r *Replenisher) applyReceipt(ctx context.Context, o PurchaseOrder, receipt
 		if e != nil {
 			return e
 		}
-		o, e = r.Cooperation.ApplyVerifiedPurchaseReceipt(ctx, t, r.Collector, o.ID, receiptID, "auto:"+receiptID, receipt.GrossUSD)
+		o, e = r.Cooperation.ApplyVerifiedPurchaseReceipt(ctx, t, r.Collector, o.ID, receiptID, "auto:"+receiptID, receipt.GrossMoney)
 		if e != nil {
 			return e
 		}

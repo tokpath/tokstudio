@@ -43,7 +43,7 @@ type PackageQuote struct {
 	PackageID      string         `json:"package_id"`
 	OperatorID     string         `json:"operator_id"`
 	Version        int64          `json:"version"`
-	PriceUSD       ledger.Decimal `json:"price_usd"`
+	PriceMoney     ledger.Decimal `json:"price_money"`
 	PaidATG        ledger.Decimal `json:"paid_atg"`
 	GiftATG        ledger.Decimal `json:"gift_atg"`
 	Period         ledger.Period  `json:"period"`
@@ -61,7 +61,7 @@ type PublishPackageInput struct {
 	TermsSummary       string         `json:"terms_summary"`
 	Timezone           string         `json:"timezone"`
 	ExpectedVersion    int64          `json:"expected_version"`
-	PriceUSD           ledger.Decimal `json:"price_usd"`
+	PriceMoney         ledger.Decimal `json:"price_money"`
 	PaidATG            ledger.Decimal `json:"paid_atg"`
 	GiftATG            ledger.Decimal `json:"gift_atg"`
 	Period             ledger.Period  `json:"period"`
@@ -69,42 +69,43 @@ type PublishPackageInput struct {
 	RenewalEnabled     bool           `json:"renewal_enabled"`
 }
 type Order struct {
-	ID                       string          `json:"id"`
-	OperatorID               string          `json:"operator_id"`
-	OriginalOperatorID       string          `json:"original_operator_id" gorm:"default:(-)"`
-	OriginalOwnershipVersion int64           `json:"original_ownership_version" gorm:"default:(-)"`
-	BrandID                  string          `json:"brand_id"`
-	CustomerID               string          `json:"customer_id"`
-	BusinessKey              string          `json:"business_key"`
-	Fingerprint              string          `json:"-"`
-	OwnershipVersion         int64           `json:"ownership_version"`
-	Kind                     string          `json:"kind"`
-	QuoteID                  *string         `json:"quote_id"`
-	DueUSD                   ledger.Decimal  `json:"due_usd"`
-	PaidATG                  ledger.Decimal  `json:"paid_atg"`
-	PackageGiftATG           ledger.Decimal  `json:"package_gift_atg"`
-	MerchantGiftATG          ledger.Decimal  `json:"merchant_gift_atg"`
-	KOLGiftATG               ledger.Decimal  `json:"kol_gift_atg"`
-	InternalUSD              ledger.Decimal  `json:"internal_usd"`
-	CommissionUSD            ledger.Decimal  `json:"commission_usd"`
-	ExternalAllocatedUSD     ledger.Decimal  `json:"external_allocated_usd"`
-	HoldID                   *string         `json:"hold_id"`
-	InternalStatus           string          `json:"internal_status"`
-	CoverageReference        string          `json:"coverage_reference"`
-	CoverageVersion          int64           `json:"coverage_version"`
-	CoverageStatus           string          `json:"coverage_status"`
-	MarketingReference       string          `json:"marketing_reference"`
-	CommissionSnapshot       json.RawMessage `json:"commission_snapshot" gorm:"type:jsonb"`
-	Status                   string          `json:"status"`
-	ExceptionReason          string          `json:"exception_reason"`
-	Period                   ledger.Period   `json:"period"`
-	Timezone                 string          `json:"timezone"`
-	SubscriptionID           *string         `json:"subscription_id"`
-	CycleDueAt               *time.Time      `json:"cycle_due_at"`
-	ExpiresAt                time.Time       `json:"expires_at"`
-	ClosedAt                 *time.Time      `json:"closed_at"`
-	CreatedAt                time.Time       `json:"created_at"`
-	CompletedAt              *time.Time      `json:"completed_at"`
+	MonetarySnapshot         ledger.MonetarySnapshot `json:"monetary_snapshot" gorm:"serializer:json;type:jsonb"`
+	ID                       string                  `json:"id"`
+	OperatorID               string                  `json:"operator_id"`
+	OriginalOperatorID       string                  `json:"original_operator_id" gorm:"default:(-)"`
+	OriginalOwnershipVersion int64                   `json:"original_ownership_version" gorm:"default:(-)"`
+	BrandID                  string                  `json:"brand_id"`
+	CustomerID               string                  `json:"customer_id"`
+	BusinessKey              string                  `json:"business_key"`
+	Fingerprint              string                  `json:"-"`
+	OwnershipVersion         int64                   `json:"ownership_version"`
+	Kind                     string                  `json:"kind"`
+	QuoteID                  *string                 `json:"quote_id"`
+	DueMoney                 ledger.Decimal          `json:"due_money"`
+	PaidATG                  ledger.Decimal          `json:"paid_atg"`
+	PackageGiftATG           ledger.Decimal          `json:"package_gift_atg"`
+	MerchantGiftATG          ledger.Decimal          `json:"merchant_gift_atg"`
+	KOLGiftATG               ledger.Decimal          `json:"kol_gift_atg"`
+	InternalMoney            ledger.Decimal          `json:"internal_money"`
+	CommissionMoney          ledger.Decimal          `json:"commission_money"`
+	ExternalAllocatedMoney   ledger.Decimal          `json:"external_allocated_money"`
+	HoldID                   *string                 `json:"hold_id"`
+	InternalStatus           string                  `json:"internal_status"`
+	CoverageReference        string                  `json:"coverage_reference"`
+	CoverageVersion          int64                   `json:"coverage_version"`
+	CoverageStatus           string                  `json:"coverage_status"`
+	MarketingReference       string                  `json:"marketing_reference"`
+	CommissionSnapshot       json.RawMessage         `json:"commission_snapshot" gorm:"type:jsonb"`
+	Status                   string                  `json:"status"`
+	ExceptionReason          string                  `json:"exception_reason"`
+	Period                   ledger.Period           `json:"period"`
+	Timezone                 string                  `json:"timezone"`
+	SubscriptionID           *string                 `json:"subscription_id"`
+	CycleDueAt               *time.Time              `json:"cycle_due_at"`
+	ExpiresAt                time.Time               `json:"expires_at"`
+	ClosedAt                 *time.Time              `json:"closed_at"`
+	CreatedAt                time.Time               `json:"created_at"`
+	CompletedAt              *time.Time              `json:"completed_at"`
 }
 type CreateOrderInput struct {
 	CustomerID               string          `json:"customer_id"`
@@ -112,8 +113,8 @@ type CreateOrderInput struct {
 	QuoteID                  string          `json:"quote_id"`
 	BusinessKey              string          `json:"business_key"`
 	ExpectedOwnershipVersion int64           `json:"expected_ownership_version"`
-	InternalUSD              ledger.Decimal  `json:"internal_usd"`
-	CommissionUSD            ledger.Decimal  `json:"commission_usd"`
+	InternalMoney            ledger.Decimal  `json:"internal_money"`
+	CommissionMoney          ledger.Decimal  `json:"commission_money"`
 	Validity                 time.Duration   `json:"validity"`
 	ActivitySelection        json.RawMessage `json:"activity_selection"`
 	SubscriptionID           *string         `json:"subscription_id"`
@@ -125,7 +126,7 @@ type CreateTopUpInput struct {
 	OperatorID               string         `json:"operator_id"`
 	BusinessKey              string         `json:"business_key"`
 	ExpectedOwnershipVersion int64          `json:"expected_ownership_version"`
-	AmountUSD                ledger.Decimal `json:"amount_usd"`
+	AmountMoney              ledger.Decimal `json:"amount_money"`
 	Validity                 time.Duration  `json:"validity"`
 }
 type Commitment struct {
@@ -142,7 +143,7 @@ type SalesCoverage interface {
 	Release(context.Context, *gorm.DB, Order) error
 }
 type MarketingQuote struct {
-	FinalUSD           ledger.Decimal  `json:"final_usd"`
+	FinalMoney         ledger.Decimal  `json:"final_money"`
 	MerchantGiftATG    ledger.Decimal  `json:"merchant_gift_atg"`
 	KOLGiftATG         ledger.Decimal  `json:"kol_gift_atg"`
 	Reference          string          `json:"reference"`
@@ -171,12 +172,14 @@ type ReceiptAllocationGuard interface {
 // Provider callbacks must be authenticated and queried before constructing it.
 // Manual facts must use RecordManualReceipt, which checks finance permission.
 type VerifiedReceipt struct {
+	OriginalFeeAmount    *ledger.Decimal `json:"original_fee_amount,omitempty"`
+	OriginalNetAmount    *ledger.Decimal `json:"original_net_amount,omitempty"`
 	OperatorID           string          `json:"operator_id"`
 	Provider             string          `json:"provider"`
 	ProviderReceiptID    string          `json:"provider_receipt_id"`
-	GrossUSD             ledger.Decimal  `json:"gross_usd"`
-	NetUSD               *ledger.Decimal `json:"net_usd"`
-	FeeUSD               *ledger.Decimal `json:"fee_usd"`
+	GrossMoney           ledger.Decimal  `json:"gross_money"`
+	NetMoney             *ledger.Decimal `json:"net_money"`
+	FeeMoney             *ledger.Decimal `json:"fee_money"`
 	FeeStatus            string          `json:"fee_status"`
 	Currency             string          `json:"currency"`
 	OriginalAmount       string          `json:"original_amount"`
@@ -191,16 +194,18 @@ type VerifiedReceipt struct {
 	SettledAt            *time.Time      `json:"settled_at"`
 }
 type Receipt struct {
+	OriginalFeeAmount    *ledger.Decimal `json:"original_fee_amount,omitempty"`
+	OriginalNetAmount    *ledger.Decimal `json:"original_net_amount,omitempty"`
 	ID                   string          `json:"id"`
 	OperatorID           string          `json:"operator_id"`
 	Provider             string          `json:"provider"`
 	ProviderReceiptID    string          `json:"provider_receipt_id"`
 	Fingerprint          string          `json:"-"`
-	GrossUSD             ledger.Decimal  `json:"gross_usd"`
-	NetUSD               *ledger.Decimal `json:"net_usd"`
-	FeeUSD               *ledger.Decimal `json:"fee_usd"`
+	GrossMoney           ledger.Decimal  `json:"gross_money"`
+	NetMoney             *ledger.Decimal `json:"net_money"`
+	FeeMoney             *ledger.Decimal `json:"fee_money"`
 	FeeStatus            string          `json:"fee_status"`
-	AllocatedUSD         ledger.Decimal  `json:"allocated_usd"`
+	AllocatedMoney       ledger.Decimal  `json:"allocated_money"`
 	Currency             string          `json:"currency"`
 	OriginalAmount       string          `json:"original_amount"`
 	Network              string          `json:"network"`
@@ -220,7 +225,7 @@ type Allocation struct {
 	BusinessKey string         `json:"business_key"`
 	ReceiptID   string         `json:"receipt_id"`
 	OrderID     string         `json:"order_id"`
-	AmountUSD   ledger.Decimal `json:"amount_usd"`
+	AmountMoney ledger.Decimal `json:"amount_money"`
 	TimingProof string         `json:"timing_proof"`
 	CreatedAt   time.Time      `json:"created_at"`
 }
@@ -230,7 +235,7 @@ type AllocateReceiptInput struct {
 	BusinessKey  string         `json:"business_key"`
 	ReceiptID    string         `json:"receipt_id"`
 	OrderID      string         `json:"order_id"`
-	AmountUSD    ledger.Decimal `json:"amount_usd"`
+	AmountMoney  ledger.Decimal `json:"amount_money"`
 }
 type Delivery struct {
 	ID          string     `json:"id"`

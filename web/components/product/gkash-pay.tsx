@@ -19,7 +19,7 @@ export function GkashPay({ action, order, onChangeMethod }: { action: NonNullabl
   const replace = useCommand(`/api/v1/me/orders/${encodeURIComponent(order.id)}/payment-method`, OrderSchema);
   const href = action.url || "";
   const fields = action.fields || {};
-  const methods = (context?.payment_methods || []).filter(item => item.status === "ready" && item.id !== "");
+  const methods = (context?.payment_methods || []).filter(item => item.status === "ready" && item.settlement_supported !== false && item.id !== "");
   const others = methods.filter(item => item.name !== "kvoucher");
   const customerCanSwitch = order.method_change_allowed === true && session?.kind === "customer" && others.length > 0;
   return <div className="space-y-5">
@@ -43,5 +43,5 @@ export function GkashPay({ action, order, onChangeMethod }: { action: NonNullabl
 function DetailAmount({ action }: { action: NonNullable<Order["payment_action"]> }) {
   const { t } = useI18n();
   if (!action.amount) return null;
-  return <div className="rounded-xl border border-hairline bg-canvas p-4"><p className="text-xs text-ink-secondary">{t("付款页金额")}<span className="mt-2 block text-2xl font-semibold text-ink"><Money value={action.amount} unit={action.currency || ""} /></span><span className="mt-1 block text-xs text-ink-mute">{t("这个金额含通道手续费。本订单仍按上方应付美元入账。")}</span></p></div>;
+  return <div className="rounded-xl border border-hairline bg-canvas p-4"><p className="text-xs text-ink-secondary">{t("付款页金额")}<span className="mt-2 block text-2xl font-semibold text-ink"><Money value={action.amount} unit={action.currency || ""} /></span><span className="mt-1 block text-xs text-ink-mute">{t("付款页金额按实际收款币种展示。本订单按已核实的结算金额入账。")}</span></p></div>;
 }

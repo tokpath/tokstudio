@@ -112,8 +112,8 @@ func (a *Application) customerOperationsWorkspace(c *gin.Context, resource strin
 		p["next_cursor"] = next
 		p["items"] = items
 		p["row_operations"] = []operation{{Name: "replacement", Label: "作废后按原来源申请重开", Method: "POST", Path: "/api/v1/me/invoices/{id}/replacement", Fields: businessFields(operation{Path: "/api/v1/me/invoices", Fields: []field{jsonField("")}})}}
-		p["columns"] = []gin.H{col("operator_id", "原始开票经营方", "text"), col("amount_usd", "可开票责任", "usd"), col("state", "状态", "status"), col("invoice_reference", "开票凭证", "text"), col("reason", "说明", "text"), col("created_at", "申请时间", "datetime")}
-		p["operations"] = []operation{{Name: "invoice", Label: "按原始收款申请发票", Method: "POST", Path: "/api/v1/me/invoices", Fields: []field{jsonField("lines:[{receipt_id,amount_usd}]、details:{title,tax_id,email,address}。同一外部收款跨充值与购包只可开票一次。")}}}
+		p["columns"] = []gin.H{col("operator_id", "原始开票经营方", "text"), col("amount_money", "可开票责任", "money"), col("state", "状态", "status"), col("invoice_reference", "开票凭证", "text"), col("reason", "说明", "text"), col("created_at", "申请时间", "datetime")}
+		p["operations"] = []operation{{Name: "invoice", Label: "按原始收款申请发票", Method: "POST", Path: "/api/v1/me/invoices", Fields: []field{jsonField("lines:[{receipt_id,amount_money}]、details:{title,tax_id,email,address}。同一外部收款跨充值与购包只可开票一次。")}}}
 		policy, e := a.Operations.GetInvoicePolicy(ctx, customer, op, true)
 		if e != nil {
 			handleError(c, e)
@@ -229,7 +229,7 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		for _, row := range rows {
 			items = append(items, entity(row.ID, row.State, 1, row))
 		}
-		p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("amount_usd", "金额", "usd"), col("state", "状态", "status"), col("invoice_reference", "开票凭证", "text"), col("reason", "原因", "text")}
+		p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("amount_money", "金额", "money"), col("state", "状态", "status"), col("invoice_reference", "开票凭证", "text"), col("reason", "原因", "text")}
 		policy, e := a.Operations.GetInvoicePolicy(ctx, actor, op.ID, false)
 		if e != nil {
 			handleError(c, e)

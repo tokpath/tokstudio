@@ -15,7 +15,7 @@ func TestPostgresReadablePackageTermsPreserveRenewalConsentAndOrderSnapshot(t *t
 	order := f.order(t, "accepted-readable-package", "0", "0")
 	publish := func(version int64, terms string) PackageQuote {
 		t.Helper()
-		q, err := f.s.PublishPackage(f.ctx, nil, PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, PackageID: f.quote.PackageID, ExpectedVersion: version, Name: "Monthly", TermsSummary: terms, Timezone: "UTC", PriceUSD: d("80"), PaidATG: d("100"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
+		q, err := f.s.PublishPackage(f.ctx, nil, PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, PackageID: f.quote.PackageID, ExpectedVersion: version, Name: "Monthly", TermsSummary: terms, Timezone: "UTC", PriceMoney: d("80"), PaidATG: d("100"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
 		if err != nil {
 			t.Fatal(err)
 		}

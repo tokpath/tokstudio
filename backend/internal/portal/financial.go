@@ -54,9 +54,9 @@ func (a *Application) financialResource(c *gin.Context, op organization.Operator
 		return
 	}
 	p["title"] = "经营财务事实"
-	p["description"] = "同一数据库快照组合收入、成本、资金、负债与未决项。赠送履约成本是履约子集，接管资金单独列示。"
+	p["description"] = "同一数据库快照列示清算币种业务事实与各币种原始收支。供应商参考、报告与登记成本分别呈现，不折算，不计算跨币种利润。"
 	p["items"] = []any{}
-	p["summary"] = []gin.H{{"label": "已确认收入", "value": report.Revenue.TotalUSD.String(), "unit": "USD"}, {"label": "已确认经营成本", "value": report.Costs.TotalUSD.String(), "unit": "USD"}, {"label": "经营结果（未决项另列）", "value": report.OperatingResultUSD.String(), "unit": "USD"}}
+	p["summary"] = []gin.H{{"label": "已确认收入", "value": report.Revenue.TotalMoney.String(), "unit": report.SettlementCurrency}, {"label": "清算币种业务成本", "value": report.Costs.TotalMoney.String(), "unit": report.SettlementCurrency}}
 	p["report"] = report
 	a.resourceResponse(c, p)
 }

@@ -26,12 +26,15 @@ test('channel invitations require exact channel customer access and expose a typ
 
 test('receipt inputs distinguish gross value and merchant fee while net is derived',()=>{
  const receipt=body('payments');
- assert.equal(receipt.properties.net_usd,undefined);
- assert.match(receipt.properties.gross_usd.description,/扣手续费前/);
- assert.match(receipt.properties.fee_usd.description,/己方承担/);
- assert.match(receipt.properties.fee_usd.description,/付款人另付/);
+ assert.equal(receipt.properties.net_money,undefined);
+ assert.match(receipt.properties.settlement_amount.description,/扣己方手续费前/);
+ assert.match(receipt.properties.original_fee_amount.description,/原币/);
+ assert.match(receipt.properties.fee_money.description,/收款方承担/);
+ assert.match(receipt.properties.fee_money.description,/付款人另付/);
  const accounting=resolve(document.paths['/v1/operators/{operatorId}/payments/{id}/accounting'].post.requestBody.content['application/json'].schema);
- assert.match(accounting.properties.fee_usd.description,/己方承担/);
+ assert.match(accounting.properties.fee_money.description,/己方承担/);
+ assert.ok(accounting.properties.original_fee_amount);
+ assert.equal(accounting.required.includes('fee_money'),false);
 });
 
 test('reports export only content and dates and download a private CSV', () => {
@@ -65,10 +68,10 @@ test('marketing uses named offers and usage limits while KOL only concedes commi
   assert.ok(merchant.properties.name);
   assert.ok(merchant.properties.total_use_limit);
   assert.equal(merchant.properties.gift_budget_atg, undefined);
-  assert.equal(merchant.properties.discount_budget_usd, undefined);
+  assert.equal(merchant.properties.discount_budget_money, undefined);
   const kol = resolve(document.paths['/v1/me/activities'].post.requestBody.content['application/json'].schema);
   assert.ok(kol.properties.concession_rate);
-  assert.equal(kol.properties.final_price_usd, undefined);
+  assert.equal(kol.properties.final_price_money, undefined);
   assert.equal(kol.properties.gift_atg, undefined);
   const policy = document.components.schemas.Operator_commissions_policy;
   assert.ok(policy.properties.direct_percent);
@@ -165,7 +168,7 @@ test('ledger inputs retain 18-place precision while price inputs and output read
   assert.equal(ledger.test('0.1234567890123456789'), false);
   assert.ok(price.test('0.123456789012345678901234'));
   assert.equal(document.components.schemas.PriceRule.properties.multiplier.$ref, '#/components/schemas/Decimal');
-  assert.equal(document.components.schemas.TopUpInput.properties.amount_usd.$ref, '#/components/schemas/LedgerDecimal');
+  assert.equal(document.components.schemas.TopUpInput.properties.amount_money.$ref, '#/components/schemas/LedgerDecimal');
   const signed = new RegExp(document.components.schemas.SignedLedgerDecimal.pattern);
   assert.ok(signed.test('-0.123456789012345678'));
 });
@@ -185,7 +188,7 @@ test('procurement revisions explicitly retain authorization identity and require
   const create = document.components.schemas.Operator_procurement_authorization;
   const revise = document.components.schemas.Operator_procurement_authorization_revision;
   assert.ok(create.required.includes('consent_confirmed'));
-  assert.equal(create.properties.single_limit_usd, undefined);
+  assert.equal(create.properties.single_limit_money, undefined);
   assert.equal(create.properties.consent_reference, undefined);
   assert.equal(create.properties.id, undefined);
   assert.ok(revise.required.includes('id'));
@@ -238,31 +241,38 @@ test('contracts are private multipart uploads and renewal consent can identify t
 test('procurement uses progressive bonus bands and one whole external payment per order', () => {
   const schemas = document.components.schemas;
   const quote = schemas.Operator_procurement_quote;
-  assert.equal(quote.properties.price_usd, undefined);
+  assert.equal(quote.properties.price_money, undefined);
   assert.equal(quote.properties.paid_atg, undefined);
   assert.equal(quote.properties.gift_tiers.type, 'array');
   assert.equal(quote.properties.gift_tiers.items.properties.gift_percent.$ref, '#/components/schemas/LedgerDecimal');
-  assert.ok(schemas.Operator_procurement_purchase.required.includes('amount_usd'));
+  assert.ok(schemas.Operator_procurement_purchase.required.includes('amount_money'));
   assert.deepEqual(Object.keys(schemas.Operator_procurement_fund.properties), ['receipt_id']);
   assert.deepEqual(Object.keys(schemas.Operator_procurement_offline_purchase.properties), ['receipt_id']);
-  assert.ok(schemas.Operator_procurement_authorization.required.includes('amount_usd'));
+  assert.ok(schemas.Operator_procurement_authorization.required.includes('amount_money'));
 });
 
-test('finance commands derive native USD and net values instead of requiring repeated inputs',()=>{
+test('finance commands derive same-settlement-currency values and retain independent original fees',()=>{
  const schemas=document.components.schemas,receipt=schemas.Operator_payments_receipt;
- for(const key of ['provider','net_usd','observed_at'])assert.equal(receipt.properties[key],undefined);
+ for(const key of ['provider','net_money','observed_at'])assert.equal(receipt.properties[key],undefined);
  assert.ok(receipt.properties.order_id);
  assert.equal(receipt.required.includes('original_amount'),false);
  assert.equal(receipt.required.includes('valuation_evidence'),false);
- assert.ok(receipt.allOf.some(rule=>rule.then.required?.includes('original_amount')));
- assert.ok(receipt.allOf.some(rule=>rule.then.required?.includes('fee_usd')));
+ assert.equal(receipt.properties.valuation_evidence,undefined);
+ assert.equal(receipt.properties.original_amount['x-required-when-currency-differs-from-settlement'],true);
+ assert.equal(receipt.properties.original_fee_amount.$ref,'#/components/schemas/LedgerDecimal');
+ assert.equal(receipt.required.includes('original_fee_amount'),false);
+ assert.equal(receipt.required.includes('fee_money'),false);
+ assert.ok(receipt.anyOf.some(rule=>rule.required.includes('settlement_amount')));
  const refund=schemas.Operator_refunds_verify_manual;
- assert.equal(refund.required.includes('actual_usd'),false);
+ assert.equal(refund.required.includes('actual_money'),false);
  const withdrawal=schemas.Operator_withdrawals_verify_paid;
  assert.equal(withdrawal.required.includes('original_amount'),false);
  assert.equal(withdrawal.required.includes('valuation_evidence'),false);
  const execution=schemas.Operator_refunds_execute_api;
- for(const rule of execution.allOf||[]){assert.equal(rule.then.properties?.refund_valuation?.additionalProperties,undefined);assert.equal(rule.if.not?.properties?.money?.additionalProperties,undefined)}
+ assert.ok(execution.properties.settlement_amount);
+ assert.ok(execution.properties.settlement_evidence);
+ assert.equal(execution.properties.settlement_amount['x-required-when-currency-differs-from-settlement'],true);
+ assert.equal(execution.properties.refund_valuation,undefined);
 });
 
 test('finance exposes one account workspace and allocates full order amounts server-side',()=>{
@@ -271,9 +281,9 @@ test('finance exposes one account workspace and allocates full order amounts ser
  assert.ok(document.paths['/v1/operators/{operatorId}/evidence']?.post);
  assert.ok(document.paths['/v1/operators/{operatorId}/payments/{id}/accounting']);
  const allocate=document.components.schemas.Operator_payments_allocate;
- assert.equal(allocate.properties.amount_usd,undefined);
+ assert.equal(allocate.properties.amount_money,undefined);
  const context=document.paths['/v1/operators/{operatorId}/order-context/{id}/allocate'].post.requestBody.content['application/json'].schema;
- assert.equal(context.properties.amount_usd,undefined);
+ assert.equal(context.properties.amount_money,undefined);
 });
 
 test('collection references include supplier sales without widening retail refund or delivery authority',()=>{
@@ -291,7 +301,8 @@ test('offline cash registration does not require bank details or external transa
  const schemas=document.components.schemas;
  const receipt=schemas.Operator_payments_receipt;
  for(const field of ['provider_receipt_id','recipient_reference','payer_reference','verification_evidence']) assert.equal(receipt.required.includes(field),false);
- for(const field of ['gross_usd','paid_at']) assert.ok(receipt.required.includes(field));
+ for(const field of ['currency','paid_at']) assert.ok(receipt.required.includes(field));
+ assert.ok(receipt.anyOf.some(rule=>rule.required.includes('settlement_amount')));
  assert.equal(schemas.Operator_withdrawals_verify_paid.required.includes('payment_reference'),false);
  assert.equal(schemas.Operator_refunds_verify_manual.required.includes('reference'),false);
  assert.equal(schemas.Operator_exits_verify_manual.properties.proof.required.includes('external_reference'),false);

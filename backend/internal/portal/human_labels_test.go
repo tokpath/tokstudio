@@ -161,7 +161,7 @@ func TestPostgresReferenceSelectorsSearchNamesBeforePaging(t *testing.T) {
 		if e := f.a.DB.Table("commerce_packages").Create(&p).Error; e != nil {
 			t.Fatal(e)
 		}
-		receipt := commerce.Receipt{ID: fmt.Sprintf("22000000-0000-4000-8000-%012d", i), OperatorID: op, Provider: "manual", ProviderReceiptID: fmt.Sprintf("bank-%02d", i), Fingerprint: "synthetic", GrossUSD: ledger.MustDecimal("2"), FeeStatus: "pending", Currency: "USD", OriginalAmount: "2", ObservedAt: now, CreatedAt: now}
+		receipt := commerce.Receipt{ID: fmt.Sprintf("22000000-0000-4000-8000-%012d", i), OperatorID: op, Provider: "manual", ProviderReceiptID: fmt.Sprintf("bank-%02d", i), Fingerprint: "synthetic", GrossMoney: ledger.MustDecimal("2"), FeeStatus: "pending", Currency: "USD", OriginalAmount: "2", ObservedAt: now, CreatedAt: now}
 		if e := f.a.DB.Table("commerce_receipts").Create(&receipt).Error; e != nil {
 			t.Fatal(e)
 		}

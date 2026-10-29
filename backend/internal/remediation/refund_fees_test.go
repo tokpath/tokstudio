@@ -12,7 +12,7 @@ import (
 
 func (f fixture) approvedRefundLeg(t *testing.T, key, amount string) RefundLeg {
 	t.Helper()
-	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: key, AmountUSD: d(amount), Reason: "unused cash to original payer"})
+	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: key, AmountMoney: d(amount), Reason: "unused cash to original payer"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -32,7 +32,7 @@ func TestPostgresRefundPendingFeeSettlesCustomerAndConfirmsCostExactlyOnce(t *te
 	f := setup(t)
 	f.topup(t, "fee-source", "100")
 	leg := f.approvedRefundLeg(t, "refund-with-unknown-fee", "20")
-	proof := ExecutionProof{BusinessKey: "bank-return-20", Reference: "actual-bank-refund-20", Evidence: "independently queried completed USD refund", ActualUSD: d("20"), FeeStatus: "pending", Currency: "USD", Amount: "20", OccurredAt: time.Now().UTC()}
+	proof := ExecutionProof{BusinessKey: "bank-return-20", Reference: "actual-bank-refund-20", Evidence: "independently queried completed USD refund", ActualMoney: d("20"), FeeStatus: "pending", Currency: "USD", Amount: "20", OccurredAt: time.Now().UTC()}
 	paid, e := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, proof)
 	if e != nil || paid.State != "completed" {
 		t.Fatal(paid, e)
@@ -41,10 +41,10 @@ func TestPostgresRefundPendingFeeSettlesCustomerAndConfirmsCostExactlyOnce(t *te
 		t.Fatalf("unknown fee blocked customer clearance %+v", a)
 	}
 	accounting, e := f.s.RefundAccounting(f.ctx, nil, f.owner, f.operator, leg.ID)
-	if e != nil || len(accounting) != 1 || accounting[0].FeeStatus != "pending" || accounting[0].FeeUSD != nil {
+	if e != nil || len(accounting) != 1 || accounting[0].FeeStatus != "pending" || accounting[0].FeeMoney != nil {
 		t.Fatalf("unknown fee misrepresented as zero %+v %v", accounting, e)
 	}
-	fee := RefundFeeInput{OperatorID: f.operator, LegID: leg.ID, PaymentBusinessKey: proof.BusinessKey, BusinessKey: "verified-final-bank-fee", ActorID: f.owner, Reference: "final-bank-statement", Evidence: "actual refund fee in USD", FeeUSD: d("2"), OccurredAt: proof.OccurredAt}
+	fee := RefundFeeInput{OperatorID: f.operator, LegID: leg.ID, PaymentBusinessKey: proof.BusinessKey, BusinessKey: "verified-final-bank-fee", ActorID: f.owner, Reference: "final-bank-statement", Evidence: "actual refund fee in USD", FeeMoney: d("2"), OccurredAt: proof.OccurredAt}
 	var wg sync.WaitGroup
 	errs := make(chan error, 2)
 	ids := make(chan string, 2)
@@ -80,20 +80,20 @@ func TestPostgresRefundPendingFeeSettlesCustomerAndConfirmsCostExactlyOnce(t *te
 		t.Fatal("merchant fee reduced customer refund", a)
 	}
 	accounting, e = f.s.RefundAccounting(f.ctx, nil, f.owner, f.operator, leg.ID)
-	if e != nil || accounting[0].FeeStatus != "confirmed" || accounting[0].FeeUSD == nil || accounting[0].FeeUSD.Cmp(d("2")) != 0 {
+	if e != nil || accounting[0].FeeStatus != "confirmed" || accounting[0].FeeMoney == nil || accounting[0].FeeMoney.Cmp(d("2")) != 0 {
 		t.Fatal(accounting, e)
 	}
 	var original struct {
 		FeeStatus string
-		FeeUSD    *ledger.Decimal
+		FeeMoney  *ledger.Decimal
 	}
-	if e = f.db.Table("remediation_payment_observations").Where("leg_id=?", leg.ID).Take(&original).Error; e != nil || original.FeeStatus != "pending" || original.FeeUSD != nil {
+	if e = f.db.Table("remediation_payment_observations").Where("leg_id=?", leg.ID).Take(&original).Error; e != nil || original.FeeStatus != "pending" || original.FeeMoney != nil {
 		t.Fatalf("original evidence was rewritten %+v %v", original, e)
 	}
 	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, proof); e != nil {
 		t.Fatal("fact replay after fee reconciliation", e)
 	}
-	fee.FeeUSD = d("3")
+	fee.FeeMoney = d("3")
 	if _, e = f.s.ConfirmRefundFee(f.ctx, nil, fee); !errors.Is(e, ErrConflict) {
 		t.Fatal("changed final fee accepted", e)
 	}
@@ -103,12 +103,12 @@ func TestPostgresRefundConfirmedZeroIsDifferentFromUnknown(t *testing.T) {
 	f := setup(t)
 	f.topup(t, "zero-fee-source", "40")
 	leg := f.approvedRefundLeg(t, "zero-fee-refund", "10")
-	proof := ExecutionProof{BusinessKey: "actual-zero-fee", Reference: "bank-confirmed-no-charge", Evidence: "final statement explicitly zero fee", ActualUSD: d("10"), FeeStatus: "confirmed", Currency: "USD", Amount: "10", OccurredAt: time.Now().UTC()}
+	proof := ExecutionProof{BusinessKey: "actual-zero-fee", Reference: "bank-confirmed-no-charge", Evidence: "final statement explicitly zero fee", ActualMoney: d("10"), FeeStatus: "confirmed", Currency: "USD", Amount: "10", OccurredAt: time.Now().UTC()}
 	if _, e := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, proof); e != nil {
 		t.Fatal(e)
 	}
 	rows, e := f.s.RefundAccounting(f.ctx, nil, f.owner, f.operator, leg.ID)
-	if e != nil || len(rows) != 1 || rows[0].FeeStatus != "confirmed" || rows[0].FeeUSD == nil || !rows[0].FeeUSD.IsZero() || rows[0].FeeConfirmationID == nil {
+	if e != nil || len(rows) != 1 || rows[0].FeeStatus != "confirmed" || rows[0].FeeMoney == nil || !rows[0].FeeMoney.IsZero() || rows[0].FeeConfirmationID == nil {
 		t.Fatalf("known zero lost evidence %+v %v", rows, e)
 	}
 	var fees []RefundFeeConfirmation

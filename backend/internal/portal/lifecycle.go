@@ -96,12 +96,12 @@ func (a *Application) CheckClose(ctx context.Context, tx *gorm.DB, in organizati
 		}
 		cursor = commerce.NextOrderCursor(rows[len(rows)-1])
 	}
-	checks = append(checks, organization.Requirement{Code: "pending_receipts", Description: "原币真实已收款仍待核实付款时点、估值或入账；须按原订单处理，不能重复付款", Ready: !pending})
-	account, e := a.Ledger.FindAccount(ctx, tx, in.OperatorID, in.CustomerID, "customer:usd")
+	checks = append(checks, organization.Requirement{Code: "pending_receipts", Description: "原币真实已收款仍待核实付款时点、对应结算金额或入账；须按原订单处理，不能重复付款", Ready: !pending})
+	account, e := a.Ledger.FindAccount(ctx, tx, in.OperatorID, in.CustomerID, "customer:money")
 	if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
 		return nil, e
 	}
-	checks = append(checks, organization.Requirement{Code: "usd_balance", Description: "USD余额及占用须通过原路退款等真实结算归零", Ready: account.Balance.IsZero() && account.Held.IsZero()})
+	checks = append(checks, organization.Requirement{Code: "money_balance", Description: "结算币种余额及占用须通过原路退款等真实结算归零", Ready: account.Balance.IsZero() && account.Held.IsZero()})
 	grants, e := a.Ledger.CustomerGrants(ctx, tx, in.OperatorID, in.CustomerID)
 	if e != nil {
 		return nil, e

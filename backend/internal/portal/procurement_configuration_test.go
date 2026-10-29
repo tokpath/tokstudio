@@ -62,11 +62,11 @@ func stockSetup(t *testing.T) stockFixture {
 	out := stockFixture{f: f, oem: oem.Operator.ID, channel: child.Operator.ID, model: model}
 	out.price(t, catalog.PriceScope{Kind: "supply", SellerID: platform, BuyerID: out.oem}, "1")
 	out.price(t, catalog.PriceScope{Kind: "retail", SellerID: out.oem}, "1")
-	_, err = f.a.Cooperation.DeliverPurchase(ctx, nil, cooperation.PurchaseInput{BuyerID: out.oem, SupplierID: platform, OrderID: uuid.NewString(), ReceiptReference: "verified synthetic receipt", ActorID: owner, PaidUSD: ledger.FromInt64(5000), PaidATG: ledger.FromInt64(5000), GiftATG: ledger.FromInt64(90), ExitTerms: json.RawMessage(`{"voluntary_refund":false}`), At: time.Now()})
+	_, err = f.a.Cooperation.DeliverPurchase(ctx, nil, cooperation.PurchaseInput{BuyerID: out.oem, SupplierID: platform, OrderID: uuid.NewString(), ReceiptReference: "verified synthetic receipt", ActorID: owner, PaidMoney: ledger.FromInt64(5000), PaidATG: ledger.FromInt64(5000), GiftATG: ledger.FromInt64(90), ExitTerms: json.RawMessage(`{"voluntary_refund":false}`), At: time.Now()})
 	if err != nil {
 		t.Fatal(err)
 	}
-	out.quote, err = f.a.Cooperation.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: out.oem, BuyerID: out.channel, GiftTiers: []cooperation.PurchaseGiftTier{{}, {FromUSD: ledger.FromInt64(2000), GiftPercent: ledger.FromInt64(2)}, {FromUSD: ledger.FromInt64(3000), GiftPercent: ledger.FromInt64(3)}}, Enabled: true})
+	out.quote, err = f.a.Cooperation.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: out.oem, BuyerID: out.channel, GiftTiers: []cooperation.PurchaseGiftTier{{}, {FromMoney: ledger.FromInt64(2000), GiftPercent: ledger.FromInt64(2)}, {FromMoney: ledger.FromInt64(3000), GiftPercent: ledger.FromInt64(3)}}, Enabled: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func (s stockFixture) price(t *testing.T, scope catalog.PriceScope, rate string)
 }
 func (s stockFixture) buy(t *testing.T, amount int64) (int, map[string]any) {
 	t.Helper()
-	status, out, _ := s.f.call(t, "POST", "/v1/operators/"+s.channel+"/procurement/"+s.quote.ID+"/purchase", map[string]any{"amount_usd": ledger.FromInt64(amount)}, "")
+	status, out, _ := s.f.call(t, "POST", "/v1/operators/"+s.channel+"/procurement/"+s.quote.ID+"/purchase", map[string]any{"amount_money": ledger.FromInt64(amount)}, "")
 	return status, out
 }
 func (s stockFixture) coverage(t *testing.T, required, pending, space string, provisional bool) {
@@ -102,7 +102,7 @@ func (s stockFixture) fund(t *testing.T, id string, amount int64) {
 	t.Helper()
 	now := time.Now()
 	owner := s.f.a.Installation.OwnerStaffID
-	receipt, err := s.f.a.Commerce.RecordManualReceipt(context.Background(), nil, owner, commerce.VerifiedReceipt{OperatorID: s.oem, ProviderReceiptID: uuid.NewString(), GrossUSD: ledger.FromInt64(amount), FeeStatus: "pending", Currency: "USD", OriginalAmount: ledger.FromInt64(amount).String(), RecipientReference: "OEM bank", PayerReference: "channel bank", ValuationEvidence: "USD", VerificationEvidence: "isolated receipt", PaidAt: &now, ObservedAt: now})
+	receipt, err := s.f.a.Commerce.RecordManualReceipt(context.Background(), nil, owner, commerce.VerifiedReceipt{OperatorID: s.oem, ProviderReceiptID: uuid.NewString(), GrossMoney: ledger.FromInt64(amount), FeeStatus: "pending", Currency: "USD", OriginalAmount: ledger.FromInt64(amount).String(), RecipientReference: "OEM bank", PayerReference: "channel bank", ValuationEvidence: "USD", VerificationEvidence: "isolated receipt", PaidAt: &now, ObservedAt: now})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +266,7 @@ func TestPostgresStockPurchaseIncludesExistingRetailRights(t *testing.T) {
 	s := stockSetup(t)
 	ctx := context.Background()
 	owner := s.f.a.Installation.OwnerStaffID
-	_, err := s.f.a.Ledger.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: s.oem, CustomerID: uuid.NewString(), OrderID: uuid.NewString(), BusinessKey: uuid.NewString(), ActorID: owner, Reason: "existing paid rights", PaidUSD: ledger.FromInt64(4000), Sources: []ledger.GrantSource{{Kind: "paid", Amount: ledger.FromInt64(4000)}}, EffectiveAt: time.Now().Add(-time.Minute)})
+	_, err := s.f.a.Ledger.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: s.oem, CustomerID: uuid.NewString(), OrderID: uuid.NewString(), BusinessKey: uuid.NewString(), ActorID: owner, Reason: "existing paid rights", PaidMoney: ledger.FromInt64(4000), Sources: []ledger.GrantSource{{Kind: "paid", Amount: ledger.FromInt64(4000)}}, EffectiveAt: time.Now().Add(-time.Minute)})
 	if err != nil {
 		t.Fatal(err)
 	}

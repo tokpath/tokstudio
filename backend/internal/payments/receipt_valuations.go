@@ -11,10 +11,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
-var ErrAwaitingValuation = errors.New("verified original-currency payment awaits execution-time USD valuation")
+var ErrAwaitingSettlement = errors.New("verified original-currency payment awaits confirmed settlement amount")
+
+// ErrAwaitingValuation remains an internal compatibility name.
+var ErrAwaitingValuation = ErrAwaitingSettlement
 
 type ReceiptAcceptanceFence interface {
 	LockReceiptAcceptance(context.Context, *gorm.DB, string, string) error
@@ -54,52 +56,36 @@ type ReceiptValuationView struct {
 	Reason     string     `json:"reason"`
 }
 type ReceiptValuationConfirmation struct {
-	BusinessKey         string     `json:"business_key"`
-	Valuation           Valuation  `json:"valuation"`
-	PaidAt              *time.Time `json:"paid_at,omitempty"`
-	PaymentTimeEvidence string     `json:"payment_time_evidence"`
-	EvidenceReference   string     `json:"evidence_reference"`
+	BusinessKey         string         `json:"business_key"`
+	SettlementAmount    ledger.Decimal `json:"settlement_amount"`
+	PaidAt              *time.Time     `json:"paid_at,omitempty"`
+	PaymentTimeEvidence string         `json:"payment_time_evidence"`
+	EvidenceReference   string         `json:"evidence_reference"`
 }
 type ReceiptValuationResult struct {
-	FactID    string    `json:"fact_id"`
-	ReceiptID string    `json:"receipt_id,omitempty"`
-	State     string    `json:"state"`
-	Version   int64     `json:"version"`
-	Value     *USDValue `json:"value,omitempty"`
+	FactID    string      `json:"fact_id"`
+	ReceiptID string      `json:"receipt_id,omitempty"`
+	State     string      `json:"state"`
+	Version   int64       `json:"version"`
+	Value     *MoneyValue `json:"value,omitempty"`
 }
 
-func receiptExecutionValue(o Order, f Fact) (USDValue, string) {
-	if f.Money.Currency == "USD" {
-		at := f.ObservedAt
-		if f.OccurredAt != nil {
-			at = *f.OccurredAt
-		}
-		if at.IsZero() {
-			at = o.AcceptedAt
-		}
-		v, e := (Valuation{ID: "native-usd-receipt:" + f.ID, Currency: "USD", USDPerUnit: ledger.FromInt64(1), Source: "native_usd_identity", EffectiveAt: at.Add(-time.Second), ExpiresAt: at.Add(time.Second)}).Convert(f.Money, at)
-		if e != nil {
-			return USDValue{}, "invalid_original_amount"
+func receiptExecutionValue(o Order, f Fact) (MoneyValue, string) {
+	settlement := o.Settlement()
+	if f.ExecutionValue != nil {
+		v := *f.ExecutionValue
+		if v.Currency != settlement.Currency || v.Amount.Sign() <= 0 || !v.Amount.Valid() || (v.OriginalMoney.Currency != f.Money.Currency || v.OriginalMoney.Amount.Cmp(f.Money.Amount) != 0) || strings.TrimSpace(v.EvidenceReference) == "" || (v.Currency == f.Money.Currency && v.Amount.Cmp(f.Money.Amount) != 0) {
+			return MoneyValue{}, "settlement_confirmation_invalid"
 		}
 		return v, ""
 	}
-	if f.OccurredAt == nil || f.OccurredAt.IsZero() {
-		return USDValue{}, "payment_time_unverified"
+	if f.Money.Currency == settlement.Currency {
+		return nativeValue(f.Money, "Verified receipt in the order settlement currency"), ""
 	}
-	v, e := o.Valuation.Convert(f.Money, *f.OccurredAt)
-	if e != nil {
-		return USDValue{}, "execution_time_valuation_unavailable"
-	}
-	return v, ""
+	return MoneyValue{}, "settlement_amount_unconfirmed"
 }
 
-func (s *Service) recordValuationResidual(tx *gorm.DB, m Merchant, o Order, f Fact, value USDValue) error {
-	if value.RemainderNumerator == "0" {
-		return nil
-	}
-	return tx.Table("payments_valuation_residuals").Clauses(clause.OnConflict{DoNothing: true}).Create(map[string]any{"fact_id": f.ID, "operator_id": m.OperatorID, "order_id": o.ID, "numerator": value.RemainderNumerator, "denominator": value.RemainderDenominator, "valuation_reference": value.Valuation.ID}).Error
-}
-func (s *Service) recordReceiptValuation(ctx context.Context, tx *gorm.DB, m Merchant, o Order, f Fact, value USDValue, key, hash, timeEvidence, evidence, actor string) error {
+func (s *Service) recordReceiptValuation(ctx context.Context, tx *gorm.DB, m Merchant, o Order, f Fact, value MoneyValue, key, hash, timeEvidence, evidence, actor string) error {
 	now, e := databaseTime(ctx, tx)
 	if e != nil {
 		return e
@@ -111,17 +97,17 @@ func (s *Service) recordReceiptValuation(ctx context.Context, tx *gorm.DB, m Mer
 	}
 	state := "verified"
 	if value.Amount.Sign() <= 0 {
-		state = "awaiting_precision"
+		state = "awaiting_settlement"
 	}
 	if e = tx.Table("payments_verified_facts").Where("id=?", f.ID).Updates(map[string]any{"valuation": string(raw), "valuation_version": 1, "valuation_reason": "", "state": state}).Error; e != nil {
 		return e
 	}
-	return s.recordValuationResidual(tx, m, o, f, value)
+	return nil
 }
 
 // The verified money and valuation commit even if later receipt matching fails.
 // Recovery retries this stored fact; it never asks the payer to pay again.
-func (s *Service) attachReceiptDurably(ctx context.Context, tx *gorm.DB, m Merchant, o Order, f Fact, value USDValue) error {
+func (s *Service) attachReceiptDurably(ctx context.Context, tx *gorm.DB, m Merchant, o Order, f Fact, value MoneyValue) error {
 	e := tx.Transaction(func(t *gorm.DB) error { return s.attachReceipt(ctx, t, m, o, f, value) })
 	if e == nil {
 		return nil
@@ -146,7 +132,7 @@ func (s *Service) PendingReceiptValuations(ctx context.Context, actor, operator,
 	if limit < 1 || limit > 200 {
 		limit = 100
 	}
-	q := s.DB.WithContext(ctx).Table("payments_verified_facts").Where("operator_id=? AND kind='receipt' AND state='awaiting_valuation'", operator)
+	q := s.DB.WithContext(ctx).Table("payments_verified_facts").Where("operator_id=? AND kind='receipt' AND state='awaiting_settlement'", operator)
 	if len(filters) > 0 && strings.TrimSpace(filters[0]) != "" {
 		term := "%" + strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(strings.TrimSpace(filters[0])) + "%"
 		q = q.Where("(id::text ILIKE ? OR order_id::text ILIKE ? OR merchant_id::text ILIKE ? OR fact::text ILIKE ? OR valuation_reason ILIKE ?)", term, term, term, term, term)
@@ -183,16 +169,16 @@ func (s *Service) PendingReceiptValuations(ctx context.Context, actor, operator,
 
 func (s *Service) ConfirmReceiptValuation(ctx context.Context, actor, operator, factID string, in ReceiptValuationConfirmation) (ReceiptValuationResult, error) {
 	out := ReceiptValuationResult{FactID: factID}
-	if s.Authorize == nil || in.BusinessKey == "" || len(in.BusinessKey) > 512 || in.EvidenceReference == "" {
+	if s.Authorize == nil || in.BusinessKey == "" || len(in.BusinessKey) > 512 || strings.TrimSpace(in.EvidenceReference) == "" {
 		return out, ErrInvalid
 	}
 	if in.PaidAt != nil {
 		at := in.PaidAt.UTC()
 		in.PaidAt = &at
 	}
-	hash := ""
+	hash := fingerprint(in)
 	var pendingErr error
-	e := s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if e := s.Authorize.RequirePermission(ctx, tx, actor, operator, "payments.manage"); e != nil {
 			return e
 		}
@@ -215,8 +201,6 @@ func (s *Service) ConfirmReceiptValuation(ctx context.Context, actor, operator, 
 			return ErrInvalid
 		}
 		f.proof = true
-		in.Valuation = EnsureValuationIdentity(in.Valuation, "receipt:"+operator+":"+factID, f.Money.Currency)
-		hash = fingerprint(in)
 		copy := *s
 		copy.DB = tx
 		m, e := copy.Merchant(ctx, operator, row.MerchantID)
@@ -236,7 +220,7 @@ func (s *Service) ConfirmReceiptValuation(ctx context.Context, actor, operator, 
 			if old.FactID != factID || old.Fingerprint != hash {
 				return ErrConflict
 			}
-			var value USDValue
+			var value MoneyValue
 			if json.Unmarshal(row.Valuation, &value) != nil {
 				return ErrInvalid
 			}
@@ -244,24 +228,23 @@ func (s *Service) ConfirmReceiptValuation(ctx context.Context, actor, operator, 
 				pendingErr = s.attachReceiptDurably(ctx, tx, m, o, f, value)
 			}
 		} else {
-			if row.ValuationVersion != 0 || row.ReceiptID != "" || row.State != "awaiting_valuation" {
+			if row.ValuationVersion != 0 || row.ReceiptID != "" || row.State != "awaiting_settlement" {
 				return ErrConflict
 			}
 			if in.PaidAt != nil {
+				if in.PaidAt.IsZero() {
+					return ErrInvalid
+				}
 				if f.OccurredAt != nil && !f.OccurredAt.Equal(*in.PaidAt) {
 					return ErrConflict
 				}
 				if f.OccurredAt == nil {
-					if in.PaymentTimeEvidence == "" {
+					if strings.TrimSpace(in.PaymentTimeEvidence) == "" {
 						return ErrInvalid
 					}
 					f.OccurredAt = in.PaidAt
-					evidence, _ := json.Marshal(map[string]any{"provider_evidence": json.RawMessage(f.Evidence), "payment_time_confirmation": map[string]any{"evidence_reference": in.PaymentTimeEvidence, "verified_by": "staff:" + actor, "paid_at": in.PaidAt}})
-					f.Evidence = evidence
+					f.Evidence, _ = json.Marshal(map[string]any{"provider_evidence": json.RawMessage(f.Evidence), "payment_time_confirmation": map[string]any{"evidence_reference": in.PaymentTimeEvidence, "verified_by": "staff:" + actor, "paid_at": in.PaidAt}})
 				}
-			}
-			if f.Money.Currency != "USD" && (f.OccurredAt == nil || f.OccurredAt.IsZero()) {
-				return ErrAwaitingValuation
 			}
 			now, e := databaseTime(ctx, tx)
 			if e != nil {
@@ -270,20 +253,18 @@ func (s *Service) ConfirmReceiptValuation(ctx context.Context, actor, operator, 
 			if f.OccurredAt != nil && f.OccurredAt.After(now.Add(5*time.Minute)) {
 				return ErrInvalid
 			}
-			var value USDValue
-			if f.Money.Currency == "USD" {
-				// Native USD needs no exchange quote or fabricated FX evidence.
-				var reason string
-				value, reason = receiptExecutionValue(o, f)
-				if reason != "" {
-					return ErrInvalid
+			confirmation := EnsureValuationIdentity(Valuation{Currency: o.Settlement().Currency, Amount: in.SettlementAmount, Source: in.EvidenceReference}, "receipt:"+operator+":"+factID, o.Settlement().Currency)
+			if f.Money.Currency == o.Settlement().Currency {
+				if !in.SettlementAmount.IsZero() && in.SettlementAmount.Cmp(f.Money.Amount) != 0 {
+					return ErrConflict
 				}
-			} else {
-				value, e = in.Valuation.Convert(f.Money, *f.OccurredAt)
-				if e != nil {
-					return e
-				}
+				confirmation.Amount = f.Money.Amount
 			}
+			value, e := confirmation.Convert(f.Money, time.Time{})
+			if e != nil {
+				return e
+			}
+			value.VerifiedBy = "staff:" + actor
 			raw, _ := json.Marshal(f)
 			if e = tx.Table("payments_verified_facts").Where("id=?", f.ID).Update("fact", string(raw)).Error; e != nil {
 				return e
@@ -297,8 +278,8 @@ func (s *Service) ConfirmReceiptValuation(ctx context.Context, actor, operator, 
 			return e
 		}
 		out.State, out.ReceiptID, out.Version = row.State, row.ReceiptID, row.ValuationVersion
-		if string(row.Valuation) != "null" {
-			var value USDValue
+		if string(row.Valuation) != "null" && len(row.Valuation) > 0 {
+			var value MoneyValue
 			if json.Unmarshal(row.Valuation, &value) != nil {
 				return ErrInvalid
 			}
@@ -306,8 +287,8 @@ func (s *Service) ConfirmReceiptValuation(ctx context.Context, actor, operator, 
 		}
 		return nil
 	})
-	if e != nil {
-		return out, e
+	if err != nil {
+		return out, err
 	}
 	return out, pendingErr
 }

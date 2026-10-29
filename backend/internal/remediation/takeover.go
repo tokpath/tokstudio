@@ -21,45 +21,45 @@ import (
 var ErrTakeoverBlocked = errors.New("channel takeover awaits outstanding operations or refreshed approval")
 
 type TakeoverInput struct {
-	ActorID              string         `json:"actor_id"`
-	ChannelID            string         `json:"channel_id"`
-	BrandOperatorID      string         `json:"brand_operator_id"`
-	BusinessKey          string         `json:"business_key"`
-	Method               string         `json:"method"`
-	ServiceUSDPerATG     ledger.Decimal `json:"service_usd_per_atg"`
-	ProcurementUSDPerATG ledger.Decimal `json:"procurement_usd_per_atg"`
-	ExtraUSD             ledger.Decimal `json:"extra_usd"`
-	ContractReference    string         `json:"contract_reference"`
-	Evidence             string         `json:"evidence"`
+	ActorID                string         `json:"actor_id"`
+	ChannelID              string         `json:"channel_id"`
+	BrandOperatorID        string         `json:"brand_operator_id"`
+	BusinessKey            string         `json:"business_key"`
+	Method                 string         `json:"method"`
+	ServiceMoneyPerATG     ledger.Decimal `json:"service_money_per_atg"`
+	ProcurementMoneyPerATG ledger.Decimal `json:"procurement_money_per_atg"`
+	ExtraMoney             ledger.Decimal `json:"extra_money"`
+	ContractReference      string         `json:"contract_reference"`
+	Evidence               string         `json:"evidence"`
 }
 type Takeover struct {
-	ID                            string          `json:"id"`
-	ChannelID                     string          `json:"channel_id"`
-	BrandOperatorID               string          `json:"brand_operator_id"`
-	BusinessKey                   string          `json:"business_key"`
-	Fingerprint                   string          `json:"-"`
-	State                         string          `json:"state"`
-	Method                        string          `json:"method"`
-	ServiceUSDPerATG              ledger.Decimal  `json:"service_usd_per_atg"`
-	ProcurementUSDPerATG          ledger.Decimal  `json:"procurement_usd_per_atg"`
-	ExtraUSD                      ledger.Decimal  `json:"extra_usd"`
-	ContractReference             string          `json:"contract_reference"`
-	Evidence                      string          `json:"evidence"`
-	RequestedBy                   string          `json:"requested_by"`
-	ApprovedBy                    *string         `json:"approved_by,omitempty"`
-	PreviousStatus                json.RawMessage `gorm:"type:jsonb" json:"-"`
-	StatusVersion                 int64           `json:"status_version"`
-	Snapshot                      json.RawMessage `gorm:"type:jsonb" json:"snapshot"`
-	SnapshotFingerprint           string          `json:"snapshot_fingerprint"`
-	ServiceUSD                    ledger.Decimal  `json:"service_usd"`
-	CashUSD                       ledger.Decimal  `json:"cash_usd"`
-	ProcurementOffsetATG          ledger.Decimal  `json:"procurement_offset_atg"`
-	ProcurementOffsetUSD          ledger.Decimal  `json:"procurement_offset_usd"`
-	RemainingProcurementRefundUSD ledger.Decimal  `json:"remaining_procurement_refund_usd"`
-	SettlementDueUSD              ledger.Decimal  `json:"settlement_due_usd"`
-	SettledUSD                    ledger.Decimal  `json:"settled_usd"`
-	CreatedAt                     time.Time       `json:"created_at"`
-	CompletedAt                   *time.Time      `json:"completed_at,omitempty"`
+	ID                              string          `json:"id"`
+	ChannelID                       string          `json:"channel_id"`
+	BrandOperatorID                 string          `json:"brand_operator_id"`
+	BusinessKey                     string          `json:"business_key"`
+	Fingerprint                     string          `json:"-"`
+	State                           string          `json:"state"`
+	Method                          string          `json:"method"`
+	ServiceMoneyPerATG              ledger.Decimal  `json:"service_money_per_atg"`
+	ProcurementMoneyPerATG          ledger.Decimal  `json:"procurement_money_per_atg"`
+	ExtraMoney                      ledger.Decimal  `json:"extra_money"`
+	ContractReference               string          `json:"contract_reference"`
+	Evidence                        string          `json:"evidence"`
+	RequestedBy                     string          `json:"requested_by"`
+	ApprovedBy                      *string         `json:"approved_by,omitempty"`
+	PreviousStatus                  json.RawMessage `gorm:"type:jsonb" json:"-"`
+	StatusVersion                   int64           `json:"status_version"`
+	Snapshot                        json.RawMessage `gorm:"type:jsonb" json:"snapshot"`
+	SnapshotFingerprint             string          `json:"snapshot_fingerprint"`
+	ServiceMoney                    ledger.Decimal  `json:"service_money"`
+	CashMoney                       ledger.Decimal  `json:"cash_money"`
+	ProcurementOffsetATG            ledger.Decimal  `json:"procurement_offset_atg"`
+	ProcurementOffsetMoney          ledger.Decimal  `json:"procurement_offset_money"`
+	RemainingProcurementRefundMoney ledger.Decimal  `json:"remaining_procurement_refund_money"`
+	SettlementDueMoney              ledger.Decimal  `json:"settlement_due_money"`
+	SettledMoney                    ledger.Decimal  `json:"settled_money"`
+	CreatedAt                       time.Time       `json:"created_at"`
+	CompletedAt                     *time.Time      `json:"completed_at,omitempty"`
 }
 
 func (Takeover) TableName() string { return "remediation_takeovers" }
@@ -74,19 +74,19 @@ type TakeoverAsset struct {
 	Version    int64          `json:"version"`
 }
 type TakeoverSnapshot struct {
-	Customers         map[string]int64                `json:"customers"`
-	Assets            []TakeoverAsset                 `json:"assets"`
-	Coverage          cooperation.CoverageSnapshot    `json:"coverage"`
-	Procurement       cooperation.ProcurementPosition `json:"procurement"`
-	Lots              []cooperation.ProcurementLot    `json:"lots"`
-	ServiceATG        ledger.Decimal                  `json:"service_atg"`
-	ServiceUSD        ledger.Decimal                  `json:"service_usd"`
-	CashUSD           ledger.Decimal                  `json:"cash_usd"`
-	OffsetATG         ledger.Decimal                  `json:"offset_atg"`
-	OffsetUSD         ledger.Decimal                  `json:"offset_usd"`
-	ResidualRefundUSD ledger.Decimal                  `json:"residual_refund_usd"`
-	SettlementDueUSD  ledger.Decimal                  `json:"settlement_due_usd"`
-	RoundingEvidence  map[string]string               `json:"rounding_evidence"`
+	Customers           map[string]int64                `json:"customers"`
+	Assets              []TakeoverAsset                 `json:"assets"`
+	Coverage            cooperation.CoverageSnapshot    `json:"coverage"`
+	Procurement         cooperation.ProcurementPosition `json:"procurement"`
+	Lots                []cooperation.ProcurementLot    `json:"lots"`
+	ServiceATG          ledger.Decimal                  `json:"service_atg"`
+	ServiceMoney        ledger.Decimal                  `json:"service_money"`
+	CashMoney           ledger.Decimal                  `json:"cash_money"`
+	OffsetATG           ledger.Decimal                  `json:"offset_atg"`
+	OffsetMoney         ledger.Decimal                  `json:"offset_money"`
+	ResidualRefundMoney ledger.Decimal                  `json:"residual_refund_money"`
+	SettlementDueMoney  ledger.Decimal                  `json:"settlement_due_money"`
+	RoundingEvidence    map[string]string               `json:"rounding_evidence"`
 }
 
 // BeginTakeover records an explicit brand decision, pauses the channel's new
@@ -94,7 +94,7 @@ type TakeoverSnapshot struct {
 // shortage into an automatic, unapproved seizure of a channel's business.
 func (s *Service) BeginTakeover(ctx context.Context, in TakeoverInput) (Takeover, error) {
 	var out Takeover
-	if !validID(in.ChannelID) || !validID(in.BrandOperatorID) || in.BusinessKey == "" || len(in.BusinessKey) > 150 || in.ContractReference == "" || in.Evidence == "" || !validAmount(in.ServiceUSDPerATG) || !validAmount(in.ProcurementUSDPerATG) || !in.ExtraUSD.Valid() || (in.Method != "supply_coverage" && in.Method != "agreed_atg_value") {
+	if !validID(in.ChannelID) || !validID(in.BrandOperatorID) || in.BusinessKey == "" || len(in.BusinessKey) > 150 || in.ContractReference == "" || in.Evidence == "" || !validAmount(in.ServiceMoneyPerATG) || !validAmount(in.ProcurementMoneyPerATG) || !in.ExtraMoney.Valid() || (in.Method != "supply_coverage" && in.Method != "agreed_atg_value") {
 		return out, ErrInvalid
 	}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
@@ -144,7 +144,7 @@ func (s *Service) BeginTakeover(ctx context.Context, in TakeoverInput) (Takeover
 		if e != nil {
 			return e
 		}
-		out = Takeover{ID: uuid.NewString(), ChannelID: in.ChannelID, BrandOperatorID: in.BrandOperatorID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), State: "preparing", Method: in.Method, ServiceUSDPerATG: in.ServiceUSDPerATG, ProcurementUSDPerATG: in.ProcurementUSDPerATG, ExtraUSD: in.ExtraUSD, ContractReference: in.ContractReference, Evidence: in.Evidence, RequestedBy: in.ActorID, PreviousStatus: previous, StatusVersion: status.Version + 1, CreatedAt: at}
+		out = Takeover{ID: uuid.NewString(), ChannelID: in.ChannelID, BrandOperatorID: in.BrandOperatorID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), State: "preparing", Method: in.Method, ServiceMoneyPerATG: in.ServiceMoneyPerATG, ProcurementMoneyPerATG: in.ProcurementMoneyPerATG, ExtraMoney: in.ExtraMoney, ContractReference: in.ContractReference, Evidence: in.Evidence, RequestedBy: in.ActorID, PreviousStatus: previous, StatusVersion: status.Version + 1, CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
@@ -264,8 +264,8 @@ func (s *Service) takeoverSnapshot(ctx context.Context, t *gorm.DB, p Takeover) 
 		}
 	}
 	for _, a := range out.Assets {
-		if a.Unit == "USD" && (a.Purpose == "customer:usd" || a.Purpose == "commission:available" || a.Purpose == "commission:frozen") {
-			out.CashUSD = out.CashUSD.Add(a.Balance)
+		if a.Unit == "MONEY" && (a.Purpose == "customer:money" || a.Purpose == "commission:available" || a.Purpose == "commission:frozen") {
+			out.CashMoney = out.CashMoney.Add(a.Balance)
 		}
 	}
 	if p.Method == "supply_coverage" {
@@ -289,8 +289,8 @@ func (s *Service) takeoverSnapshot(ctx context.Context, t *gorm.DB, p Takeover) 
 		out.ServiceATG = out.ServiceATG.Add(pending)
 	}
 	var tail *big.Rat
-	out.ServiceUSD, tail = ledger.Quantize(new(big.Rat).Mul(out.ServiceATG.Rat(), p.ServiceUSDPerATG.Rat()))
-	out.RoundingEvidence["service_usd"] = tail.RatString()
+	out.ServiceMoney, tail = ledger.Quantize(new(big.Rat).Mul(out.ServiceATG.Rat(), p.ServiceMoneyPerATG.Rat()))
+	out.RoundingEvidence["service_money"] = tail.RatString()
 	position, e := s.Cooperation.Position(ctx, t, p.ChannelID)
 	if errors.Is(e, gorm.ErrRecordNotFound) {
 		position = cooperation.ProcurementPosition{BuyerID: p.ChannelID}
@@ -310,11 +310,11 @@ func (s *Service) takeoverSnapshot(ctx context.Context, t *gorm.DB, p Takeover) 
 			return out, e
 		}
 	}
-	offset, tail := ledger.Quantize(new(big.Rat).Quo(out.ServiceUSD.Rat(), p.ProcurementUSDPerATG.Rat()))
+	offset, tail := ledger.Quantize(new(big.Rat).Quo(out.ServiceMoney.Rat(), p.ProcurementMoneyPerATG.Rat()))
 	out.RoundingEvidence["offset_atg"] = tail.RatString()
 	out.OffsetATG = min(position.Quantity, offset)
-	out.OffsetUSD, tail = ledger.Quantize(new(big.Rat).Mul(out.OffsetATG.Rat(), p.ProcurementUSDPerATG.Rat()))
-	out.RoundingEvidence["offset_usd"] = tail.RatString()
+	out.OffsetMoney, tail = ledger.Quantize(new(big.Rat).Mul(out.OffsetATG.Rat(), p.ProcurementMoneyPerATG.Rat()))
+	out.RoundingEvidence["offset_money"] = tail.RatString()
 	left := out.OffsetATG
 	for _, lot := range out.Lots {
 		paid := lot.PaidATG.Sub(lot.PaidConsumed).Sub(lot.PaidRemoved)
@@ -332,14 +332,14 @@ func (s *Service) takeoverSnapshot(ctx context.Context, t *gorm.DB, p Takeover) 
 				return out, e
 			}
 			if terms.VoluntaryRefund {
-				value, tail := ledger.Quantize(new(big.Rat).Quo(new(big.Rat).Mul(lot.PaidUSD.Rat(), remainingPaid.Rat()), lot.PaidATG.Rat()))
-				out.ResidualRefundUSD = out.ResidualRefundUSD.Add(value)
-				out.RoundingEvidence["lot_refund_usd:"+lot.ID] = tail.RatString()
+				value, tail := ledger.Quantize(new(big.Rat).Quo(new(big.Rat).Mul(lot.PaidMoney.Rat(), remainingPaid.Rat()), lot.PaidATG.Rat()))
+				out.ResidualRefundMoney = out.ResidualRefundMoney.Add(value)
+				out.RoundingEvidence["lot_refund_money:"+lot.ID] = tail.RatString()
 			}
 		}
 	}
-	out.SettlementDueUSD = out.ServiceUSD.Sub(out.OffsetUSD).Add(out.CashUSD).Add(p.ExtraUSD).Sub(out.ResidualRefundUSD)
-	for _, v := range []ledger.Decimal{out.ServiceUSD, out.CashUSD, out.OffsetATG, out.OffsetUSD, out.ResidualRefundUSD, out.SettlementDueUSD} {
+	out.SettlementDueMoney = out.ServiceMoney.Sub(out.OffsetMoney).Add(out.CashMoney).Add(p.ExtraMoney).Sub(out.ResidualRefundMoney)
+	for _, v := range []ledger.Decimal{out.ServiceMoney, out.CashMoney, out.OffsetATG, out.OffsetMoney, out.ResidualRefundMoney, out.SettlementDueMoney} {
 		if !v.Valid() {
 			return out, ledger.ErrAmount
 		}
@@ -363,12 +363,12 @@ func (s *Service) RefreshTakeover(ctx context.Context, actor, brand, id string) 
 		}
 		out.Snapshot, _ = json.Marshal(snapshot)
 		out.SnapshotFingerprint = fingerprint(snapshot)
-		out.ServiceUSD = snapshot.ServiceUSD
-		out.CashUSD = snapshot.CashUSD
+		out.ServiceMoney = snapshot.ServiceMoney
+		out.CashMoney = snapshot.CashMoney
 		out.ProcurementOffsetATG = snapshot.OffsetATG
-		out.ProcurementOffsetUSD = snapshot.OffsetUSD
-		out.RemainingProcurementRefundUSD = snapshot.ResidualRefundUSD
-		out.SettlementDueUSD = snapshot.SettlementDueUSD
+		out.ProcurementOffsetMoney = snapshot.OffsetMoney
+		out.RemainingProcurementRefundMoney = snapshot.ResidualRefundMoney
+		out.SettlementDueMoney = snapshot.SettlementDueMoney
 		out.State = "awaiting_approval"
 		return t.Save(&out).Error
 	})
@@ -427,7 +427,7 @@ func (s *Service) ExecuteTakeover(ctx context.Context, actor, brand, id, expecte
 		if fingerprint(snapshot) != expectedSnapshot {
 			return ErrTakeoverBlocked
 		}
-		reviews, e := s.reviews(t, brand, out.ServiceUSD.Add(out.CashUSD))
+		reviews, e := s.reviews(t, brand, out.ServiceMoney.Add(out.CashMoney))
 		if e != nil {
 			return e
 		}
@@ -500,7 +500,7 @@ func (s *Service) ExecuteTakeover(ctx context.Context, actor, brand, id, expecte
 	return out, e
 }
 func (s *Service) postTakeoverReceivable(ctx context.Context, t *gorm.DB, p Takeover, actor string) error {
-	amount := p.SettlementDueUSD
+	amount := p.SettlementDueMoney
 	if amount.IsZero() {
 		return nil
 	}
@@ -565,11 +565,17 @@ func (s *Service) RecordTakeoverSettlement(ctx context.Context, actor, brand, id
 		proof.Reference = "manual:takeover:" + fingerprint([]string{id, proof.BusinessKey})
 	}
 	foreignAmount, parseErr := ledger.ParseDecimal(proof.Amount)
-	if parseErr != nil || foreignAmount.Sign() <= 0 || !validAmount(proof.ActualUSD) || !proof.FeeUSD.Valid() || proof.FeeUSD.Sign() < 0 || proof.Currency == "" || proof.Currency != strings.ToUpper(proof.Currency) || (proof.Currency == "USD" && foreignAmount.Cmp(proof.ActualUSD) != 0) || proof.Reference == "" || proof.BusinessKey == "" || len(proof.BusinessKey) > 150 || proof.Evidence == "" || proof.OccurredAt.IsZero() {
+	if parseErr != nil || foreignAmount.Sign() <= 0 || !validAmount(proof.ActualMoney) || !proof.FeeMoney.Valid() || proof.FeeMoney.Sign() < 0 || proof.Currency == "" || proof.Currency != strings.ToUpper(proof.Currency) || proof.Reference == "" || proof.BusinessKey == "" || len(proof.BusinessKey) > 150 || proof.Evidence == "" || proof.OccurredAt.IsZero() {
 		return out, ErrInvalid
 	}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
-		var e error
+		monetary, e := ledger.GetMonetary(ctx, t)
+		if e != nil {
+			return e
+		}
+		if proof.Currency == monetary.Currency && foreignAmount.Cmp(proof.ActualMoney) != 0 {
+			return ErrInvalid
+		}
 		out, e = s.lockTakeover(ctx, t, actor, brand, id)
 		if e != nil {
 			return e
@@ -592,13 +598,13 @@ func (s *Service) RecordTakeoverSettlement(ctx context.Context, actor, brand, id
 			}
 			return nil
 		}
-		total := out.SettlementDueUSD
+		total := out.SettlementDueMoney
 		debtor, creditor := out.ChannelID, brand
 		if total.Sign() < 0 {
 			total = total.Neg()
 			debtor, creditor = creditor, debtor
 		}
-		if out.SettledUSD.Add(proof.ActualUSD).Cmp(total) > 0 {
+		if out.SettledMoney.Add(proof.ActualMoney).Cmp(total) > 0 {
 			return ErrConflict
 		}
 		at, e := instant(t)
@@ -620,7 +626,7 @@ func (s *Service) RecordTakeoverSettlement(ctx context.Context, actor, brand, id
 			if e != nil {
 				return e
 			}
-			amount := proof.ActualUSD
+			amount := proof.ActualMoney
 			lines := []ledger.Line{{AccountID: a.ID, Amount: amount.Neg()}, {AccountID: cash.ID, Amount: amount}}
 			if spec.cashSign < 0 {
 				control, e := s.account(ctx, t, spec.op, spec.op, "control:takeover_settlement")
@@ -628,24 +634,24 @@ func (s *Service) RecordTakeoverSettlement(ctx context.Context, actor, brand, id
 					return e
 				}
 				lines = []ledger.Line{{AccountID: a.ID, Amount: amount.Neg()}, {AccountID: cash.ID, Amount: amount.Neg()}, {AccountID: control.ID, Amount: amount.Add(amount)}}
-			} else if proof.FeeUSD.Sign() > 0 {
+			} else if proof.FeeMoney.Sign() > 0 {
 				// The payer records its verified sending fee separately. The agreed
 				// USD debt is discharged only by the amount actually received.
 				fees, e := s.account(ctx, t, spec.op, spec.op, "control:merchant_fees")
 				if e != nil {
 					return e
 				}
-				lines[1].Amount = amount.Add(proof.FeeUSD)
-				lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: proof.FeeUSD.Neg()})
+				lines[1].Amount = amount.Add(proof.FeeMoney)
+				lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: proof.FeeMoney.Neg()})
 			}
 			if _, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: spec.op, BusinessKey: "takeover-cash:" + id + ":" + fingerprint(proof.BusinessKey), Kind: "takeover_cash_settlement", SourceID: id, ActorID: actor, Reason: proof.Reference + " | " + proof.Evidence, Lines: lines}); e != nil {
 				return e
 			}
 		}
-		if e = t.Exec("INSERT INTO remediation_takeover_settlements(id,takeover_id,business_key,fingerprint,amount_usd,fee_usd,currency,original_amount,reference,evidence,occurred_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", uuid.NewString(), id, proof.BusinessKey, fp, proof.ActualUSD, proof.FeeUSD, proof.Currency, proof.Amount, proof.Reference, proof.Evidence, proof.OccurredAt, at).Error; e != nil {
+		if e = t.Exec("INSERT INTO remediation_takeover_settlements(id,takeover_id,business_key,fingerprint,amount_money,fee_money,currency,original_amount,reference,evidence,occurred_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", uuid.NewString(), id, proof.BusinessKey, fp, proof.ActualMoney, proof.FeeMoney, proof.Currency, proof.Amount, proof.Reference, proof.Evidence, proof.OccurredAt, at).Error; e != nil {
 			return e
 		}
-		out.SettledUSD = out.SettledUSD.Add(proof.ActualUSD)
+		out.SettledMoney = out.SettledMoney.Add(proof.ActualMoney)
 		if e = t.Save(&out).Error; e != nil {
 			return e
 		}

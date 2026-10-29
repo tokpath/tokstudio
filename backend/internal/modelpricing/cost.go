@@ -35,7 +35,9 @@ func (s *Service) Observe(ctx context.Context, a modelruntime.Attempt, response 
 					extra.PricingRequestType = ""
 				}
 				if cost := store.CalculateCostBreakdown(wrapped, &datasheet.LookupScopes{Provider: string(provider), BilledAt: snapshot.AcceptedAt}); cost != nil {
-					out.CalculatedUSD = nonnegative(cost.TotalCost)
+					if amount := nonnegative(cost.TotalCost); amount != nil {
+						out.ReferenceCost = &modelruntime.Money{Currency: "USD", Amount: *amount}
+					}
 				}
 			}
 		}
@@ -43,13 +45,13 @@ func (s *Service) Observe(ctx context.Context, a modelruntime.Attempt, response 
 	// Only an adapter whose documented amount is USD can report USD here.
 	// A generic compatible provider's field named `cost` is not sufficient.
 	if a.Provider == "openrouter" {
-		out.ReportedUSD = reportedUSD(response)
+		if amount := reportedMoney(response); amount != nil {
+			out.ReportedCost = &modelruntime.Money{Currency: "USD", Amount: *amount}
+		}
 	}
-	if out.ReportedUSD != nil {
-		out.AmountUSD = out.ReportedUSD
+	if out.ReportedCost != nil {
 		out.Source = "provider_reported"
-	} else if out.CalculatedUSD != nil {
-		out.AmountUSD = out.CalculatedUSD
+	} else if out.ReferenceCost != nil {
 		out.Source = "bifrost_calculated"
 	}
 	return out
@@ -134,7 +136,7 @@ func costResponse(response any) *schemas.BifrostResponse {
 	}
 	return nil
 }
-func reportedUSD(response any) *string {
+func reportedMoney(response any) *string {
 	raw, e := json.Marshal(response)
 	if e != nil {
 		return nil

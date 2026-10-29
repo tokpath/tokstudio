@@ -281,7 +281,7 @@ func (s *Service) reserveSale(ctx context.Context, tx *gorm.DB, o commerce.Order
 			if e != nil {
 				return e
 			}
-			if demand.Cmp(snapshot.Space) > 0 && !(restore && o.ExternalAllocatedUSD.Sign() > 0) {
+			if demand.Cmp(snapshot.Space) > 0 && !(restore && o.ExternalAllocatedMoney.Sign() > 0) {
 				return ErrCoverage
 			}
 		}

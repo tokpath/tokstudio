@@ -11,6 +11,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	platformcrypto "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -19,7 +20,7 @@ import (
 //go:embed schema.sql
 var schema string
 
-//go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql
+//go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql
 var migrationFS embed.FS
 
 //go:embed zz_refund_executions.sql
@@ -40,17 +41,20 @@ var receiptValuationSchema string
 //go:embed zzzz_receipt_fact_recovery.sql
 var receiptRecoverySchema string
 
+//go:embed zzzzz_native_settlement.sql
+var nativeSettlementSchema string
+
 func Migrations() (string, fs.FS) { return "payments", migrationFS }
 
 func Schema() string {
-	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema
+	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema
 }
 
 type Authorizer interface {
 	RequirePermission(context.Context, *gorm.DB, string, string, string) error
 }
 type ReceiptSink interface {
-	RecordVerifiedReceipt(context.Context, *gorm.DB, Merchant, Order, Fact, USDValue) (string, error)
+	RecordVerifiedReceipt(context.Context, *gorm.DB, Merchant, Order, Fact, MoneyValue) (string, error)
 }
 type ReceiptCorrectionSink interface {
 	ConfirmVerifiedPaymentTime(context.Context, *gorm.DB, string, Fact) error
@@ -248,6 +252,19 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	if o.Validate(m) != nil {
 		return Checkout{}, ErrInvalid
 	}
+	settings, e := ledger.RequireMonetary(ctx, s.DB)
+	if e != nil {
+		return Checkout{}, e
+	}
+	if o.Settlement().Currency != settings.Currency {
+		return Checkout{}, ErrConflict
+	}
+	if supported, _ := SettlementSupport(m, settings.Currency); !supported {
+		return Checkout{}, ErrUnsupported
+	}
+	if o.Money.Currency != merchantCurrency(m) {
+		return Checkout{}, ErrInvalid
+	}
 	o.PaymentDriver = m.Driver
 	o.AssetNetworkVersionID = m.AssetNetworkVersionID
 	o.Network, o.TokenContract, o.MinimumConfirmations = "", "", ""
@@ -314,10 +331,14 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 		return Checkout{}, ErrOutcomeUnknown
 	}
 	checkout, callErr := d.Create(ctx, m, o)
+	if checkout.SettlementMoney == nil {
+		settlement := o.Settlement()
+		checkout.SettlementMoney = &settlement
+	}
 	state := "created"
 	if callErr != nil {
 		state = "outcome_unknown"
-		if errors.Is(callErr, ErrInvalid) || errors.Is(callErr, ErrProvider) || errors.Is(callErr, ErrNotConfigured) || errors.Is(callErr, ErrForbidden) {
+		if errors.Is(callErr, ErrUnsupported) || errors.Is(callErr, ErrInvalid) || errors.Is(callErr, ErrProvider) || errors.Is(callErr, ErrNotConfigured) || errors.Is(callErr, ErrForbidden) {
 			state = "failed"
 		}
 	}
@@ -494,7 +515,7 @@ func (s *Service) RecordFact(ctx context.Context, m Merchant, o Order, incoming 
 	if !incoming.Verified() || incoming.MerchantID != m.ID || incoming.OperatorID != m.OperatorID || incoming.OrderID != o.ID || o.Validate(m) != nil {
 		return ErrInvalid
 	}
-	if incoming.Kind != "receipt" && (incoming.Kind != "refund" || incoming.ExecutionValue == nil || !incoming.ExecutionValue.Amount.Valid() || incoming.ExecutionValue.Valuation.Currency != incoming.Money.Currency) {
+	if incoming.Kind != "receipt" && (incoming.Kind != "refund" || incoming.ExecutionValue == nil || !incoming.ExecutionValue.Amount.Valid() || incoming.ExecutionValue.Currency != o.Settlement().Currency) {
 		return ErrInvalid
 	}
 	hash := fingerprint(struct {
@@ -530,6 +551,17 @@ func (s *Service) RecordFact(ctx context.Context, m Merchant, o Order, incoming 
 			}
 			f = stored
 			f.proof = true
+			if incoming.ExecutionValue != nil && f.ExecutionValue == nil && row.ValuationVersion == 0 {
+				if _, reason := receiptExecutionValue(o, incoming); reason != "" {
+					return ErrInvalid
+				}
+				f.ExecutionValue = incoming.ExecutionValue
+				f.Evidence = incoming.Evidence
+				raw, _ := json.Marshal(f)
+				if e := tx.Table("payments_verified_facts").Where("id=?", f.ID).Update("fact", string(raw)).Error; e != nil {
+					return e
+				}
+			}
 			if f.OccurredAt == nil && incoming.OccurredAt != nil {
 				f.OccurredAt = incoming.OccurredAt
 				f.Evidence = incoming.Evidence
@@ -549,9 +581,12 @@ func (s *Service) RecordFact(ctx context.Context, m Merchant, o Order, incoming 
 				return nil
 			}
 			if string(row.Valuation) != "null" && len(row.Valuation) > 0 {
-				var original USDValue
+				var original MoneyValue
 				if json.Unmarshal(row.Valuation, &original) != nil {
 					return ErrInvalid
+				}
+				if incoming.ExecutionValue != nil && (incoming.ExecutionValue.Currency != original.Currency || incoming.ExecutionValue.Amount.Cmp(original.Amount) != 0) {
+					return ErrConflict
 				}
 				pendingErr = s.attachReceiptDurably(ctx, tx, m, o, f, original)
 				return nil
@@ -563,7 +598,7 @@ func (s *Service) RecordFact(ctx context.Context, m Merchant, o Order, incoming 
 			}
 			f.ObservedAt = now
 			raw, _ := json.Marshal(f)
-			if e := tx.Table("payments_verified_facts").Create(map[string]any{"id": f.ID, "merchant_id": m.ID, "operator_id": m.OperatorID, "order_id": o.ID, "kind": f.Kind, "fingerprint": hash, "fact": string(raw), "valuation": "null", "state": "awaiting_valuation", "observed_at": now}).Error; e != nil {
+			if e := tx.Table("payments_verified_facts").Create(map[string]any{"id": f.ID, "merchant_id": m.ID, "operator_id": m.OperatorID, "order_id": o.ID, "kind": f.Kind, "fingerprint": hash, "fact": string(raw), "valuation": "null", "state": "awaiting_settlement", "observed_at": now}).Error; e != nil {
 				return e
 			}
 		}
@@ -573,20 +608,20 @@ func (s *Service) RecordFact(ctx context.Context, m Merchant, o Order, incoming 
 			if e := tx.Table("payments_verified_facts").Where("id=?", f.ID).Updates(map[string]any{"valuation": string(raw), "state": "verified"}).Error; e != nil {
 				return e
 			}
-			return s.recordValuationResidual(tx, m, o, f, value)
+			return nil
 		}
 		value, reason := receiptExecutionValue(o, f)
 		if reason != "" {
-			if e := tx.Table("payments_verified_facts").Where("id=?", f.ID).Updates(map[string]any{"state": "awaiting_valuation", "valuation_reason": reason}).Error; e != nil {
+			if e := tx.Table("payments_verified_facts").Where("id=?", f.ID).Updates(map[string]any{"state": "awaiting_settlement", "valuation_reason": reason}).Error; e != nil {
 				return e
 			}
-			if e := tx.Table("payments_intents").Where("merchant_id=? AND order_id=?", m.ID, o.ID).Updates(map[string]any{"state": "awaiting_valuation", "provider_id": f.ProviderID, "updated_at": gorm.Expr("clock_timestamp()")}).Error; e != nil {
+			if e := tx.Table("payments_intents").Where("merchant_id=? AND order_id=?", m.ID, o.ID).Updates(map[string]any{"state": "awaiting_settlement", "provider_id": f.ProviderID, "updated_at": gorm.Expr("clock_timestamp()")}).Error; e != nil {
 				return e
 			}
 			pendingErr = ErrAwaitingValuation
 			return nil
 		}
-		if e := s.recordReceiptValuation(ctx, tx, m, o, f, value, "automatic:"+f.ID, hash, "provider-confirmed payment time", value.Valuation.Source, "adapter:"+m.Driver); e != nil {
+		if e := s.recordReceiptValuation(ctx, tx, m, o, f, value, "automatic:"+f.ID, hash, "provider-confirmed payment time", value.EvidenceReference, "adapter:"+m.Driver); e != nil {
 			return e
 		}
 		pendingErr = s.attachReceiptDurably(ctx, tx, m, o, f, value)
@@ -598,7 +633,7 @@ func (s *Service) RecordFact(ctx context.Context, m Merchant, o Order, incoming 
 	return pendingErr
 }
 
-func (s *Service) attachReceipt(ctx context.Context, tx *gorm.DB, m Merchant, o Order, f Fact, v USDValue) error {
+func (s *Service) attachReceipt(ctx context.Context, tx *gorm.DB, m Merchant, o Order, f Fact, v MoneyValue) error {
 	if f.Kind == "receipt" {
 		if e := tx.Table("payments_intents").Where("merchant_id=? AND order_id=?", m.ID, o.ID).Updates(map[string]any{"state": "verified", "provider_id": f.ProviderID, "updated_at": time.Now().UTC()}).Error; e != nil {
 			return e

@@ -9,7 +9,7 @@ import (
 )
 
 // WalletRefundAllocations is a trusted source query for the refund workflow.
-// RefundedUSD is actual consumed principal; the rest remains reserved.
+// RefundedMoney is actual consumed principal; the rest remains reserved.
 func (s *Service) WalletRefundAllocations(ctx context.Context, tx *gorm.DB, op, customer, refund string) ([]WalletFundingAllocation, error) {
 	if !walletInput(tx, op, customer, refund) {
 		return nil, ErrInvalidInput
@@ -47,10 +47,10 @@ func (s *Service) ObserveWalletRefundAllocation(ctx context.Context, tx *gorm.DB
 	if e = tx.First(&a, "id=? AND command_id=?", allocationID, c.ID).Error; e != nil {
 		return e
 	}
-	var old struct{ AmountUSD ledger.Decimal }
+	var old struct{ AmountMoney ledger.Decimal }
 	e = tx.Table("commerce_wallet_refund_observations").Where("allocation_id=? AND fact_id=?", allocationID, factID).Take(&old).Error
 	if e == nil {
-		if old.AmountUSD.Cmp(amount) != 0 {
+		if old.AmountMoney.Cmp(amount) != 0 {
 			return ErrConflict
 		}
 		return nil
@@ -58,21 +58,21 @@ func (s *Service) ObserveWalletRefundAllocation(ctx context.Context, tx *gorm.DB
 	if !errors.Is(e, gorm.ErrRecordNotFound) {
 		return e
 	}
-	if a.Status != "reserved" || a.AmountUSD.Sub(a.RefundedUSD).Cmp(amount) < 0 {
+	if a.Status != "reserved" || a.AmountMoney.Sub(a.RefundedMoney).Cmp(amount) < 0 {
 		return ErrOrderState
 	}
-	if e = tx.Table("commerce_wallet_refund_observations").Create(map[string]any{"allocation_id": allocationID, "fact_id": factID, "amount_usd": amount, "created_at": s.now()}).Error; e != nil {
+	if e = tx.Table("commerce_wallet_refund_observations").Create(map[string]any{"allocation_id": allocationID, "fact_id": factID, "amount_money": amount, "created_at": s.now()}).Error; e != nil {
 		return e
 	}
-	if e = tx.Model(&walletLot{}).Where("id=?", a.LotID).Updates(map[string]any{"reserved_usd": gorm.Expr("reserved_usd-?", amount), "spent_usd": gorm.Expr("spent_usd+?", amount)}).Error; e != nil {
+	if e = tx.Model(&walletLot{}).Where("id=?", a.LotID).Updates(map[string]any{"reserved_money": gorm.Expr("reserved_money-?", amount), "spent_money": gorm.Expr("spent_money+?", amount)}).Error; e != nil {
 		return e
 	}
-	refunded := a.RefundedUSD.Add(amount)
+	refunded := a.RefundedMoney.Add(amount)
 	status := "reserved"
-	if refunded.Cmp(a.AmountUSD) == 0 {
+	if refunded.Cmp(a.AmountMoney) == 0 {
 		status = "consumed"
 	}
-	if e = tx.Model(&walletAllocation{}).Where("id=?", a.ID).Updates(map[string]any{"refunded_usd": refunded, "status": status}).Error; e != nil {
+	if e = tx.Model(&walletAllocation{}).Where("id=?", a.ID).Updates(map[string]any{"refunded_money": refunded, "status": status}).Error; e != nil {
 		return e
 	}
 	var n int64

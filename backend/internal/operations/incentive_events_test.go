@@ -44,7 +44,7 @@ func TestIncentiveRelayUsesDurableFactsAndSafeAudience(t *testing.T) {
 	}
 	op := platform.Operator.ID
 	inc := incentives.New(s.DB)
-	if _, e = inc.SetPolicy(ctx, nil, a.actor, op, incentives.PolicyInput{Evidence: "sensitive raw bank proof never send", ThresholdUSD: ledger.FromInt64(10), RewardValiditySeconds: 3600}); e != nil {
+	if _, e = inc.SetPolicy(ctx, nil, a.actor, op, incentives.PolicyInput{Evidence: "sensitive raw bank proof never send", ThresholdMoney: ledger.FromInt64(10), RewardValiditySeconds: 3600}); e != nil {
 		t.Fatal(e)
 	}
 	s.Authorize = org

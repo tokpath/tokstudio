@@ -110,7 +110,7 @@ func (s *Service) IssueManualGift(ctx context.Context, tx *gorm.DB, in ManualGif
 		if e != nil {
 			return e
 		}
-		grant, e := s.ledger.IssueGrant(ctx, t, ledger.GrantInput{OperatorID: in.OperatorID, CustomerID: in.CustomerID, BusinessKey: "manual-gift:" + id, ActorID: in.ActorStaffID, Reason: in.Reason + " | " + in.Evidence, PaidUSD: ledger.Zero(), Sources: []ledger.GrantSource{{Kind: "manual_gift", Amount: in.AmountATG}}, EffectiveAt: at, ExpiresAt: in.ExpiresAt})
+		grant, e := s.ledger.IssueGrant(ctx, t, ledger.GrantInput{OperatorID: in.OperatorID, CustomerID: in.CustomerID, BusinessKey: "manual-gift:" + id, ActorID: in.ActorStaffID, Reason: in.Reason + " | " + in.Evidence, PaidMoney: ledger.Zero(), Sources: []ledger.GrantSource{{Kind: "manual_gift", Amount: in.AmountATG}}, EffectiveAt: at, ExpiresAt: in.ExpiresAt})
 		if e != nil {
 			return e
 		}

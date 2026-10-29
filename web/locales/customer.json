@@ -239,10 +239,10 @@
     "ja": "編集をキャンセル",
     "ru": "Отменить редактирование"
   },
-  "所选 USD 支付余额超过当前可用金额。": {
-    "en": "The selected USD balance exceeds the available amount.",
-    "ja": "指定した USD 残高が現在の利用可能額を超えています。",
-    "ru": "Выбранная сумма с USD-баланса превышает доступную."
+  "所选 结算币种 支付余额超过当前可用金额。": {
+    "en": "The selected settlement currency balance exceeds the available amount.",
+    "ja": "指定した 決済通貨 残高が現在の利用可能額を超えています。",
+    "ru": "Выбранная сумма с валюта расчётов-баланса превышает доступную."
   },
   "所选佣金超过当前可用金额。": {
     "en": "The selected commission exceeds the available amount.",
@@ -254,10 +254,10 @@
     "ja": "支払元の合計が今回の請求額を超えています。配分を調整してください。",
     "ru": "Сумма источников оплаты превышает сумму к оплате. Измените распределение."
   },
-  "请输入非负十进制 USD 金额，最多 24 位小数。": {
-    "en": "Enter a non-negative decimal USD amount with up to 24 decimal places.",
-    "ja": "0 以上の USD 金額を、小数点以下 24 桁以内で入力してください。",
-    "ru": "Введите неотрицательную сумму USD, до 24 знаков после запятой."
+  "请输入非负十进制 结算币种 金额，最多 24 位小数。": {
+    "en": "Enter a non-negative decimal settlement currency amount with up to 24 decimal places.",
+    "ja": "0 以上の 決済通貨 金額を、小数点以下 24 桁以内で入力してください。",
+    "ru": "Введите неотрицательную сумму валюта расчётов, до 24 знаков после запятой."
   },
   "为应用创建访问凭据，按需设置预算和模型范围。": {
     "en": "Create application credentials and set budgets and model access as needed.",
@@ -1039,10 +1039,10 @@
     "ja": "出所と有効期限の記録を確認",
     "ru": "Источники и сроки действия"
   },
-  "用于购买与续费的 USD 余额": {
-    "en": "USD balance for purchases and renewals",
-    "ja": "購入・更新用の USD 残高",
-    "ru": "USD-баланс для покупок и продления"
+  "用于购买与续费的 结算币种 余额": {
+    "en": "settlement currency balance for purchases and renewals",
+    "ja": "購入・更新用の 決済通貨 残高",
+    "ru": "валюта расчётов-баланс для покупок и продления"
   },
   "另有占用": {
     "en": "Also reserved: ",
@@ -1349,10 +1349,10 @@
     "ja": "購入分・付与分・出所を確認",
     "ru": "Купленные кредиты, бонусы и источники"
   },
-  "USD 余额退款": {
-    "en": "USD balance refund",
-    "ja": "USD 残高の返金",
-    "ru": "Возврат USD-баланса"
+  "结算币种 余额退款": {
+    "en": "settlement currency balance refund",
+    "ja": "決済通貨 残高の返金",
+    "ru": "Возврат валюта расчётов-баланса"
   },
   "退回未使用且未占用余额": {
     "en": "Return unused and unreserved balance",
@@ -1464,10 +1464,10 @@
     "ja": "付与ごとに独立した特典と有効期間が生じます。月・四半期・年は付与日から暦で計算されます。複数プランは併存でき、期限切れの残りは繰り越されず、早期消化で自動更新が前倒しされることもありません。",
     "ru": "Каждое предоставление создаёт отдельные кредиты и срок. Месяц, квартал и год исчисляются по календарю от даты предоставления. Пакеты могут действовать одновременно; остаток не переносится, досрочное исчерпание не вызывает раннего продления."
   },
-  "套餐不提供一般性退款。重复、错误交易、未交付或无法履约的问题通过异常流程办理；未使用且未占用的 USD 支付余额可申请退回。": {
-    "en": "Packages do not offer general refunds. Duplicate or incorrect transactions, non-delivery and inability to fulfill are handled through the exception process. Unused, unreserved USD balance can be refunded.",
-    "ja": "プランの通常返金はありません。重複・誤取引、未付与、履行不能は例外対応で処理します。未使用・未確保の USD 支払残高は返金を申請できます。",
-    "ru": "Обычный возврат пакетов не предусмотрен. Дубли, ошибочные транзакции, непредоставление и невозможность исполнения решаются через разбор исключений. Неиспользованный и незарезервированный USD-баланс можно вернуть."
+  "套餐不提供一般性退款。重复、错误交易、未交付或无法履约的问题通过异常流程办理；未使用且未占用的 结算币种 支付余额可申请退回。": {
+    "en": "Packages do not offer general refunds. Duplicate or incorrect transactions, non-delivery and inability to fulfill are handled through the exception process. Unused, unreserved settlement currency balance can be refunded.",
+    "ja": "プランの通常返金はありません。重複・誤取引、未付与、履行不能は例外対応で処理します。未使用・未確保の 決済通貨 支払残高は返金を申請できます。",
+    "ru": "Обычный возврат пакетов не предусмотрен. Дубли, ошибочные транзакции, непредоставление и невозможность исполнения решаются через разбор исключений. Неиспользованный и незарезервированный валюта расчётов-баланс можно вернуть."
   },
   "购买进度": {
     "en": "Purchase progress",
@@ -1619,10 +1619,10 @@
     "ja": "支払元を選択",
     "ru": "Выберите источники оплаты"
   },
-  "优先建议使用 USD 支付余额，剩余直接付款。佣金由你主动选择。": {
-    "en": "We suggest using your USD balance first, then paying the rest directly. Using commission is your choice.",
-    "ja": "USD 支払残高を先に使い、残りを直接支払う配分を提案します。コミッションの利用は任意です。",
-    "ru": "Рекомендуется сначала использовать USD-баланс, остаток оплатить напрямую. Комиссию можно выбрать самостоятельно."
+  "优先建议使用 结算币种 支付余额，剩余直接付款。佣金由你主动选择。": {
+    "en": "We suggest using your settlement currency balance first, then paying the rest directly. Using commission is your choice.",
+    "ja": "決済通貨 支払残高を先に使い、残りを直接支払う配分を提案します。コミッションの利用は任意です。",
+    "ru": "Рекомендуется сначала использовать валюта расчётов-баланс, остаток оплатить напрямую. Комиссию можно выбрать самостоятельно."
   },
   "正在读取可用余额…": {
     "en": "Loading available balance…",
@@ -1634,20 +1634,20 @@
     "ja": "残高を取得できていません。内部資金を使わず、直接支払うこともできます。",
     "ru": "Баланс пока не загружен. Можно оплатить напрямую без внутренних средств."
   },
-  "USD 支付余额": {
-    "en": "USD payment balance",
-    "ja": "USD 支払残高",
-    "ru": "Платёжный баланс USD"
+  "结算币种 支付余额": {
+    "en": "settlement currency payment balance",
+    "ja": "決済通貨 支払残高",
+    "ru": "Платёжный баланс валюта расчётов"
   },
   "尚未读取": {
     "en": "Not loaded yet",
     "ja": "未取得",
     "ru": "Ещё не загружено"
   },
-  "本次使用 USD 支付余额": {
-    "en": "USD balance to use now",
-    "ja": "今回使う USD 支払残高",
-    "ru": "Использовать с USD-баланса"
+  "本次使用 结算币种 支付余额": {
+    "en": "settlement currency balance to use now",
+    "ja": "今回使う 決済通貨 支払残高",
+    "ru": "Использовать с валюта расчётов-баланса"
   },
   "使用可用佣金补足": {
     "en": "Use available commission for the shortfall",
@@ -1659,10 +1659,10 @@
     "ja": "（利用可能 ",
     "ru": "(доступно "
   },
-  "本次使用可用佣金 USD": {
-    "en": "Available commission to use now (USD)",
-    "ja": "今回使うコミッション USD",
-    "ru": "Использовать комиссию, USD"
+  "本次使用可用佣金 结算币种": {
+    "en": "Available commission to use now (settlement currency)",
+    "ja": "今回使うコミッション 決済通貨",
+    "ru": "Использовать комиссию, валюта расчётов"
   },
   "恢复建议分配": {
     "en": "Restore suggested allocation",
@@ -1704,10 +1704,10 @@
     "ja": "期限時の自動更新を許可",
     "ru": "Разрешить автопродление по окончании"
   },
-  "到期时优先用 USD 支付余额，不会自动向外部钱包扣款。条件变差时须重新授权，提前用完不触发提前续费。": {
-    "en": "Renewal uses USD balance first and never automatically charges an external wallet. Less favorable terms require new authorization. Early exhaustion does not trigger early renewal.",
-    "ja": "更新時は USD 支払残高を優先し、外部ウォレットから自動引き落としはしません。不利な条件変更には再同意が必要です。早期消化で更新は前倒しされません。",
-    "ru": "При продлении сначала используется USD-баланс; внешние кошельки автоматически не списываются. Ухудшение условий требует нового разрешения. Досрочное исчерпание не запускает раннее продление."
+  "到期时优先用 结算币种 支付余额，不会自动向外部钱包扣款。条件变差时须重新授权，提前用完不触发提前续费。": {
+    "en": "Renewal uses settlement currency balance first and never automatically charges an external wallet. Less favorable terms require new authorization. Early exhaustion does not trigger early renewal.",
+    "ja": "更新時は 決済通貨 支払残高を優先し、外部ウォレットから自動引き落としはしません。不利な条件変更には再同意が必要です。早期消化で更新は前倒しされません。",
+    "ru": "При продлении сначала используется валюта расчётов-баланс; внешние кошельки автоматически не списываются. Ухудшение условий требует нового разрешения. Досрочное исчерпание не запускает раннее продление."
   },
   "未来续费也允许使用可用佣金补足": {
     "en": "Also allow available commission for future renewals",
@@ -1794,10 +1794,10 @@
     "ja": "更新の不足分にコミッションを使用可",
     "ru": "Разрешить комиссию для продления"
   },
-  "续费优先使用 USD 支付余额；佣金须单独授权。可停止未来续费，当前权益按原期限保留。": {
-    "en": "Renewal uses USD balance first; commission requires separate authorization. You can stop future renewals while keeping current credits until their original expiry.",
-    "ja": "更新には USD 支払残高を優先します。コミッションは別途許可が必要です。今後の更新は停止でき、現在の特典は元の期限まで維持されます。",
-    "ru": "Сначала используется USD-баланс; для комиссии нужно отдельное разрешение. Будущие продления можно отключить, текущие кредиты действуют до исходного срока."
+  "续费优先使用 结算币种 支付余额；佣金须单独授权。可停止未来续费，当前权益按原期限保留。": {
+    "en": "Renewal uses settlement currency balance first; commission requires separate authorization. You can stop future renewals while keeping current credits until their original expiry.",
+    "ja": "更新には 決済通貨 支払残高を優先します。コミッションは別途許可が必要です。今後の更新は停止でき、現在の特典は元の期限まで維持されます。",
+    "ru": "Сначала используется валюта расчётов-баланс; для комиссии нужно отдельное разрешение. Будущие продления можно отключить, текущие кредиты действуют до исходного срока."
   },
   "保存中…": {
     "en": "Saving…",
@@ -1824,10 +1824,10 @@
     "ja": "許可結果を確認中です。元の操作を再試行してください。現在の選択はロックされています。",
     "ru": "Результат разрешения проверяется. Повторите исходное действие; текущий выбор заблокирован."
   },
-  "USD 支付余额充值": {
-    "en": "USD payment balance top-up",
-    "ja": "USD 支払残高のチャージ",
-    "ru": "Пополнение платёжного USD-баланса"
+  "结算币种 支付余额充值": {
+    "en": "settlement currency payment balance top-up",
+    "ja": "決済通貨 支払残高のチャージ",
+    "ru": "Пополнение платёжного валюта расчётов-баланса"
   },
   "本次订单": {
     "en": "This order",
@@ -1904,10 +1904,10 @@
     "ja": "付与サービスクレジット",
     "ru": "Бонусные сервисные кредиты"
   },
-  "USD 余额已到账，可继续购买套餐。": {
-    "en": "USD balance credited. You can now buy a package.",
-    "ja": "USD 残高が反映されました。プランを購入できます。",
-    "ru": "USD зачислены. Можно купить пакет."
+  "结算币种 余额已到账，可继续购买套餐。": {
+    "en": "settlement currency balance credited. You can now buy a package.",
+    "ja": "決済通貨 残高が反映されました。プランを購入できます。",
+    "ru": "валюта расчётов зачислены. Можно купить пакет."
   },
   "服务额度已到账，可以开始使用。": {
     "en": "Service credits delivered. You can start using them.",
@@ -2004,20 +2004,10 @@
     "ja": "支払ページの金額",
     "ru": "Сумма на странице оплаты"
   },
-  "这个金额含通道手续费。本订单仍按上方应付美元入账。": {
-    "en": "This amount includes the channel fee. This order is still recorded at the USD amount due shown above.",
-    "ja": "この金額には決済手数料が含まれます。注文の入金は上に表示された USD 請求額のままです。",
-    "ru": "Эта сумма включает комиссию канала. Заказ по-прежнему учитывается по сумме в USD выше."
-  },
   "Gkash 付款页在新窗口打开，本页会留下来。请先看清付款页金额；不合适就改用其它付款方式。如果已经在 Gkash 付过，请先核实原通道，不要更换。": {
     "en": "Gkash opens in a new window and this page stays here. Check the amount there. If it is not right, choose another method. If you already paid in Gkash, verify that payment before changing methods.",
     "ja": "Gkash は新しいウィンドウで開き、このページは残ります。金額を確認し、合わなければ別の支払方法に戻ってください。すでに Gkash で支払った場合は、変更する前に元の決済を確認してください。",
     "ru": "Gkash откроется в новом окне, а эта страница останется. Проверьте сумму. Если она не подходит, выберите другой способ. Если оплата в Gkash уже прошла, сначала проверьте её и не меняйте способ."
-  },
-  "请在 Gkash 完成付款。付款页金额含通道手续费，本订单仍按应付美元入账。付完后回到此页并核实原通道。": {
-    "en": "Complete payment in Gkash. The payment page includes the channel fee. This order is still recorded at its USD amount due. Return here afterward and check the original payment.",
-    "ja": "Gkash で支払いを完了してください。支払ページの金額には決済手数料が含まれます。この注文の入金は当初の USD 請求額で記録されます。支払い後にこのページへ戻り、元の決済を確認してください。",
-    "ru": "Завершите оплату в Gkash. На странице оплаты указана комиссия канала. Заказ учитывается по исходной сумме в USD. Затем вернитесь сюда и проверьте исходный платёж."
   },
   "付款币种": {
     "en": "Payment currency",
@@ -2279,20 +2269,20 @@
     "ja": "注文 ID を確認するか、検索をクリアして再試行してください。",
     "ru": "Проверьте ID заказа или очистите поиск и повторите попытку."
   },
-  "可以直接购买套餐，也可先充值 USD 支付余额。": {
-    "en": "Buy a package directly, or top up your USD balance first.",
-    "ja": "プランは直接購入することも、先に USD 残高をチャージすることもできます。",
-    "ru": "Можно купить пакет напрямую или сначала пополнить USD-баланс."
+  "可以直接购买套餐，也可先充值 结算币种 支付余额。": {
+    "en": "Buy a package directly, or top up your settlement currency balance first.",
+    "ja": "プランは直接購入することも、先に 決済通貨 残高をチャージすることもできます。",
+    "ru": "Можно купить пакет напрямую или сначала пополнить валюта расчётов-баланс."
   },
   "查看可购买套餐": {
     "en": "View available packages",
     "ja": "購入可能なプランを確認",
     "ru": "Доступные пакеты"
   },
-  "USD 余额充值": {
-    "en": "USD balance top-up",
-    "ja": "USD 残高のチャージ",
-    "ru": "Пополнение USD-баланса"
+  "结算币种 余额充值": {
+    "en": "settlement currency balance top-up",
+    "ja": "決済通貨 残高のチャージ",
+    "ru": "Пополнение валюта расчётов-баланса"
   },
   "套餐订单": {
     "en": "Package order",
@@ -2810,9 +2800,9 @@
     "ru": "Запросить вывод / платежи"
   },
   "佣金购买须主动选择；提现申请与审批都不等于已付款。冻结、占用及待抵扣分别记录，不动用正常支付余额或 ATG。": {
-    "en": "Using commission for purchases requires your choice. A withdrawal request or approval does not mean payment has been made. Frozen, reserved and recovery amounts are tracked separately, without using normal USD balance or ATG.",
+    "en": "Using commission for purchases requires your choice. A withdrawal request or approval does not mean payment has been made. Frozen, reserved and recovery amounts are tracked separately, without using normal settlement currency balance or ATG.",
     "ja": "購入へのコミッション利用は明示的な選択が必要です。出金の申請・承認は支払完了を意味しません。凍結・確保・控除待ちは別々に記録し、通常の支払残高や ATG は使用しません。",
-    "ru": "Использование комиссии для покупок нужно выбрать явно. Заявка на вывод или её одобрение не означают выплату. Замороженные, зарезервированные суммы и суммы к возмещению учитываются отдельно и не затрагивают обычный USD-баланс или ATG."
+    "ru": "Использование комиссии для покупок нужно выбрать явно. Заявка на вывод или её одобрение не означают выплату. Замороженные, зарезервированные суммы и суммы к возмещению учитываются отдельно и не затрагивают обычный валюта расчётов-баланс или ATG."
   },
   "核对每笔推广收益的来源、有偿基数和确认时间。": {
     "en": "Check the source, paid-spend basis and confirmation time of every commission.",

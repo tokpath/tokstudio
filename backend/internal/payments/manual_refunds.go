@@ -38,8 +38,8 @@ func ClaimManualReceiptRefund(tx *gorm.DB, operator, refundID, account, referenc
 }
 
 // RecordManualRefund verifies scope, original-route identity and actual bank
-// evidence. Verified cash facts survive a business/FX settlement mismatch and
-// remain pending; no USD obligation is silently erased. Callers must durably
+// evidence. Verified cash facts survive a settlement mismatch and remain
+// pending; the original obligation is preserved. Callers must durably
 // begin the approved manual execution before a human sends the transfer.
 func (s *Service) RecordManualRefund(ctx context.Context, actor, operator, merchant string, r Refund, v ManualRefundVerification) (RefundStatus, error) {
 	out := RefundStatus{}
@@ -83,8 +83,8 @@ func (s *Service) RecordManualRefund(ctx context.Context, actor, operator, merch
 			return e
 		}
 		validation := r
-		if validation.Money.Currency == "USD" {
-			validation.USDAmount = validation.Money.Amount
+		if validation.Money.Currency == validation.Order.Settlement().Currency {
+			validation.MoneyAmount = validation.Money.Amount
 		}
 		if v.ReceiptID == "" || v.ExecutedAt.IsZero() || v.ExecutedAt.After(now.Add(5*time.Minute)) || v.EvidenceReference == "" || validation.Validate(m) != nil {
 			return ErrInvalid
@@ -121,7 +121,7 @@ func (s *Service) RecordManualRefund(ctx context.Context, actor, operator, merch
 			}
 			out.Fact.proof = true
 		} else {
-			f, e := refundFact(m, r, v.ExternalReference, v.Money, &v.ExecutedAt, map[string]string{"verified_by": "staff:" + actor, "evidence_reference": v.EvidenceReference, "original_receipt_id": v.ReceiptID, "payer_reference": m.Credentials["recipient_reference"], "recipient_reference": v.RecipientReference, "fx_execution_reference": r.FXExecutionReference})
+			f, e := refundFact(m, r, v.ExternalReference, v.Money, &v.ExecutedAt, map[string]string{"verified_by": "staff:" + actor, "evidence_reference": v.EvidenceReference, "original_receipt_id": v.ReceiptID, "payer_reference": m.Credentials["recipient_reference"], "recipient_reference": v.RecipientReference})
 			if e != nil {
 				return e
 			}

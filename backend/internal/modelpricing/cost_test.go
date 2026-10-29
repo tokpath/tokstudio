@@ -24,26 +24,26 @@ func TestCostUsesPinnedBifrostSheetAndDoesNotTrustGenericCost(t *testing.T) {
 	a := costAttempt(t, .001)
 	response := &schemas.BifrostChatResponse{Usage: &schemas.BifrostLLMUsage{PromptTokens: 12, CompletionTokens: 5, TotalTokens: 17, Cost: &schemas.BifrostCost{TotalCost: 99}}, ExtraFields: schemas.BifrostResponseExtraFields{RequestType: schemas.ChatCompletionRequest, RoutingInfo: schemas.RoutingInfo{Provider: schemas.OpenAI, Model: "public-alias"}, RawResponse: map[string]any{"usage": map[string]any{"cost": 7}}}}
 	got := (&Service{}).Observe(context.Background(), a, response)
-	if got.AmountUSD == nil || got.Source != "bifrost_calculated" || got.Version != "accepted-v1" {
+	if got.ReferenceCost == nil || got.Source != "bifrost_calculated" || got.Version != "accepted-v1" || got.ReferenceCost.Currency != "USD" {
 		t.Fatal(got)
 	}
-	value, ok := new(big.Rat).SetString(*got.AmountUSD)
+	value, ok := new(big.Rat).SetString(got.ReferenceCost.Amount)
 	if !ok || value.Cmp(big.NewRat(17, 1000)) != 0 {
-		t.Fatal(*got.AmountUSD)
+		t.Fatal(got.ReferenceCost.Amount)
 	}
 	if response.ExtraFields.RoutingInfo.Model != "public-alias" {
 		t.Fatal("cost identity changed public response")
 	}
 	a.Provider = "openrouter"
 	got = (&Service{}).Observe(context.Background(), a, response)
-	if got.Source != "provider_reported" || got.ReportedUSD == nil || *got.ReportedUSD != "7" || got.CalculatedUSD == nil {
+	if got.Source != "provider_reported" || got.ReportedCost == nil || got.ReportedCost.Amount != "7" || got.ReferenceCost == nil || got.ReportedCost.Currency != "USD" {
 		t.Fatal(got)
 	}
 }
 func TestMissingCostIsNotFreeAndEstimateUsesSDKRequestType(t *testing.T) {
 	a := costAttempt(t, .001)
 	response := &schemas.BifrostChatResponse{ExtraFields: schemas.BifrostResponseExtraFields{RequestType: schemas.ChatCompletionRequest}}
-	if got := (&Service{}).Observe(context.Background(), a, response); got.AmountUSD != nil || got.Source != "unavailable" {
+	if got := (&Service{}).Observe(context.Background(), a, response); got.ReferenceCost != nil || got.Source != "unavailable" {
 		t.Fatal(got)
 	}
 	c := modelruntime.DefaultBilling(modelruntime.Chat).Capability(modelruntime.Chat, false)
@@ -51,7 +51,7 @@ func TestMissingCostIsNotFreeAndEstimateUsesSDKRequestType(t *testing.T) {
 	if estimate := (&Service{}).Estimate(context.Background(), a.CostSnapshot, r, c); estimate == nil {
 		t.Fatal("known datasheet produced no route estimate")
 	}
-	if got := (&Service{}).Observe(context.Background(), modelruntime.Attempt{}, &schemas.BifrostChatResponse{Usage: &schemas.BifrostLLMUsage{PromptTokens: 12}}); got.AmountUSD != nil {
+	if got := (&Service{}).Observe(context.Background(), modelruntime.Attempt{}, &schemas.BifrostChatResponse{Usage: &schemas.BifrostLLMUsage{PromptTokens: 12}}); got.ReferenceCost != nil {
 		t.Fatal("missing sheet recorded free")
 	}
 }
@@ -63,12 +63,12 @@ func TestVideoSDKBackfillNeverBecomesActualCost(t *testing.T) {
 	a.CostSnapshot, _ = json.Marshal(snapshot)
 	seconds := "8"
 	v := &schemas.BifrostVideoGenerationResponse{Status: schemas.VideoStatusCompleted, Seconds: &seconds, ExtraFields: schemas.BifrostResponseExtraFields{RequestType: schemas.VideoRetrieveRequest}}
-	if got := (&Service{}).Observe(context.Background(), a, v); got.AmountUSD != nil {
+	if got := (&Service{}).Observe(context.Background(), a, v); got.ReferenceCost != nil {
 		t.Fatal("SDK request backfill billed as actual")
 	}
 	v.ExtraFields.RawResponse = map[string]any{"status": "completed", "seconds": "4"}
 	got := (&Service{}).Observe(context.Background(), a, v)
-	if got.AmountUSD == nil || *got.AmountUSD != "0.4" {
+	if got.ReferenceCost == nil || got.ReferenceCost.Amount != "0.4" {
 		t.Fatal(got)
 	}
 	if *v.Seconds != "8" {
@@ -84,11 +84,11 @@ func TestCompletedImageStreamHasOneOutputForUpstreamCost(t *testing.T) {
 	a.CostSnapshot, _ = json.Marshal(snapshot)
 	chunk := &schemas.BifrostStreamChunk{BifrostImageGenerationStreamResponse: &schemas.BifrostImageGenerationStreamResponse{Type: schemas.ImageGenerationEventTypeCompleted, URL: "https://example.test/image.png", ExtraFields: schemas.BifrostResponseExtraFields{RequestType: schemas.ImageGenerationStreamRequest}}}
 	got := (&Service{}).Observe(context.Background(), a, chunk)
-	if got.CalculatedUSD == nil || *got.CalculatedUSD != "0.04" {
+	if got.ReferenceCost == nil || got.ReferenceCost.Amount != "0.04" {
 		t.Fatal(got)
 	}
 	chunk.BifrostImageGenerationStreamResponse.Type = schemas.ImageEventType("image_generation.partial_image")
-	if got = (&Service{}).Observe(context.Background(), a, chunk); got.AmountUSD != nil {
+	if got = (&Service{}).Observe(context.Background(), a, chunk); got.ReferenceCost != nil {
 		t.Fatal("partial image was charged", got)
 	}
 }

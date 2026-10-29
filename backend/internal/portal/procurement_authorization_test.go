@@ -30,7 +30,7 @@ func TestPostgresProcurementAuthorizationRevisionCASAndPaymentBoundaries(t *test
 	if _, err = f.a.Organization.AcceptStaffInvitation(ctx, nil, invite.Token, organization.VerifiedStaff{ID: owner, Email: "owner@example.test", EmailVerified: true}); err != nil {
 		t.Fatal(err)
 	}
-	quote, err := f.a.Cooperation.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: parent, BuyerID: child.Operator.ID, GiftTiers: []cooperation.PurchaseGiftTier{{FromUSD: ledger.Zero(), GiftPercent: ledger.FromInt64(900)}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"original-exit"}`), TermsReference: "fixed-quote", Enabled: true})
+	quote, err := f.a.Cooperation.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: parent, BuyerID: child.Operator.ID, GiftTiers: []cooperation.PurchaseGiftTier{{FromMoney: ledger.Zero(), GiftPercent: ledger.FromInt64(900)}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"original-exit"}`), TermsReference: "fixed-quote", Enabled: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestPostgresProcurementAuthorizationRevisionCASAndPaymentBoundaries(t *test
 	firstMerchant, secondMerchant := merchant(), merchant()
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	path := "/v1/operators/" + child.Operator.ID + "/procurement"
-	base := map[string]any{"action": "authorization", "amount_usd": "10", "supplier_id": parent, "quote_id": quote.ID, "trigger_available_atg": "10.000000000000000001", "period_limit_usd": "20", "period": "month", "mode": "automatic", "merchant_id": firstMerchant, "enabled": true}
+	base := map[string]any{"action": "authorization", "amount_money": "10", "supplier_id": parent, "quote_id": quote.ID, "trigger_available_atg": "10.000000000000000001", "period_limit_money": "20", "period": "month", "mode": "automatic", "merchant_id": firstMerchant, "enabled": true}
 	body := func(id string, version int, consent string) map[string]any {
 		v := map[string]any{}
 		for key, value := range base {
@@ -109,7 +109,7 @@ func TestPostgresProcurementAuthorizationRevisionCASAndPaymentBoundaries(t *test
 			}
 			for _, value := range op["fields"].([]any) {
 				field := value.(map[string]any)
-				if field["name"] == "renewed_consent_reference" || field["name"] == "consent_reference" || field["name"] == "single_limit_usd" {
+				if field["name"] == "renewed_consent_reference" || field["name"] == "consent_reference" || field["name"] == "single_limit_money" {
 					t.Fatal("old consent was filled as a new confirmation", field)
 				}
 			}
@@ -119,7 +119,7 @@ func TestPostgresProcurementAuthorizationRevisionCASAndPaymentBoundaries(t *test
 	}
 	read(1)
 	revision := body(id, 1, "confirmed-contract") // Explicitly confirming the same contract is allowed.
-	revision["period_limit_usd"] = "30"
+	revision["period_limit_money"] = "30"
 	key := uuid.NewString()
 	status, out = post(revision, key)
 	mustOK(t, status, out)

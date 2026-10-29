@@ -12,7 +12,7 @@ type ProcurementRefundAccounting struct {
 	RefundID    string         `gorm:"primaryKey" json:"refund_id"`
 	BusinessKey string         `json:"business_key"`
 	Fingerprint string         `json:"-"`
-	FeeUSD      ledger.Decimal `json:"fee_usd"`
+	FeeMoney    ledger.Decimal `json:"fee_money"`
 	SettledAt   time.Time      `json:"settled_at"`
 	Evidence    string         `json:"evidence"`
 	VerifiedBy  string         `json:"verified_by"`
@@ -29,7 +29,7 @@ func (ProcurementRefundAccounting) TableName() string {
 // original-receipt capacity are never changed by this accounting fact.
 func (p *ProcurementRefunds) ConfirmRefundAccounting(ctx context.Context, actor string, in ProcurementRefundAccounting) (ProcurementRefundAccounting, error) {
 	out := in
-	if !p.Ready() || in.BusinessKey == "" || in.Evidence == "" || !in.FeeUSD.Valid() || in.FeeUSD.Sign() < 0 || in.SettledAt.IsZero() {
+	if !p.Ready() || in.BusinessKey == "" || in.Evidence == "" || !in.FeeMoney.Valid() || in.FeeMoney.Sign() < 0 || in.SettledAt.IsZero() {
 		return out, ErrConflict
 	}
 	e := p.Cooperation.within(ctx, nil, func(tx *gorm.DB) error {
@@ -50,7 +50,7 @@ func (p *ProcurementRefunds) ConfirmRefundAccounting(ctx context.Context, actor 
 		if in.SettledAt.After(now.Add(5 * time.Minute)) {
 			return ErrConflict
 		}
-		fp := hash([]string{in.RefundID, in.BusinessKey, in.FeeUSD.String(), in.SettledAt.UTC().Format(time.RFC3339Nano), in.Evidence})
+		fp := hash([]string{in.RefundID, in.BusinessKey, in.FeeMoney.String(), in.SettledAt.UTC().Format(time.RFC3339Nano), in.Evidence})
 		var old ProcurementRefundAccounting
 		q := tx.Where("refund_id=?", in.RefundID).Limit(1).Find(&old)
 		if q.Error != nil {
@@ -67,16 +67,16 @@ func (p *ProcurementRefunds) ConfirmRefundAccounting(ctx context.Context, actor 
 		out.VerifiedBy = actor
 		out.CreatedAt = now
 		out.JournalID = nil
-		if in.FeeUSD.Sign() > 0 {
-			fees, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: leg.SupplierID, OwnerID: leg.SupplierID, Purpose: "control:refund_fees", Unit: "USD", AllowNegative: true})
+		if in.FeeMoney.Sign() > 0 {
+			fees, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: leg.SupplierID, OwnerID: leg.SupplierID, Purpose: "control:refund_fees", Unit: "MONEY", AllowNegative: true})
 			if e != nil {
 				return e
 			}
-			cash, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: leg.SupplierID, OwnerID: leg.SupplierID, Purpose: "control:external_cash", Unit: "USD", AllowNegative: true})
+			cash, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: leg.SupplierID, OwnerID: leg.SupplierID, Purpose: "control:external_cash", Unit: "MONEY", AllowNegative: true})
 			if e != nil {
 				return e
 			}
-			journal, e := p.Cooperation.Ledger.Post(ctx, tx, ledger.Posting{OperatorID: leg.SupplierID, BusinessKey: "procurement-refund-accounting:" + leg.ID, Kind: "procurement_refund_fee", SourceID: leg.ID, ActorID: actor, Reason: in.Evidence, Lines: []ledger.Line{{AccountID: fees.ID, Amount: in.FeeUSD.Neg()}, {AccountID: cash.ID, Amount: in.FeeUSD}}})
+			journal, e := p.Cooperation.Ledger.Post(ctx, tx, ledger.Posting{OperatorID: leg.SupplierID, BusinessKey: "procurement-refund-accounting:" + leg.ID, Kind: "procurement_refund_fee", SourceID: leg.ID, ActorID: actor, Reason: in.Evidence, Lines: []ledger.Line{{AccountID: fees.ID, Amount: in.FeeMoney.Neg()}, {AccountID: cash.ID, Amount: in.FeeMoney}}})
 			if e != nil {
 				return e
 			}
@@ -85,7 +85,7 @@ func (p *ProcurementRefunds) ConfirmRefundAccounting(ctx context.Context, actor 
 		if e = tx.Create(&out).Error; e != nil {
 			return e
 		}
-		return tx.Model(&leg).Updates(map[string]any{"fee_status": "confirmed", "fee_usd": in.FeeUSD}).Error
+		return tx.Model(&leg).Updates(map[string]any{"fee_status": "confirmed", "fee_money": in.FeeMoney}).Error
 	})
 	return out, e
 }

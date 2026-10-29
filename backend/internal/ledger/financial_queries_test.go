@@ -52,7 +52,7 @@ func TestPostgresFinancialGrantResponsibilityRemainsHistoricalAcrossTakeoverAndC
 	ctx := context.Background()
 	from, to, customer := uuid.NewString(), uuid.NewString(), uuid.NewString()
 	now := time.Now().UTC()
-	_, e := s.IssueGrant(ctx, nil, GrantInput{OperatorID: from, CustomerID: customer, BusinessKey: "discounted", OrderID: "order", ActorID: "fixture", Reason: "paid order", PaidUSD: FromInt64(80), Sources: []GrantSource{{"paid", FromInt64(80)}, {"package_gift", FromInt64(20)}}, EffectiveAt: now})
+	_, e := s.IssueGrant(ctx, nil, GrantInput{OperatorID: from, CustomerID: customer, BusinessKey: "discounted", OrderID: "order", ActorID: "fixture", Reason: "paid order", PaidMoney: FromInt64(80), Sources: []GrantSource{{"paid", FromInt64(80)}, {"package_gift", FromInt64(20)}}, EffectiveAt: now})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -102,12 +102,12 @@ func TestPostgresFinancialGrantResponsibilityRemainsHistoricalAcrossTakeoverAndC
 		{from, now.Add(time.Hour), "0", "0"}, {to, now.Add(time.Hour), "56", "70"},
 	} {
 		r, e := s.FinancialFacts(ctx, nil, tc.op, now.Add(-time.Hour), tc.cut)
-		if e != nil || r.OutstandingGrantPaidUSD.String() != tc.paid || r.OutstandingGrantATG.String() != tc.atg {
+		if e != nil || r.OutstandingGrantPaidMoney.String() != tc.paid || r.OutstandingGrantATG.String() != tc.atg {
 			t.Fatalf("historical liability want %s USD/%s ATG, got %+v: %v", tc.paid, tc.atg, r, e)
 		}
 	}
 	r, e := s.FinancialFacts(ctx, nil, from, firstAt, firstCut)
-	if e != nil || len(r.GrantEvents) != 1 || r.GrantEvents[0].PaidUSD.String() != "20" {
+	if e != nil || len(r.GrantEvents) != 1 || r.GrantEvents[0].PaidMoney.String() != "20" {
 		t.Fatalf("posting period lost original consumption: %+v %v", r, e)
 	}
 }

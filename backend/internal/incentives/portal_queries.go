@@ -11,18 +11,18 @@ import (
 )
 
 type CommissionView struct {
-	ID          string         `json:"id"`
-	SourceID    string         `json:"source_id"`
-	OrderID     string         `json:"order_id"`
-	Type        string         `json:"type"`
-	Hop         int            `json:"hop"`
-	Status      string         `json:"status"`
-	AmountUSD   ledger.Decimal `json:"amount_usd"`
-	BasisUSD    ledger.Decimal `json:"basis_usd"`
-	ReversedUSD ledger.Decimal `json:"reversed_usd"`
-	OffsetUSD   ledger.Decimal `json:"offset_usd"`
-	CreatedAt   time.Time      `json:"created_at"`
-	ConfirmsAt  time.Time      `json:"confirms_at"`
+	ID            string         `json:"id"`
+	SourceID      string         `json:"source_id"`
+	OrderID       string         `json:"order_id"`
+	Type          string         `json:"type"`
+	Hop           int            `json:"hop"`
+	Status        string         `json:"status"`
+	AmountMoney   ledger.Decimal `json:"amount_money"`
+	BasisMoney    ledger.Decimal `json:"basis_money"`
+	ReversedMoney ledger.Decimal `json:"reversed_money"`
+	OffsetMoney   ledger.Decimal `json:"offset_money"`
+	CreatedAt     time.Time      `json:"created_at"`
+	ConfirmsAt    time.Time      `json:"confirms_at"`
 }
 
 func pageLimit(limit int) int {
@@ -63,7 +63,7 @@ func (s *Service) CommissionViews(ctx context.Context, tx *gorm.DB, operator, cu
 	if own.OperatorID != operator {
 		return nil, "", ErrNotEligible
 	}
-	q := s.dbFor(ctx, tx).Table("incentives_commission_entries c").Select("c.id,e.source_event_id AS source_id,c.order_id,e.kind AS type,c.hop,c.status,c.amount_usd,b.base_usd AS basis_usd,c.reversed_usd,c.offset_usd,c.created_at,c.confirm_at AS confirms_at").Joins("JOIN incentives_confirmation_events e ON e.id=c.event_id").Joins("JOIN incentives_commission_bases b ON b.event_id=c.event_id AND b.hop=c.hop AND b.beneficiary_id=c.beneficiary_id").Where("c.operator_id=? AND c.beneficiary_id=?", operator, customer)
+	q := s.dbFor(ctx, tx).Table("incentives_commission_entries c").Select("c.id,e.source_event_id AS source_id,c.order_id,e.kind AS type,c.hop,c.status,c.amount_money,b.base_money AS basis_money,c.reversed_money,c.offset_money,c.created_at,c.confirm_at AS confirms_at").Joins("JOIN incentives_confirmation_events e ON e.id=c.event_id").Joins("JOIN incentives_commission_bases b ON b.event_id=c.event_id AND b.hop=c.hop AND b.beneficiary_id=c.beneficiary_id").Where("c.operator_id=? AND c.beneficiary_id=?", operator, customer)
 	if term := strings.TrimSpace(query); term != "" {
 		like := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(term) + "%"
 		q = q.Where(`(c.id::text ILIKE ? ESCAPE '\' OR e.source_event_id::text ILIKE ? ESCAPE '\' OR COALESCE(c.order_id::text,'') ILIKE ? ESCAPE '\' OR e.kind ILIKE ? ESCAPE '\' OR c.status ILIKE ? ESCAPE '\')`, like, like, like, like, like)

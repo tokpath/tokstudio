@@ -24,20 +24,20 @@ type PurposeBalance struct {
 	Balance Decimal `json:"balance"`
 }
 type FinancialSnapshot struct {
-	From                    time.Time            `json:"from"`
-	To                      time.Time            `json:"to"`
-	CapturedAt              time.Time            `json:"captured_at"`
-	Flows                   []PurposeFlow        `json:"flows"`
-	Closing                 []PurposeBalance     `json:"closing"`
-	CurrentHeld             []PurposeBalance     `json:"current_held"`
-	GrantEvents             []GrantFinancialFact `json:"grant_events"`
-	OutstandingGrantPaidUSD Decimal              `json:"outstanding_grant_paid_usd"`
-	OutstandingGrantATG     Decimal              `json:"outstanding_grant_atg"`
+	From                      time.Time            `json:"from"`
+	To                        time.Time            `json:"to"`
+	CapturedAt                time.Time            `json:"captured_at"`
+	Flows                     []PurposeFlow        `json:"flows"`
+	Closing                   []PurposeBalance     `json:"closing"`
+	CurrentHeld               []PurposeBalance     `json:"current_held"`
+	GrantEvents               []GrantFinancialFact `json:"grant_events"`
+	OutstandingGrantPaidMoney Decimal              `json:"outstanding_grant_paid_money"`
+	OutstandingGrantATG       Decimal              `json:"outstanding_grant_atg"`
 }
 type GrantFinancialFact struct {
-	Kind    string  `json:"kind"`
-	ATG     Decimal `json:"atg"`
-	PaidUSD Decimal `json:"paid_usd"`
+	Kind      string  `json:"kind"`
+	ATG       Decimal `json:"atg"`
+	PaidMoney Decimal `json:"paid_money"`
 }
 
 // FinancialFacts is a trusted read: the caller authorizes the operator and uses
@@ -69,18 +69,18 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 		// Historical account entries identify the responsible operator at To.
 		// Grant identity/funding stays fixed across takeover; using its current
 		// operator/account pointer would rewrite both parties' historical reports.
-		var outstanding struct{ PaidUSD, ATG Decimal }
-		if e := t.Raw(`SELECT COALESCE(sum(g.paid_usd-COALESCE(used.paid_usd,0)),0)::text AS paid_usd,COALESCE(sum(owned.remaining),0)::text AS atg
+		var outstanding struct{ PaidMoney, ATG Decimal }
+		if e := t.Raw(`SELECT COALESCE(sum(g.paid_money-COALESCE(used.paid_money,0)),0)::text AS paid_money,COALESCE(sum(owned.remaining),0)::text AS atg
  FROM ledger_grants g
  JOIN ledger_accounts a ON a.purpose='customer:atg:'||g.id::text AND a.owner_id=g.customer_id AND a.operator_id=?
  JOIN (SELECT account_id,sum(amount)remaining FROM ledger_entries WHERE created_at<? GROUP BY account_id HAVING sum(amount)>0)owned ON owned.account_id=a.id
- LEFT JOIN (SELECT e.grant_id,sum(e.paid_usd)paid_usd FROM ledger_grant_events e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.created_at<? GROUP BY e.grant_id)used ON used.grant_id=g.id`, operator, to, to).Scan(&outstanding).Error; e != nil {
+ LEFT JOIN (SELECT e.grant_id,sum(e.paid_money)paid_money FROM ledger_grant_events e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.created_at<? GROUP BY e.grant_id)used ON used.grant_id=g.id`, operator, to, to).Scan(&outstanding).Error; e != nil {
 			return e
 		}
 		out.OutstandingGrantATG = outstanding.ATG
-		out.OutstandingGrantPaidUSD = outstanding.PaidUSD
+		out.OutstandingGrantPaidMoney = outstanding.PaidMoney
 		// Join the immutable journal owner, never the grant's movable current owner.
-		return t.Table("ledger_grant_events e").Select("e.kind,sum(e.amount)::text AS atg,sum(e.paid_usd)::text AS paid_usd").Joins("JOIN ledger_journals j ON j.id=e.journal_id").Where("j.operator_id=? AND j.created_at>=? AND j.created_at<?", operator, from, to).Group("e.kind").Order("e.kind").Scan(&out.GrantEvents).Error
+		return t.Table("ledger_grant_events e").Select("e.kind,sum(e.amount)::text AS atg,sum(e.paid_money)::text AS paid_money").Joins("JOIN ledger_journals j ON j.id=e.journal_id").Where("j.operator_id=? AND j.created_at>=? AND j.created_at<?", operator, from, to).Group("e.kind").Order("e.kind").Scan(&out.GrantEvents).Error
 	})
 	return out, e
 }

@@ -9,7 +9,7 @@ import (
 )
 
 func (s *Service) ObserveGrantEvent(ctx context.Context, tx *gorm.DB, grant ledger.Grant, event ledger.GrantEvent) error {
-	if event.PaidUSD.IsZero() {
+	if event.PaidMoney.IsZero() {
 		return nil
 	}
 	if event.Kind != "usage" && event.Kind != "expiry" {
@@ -22,7 +22,7 @@ func (s *Service) ObserveGrantEvent(ctx context.Context, tx *gorm.DB, grant ledg
 	if err != nil {
 		return err
 	}
-	return s.AccrueGrantEvent(ctx, tx, GrantEventInput{EventID: event.ID, OperatorID: grant.OperatorID, CustomerID: grant.CustomerID, OrderID: grant.OrderID, Kind: event.Kind, PaidUSD: event.PaidUSD, OccurredAt: event.CreatedAt, BusinessSequence: instant.Sequence})
+	return s.AccrueGrantEvent(ctx, tx, GrantEventInput{EventID: event.ID, OperatorID: grant.OperatorID, CustomerID: grant.CustomerID, OrderID: grant.OrderID, Kind: event.Kind, PaidMoney: event.PaidMoney, OccurredAt: event.CreatedAt, BusinessSequence: instant.Sequence})
 }
 
 type EventEnqueuer interface {

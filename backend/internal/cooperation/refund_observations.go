@@ -17,9 +17,9 @@ type ProcurementRefundObservation struct {
 	ID                string          `json:"id"`
 	LegID             string          `json:"leg_id"`
 	FactID            string          `json:"fact_id"`
-	ActualUSD         ledger.Decimal  `json:"actual_usd"`
-	SettledUSD        ledger.Decimal  `json:"settled_usd"`
-	ExcessUSD         ledger.Decimal  `json:"excess_usd"`
+	ActualMoney       ledger.Decimal  `json:"actual_money"`
+	SettledMoney      ledger.Decimal  `json:"settled_money"`
+	ExcessMoney       ledger.Decimal  `json:"excess_money"`
 	RecipientMatches  bool            `json:"recipient_matches"`
 	Money             json.RawMessage `json:"money" gorm:"type:jsonb"`
 	Valuation         json.RawMessage `json:"valuation" gorm:"type:jsonb"`
@@ -32,7 +32,7 @@ func (ProcurementRefundObservation) TableName() string {
 	return "cooperation_procurement_refund_observations"
 }
 
-func (p *ProcurementRefunds) recordRefundObservation(ctx context.Context, tx *gorm.DB, m payments.Merchant, o payments.Order, r payments.Refund, f payments.Fact, value payments.USDValue) error {
+func (p *ProcurementRefunds) recordRefundObservation(ctx context.Context, tx *gorm.DB, m payments.Merchant, o payments.Order, r payments.Refund, f payments.Fact, value payments.MoneyValue) error {
 	if tx == nil || !p.Ready() || p.ObserveReceiptRefund == nil {
 		return ErrReplenishment
 	}
@@ -44,7 +44,7 @@ func (p *ProcurementRefunds) recordRefundObservation(ctx context.Context, tx *go
 	if q.RowsAffected == 0 {
 		return ErrNotProcurementRefund
 	}
-	if !f.Verified() || f.Kind != "refund" || f.OperatorID != leg.SupplierID || f.OrderID != o.ID || r.USDAmount.Cmp(leg.AmountUSD) != 0 || !value.Amount.Valid() || value.Amount.Sign() < 0 {
+	if !f.Verified() || f.Kind != "refund" || f.OperatorID != leg.SupplierID || f.OrderID != o.ID || r.MoneyAmount.Cmp(leg.AmountMoney) != 0 || !value.Amount.Valid() || value.Amount.Sign() < 0 {
 		return ErrRefundFX
 	}
 	if source := f.RefundSource; source != nil {
@@ -67,14 +67,21 @@ func (p *ProcurementRefunds) recordRefundObservation(ctx context.Context, tx *go
 // applyRefundObservation is shared accounting after either adapter verification
 // or independent finance verification of an unlinked manual receipt. Callers
 // persist the actual transfer evidence before this accounting savepoint.
-func (p *ProcurementRefunds) applyRefundObservation(ctx context.Context, tx *gorm.DB, leg ProcurementExitRefund, f payments.Fact, value payments.USDValue) error {
+func (p *ProcurementRefunds) applyRefundObservation(ctx context.Context, tx *gorm.DB, leg ProcurementExitRefund, f payments.Fact, value payments.MoneyValue) error {
+	base, baseErr := ledger.GetMonetary(ctx, tx)
+	if baseErr != nil {
+		return baseErr
+	}
+	if value.Currency != base.Currency {
+		return payments.ErrInvalid
+	}
 	var old ProcurementRefundObservation
 	q := tx.Where("fact_id=?", f.ID).Limit(1).Find(&old)
 	if q.Error != nil {
 		return q.Error
 	}
 	if q.RowsAffected > 0 {
-		if old.LegID != leg.ID || old.ActualUSD.Cmp(value.Amount) != 0 {
+		if old.LegID != leg.ID || old.ActualMoney.Cmp(value.Amount) != 0 {
 			return ErrConflict
 		}
 		if leg.State != "completed" {
@@ -97,7 +104,7 @@ func (p *ProcurementRefunds) applyRefundObservation(ctx context.Context, tx *gor
 			recipientMatches = strings.EqualFold(x.RecipientAddress, d.Address)
 		}
 	}
-	remaining := leg.AmountUSD.Sub(leg.SettledUSD)
+	remaining := leg.AmountMoney.Sub(leg.SettledMoney)
 	settled := value.Amount
 	if !recipientMatches {
 		settled = ledger.Zero()
@@ -119,7 +126,7 @@ func (p *ProcurementRefunds) applyRefundObservation(ctx context.Context, tx *gor
 	if e != nil {
 		return e
 	}
-	cash, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.SupplierID, OwnerID: exit.SupplierID, Purpose: "control:external_cash", Unit: "USD", AllowNegative: true})
+	cash, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.SupplierID, OwnerID: exit.SupplierID, Purpose: "control:external_cash", Unit: "MONEY", AllowNegative: true})
 	if e != nil {
 		return e
 	}
@@ -131,7 +138,7 @@ func (p *ProcurementRefunds) applyRefundObservation(ctx context.Context, tx *gor
 		lines = append(lines, ledger.Line{AccountID: cash.ID, Amount: value.Amount})
 	}
 	if excess.Sign() > 0 {
-		loss, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.SupplierID, OwnerID: exit.SupplierID, Purpose: refundLossPurpose(recipientMatches), Unit: "USD", AllowNegative: true})
+		loss, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.SupplierID, OwnerID: exit.SupplierID, Purpose: refundLossPurpose(recipientMatches), Unit: "MONEY", AllowNegative: true})
 		if e != nil {
 			return e
 		}
@@ -161,11 +168,11 @@ func (p *ProcurementRefunds) applyRefundObservation(ctx context.Context, tx *gor
 		holdID = h.ID
 	}
 	if recipientMatches && value.Amount.Sign() > 0 {
-		receivable, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.BuyerID, OwnerID: exit.ID, Purpose: "procurement_exit:receivable", Unit: "USD"})
+		receivable, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.BuyerID, OwnerID: exit.ID, Purpose: "procurement_exit:receivable", Unit: "MONEY"})
 		if e != nil {
 			return e
 		}
-		received, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.BuyerID, OwnerID: exit.BuyerID, Purpose: "control:external_receipt", Unit: "USD", AllowNegative: true})
+		received, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.BuyerID, OwnerID: exit.BuyerID, Purpose: "control:external_receipt", Unit: "MONEY", AllowNegative: true})
 		if e != nil {
 			return e
 		}
@@ -174,7 +181,7 @@ func (p *ProcurementRefunds) applyRefundObservation(ctx context.Context, tx *gor
 			buyerLines = append(buyerLines, ledger.Line{AccountID: receivable.ID, Amount: settled.Neg()})
 		}
 		if excess.Sign() > 0 {
-			unmatched, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.BuyerID, OwnerID: exit.BuyerID, Purpose: "control:procurement_refund_excess", Unit: "USD", AllowNegative: true})
+			unmatched, e := p.Cooperation.Ledger.EnsureAccount(ctx, tx, ledger.Account{OperatorID: exit.BuyerID, OwnerID: exit.BuyerID, Purpose: "control:procurement_refund_excess", Unit: "MONEY", AllowNegative: true})
 			if e != nil {
 				return e
 			}
@@ -194,20 +201,20 @@ func (p *ProcurementRefunds) applyRefundObservation(ctx context.Context, tx *gor
 	if f.ExternalRefund != nil {
 		external, _ = json.Marshal(f.ExternalRefund)
 	}
-	observation := ProcurementRefundObservation{ID: uuid.NewString(), LegID: leg.ID, FactID: f.ID, ActualUSD: value.Amount, SettledUSD: settled, ExcessUSD: excess, RecipientMatches: recipientMatches, Money: money, Valuation: valuation, ExternalExecution: external, OccurredAt: f.OccurredAt, CreatedAt: now}
+	observation := ProcurementRefundObservation{ID: uuid.NewString(), LegID: leg.ID, FactID: f.ID, ActualMoney: value.Amount, SettledMoney: settled, ExcessMoney: excess, RecipientMatches: recipientMatches, Money: money, Valuation: valuation, ExternalExecution: external, OccurredAt: f.OccurredAt, CreatedAt: now}
 	if e = tx.Create(&observation).Error; e != nil {
 		return e
 	}
 	state := "completed"
-	if newRemaining.Sign() > 0 || excess.Sign() > 0 || value.RemainderNumerator != "0" {
+	if newRemaining.Sign() > 0 || excess.Sign() > 0 {
 		state = "exception"
 	}
-	if e = tx.Model(&leg).Updates(map[string]any{"state": state, "hold_id": holdID, "settled_usd": leg.SettledUSD.Add(settled), "actual_usd": leg.ActualUSD.Add(value.Amount), "excess_usd": leg.ExcessUSD.Add(excess), "verified_fact_id": f.ID, "execution_valuation": string(valuation)}).Error; e != nil {
+	if e = tx.Model(&leg).Updates(map[string]any{"state": state, "hold_id": holdID, "settled_money": leg.SettledMoney.Add(settled), "actual_money": leg.ActualMoney.Add(value.Amount), "excess_money": leg.ExcessMoney.Add(excess), "verified_fact_id": f.ID, "execution_valuation": string(valuation)}).Error; e != nil {
 		return e
 	}
-	paid := exit.RefundedUSD.Add(settled)
+	paid := exit.RefundedMoney.Add(settled)
 	exitState := "awaiting_refund"
-	if paid.Cmp(exit.ContractUSD) == 0 {
+	if paid.Cmp(exit.ContractMoney) == 0 {
 		exitState = "awaiting_precision"
 		if exit.ContractRemainderNumerator == "0" {
 			exitState = "settled"
@@ -216,7 +223,7 @@ func (p *ProcurementRefunds) applyRefundObservation(ctx context.Context, tx *gor
 	if state == "exception" {
 		exitState = "refund_exception"
 	}
-	if e = tx.Model(&exit).Updates(map[string]any{"refunded_usd": paid, "state": exitState}).Error; e != nil {
+	if e = tx.Model(&exit).Updates(map[string]any{"refunded_money": paid, "state": exitState}).Error; e != nil {
 		return e
 	}
 	if state == "exception" {

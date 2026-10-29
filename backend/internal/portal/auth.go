@@ -66,7 +66,7 @@ func (a *Application) sessionResponse(c *gin.Context) {
 	}
 	items := []any{}
 	for _, ws := range workspaces {
-		items = append(items, gin.H{"operator": a.operatorDTO(ctx, ws.Operator), "permissions": navigationPermissions(ws.Permissions, ws.Operator.Kind)})
+		items = append(items, gin.H{"operator": a.operatorDTO(ctx, ws.Operator), "permissions": navigationPermissions(ws.Permissions, ws.Operator.Kind), "can_manage_monetary": ws.Operator.ID == a.Installation.OperatorID && ws.Membership.Role == "owner"})
 	}
 	c.JSON(200, gin.H{"kind": "staff", "staff": gin.H{"id": id.Staff.ID, "email": id.Staff.Email, "display_name": id.Staff.DisplayName}, "workspaces": items, "requires_password_change": id.Staff.MustChangePassword, "csrf_token": a.csrf(id.Token, id.Session.BrandID)})
 }

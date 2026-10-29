@@ -133,35 +133,39 @@ func (s *demoBuilder) operator(parent, actor, email, name string, kind organizat
 		return created, owner, e
 	}
 	terms := json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"TEST DATA ONLY"}`)
-	_, e = s.a.Cooperation.DeliverPurchase(s.ctx, s.tx, cooperation.PurchaseInput{BuyerID: created.Operator.ID, SupplierID: parent, OrderID: uuid.NewString(), ReceiptReference: demoEvidence, ActorID: actor, PaidUSD: ledger.MustDecimal("800"), PaidATG: ledger.MustDecimal("1000"), ExitTerms: terms, At: time.Now()})
+	_, e = s.a.Cooperation.DeliverPurchase(s.ctx, s.tx, cooperation.PurchaseInput{BuyerID: created.Operator.ID, SupplierID: parent, OrderID: uuid.NewString(), ReceiptReference: demoEvidence, ActorID: actor, PaidMoney: ledger.MustDecimal("800"), PaidATG: ledger.MustDecimal("1000"), ExitTerms: terms, At: time.Now()})
 	if e != nil {
 		return created, owner, e
 	}
-	_, e = s.a.Cooperation.PublishPurchaseQuote(s.ctx, s.tx, actor, cooperation.PurchaseQuote{SupplierID: parent, BuyerID: created.Operator.ID, GiftTiers: []cooperation.PurchaseGiftTier{{FromUSD: ledger.Zero(), GiftPercent: ledger.Zero()}, {FromUSD: ledger.FromInt64(1000), GiftPercent: ledger.FromInt64(1)}, {FromUSD: ledger.FromInt64(2000), GiftPercent: ledger.FromInt64(2)}}, ExitTerms: terms, TermsReference: demoEvidence, Enabled: true})
+	_, e = s.a.Cooperation.PublishPurchaseQuote(s.ctx, s.tx, actor, cooperation.PurchaseQuote{SupplierID: parent, BuyerID: created.Operator.ID, GiftTiers: []cooperation.PurchaseGiftTier{{FromMoney: ledger.Zero(), GiftPercent: ledger.Zero()}, {FromMoney: ledger.FromInt64(1000), GiftPercent: ledger.FromInt64(1)}, {FromMoney: ledger.FromInt64(2000), GiftPercent: ledger.FromInt64(2)}}, ExitTerms: terms, TermsReference: demoEvidence, Enabled: true})
 	return created, owner, e
 }
 func (s *demoBuilder) setup(operator, actor string) (commerce.PackageQuote, incentives.Policy, error) {
+	base, baseErr := ledger.RequireMonetary(s.ctx, s.tx)
+	if baseErr != nil {
+		return commerce.PackageQuote{}, incentives.Policy{}, baseErr
+	}
 	d := ledger.MustDecimal
 	policy, e := s.a.Incentives.CurrentPolicy(s.ctx, s.tx, operator)
 	if errors.Is(e, incentives.ErrNotReady) {
-		policy, e = s.a.Incentives.SetPolicy(s.ctx, s.tx, actor, operator, incentives.PolicyInput{ThresholdUSD: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 60, InviteeATG: ledger.Zero(), InviterATG: ledger.Zero(), RewardValiditySeconds: 2592000, KOLCrossActivityLimit: 3, Evidence: demoEvidence})
+		policy, e = s.a.Incentives.SetPolicy(s.ctx, s.tx, actor, operator, incentives.PolicyInput{ThresholdMoney: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 60, InviteeATG: ledger.Zero(), InviterATG: ledger.Zero(), RewardValiditySeconds: 2592000, KOLCrossActivityLimit: 3, Evidence: demoEvidence})
 	}
 	if e != nil {
 		return commerce.PackageQuote{}, policy, e
 	}
-	_, e = s.a.Payments.SaveMerchant(s.ctx, actor, payments.Merchant{ID: uuid.NewString(), OperatorID: operator, Driver: "manual", Enabled: true, Credentials: map[string]string{"currency": "USD", "recipient_reference": "TEST-ONLY-NOT-A-REAL-BANK-ACCOUNT", "instructions": "仅限测试验收，请勿转入真实资金。由测试经营人员登记合成收款事实。"}}, 0)
+	_, e = s.a.Payments.SaveMerchant(s.ctx, actor, payments.Merchant{ID: uuid.NewString(), OperatorID: operator, Driver: "manual", Enabled: true, Credentials: map[string]string{"currency": base.Currency, "recipient_reference": "TEST-ONLY-NOT-A-REAL-BANK-ACCOUNT", "instructions": "仅限测试验收，请勿转入真实资金。由测试经营人员登记合成收款事实。"}}, 0)
 	if e != nil {
 		return commerce.PackageQuote{}, policy, e
 	}
-	quote, e := s.a.Commerce.PublishPackage(s.ctx, s.tx, commerce.PublishPackageInput{ActorStaffID: actor, OperatorID: operator, Name: "测试 · 月度体验包", TermsReference: demoEvidence, Timezone: "Asia/Shanghai", PriceUSD: d("80"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
+	quote, e := s.a.Commerce.PublishPackage(s.ctx, s.tx, commerce.PublishPackageInput{ActorStaffID: actor, OperatorID: operator, Name: "测试 · 月度体验包", TermsReference: demoEvidence, Timezone: "Asia/Shanghai", PriceMoney: d("80"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
 	if e != nil {
 		return quote, policy, e
 	}
-	_, e = s.a.Commerce.PublishPackage(s.ctx, s.tx, commerce.PublishPackageInput{ActorStaffID: actor, OperatorID: operator, Name: "测试 · 长期备用包", TermsReference: demoEvidence, Timezone: "Asia/Shanghai", PriceUSD: d("20"), PaidATG: d("20"), GiftATG: d("2"), Period: ledger.Lifetime, NewPurchaseEnabled: true})
+	_, e = s.a.Commerce.PublishPackage(s.ctx, s.tx, commerce.PublishPackageInput{ActorStaffID: actor, OperatorID: operator, Name: "测试 · 长期备用包", TermsReference: demoEvidence, Timezone: "Asia/Shanghai", PriceMoney: d("20"), PaidATG: d("20"), GiftATG: d("2"), Period: ledger.Lifetime, NewPurchaseEnabled: true})
 	if e != nil {
 		return quote, policy, e
 	}
-	_, e = s.a.Incentives.SetWithdrawalPolicy(s.ctx, s.tx, actor, operator, incentives.WithdrawalPolicy{MinimumUSD: d("1"), FlatFeeUSD: ledger.Zero(), FeeRate: ledger.Zero(), MethodReference: "TEST ONLY: artificial evidence, no real payout"}, 0)
+	_, e = s.a.Incentives.SetWithdrawalPolicy(s.ctx, s.tx, actor, operator, incentives.WithdrawalPolicy{MinimumMoney: d("1"), FlatFeeMoney: ledger.Zero(), FeeRate: ledger.Zero(), MethodReference: "TEST ONLY: artificial evidence, no real payout"}, 0)
 	return quote, policy, e
 }
 func (s *demoBuilder) customer(brand, operator, email, name, invite string) (organization.RegistrationResult, error) {
@@ -188,27 +192,31 @@ func (s *demoBuilder) customer(brand, operator, email, name, invite string) (org
 	return result, e
 }
 func (s *demoBuilder) fund(actor string, order commerce.Order) error {
+	base, baseErr := ledger.RequireMonetary(s.ctx, s.tx)
+	if baseErr != nil {
+		return baseErr
+	}
 	now := time.Now().UTC()
-	amount := order.DueUSD
-	receipt, e := s.a.Commerce.RecordManualReceipt(s.ctx, s.tx, actor, commerce.VerifiedReceipt{OperatorID: order.OperatorID, ProviderReceiptID: "TEST-ONLY-" + order.ID, GrossUSD: amount, FeeStatus: "pending", Currency: "USD", OriginalAmount: amount.String(), RecipientReference: "TEST-ONLY-MERCHANT", PayerReference: "TEST-ONLY-CUSTOMER", ValuationEvidence: "synthetic USD = USD, no conversion", VerificationEvidence: demoEvidence, PaidAt: &now})
+	amount := order.DueMoney
+	receipt, e := s.a.Commerce.RecordManualReceipt(s.ctx, s.tx, actor, commerce.VerifiedReceipt{OperatorID: order.OperatorID, ProviderReceiptID: "TEST-ONLY-" + order.ID, GrossMoney: amount, FeeStatus: "pending", Currency: base.Currency, OriginalAmount: amount.String(), RecipientReference: "TEST-ONLY-MERCHANT", PayerReference: "TEST-ONLY-CUSTOMER", ValuationEvidence: "synthetic same-settlement-currency payment; no conversion", VerificationEvidence: demoEvidence, PaidAt: &now})
 	if e != nil {
 		return e
 	}
-	if _, e = s.a.Commerce.AllocateReceipt(s.ctx, s.tx, commerce.AllocateReceiptInput{ActorStaffID: actor, OperatorID: order.OperatorID, BusinessKey: "demo-allocate:" + order.ID, ReceiptID: receipt.ID, OrderID: order.ID, AmountUSD: amount}); e != nil {
+	if _, e = s.a.Commerce.AllocateReceipt(s.ctx, s.tx, commerce.AllocateReceiptInput{ActorStaffID: actor, OperatorID: order.OperatorID, BusinessKey: "demo-allocate:" + order.ID, ReceiptID: receipt.ID, OrderID: order.ID, AmountMoney: amount}); e != nil {
 		return e
 	}
 	_, e = s.a.Commerce.Fulfill(s.ctx, s.tx, order.ID, "demo-seed")
 	return e
 }
 func (s *demoBuilder) balance(actor, operator, customer string, quote commerce.PackageQuote) error {
-	order, e := s.a.Commerce.CreateTopUpOrder(s.ctx, s.tx, commerce.CreateTopUpInput{OperatorID: operator, CustomerID: customer, BusinessKey: "demo-topup:" + customer, ExpectedOwnershipVersion: 1, AmountUSD: ledger.MustDecimal("200")})
+	order, e := s.a.Commerce.CreateTopUpOrder(s.ctx, s.tx, commerce.CreateTopUpInput{OperatorID: operator, CustomerID: customer, BusinessKey: "demo-topup:" + customer, ExpectedOwnershipVersion: 1, AmountMoney: ledger.MustDecimal("200")})
 	if e != nil {
 		return e
 	}
 	if e = s.fund(actor, order); e != nil {
 		return e
 	}
-	order, e = s.a.Commerce.CreateOrder(s.ctx, s.tx, commerce.CreateOrderInput{OperatorID: operator, CustomerID: customer, QuoteID: quote.ID, BusinessKey: "demo-package:" + customer, ExpectedOwnershipVersion: 1, InternalUSD: ledger.MustDecimal("80"), CommissionUSD: ledger.Zero()})
+	order, e = s.a.Commerce.CreateOrder(s.ctx, s.tx, commerce.CreateOrderInput{OperatorID: operator, CustomerID: customer, QuoteID: quote.ID, BusinessKey: "demo-package:" + customer, ExpectedOwnershipVersion: 1, InternalMoney: ledger.MustDecimal("80"), CommissionMoney: ledger.Zero()})
 	if e != nil {
 		return e
 	}
@@ -309,7 +317,7 @@ func (s *demoBuilder) run(in DemoOptions) error {
 	// Existing, historically confirmed KOL is an explicit opening fixture, not a
 	// path to obtain qualification from an unconfirmed new purchase.
 	acquired := time.Now().Add(-24 * time.Hour)
-	if e = s.tx.Exec("INSERT INTO incentives_qualification_accounts(operator_id,customer_id,confirmed_usd,acquired_at,acquired_policy_id,pending_offset_usd) VALUES(?,?,?,?,?,0) ON CONFLICT(operator_id,customer_id) DO UPDATE SET confirmed_usd=EXCLUDED.confirmed_usd,acquired_at=EXCLUDED.acquired_at,acquired_policy_id=EXCLUDED.acquired_policy_id", platform, kol.Customer.ID, "100", acquired, policy.ID).Error; e != nil {
+	if e = s.tx.Exec("INSERT INTO incentives_qualification_accounts(operator_id,customer_id,confirmed_money,acquired_at,acquired_policy_id,pending_offset_money) VALUES(?,?,?,?,?,0) ON CONFLICT(operator_id,customer_id) DO UPDATE SET confirmed_money=EXCLUDED.confirmed_money,acquired_at=EXCLUDED.acquired_at,acquired_policy_id=EXCLUDED.acquired_policy_id", platform, kol.Customer.ID, "100", acquired, policy.ID).Error; e != nil {
 		return e
 	}
 	for i := range s.out.Accounts {

@@ -18,7 +18,9 @@ func SettlementSupport(m Merchant, currency string) (bool, string) {
 	case "alipay", "wechat":
 		supported = currency == "CNY"
 	case "kvoucher":
-		supported = currency == "MYR"
+		// Gkash collects MYR. A USD order keeps its USD obligation and the
+		// driver converts that amount into the MYR face, including the fee.
+		supported = currency == "MYR" || currency == "USD"
 	case "nowpayments":
 		// These price currencies are covered by the implemented fiat invoice flow.
 		supported = currency == "USD" || currency == "EUR" || currency == "GBP" || currency == "JPY"

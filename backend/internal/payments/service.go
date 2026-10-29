@@ -262,7 +262,7 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	if supported, _ := SettlementSupport(m, settings.Currency); !supported {
 		return Checkout{}, ErrUnsupported
 	}
-	if o.Money.Currency != merchantCurrency(m) {
+	if o.Money.Currency != merchantCurrency(m) && !kvoucherUSDObligation(m, o) {
 		return Checkout{}, ErrInvalid
 	}
 	o.PaymentDriver = m.Driver

@@ -15,11 +15,68 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 )
 
-func TestKVoucherRejectsForeignSettlementWithoutFetchingFX(t *testing.T) {
+func TestMYRFaceCoversUSDDueAfterKVoucherFee(t *testing.T) {
+	face, err := myrFaceForUSD(ledger.MustDecimal("10"), ledger.MustDecimal("0.245"))
+	if err != nil || face != "40.02" {
+		t.Fatal(face, err)
+	}
+	whole, err := myrFaceForUSD(ledger.MustDecimal("1"), ledger.MustDecimal("0.245"))
+	if err != nil || whole != "4" {
+		t.Fatal(whole, err)
+	}
+}
+
+func TestKVoucherRejectsUnsupportedSettlementWithoutFetchingFX(t *testing.T) {
 	m := Merchant{ID: "m", OperatorID: "op", Driver: "kvoucher", Enabled: true, Credentials: map[string]string{"kvoucher_api_key": "key", "kvoucher_api_secret": "secret"}}
-	o := paymentTestOrder(m, "USD")
+	o := paymentTestOrder(m, "EUR")
 	if _, e := (KVoucher{}).Create(context.Background(), m, o); !errors.Is(e, ErrUnsupported) {
 		t.Fatal(e)
+	}
+}
+
+func TestKVoucherConvertsUSDDueIntoMYRAndBooksTheUSDObligation(t *testing.T) {
+	var face string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/exchange-rates":
+			_, _ = w.Write([]byte(`{"base":"MYR","rates":{"USD":0.245}}`))
+		case "/api/kv/merchant/v1/orders":
+			var body struct {
+				Items []struct {
+					Denomination json.Number `json:"denomination"`
+				} `json:"custom_items"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if len(body.Items) == 1 {
+				face = body.Items[0].Denomination.String()
+			}
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"order":{"id":30,"status":"pending_payment"}}}`))
+		case "/api/kv/merchant/v1/orders/30/gkash-pay":
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"payment":{"action":"https://pay.example.test/form","method":"POST","fields":{"v_amount":"40.02","v_currency":"MYR","CID":"M"}}}}`))
+		case "/api/kv/merchant/v1/orders/30":
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"order":{"id":30,"order_no":"B2B-1","status":"pins_loaded","items":[{"denomination":40.02,"qty":1}]}}}`))
+		case "/api/kv/merchant/v1/stock/redeemed":
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"items":[]}}`))
+		case "/api/kv/merchant/v1/stock/retrieve":
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"retrieved":[{"pin_code":"0000-0000-TEST-0001","serial":"SN","denomination":40.02}]}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	now := time.Now().UTC()
+	merchant := Merchant{ID: "merchant", OperatorID: "operator", Driver: "kvoucher", Enabled: true, APIBaseURL: server.URL + "/api/kv/merchant/v1", Credentials: map[string]string{"kvoucher_api_key": "key", "kvoucher_api_secret": "secret"}}
+	driver := KVoucher{HTTP: &Transport{Client: server.Client(), AllowTestLoopback: true}}
+	order := Order{ID: "order-1", OperatorID: merchant.OperatorID, MerchantID: merchant.ID, Money: Money{Currency: "USD", Amount: ledger.MustDecimal("10")}, SettlementMoney: Money{Currency: "USD", Amount: ledger.MustDecimal("10")}, AcceptedAt: now, ExpiresAt: now.Add(30 * time.Minute)}
+	checkout, err := driver.Create(context.Background(), merchant, order)
+	if err != nil || face != "40.02" || checkout.PayMoney == nil || checkout.PayMoney.Currency != "MYR" || checkout.PayMoney.Amount.String() != "40.02" || checkout.SettlementMoney == nil || checkout.SettlementMoney.Amount.String() != "10" {
+		t.Fatal(face, checkout, err)
+	}
+	order.ProviderID = checkout.ProviderID
+	fact, err := driver.Lookup(context.Background(), merchant, order)
+	if err != nil || fact.Money.Currency != "USD" || fact.Money.Amount.String() != "10" {
+		t.Fatal(fact, err)
 	}
 }
 

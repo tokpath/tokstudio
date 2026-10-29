@@ -628,19 +628,19 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		if e != nil {
 			return e
 		}
-		currency := ""
+		currency, driver := "", ""
 		for _, method := range methods {
 			if method.ID == in.MerchantID {
 				if !method.SettlementSupported {
 					return payments.ErrUnsupported
 				}
-				currency = method.Currency
+				currency, driver = method.Currency, method.Driver
 			}
 		}
 		if currency == "" {
 			return payments.ErrNotConfigured
 		}
-		money, val, e := a.paymentValue(ctx, o.SupplierID, currency, o.DueMoney, o.CreatedAt)
+		money, val, e := a.paymentValue(ctx, o.SupplierID, driver, currency, o.DueMoney, o.CreatedAt)
 		if e != nil {
 			return e
 		}

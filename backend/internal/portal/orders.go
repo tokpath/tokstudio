@@ -215,10 +215,16 @@ func (a *Application) authorizeRenewal(ctx context.Context, tx *gorm.DB, o comme
 	_, e := a.Commerce.EnableAutoRenewal(ctx, tx, o.CustomerID, o.ID, "customer explicit order consent:"+o.BusinessKey, cr.AllowCommission)
 	return e
 }
-func (a *Application) paymentValue(ctx context.Context, operator, currency string, due ledger.Decimal, at time.Time) (payments.Money, payments.Valuation, error) {
+func (a *Application) paymentValue(ctx context.Context, operator, driver, currency string, due ledger.Decimal, at time.Time) (payments.Money, payments.Valuation, error) {
+	_, _ = operator, at
 	settings, e := ledger.GetMonetary(ctx, a.DB)
 	if e != nil {
 		return payments.Money{}, payments.Valuation{}, e
+	}
+	// KVoucher collects MYR. A USD package or procurement order keeps the USD
+	// obligation; the driver converts it into the Gkash face amount.
+	if driver == "kvoucher" && settings.Currency == "USD" {
+		return payments.Money{Currency: "USD", Amount: due}, payments.Valuation{Currency: "USD"}, nil
 	}
 	money := payments.Money{Currency: currency}
 	if currency == settings.Currency {
@@ -249,20 +255,20 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 		if e != nil {
 			return e
 		}
-		currency := ""
+		currency, driver := "", ""
 		for _, m := range methods {
 			if m.ID == *cr.MerchantID {
 				if !m.SettlementSupported {
 					return payments.ErrUnsupported
 				}
-				currency = m.Currency
+				currency, driver = m.Currency, m.Driver
 			}
 		}
 		if currency == "" {
 			return payments.ErrNotConfigured
 		}
 		due := o.DueMoney.Sub(o.InternalMoney).Sub(o.CommissionMoney)
-		money, value, e := a.paymentValue(ctx, o.OperatorID, currency, due, o.CreatedAt)
+		money, value, e := a.paymentValue(ctx, o.OperatorID, driver, currency, due, o.CreatedAt)
 		if e != nil {
 			return e
 		}

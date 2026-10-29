@@ -24372,7 +24372,7 @@
             }
           }
         },
-        "description": "One URL per operator. Signature is HMAC-SHA256 over the raw body using the hex SHA-256 of the webhook secret registered for that operator. Retrieving the reload code records the actual MYR transaction; a Gkash return URL is not payment evidence. KVoucher/Gkash checkout is supported only when the global settlement currency is MYR. The receipt retains the verified MYR gross amount as original payment evidence.",
+        "description": "One URL per operator. Signature is HMAC-SHA256 over the raw body using the hex SHA-256 of the webhook secret registered for that operator. Retrieving the reload code records the receipt; a Gkash return URL is not payment evidence. When the settlement currency is USD, KVoucher converts the USD obligation into a MYR face using its USD-per-MYR rate plus a 2 percent fee, and the receipt remains the USD obligation. When the settlement currency is MYR, the receipt retains the verified MYR amount.",
         "requestBody": {
           "required": true,
           "content": {

@@ -121,6 +121,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 503, "admission_unavailable", "请求限流依赖暂不可用，已受理事项继续结算，请稍后重试新请求", true
 	case errors.Is(err, usage.ErrResultUnavailable):
 		status, code, msg, retry = 410, "result_unavailable", "临时结果已到期或暂不可回读，请查看保留状态", false
+	case errors.Is(err, catalog.ErrEffectiveTimeRequired):
+		status, code, msg, retry = 400, "effective_time_required", "请填写生效时间。为预留系统通知时间，最好比当前时间晚五分钟，系统不强制。", false
 	case errors.Is(err, catalog.ErrChangeNotice):
 		status, code, msg, retry = 409, "advance_notice_required", "系统暂时无法安排变更通知，请稍后重试；当前有效配置不变。", false
 	case errors.Is(err, catalog.ErrPublicRoute):

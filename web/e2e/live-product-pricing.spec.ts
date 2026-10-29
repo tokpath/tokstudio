@@ -37,7 +37,8 @@ test("operators prepare multimodal prices and manage packages without notificati
   await expect(card).toBeVisible();
   await card.getByRole("button",{name:"计费模板",exact:true}).click();
   panel=page.getByRole("dialog").last();
-  await expect(panel.locator('[data-config-path="evidence"],[data-config-path="effective_at"]')).toHaveCount(0);
+  await expect(panel.locator('[data-config-path="evidence"]')).toHaveCount(0);
+  await expect(panel.locator('[data-config-path="effective_at"]')).toHaveCount(1);
   await panel.locator('[data-config-path="billing.input"]').getByRole("radio",{name:"按模态组合",exact:true}).check();
   await panel.getByRole("checkbox",{name:"输入计量 · 图片",exact:true}).check();
   await panel.getByRole("combobox",{name:"输入计量 · 图片 · 计量方式",exact:true}).selectOption("megapixels");
@@ -46,7 +47,8 @@ test("operators prepare multimodal prices and manage packages without notificati
 
   await card.getByRole("button",{name:"设置价格",exact:true}).click();
   panel=page.getByRole("dialog").last();
-  await expect(panel.locator('[data-config-path="price.notice_id"],[data-config-path="evidence"],[data-config-path="price.effective_at"]')).toHaveCount(0);
+  await expect(panel.locator('[data-config-path="price.notice_id"],[data-config-path="evidence"]')).toHaveCount(0);
+  await expect(panel.locator('[data-config-path="price.effective_at"]')).toHaveCount(1);
   await expect(panel.getByRole("option",{name:"跟随上级供货价",exact:true})).toHaveCount(0);
   const rates=panel.locator('[data-config-path^="price.rule.components."][data-config-path$=".rate"] input');
   await expect(rates).toHaveCount(4);
@@ -58,8 +60,10 @@ test("operators prepare multimodal prices and manage packages without notificati
   panel=page.getByRole("dialog").last();
   await expect(panel.locator('[data-config-path="price.rule.components.0.rate"] input')).toHaveValue("0.5");
   await panel.locator('[data-config-path="price.rule.components.0.rate"] input').fill("0.6");
+  const soon=new Date(Date.now()+60_000);
+  await panel.locator('[data-config-path="price.effective_at"] input').fill(new Date(soon.getTime()-soon.getTimezoneOffset()*60000).toISOString().slice(0,16));
   const revised=await submit(page,panel,"设置模型价格",`${base}/pricing`);
-  expect(revised.status).toBe("announcing");
+  expect(revised.status).toBe("applied");
   await card.screenshot({path:info.outputPath("model-pricing.png")});
 
   await page.goto(`/manage/${f.operator_id}/plans`);

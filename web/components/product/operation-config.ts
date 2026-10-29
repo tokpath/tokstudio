@@ -35,6 +35,7 @@ const decimal = (label: string, required = true): ConfigNode => ({ kind: "decima
 const integer = (label: string, value?: number): ConfigNode => ({ kind: "integer", label, required: value === undefined, default: value });
 const boolean = (label: string, value = false): ConfigNode => ({ kind: "boolean", label, default: value });
 const datetime = (label: string, required = false): ConfigNode => ({ kind: "datetime", label, required });
+const scheduledEffectiveTime: ConfigNode = { ...datetime("生效时间"), help: "已有配置再变更时请填写。为预留系统通知时间，生效时间最好比当前时间晚五分钟，系统不强制。第一次发布留空即可，保存后立即生效。" };
 const select = (label: string, options: [string, string][], value?: string): ConfigNode => ({ kind: "select", label, options, required: true, default: value });
 const object = (label: string, fields: Record<string, ConfigNode>, help?: string): ConfigNode => ({ kind: "object", label, fields, required: true, help });
 const array = (label: string, item: ConfigNode, help?: string): ConfigNode => ({ kind: "array", label, item, default: [], help });
@@ -118,6 +119,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
       capabilities: { ...array("可调用的能力", object("能力", { operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")) }), "勾选客户可以调用的能力。计费模板和零售、批发 ATG 价格在「模型与定价」设置；供应商模型上的参考价目仅用于核算上游成本。是否对客户开放，在列表里切换。"), presentation: "operations", options: operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download") },
     }),
     expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true },
+    effective_at: scheduledEffectiveTime,
   });
   if (/\/providers$/.test(operation.path) && operation.name === "model") return object("供应商模型", {
     supplier_model: object("供应商模型与成本价", {
@@ -156,17 +158,19 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
       output: array("输出计量项目", billingItem("output"), "只配置需要计价的输出。语音合成按输入字符计价时，可以不再单列输出费用。图片和视频可以按分辨率分档。"),
     }, "同一份内容只采用一种计量方式。按模态组合时，系统必须能够可靠拆分用量。"), presentation: "billing" },
     expected_version: { ...integer("当前版本", 0), readOnly: true },
+    effective_at: scheduledEffectiveTime,
   });
   if (/\/pricing$/.test(operation.path) && operation.name === "listing") return object("授权与上架", {
     action: select("办理事项", [["listing", "本经营方上架 / 下架"], ["authorization", "授权 / 撤销下级模型权限"]], "listing"),
     buyer_id: { ...text("被授权的直属下级"), lookup: "buyers", when: { field: "action", values: ["authorization"] } }, model_id: { ...text("公开模型"), lookup: "models" }, enabled: boolean("允许使用此模型", true),
     expected_version: { ...integer("当前上架 / 授权版本（自动带入）", 0), required: true, readOnly: true },
+    effective_at: scheduledEffectiveTime,
   });
   if (/\/pricing$/.test(operation.path)) return object("模型价格", {
     action: { ...text("操作"), default: "price", readOnly: true },
     price: object("价目与适用范围", {
       id: { ...text("本次价格版本标识"), generated: "uuid", readOnly: true }, model_id: { ...text("公开模型"), lookup: "models", wildcard: true }, scope: scope("本次定价范围", operatorID),
-      layer: select("价格类别", [["regular", "常规价格"], ["promotion", "限时促销价"]], "regular"), effective_at: { ...datetime("促销开始时间（留空自动安排）"), when: { field: "layer", values: ["promotion"] } }, ends_at: { ...datetime("促销结束时间", true), when: { field: "layer", values: ["promotion"] } },
+      layer: select("价格类别", [["regular", "常规价格"], ["promotion", "限时促销价"]], "regular"), effective_at: scheduledEffectiveTime, ends_at: { ...datetime("促销结束时间", true), when: { field: "layer", values: ["promotion"] } },
       rule: object("计价方式", {
         mode: select("计价方式", [["manual", "设置单价"], ["follow", "跟随上级供货价"]], "manual"),
         components: { ...array("组件价格", component), when: { field: "mode", values: ["manual"] } },

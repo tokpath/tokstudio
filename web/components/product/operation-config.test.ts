@@ -38,8 +38,11 @@ it("requires complete price objects and omits publication bookkeeping and non-pr
   const prepared = prepareConfiguration(value, configurationSchema(operation)!);
   expect(() => validatePriceConfiguration(prepared)).not.toThrow();
   expect(prepared).not.toHaveProperty("price.ends_at");
-  expect(prepared).not.toHaveProperty("price.effective_at");
+  expect((prepared as { price: { effective_at: string } }).price.effective_at).toBe("2026-12-01T00:00:00.000Z");
   expect(prepared).not.toHaveProperty("price.published");
+  expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.required).toBeFalsy();
+  expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.help).toContain("五分钟");
+  expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.help).toContain("不强制");
 });
 it("expands image and video resolution prices and keeps other meters unchanged", () => {
   expect(canonicalResolution("1024X1024")).toBe("1024x1024");

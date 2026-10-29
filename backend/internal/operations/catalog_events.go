@@ -11,7 +11,7 @@ func (s *Service) RecordCatalogNotice(ctx context.Context, tx *gorm.DB, c catalo
 	title := "模型与计价计划变更"
 	body := "公开模型 " + c.ResourceID + " 的 " + c.Kind + " 变更计划于 " + c.EffectiveAt.UTC().Format(time.RFC3339) + " 生效。请在模型目录或合作报价中查看具体条件；已受理请求继续按原快照结算。"
 	if c.Evidence == "system:catalog-publication" {
-		body = "公开模型 " + c.ResourceID + " 的价格或使用条件即将更新，最早于 " + c.EffectiveAt.UTC().Format(time.RFC3339) + " 生效；系统完成通知后保留提前通知时间，如通知延迟则顺延。具体状态与价格可在模型目录或合作报价中查看，已受理请求继续按原快照结算。"
+		body = "公开模型 " + c.ResourceID + " 的价格或使用条件将于 " + c.EffectiveAt.UTC().Format(time.RFC3339) + " 生效。通知已在提交时发送，生效时间按填写执行。已受理请求继续按原快照结算。"
 	}
 	severity := "info"
 	if c.Kind == "emergency_model_disable" {

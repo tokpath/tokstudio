@@ -13,35 +13,47 @@ import (
 
 type testNoticeAudience struct{}
 
-func TestPostgresAutomaticPublicationSurvivesDelayedWorker(t *testing.T) {
+func TestPostgresPriceRevisionKeepsTheOperatorEffectiveTime(t *testing.T) {
 	s := newCommerceTestStore(t)
 	seedCommerceModel(t, s)
-	c, now, _ := testController(t, s, "platform")
+	c, now, sink := testController(t, s, "platform")
 	scope := PriceScope{Kind: "retail", SellerID: "platform"}
 	base := priceAt("base", scope, now.Add(-time.Hour), "1")
 	if err := s.PublishPrice(context.Background(), "platform", base, c.ValidateCoverage); err != nil {
 		t.Fatal(err)
 	}
-	next := priceAt(uuid.NewString(), scope, time.Time{}, "2")
-	change, err := c.SchedulePrice(context.Background(), "platform", next, "")
-	if err != nil || !change.EffectiveAt.After(*now) {
-		t.Fatal(change, err)
+	missing := priceAt(uuid.NewString(), scope, time.Time{}, "2")
+	if _, err := c.SchedulePrice(context.Background(), "platform", missing, ""); !errors.Is(err, ErrEffectiveTimeRequired) {
+		t.Fatal("missing effective time was invented", err)
 	}
-	*now = now.Add(10 * time.Minute).Truncate(time.Microsecond).Add(789 * time.Nanosecond)
+	chosen := now.Add(30 * time.Second).Truncate(time.Microsecond)
+	next := priceAt(uuid.NewString(), scope, chosen, "2")
+	change, err := c.SchedulePrice(context.Background(), "platform", next, "")
+	if err != nil || !change.EffectiveAt.Equal(chosen.UTC()) || change.AnnouncedAt == nil {
+		t.Fatal("revision did not keep the chosen time and notify immediately", change, err)
+	}
+	var notices int64
+	if err = s.DB.Table("test_catalog_announcements").Where("change_id=?", change.ID).Count(&notices).Error; err != nil || notices != 1 {
+		t.Fatal("notice was not sent on submit", notices, err)
+	}
+	current, err := (PriceResolver{Source: s}).Resolve(context.Background(), scope, "model", *now)
+	if err != nil || current.Lineage[0].VersionID != "base" {
+		t.Fatal("future price replaced the current price", current, err)
+	}
+	*now = now.Add(10 * time.Minute)
 	if _, err = c.Run(context.Background(), 20); err != nil {
 		t.Fatal(err)
 	}
 	var stored CatalogChange
-	if err = s.DB.First(&stored, "id=?", change.ID).Error; err != nil || stored.State != "applied" || !stored.EffectiveAt.After(*now) {
-		t.Fatal("automatic change was stranded after worker delay", stored, err)
+	if err = s.DB.First(&stored, "id=?", change.ID).Error; err != nil || !stored.EffectiveAt.Equal(chosen.UTC()) {
+		t.Fatal("worker moved the operator's effective time", stored, err)
 	}
-	current, err := (PriceResolver{Source: s}).Resolve(context.Background(), scope, "model", *now)
-	if err != nil || current.Lineage[0].VersionID != "base" {
-		t.Fatal("new price bypassed notice lead", current, err)
-	}
-	current, err = (PriceResolver{Source: s}).Resolve(context.Background(), scope, "model", stored.EffectiveAt)
+	current, err = (PriceResolver{Source: s}).Resolve(context.Background(), scope, "model", chosen)
 	if err != nil || current.Lineage[0].VersionID != next.ID {
-		t.Fatal("rescheduled price never became available", current, err)
+		t.Fatal("price did not start at the chosen time", current, err)
+	}
+	if sink == nil {
+		t.Fatal("notice sink missing")
 	}
 }
 
@@ -113,14 +125,12 @@ func TestPostgresCatalogPriceRequiresActualAdvanceNotice(t *testing.T) {
 	if e := s.PublishPrice(context.Background(), "platform", next, c.ValidateCoverage); !errors.Is(e, ErrChangeNotice) {
 		t.Fatal("arbitrary notice string accepted as real notification")
 	}
-	change, e := c.SchedulePrice(context.Background(), "platform", next, "approved price plan")
-	if e != nil {
-		t.Fatal(e)
-	}
 	sink.fail = true
-	if _, e = c.Run(context.Background(), 20); e == nil {
+	change, e := c.SchedulePrice(context.Background(), "platform", next, "approved price plan")
+	if e == nil {
 		t.Fatal("notification transaction failure ignored")
 	}
+	sink.fail = false
 	var count int64
 	_ = s.DB.Table("tokenhub_model_price_versions").Where("id=?", next.ID).Count(&count).Error
 	if count != 0 {
@@ -235,23 +245,24 @@ func TestPostgresLateNoticeBlocksChangeAndEmergencyStopsImmediately(t *testing.T
 	if e = s.SavePublicModel(context.Background(), "platform", m, m.Version); !errors.Is(e, ErrChangeNotice) {
 		t.Fatal("ordinary model change bypassed plan")
 	}
-	change, e := c.SchedulePublicModel(context.Background(), "platform", m, m.Version, now.Add(3*time.Minute), "planned model metadata change")
-	if e != nil {
-		t.Fatal(e)
-	}
-	*now = now.Add(4 * time.Minute)
-	if _, e = c.Run(context.Background(), 20); e != nil {
-		t.Fatal(e)
-	}
-	var blocked CatalogChange
-	_ = s.DB.First(&blocked, "id=?", change.ID).Error
-	if blocked.State != "notice_late" {
-		t.Fatal("late notice did not block normal application")
+	chosen := now.Add(30 * time.Second).Truncate(time.Microsecond)
+	change, e := c.SchedulePublicModel(context.Background(), "platform", m, m.Version, chosen, "planned model metadata change")
+	if e != nil || !change.EffectiveAt.Equal(chosen.UTC()) || change.State != "announced" {
+		t.Fatal("soon effective time was rejected or notices waited", change, e)
 	}
 	still, _ := s.PublicModel(context.Background(), "model")
 	if !still.Enabled {
-		t.Fatal("late model change applied")
+		t.Fatal("model changed before the chosen time")
 	}
+	*now = chosen
+	if _, e = c.Run(context.Background(), 20); e != nil {
+		t.Fatal(e)
+	}
+	updated, _ := s.PublicModel(context.Background(), "model")
+	if updated.Enabled {
+		t.Fatal("model stayed enabled after the chosen time")
+	}
+	still = updated
 	emergency, e := c.EmergencyDisablePublicModel(context.Background(), "platform", "model", "verified emergency reference", still.Version)
 	if e != nil {
 		t.Fatal(e)

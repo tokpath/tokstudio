@@ -128,12 +128,12 @@ func TestPostgresNewModelListingAndAuthorizationHonorPlannedActivation(t *testin
 		}
 		status, out, _ = f.call(t, "POST", base+"/pricing", input, uuid.NewString())
 		mustOK(t, status, out)
-		if out["status"] != "announcing" || out["id"] == model.ID {
+		if out["status"] != "announced" || out["id"] == model.ID {
 			t.Fatal("planned first activation bypassed its notification plan", action, out)
 		}
 	}
 	var changes int64
-	if err = f.a.DB.Model(&catalog.CatalogChange{}).Where("operator_id=? AND resource_id=? AND state='announcing'", op, model.ID).Count(&changes).Error; err != nil || changes != 2 {
+	if err = f.a.DB.Model(&catalog.CatalogChange{}).Where("operator_id=? AND resource_id=? AND state='announced'", op, model.ID).Count(&changes).Error; err != nil || changes != 2 {
 		t.Fatal("missing planned activations", changes, err)
 	}
 }

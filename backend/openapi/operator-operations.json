@@ -849,14 +849,14 @@
   {
     "resource": "pricing",
     "confirmation": "",
-    "description": "选择模型和定价对象，填写 ATG 单价。系统自动生成价格版本并处理调价通知，无需填写通知编号或依据。",
+    "description": "选择模型和定价对象，填写 ATG 单价。第一次定价保存后立即生效。调整已有价格时填写生效时间，提交后立即通知。",
     "fields": [
       {
         "name": "configuration",
         "label": "配置 JSON",
         "kind": "json",
         "required": true,
-        "help": "action:price、price:{scope,model_id,layer,rule,ends_at?}；版本、发布状态与普通调价时间由系统生成。"
+        "help": "action:price、price:{scope,model_id,layer,rule,effective_at?,ends_at?}。第一次定价可留空；已有价格请填写生效时间。"
       }
     ],
     "include_version": false,
@@ -869,7 +869,7 @@
   {
     "resource": "pricing",
     "confirmation": "",
-    "description": "上架和授权分别管理，正常变更由系统自动通知并安排生效。",
+    "description": "第一次上架或授权保存后立即生效。之后的变更请填写生效时间，提交后立即通知。",
     "fields": [
       {
         "name": "configuration",
@@ -5420,7 +5420,7 @@
     ],
     "include_version": false,
     "confirmation": "",
-    "description": "Platform only; also requires catalog.manage. Select one input and output measurement per modality. Notifications and activation are scheduled automatically."
+    "description": "Platform only; also requires catalog.manage. Select one input and output measurement per modality. A model that is not yet open takes effect on save. Changes to an enabled or listed model need an effective time, and notices are sent on submit."
   },
   {
     "resource": "bifrost",

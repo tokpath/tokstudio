@@ -463,6 +463,7 @@ it("reads the locked EVM asset for FX visibility even when no money currency fie
 it("asks only for a public model's name and capabilities", async () => {
   show({ name: "save", label: "添加公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [{ name: "configuration", label: "配置 JSON", kind: "json", required: true }] });
   expect(screen.queryByLabelText("计划生效时间（修订已开放模型时填写）", { exact: false })).toBeNull();
+  expect(screen.getByLabelText("生效时间", { exact: true })).toBeTruthy();
   expect(screen.queryByRole("radiogroup", { name: "开放模型" })).toBeNull();
   expect(screen.queryByLabelText("客户看到的模型名称", { exact: true })).toBeNull();
   expect(screen.queryByRole("heading", {name:"提交前核对"})).toBeNull();

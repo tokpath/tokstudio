@@ -14,9 +14,9 @@ import (
 
 var ErrChangeNotice = errors.New("catalog change requires an actual advance notification plan")
 
-// catalogAdvanceLead is the fixed notice period for an ordinary price or model
-// change. It is not configured per operator.
-const catalogAdvanceLead = 60 * time.Second
+// ErrEffectiveTimeRequired means an existing service change has no operator-chosen time.
+// A five-minute buffer is only a suggestion and is not validated here.
+var ErrEffectiveTimeRequired = errors.New("catalog change requires an operator chosen effective time")
 
 type CatalogChange struct {
 	ID              string          `json:"id"`
@@ -71,7 +71,7 @@ func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, e
 		return out, ErrChangeNotice
 	}
 	if effective.IsZero() {
-		effective = c.nextEffectiveAt()
+		return out, ErrEffectiveTimeRequired
 	}
 	if evidence == "" {
 		evidence = "system:catalog-publication"
@@ -82,9 +82,6 @@ func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, e
 	}
 	e = c.Catalog.mutate(ctx, func(tx CommerceCatalog) error {
 		now := c.now()
-		if effective.Before(now.Add(catalogAdvanceLead + time.Minute)) {
-			return ErrChangeNotice
-		}
 		affected := []string{actor}
 		if kind == "price" && scope.Kind == "supply" {
 			affected = []string{scope.BuyerID}
@@ -99,7 +96,7 @@ func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, e
 				return e
 			}
 		}
-		out = CatalogChange{ID: uuid.NewString(), OperatorID: actor, Kind: kind, ResourceID: resource, Payload: raw, Fingerprint: changeFingerprint(kind, resource, raw), EffectiveAt: effective.UTC(), LeadSeconds: int64(catalogAdvanceLead / time.Second), ExpectedVersion: expected, State: "announcing", Evidence: evidence, CreatedAt: now}
+		out = CatalogChange{ID: uuid.NewString(), OperatorID: actor, Kind: kind, ResourceID: resource, Payload: raw, Fingerprint: changeFingerprint(kind, resource, raw), EffectiveAt: effective.UTC(), ExpectedVersion: expected, State: "announcing", Evidence: evidence, CreatedAt: now}
 		if kind != "price" {
 			previous := tx.DB.WithContext(ctx).Model(&CatalogChange{}).Where("operator_id=? AND kind=? AND resource_id=? AND state IN ('announcing','announced')", actor, kind, resource)
 			if kind == "authorization" {
@@ -119,7 +116,27 @@ func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, e
 		}
 		return nil
 	})
-	return out, e
+	if e != nil {
+		return out, e
+	}
+	return c.finishNotice(ctx, out)
+}
+
+// finishNotice sends the saved plan's notices before the request returns.
+// The operator's effective time is kept even when it is soon or already due.
+func (c ChangeController) finishNotice(ctx context.Context, change CatalogChange) (CatalogChange, error) {
+	for i := 0; i < 1000 && change.State == "announcing"; i++ {
+		if _, e := c.Run(ctx, 20); e != nil {
+			return change, e
+		}
+		if e := c.Catalog.DB.WithContext(ctx).First(&change, "id=?", change.ID).Error; e != nil {
+			return change, e
+		}
+	}
+	if change.State == "announcing" {
+		return change, ErrChangeNotice
+	}
+	return change, nil
 }
 func (c ChangeController) SchedulePrice(ctx context.Context, actor string, v PriceVersion, evidence string) (CatalogChange, error) {
 	if v.Scope.SellerID != actor {
@@ -135,7 +152,7 @@ func (c ChangeController) SchedulePrice(ctx context.Context, actor string, v Pri
 		}
 	}
 	if v.EffectiveAt.IsZero() {
-		v.EffectiveAt = c.nextEffectiveAt()
+		return CatalogChange{}, ErrEffectiveTimeRequired
 	}
 	if e := ValidatePriceVersion(v); e != nil {
 		return CatalogChange{}, e
@@ -145,10 +162,6 @@ func (c ChangeController) SchedulePrice(ctx context.Context, actor string, v Pri
 	return c.schedule(ctx, actor, "price", v.ModelID, evidence, v, 0, v.EffectiveAt, v.Scope)
 }
 
-func (c ChangeController) nextEffectiveAt() time.Time {
-	// Leave time for the worker to create the notices before the fixed lead.
-	return c.now().Add(catalogAdvanceLead + time.Minute + 5*time.Second)
-}
 func (c ChangeController) SchedulePublicModel(ctx context.Context, actor string, m PublicModel, expected uint64, effective time.Time, evidence string) (CatalogChange, error) {
 	if !c.Catalog.platform(actor) {
 		return CatalogChange{}, ErrCatalogForbidden
@@ -168,16 +181,15 @@ func (s CommerceCatalog) requirePriceNotice(ctx context.Context, v PriceVersion)
 	candidate := v
 	candidate.NoticeID = ""
 	raw, _ := json.Marshal(candidate)
-	if change.Fingerprint != changeFingerprint("price", v.ModelID, raw) || change.AnnouncedAt == nil || v.EffectiveAt.Before(change.AnnouncedAt.Add(time.Duration(change.LeadSeconds)*time.Second)) {
+	if change.Fingerprint != changeFingerprint("price", v.ModelID, raw) || change.AnnouncedAt == nil {
 		return ErrChangeNotice
 	}
 	return nil
 }
 
-// Run completes durable fanout before applying a normal change. Automatic
-// publications move forward if fanout is delayed; explicitly scheduled plans
-// retain their promised time and require review if it is missed. Accepted
-// request snapshots are untouched in either case.
+// Run completes notice fanout, then applies a change once the operator's time
+// has arrived. That time is not postponed when notices take longer than expected.
+// Accepted request snapshots are untouched.
 func (c ChangeController) Run(ctx context.Context, limit int) ([]CatalogChange, error) {
 	if c.Audience == nil || c.Notices == nil {
 		return nil, ErrChangeNotice
@@ -245,32 +257,6 @@ func (c ChangeController) Run(ctx context.Context, limit int) ([]CatalogChange, 
 					now := c.now().Truncate(time.Microsecond)
 					state := "announced"
 					code := ""
-					if !current.EffectiveAt.IsZero() && current.EffectiveAt.Before(now.Add(time.Duration(current.LeadSeconds)*time.Second)) {
-						if current.Evidence == "system:catalog-publication" {
-							// Worker delays must not turn a simple save into a manual
-							// rescheduling task. Keep the old state effective until the
-							// full notice period has elapsed after durable fanout.
-							current.EffectiveAt = now.Add(time.Duration(current.LeadSeconds) * time.Second)
-							if current.Kind == "price" {
-								var price PriceVersion
-								if e := json.Unmarshal(current.Payload, &price); e != nil {
-									return e
-								}
-								price.EffectiveAt = current.EffectiveAt
-								if price.EndsAt != nil && !price.EndsAt.After(price.EffectiveAt) {
-									state, code = "expired", "promotion_ended_before_publication"
-								}
-								current.Payload, _ = json.Marshal(price)
-								current.Fingerprint = changeFingerprint(current.Kind, current.ResourceID, current.Payload)
-							}
-							if e := tx.Model(&current).Updates(map[string]any{"effective_at": current.EffectiveAt, "payload": current.Payload, "fingerprint": current.Fingerprint}).Error; e != nil {
-								return e
-							}
-						} else {
-							state = "notice_late"
-							code = "advance_period_not_satisfied"
-						}
-					}
 					if current.Kind == "emergency_model_disable" {
 						state = "applied"
 					}

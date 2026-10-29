@@ -50,17 +50,23 @@ func TestPostgresProductPricingNeedsNoManualPublicationPaperwork(t *testing.T) {
 			t.Fatal("publication replay generated another version")
 		}
 	}
-	// Revisions have no caller-created notice ID, evidence, publication flag or
-	// timestamp. They still cannot bypass real notification and price snapshots.
-	change := map[string]any{"configuration": map[string]any{"action": "price", "price": map[string]any{"model_id": model, "scope": map[string]string{"kind": "retail"}, "layer": "regular", "rule": map[string]any{"mode": "manual", "components": []map[string]string{{"key": "input", "unit": "token", "per": "1000000", "rate": "3"}}}}}}
+	// A revision needs the operator's time. Notices go out before the response,
+	// and a time only 30 seconds ahead is accepted.
+	effective := time.Now().UTC().Add(30 * time.Second).Truncate(time.Microsecond)
+	change := map[string]any{"configuration": map[string]any{"action": "price", "price": map[string]any{"model_id": model, "scope": map[string]string{"kind": "retail"}, "layer": "regular", "effective_at": effective, "rule": map[string]any{"mode": "manual", "components": []map[string]string{{"key": "input", "unit": "token", "per": "1000000", "rate": "3"}}}}}}
 	status, out, _ = f.call(t, "POST", base+"/pricing", change, "")
 	mustOK(t, status, out)
-	if out["status"] != "announcing" {
-		t.Fatal("revision bypassed notice", out)
+	if out["status"] != "applied" {
+		t.Fatal("revision was not notified on submit", out)
 	}
 	var pending catalog.CatalogChange
-	if err := f.a.DB.First(&pending, "id=?", out["id"]).Error; err != nil || pending.Evidence != "system:catalog-publication" || !pending.EffectiveAt.After(time.Now()) {
-		t.Fatal("automatic publication missing", pending, err)
+	if err := f.a.DB.First(&pending, "id=?", out["id"]).Error; err != nil || pending.AnnouncedAt == nil || !pending.EffectiveAt.Equal(effective) {
+		t.Fatal("operator effective time was replaced", pending, err)
+	}
+	omitted := map[string]any{"configuration": map[string]any{"action": "price", "price": map[string]any{"model_id": model, "scope": map[string]string{"kind": "retail"}, "layer": "regular", "rule": map[string]any{"mode": "manual", "components": []map[string]string{{"key": "input", "unit": "token", "per": "1000000", "rate": "4"}}}}}}
+	status, out, _ = f.call(t, "POST", base+"/pricing", omitted, "")
+	if status != 400 {
+		t.Fatal("revision without an effective time was accepted", status, out)
 	}
 
 	// Package publishing accepts the business inputs without IDs, contract
@@ -101,11 +107,12 @@ func TestPostgresProductPricingNeedsNoManualPublicationPaperwork(t *testing.T) {
 		t.Fatal(err)
 	}
 	profile := map[string]any{"input": []map[string]string{{"modality": "text", "template": "characters"}}, "output": []map[string]string{{"modality": "text", "template": "tokens"}}}
-	request := map[string]any{"configuration": map[string]any{"action": "billing", "model_id": active, "operation": "chat", "billing": profile, "expected_version": current.Version}}
+	templateAt := time.Now().UTC().Add(8 * time.Minute).Truncate(time.Microsecond)
+	request := map[string]any{"configuration": map[string]any{"action": "billing", "model_id": active, "operation": "chat", "billing": profile, "expected_version": current.Version, "effective_at": templateAt}}
 	status, out, _ = f.call(t, "POST", base+"/pricing", request, "")
 	mustOK(t, status, out)
-	if out["status"] != "announcing" {
-		t.Fatal("open-model template still needs manual notice inputs", out)
+	if out["status"] != "announced" {
+		t.Fatal("open-model template was not announced on submit", out)
 	}
 	firstChange := out["id"]
 	status, out, _ = f.call(t, "GET", base+"/references/models?q="+active, nil, "")
@@ -135,7 +142,7 @@ func TestPostgresProductPricingNeedsNoManualPublicationPaperwork(t *testing.T) {
 	if err != nil || still.Version != current.Version {
 		t.Fatal("live service switched before replacement prices were ready", still, err)
 	}
-	price := map[string]any{"configuration": map[string]any{"action": "price", "price": map[string]any{"model_id": active, "scope": map[string]string{"kind": "retail"}, "layer": "regular", "rule": map[string]any{"mode": "manual", "components": []map[string]string{
+	price := map[string]any{"configuration": map[string]any{"action": "price", "price": map[string]any{"model_id": active, "scope": map[string]string{"kind": "retail"}, "layer": "regular", "effective_at": time.Now().UTC().Add(time.Minute), "rule": map[string]any{"mode": "manual", "components": []map[string]string{
 		{"key": "input_text_characters", "unit": "character", "per": "1000", "rate": "1"},
 		{"key": "input_image_megapixels", "unit": "megapixel", "per": "1", "rate": "2"},
 		{"key": "input_image_megapixels:1024x1024", "unit": "megapixel", "per": "1", "rate": "3"},

@@ -640,7 +640,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			handleError(c, e)
 			return true
 		}
-		p["description"] = "选择模型，设置客户零售价或直属下级供货价。计费模板决定计量方式，ATG 单价决定扣多少额度，供应商成本独立核算。首次定价直接发布；后续变更由系统通知并安排生效。"
+		p["description"] = "选择模型，设置客户零售价或直属下级供货价。计费模板决定计量方式，ATG 单价决定扣多少额度，供应商成本独立核算。第一次定价保存后立即生效。已有价格、上架、授权和已开放模型的变更请填写生效时间，提交后立即通知。生效时间最好比当前时间晚五分钟，系统不强制。"
 		p["search_supported"] = true
 		p["columns"] = []gin.H{col("name", "模型", "text"), col("prices", "客户当前调用价", "text"), col("status", "状态", "status")}
 		listingLabel := "授权与上架"
@@ -648,15 +648,15 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			listingLabel = "上架与下架"
 		}
 		p["operations"] = []operation{
-			{Name: "price", Label: "设置模型价格", Method: "POST", Path: base, Description: "选择模型和定价对象，填写 ATG 单价。系统自动生成价格版本并处理调价通知，无需填写通知编号或依据。", Fields: []field{jsonField("action:price、price:{scope,model_id,layer,rule,ends_at?}；版本、发布状态与普通调价时间由系统生成。")}},
-			{Name: "listing", Label: listingLabel, Method: "POST", Path: base, Description: "上架和授权分别管理，正常变更由系统自动通知并安排生效。", Fields: []field{jsonField("action:listing 或 authorization、model_id、buyer_id（授权时）、enabled、expected_version")}},
+			{Name: "price", Label: "设置模型价格", Method: "POST", Path: base, Description: "选择模型和定价对象，填写 ATG 单价。第一次定价保存后立即生效。调整已有价格时填写生效时间，提交后立即通知。", Fields: []field{jsonField("action:price、price:{scope,model_id,layer,rule,effective_at?,ends_at?}。第一次定价可留空；已有价格请填写生效时间。")}},
+			{Name: "listing", Label: listingLabel, Method: "POST", Path: base, Description: "第一次上架或授权保存后立即生效。之后的变更请填写生效时间，提交后立即通知。", Fields: []field{jsonField("action:listing 或 authorization、model_id、buyer_id（授权时）、enabled、expected_version、effective_at")}},
 		}
 	default:
 		return false
 	}
 	if resource == "pricing" && op.ID == a.Installation.OperatorID && a.Organization.RequirePermission(ctx, nil, actor, op.ID, "catalog.manage") == nil {
 		operations := p["operations"].([]operation)
-		p["operations"] = append(operations, operation{Name: "template", Label: "设置计费模板", Method: "POST", Path: base, Description: "按能力分别设置输入与输出的计量方式，按模态组合且不重复计费。已启用模型的变更由系统自动通知。", Fields: []field{jsonField("action:billing、model_id、operation、billing、expected_version")}})
+		p["operations"] = append(operations, operation{Name: "template", Label: "设置计费模板", Method: "POST", Path: base, Description: "按能力分别设置输入与输出的计量方式，按模态组合且不重复计费。尚未开放的模型保存后立即生效。已启用或已上架模型的变更请填写生效时间，提交后立即通知。", Fields: []field{jsonField("action:billing、model_id、operation、billing、expected_version、effective_at")}})
 	}
 	p["items"] = items
 	a.resourceResponse(c, p)
@@ -709,9 +709,10 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 			if e == nil {
 				return commandResult(in.Model.ID, "saved"), nil
 			}
-			if !errors.Is(e, catalog.ErrChangeNotice) {
-				return nil, e
+			if errors.Is(e, catalog.ErrChangeNotice) {
+				return nil, catalog.ErrEffectiveTimeRequired
 			}
+			return nil, e
 		}
 		if in.Expected == 0 {
 			e := cat.SavePublicModel(ctx, op.ID, in.Model, in.Expected)
@@ -811,6 +812,7 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 				if e == nil || !errors.Is(e, catalog.ErrChangeNotice) {
 					return commandResult(m.ID, "saved"), e
 				}
+				return nil, catalog.ErrEffectiveTimeRequired
 			}
 			out, e := controller.SchedulePublicModel(ctx, op.ID, m, in.Expected, in.EffectiveAt, in.Evidence)
 			return commandResult(out.ID, out.State), e
@@ -830,6 +832,9 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 					return nil, e
 				}
 			}
+			if in.EffectiveAt.IsZero() {
+				return nil, catalog.ErrEffectiveTimeRequired
+			}
 			out, e := controller.ScheduleListing(ctx, op.ID, in.ModelID, in.Enabled, in.Expected, in.EffectiveAt, in.Evidence)
 			result := commandResult(out.ID, out.State)
 			result["message"] = "上架或下架变更已保存，请查看模型列表中的生效进度。"
@@ -838,6 +843,9 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 			if in.Expected == 0 && in.Enabled && in.EffectiveAt.IsZero() {
 				e := cat.SetAuthorization(ctx, op.ID, in.BuyerID, in.ModelID, true, 0)
 				return commandResult(in.ModelID, "configured"), e
+			}
+			if in.EffectiveAt.IsZero() {
+				return nil, catalog.ErrEffectiveTimeRequired
 			}
 			out, e := controller.ScheduleAuthorization(ctx, op.ID, in.BuyerID, in.ModelID, in.Enabled, in.Expected, in.EffectiveAt, in.Evidence)
 			return commandResult(out.ID, out.State), e
@@ -857,20 +865,20 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 				}
 				in.Price.Rule.Follow = &catalog.PriceScope{Kind: "supply", SellerID: *op.ParentOperatorID, BuyerID: op.ID}
 			}
-			automaticTime := in.Price.EffectiveAt.IsZero()
-			if automaticTime {
+			chosenTime := !in.Price.EffectiveAt.IsZero()
+			if !chosenTime {
 				in.Price.EffectiveAt = time.Now().UTC()
 			}
 			in.Price.Published = true
 			in.Price.NoticeID = ""
-			// One save operation: first prices publish immediately, revisions are
-			// automatically announced. The caller never manages notice records.
+			// First prices publish immediately. Revisions keep the operator's time
+			// and send notices before this request returns.
 			e := cat.PublishPrice(ctx, op.ID, in.Price, a.pricePublished)
 			if e == nil || !errors.Is(e, catalog.ErrChangeNotice) {
 				return commandResult(in.Price.ID, "published"), e
 			}
-			if automaticTime {
-				in.Price.EffectiveAt = time.Time{}
+			if !chosenTime {
+				return nil, catalog.ErrEffectiveTimeRequired
 			}
 			out, e := controller.SchedulePrice(ctx, op.ID, in.Price, in.Evidence)
 			return commandResult(out.ID, out.State), e

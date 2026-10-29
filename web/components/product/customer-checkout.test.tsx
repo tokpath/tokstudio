@@ -109,6 +109,19 @@ it("keeps the order page and posts Gkash into a separate window", () => {
   expect(change).toHaveBeenCalledTimes(1);
 });
 
+it("lets the customer cancel an unpaid order before sending money", async () => {
+  const fetch = vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => response(init?.method === "POST" ? { ...order, status: "closed", cancel_allowed: false } : order));
+  vi.stubGlobal("fetch", fetch);
+  mount(<PaymentAction order={{ ...order, cancel_allowed: true, payment_action: { kind: "offline", address: "TEST-ONLY", currency: "USD", amount: "80", instructions: "测试收款说明" } }} />);
+  fireEvent.click(screen.getByRole("button", { name: "取消订单" }));
+  expect(screen.getByText(/还没有记录到付款/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "确认取消订单" }));
+  await screen.findByText(/订单已取消/);
+  const call = fetch.mock.calls.find(item => item[1]?.method === "POST")!;
+  expect(String(call[0])).toBe("/api/v1/me/orders/order-one/cancel");
+  expect(screen.queryByText("完成本订单付款")).toBeNull();
+});
+
 it("shows offline bank account, original currency, precise amount and instructions without chain fields", () => {
   mount(<PaymentAction order={{ ...order, payment_action: { kind: "offline", address: "合成测试银行账号 6222-0000", currency: "USD", amount: "10.000000000000000001", instructions: "仅限隔离测试：付款备注原订单编号，由财务核对银行回单。" } }} />);
   expect(screen.getByText("合成测试银行账号 6222-0000")).toBeTruthy();

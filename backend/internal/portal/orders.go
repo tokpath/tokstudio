@@ -308,6 +308,11 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 	if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
 		return nil, e
 	}
+	allowed, err := a.customerOrderMayCancel(ctx, a.DB, o)
+	if err != nil {
+		return nil, err
+	}
+	dto["cancel_allowed"] = allowed
 	if e == nil && cr.MerchantID != nil && o.Status != "completed" {
 		intent, e := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
 		if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
@@ -460,6 +465,85 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 	if e == nil {
 		e = a.ensureCheckout(ctx, o)
 	}
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	dto, e := a.orderDTO(ctx, o)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	c.JSON(200, dto)
+}
+
+// A customer may cancel only before any payment is recorded. Manual
+// instructions can still be withdrawn. An online checkout that is not a
+// confirmed failure keeps its reservation until the original payment is known.
+func (a *Application) customerOrderMayCancel(ctx context.Context, tx *gorm.DB, o commerce.Order) (bool, error) {
+	if o.Status != "pending" || o.ExternalAllocatedMoney.Sign() > 0 {
+		return false, nil
+	}
+	var cr checkoutRow
+	found := tx.WithContext(ctx).Where("order_id=? AND customer_id=?", o.ID, o.CustomerID).Limit(1).Find(&cr)
+	if found.Error != nil {
+		return false, found.Error
+	}
+	if found.RowsAffected == 0 || cr.MerchantID == nil {
+		return true, nil
+	}
+	var merchant struct{ Driver string }
+	if err := tx.WithContext(ctx).Table("payments_merchants").Select("driver").Where("id=? AND operator_id=?", *cr.MerchantID, o.OperatorID).Take(&merchant).Error; err != nil {
+		return false, err
+	}
+	var receipts int64
+	if err := tx.WithContext(ctx).Table("payments_verified_facts").Where("operator_id=? AND merchant_id=? AND order_id=? AND kind='receipt'", o.OperatorID, *cr.MerchantID, o.ID).Count(&receipts).Error; err != nil {
+		return false, err
+	}
+	if receipts > 0 {
+		return false, nil
+	}
+	if merchant.Driver == "manual" {
+		return true, nil
+	}
+	var intent struct{ State string }
+	found = tx.WithContext(ctx).Table("payments_intents").Where("operator_id=? AND merchant_id=? AND order_id=?", o.OperatorID, *cr.MerchantID, o.ID).Limit(1).Find(&intent)
+	return found.RowsAffected == 1 && intent.State == "failed", found.Error
+}
+func (a *Application) cancelOrder(c *gin.Context) {
+	id := subject(c)
+	ctx := c.Request.Context()
+	raw, e := a.command(c, "cancel-order:"+c.Param("id"), gin.H{}, func(tx *gorm.DB) (any, error) {
+		if e := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "checkout:"+c.Param("id")).Error; e != nil {
+			return nil, e
+		}
+		o, e := a.Commerce.GetOrder(ctx, tx, id.Customer.Customer.ID, c.Param("id"))
+		if e != nil {
+			return nil, e
+		}
+		if o.Status == "closed" {
+			return gin.H{"id": o.ID}, nil
+		}
+		allowed, e := a.customerOrderMayCancel(ctx, tx, o)
+		if e != nil {
+			return nil, e
+		}
+		if !allowed {
+			return nil, payments.ErrOutcomeUnknown
+		}
+		closed, e := a.Commerce.CloseOrder(ctx, tx, o.CustomerID, o.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "客户在未记录到付款前取消订单"})
+		if e != nil {
+			return nil, e
+		}
+		return gin.H{"id": closed.ID}, nil
+	})
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	var result struct{ ID string }
+	_ = json.Unmarshal(raw, &result)
+	o, e := a.Commerce.GetOrder(ctx, nil, id.Customer.Customer.ID, result.ID)
 	if e != nil {
 		handleError(c, e)
 		return

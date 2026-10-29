@@ -7079,6 +7079,12 @@
     "編集をキャンセル",
     "Отменить редактирование"
   ],
+  "取消订单": [
+    "取消订单",
+    "Cancel order",
+    "注文をキャンセル",
+    "Отменить заказ"
+  ],
   "取消预约并重新设置": [
     "取消预约并重新设置",
     "Cancel schedule and reconfigure",
@@ -18053,6 +18059,12 @@
     "公開中…",
     "Публикация…"
   ],
+  "正在取消订单…": [
+    "正在取消订单…",
+    "Cancelling order…",
+    "注文をキャンセルしています…",
+    "Отмена заказа…"
+  ],
   "正在只读核实链上事实…": [
     "正在只读核实链上事实…",
     "Verifying on-chain facts (read-only)…",
@@ -19637,6 +19649,12 @@
     "今の支払方法のままにする",
     "Оставить текущий способ"
   ],
+  "留下这张订单": [
+    "留下这张订单",
+    "Keep this order",
+    "この注文を残す",
+    "Оставить этот заказ"
+  ],
   "留空将保留全部ATG，余额未归零前不能完成注销。填写代表明确放弃剩余ATG；结算币种与佣金仍须真实结算，不会被删除。": [
     "留空将保留全部ATG，余额未归零前不能完成注销。填写代表明确放弃剩余ATG；结算币种与佣金仍须真实结算，不会被删除。",
     "Leave blank to retain all ATG; account closure cannot complete until balances reach zero. Filling this explicitly waives remaining ATG. settlement currency and commissions still require actual settlement and will not be deleted.",
@@ -20248,6 +20266,12 @@
     "Cancel this request? Charges are settled for verifiable usage already incurred. After submitting, wait for the task to confirm cancellation.",
     "このリクエストを取り消しますか？発生済みかつ確認可能な利用量は精算されます。申請後もタスクによる取消確認を待つ必要があります。",
     "Отменить запрос? Проверяемое уже выполненное использование подлежит оплате. После отправки заявки дождитесь подтверждения отмены задачей."
+  ],
+  "确认取消订单": [
+    "确认取消订单",
+    "Confirm cancellation",
+    "キャンセルを確定",
+    "Подтвердить отмену"
   ],
   "确认取消请求": [
     "确认取消请求",
@@ -22619,6 +22643,12 @@
     "注文を作成しました。注文詳細に従って支払いを完了してください。",
     "Заказ создан. Завершите оплату согласно его деталям."
   ],
+  "订单已取消。请不要再向原收款信息付款。": [
+    "订单已取消。请不要再向原收款信息付款。",
+    "The order is cancelled. Do not send money to the original payment details.",
+    "注文をキャンセルしました。元の受取情報へは支払わないでください。",
+    "Заказ отменён. Не отправляйте деньги по прежним реквизитам."
+  ],
   "订单已建立": [
     "订单已建立",
     "Order created",
@@ -24917,6 +24947,12 @@
     "これらの注文に支払期限はありません。完済して納品するか、入金未割当の注文を取り消すと解放されます。",
     "У этих заказов нет срока оплаты. Удержание снимается после полной оплаты и поставки либо при отмене заказа без распределённой оплаты."
   ],
+  "这张订单还没有记录到付款。取消后请不要再按本订单付款；已经占用的余额和活动名额会释放。如果已经转账，请不要取消。": [
+    "这张订单还没有记录到付款。取消后请不要再按本订单付款；已经占用的余额和活动名额会释放。如果已经转账，请不要取消。",
+    "No payment has been recorded for this order. After cancellation, do not pay using these instructions. Held balance and campaign places are released. If you already transferred money, do not cancel.",
+    "この注文には、まだ入金の記録がありません。キャンセル後は、この案内で支払わないでください。確保中の残高とキャンペーン枠は戻ります。すでに振り込んだ場合はキャンセルしないでください。",
+    "По этому заказу оплата ещё не записана. После отмены не платите по этой инструкции. Удержанный баланс и места акции освобождаются. Если вы уже перевели деньги, не отменяйте заказ."
+  ],
   "这是实际发送给付款人的收款指引。说明收款账户、汇款备注和核实方式；测试环境请明确标注“测试，请勿转入真实资金”。": [
     "这是实际发送给付款人的收款指引。说明收款账户、汇款备注和核实方式；测试环境请明确标注“测试，请勿转入真实资金”。",
     "These instructions are shown to the payer. State the receiving account, payment reference and verification process. In tests, clearly state “Test only — do not send real funds”.",
@@ -26554,6 +26590,12 @@
     "Retry wholesale delivery",
     "卸売の提供を再試行",
     "Повторить оптовую поставку"
+  ],
+  "重试原取消": [
+    "重试原取消",
+    "Retry the original cancellation",
+    "元のキャンセルを再試行",
+    "Повторить исходную отмену"
   ],
   "重试原取消操作": [
     "重试原取消操作",

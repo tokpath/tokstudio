@@ -111,7 +111,7 @@ it("organizes refund cases with exact related legs and payments while retaining 
 
 it("shows verified opening blockers with only authorized setup destinations", async () => {
   permissions = ["business-status.read", "plans.read"];
-  vi.stubGlobal("fetch", vi.fn(async () => response(page([{ id: "operator-one", values: { registration: false, new_purchase: false, model_usage: false, readiness: [{ feature: "new_purchase", requirements: [{ code: "package", description: "缺少可售套餐", ready: false }, { code: "verification_mail", description: "邮件尚未就绪", ready: false }] }] } }]))));
+  vi.stubGlobal("fetch", vi.fn(async () => response(page([{ id: "operator-one", values: { registration: false, new_purchase: false, model_usage: false, readiness: [{ feature: "new_purchase", requirements: [{ code: "package", description: "缺少可售套餐", resource: "plans", ready: false }, { code: "verification_mail", description: "邮件尚未就绪", resource: "mail", ready: false }] }] } }]))));
   show(<OperatorOverview operatorID="operator-one" />);
   await screen.findByRole("heading", { name: "开业前，先完成这些准备" });
   expect(screen.getByRole("link", { name: "去完成" }).getAttribute("href")).toBe("/manage/operator-one/plans");
@@ -200,4 +200,12 @@ it("opens a public model from the list only after a route exists", async () => {
   expect(screen.getByText("还没有配置路由，不能开放")).toBeTruthy();
   fireEvent.click(within(screen.getByRole("row", { name: /ready/ })).getByRole("switch", { name: "开放模型" }));
   await waitFor(() => expect(posts).toEqual([{ enabled: true, expected_version: 4 }]));
+});
+
+it("names the platform when an OEM task requires platform-only tooling", async () => {
+ permissions = ["overview.read"];
+ vi.stubGlobal("fetch", vi.fn(async () => response(page([{ id: "metric", values: { metric: "pending_usage", value: "1" } }]))));
+ show(<OperatorOverview operatorID="operator-one" />);
+ await screen.findByText("请联系平台处理此事项。");
+ expect(screen.queryByRole("link", { name: "排查未决模型请求" })).toBeNull();
 });

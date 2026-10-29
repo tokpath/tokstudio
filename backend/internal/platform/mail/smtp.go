@@ -18,6 +18,7 @@ import (
 )
 
 type Message struct {
+	BrandID string `json:"brand_id,omitempty"`
 	ID      string `json:"id,omitempty"`
 	To      string `json:"to"`
 	Brand   string `json:"brand"`
@@ -30,9 +31,9 @@ type Sender interface {
 }
 
 type SMTPOptions struct {
-	Host, Username, Password, From, Security string
-	Port                                     int
-	Production                               bool
+	Host, Username, Password, From, FromName, Security string
+	Port                                               int
+	Production                                         bool
 }
 
 type SMTP struct{ options SMTPOptions }
@@ -44,7 +45,7 @@ func NewSMTP(options SMTPOptions) (*SMTP, error) {
 	if options.Port == 0 {
 		options.Port = 587
 	}
-	if options.Host == "" || options.Port < 1 || options.Port > 65535 || !ValidAddress(options.From) || (options.Username == "") != (options.Password == "") {
+	if options.Host == "" || options.Port < 1 || options.Port > 65535 || !ValidAddress(options.From) || strings.ContainsAny(options.FromName, "\r\n") || (options.Username == "") != (options.Password == "") {
 		return nil, errors.New("invalid SMTP configuration")
 	}
 	if options.Security != "tls" && options.Security != "starttls" && (options.Security != "plain" || options.Production || options.Username != "") {
@@ -117,7 +118,11 @@ func (s *SMTP) Send(ctx context.Context, message Message) error {
 	if err != nil {
 		return err
 	}
-	from := (&stdmail.Address{Name: message.Brand, Address: options.From}).String()
+	name := options.FromName
+	if name == "" {
+		name = message.Brand
+	}
+	from := (&stdmail.Address{Name: name, Address: options.From}).String()
 	body := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n", from, message.To, mime.QEncoding.Encode("UTF-8", message.Subject), time.Now().UTC().Format(time.RFC1123Z))
 	if message.ID != "" {
 		_, domain, _ := strings.Cut(options.From, "@")

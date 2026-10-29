@@ -36,7 +36,7 @@ func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, acto
 		handleError(c, organization.ErrInvalidInput)
 		return
 	}
-	if in.DeliveryMode == "email" && !a.Mail.Available() {
+	if in.DeliveryMode == "email" && !a.Mail.AvailableForBrand(op.BrandID) {
 		handleError(c, incentives.ErrNotReady)
 		return
 	}
@@ -102,7 +102,11 @@ func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, acto
 		if in.DeliveryMode == "manual" {
 			return gin.H{"id": inv.ID, "status": "invitation_created", "email": inv.Email, "access_url": link, "message": "此邮箱已有经营人员账号，原密码保持不变。请将邀请链接交给本人，72 小时内使用原密码接受邀请"}, nil
 		}
-		message := mail.Message{ID: uuid.NewString(), To: inv.Email, Brand: brand(c).Name, Subject: "经营人员邀请", Text: "您受邀加入 " + op.Name + "。请使用此邮箱接受邀请：\n" + link}
+		b, e := a.Organization.GetBrand(ctx, tx, op.BrandID)
+		if e != nil {
+			return nil, e
+		}
+		message := mail.Message{ID: uuid.NewString(), To: inv.Email, BrandID: op.BrandID, Brand: b.Name, Subject: "经营人员邀请", Text: "您受邀加入 " + op.Name + "。请使用此邮箱接受邀请：\n" + link}
 		encoded, _ := json.Marshal(message)
 		cipher, e := pc.Seal(a.Config.AppKey, string(encoded))
 		if e != nil {
@@ -208,7 +212,7 @@ func (a *Application) emailChange(c *gin.Context) {
 	if !body(c, &in) {
 		return
 	}
-	if !a.Mail.Available() {
+	if !a.Mail.AvailableForBrand(brand(c).ID) {
 		handleError(c, incentives.ErrNotReady)
 		return
 	}

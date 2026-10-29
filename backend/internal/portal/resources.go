@@ -304,7 +304,9 @@ func permissionFor(resource string) string {
 		return "catalog.manage"
 	case "payment-assets":
 		return "providers.manage"
-	case "requests", "jobs", "mail", "supplier-costs":
+	case "mail":
+		return "branding.manage"
+	case "requests", "jobs", "supplier-costs":
 		return "platform.manage"
 	case "notifications", "alerts":
 		return "operations.manage"
@@ -430,7 +432,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 		a.actualCostResource(c, p, base)
 		return
 	case "mail":
-		a.mailResource(c, p, base)
+		a.mailResource(c, op, p, base)
 		return
 	case "exits":
 		a.exitsResource(c, op, actor, p, base)
@@ -674,12 +676,19 @@ func (a *Application) operatorResource(c *gin.Context) {
 			checks := []gin.H{}
 			for _, requirement := range requirements {
 				resource := destinations[requirement.Code]
-				// A child cannot configure platform mail. Its own readiness
-				// remains visible without granting access to the platform.
-				if requirement.Code == "verification_mail" && op.Kind != organization.Platform {
-					resource = ""
+				hint := ""
+				if requirement.Code == "monetary_foundation" {
+					resource = "business-status"
+					if op.Kind != organization.Platform {
+						resource = ""
+						hint = "等待平台负责人完成清算币种和 ATG 基础比例设置并生效。"
+					}
 				}
-				checks = append(checks, gin.H{"code": requirement.Code, "description": requirement.Description, "ready": requirement.Ready, "resource": resource})
+				if requirement.Code == "verification_mail" && op.Kind == organization.Channel {
+					resource = ""
+					hint = "等待所属品牌方配置可用的邮件服务。"
+				}
+				checks = append(checks, gin.H{"code": requirement.Code, "description": requirement.Description, "ready": requirement.Ready, "resource": resource, "action_hint": hint})
 			}
 			readiness = append(readiness, gin.H{"feature": feature, "requirements": checks})
 		}

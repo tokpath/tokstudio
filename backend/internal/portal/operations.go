@@ -35,7 +35,7 @@ func (d recipientDirectory) ResolveRecipient(ctx context.Context, tx *gorm.DB, o
 			return operations.Recipient{}, operations.ErrForbidden
 		}
 		email, e := a.Organization.CustomerEmail(ctx, tx, actor)
-		return operations.Recipient{ID: customer.ID, OperatorID: operator, Email: email, Brand: b.Name, EmailVerified: e == nil}, e
+		return operations.Recipient{ID: customer.ID, OperatorID: operator, Email: email, Brand: b.Name, BrandID: op.BrandID, EmailVerified: e == nil}, e
 	}
 	var staff Staff
 	gdb := a.DB.WithContext(ctx)
@@ -51,7 +51,7 @@ func (d recipientDirectory) ResolveRecipient(ctx context.Context, tx *gorm.DB, o
 	}
 	for _, ws := range workspaces {
 		if ws.Operator.ID == operator {
-			return operations.Recipient{ID: staff.ID, OperatorID: operator, Email: staff.Email, Brand: b.Name, EmailVerified: staff.EmailVerified}, nil
+			return operations.Recipient{ID: staff.ID, OperatorID: operator, Email: staff.Email, Brand: b.Name, BrandID: op.BrandID, EmailVerified: staff.EmailVerified}, nil
 		}
 	}
 	return operations.Recipient{}, operations.ErrForbidden

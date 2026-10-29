@@ -165,7 +165,7 @@ func newApplication(ctx context.Context, c Config, gdb *gorm.DB) (*Application, 
 	a.Incentives.SetRegistrationCoverage(a.Cooperation)
 	a.Commerce.SetMarketing(a.Incentives)
 	a.Jobs = jobs.New(gdb)
-	a.Mail = mail.NewService(gdb, c.AppKey, mail.SMTPOptions{Host: c.SMTPHost, Port: c.SMTPPort, Username: c.SMTPUsername, Password: c.SMTPPassword, From: c.SMTPFrom, Security: c.SMTPSecurity, Production: c.IsProduction()})
+	a.Mail = mail.NewService(gdb, c.AppKey, mail.SMTPOptions{Host: c.SMTPHost, Port: c.SMTPPort, Username: c.SMTPUsername, Password: c.SMTPPassword, From: c.SMTPFrom, Security: c.SMTPSecurity, Production: c.IsProduction()}, a.Installation.BrandID)
 	a.Payments = payments.NewService(gdb, c.AppKey, a.Organization, payments.NewTransport(c.TestLoopback), portalReceiptSink{Application: a, CommerceSink: payments.CommerceSink{Commerce: a.Commerce}})
 	runtime, err := modelruntime.NewBifrost(ctx, modelruntime.BifrostConfig{Costs: a.ModelPricing, AllowTestLoopback: c.TestLoopback, Providers: []string{"openai", "anthropic", "gemini", "openrouter", "elevenlabs"}, Credentials: a.Catalog, EndpointGuard: a.guardEndpoint, ResourceGuard: a.guardResource})
 	if err != nil {

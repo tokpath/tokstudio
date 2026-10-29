@@ -42,7 +42,7 @@ func (a *Application) queueStaffPasswordReset(c *gin.Context, tx *gorm.DB, email
 	}
 	link := scheme + "://" + a.requestHost(c) + "/reset-password?token=" + url.QueryEscape(record.ID+"."+proof+".staff")
 	title := httpx.LocalizedText(httpx.RequestLocale(c.Request), "重置经营人员密码")
-	message := mail.Message{ID: uuid.NewString(), To: staff.Email, Brand: brand(c).Name, Subject: title, Text: title + ":\n" + link + httpx.LocalizedText(httpx.RequestLocale(c.Request), "\n链接过期后请重新发起。若非本人操作，请忽略。")}
+	message := mail.Message{ID: uuid.NewString(), To: staff.Email, BrandID: brand(c).ID, Brand: brand(c).Name, Subject: title, Text: title + ":\n" + link + httpx.LocalizedText(httpx.RequestLocale(c.Request), "\n链接过期后请重新发起。若非本人操作，请忽略。")}
 	raw, _ := json.Marshal(message)
 	cipher, e := pc.Seal(a.Config.AppKey, string(raw))
 	if e != nil {

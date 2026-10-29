@@ -32,6 +32,7 @@ import (
 	pc "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
+	"github.com/tokpath/tokstudio/backend/internal/platform/mail"
 	"github.com/tokpath/tokstudio/backend/internal/platform/objectstore"
 	"github.com/tokpath/tokstudio/backend/internal/remediation"
 	"github.com/tokpath/tokstudio/backend/internal/usage"
@@ -72,6 +73,10 @@ func handleError(c *gin.Context, err error) {
 	}
 	status, code, msg, retry := 500, "internal_error", "处理失败，请沿用本次操作编号重试", true
 	switch {
+	case errors.Is(err, mail.ErrSettings):
+		status, code, msg, retry = 400, "invalid_mail_settings", "邮件配置不完整或格式不正确，请核对 SMTP 主机、端口、发信地址及认证信息。", false
+	case errors.Is(err, mail.ErrUnavailable):
+		status, code, msg, retry = 409, "mail_unavailable", "邮件服务尚未就绪，请由当前品牌负责人检查配置；使用默认服务时请等待平台配置。", false
 	case errors.Is(err, ledger.ErrMonetaryLocked):
 		status, code, msg, retry = 409, "monetary_locked", "清算币种和 ATG 基础比例已正式生效，永久锁定；暂停营业也不能修改。", false
 	case errors.Is(err, ledger.ErrMonetaryNotReady):

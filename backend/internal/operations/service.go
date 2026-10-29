@@ -33,8 +33,8 @@ type Authorizer interface {
 	RequirePermission(context.Context, *gorm.DB, string, string, string) error
 }
 type Recipient struct {
-	ID, OperatorID, Email, Brand string
-	EmailVerified                bool
+	ID, OperatorID, Email, BrandID, Brand string
+	EmailVerified                         bool
 }
 
 // ResolveRecipient must verify the current account relationship to the exact

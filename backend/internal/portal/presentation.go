@@ -54,7 +54,7 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				if f.Name == "currency" && f.Default == nil && settlementCurrency != "" {
 					f.Default = settlementCurrency
 				}
-				if f.Name == "delivery_mode" && !a.Mail.Available() {
+				if f.Name == "delivery_mode" && !a.operatorMailAvailable(c) {
 					options := []gin.H{}
 					for _, option := range f.Options {
 						if option["value"] == "manual" {

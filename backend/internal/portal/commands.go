@@ -81,7 +81,7 @@ func (a *Application) operatorCommand(c *gin.Context) {
 		return
 	}
 	if resource == "mail" {
-		a.mailCommand(c)
+		a.mailCommand(c, op)
 		return
 	}
 	if resource == "exits" {
@@ -881,7 +881,7 @@ func (a *Application) Check(ctx context.Context, tx *gorm.DB, op organization.Op
 	policy, e := a.Incentives.CurrentPolicy(ctx, tx, op.ID)
 	add("incentives_policy", "已发布资格、分佣与注册奖励规则", e == nil)
 	if feature == organization.Registration {
-		add("verification_mail", "可发送验证邮件", a.Mail.Available())
+		add("verification_mail", "可发送验证邮件", a.Mail.AvailableForBrand(op.BrandID))
 		if e == nil && policy.InviteeATG.Add(policy.InviterATG).Sign() > 0 {
 			coverage, err := a.Cooperation.Coverage(ctx, tx, op.ID, time.Now())
 			add("reward_coverage", "奖励有真实覆盖承诺空间", err == nil && (!coverage.HasUpstream || coverage.Space.Sign() > 0))

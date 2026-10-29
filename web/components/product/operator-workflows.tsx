@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { subjectURL, subjectReturnURL } from "./operator-list-state";
 import { FieldHelp } from "./field-help";
 import { ChannelInvitationCard } from "./channel-invitation";
+import { ReadinessAction, ReadinessSchema } from "./readiness";
 
 export function OperatorWorkflowScreen({ operatorID, resource, record }: { operatorID: string; resource: string; record?: string }) {
   const { t } = useI18n();
@@ -80,7 +81,7 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
           <ClipboardCheck size={19} className="text-brand-emphasis" />
           <h2 className="text-lg font-semibold">{t("待办事项")}</h2>
         </div>
-        <div className="space-y-3">{businessTasks.map(task => <TaskRow key={task.resource} title={task.title} description={t(task.detail)} count={t("{count} 条已读取", { count: task.rows.length })} href={destination(task.resource)} />)}{outstanding.map(metric => <TaskRow key={metric.key} title={metric.task!} description={t(metric.detail)} count={t("{count} 笔", { count: metrics[metric.key] })} href={canReadResource(workspace, metric.resource) ? destination(metric.resource) : undefined} />)}{approvals.data && approvals.data.items.length > 0 && <TaskRow title={t("完成独立复核")} description={t("到原业务核对来源、条款和证据，再由具备权限的人员办理。")} count={t("{count} 条已读取", { count: approvals.data.items.length })} href={destination("approvals")} />}{!businessTasks.length && !outstanding.length && !(approvals.data?.items.length) && <p className="py-6 text-sm leading-7 text-ink-mute">{unknownTasks ? t("部分待办指标尚未核实，请到相应业务页继续查询。") : overview.data || approvals.data ? t("已读取范围内暂无未决待办。其他业务仍可从对应板块查询。") : t("当前权限未提供经营待办数据。可从下方已授权入口继续工作。")}
+        <div className="space-y-3">{businessTasks.map(task => <TaskRow key={task.resource} title={task.title} description={t(task.detail)} count={t("{count} 条已读取", { count: task.rows.length })} href={destination(task.resource)} />)}{outstanding.map(metric => <TaskRow key={metric.key} title={metric.task!} description={t(metric.detail)} count={t("{count} 笔", { count: metrics[metric.key] })} href={canReadResource(workspace, metric.resource) ? destination(metric.resource) : undefined} unavailableHint={workspace && !canReadResource({ ...workspace, permissions: ["*"] }, metric.resource) ? "请联系平台处理此事项。" : undefined} />)}{approvals.data && approvals.data.items.length > 0 && <TaskRow title={t("完成独立复核")} description={t("到原业务核对来源、条款和证据，再由具备权限的人员办理。")} count={t("{count} 条已读取", { count: approvals.data.items.length })} href={destination("approvals")} />}{!businessTasks.length && !outstanding.length && !(approvals.data?.items.length) && <p className="py-6 text-sm leading-7 text-ink-mute">{unknownTasks ? t("部分待办指标尚未核实，请到相应业务页继续查询。") : overview.data || approvals.data ? t("已读取范围内暂无未决待办。其他业务仍可从对应板块查询。") : t("当前权限未提供经营待办数据。可从下方已授权入口继续工作。")}
         </p>}
         </div>{sources.slice(4).map((source, index) => source.isError && <div key={resources[index + 4]} className="mt-4"><ErrorPanel error={source.error} retry={() => void source.refetch()} compact /></div>)}{approvals.isError && <div className="mt-4">
           <ErrorPanel error={approvals.error} retry={() => void approvals.refetch()} compact />
@@ -140,15 +141,13 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
   </>;
 }
 
-const ReadinessSchema = z.array(z.object({ feature: z.string(), requirements: z.array(z.object({ code: z.string(), description: z.string(), ready: z.boolean(), resource: z.string().optional() })) }));
 function OpeningChecklist({ operatorID, row }: { operatorID: string; row: Entity }) {
   const { t } = useI18n();
   const { session } = useProduct();
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const checks = ReadinessSchema.safeParse(row.values.readiness);
   const missing = [...new Map((checks.success ? checks.data.filter(check => row.values[check.feature] !== true).flatMap(check => check.requirements.filter(requirement => !requirement.ready)) : []).map(requirement => [requirement.code, requirement])).values()];
-  const resources: Record<string, string> = { incentives_policy: "commissions", verification_mail: "mail", reward_coverage: "coverage", package: "plans", payment: "payment-methods", catalog_pricing: "pricing", coverage: "coverage" };
-  return <Card className="mb-6 border-brand/30"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">{t("开业前，先完成这些准备")}</h2><p className="mt-2 text-sm text-ink-secondary">{t("按真实检查结果补齐配置，再逐项开放营业。")}</p></div><Button asChild variant="outline"><Link href={`/manage/${encodeURIComponent(operatorID)}/business-status`}>{t("进入营业设置")}</Link></Button></div>{missing.length > 0 ? <ul className="divide-y divide-hairline">{missing.map(requirement => { const resource = requirement.resource || resources[requirement.code]; return <li key={requirement.code} className="flex flex-wrap items-center justify-between gap-3 py-3"><span className="text-sm">{t(requirement.description)}</span>{resource && canReadResource(workspace, resource) ? <Link className="inline-flex items-center gap-1 text-sm text-brand-emphasis" href={`/manage/${encodeURIComponent(operatorID)}/${resource}`}>{t("去完成")}<ArrowRight size={14} /></Link> : <span className="text-xs text-ink-mute">{t("请由具备相应权限的人员办理。")}</span>}</li>; })}</ul> : <p className="text-sm leading-7 text-ink-secondary">{t(checks.success ? "已读取的配置检查已通过，请到营业设置选择要开放的项目。" : "配置检查尚未返回，请到营业设置核实具体依赖。")}</p>}</Card>;
+  return <Card className="mb-6 border-brand/30"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">{t("开业前，先完成这些准备")}</h2><p className="mt-2 text-sm text-ink-secondary">{t("按真实检查结果补齐配置，再逐项开放营业。")}</p></div><Button asChild variant="outline"><Link href={`/manage/${encodeURIComponent(operatorID)}/business-status`}>{t("进入营业设置")}</Link></Button></div>{missing.length > 0 ? <ul className="divide-y divide-hairline">{missing.map(requirement => <li key={requirement.code} className="flex flex-wrap items-center justify-between gap-3 py-3"><span className="text-sm">{t(requirement.description)}</span><ReadinessAction requirement={requirement} workspace={workspace} operatorID={operatorID} label="去完成" /></li>)}</ul> : <p className="text-sm leading-7 text-ink-secondary">{t(checks.success ? "已读取的配置检查已通过，请到营业设置选择要开放的项目。" : "配置检查尚未返回，请到营业设置核实具体依赖。")}</p>}</Card>;
 }
 
 const SubjectContextSchema = z.object({ subject: EntitySchema, sections: z.array(z.object({ resource: z.string(), title: z.string(), page: ResourcePageSchema })), next_actions: z.array(z.string()).optional(), subject_operations: z.array(OperationSchema).optional() });
@@ -254,7 +253,7 @@ function OrderProgress({ subject }: { subject: Entity }) {
   </div>;
 }
 function orderKindLabel(kind?: JSONValue) { return ({ supply: "供货采购订单", package: "套餐购买订单", topup: "结算币种 余额充值订单", renewal: "套餐续费订单", package_purchase: "套餐购买订单", package_renewal: "套餐续费订单", customer_money_topup: "结算币种 余额充值订单" } as Record<string, string>)[String(kind)] || "原始订单"; }
-function TaskRow({ title, description, count, href }: { title: string; description: string; count: string; href?: string }) {
+function TaskRow({ title, description, count, href, unavailableHint }: { title: string; description: string; count: string; href?: string; unavailableHint?: string }) {
   const { t } = useI18n();
   const body = <>
     <div className="flex items-center justify-between gap-3">
@@ -264,7 +263,7 @@ function TaskRow({ title, description, count, href }: { title: string; descripti
       </span>
     </div>
     <p className="mt-2 text-xs leading-6 text-ink-mute">{t(description)}
-    </p>{!href && <p className="mt-1 text-xs text-ink-mute">{t("请由具备相应权限的人员办理。")}</p>}</>; return href ? <Link className="block rounded-control bg-canvas px-4 py-4 transition-colors hover:bg-brand-soft" href={href}>{body}
+    </p>{!href && <p className="mt-1 text-xs text-ink-mute">{t(unavailableHint || "请联系本经营方负责人授权或办理。")}</p>}</>; return href ? <Link className="block rounded-control bg-canvas px-4 py-4 transition-colors hover:bg-brand-soft" href={href}>{body}
     </Link> : <div className="rounded-control bg-canvas p-4">{body}
     </div>;
 }

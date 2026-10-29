@@ -56,7 +56,7 @@ func (a *Application) domainResource(c *gin.Context, op organization.Operator, a
 		}
 	}
 	p["title"] = "品牌域名与TLS验证"
-	p["description"] = "品牌API入口由已验证且已启用的域名自动生成，地址固定为 https://域名/v1；渠道沿用品牌入口。多个可用域名按最早添加顺序选定客户默认入口，停用后顺延。未完成DNS与TLS验证时显示待配置。检查已停用域名只更新验证结果，需另行启用。"
+	p["description"] = "先在外部 DNS 服务将域名指向本系统，并在服务器或云服务配置 HTTPS。本页登记、检查并启用品牌域名，API 入口自动生成为 https://域名/v1；渠道沿用品牌入口。"
 	p["items"] = items
 	p["columns"] = []gin.H{col("operator_name", "品牌经营方", "text"), col("hostname", "域名", "text"), col("status", "状态", "status"), col("api_base_url", "API入口", "text"), col("api_entry_note", "入口用途", "text"), col("tls_ready", "有效TLS", "boolean"), col("txt_record_name", "TXT记录名称", "text"), col("txt_record_value", "TXT记录完整值", "text"), col("provider_status", "域名供应商状态", "text"), col("tls_status", "证书状态", "text"), col("provider_instructions", "实际DNS步骤", "details"), col("failure_reason", "失败原因", "text"), col("checked_at", "检查时间", "datetime")}
 	// An OEM has no child brand, so domain and Google login actions always use that OEM.
@@ -65,7 +65,7 @@ func (a *Application) domainResource(c *gin.Context, op organization.Operator, a
 	if op.Kind == organization.OEM {
 		target = defaultField("target_operator_id", "目标品牌经营方", "hidden", op.ID)
 	}
-	p["operations"] = []operation{{Name: "request", Label: "申请域名验证", Method: "POST", Path: base, Fields: []field{target, f("hostname", "品牌域名", "text")}}, {Name: "google", Label: "配置 Google 登录", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "google"), target, f("client_id", "Google 客户端编号", "text"), optional("client_secret", "Google 客户端密钥（已保存可留空）", "password"), defaultField("enabled", "测试通过后启用", "boolean", false), defaultField("config_version", "当前配置版本（首次为 0）", "integer", 0)}, Description: "每个品牌使用自己的 Google 客户端。回调地址是该品牌域名下的 /login/oauth/google。更换编号或密钥后需要重新测试。"}, {Name: "google_test", Label: "生成 Google 回调测试链接", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "google_test"), target, optional("hostname", "要测试的登录域名（官方品牌可留空）", "text")}, Description: "在对应品牌域名打开链接。测试只核对 Google 能否回到这个域名，不会创建客户或登录。"}}
+	p["operations"] = []operation{{Name: "request", Label: "申请域名验证", Method: "POST", Path: base, Fields: []field{target, f("hostname", "品牌域名", "text")}}, {Name: "google", Label: "配置 Google 登录", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "google"), target, f("client_id", "Google 客户端编号", "text"), optional("client_secret", "Google 客户端密钥（已保存可留空）", "password"), defaultField("enabled", "测试通过后启用", "boolean", false), defaultField("config_version", "当前配置版本（首次为 0）", "integer", 0)}, Description: "Google 登录为可选功能，不影响邮箱密码登录。先在 Google Cloud 创建 OAuth 客户端，将品牌域名下的 /login/oauth/google 登记为回调地址，再填写客户端编号与密钥；测试通过后启用。"}, {Name: "google_test", Label: "生成 Google 回调测试链接", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "google_test"), target, optional("hostname", "要测试的登录域名（官方品牌可留空）", "text")}, Description: "在对应品牌域名打开链接。测试只核对 Google 能否回到这个域名，不会创建客户或登录。"}}
 	if !canRequest {
 		p["operations"] = []operation{}
 	}

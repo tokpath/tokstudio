@@ -3743,5 +3743,160 @@
     "en": "6 digits or uppercase letters. Lowercase input is converted to uppercase.",
     "ja": "数字または大文字の英字6文字です。小文字は自動で大文字に変換されます。",
     "ru": "6 цифр или заглавных латинских букв. Строчные буквы преобразуются в заглавные."
+  },
+  "平台提供默认邮件服务，OEM 可使用默认服务或配置自己的 SMTP；渠道沿用所属品牌。发信需要外部 SMTP 服务及已授权邮箱，系统负责发送验证与通知邮件，不提供邮箱托管。": {
+    "en": "The platform provides the default mail service. OEMs may use it or configure their own SMTP; channels follow their brand. Delivery requires an external SMTP service and an authorized sender address. The system sends verification and notification emails; it does not host mailboxes.",
+    "ja": "プラットフォームが標準メールサービスを提供します。OEM は標準サービスまたは独自の SMTP を利用でき、チャネルは所属ブランドの設定に従います。送信には外部 SMTP サービスと承認済み送信元が必要です。本システムは認証・通知メールを送信し、メールボックスは提供しません。",
+    "ru": "Платформа предоставляет почтовый сервис по умолчанию. OEM может использовать его или настроить собственный SMTP; каналы используют сервис своего бренда. Нужны внешний SMTP и разрешённый адрес отправителя. Система отправляет письма для подтверждения и уведомления, но не размещает почтовые ящики."
+  },
+  "请先向邮箱或邮件服务商取得 SMTP 主机、端口、认证信息和已授权发信地址，再保存配置。密码加密保存且不回显。配置预检通过只表示格式完整，实际投递还需服务商接受并送达。": {
+    "en": "Obtain the SMTP host, port, credentials and authorized sender address from your mail provider before saving. Passwords are encrypted and never returned. A passed precheck only confirms configuration completeness; actual delivery still depends on the mail provider.",
+    "ja": "メール事業者から SMTP ホスト、ポート、認証情報、承認済み送信元を取得してから保存してください。パスワードは暗号化され、再表示されません。事前確認は設定の形式と不足を確認するもので、実際の配信には事業者による受理と配送が必要です。",
+    "ru": "Получите у почтового провайдера SMTP-сервер, порт, данные авторизации и разрешённый адрес отправителя. Пароль хранится в зашифрованном виде и не возвращается. Предварительная проверка подтверждает только полноту настроек; фактическая доставка зависит от провайдера."
+  },
+  "使用平台默认邮件服务，发信名称自动使用客户所属品牌名称。平台的 SMTP 账号和密码不会向下级展示。": {
+    "en": "Uses the platform default mail service with the customer’s brand as the sender name. Downstream operators cannot see the platform’s SMTP credentials.",
+    "ja": "プラットフォームの標準メールサービスを使い、送信者名には顧客の所属ブランド名を使用します。プラットフォームの SMTP 認証情報は下位事業者に表示されません。",
+    "ru": "Используется почтовый сервис платформы, а имя отправителя соответствует бренду клиента. Учётные данные SMTP платформы недоступны нижестоящим операторам."
+  },
+  "等待平台配置默认邮件服务；OEM 也可以在此配置自己的 SMTP。": {
+    "en": "Waiting for the platform to configure default mail. OEMs may also configure their own SMTP here.",
+    "ja": "プラットフォームの標準メール設定を待っています。OEM はここで独自の SMTP を設定することもできます。",
+    "ru": "Ожидается настройка почты платформой. OEM также может настроить здесь собственный SMTP."
+  },
+  "渠道沿用所属品牌的邮件服务，无需单独配置。": {
+    "en": "Channels use their brand’s mail service. No separate configuration is needed.",
+    "ja": "チャネルは所属ブランドのメールサービスを使用します。個別の設定は不要です。",
+    "ru": "Канал использует почтовый сервис своего бренда. Отдельная настройка не требуется."
+  },
+  "等待所属品牌方配置可用的邮件服务。": {
+    "en": "Waiting for the brand operator to configure a working mail service.",
+    "ja": "所属ブランドの運営者によるメールサービスの設定を待っています。",
+    "ru": "Ожидается настройка работающего почтового сервиса владельцем бренда."
+  },
+  "未接入邮件时，可用已有测试账号验收其他业务；注册验证、找回密码及真实邮件送达需在接入 SMTP 后验收。Google 登录为可选功能，不影响密码登录。": {
+    "en": "Use existing test accounts to review other workflows before mail is connected. Verify registration, password recovery and real email delivery after connecting SMTP. Google sign-in is optional and does not affect password login.",
+    "ja": "メール未接続でも既存のテストアカウントで他の業務を検証できます。登録認証、パスワード再設定、実際の配信は SMTP 接続後に検証してください。Google ログインは任意で、パスワードログインには影響しません。",
+    "ru": "До подключения почты проверяйте остальные процессы с готовыми тестовыми аккаунтами. Регистрацию, восстановление пароля и реальную доставку проверьте после подключения SMTP. Вход через Google необязателен и не влияет на вход по паролю."
+  },
+  "由邮箱或邮件服务商提供，例如 smtp.example.com；不是本网站域名。": {
+    "en": "Provided by your mail provider, for example smtp.example.com. This is not your website domain.",
+    "ja": "メール事業者から指定されるホストです（例：smtp.example.com）。本サイトのドメインではありません。",
+    "ru": "Предоставляется почтовым провайдером, например smtp.example.com. Это не домен сайта."
+  },
+  "使用邮件服务商提供的端口；常见为 587 配合 STARTTLS，或 465 配合 TLS。": {
+    "en": "Use the port specified by your provider, commonly 587 with STARTTLS or 465 with TLS.",
+    "ja": "事業者指定のポートを使ってください。一般的には STARTTLS は 587、TLS は 465 です。",
+    "ru": "Используйте порт провайдера: обычно 587 для STARTTLS или 465 для TLS."
+  },
+  "填写邮件服务商提供的 SMTP 密码或授权码；留空保留本品牌已保存的密码。": {
+    "en": "Enter your provider’s SMTP password or authorization code. Leave blank to retain this brand’s saved password.",
+    "ja": "事業者から取得した SMTP パスワードまたは認証コードを入力してください。空欄の場合、このブランドの保存済みパスワードを保持します。",
+    "ru": "Введите SMTP-пароль или код авторизации от провайдера. Оставьте пустым, чтобы сохранить пароль этого бренда."
+  },
+  "必须是邮件服务商允许发送的邮箱。自有发信域名的 DNS 验证按服务商指引在外部完成。": {
+    "en": "Must be a sender address authorized by your mail provider. Verify your sender domain’s DNS outside this system using the provider’s instructions.",
+    "ja": "事業者が送信を許可したメールアドレスが必要です。独自の送信ドメインの DNS 認証は、事業者の案内に従って外部で行ってください。",
+    "ru": "Адрес должен быть разрешён почтовым провайдером. DNS-проверка собственного домена отправки выполняется вне системы по инструкции провайдера."
+  },
+  "仅改变收件人看到的发信名称，不改变实际发信邮箱。留空自动使用品牌名称。": {
+    "en": "Changes only the sender’s display name, not the sender address. Leave blank to use the brand name.",
+    "ja": "受信者に表示される送信者名のみ変更します。送信元アドレスは変わりません。空欄の場合はブランド名を使います。",
+    "ru": "Меняет только отображаемое имя отправителя, а не адрес. Если оставить пустым, используется название бренда."
+  },
+  "本品牌独立 SMTP": {
+    "en": "This brand’s SMTP",
+    "ja": "ブランド専用 SMTP",
+    "ru": "SMTP этого бренда"
+  },
+  "平台默认邮件服务": {
+    "en": "Platform default mail service",
+    "ja": "プラットフォーム標準メールサービス",
+    "ru": "Почтовый сервис платформы"
+  },
+  "发送方式": {
+    "en": "Sending method",
+    "ja": "送信方式",
+    "ru": "Способ отправки"
+  },
+  "实际发信地址": {
+    "en": "Actual sender address",
+    "ja": "実際の送信元アドレス",
+    "ru": "Фактический адрес отправителя"
+  },
+  "配置说明": {
+    "en": "Configuration guidance",
+    "ja": "設定ガイド",
+    "ru": "Пояснения к настройке"
+  },
+  "自定义发信名称": {
+    "en": "Custom sender name",
+    "ja": "独自の送信者名",
+    "ru": "Своё имя отправителя"
+  },
+  "发信名称（留空使用品牌名称）": {
+    "en": "Sender name (blank uses brand name)",
+    "ja": "送信者名（空欄でブランド名を使用）",
+    "ru": "Имя отправителя (пусто — название бренда)"
+  },
+  "邮件发送方式": {
+    "en": "Mail sending method",
+    "ja": "メール送信方式",
+    "ru": "Способ отправки почты"
+  },
+  "使用平台默认服务": {
+    "en": "Use platform default",
+    "ja": "プラットフォームの標準サービスを使用",
+    "ru": "Использовать сервис платформы"
+  },
+  "使用本品牌的 SMTP": {
+    "en": "Use this brand’s SMTP",
+    "ja": "このブランドの SMTP を使用",
+    "ru": "Использовать SMTP бренда"
+  },
+  "等待平台负责人完成清算币种和 ATG 基础比例设置并生效。": {
+    "en": "Waiting for the platform owner to configure the settlement currency and ATG base ratio and for them to take effect.",
+    "ja": "プラットフォーム責任者による決済通貨と ATG 基本比率の設定、およびその発効を待っています。",
+    "ru": "Ожидается настройка расчётной валюты и базового соотношения ATG владельцем платформы и вступление настроек в силу."
+  },
+  "请由平台负责人完成基础设置并等待生效。": {
+    "en": "The platform owner must complete the base settings and wait for them to take effect.",
+    "ja": "プラットフォーム責任者が基本設定を完了し、発効をお待ちください。",
+    "ru": "Владелец платформы должен завершить базовую настройку и дождаться её вступления в силу."
+  },
+  "等待平台完成配置。": {
+    "en": "Waiting for platform configuration.",
+    "ja": "プラットフォームの設定完了を待っています。",
+    "ru": "Ожидается настройка платформой."
+  },
+  "请联系本经营方负责人授权或办理。": {
+    "en": "Contact this operator’s owner for permission or assistance.",
+    "ja": "この運営事業者の責任者に権限の付与または対応をご依頼ください。",
+    "ru": "Обратитесь к руководителю этого оператора за доступом или помощью."
+  },
+  "邮件配置不完整或格式不正确，请核对 SMTP 主机、端口、发信地址及认证信息。": {
+    "en": "Mail settings are incomplete or invalid. Check the SMTP host, port, sender address and credentials.",
+    "ja": "メール設定が不完全、または形式が正しくありません。SMTP ホスト、ポート、送信元と認証情報を確認してください。",
+    "ru": "Настройки почты неполны или неверны. Проверьте SMTP-сервер, порт, адрес отправителя и данные авторизации."
+  },
+  "邮件服务尚未就绪，请由当前品牌负责人检查配置；使用默认服务时请等待平台配置。": {
+    "en": "Mail is not ready. Ask the current brand’s owner to check its settings; when using the default service, wait for platform configuration.",
+    "ja": "メールサービスは未準備です。現在のブランド責任者に設定の確認を依頼してください。標準サービスの場合はプラットフォームの設定をお待ちください。",
+    "ru": "Почтовый сервис не готов. Попросите руководителя текущего бренда проверить настройки; для сервиса по умолчанию дождитесь настройки платформы."
+  },
+  "先在外部 DNS 服务将域名指向本系统，并在服务器或云服务配置 HTTPS。本页登记、检查并启用品牌域名，API 入口自动生成为 https://域名/v1；渠道沿用品牌入口。": {
+    "en": "First point the domain to this system in your external DNS service and configure HTTPS on your server or cloud service. This page registers, checks and enables brand domains. API URLs are generated as https://your-domain/v1; channels use their brand’s URL.",
+    "ja": "外部 DNS でドメインを本システムに向け、サーバーまたはクラウドで HTTPS を設定してください。この画面でブランドドメインを登録・確認・有効化すると、API URL が https://ドメイン/v1 として自動生成されます。チャネルは所属ブランドの URL を使います。",
+    "ru": "Сначала направьте домен на эту систему через внешний DNS и настройте HTTPS на сервере или в облаке. Здесь можно зарегистрировать, проверить и включить домен бренда. Адрес API создаётся в виде https://ваш-домен/v1; каналы используют адрес своего бренда."
+  },
+  "Google 登录为可选功能，不影响邮箱密码登录。先在 Google Cloud 创建 OAuth 客户端，将品牌域名下的 /login/oauth/google 登记为回调地址，再填写客户端编号与密钥；测试通过后启用。": {
+    "en": "Google sign-in is optional and does not affect email and password login. Create an OAuth client in Google Cloud, register /login/oauth/google on the brand domain as its redirect URI, then enter the client ID and secret here. Enable it after a successful test.",
+    "ja": "Google ログインは任意で、メールとパスワードによるログインには影響しません。Google Cloud で OAuth クライアントを作成し、ブランドドメインの /login/oauth/google をリダイレクト URI として登録してから、ID とシークレットを入力してください。テスト成功後に有効化します。",
+    "ru": "Вход через Google необязателен и не влияет на вход по почте и паролю. Создайте OAuth-клиент в Google Cloud, зарегистрируйте /login/oauth/google на домене бренда как URI перенаправления и укажите здесь ID и секрет клиента. Включите после успешного теста."
+  },
+  "请联系平台处理此事项。": {
+    "en": "Contact the platform to handle this item.",
+    "ja": "この項目の対応はプラットフォームにご依頼ください。",
+    "ru": "Обратитесь к платформе для решения этого вопроса."
   }
 }

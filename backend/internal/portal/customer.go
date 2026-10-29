@@ -139,11 +139,11 @@ func (a *Application) publicContext(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	available := []gin.H{{"capability": "registration", "enabled": status.Registration && a.Mail.Available()}, {"capability": "new_purchase", "enabled": status.NewPurchase}, {"capability": "renewal", "enabled": status.Renewal}, {"capability": "model_usage", "enabled": status.ModelUsage}, {"capability": "activity", "enabled": status.Activity}, {"capability": "settlement", "enabled": status.Settlement}}
+	available := []gin.H{{"capability": "registration", "enabled": status.Registration && a.Mail.AvailableForBrand(op.BrandID)}, {"capability": "new_purchase", "enabled": status.NewPurchase}, {"capability": "renewal", "enabled": status.Renewal}, {"capability": "model_usage", "enabled": status.ModelUsage}, {"capability": "activity", "enabled": status.Activity}, {"capability": "settlement", "enabled": status.Settlement}}
 	for _, entry := range available {
-		if monetary.Status!="locked" {
-			entry["enabled"]=false
-			entry["reason"]="全系统清算币种和 ATG 基础比例尚未正式生效，请由平台负责人完成营业前设置。"
+		if monetary.Status != "locked" {
+			entry["enabled"] = false
+			entry["reason"] = "全系统清算币种和 ATG 基础比例尚未正式生效，请由平台负责人完成营业前设置。"
 			continue
 		}
 		if !entry["enabled"].(bool) {

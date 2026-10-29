@@ -241,7 +241,7 @@ func (a *Application) queueChallenge(ctx context.Context, tx *gorm.DB, c *gin.Co
 	}
 	locale := httpx.RequestLocale(c.Request)
 	title = httpx.LocalizedText(locale, title)
-	message := mail.Message{ID: uuid.NewString(), To: ch.Intent.Email, Brand: brand(c).Name, Subject: title, Text: title + ":\n" + link + httpx.LocalizedText(locale, "\n链接过期后请重新发起。若非本人操作，请忽略。")}
+	message := mail.Message{ID: uuid.NewString(), To: ch.Intent.Email, BrandID: ch.Intent.BrandID, Brand: brand(c).Name, Subject: title, Text: title + ":\n" + link + httpx.LocalizedText(locale, "\n链接过期后请重新发起。若非本人操作，请忽略。")}
 	raw, _ := json.Marshal(message)
 	cipher, e := pc.Seal(a.Config.AppKey, string(raw))
 	if e != nil {
@@ -267,7 +267,7 @@ func (a *Application) register(c *gin.Context) {
 		return
 	}
 	in.Next = safeCustomerNext(in.Next)
-	if !a.Mail.Available() {
+	if !a.Mail.AvailableForBrand(brand(c).ID) {
 		fail(c, 409, "pending_configuration", "当前经营方尚未配置验证邮件，请联系经营方", false)
 		return
 	}
@@ -354,7 +354,7 @@ func (a *Application) passwordReset(c *gin.Context) {
 	if _, ok := key(c); !ok {
 		return
 	}
-	if !a.Mail.Available() {
+	if !a.Mail.AvailableForBrand(brand(c).ID) {
 		fail(c, 409, "pending_configuration", "验证邮件尚未配置", false)
 		return
 	}

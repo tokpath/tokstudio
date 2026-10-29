@@ -485,6 +485,12 @@
     "Google ログイン",
     "Вход через Google"
   ],
+  "Google 登录为可选功能，不影响邮箱密码登录。先在 Google Cloud 创建 OAuth 客户端，将品牌域名下的 /login/oauth/google 登记为回调地址，再填写客户端编号与密钥；测试通过后启用。": [
+    "Google 登录为可选功能，不影响邮箱密码登录。先在 Google Cloud 创建 OAuth 客户端，将品牌域名下的 /login/oauth/google 登记为回调地址，再填写客户端编号与密钥；测试通过后启用。",
+    "Google sign-in is optional and does not affect email and password login. Create an OAuth client in Google Cloud, register /login/oauth/google on the brand domain as its redirect URI, then enter the client ID and secret here. Enable it after a successful test.",
+    "Google ログインは任意で、メールとパスワードによるログインには影響しません。Google Cloud で OAuth クライアントを作成し、ブランドドメインの /login/oauth/google をリダイレクト URI として登録してから、ID とシークレットを入力してください。テスト成功後に有効化します。",
+    "Вход через Google необязателен и не влияет на вход по почте и паролю. Создайте OAuth-клиент в Google Cloud, зарегистрируйте /login/oauth/google на домене бренда как URI перенаправления и укажите здесь ID и секрет клиента. Включите после успешного теста."
+  ],
   "Google 登录只进入当前品牌。新账号按本页归属注册；已经用密码注册的邮箱仍使用密码登录。": [
     "Google 登录只进入当前品牌。新账号按本页归属注册；已经用密码注册的邮箱仍使用密码登录。",
     "Google signs in to the current brand only. A new account uses the attribution on this page. An email that already has a password still signs in with that password.",
@@ -2861,6 +2867,12 @@
     "支払待ち注文のみ作成",
     "Только создавать заказы к оплате"
   ],
+  "仅改变收件人看到的发信名称，不改变实际发信邮箱。留空自动使用品牌名称。": [
+    "仅改变收件人看到的发信名称，不改变实际发信邮箱。留空自动使用品牌名称。",
+    "Changes only the sender’s display name, not the sender address. Leave blank to use the brand name.",
+    "受信者に表示される送信者名のみ変更します。送信元アドレスは変わりません。空欄の場合はブランド名を使います。",
+    "Меняет только отображаемое имя отправителя, а не адрес. Если оставить пустым, используется название бренда."
+  ],
   "仅显示与当前记录直接关联、且你有权查看的业务事实。": [
     "仅显示与当前记录直接关联、且你有权查看的业务事实。",
     "Only business facts directly linked to this record and within your access are shown.",
@@ -3629,11 +3641,29 @@
     "公開済みプランを使用し、期間と参加資格を明確にします。",
     "Используйте опубликованные пакеты, укажите период и условия участия."
   ],
+  "使用平台默认服务": [
+    "使用平台默认服务",
+    "Use platform default",
+    "プラットフォームの標準サービスを使用",
+    "Использовать сервис платформы"
+  ],
+  "使用平台默认邮件服务，发信名称自动使用客户所属品牌名称。平台的 SMTP 账号和密码不会向下级展示。": [
+    "使用平台默认邮件服务，发信名称自动使用客户所属品牌名称。平台的 SMTP 账号和密码不会向下级展示。",
+    "Uses the platform default mail service with the customer’s brand as the sender name. Downstream operators cannot see the platform’s SMTP credentials.",
+    "プラットフォームの標準メールサービスを使い、送信者名には顧客の所属ブランド名を使用します。プラットフォームの SMTP 認証情報は下位事業者に表示されません。",
+    "Используется почтовый сервис платформы, а имя отправителя соответствует бренду клиента. Учётные данные SMTP платформы недоступны нижестоящим операторам."
+  ],
   "使用当前品牌公布的 API 地址。账号、套餐和 Key 仍归注册时确认的经营方。": [
     "使用当前品牌公布的 API 地址。账号、套餐和 Key 仍归注册时确认的经营方。",
     "Use the API address published by this brand. Your account, plans and Keys belong to the operator confirmed at registration.",
     "現在のブランドが公開する API アドレスを使用します。アカウント、プラン、Key は登録時に確認した運営事業者に属します。",
     "Используйте адрес API текущего бренда. Аккаунт, пакеты и ключи принадлежат оператору, подтверждённому при регистрации."
+  ],
+  "使用本品牌的 SMTP": [
+    "使用本品牌的 SMTP",
+    "Use this brand’s SMTP",
+    "このブランドの SMTP を使用",
+    "Использовать SMTP бренда"
   ],
   "使用模型默认行为": [
     "使用模型默认行为",
@@ -3676,6 +3706,12 @@
     "Use an invitation code",
     "招待コードを使用",
     "Использовать код приглашения"
+  ],
+  "使用邮件服务商提供的端口；常见为 587 配合 STARTTLS，或 465 配合 TLS。": [
+    "使用邮件服务商提供的端口；常见为 587 配合 STARTTLS，或 465 配合 TLS。",
+    "Use the port specified by your provider, commonly 587 with STARTTLS or 465 with TLS.",
+    "事業者指定のポートを使ってください。一般的には STARTTLS は 587、TLS は 465 です。",
+    "Используйте порт провайдера: обычно 587 для STARTTLS или 465 для TLS."
   ],
   "使用邮箱继续": [
     "使用邮箱继续",
@@ -4666,6 +4702,12 @@
     "Receive full payment first",
     "先に全額入金",
     "Сначала получить полную оплату"
+  ],
+  "先在外部 DNS 服务将域名指向本系统，并在服务器或云服务配置 HTTPS。本页登记、检查并启用品牌域名，API 入口自动生成为 https://域名/v1；渠道沿用品牌入口。": [
+    "先在外部 DNS 服务将域名指向本系统，并在服务器或云服务配置 HTTPS。本页登记、检查并启用品牌域名，API 入口自动生成为 https://域名/v1；渠道沿用品牌入口。",
+    "First point the domain to this system in your external DNS service and configure HTTPS on your server or cloud service. This page registers, checks and enables brand domains. API URLs are generated as https://your-domain/v1; channels use their brand’s URL.",
+    "外部 DNS でドメインを本システムに向け、サーバーまたはクラウドで HTTPS を設定してください。この画面でブランドドメインを登録・確認・有効化すると、API URL が https://ドメイン/v1 として自動生成されます。チャネルは所属ブランドの URL を使います。",
+    "Сначала направьте домен на эту систему через внешний DNS и настройте HTTPS на сервере или в облаке. Здесь можно зарегистрировать, проверить и включить домен бренда. Адрес API создаётся в виде https://ваш-домен/v1; каналы используют адрес своего бренда."
   ],
   "先填写模型名称和请求时使用的标识。每项能力填写怎么调用和怎么计费。第一次先不要对客户开放。": [
     "先填写模型名称和请求时使用的标识。每项能力填写怎么调用和怎么计费。第一次先不要对客户开放。",
@@ -6731,6 +6773,12 @@
     "双方の引継ぎ契約番号",
     "Номер двустороннего договора передачи"
   ],
+  "发信名称（留空使用品牌名称）": [
+    "发信名称（留空使用品牌名称）",
+    "Sender name (blank uses brand name)",
+    "送信者名（空欄でブランド名を使用）",
+    "Имя отправителя (пусто — название бренда)"
+  ],
   "发信地址": [
     "发信地址",
     "Sender address",
@@ -6898,6 +6946,12 @@
     "Send recovery email",
     "再設定メールを送信",
     "Отправить письмо для восстановления"
+  ],
+  "发送方式": [
+    "发送方式",
+    "Sending method",
+    "送信方式",
+    "Способ отправки"
   ],
   "发送邮件邀请": [
     "发送邮件邀请",
@@ -8501,6 +8555,12 @@
     "計量を記入",
     "Указать учёт"
   ],
+  "填写邮件服务商提供的 SMTP 密码或授权码；留空保留本品牌已保存的密码。": [
+    "填写邮件服务商提供的 SMTP 密码或授权码；留空保留本品牌已保存的密码。",
+    "Enter your provider’s SMTP password or authorization code. Leave blank to retain this brand’s saved password.",
+    "事業者から取得した SMTP パスワードまたは認証コードを入力してください。空欄の場合、このブランドの保存済みパスワードを保持します。",
+    "Введите SMTP-пароль или код авторизации от провайдера. Оставьте пустым, чтобы сохранить пароль этого бренда."
+  ],
   "填写银行或支付通道为本次实际收付款出具的唯一流水号，不要重复登记同一笔款项。它与合同编号分别记录，提交后仍按真实凭证核实。": [
     "填写银行或支付通道为本次实际收付款出具的唯一流水号，不要重复登记同一笔款项。它与合同编号分别记录，提交后仍按真实凭证核实。",
     "Enter the unique transaction reference issued by the bank or payment channel for this actual payment. Do not register the same payment twice. It is separate from the contract number, and the actual proof remains subject to verification.",
@@ -9448,6 +9508,12 @@
     "Actual original currency or exact asset code",
     "実際の元の通貨・正確な資産コード",
     "Фактическая исходная валюта или точный код актива"
+  ],
+  "实际发信地址": [
+    "实际发信地址",
+    "Actual sender address",
+    "実際の送信元アドレス",
+    "Фактический адрес отправителя"
   ],
   "实际发生时间": [
     "实际发生时间",
@@ -11831,6 +11897,12 @@
     "プラットフォーム技術運用",
     "Техническое управление платформой"
   ],
+  "平台提供默认邮件服务，OEM 可使用默认服务或配置自己的 SMTP；渠道沿用所属品牌。发信需要外部 SMTP 服务及已授权邮箱，系统负责发送验证与通知邮件，不提供邮箱托管。": [
+    "平台提供默认邮件服务，OEM 可使用默认服务或配置自己的 SMTP；渠道沿用所属品牌。发信需要外部 SMTP 服务及已授权邮箱，系统负责发送验证与通知邮件，不提供邮箱托管。",
+    "The platform provides the default mail service. OEMs may use it or configure their own SMTP; channels follow their brand. Delivery requires an external SMTP service and an authorized sender address. The system sends verification and notification emails; it does not host mailboxes.",
+    "プラットフォームが標準メールサービスを提供します。OEM は標準サービスまたは独自の SMTP を利用でき、チャネルは所属ブランドの設定に従います。送信には外部 SMTP サービスと承認済み送信元が必要です。本システムは認証・通知メールを送信し、メールボックスは提供しません。",
+    "Платформа предоставляет почтовый сервис по умолчанию. OEM может использовать его или настроить собственный SMTP; каналы используют сервис своего бренда. Нужны внешний SMTP и разрешённый адрес отправителя. Система отправляет письма для подтверждения и уведомления, но не размещает почтовые ящики."
+  ],
   "平台没有上级采购账户。模型履约依赖供应商接入、有效成本价和合格上游路由；平台继续承担客户服务与对下供货责任。": [
     "平台没有上级采购账户。模型履约依赖供应商接入、有效成本价和合格上游路由；平台继续承担客户服务与对下供货责任。",
     "The platform has no upstream procurement account. Model fulfillment requires supplier access, valid cost prices, and eligible upstream routes. The platform remains responsible for customer service and downstream supply.",
@@ -11866,6 +11938,12 @@
     "The platform verifies each asset, network, contract, and confirmation threshold before publishing. Operators may select only effective combinations. Disabling prevents new payments; existing transactions retain historical verification snapshots.",
     "プラットフォームが資産・ネットワーク・コントラクト・確認閾値を検証して公開します。事業者は有効な組み合わせのみ選択可能です。停止後は新規支払いを禁止し、既存取引は過去のスナップショットで確認します。",
     "Платформа проверяет актив, сеть, контракт и порог подтверждений перед публикацией. Операторы выбирают только действующие сочетания. Отключение блокирует новые платежи; старые проверяются по историческому снимку."
+  ],
+  "平台默认邮件服务": [
+    "平台默认邮件服务",
+    "Platform default mail service",
+    "プラットフォーム標準メールサービス",
+    "Почтовый сервис платформы"
   ],
   "年": [
     "年",
@@ -12814,6 +12892,12 @@
     "Required parameters",
     "必須パラメータ",
     "Обязательные параметры"
+  ],
+  "必须是邮件服务商允许发送的邮箱。自有发信域名的 DNS 验证按服务商指引在外部完成。": [
+    "必须是邮件服务商允许发送的邮箱。自有发信域名的 DNS 验证按服务商指引在外部完成。",
+    "Must be a sender address authorized by your mail provider. Verify your sender domain’s DNS outside this system using the provider’s instructions.",
+    "事業者が送信を許可したメールアドレスが必要です。独自の送信ドメインの DNS 認証は、事業者の案内に従って外部で行ってください。",
+    "Адрес должен быть разрешён почтовым провайдером. DNS-проверка собственного домена отправки выполняется вне системы по инструкции провайдера."
   ],
   "忘记密码": [
     "忘记密码",
@@ -15887,6 +15971,12 @@
     "認証が必要です。",
     "Требуется аутентификация."
   ],
+  "未接入邮件时，可用已有测试账号验收其他业务；注册验证、找回密码及真实邮件送达需在接入 SMTP 后验收。Google 登录为可选功能，不影响密码登录。": [
+    "未接入邮件时，可用已有测试账号验收其他业务；注册验证、找回密码及真实邮件送达需在接入 SMTP 后验收。Google 登录为可选功能，不影响密码登录。",
+    "Use existing test accounts to review other workflows before mail is connected. Verify registration, password recovery and real email delivery after connecting SMTP. Google sign-in is optional and does not affect password login.",
+    "メール未接続でも既存のテストアカウントで他の業務を検証できます。登録認証、パスワード再設定、実際の配信は SMTP 接続後に検証してください。Google ログインは任意で、パスワードログインには影響しません。",
+    "До подключения почты проверяйте остальные процессы с готовыми тестовыми аккаунтами. Регистрацию, восстановление пароля и реальную доставку проверьте после подключения SMTP. Вход через Google необязателен и не влияет на вход по паролю."
+  ],
   "未提供": [
     "未提供",
     "Not provided",
@@ -16156,6 +16246,12 @@
     "This brand",
     "このブランド",
     "Этот бренд"
+  ],
+  "本品牌独立 SMTP": [
+    "本品牌独立 SMTP",
+    "This brand’s SMTP",
+    "ブランド専用 SMTP",
+    "SMTP этого бренда"
   ],
   "本品牌（仅品牌负责人）": [
     "本品牌（仅品牌负责人）",
@@ -18971,6 +19067,12 @@
     "チャネル引継ぎ {id} · 契約 {contract}",
     "Передача канала {id} · Договор {contract}"
   ],
+  "渠道沿用所属品牌的邮件服务，无需单独配置。": [
+    "渠道沿用所属品牌的邮件服务，无需单独配置。",
+    "Channels use their brand’s mail service. No separate configuration is needed.",
+    "チャネルは所属ブランドのメールサービスを使用します。個別の設定は不要です。",
+    "Канал использует почтовый сервис своего бренда. Отдельная настройка не требуется."
+  ],
   "渠道独立经营": [
     "渠道独立经营",
     "Independent channel operation",
@@ -19420,6 +19522,12 @@
     "Generated as https://domain/v1 from a verified, enabled brand domain. Channels inherit the brand endpoint. No usable API address is provided until domain setup is complete.",
     "検証済みかつ有効なブランドドメインから https://ドメイン/v1 を自動生成します。チャネルも同じ接続先を利用します。ドメイン設定が完了するまで、利用可能なAPIアドレスは表示されません。",
     "Автоматически создаётся как https://домен/v1 из проверенного включённого домена бренда. Каналы используют адрес бренда. До завершения настройки домена рабочий адрес API не предоставляется."
+  ],
+  "由邮箱或邮件服务商提供，例如 smtp.example.com；不是本网站域名。": [
+    "由邮箱或邮件服务商提供，例如 smtp.example.com；不是本网站域名。",
+    "Provided by your mail provider, for example smtp.example.com. This is not your website domain.",
+    "メール事業者から指定されるホストです（例：smtp.example.com）。本サイトのドメインではありません。",
+    "Предоставляется почтовым провайдером, например smtp.example.com. Это не домен сайта."
   ],
   "申请人": [
     "申请人",
@@ -20506,6 +20614,30 @@
     "Sync queued",
     "同期待ち",
     "Ожидание синхронизации"
+  ],
+  "等待平台完成配置。": [
+    "等待平台完成配置。",
+    "Waiting for platform configuration.",
+    "プラットフォームの設定完了を待っています。",
+    "Ожидается настройка платформой."
+  ],
+  "等待平台负责人完成清算币种和 ATG 基础比例设置并生效。": [
+    "等待平台负责人完成清算币种和 ATG 基础比例设置并生效。",
+    "Waiting for the platform owner to configure the settlement currency and ATG base ratio and for them to take effect.",
+    "プラットフォーム責任者による決済通貨と ATG 基本比率の設定、およびその発効を待っています。",
+    "Ожидается настройка расчётной валюты и базового соотношения ATG владельцем платформы и вступление настроек в силу."
+  ],
+  "等待平台配置默认邮件服务；OEM 也可以在此配置自己的 SMTP。": [
+    "等待平台配置默认邮件服务；OEM 也可以在此配置自己的 SMTP。",
+    "Waiting for the platform to configure default mail. OEMs may also configure their own SMTP here.",
+    "プラットフォームの標準メール設定を待っています。OEM はここで独自の SMTP を設定することもできます。",
+    "Ожидается настройка почты платформой. OEM также может настроить здесь собственный SMTP."
+  ],
+  "等待所属品牌方配置可用的邮件服务。": [
+    "等待所属品牌方配置可用的邮件服务。",
+    "Waiting for the brand operator to configure a working mail service.",
+    "所属ブランドの運営者によるメールサービスの設定を待っています。",
+    "Ожидается настройка работающего почтового сервиса владельцем бренда."
   ],
   "等待线下付款": [
     "等待线下付款",
@@ -21821,6 +21953,12 @@
     "自動追従には直属の上位事業者からこの事業者への供給価格を使用してください。",
     "Для автоматического следования используйте цену поставки этому оператору от прямого вышестоящего оператора."
   ],
+  "自定义发信名称": [
+    "自定义发信名称",
+    "Custom sender name",
+    "独自の送信者名",
+    "Своё имя отправителя"
+  ],
   "自定义权限": [
     "自定义权限",
     "Custom permissions",
@@ -22901,6 +23039,12 @@
     "このモデルを公開する前に、能力を少なくとも一つ選んでください",
     "Отметьте хотя бы одну возможность, прежде чем открывать эту модель"
   ],
+  "请先向邮箱或邮件服务商取得 SMTP 主机、端口、认证信息和已授权发信地址，再保存配置。密码加密保存且不回显。配置预检通过只表示格式完整，实际投递还需服务商接受并送达。": [
+    "请先向邮箱或邮件服务商取得 SMTP 主机、端口、认证信息和已授权发信地址，再保存配置。密码加密保存且不回显。配置预检通过只表示格式完整，实际投递还需服务商接受并送达。",
+    "Obtain the SMTP host, port, credentials and authorized sender address from your mail provider before saving. Passwords are encrypted and never returned. A passed precheck only confirms configuration completeness; actual delivery still depends on the mail provider.",
+    "メール事業者から SMTP ホスト、ポート、認証情報、承認済み送信元を取得してから保存してください。パスワードは暗号化され、再表示されません。事前確認は設定の形式と不足を確認するもので、実際の配信には事業者による受理と配送が必要です。",
+    "Получите у почтового провайдера SMTP-сервер, порт, данные авторизации и разрешённый адрес отправителя. Пароль хранится в зашифрованном виде и не возвращается. Предварительная проверка подтверждает только полноту настроек; фактическая доставка зависит от провайдера."
+  ],
   "请先在品牌域名上完成 Google 回调测试，再启用": [
     "请先在品牌域名上完成 Google 回调测试，再启用",
     "Test the Google callback on the brand domain before enabling it",
@@ -23231,11 +23375,29 @@
     "該当する権限を持つ担当者が処理してください。",
     "Обработку должен выполнить сотрудник с соответствующими правами."
   ],
+  "请由平台负责人完成基础设置并等待生效。": [
+    "请由平台负责人完成基础设置并等待生效。",
+    "The platform owner must complete the base settings and wait for them to take effect.",
+    "プラットフォーム責任者が基本設定を完了し、発効をお待ちください。",
+    "Владелец платформы должен завершить базовую настройку и дождаться её вступления в силу."
+  ],
   "请确认发布此价格版本后再提交。": [
     "请确认发布此价格版本后再提交。",
     "Confirm publication of this price version before submitting.",
     "この料金バージョンの公開を確認してから送信してください。",
     "Перед отправкой подтвердите публикацию этой версии цен."
+  ],
+  "请联系平台处理此事项。": [
+    "请联系平台处理此事项。",
+    "Contact the platform to handle this item.",
+    "この項目の対応はプラットフォームにご依頼ください。",
+    "Обратитесь к платформе для решения этого вопроса."
+  ],
+  "请联系本经营方负责人授权或办理。": [
+    "请联系本经营方负责人授权或办理。",
+    "Contact this operator’s owner for permission or assistance.",
+    "この運営事業者の責任者に権限の付与または対応をご依頼ください。",
+    "Обратитесь к руководителю этого оператора за доступом или помощью."
   ],
   "请联系经营方负责人授予相应人员权限。": [
     "请联系经营方负责人授予相应人员权限。",
@@ -25751,6 +25913,12 @@
     "最初の責任者を招待",
     "Пригласить первого владельца"
   ],
+  "邮件发送方式": [
+    "邮件发送方式",
+    "Mail sending method",
+    "メール送信方式",
+    "Способ отправки почты"
+  ],
   "邮件授权": [
     "邮件授权",
     "Email consent",
@@ -25763,6 +25931,12 @@
     "メールサービス",
     "Почтовая служба"
   ],
+  "邮件服务尚未就绪，请由当前品牌负责人检查配置；使用默认服务时请等待平台配置。": [
+    "邮件服务尚未就绪，请由当前品牌负责人检查配置；使用默认服务时请等待平台配置。",
+    "Mail is not ready. Ask the current brand’s owner to check its settings; when using the default service, wait for platform configuration.",
+    "メールサービスは未準備です。現在のブランド責任者に設定の確認を依頼してください。標準サービスの場合はプラットフォームの設定をお待ちください。",
+    "Почтовый сервис не готов. Попросите руководителя текущего бренда проверить настройки; для сервиса по умолчанию дождитесь настройки платформы."
+  ],
   "邮件状态": [
     "邮件状态",
     "Email status",
@@ -25774,6 +25948,12 @@
     "Invite staff by email",
     "担当者をメールで招待",
     "Пригласить сотрудника по почте"
+  ],
+  "邮件配置不完整或格式不正确，请核对 SMTP 主机、端口、发信地址及认证信息。": [
+    "邮件配置不完整或格式不正确，请核对 SMTP 主机、端口、发信地址及认证信息。",
+    "Mail settings are incomplete or invalid. Check the SMTP host, port, sender address and credentials.",
+    "メール設定が不完全、または形式が正しくありません。SMTP ホスト、ポート、送信元と認証情報を確認してください。",
+    "Настройки почты неполны или неверны. Проверьте SMTP-сервер, порт, адрес отправителя и данные авторизации."
   ],
   "邮件：": [
     "邮件：",
@@ -25960,6 +26140,12 @@
     "Configure billing templates",
     "課金テンプレートを設定",
     "Настроить шаблоны тарификации"
+  ],
+  "配置说明": [
+    "配置说明",
+    "Configuration guidance",
+    "設定ガイド",
+    "Пояснения к настройке"
   ],
   "配置路由": [
     "配置路由",

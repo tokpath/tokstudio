@@ -103,7 +103,7 @@ func (s *Service) Emit(ctx context.Context, tx *gorm.DB, in Notification) (Notif
 			state = "needs_attention"
 			code = "verified_email_required"
 		} else {
-			cipher, e = s.seal(mail.Message{ID: out.ID, To: recipient.Email, Brand: recipient.Brand, Subject: in.Title, Text: in.Body})
+			cipher, e = s.seal(mail.Message{ID: out.ID, To: recipient.Email, Brand: recipient.Brand, BrandID: recipient.BrandID, Subject: in.Title, Text: in.Body})
 			if e != nil {
 				return e
 			}
@@ -297,10 +297,11 @@ func (s *Service) RunNotifications(ctx context.Context, limit int) ([]Delivery, 
 				}
 				msg.To = recipient.Email
 				msg.Brand = recipient.Brand
+				msg.BrandID = recipient.BrandID
 			}
 		}
 		if callErr == nil && !suppressed {
-			if !mail.Available(s.Mail) {
+			if !mail.AvailableForBrand(s.Mail, msg.BrandID) {
 				callErr = ErrNotReady
 			} else {
 				work, cancel := context.WithTimeout(ctx, 25*time.Second)
@@ -360,7 +361,7 @@ func (s *Service) RetryDelivery(ctx context.Context, actor, operator, id string)
 		if !recipient.EmailVerified || !mail.ValidAddress(recipient.Email) {
 			return ErrNotReady
 		}
-		ciphertext, e := s.seal(mail.Message{ID: n.ID, To: recipient.Email, Brand: recipient.Brand, Subject: n.Title, Text: n.Body})
+		ciphertext, e := s.seal(mail.Message{ID: n.ID, To: recipient.Email, Brand: recipient.Brand, BrandID: recipient.BrandID, Subject: n.Title, Text: n.Body})
 		if e != nil {
 			return e
 		}

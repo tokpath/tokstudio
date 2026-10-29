@@ -513,3 +513,20 @@ it("buys any procurement amount using the quote preview and sends only that amou
   await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
   expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({amount_money:"2500"});
 });
+it("switches brand email inheritance without requiring or submitting hidden SMTP fields", async () => {
+ const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"oem",status:"configured"}),{status:200}));vi.stubGlobal("fetch",fetch);
+ show({name:"configure",label:"保存邮件服务配置",method:"POST",path:"/api/v1/operators/operator-one/mail",fields:[
+  {name:"mode",label:"邮件发送方式",kind:"select",required:true,default_value:"platform",options:[{value:"platform",label:"使用平台默认服务"},{value:"custom",label:"使用本品牌的 SMTP"}]},
+  {name:"host",label:"SMTP主机",kind:"text",required:true,visible_when:{field:"mode",values:["custom"]}},
+  {name:"from",label:"已授权发信地址",kind:"email",required:true,visible_when:{field:"mode",values:["custom"]}},
+  {name:"password",label:"SMTP密码",kind:"password",visible_when:{field:"mode",values:["custom"]}},
+ ]});
+ expect(screen.queryByLabelText("SMTP主机",{exact:true})).toBeNull();
+ fireEvent.change(screen.getByLabelText("邮件发送方式",{exact:true}),{target:{value:"custom"}});
+ fireEvent.change(screen.getByLabelText("SMTP主机",{exact:true}),{target:{value:"smtp.oem.example"}});
+ fireEvent.change(screen.getByLabelText("SMTP密码",{exact:true}),{target:{value:"oem-secret"}});
+ fireEvent.change(screen.getByLabelText("邮件发送方式",{exact:true}),{target:{value:"platform"}});
+ fireEvent.click(screen.getByRole("button",{name:"保存邮件服务配置",exact:true}));
+ await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
+ expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({mode:"platform"});
+});

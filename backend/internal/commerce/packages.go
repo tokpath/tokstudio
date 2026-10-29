@@ -108,9 +108,14 @@ func RequiresRenewalConfirmation(old, next PackageQuote) bool {
 	rank := map[ledger.Period]int{ledger.Month: 1, ledger.Quarter: 3, ledger.Year: 12, ledger.Lifetime: 100000}
 	return old.PackageID != next.PackageID || old.OperatorID != next.OperatorID || next.PriceMoney.Cmp(old.PriceMoney) > 0 || next.PaidATG.Add(next.GiftATG).Cmp(old.PaidATG.Add(old.GiftATG)) < 0 || next.PaidATG.Cmp(old.PaidATG) < 0 || rank[next.Period] < rank[old.Period] || old.Timezone != next.Timezone || packageTermsChanged(old, next)
 }
+
+// UnpaidPaymentWindow is how long a customer order may stay unpaid before the
+// maintenance worker closes it and releases the reserved sales capacity.
+const UnpaidPaymentWindow = 20 * time.Minute
+
 func validity(d time.Duration) time.Duration {
 	if d == 0 {
-		return 30 * time.Minute
+		return UnpaidPaymentWindow
 	}
 	return d
 }

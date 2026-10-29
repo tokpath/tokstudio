@@ -143,7 +143,7 @@ func (a *Application) createOrder(c *gin.Context) {
 		if e = json.Unmarshal(qr.Preview, &expected); e != nil {
 			return nil, e
 		}
-		order, e := a.Commerce.CreateOrder(ctx, tx, commerce.CreateOrderInput{CustomerID: id.Customer.Customer.ID, OperatorID: qr.OperatorID, QuoteID: qr.QuoteID, BusinessKey: businessKey, ExpectedOwnershipVersion: id.Customer.Ownership.Version, InternalMoney: in.Funding.MoneyBalance, CommissionMoney: in.Funding.CommissionMoney, ActivitySelection: qr.Selection, Validity: 30 * time.Minute})
+		order, e := a.Commerce.CreateOrder(ctx, tx, commerce.CreateOrderInput{CustomerID: id.Customer.Customer.ID, OperatorID: qr.OperatorID, QuoteID: qr.QuoteID, BusinessKey: businessKey, ExpectedOwnershipVersion: id.Customer.Ownership.Version, InternalMoney: in.Funding.MoneyBalance, CommissionMoney: in.Funding.CommissionMoney, ActivitySelection: qr.Selection, Validity: commerce.UnpaidPaymentWindow})
 		if e != nil {
 			return nil, e
 		}
@@ -555,6 +555,34 @@ func (a *Application) cancelOrder(c *gin.Context) {
 	}
 	c.JSON(200, dto)
 }
+
+// expireUnpaidOrders closes customer orders after their payment deadline when
+// no receipt has been recorded, so reserved sales capacity is not held forever.
+// A payment that is later shown to have arrived before the deadline is kept as
+// an exception for the operator to restore, instead of being discarded.
+func (a *Application) expireUnpaidOrders(ctx context.Context, limit int) error {
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	var rows []struct{ ID, CustomerID string }
+	if err := a.DB.WithContext(ctx).Table("commerce_orders").Select("id, customer_id").Where("status='pending' AND external_allocated_money=0 AND expires_at<=clock_timestamp()").Order("expires_at, id").Limit(limit).Find(&rows).Error; err != nil {
+		return err
+	}
+	for _, row := range rows {
+		var receipts int64
+		if err := a.DB.WithContext(ctx).Table("payments_verified_facts").Where("order_id=? AND kind='receipt'", row.ID).Count(&receipts).Error; err != nil {
+			return err
+		}
+		if receipts > 0 {
+			continue
+		}
+		_, err := a.Commerce.CloseOrder(ctx, nil, row.CustomerID, row.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "超过付款期限仍未记下到账，系统自动取消并释放占用"})
+		if err != nil && !errors.Is(err, commerce.ErrOrderState) && !errors.Is(err, commerce.ErrPaymentUnknown) {
+			return err
+		}
+	}
+	return nil
+}
 func (a *Application) reconcileOrder(c *gin.Context) {
 	id := subject(c)
 	ctx := c.Request.Context()
@@ -587,7 +615,7 @@ func (a *Application) topup(c *gin.Context) {
 	k, _ := key(c)
 	ctx := c.Request.Context()
 	raw, e := a.command(c, "topup:"+id.Customer.Customer.ID, in, func(tx *gorm.DB) (any, error) {
-		o, e := a.Commerce.CreateTopUpOrder(ctx, tx, commerce.CreateTopUpInput{CustomerID: id.Customer.Customer.ID, OperatorID: id.Customer.Ownership.OperatorID, BusinessKey: k, ExpectedOwnershipVersion: id.Customer.Ownership.Version, AmountMoney: in.Amount, Validity: 30 * time.Minute})
+		o, e := a.Commerce.CreateTopUpOrder(ctx, tx, commerce.CreateTopUpInput{CustomerID: id.Customer.Customer.ID, OperatorID: id.Customer.Ownership.OperatorID, BusinessKey: k, ExpectedOwnershipVersion: id.Customer.Ownership.Version, AmountMoney: in.Amount, Validity: commerce.UnpaidPaymentWindow})
 		if e != nil {
 			return nil, e
 		}

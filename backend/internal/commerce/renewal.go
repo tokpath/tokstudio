@@ -261,7 +261,7 @@ func (s *Service) RenewSubscription(ctx context.Context, tx *gorm.DB, id string)
 			return s.event(tx, r.OperatorID, r.ID, "renewal.insufficient_funds", map[string]any{"cycle_due_at": r.NextDueAt, "missing_money": remainder})
 		}
 		cycle := r.NextDueAt.UTC()
-		order, err := s.CreateOrder(ctx, tx, CreateOrderInput{CustomerID: r.CustomerID, OperatorID: r.OperatorID, QuoteID: current.ID, BusinessKey: "renew:" + r.ID + ":" + cycle.Format(time.RFC3339Nano), ExpectedOwnershipVersion: own.Version, InternalMoney: fromMoney, CommissionMoney: fromCommission, Validity: 30 * time.Minute, SubscriptionID: &r.ID, CycleDueAt: &cycle, renewalAuthorized: true})
+		order, err := s.CreateOrder(ctx, tx, CreateOrderInput{CustomerID: r.CustomerID, OperatorID: r.OperatorID, QuoteID: current.ID, BusinessKey: "renew:" + r.ID + ":" + cycle.Format(time.RFC3339Nano), ExpectedOwnershipVersion: own.Version, InternalMoney: fromMoney, CommissionMoney: fromCommission, Validity: UnpaidPaymentWindow, SubscriptionID: &r.ID, CycleDueAt: &cycle, renewalAuthorized: true})
 		if err != nil {
 			return err
 		}

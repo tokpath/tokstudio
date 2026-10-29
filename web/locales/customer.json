@@ -2174,6 +2174,11 @@
     "ja": "この注文を残す",
     "ru": "Оставить этот заказ"
   },
+  "到付款截止时间仍未记下到账，系统会自动取消订单，并释放占用的库存、余额和活动名额。": {
+    "en": "If no payment is recorded by the deadline, the system cancels the order and releases the reserved inventory, balance, and campaign places.",
+    "ja": "支払期限までに入金が記録されない場合、システムが注文をキャンセルし、確保中の在庫・残高・キャンペーン枠を解放します。",
+    "ru": "Если к сроку оплата не записана, система отменяет заказ и освобождает занятые запасы, баланс и места акции."
+  },
   "订单已取消。请不要再向原收款信息付款。": {
     "en": "The order is cancelled. Do not send money to the original payment details.",
     "ja": "注文をキャンセルしました。元の受取情報へは支払わないでください。",

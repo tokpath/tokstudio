@@ -5765,6 +5765,12 @@
     "削除日時",
     "Дата удаления"
   ],
+  "到付款截止时间仍未记下到账，系统会自动取消订单，并释放占用的库存、余额和活动名额。": [
+    "到付款截止时间仍未记下到账，系统会自动取消订单，并释放占用的库存、余额和活动名额。",
+    "If no payment is recorded by the deadline, the system cancels the order and releases the reserved inventory, balance, and campaign places.",
+    "支払期限までに入金が記録されない場合、システムが注文をキャンセルし、確保中の在庫・残高・キャンペーン枠を解放します。",
+    "Если к сроку оплата не записана, система отменяет заказ и освобождает занятые запасы, баланс и места акции."
+  ],
   "到原业务核对来源、条款和证据，再由具备权限的人员办理。": [
     "到原业务核对来源、条款和证据，再由具备权限的人员办理。",
     "Check sources, terms, and evidence in the original transaction, then have authorized staff process it.",

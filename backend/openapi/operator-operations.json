@@ -5194,7 +5194,7 @@
   {
     "resource": "mail",
     "confirmation": "",
-    "description": "",
+    "description": "Platform default SMTP configuration. OEMs may inherit this transport or configure their own. Channels use their brand transport and cannot configure SMTP. Mail credentials are encrypted and never returned.",
     "fields": [
       {
         "name": "enabled",
@@ -5206,13 +5206,15 @@
         "name": "host",
         "label": "SMTP主机",
         "kind": "text",
-        "required": true
+        "required": true,
+        "help": "由邮箱或邮件服务商提供，例如 smtp.example.com；不是本网站域名。"
       },
       {
         "name": "port",
         "label": "端口",
         "kind": "integer",
-        "required": true
+        "required": true,
+        "help": "使用邮件服务商提供的端口；常见为 587 配合 STARTTLS，或 465 配合 TLS。"
       },
       {
         "name": "username",
@@ -5222,13 +5224,21 @@
       {
         "name": "password",
         "label": "新密码（留空保留）",
-        "kind": "password"
+        "kind": "password",
+        "help": "填写邮件服务商提供的 SMTP 密码或授权码；留空保留本品牌已保存的密码。"
       },
       {
         "name": "from",
         "label": "已授权发信地址",
         "kind": "email",
-        "required": true
+        "required": true,
+        "help": "必须是邮件服务商允许发送的邮箱。自有发信域名的 DNS 验证按服务商指引在外部完成。"
+      },
+      {
+        "name": "from_name",
+        "label": "发信名称（留空使用品牌名称）",
+        "kind": "text",
+        "help": "仅改变收件人看到的发信名称，不改变实际发信邮箱。留空自动使用品牌名称。"
       },
       {
         "name": "security",
@@ -5252,7 +5262,146 @@
     "method": "POST",
     "name": "configure",
     "path": "/v1/operators/{operatorId}/mail",
-    "permission": "platform.manage"
+    "permission": "branding.manage",
+    "variant": "platform"
+  },
+  {
+    "resource": "mail",
+    "confirmation": "",
+    "description": "OEM brand SMTP settings. mode=platform removes the private override and inherits the platform default without requiring SMTP fields. mode=custom requires this brand’s transport settings. Channels inherit their own brand and cannot modify SMTP.",
+    "fields": [
+      {
+        "name": "mode",
+        "label": "邮件发送方式",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "value": "platform",
+            "label": "使用平台默认服务"
+          },
+          {
+            "value": "custom",
+            "label": "使用本品牌的 SMTP"
+          }
+        ]
+      },
+      {
+        "name": "enabled",
+        "label": "启用SMTP",
+        "kind": "boolean",
+        "required": true,
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "custom"
+          ]
+        }
+      },
+      {
+        "name": "host",
+        "label": "SMTP主机",
+        "kind": "text",
+        "required": true,
+        "help": "由邮箱或邮件服务商提供，例如 smtp.example.com；不是本网站域名。",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "custom"
+          ]
+        }
+      },
+      {
+        "name": "port",
+        "label": "端口",
+        "kind": "integer",
+        "required": true,
+        "help": "使用邮件服务商提供的端口；常见为 587 配合 STARTTLS，或 465 配合 TLS。",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "custom"
+          ]
+        }
+      },
+      {
+        "name": "username",
+        "label": "SMTP认证用户名",
+        "kind": "text",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "custom"
+          ]
+        }
+      },
+      {
+        "name": "password",
+        "label": "新密码（留空保留）",
+        "kind": "password",
+        "help": "填写邮件服务商提供的 SMTP 密码或授权码；留空保留本品牌已保存的密码。",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "custom"
+          ]
+        }
+      },
+      {
+        "name": "from",
+        "label": "已授权发信地址",
+        "kind": "email",
+        "required": true,
+        "help": "必须是邮件服务商允许发送的邮箱。自有发信域名的 DNS 验证按服务商指引在外部完成。",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "custom"
+          ]
+        }
+      },
+      {
+        "name": "from_name",
+        "label": "发信名称（留空使用品牌名称）",
+        "kind": "text",
+        "help": "仅改变收件人看到的发信名称，不改变实际发信邮箱。留空自动使用品牌名称。",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "custom"
+          ]
+        }
+      },
+      {
+        "name": "security",
+        "label": "传输方式",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "STARTTLS",
+            "value": "starttls"
+          },
+          {
+            "label": "TLS",
+            "value": "tls"
+          }
+        ],
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "custom"
+          ]
+        }
+      }
+    ],
+    "include_version": false,
+    "label": "保存邮件服务配置",
+    "method": "POST",
+    "name": "configure",
+    "path": "/v1/operators/{operatorId}/mail",
+    "permission": "branding.manage",
+    "variant": "oem"
   },
   {
     "resource": "pricing",

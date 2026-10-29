@@ -11,6 +11,30 @@ const resolve = value => value.$ref ? document.components.schemas[value.$ref.spl
 const operation = (resource, method = 'post') => document.paths[`/v1/operators/{operatorId}/${resource}`][method];
 const body = resource => resolve(operation(resource).requestBody.content['application/json'].schema);
 
+test('brand mail contracts cover platform SMTP and OEM inheritance with brand-scoped authority', () => {
+  const op = operation('mail');
+  assert.equal(op['x-required-permission'], 'branding.manage');
+  assert.match(op.description, /Channels.*cannot configure SMTP/);
+  const alternatives = op.requestBody.content['application/json'].schema.oneOf.map(resolve);
+  assert.equal(alternatives.length, 2);
+  const platform = alternatives.find(schema => !schema.properties.mode);
+  const oem = alternatives.find(schema => schema.properties.mode);
+  assert.deepEqual(platform.required, ['enabled', 'host', 'port', 'from', 'security']);
+  assert.deepEqual(oem.required, ['mode']);
+  assert.deepEqual(oem.properties.mode.enum, ['platform', 'custom']);
+  const conditionalFields = oem.allOf.flatMap(rule => {
+    assert.deepEqual(rule.if.properties.mode.enum, ['custom']);
+    return rule.then.required;
+  });
+  assert.deepEqual(conditionalFields, platform.required);
+  for (const schema of alternatives) {
+    assert.equal(schema.properties.password.writeOnly, true);
+    assert.equal(schema.required.includes('password'), false);
+    assert.equal(schema.properties.from_name.type, 'string');
+    assert.equal(schema.required.includes('from_name'), false);
+  }
+});
+
 test('user and channel invite responses share the six-character uppercase format',()=>{
  const schemas=document.components.schemas;
  assert.equal(schemas.InviteCode.pattern,'^[0-9A-Z]{6}$');

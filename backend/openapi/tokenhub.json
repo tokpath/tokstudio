@@ -20852,13 +20852,20 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Operator_mail_configure"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Operator_mail_configure_platform"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Operator_mail_configure_oem"
+                  }
+                ]
               }
             }
           }
         },
-        "description": " Requires platform.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "platform.manage"
+        "description": "Platform default SMTP configuration. OEMs may inherit this transport or configure their own. Channels use their brand transport and cannot configure SMTP. Mail credentials are encrypted and never returned. Requires branding.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "branding.manage"
       }
     },
     "/v1/operators/{operatorId}/bifrost": {
@@ -51753,7 +51760,7 @@
         "required": [],
         "additionalProperties": false
       },
-      "Operator_mail_configure": {
+      "Operator_mail_configure_platform": {
         "type": "object",
         "properties": {
           "enabled": {
@@ -51762,12 +51769,12 @@
           },
           "host": {
             "type": "string",
-            "description": "SMTP主机"
+            "description": "SMTP主机 — 由邮箱或邮件服务商提供，例如 smtp.example.com；不是本网站域名。"
           },
           "port": {
             "type": "integer",
             "minimum": 0,
-            "description": "端口"
+            "description": "端口 — 使用邮件服务商提供的端口；常见为 587 配合 STARTTLS，或 465 配合 TLS。"
           },
           "username": {
             "type": "string",
@@ -51775,13 +51782,17 @@
           },
           "password": {
             "type": "string",
-            "description": "新密码（留空保留）",
+            "description": "新密码（留空保留） — 填写邮件服务商提供的 SMTP 密码或授权码；留空保留本品牌已保存的密码。",
             "writeOnly": true
           },
           "from": {
             "type": "string",
             "format": "email",
-            "description": "已授权发信地址"
+            "description": "已授权发信地址 — 必须是邮件服务商允许发送的邮箱。自有发信域名的 DNS 验证按服务商指引在外部完成。"
+          },
+          "from_name": {
+            "type": "string",
+            "description": "发信名称（留空使用品牌名称） — 仅改变收件人看到的发信名称，不改变实际发信邮箱。留空自动使用品牌名称。"
           },
           "security": {
             "type": "string",
@@ -51800,6 +51811,230 @@
           "security"
         ],
         "additionalProperties": false
+      },
+      "Operator_mail_configure_oem": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "platform",
+              "custom"
+            ],
+            "description": "邮件发送方式"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "启用SMTP",
+            "x-visible-when": {
+              "field": "mode",
+              "values": [
+                "custom"
+              ]
+            },
+            "x-required-when-visible": true
+          },
+          "host": {
+            "type": "string",
+            "description": "SMTP主机 — 由邮箱或邮件服务商提供，例如 smtp.example.com；不是本网站域名。",
+            "x-visible-when": {
+              "field": "mode",
+              "values": [
+                "custom"
+              ]
+            },
+            "x-required-when-visible": true
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "端口 — 使用邮件服务商提供的端口；常见为 587 配合 STARTTLS，或 465 配合 TLS。",
+            "x-visible-when": {
+              "field": "mode",
+              "values": [
+                "custom"
+              ]
+            },
+            "x-required-when-visible": true
+          },
+          "username": {
+            "type": "string",
+            "description": "SMTP认证用户名",
+            "x-visible-when": {
+              "field": "mode",
+              "values": [
+                "custom"
+              ]
+            },
+            "x-required-when-visible": false
+          },
+          "password": {
+            "type": "string",
+            "description": "新密码（留空保留） — 填写邮件服务商提供的 SMTP 密码或授权码；留空保留本品牌已保存的密码。",
+            "writeOnly": true,
+            "x-visible-when": {
+              "field": "mode",
+              "values": [
+                "custom"
+              ]
+            },
+            "x-required-when-visible": false
+          },
+          "from": {
+            "type": "string",
+            "format": "email",
+            "description": "已授权发信地址 — 必须是邮件服务商允许发送的邮箱。自有发信域名的 DNS 验证按服务商指引在外部完成。",
+            "x-visible-when": {
+              "field": "mode",
+              "values": [
+                "custom"
+              ]
+            },
+            "x-required-when-visible": true
+          },
+          "from_name": {
+            "type": "string",
+            "description": "发信名称（留空使用品牌名称） — 仅改变收件人看到的发信名称，不改变实际发信邮箱。留空自动使用品牌名称。",
+            "x-visible-when": {
+              "field": "mode",
+              "values": [
+                "custom"
+              ]
+            },
+            "x-required-when-visible": false
+          },
+          "security": {
+            "type": "string",
+            "enum": [
+              "starttls",
+              "tls"
+            ],
+            "description": "传输方式",
+            "x-visible-when": {
+              "field": "mode",
+              "values": [
+                "custom"
+              ]
+            },
+            "x-required-when-visible": true
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "custom"
+                  ]
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "enabled": {}
+              },
+              "required": [
+                "enabled"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "custom"
+                  ]
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "host": {}
+              },
+              "required": [
+                "host"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "custom"
+                  ]
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "port": {}
+              },
+              "required": [
+                "port"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "custom"
+                  ]
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "from": {}
+              },
+              "required": [
+                "from"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "custom"
+                  ]
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "security": {}
+              },
+              "required": [
+                "security"
+              ]
+            }
+          }
+        ]
       },
       "Operator_pricing_template": {
         "$ref": "#/components/schemas/PricingWrite"

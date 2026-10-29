@@ -3384,6 +3384,11 @@
     "ja": "施策の回数、予算、または値引枠が上限に達しました",
     "ru": "Достигнут лимит количества, бюджета или уступок акции"
   },
+  "原通道尚未确认这笔收款。请稍后再查询，不要另付一笔。": {
+    "en": "The original channel has not confirmed this payment yet. Check again shortly, and do not pay a second time.",
+    "ja": "元の決済チャネルはまだこの入金を確認していません。少し後でもう一度照会し、重ねて支払わないでください。",
+    "ru": "Исходный канал ещё не подтвердил этот платёж. Проверьте чуть позже и не оплачивайте повторно."
+  },
   "原支付结果尚待核实，请查询原交易，重试将沿用原业务编号": {
     "en": "The original payment outcome is unverified. Check the original transaction; retries use the original business ID.",
     "ja": "元の支払結果は確認待ちです。元の取引を照会してください。再試行でも元の業務 ID を使用します。",

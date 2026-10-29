@@ -6671,6 +6671,12 @@
     "元の返金責任",
     "Исходное обязательство возврата"
   ],
+  "原通道尚未确认这笔收款。请稍后再查询，不要另付一笔。": [
+    "原通道尚未确认这笔收款。请稍后再查询，不要另付一笔。",
+    "The original channel has not confirmed this payment yet. Check again shortly, and do not pay a second time.",
+    "元の決済チャネルはまだこの入金を確認していません。少し後でもう一度照会し、重ねて支払わないでください。",
+    "Исходный канал ещё не подтвердил этот платёж. Проверьте чуть позже и не оплачивайте повторно."
+  ],
   "原采购付款或交付尚未核实，系统持续核对原记录，不会重复发起收款。原因：": [
     "原采购付款或交付尚未核实，系统持续核对原记录，不会重复发起收款。原因：",
     "The original procurement payment or delivery is unverified. The system keeps checking the original record without requesting another payment. Reason: ",

@@ -78,8 +78,12 @@ func (a *Application) setProgress(ctx context.Context, id, cursor string) error 
 	return a.DB.WithContext(ctx).Exec("INSERT INTO portal_worker_progress(id,cursor) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET cursor=EXCLUDED.cursor", id, cursor).Error
 }
 func (a *Application) DiscoverWorkerTasks(ctx context.Context) error {
-	for _, kind := range []string{"registration_release", "unpaid_orders", "commerce_events", "incentive_events", "remediation_events", "catalog_changes", "retention"} {
-		if e := a.schedule(ctx, kind, "global", workerPayload{}, time.Minute); e != nil {
+	for _, kind := range []string{"registration_release", "unpaid_orders", "kvoucher_payments", "commerce_events", "incentive_events", "remediation_events", "catalog_changes", "retention"} {
+		interval := time.Minute
+		if kind == "kvoucher_payments" {
+			interval = 15 * time.Second
+		}
+		if e := a.schedule(ctx, kind, "global", workerPayload{}, interval); e != nil {
 			return e
 		}
 	}
@@ -245,6 +249,8 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 		return e
 	case "unpaid_orders":
 		return a.expireUnpaidOrders(ctx, 50)
+	case "kvoucher_payments":
+		return a.reconcileOpenKVoucher(ctx, 10)
 	case "registration_reward":
 		return a.Incentives.DeliverRegistrationRewards(ctx, nil, p.ID)
 	case "remediation_events":

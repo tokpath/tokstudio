@@ -31,3 +31,16 @@ export function submitPaymentForm(target: Window | null, url: string, fields: Re
 export function closePaymentWindow(target: Window | null) {
   if (target && !target.closed) target.close();
 }
+
+const openedPrefix = "tokpath-gkash-opened:";
+
+// Remember that this browser already opened the provider page. The order page
+// can then ask the server to read the original channel. Sandbox records the
+// test payment there; a live payment stays unpaid until the channel confirms it.
+export function markPaymentOpened(orderID: string) {
+  try { sessionStorage.setItem(openedPrefix + orderID, "1"); } catch { /* private browsing can block storage */ }
+}
+
+export function paymentWasOpened(orderID: string) {
+  try { return sessionStorage.getItem(openedPrefix + orderID) === "1"; } catch { return false; }
+}

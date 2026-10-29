@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { expect, it, vi } from "vitest";
-import { reservePaymentWindow, submitPaymentForm } from "./payment-window";
+import { markPaymentOpened, paymentWasOpened, reservePaymentWindow, submitPaymentForm } from "./payment-window";
 
 it("posts the Gkash form into the window opened by the confirmation click", () => {
   const opened = { closed: false } as Window;
@@ -15,4 +15,11 @@ it("posts the Gkash form into the window opened by the confirmation click", () =
   expect(submitted[0].action).toBe("https://api.gkash.my/api/PaymentForm.aspx");
   expect(submitted[0].querySelector("input[name=CID]")?.getAttribute("value")).toBe("merchant");
   expect(document.querySelector("form")).toBeNull();
+});
+
+it("remembers which order already opened the payment page", () => {
+  expect(paymentWasOpened("order-one")).toBe(false);
+  markPaymentOpened("order-one");
+  expect(paymentWasOpened("order-one")).toBe(true);
+  expect(paymentWasOpened("order-two")).toBe(false);
 });

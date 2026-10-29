@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { useI18n } from "@/components/i18n";
 import { Button } from "@/components/ui/button";
 import { OrderSchema, type Order } from "@/lib/contracts";
+import { markPaymentOpened } from "@/lib/payment-window";
 import { ErrorPanel, Money, Notice, useCommand } from "./shared";
 import { useProduct } from "./context";
 
@@ -11,7 +12,7 @@ const paymentWindowName = "tokpath-gkash";
 
 // The current page stays here so the payer can read the amount and pick another
 // method. The Gkash form itself is posted into a separate window.
-export function GkashPay({ action, order, onChangeMethod }: { action: NonNullable<Order["payment_action"]>; order: Order; onChangeMethod?: () => void }) {
+export function GkashPay({ action, order, onChangeMethod, onOpened }: { action: NonNullable<Order["payment_action"]>; order: Order; onChangeMethod?: () => void; onOpened?: () => void }) {
   const { t } = useI18n();
   const { context, session } = useProduct();
   const [nextMethod, setNextMethod] = useState("");
@@ -25,7 +26,7 @@ export function GkashPay({ action, order, onChangeMethod }: { action: NonNullabl
   return <div className="space-y-5">
     <DetailAmount action={action} />
     <Notice>{t("Gkash 付款页在新窗口打开，本页会留下来。请核实原通道结果；只有原付款已确认失败且没有收款时，才能更换付款方式。")}</Notice>
-    <form method="POST" action={href} target={paymentWindowName} className="flex flex-wrap gap-3">
+    <form method="POST" action={href} target={paymentWindowName} className="flex flex-wrap gap-3" onSubmit={() => { markPaymentOpened(order.id); onOpened?.(); }}>
       {Object.entries(fields).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
       <Button type="submit">{t("重新打开 Gkash 付款")}<ArrowRight /></Button>
     </form>

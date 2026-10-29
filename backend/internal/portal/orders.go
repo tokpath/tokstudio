@@ -589,6 +589,44 @@ func (a *Application) expireUnpaidOrders(ctx context.Context, limit int) error {
 	}
 	return nil
 }
+
+// reconcileOpenKVoucher reads KVoucher again for checkouts that are still
+// waiting. The sandbox issues a test code without a real card payment, the
+// same way procurement does when someone asks for the original payment.
+// A live payment stays unpaid until that channel actually confirms it.
+// The short delay leaves time for the payment page to be shown first: the
+// sandbox can already return a code at the moment the order is created.
+type kvoucherCheckout struct{ OperatorID, MerchantID, OrderID string }
+
+func (a *Application) openKVoucherChecks(ctx context.Context, limit int) ([]kvoucherCheckout, error) {
+	if limit < 1 || limit > 20 {
+		limit = 10
+	}
+	var rows []kvoucherCheckout
+	err := a.DB.WithContext(ctx).Table("payments_intents AS i").
+		Select("i.operator_id, i.merchant_id, i.order_id").
+		Joins("JOIN payments_merchants AS m ON m.id = i.merchant_id AND m.driver = ?", "kvoucher").
+		Where("i.state = 'created' AND COALESCE(i.provider_id, '') <> '' AND i.updated_at <= clock_timestamp() - interval '15 seconds' AND i.updated_at > clock_timestamp() - interval '40 minutes'").
+		Where(`(EXISTS (SELECT 1 FROM commerce_orders AS o WHERE o.id::text = i.order_id AND o.status = 'pending' AND o.external_allocated_money = 0 AND o.expires_at > clock_timestamp()) OR EXISTS (SELECT 1 FROM cooperation_purchase_orders AS p WHERE p.id::text = i.order_id AND p.status = 'awaiting_payment' AND p.allocated_money = 0))`).
+		Order("i.updated_at, i.order_id").Limit(limit).Scan(&rows).Error
+	return rows, err
+}
+func (a *Application) reconcileOpenKVoucher(ctx context.Context, limit int) error {
+	rows, err := a.openKVoucherChecks(ctx, limit)
+	if err != nil {
+		return err
+	}
+	for _, row := range rows {
+		_, err = a.Payments.Reconcile(ctx, row.OperatorID, row.MerchantID, row.OrderID)
+		if err != nil && !kvoucherStillWaiting(err) {
+			return err
+		}
+	}
+	return nil
+}
+func kvoucherStillWaiting(err error) bool {
+	return errors.Is(err, payments.ErrNotFinal) || errors.Is(err, payments.ErrProvider) || errors.Is(err, payments.ErrOutcomeUnknown) || errors.Is(err, payments.ErrNotConfigured)
+}
 func (a *Application) reconcileOrder(c *gin.Context) {
 	id := subject(c)
 	ctx := c.Request.Context()

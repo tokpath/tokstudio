@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
@@ -43,6 +44,29 @@ func TestPortalLocalizedErrorsPreserveDetailedBusinessContract(t *testing.T) {
 				t.Fatalf("lost detailed error: %s", writer.Body)
 			}
 		})
+	}
+}
+
+func TestUpstreamFailureKeepsTheSupplierResponse(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	writer := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(writer)
+	c.Request = httptest.NewRequest("POST", "/v1/me/playground", nil)
+	c.Request.Header.Set("Accept-Language", "en")
+	c.Set("request_id", "http-request")
+	detail := `HTTP 401 {"error":{"message":"Invalid token","type":"onerouter_api_error"}}`
+	handleError(c, &modelruntime.UpstreamFailure{Status: 401, Detail: detail})
+	var got struct {
+		Error struct {
+			Code, Message string
+			RequestID     string `json:"request_id"`
+		}
+	}
+	if err := json.Unmarshal(writer.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if writer.Code != 502 || got.Error.Code != "upstream_error" || got.Error.Message != detail || got.Error.RequestID != "http-request" {
+		t.Fatal(writer.Code, writer.Body.String())
 	}
 }
 

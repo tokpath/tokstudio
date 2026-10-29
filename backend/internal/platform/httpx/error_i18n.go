@@ -89,6 +89,10 @@ func LocalizedErrorMessage(locale, code, message string) string {
 	if text, ok := uiCatalog[message]; ok {
 		return text[index+1]
 	}
+	// Supplier bodies are diagnostic facts, not catalogued product copy.
+	if code == "upstream_error" && strings.TrimSpace(message) != "" && message != "upstream_error" {
+		return message
+	}
 	if tail, ok := strings.CutPrefix(message, "仍有未满足事项："); ok {
 		parts := strings.Split(tail, "；")
 		for i, part := range parts {

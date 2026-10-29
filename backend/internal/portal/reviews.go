@@ -199,6 +199,7 @@ func (a *Application) platformRequestsResource(c *gin.Context, op organization.O
 		col("customer_id", "客户", "text"),
 		col("model_id", "公开模型", "text"),
 		col("status", "请求状态", "status"),
+		col("reason", "失败原因", "text"),
 		{"key": "estimate_atg", "label": "预估占用", "kind": "atg", "help": "调用前锁定的应收上限。高于实际用量计价说明占用偏保守，低于实际用量计价说明预估没有盖住真实应收。"},
 		{"key": "actual_atg", "label": "实际用量计价", "kind": "atg", "help": "按真实用量和受理时的销售价计算的应收。客户余额足够时与实扣相同。"},
 		col("charged_atg", "实扣ATG", "atg"),

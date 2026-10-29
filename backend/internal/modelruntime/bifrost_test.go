@@ -108,20 +108,23 @@ func TestBifrostNoImplicitRetryAndErrorContentPrivate(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		fmt.Fprint(w, `{"error":{"message":"platform-secret-do-not-log private prompt","type":"server_error"}}`)
+		w.WriteHeader(401)
+		fmt.Fprint(w, `{"error":{"message":"Invalid token","type":"onerouter_api_error","api_key":"sk-live-secret-value"}}`)
 	}))
 	defer server.Close()
 	r, _ := DecodeProtocol("request", Chat, []byte(`{"model":"public-model","messages":[{"role":"user","content":"private prompt"}],"max_tokens":20}`))
 	out, e := newTestRuntime(t).Execute(context.Background(), testAttempt(server.URL, testCapability(Chat, false)), r, nil)
-	if e == nil || out.State != "outcome_unknown" {
+	if e == nil || out.State != "failed" || out.ProviderStatus != 401 {
 		t.Fatalf("got %#v %v", out, e)
 	}
 	if calls.Load() != 1 {
 		t.Fatalf("SDK retried %d times", calls.Load())
 	}
-	if strings.Contains(e.Error(), "private") || strings.Contains(e.Error(), "secret") {
-		t.Fatal("upstream content leaked into error")
+	if !strings.Contains(out.ProviderError, "Invalid token") || !strings.Contains(e.Error(), "Invalid token") {
+		t.Fatal("supplier response was not recorded", out.ProviderError, e)
+	}
+	if strings.Contains(out.ProviderError, "platform-secret-do-not-log") || strings.Contains(out.ProviderError, "sk-live-secret-value") {
+		t.Fatal("credential leaked into recorded supplier error", out.ProviderError)
 	}
 }
 func TestBifrostStreamingUsageAndDisconnect(t *testing.T) {

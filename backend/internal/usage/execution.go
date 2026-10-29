@@ -30,7 +30,8 @@ type AttemptRecord struct {
 	Definition                            json.RawMessage `gorm:"type:jsonb"`
 	State, ProviderRequestID, TaskID      string
 	Usage                                 json.RawMessage `gorm:"type:jsonb"`
-	CostStatus, ErrorCode                 string
+	CostStatus, ErrorCode, ProviderError  string
+	ProviderStatus                        int
 	CostRecordedAt                        *time.Time
 	OutputDelivered                       bool
 	StartedAt                             time.Time
@@ -38,6 +39,13 @@ type AttemptRecord struct {
 }
 
 func (AttemptRecord) TableName() string { return "usage_attempts" }
+
+func failureReason(result modelruntime.Result) string {
+	if result.ProviderError != "" {
+		return result.ProviderError
+	}
+	return result.ErrorCode
+}
 
 type resultRow struct {
 	RequestID                             string `gorm:"primaryKey"`
@@ -164,6 +172,9 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 		attemptCtx, attemptSpan := otel.Tracer("tokenhub/usage").Start(executionCtx, "model.upstream_attempt")
 		attemptSpan.SetAttributes(attribute.String("tokenhub.attempt_id", attempt.ID), attribute.String("tokenhub.upstream_id", upstream.ID), attribute.String("tokenhub.provider_id", upstream.ProviderID))
 		last, lastErr = s.Runtime.Execute(attemptCtx, attempt, input, wrapped)
+		if last.ProviderError == "" && lastErr != nil {
+			last.ProviderError = modelruntime.Diagnostic(lastErr)
+		}
 		attemptSpan.SetAttributes(attribute.String("tokenhub.outcome", last.State), attribute.Bool("tokenhub.usage_reliable", last.Usage.Reliable))
 		attemptSpan.End()
 		last.OutputDelivered = last.OutputDelivered || delivered
@@ -178,7 +189,7 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 		if last.State == "not_dispatched" {
 			finalCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 			defer cancel()
-			out.Request, e = s.failUndispatched(finalCtx, req.ID, last.ErrorCode)
+			out.Request, e = s.failUndispatched(finalCtx, req.ID, failureReason(last))
 			out.Result = last
 			if e != nil {
 				return out, e
@@ -207,10 +218,7 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 		if last.State == "submitted" {
 			state = "submitted"
 		}
-		reason := "usage_pending"
-		if lastErr != nil {
-			reason = last.ErrorCode
-		}
+		reason := failureReason(last)
 		if reason == "" {
 			reason = "upstream_outcome_pending"
 		}
@@ -255,7 +263,7 @@ func (s *Service) RecordAttempt(ctx context.Context, requestID, attemptID string
 			result.ProviderRequestID = row.ProviderRequestID
 		}
 		now := s.wallNow()
-		updates := map[string]any{"state": result.State, "provider_request_id": result.ProviderRequestID, "task_id": result.TaskID, "error_code": result.ErrorCode, "output_delivered": row.OutputDelivered || result.OutputDelivered, "completed_at": now}
+		updates := map[string]any{"state": result.State, "provider_request_id": result.ProviderRequestID, "task_id": result.TaskID, "error_code": result.ErrorCode, "provider_status": result.ProviderStatus, "provider_error": result.ProviderError, "output_delivered": row.OutputDelivered || result.OutputDelivered, "completed_at": now}
 		if result.InputFacts != nil {
 			var definition modelruntime.Attempt
 			if e := json.Unmarshal(row.Definition, &definition); e != nil {

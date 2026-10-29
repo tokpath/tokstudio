@@ -71,6 +71,12 @@ func handleError(c *gin.Context, err error) {
 		fail(c, 409, "unmet_requirements", "仍有未满足事项："+strings.Join(messages, "；"), false)
 		return
 	}
+	var upstream *modelruntime.UpstreamFailure
+	if errors.As(err, &upstream) {
+		retry := upstream.Status == 0 || upstream.Status == 408 || upstream.Status >= 500
+		fail(c, 502, "upstream_error", upstream.Error(), retry)
+		return
+	}
 	status, code, msg, retry := 500, "internal_error", "处理失败，请沿用本次操作编号重试", true
 	switch {
 	case errors.Is(err, mail.ErrSettings):

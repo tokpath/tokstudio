@@ -16,6 +16,7 @@ type OperationalUsage struct {
 	ModelID    string         `json:"model_id"`
 	Operation  string         `json:"operation"`
 	Status     string         `json:"status"`
+	Reason     string         `json:"reason"`
 	ActualATG  ledger.Decimal `json:"actual_atg"`
 	// EstimateATG is the pre-call customer reservation. Only the platform audit
 	// export receives it; downstream operators do not use it to judge metering.
@@ -47,7 +48,7 @@ func (s *Service) OperationalRequests(ctx context.Context, tx *gorm.DB, operator
 	}
 	out := []OperationalUsage{}
 	e := s.within(ctx, tx, func(t *gorm.DB) error {
-		fields := `r.id,r.customer_id,r.model_id,r.operation,r.status,r.actual_atg::text,r.charged_atg::text,r.corrected_atg::text,r.corrected_charged_atg::text,(r.actual_atg-r.corrected_atg)::text AS net_actual_atg,(r.charged_atg-r.corrected_charged_atg)::text AS net_charged_atg,r.merchant_shortfall::text,r.accepted_at`
+		fields := `r.id,r.customer_id,r.model_id,r.operation,r.status,r.reason,r.actual_atg::text,r.charged_atg::text,r.corrected_atg::text,r.corrected_charged_atg::text,(r.actual_atg-r.corrected_atg)::text AS net_actual_atg,(r.charged_atg-r.corrected_charged_atg)::text AS net_charged_atg,r.merchant_shortfall::text,r.accepted_at`
 		q := t.Table("usage_requests r").Where("r.operator_id=? AND r.accepted_at>=? AND r.accepted_at<?", operator, from, to)
 		if operator == s.Catalog.PlatformOperatorID {
 			fields += `,r.estimate_atg::text,0::text AS fulfillment_cost_money,COALESCE(a.pending,0) AS unverified_attempts`

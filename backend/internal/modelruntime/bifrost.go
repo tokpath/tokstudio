@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -455,10 +457,9 @@ func NativeVideoTaskID(id, provider string) string {
 	return raw
 }
 func executionFailure(out Result, f *schemas.BifrostError) (Result, error) {
-	status := 0
-	if f.StatusCode != nil {
-		status = *f.StatusCode
-	}
+	status, detail := supplierFailureDetail(f)
+	out.ProviderStatus = status
+	out.ProviderError = detail
 	out.ErrorCode = "upstream_error"
 	if status == 429 {
 		out.ErrorCode = "rate_limited"
@@ -468,8 +469,90 @@ func executionFailure(out Result, f *schemas.BifrostError) (Result, error) {
 	} else {
 		out.State = "failed"
 	}
-	// GetErrorString can contain prompts and secrets echoed by an upstream.
-	return out, fmt.Errorf("%s (status %d)", out.ErrorCode, status)
+	return out, &UpstreamFailure{Status: status, Detail: detail}
+}
+
+var providerSecretPattern = regexp.MustCompile(`(?i)bearer\s+\S+|sk-[A-Za-z0-9_\-.]{8,}|"[^"]*(?:api[_-]?key|authorization|secret)[^"]*"\s*:\s*"[^"]*"`)
+
+// Diagnostic is the failure text stored on a request. Supplier details are
+// kept; credential material is removed.
+func Diagnostic(err error) string {
+	if err == nil {
+		return ""
+	}
+	var upstream *UpstreamFailure
+	if errors.As(err, &upstream) {
+		return upstream.Error()
+	}
+	return boundProviderDetail(redactProviderDetail(err.Error()))
+}
+
+func supplierFailureDetail(f *schemas.BifrostError) (int, string) {
+	if f == nil {
+		return 0, ""
+	}
+	status := 0
+	if f.StatusCode != nil {
+		status = *f.StatusCode
+	}
+	message, kind, code := "", "", ""
+	if f.Error != nil {
+		message = f.Error.Message
+		if f.Error.Type != nil {
+			kind = *f.Error.Type
+		}
+		if f.Error.Code != nil {
+			code = *f.Error.Code
+		}
+	}
+	body := strings.TrimSpace(string(f.ExtraFields.NativeErrorResponse))
+	if body == "" && f.ExtraFields.RawResponse != nil {
+		switch value := f.ExtraFields.RawResponse.(type) {
+		case string:
+			body = value
+		case []byte:
+			body = string(value)
+		case json.RawMessage:
+			body = string(value)
+		default:
+			encoded, err := json.Marshal(value)
+			if err == nil {
+				body = string(encoded)
+			}
+		}
+	}
+	detail := strings.TrimSpace(body)
+	if detail == "" {
+		parts := []string{}
+		if status != 0 {
+			parts = append(parts, fmt.Sprintf("HTTP %d", status))
+		}
+		if kind != "" {
+			parts = append(parts, kind)
+		}
+		if code != "" {
+			parts = append(parts, code)
+		}
+		if message != "" {
+			parts = append(parts, message)
+		}
+		detail = strings.Join(parts, " ")
+	} else if status != 0 {
+		detail = fmt.Sprintf("HTTP %d %s", status, detail)
+	}
+	return status, boundProviderDetail(redactProviderDetail(detail))
+}
+
+func redactProviderDetail(value string) string {
+	return providerSecretPattern.ReplaceAllString(value, "[redacted]")
+}
+
+func boundProviderDetail(value string) string {
+	value = strings.ToValidUTF8(strings.TrimSpace(value), "")
+	if len(value) <= 4000 {
+		return value
+	}
+	return value[:4000] + "…"
 }
 func decodePreserved(raw json.RawMessage, dst any) error {
 	if len(raw) == 0 {

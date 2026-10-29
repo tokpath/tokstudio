@@ -442,7 +442,9 @@ func (s CommerceCatalog) setListing(ctx context.Context, actor, model string, en
 	}
 	if !applying(ctx) {
 		var count int64
-		if e := s.DB.WithContext(ctx).Table("tokenhub_model_listings").Where("operator_id=?", actor).Count(&count).Error; e != nil {
+		// A model's first listing adds a new service. Other models already on
+		// this operator's shelf do not turn it into a revision needing notice.
+		if e := s.DB.WithContext(ctx).Table("tokenhub_model_listings").Where("operator_id=? AND public_model_id=?", actor, model).Count(&count).Error; e != nil {
 			return e
 		}
 		if expected > 0 || count > 0 {
@@ -626,8 +628,8 @@ type ModelQuote struct {
 }
 type SupplierPriceSnapshot struct {
 	EstimateMoney *string         `json:"estimate_money,omitempty"`
-	Snapshot    json.RawMessage `json:"snapshot"`
-	UpstreamID  string          `json:"upstream_id"`
+	Snapshot      json.RawMessage `json:"snapshot"`
+	UpstreamID    string          `json:"upstream_id"`
 }
 
 // Quote resolves all price books and takes a component-wise maximum across

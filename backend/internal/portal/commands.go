@@ -817,12 +817,23 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 		case "listing":
 			if in.Expected == 0 && in.Enabled && in.EffectiveAt.IsZero() {
 				e := cat.SetListing(ctx, op.ID, in.ModelID, true, 0)
-				if e == nil || !errors.Is(e, catalog.ErrChangeNotice) {
-					return commandResult(in.ModelID, "configured"), e
+				if e == nil {
+					// New availability may change the maximum fulfillment cost.
+					// Recalculate risk in the same transaction without delaying the
+					// first listing behind a notification plan for existing service.
+					e = a.pricePublished(ctx, tx, catalog.PriceVersion{ID: "listing:" + op.ID + ":" + in.ModelID + ":1", EffectiveAt: time.Now().UTC()})
+					out := commandResult(in.ModelID, "configured")
+					out["message"] = "本经营方已上架此模型。"
+					return out, e
+				}
+				if !errors.Is(e, catalog.ErrChangeNotice) {
+					return nil, e
 				}
 			}
 			out, e := controller.ScheduleListing(ctx, op.ID, in.ModelID, in.Enabled, in.Expected, in.EffectiveAt, in.Evidence)
-			return commandResult(out.ID, out.State), e
+			result := commandResult(out.ID, out.State)
+			result["message"] = "上架或下架变更已保存，请查看模型列表中的生效进度。"
+			return result, e
 		case "authorization":
 			if in.Expected == 0 && in.Enabled && in.EffectiveAt.IsZero() {
 				e := cat.SetAuthorization(ctx, op.ID, in.BuyerID, in.ModelID, true, 0)

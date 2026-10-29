@@ -329,3 +329,53 @@ func TestPublicModelKeepsOnlyTheCheckedOperation(t *testing.T) {
 		t.Fatalf("%#v", got)
 	}
 }
+
+func TestPostgresFirstListingIsPerModelAndKeepsExistingListingChangesScheduled(t *testing.T) {
+	s := newCommerceTestStore(t)
+	seedCommerceModel(t, s)
+	ctx := context.Background()
+	original, err := s.PublicModel(ctx, "model")
+	if err != nil {
+		t.Fatal(err)
+	}
+	second := original
+	second.ID, second.Enabled, second.Version = "second-model", false, 0
+	if err = s.SavePublicModel(ctx, "platform", second, 0); err != nil {
+		t.Fatal(err)
+	}
+	upstreams, err := s.upstreams(ctx, "model")
+	if err != nil {
+		t.Fatal(err)
+	}
+	upstream := upstreams[0]
+	upstream.ID, upstream.PublicModelID, upstream.Version = "second-upstream", second.ID, 0
+	if err = s.SaveUpstream(ctx, "platform", upstream, 0); err != nil {
+		t.Fatal(err)
+	}
+	second.Enabled = true
+	if err = s.SavePublicModel(ctx, "platform", second, 1); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"model", second.ID} {
+		if err = s.SetAuthorization(ctx, "platform", "oem", id, true, 0); err != nil {
+			t.Fatal(err)
+		}
+		if err = s.SetAuthorization(ctx, "oem", "channel", id, true, 0); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, actor := range []string{"platform", "oem", "channel"} {
+		for _, id := range []string{"model", second.ID} {
+			if err = s.SetListing(ctx, actor, id, true, 0); err != nil {
+				t.Fatalf("first listing %s/%s: %v", actor, id, err)
+			}
+		}
+		models, err := s.AvailableModels(ctx, actor, true)
+		if err != nil || len(models) != 2 {
+			t.Fatal("new model not immediately visible", actor, models, err)
+		}
+		if err = s.SetListing(ctx, actor, second.ID, false, 1); !errors.Is(err, ErrChangeNotice) {
+			t.Fatal("existing listing change bypassed notice", actor, err)
+		}
+	}
+}

@@ -118,7 +118,17 @@ func (a *Application) pricingWorkspaceItems(ctx context.Context, op organization
 			if change.State != "announcing" && change.State != "announced" {
 				continue
 			}
-			pending = append(pending, gin.H{"kind": change.Kind, "status": change.State, "effective_at": change.EffectiveAt, "needs_attention": change.ErrorCode != ""})
+			entry := gin.H{"kind": change.Kind, "status": change.State, "effective_at": change.EffectiveAt, "needs_attention": change.ErrorCode != ""}
+			if change.Kind == "listing" {
+				var flag struct {
+					Enabled bool `json:"enabled"`
+				}
+				if e := json.Unmarshal(change.Payload, &flag); e != nil {
+					return nil, e
+				}
+				entry["enabled"] = flag.Enabled
+			}
+			pending = append(pending, entry)
 		}
 		v["price_books"], v["pending_changes"] = entries, pending
 		items = append(items, entity(model.ID, view.Status, int64(model.Version), v))

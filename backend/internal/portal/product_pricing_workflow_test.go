@@ -155,3 +155,82 @@ func TestPostgresProductPricingNeedsNoManualPublicationPaperwork(t *testing.T) {
 		t.Fatal("later prices did not unblock automatic template publication", ready, err)
 	}
 }
+
+func TestPostgresFirstListingImmediatelyUpdatesPricingAndCustomerModels(t *testing.T) {
+	f := setupPortal(t)
+	ctx, op := context.Background(), f.a.Installation.OperatorID
+	first := f.configureExternalCatalog(t, f.server.URL)
+	second := f.configureExternalCatalog(t, f.server.URL)
+	// Prepare a verified, priced new model before its first retail listing.
+	if err := f.a.DB.Exec("DELETE FROM tokenhub_model_listings WHERE operator_id=? AND public_model_id=?", op, second).Error; err != nil {
+		t.Fatal(err)
+	}
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	base := "/v1/operators/" + op
+	input := map[string]any{"configuration": map[string]any{"action": "listing", "model_id": second, "enabled": true, "expected_version": 0}}
+	key := uuid.NewString()
+	status, out, _ := f.call(t, "POST", base+"/pricing", input, key)
+	mustOK(t, status, out)
+	if out["status"] != "configured" || out["message"] != "本经营方已上架此模型。" {
+		t.Fatal("new model unexpectedly delayed", out)
+	}
+	status, replay, _ := f.call(t, "POST", base+"/pricing", input, key)
+	mustOK(t, status, replay)
+	if replay["id"] != out["id"] {
+		t.Fatal("listing replay changed result", replay)
+	}
+	var changes int64
+	if err := f.a.DB.Table("tokenhub_catalog_changes").Where("operator_id=? AND kind='listing' AND resource_id=?", op, second).Count(&changes).Error; err != nil || changes != 0 {
+		t.Fatal("first listing created a notification plan", changes, err)
+	}
+	var checks int64
+	if err := f.a.DB.Table("portal_price_checks").Where("price_id=? AND operator_id=?", "listing:"+op+":"+second+":1", op).Count(&checks).Error; err != nil || checks != 1 {
+		t.Fatal("first listing did not recalculate coverage exactly once", checks, err)
+	}
+	status, out, _ = f.call(t, "GET", base+"/pricing", nil, "")
+	mustOK(t, status, out)
+	found := map[string]bool{}
+	for _, r := range out["items"].([]any) {
+		row := r.(map[string]any)
+		if row["id"] == first || row["id"] == second {
+			found[row["id"].(string)] = row["status"] == "available"
+		}
+	}
+	if !found[first] || !found[second] {
+		t.Fatal("pricing workspace did not update", out)
+	}
+	status, out, _ = f.call(t, "GET", "/v1/public/models", nil, "")
+	mustOK(t, status, out)
+	found = map[string]bool{}
+	for _, r := range out["items"].([]any) {
+		row := r.(map[string]any)
+		if row["id"] == first || row["id"] == second {
+			found[row["id"].(string)] = true
+		}
+	}
+	if !found[first] || !found[second] {
+		t.Fatal("platform direct customer catalog did not update", out)
+	}
+	change, err := f.a.CatalogChanges.ScheduleListing(ctx, op, second, false, 1, time.Now().Add(3*time.Minute), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	status, out, _ = f.call(t, "GET", base+"/pricing", nil, "")
+	mustOK(t, status, out)
+	foundPending := false
+	for _, r := range out["items"].([]any) {
+		row := r.(map[string]any)
+		if row["id"] != second {
+			continue
+		}
+		for _, p := range row["values"].(map[string]any)["pending_changes"].([]any) {
+			pending := p.(map[string]any)
+			if pending["kind"] == "listing" && pending["enabled"] == false && pending["status"] == change.State && pending["effective_at"] != "" {
+				foundPending = true
+			}
+		}
+	}
+	if !foundPending {
+		t.Fatal("pending unlisting direction or time missing", out)
+	}
+}

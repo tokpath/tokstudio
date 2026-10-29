@@ -923,6 +923,10 @@ func (a *Application) domainRequest(c *gin.Context, op organization.Operator, ac
 	if !body(c, &in) {
 		return
 	}
+	if op.Kind == organization.OEM && in.TargetOperatorID != "" && in.TargetOperatorID != op.ID {
+		handleError(c, organization.ErrForbidden)
+		return
+	}
 	if in.Action == "google" || in.Action == "google_test" {
 		a.googleBrandCommand(c, op, actor, in.Action, in.TargetOperatorID, in.Hostname, in.ClientID, in.ClientSecret, in.Enabled, in.ExpectedVersion)
 		return

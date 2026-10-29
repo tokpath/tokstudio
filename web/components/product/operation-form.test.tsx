@@ -58,6 +58,21 @@ it("only sends materials belonging to the selected payment driver",async()=>{con
 
 it("serializes a hidden destination consent as a boolean",async()=>{const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"proposal",status:"awaiting_finance_verification"}),{status:200}));vi.stubGlobal("fetch",fetch);show({name:"destination",label:"确认剩余款目的地",method:"POST",path:"/api/v1/me/refunds/legs/leg/responsible-destination",fields:[{name:"responsible_execution",label:"本人同意",kind:"hidden",default_value:true}]});fireEvent.click(screen.getByRole("button",{name:"确认剩余款目的地",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({responsible_execution:true});});
 
+it("submits an OEM domain request for the current operator without a brand picker", async () => {
+  const fetch = vi.fn(async () => new Response(JSON.stringify({ id: "domain-one", status: "pending" }), { status: 200 }));
+  vi.stubGlobal("fetch", fetch);
+  show({ name: "request", label: "申请域名验证", method: "POST", path: "/api/v1/operators/operator-one/domains", fields: [
+    { name: "target_operator_id", label: "目标品牌经营方", kind: "hidden", required: true, default_value: "operator-one" },
+    { name: "hostname", label: "品牌域名", kind: "text", required: true },
+  ] });
+  expect(screen.queryByRole("combobox", { name: /目标品牌经营方/ })).toBeNull();
+  expect(screen.queryByText("目标品牌经营方")).toBeNull();
+  fireEvent.change(screen.getByLabelText("品牌域名", { exact: true }), { target: { value: "brand.example.test" } });
+  fireEvent.click(screen.getByRole("button", { name: "申请域名验证", exact: true }));
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({ target_operator_id: "operator-one", hostname: "brand.example.test" });
+});
+
 it("adds a supplier key with a name and keeps internal ids off the form", async () => {
   const fetch = vi.fn(async () => new Response(JSON.stringify({ id: "credential-new", status: "saved" }), { status: 200 }));
   vi.stubGlobal("fetch", fetch);

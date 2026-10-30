@@ -12,7 +12,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { pricingRefetchInterval } from "./pricing-refresh";
 import { X, ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 import { request } from "@/lib/api-client";
-import { CommandResultSchema, ResourcePageSchema, type Entity, type Operation, type JSONValue, type ResourcePage } from "@/lib/contracts";
+import { CommandResultSchema, CreditsSchema, ResourcePageSchema, type Entity, type Operation, type JSONValue, type ResourcePage } from "@/lib/contracts";
 import { canReadResource, resourceLabel } from "@/lib/navigation";
 import { useNavigationBlock } from "@/lib/navigation-guard";
 import { useProduct } from "./context";
@@ -156,6 +156,17 @@ function PublicModelSwitch({ row, operatorID }: { row: Entity; operatorID: strin
   </div>;
 }
 
+function CustomerWithdrawalBar({ minimum }: { minimum?: { value: string; unit?: string; detail?: string } }) {
+  const { t } = useI18n();
+  const credits = useQuery({ queryKey: ["credits"], queryFn: () => request("/api/v1/me/credits", CreditsSchema) });
+  const wallet = credits.data?.commission_money;
+  const amounts = [
+    { label: "可用金额", value: wallet?.available, money: true },
+    { label: "冻结金额", value: wallet?.frozen, money: true },
+    { label: "最低提现额度", value: minimum?.value, money: minimum?.unit === "MONEY" },
+  ];
+  return <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-8 gap-y-3">{amounts.map(item => <div key={item.label} className="min-w-0"><p className="text-xs text-ink-mute">{t(item.label)}</p>{item.money && item.value ? <p className="mt-1 text-lg font-semibold"><Money value={item.value} unit="MONEY" /></p> : <p className="mt-1 text-lg font-semibold">{item.value ? t(item.value) : t("尚未读取")}</p>}</div>)}</div>;
+}
 export function ResourceCollection({ page, operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, toolbar, initialValues, actionsOnly = false, record, inspectionLinks, businessView, procurementSection, onProcurementSection }: ResourceOptions & { page: ResourcePage; toolbar?: ReactNode; initialValues?: Record<string, JSONValue>; actionsOnly?: boolean }) {
   const { t, locale } = useI18n();
   const { session } = useProduct();
@@ -210,7 +221,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   if (resourceName === "business-status" && operatorID) return <>{!embedded && <Heading title={page.title} description={page.description} />}<BusinessSettings operatorID={operatorID} row={page.items[0]} /></>;
   return <>
     {!embedded && <Heading title={page.title === resourceName ? resourceLabel(resourceName) : page.title} description={page.description} />}
-    {page.summary && !["refunds","invoices"].includes(resourceName) && (resourceName !== "procurement" || procurementTab === "orders") && <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{page.summary.map((item, index) => <div key={index}><Stat {...item} detail={undefined} help={item.detail} /></div>)}
+    {page.summary && !(customer && resourceName === "withdrawals") && !["refunds","invoices"].includes(resourceName) && (resourceName !== "procurement" || procurementTab === "orders") && <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{page.summary.map((item, index) => <div key={index}><Stat {...item} detail={undefined} help={item.detail} /></div>)}
     </div>}
     {page.availability?.filter(item => !item.enabled).map(item => <div key={item.capability} className="mb-4">
       <Notice>{t(item.reason || "相应业务暂未开放")}{item.next_action && <p>{t(item.next_action)}
@@ -219,8 +230,8 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     </div>)}
     {resourceName === "procurement" && <div className="mb-5"><div role="tablist" aria-label={t("采购办理事项")} className="flex flex-wrap gap-2">{[["orders", businessView === "supplier" ? "供货订单" : "采购订单"], ["quotes", businessView === "supplier" ? "供货报价" : "采购报价"], ["automatic", "自动补货"]].filter(([key]) => key !== "automatic" || businessView !== "supplier").map(([key, title]) => <Button key={key} role="tab" aria-selected={procurementTab === key} variant={procurementTab === key ? "default" : "outline"} onClick={() => setProcurementTab(key)}>{t(title)}</Button>)}</div><p className="mt-3 text-xs leading-6 text-ink-mute">{t(businessView === "supplier" ? "供货订单列出每一笔采购占用的库存。未付款订单不限时，直到付清或取消后才释放。" : procurementTab === "quotes" ? "选择已生效报价创建采购订单。创建后即占用供货库存，付款并交付后才增加采购余额。" : procurementTab === "automatic" ? "在此管理有限补货授权和原执行结果。结果未知时只查询原付款。" : "每一行显示这笔订单占用的供货库存。未付款不限时，直到付清或取消。需要新增采购时打开采购报价。")}</p></div>}
     {operatorID && ["procurement", "operators"].includes(resourceName) && workspace?.permissions.some(permission => ["*", "cooperation.manage"].includes(permission)) && <p className="mb-4 text-sm"><Link className="text-brand-emphasis underline" href={`/manage/${encodeURIComponent(operatorID)}/contracts`}>{t("上传或查看可选合作合同")}</Link></p>}
-    {resourceName !== "providers" && (toolbar || operations.length > 0) && <div className="th-toolbar">{toolbar}
-      <div className="flex flex-wrap gap-2">{primaryOperations.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
+    {resourceName !== "providers" && (toolbar || operations.length > 0) && <div className="th-toolbar">{customer && resourceName === "withdrawals" && <CustomerWithdrawalBar minimum={page.summary?.find(item => item.label === "最低提现额度")} />}{toolbar}
+      <div className={`${customer && resourceName === "withdrawals" ? "ml-auto " : ""}flex flex-wrap items-center gap-2`}>{primaryOperations.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
       </Button>)}
       {settings.length>0 && <details className="relative"><summary className="cursor-pointer rounded-control border border-hairline bg-canvas-raised px-4 py-3 text-sm">{t("办理设置")}</summary><div className="absolute right-0 z-20 mt-2 min-w-56 space-y-1 rounded-control border border-hairline bg-canvas-raised p-2 shadow-lg">{settings.map(operation => <Button key={operation.name} type="button" variant="ghost" className="w-full justify-start" onClick={() => selectOperation(operation)}>{t(operation.label)}</Button>)}</div></details>}
       </div>

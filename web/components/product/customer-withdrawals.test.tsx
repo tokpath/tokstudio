@@ -13,30 +13,40 @@ function mount(content: React.ReactNode) { const cache = new QueryClient({ defau
 it("offers cancellation only for the server-authorized pending withdrawal and confirms its exact request", async () => {
   const cancel: Operation = { name: "cancel", label: "取消提现申请", method: "POST", path: "/api/v1/me/withdrawals/{id}/cancel", fields: [], confirmation: "确认取消这笔尚未审核的提现申请？取消成功后释放本笔佣金占用。" };
   const page: ResourcePage = { title: "佣金提现", description: "审核前可以取消本人申请。", items: ["requested", "approved", "paying", "unknown", "paid", "cancelled", "failed"].map(status => ({ id: `withdrawal-${status}`, status, values: { amount_money: "5.000000000000000001" }, allowed_actions: status === "requested" ? ["cancel"] : [] })), columns: [{ key: "id", label: "申请编号", kind: "text" }, { key: "amount_money", label: "金额", kind: "money" }], operations: [], row_operations: [cancel] };
-  const fetch = vi.fn(async (_path: RequestInfo | URL, _init?: RequestInit) => new Response(JSON.stringify({ id: "withdrawal-requested", status: "cancelled" }), { status: 200 }));
+  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => new Response(JSON.stringify(String(input).endsWith("/credits") ? credits : { id: "withdrawal-requested", status: "cancelled" }), { status: 200 }));
   vi.stubGlobal("fetch", fetch);
   mount(<ResourceCollection resource="withdrawals/workspace" customer page={page} />);
   expect(screen.getAllByRole("button", { name: "取消提现申请" })).toHaveLength(1);
   fireEvent.click(screen.getByRole("button", { name: "取消提现申请" }));
   const dialog = screen.getByRole("dialog");
   fireEvent.click(within(dialog).getByRole("button", { name: "取消提现申请", exact: true }));
-  expect(fetch).not.toHaveBeenCalled();
+  expect(fetch.mock.calls.some(call => call[1]?.method === "POST")).toBe(false);
   fireEvent.click(within(dialog).getByRole("checkbox"));
   fireEvent.click(within(dialog).getByRole("button", { name: "取消提现申请", exact: true }));
-  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-  expect(String(fetch.mock.calls[0][0])).toBe("/api/v1/me/withdrawals/withdrawal-requested/cancel");
-  expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toEqual({});
-  expect((fetch.mock.calls[0][1]?.headers as Headers).get("Idempotency-Key")).toMatch(/^[0-9a-f-]{36}$/);
+  await waitFor(() => expect(fetch.mock.calls.filter(call => call[1]?.method === "POST")).toHaveLength(1));
+  const posted = fetch.mock.calls.find(call => call[1]?.method === "POST")!;
+  expect(String(posted[0])).toBe("/api/v1/me/withdrawals/withdrawal-requested/cancel");
+  expect(JSON.parse(String(posted[1]?.body))).toEqual({});
+  expect((posted[1]?.headers as Headers).get("Idempotency-Key")).toMatch(/^[0-9a-f-]{36}$/);
 });
 
-it("shows the operator minimum on the withdrawal page and again inside the fee form", () => {
+const credits = { customer_atg: { available: "0", held: "0", purchased_remaining: "0", gift_remaining: "0" }, money_balance: { available: "0", held: "0" }, commission_money: { available: "0.002184", held: "0", frozen: "0.001861", recovery_due: "0" }, qualification: { confirmed_money: "0", pending_money: "0", threshold_money: "1", qualified_at: null, function_status: "active" } };
+
+it("shows available, frozen and minimum amounts beside the fee button", async () => {
   const rule = "单笔提现总额不能低于经营方公布的最低额度 1 结算币种。";
   const page: ResourcePage = { title: "佣金提现", description: rule, summary: [{ label: "最低提现额度", value: "1", unit: "MONEY", detail: "单笔提现总额不能低于经营方公布的这个额度。" }], items: [], columns: [{ key: "amount_money", label: "总额", kind: "money" }], operations: [{ name: "quote", label: "核算提现费用", method: "POST", path: "/api/v1/me/withdrawals/quotes", description: rule, fields: [{ name: "amount_money", label: "提现总额 结算币种", kind: "decimal", required: true, help: "不能低于经营方公布的最低提现额度。" }] }], row_operations: [] };
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(credits), { status: 200 })));
   mount(<ResourceCollection resource="withdrawals/workspace" customer page={page} />);
+  const bar = screen.getByRole("button", { name: "核算提现费用" }).parentElement!.parentElement!;
   expect(screen.getByRole("heading", { name: "佣金提现" })).toBeTruthy();
   expect(screen.getByText(rule)).toBeTruthy();
-  expect(screen.getByText("最低提现额度")).toBeTruthy();
-  expect(screen.getByLabelText("1 USD")).toBeTruthy();
+  expect(within(bar).getByText("可用金额")).toBeTruthy();
+  expect(within(bar).getByText("冻结金额")).toBeTruthy();
+  expect(within(bar).getByText("最低提现额度")).toBeTruthy();
+  expect(screen.getAllByText("最低提现额度")).toHaveLength(1);
+  await waitFor(() => expect(within(bar).getByLabelText("0.002184 USD")).toBeTruthy());
+  expect(within(bar).getByLabelText("0.001861 USD")).toBeTruthy();
+  expect(within(bar).getByLabelText("1 USD")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "核算提现费用" }));
   expect(within(screen.getByRole("dialog")).getByText(rule)).toBeTruthy();
 });

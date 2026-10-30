@@ -189,6 +189,9 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 	if e != nil {
 		t.Fatal(e)
 	}
+	if revealed, err := s.OpenKeySecret(key.Key); err != nil || revealed != key.Secret {
+		t.Fatal(revealed, key.Secret, err)
+	}
 	return fixture{ctx, s, db, org, l, coop, cat, registered.Customer.ID, p.Operator.ID, p.Brand.ID, owner, key}
 }
 func request(t *testing.T, stream bool) modelruntime.Request {
@@ -232,6 +235,9 @@ func TestPostgresActualOverageNoCustomerDebtAndKeyResetPreservesBudget(t *testin
 	}
 	if _, e = f.s.AuthenticateKey(f.ctx, f.brand, f.key.Secret); !errors.Is(e, ErrKey) {
 		t.Fatalf("old secret remained valid: %v", e)
+	}
+	if revealed, err := f.s.OpenKeySecret(reset.Key); err != nil || revealed != reset.Secret {
+		t.Fatal(revealed, reset.Secret, err)
 	}
 	settled, e := f.s.Settle(f.ctx, nil, r.ID, measured("400", "400"))
 	if e != nil {

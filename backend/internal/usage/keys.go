@@ -30,6 +30,7 @@ type Key struct {
 	RateLimitRPM     *int64          `json:"rate_limit_rpm"`
 	ConcurrencyLimit *int64          `json:"concurrency_limit"`
 	Version          int64           `json:"version"`
+	SecretCiphertext string          `json:"-" gorm:"column:secret_ciphertext"`
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 }
@@ -111,7 +112,11 @@ func (s *Service) CreateKey(ctx context.Context, customer, businessKey string, i
 		if e != nil {
 			return e
 		}
-		k := Key{ID: uuid.NewString(), CustomerID: customer, BrandID: c.BrandID, Name: in.Name, Prefix: secret[:11], TokenHash: platformcrypto.HashToken(secret), Status: "active", ModelIDs: models, BudgetLimit: in.BudgetLimit, Period: in.Period, Timezone: in.Timezone, RateLimitRPM: in.RateLimitRPM, ConcurrencyLimit: in.ConcurrencyLimit, Version: 1, CreatedAt: now, UpdatedAt: now}
+		sealed, e := s.sealSecret(secret)
+		if e != nil {
+			return e
+		}
+		k := Key{ID: uuid.NewString(), CustomerID: customer, BrandID: c.BrandID, Name: in.Name, Prefix: secret[:11], TokenHash: platformcrypto.HashToken(secret), SecretCiphertext: sealed, Status: "active", ModelIDs: models, BudgetLimit: in.BudgetLimit, Period: in.Period, Timezone: in.Timezone, RateLimitRPM: in.RateLimitRPM, ConcurrencyLimit: in.ConcurrencyLimit, Version: 1, CreatedAt: now, UpdatedAt: now}
 		k.Kind = "api"
 		if e = t.Create(&k).Error; e != nil {
 			return e
@@ -201,8 +206,13 @@ func (s *Service) ResetKey(ctx context.Context, customer, id, businessKey string
 		if e != nil {
 			return e
 		}
+		sealed, e := s.sealSecret(secret)
+		if e != nil {
+			return e
+		}
 		k.TokenHash = platformcrypto.HashToken(secret)
 		k.Prefix = secret[:11]
+		k.SecretCiphertext = sealed
 		k.Version++
 		k.UpdatedAt = s.wallNow()
 		if e = t.Save(&k).Error; e != nil {
@@ -227,6 +237,21 @@ func (s *Service) AuthenticateKey(ctx context.Context, brand, secret string) (Ke
 		return Key{}, ErrKey
 	}
 	return k, nil
+}
+func (s *Service) sealSecret(secret string) (string, error) {
+	if s.EncryptionKey == "" {
+		return "", ErrKey
+	}
+	return platformcrypto.Seal(s.EncryptionKey, secret)
+}
+
+// OpenKeySecret returns the stored API key for its owner. Keys created before
+// the ciphertext was kept have nothing to reveal.
+func (s *Service) OpenKeySecret(k Key) (string, error) {
+	if k.SecretCiphertext == "" || k.Kind != "api" || k.Status == "deleted" {
+		return "", nil
+	}
+	return platformcrypto.Open(s.EncryptionKey, k.SecretCiphertext)
 }
 func (s *Service) ListKeys(ctx context.Context, customer string) ([]Key, error) {
 	var rows []Key

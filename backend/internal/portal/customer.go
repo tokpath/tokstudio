@@ -316,7 +316,15 @@ func (a *Application) keyDTOIn(ctx context.Context, tx *gorm.DB, k usage.Key) (g
 	}
 	var models []string
 	_ = json.Unmarshal(k.ModelIDs, &models)
-	return gin.H{"id": k.ID, "name": k.Name, "prefix": k.Prefix, "status": k.Status, "model_ids": models, "budget": budget, "rate_limit_rpm": k.RateLimitRPM, "concurrency_limit": k.ConcurrencyLimit, "version": k.Version, "created_at": k.CreatedAt}, nil
+	dto := gin.H{"id": k.ID, "name": k.Name, "prefix": k.Prefix, "status": k.Status, "model_ids": models, "budget": budget, "rate_limit_rpm": k.RateLimitRPM, "concurrency_limit": k.ConcurrencyLimit, "version": k.Version, "created_at": k.CreatedAt}
+	secret, e := a.Usage.OpenKeySecret(k)
+	if e != nil {
+		return nil, e
+	}
+	if secret != "" {
+		dto["secret"] = secret
+	}
+	return dto, nil
 }
 func (a *Application) listKeys(c *gin.Context) {
 	rows, e := a.Usage.ListKeys(c.Request.Context(), subject(c).Customer.Customer.ID)

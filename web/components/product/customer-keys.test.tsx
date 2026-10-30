@@ -13,6 +13,16 @@ function show() {
 }
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+it("copies a stored key from the list at any time", async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.assign(navigator, { clipboard: { writeText } });
+  vi.stubGlobal("fetch", vi.fn(async () => response({ items: [{ ...apiKey, secret: "th_live_secret" }] })));
+  show();
+  expect(await screen.findByText("th_live_secret")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "复制密钥" }));
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith("th_live_secret"));
+});
+
 it("creates a precise budget with an explicitly empty model scope and hides the one-time secret on close", async () => {
   const calls: RequestInit[] = [];
   vi.stubGlobal("fetch", vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {

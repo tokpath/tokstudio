@@ -13,12 +13,25 @@ import (
 	"gorm.io/gorm"
 )
 
+const commissionWithdrawalTerms = "提现手续费由申请人承担；经营方单人审批后付款。"
+
+func (s *Service) SetCommissionWithdrawalMinimum(ctx context.Context, tx *gorm.DB, actor, operator string, minimum ledger.Decimal) (WithdrawalPolicy, error) {
+	return s.SetWithdrawalPolicy(ctx, tx, actor, operator, WithdrawalPolicy{MinimumMoney: minimum, MethodReference: commissionWithdrawalTerms}, -1)
+}
 func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, operator string, in WithdrawalPolicy, expectedVersion int64) (out WithdrawalPolicy, err error) {
-	if !validID(operator) || expectedVersion < 0 || in.MinimumMoney.Sign() <= 0 || !in.MinimumMoney.Valid() || in.FlatFeeMoney.Sign() < 0 || !in.FlatFeeMoney.Valid() || !rateValid(in.FeeRate) || in.FeeRate.Cmp(ledger.FromInt64(1)) == 0 || in.MethodReference == "" {
+	if !validID(operator) || expectedVersion < -1 || in.MinimumMoney.Sign() <= 0 || !in.MinimumMoney.Valid() || in.FlatFeeMoney.Sign() < 0 || !in.FlatFeeMoney.Valid() || !rateValid(in.FeeRate) || in.FeeRate.Cmp(ledger.FromInt64(1)) == 0 || in.MethodReference == "" {
 		return out, ErrInvalidInput
 	}
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
-		if err := s.org.RequirePermission(ctx, tx, actor, operator, "withdrawals.manage"); err != nil {
+		permission := "withdrawals.manage"
+		if expectedVersion < 0 {
+			permission = "marketing.manage"
+			in.FlatFeeMoney = ledger.Zero()
+			in.FeeRate = ledger.Zero()
+			in.RequiresDualApproval = false
+			in.MethodReference = commissionWithdrawalTerms
+		}
+		if err := s.org.RequirePermission(ctx, tx, actor, operator, permission); err != nil {
 			return err
 		}
 		if err := s.LockBusiness(ctx, tx, operator); err != nil {
@@ -28,6 +41,9 @@ func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, o
 		q := tx.Where("operator_id=?", operator).Order("version DESC").Limit(1).Find(&old)
 		if q.Error != nil {
 			return q.Error
+		}
+		if expectedVersion < 0 {
+			expectedVersion = old.Version
 		}
 		if old.Version != expectedVersion {
 			return ErrConflict
@@ -212,9 +228,6 @@ func (s *Service) BeginWithdrawalPayment(ctx context.Context, tx *gorm.DB, actor
 		var p withdrawalPolicyRow
 		if err = tx.First(&p, "id=?", r.PolicyID).Error; err != nil {
 			return err
-		}
-		if p.RequiresDualApproval && *r.ApprovedBy == actor {
-			return organization.ErrForbidden
 		}
 		intent := uuid.NewString()
 		r.Status = "paying"

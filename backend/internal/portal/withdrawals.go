@@ -85,11 +85,6 @@ func (a *Application) cancelWithdrawal(c *gin.Context) {
 }
 func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
 	p["search_supported"], p["status_supported"] = true, true
-	var policy incentives.WithdrawalPolicy
-	if e := a.DB.WithContext(c.Request.Context()).Table("incentives_withdrawal_policies").Where("operator_id=?", op.ID).Order("version DESC").Limit(1).Find(&policy).Error; e != nil {
-		handleError(c, e)
-		return
-	}
 	rows, next, e := a.Incentives.WithdrawalsForOperator(c.Request.Context(), nil, actor, op.ID, c.Query("cursor"), 50, c.Query("q"), c.Query("status"))
 	if e != nil {
 		handleError(c, e)
@@ -103,47 +98,16 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 		items = append(items, row)
 	}
 	p["title"] = "提现办理"
+	p["description"] = "在此审批并付款。佣金最低提现额度在邀请与分佣规则中设置。提现手续费由申请人承担，审批为单人。"
 	p["items"] = items
 	p["next_cursor"] = next
 	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
-	minimum := f("configuration.minimum_money", "最低提现 结算币种", "decimal")
-	method := f("configuration.method_reference", "对客户公示付款方式规则", "text")
-	if policy.Version > 0 {
-		minimum.Default = policy.MinimumMoney
-		method.Default = policy.MethodReference
-	}
-	// Policy CAS belongs to the policy itself, independently of the first
-	// withdrawal row. Explicit nested fields retain their real defaults through
-	// the generic resource presenter and decodeConfiguration reads this object.
-	p["operations"] = []operation{{Name: "policy", Label: "发布提现规则", Method: "POST", Path: base, Fields: []field{
-		minimum,
-		defaultField("configuration.flat_fee_money", "固定手续费 结算币种", "decimal", policy.FlatFeeMoney),
-		defaultField("configuration.fee_rate", "手续费比例（0到1）", "decimal", policy.FeeRate),
-		defaultField("configuration.requires_dual_approval", "必须双人审批付款", "boolean", policy.RequiresDualApproval),
-		method,
-		defaultField("configuration.expected_version", "当前规则版本", "hidden", policy.Version),
-	}}}
+	p["operations"] = []operation{}
 	p["row_operations"] = withdrawalRowOperations(base)
 	a.resourceResponse(c, p)
 }
 func (a *Application) withdrawalStaffCommand(c *gin.Context, op organization.Operator, actor string) {
-	raw, ok := decodeConfiguration(c)
-	if !ok {
-		return
-	}
-	var in struct {
-		incentives.WithdrawalPolicy
-		Expected int64 `json:"expected_version"`
-	}
-	if json.Unmarshal(raw, &in) != nil {
-		handleError(c, incentives.ErrInvalidInput)
-		return
-	}
-	result, e := a.command(c, "withdrawal-policy:"+op.ID, raw, func(tx *gorm.DB) (any, error) {
-		out, e := a.Incentives.SetWithdrawalPolicy(c.Request.Context(), tx, actor, op.ID, in.WithdrawalPolicy, in.Expected)
-		return gin.H{"id": out.ID, "status": "published", "version": out.Version}, e
-	})
-	jsonResponse(c, result, e)
+	fail(c, 409, "pending_configuration", "佣金最低提现额度请在邀请与分佣规则中设置。提现手续费由申请人承担，审批为单人。", false)
 }
 func (a *Application) withdrawalStaffAction(c *gin.Context, op organization.Operator, actor, action string) {
 	ctx := c.Request.Context()

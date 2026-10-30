@@ -177,55 +177,31 @@ func (t *dropWithdrawalResponse) RoundTrip(req *http.Request) (*http.Response, e
 	return nil, errors.New("synthetic connection loss after cancellation committed")
 }
 
-func TestPostgresWithdrawalPolicyEditorUsesItsOwnVersionAndCurrentValues(t *testing.T) {
+func TestPostgresCommissionPageSetsWithdrawalMinimumOnly(t *testing.T) {
 	f := setupPortal(t)
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
-	path := "/v1/operators/" + f.a.Installation.OperatorID + "/withdrawals"
-	defaults := func() map[string]any {
-		t.Helper()
-		status, page, _ := f.call(t, "GET", path, nil, "")
-		mustOK(t, status, page)
-		var policy map[string]any
-		for _, raw := range page["operations"].([]any) {
-			op := raw.(map[string]any)
-			if op["name"] == "policy" {
-				policy = op
-			}
+	base := "/v1/operators/" + f.a.Installation.OperatorID
+	status, page, _ := f.call(t, "GET", base+"/withdrawals", nil, "")
+	mustOK(t, status, page)
+	for _, raw := range page["operations"].([]any) {
+		if raw.(map[string]any)["name"] == "policy" {
+			t.Fatal("withdrawal page still publishes fee and approval rules", raw)
 		}
-		if policy == nil {
-			t.Fatal("missing policy operation")
-		}
-		result := map[string]any{}
-		for _, raw := range policy["fields"].([]any) {
-			field := raw.(map[string]any)
-			name := strings.TrimPrefix(field["name"].(string), "configuration.")
-			result[name] = field["default_value"]
-			if name == "expected_version" && field["kind"] != "hidden" {
-				t.Fatal("policy CAS exposed as a customer-editable field", field)
-			}
-		}
-		return result
 	}
-	initial := defaults()
-	if initial["expected_version"] != float64(0) {
-		t.Fatal("first policy must use version zero", initial)
-	}
-	first := map[string]any{"minimum_money": "5.000000000000000001", "flat_fee_money": "0.100000000000000001", "fee_rate": "0.01", "requires_dual_approval": true, "method_reference": "first published payout rules", "expected_version": 0}
-	status, out, _ := f.call(t, "POST", path, map[string]any{"configuration": first}, "")
+	body := map[string]any{"threshold_money": "100", "direct_percent": "15", "indirect_percent": "5", "confirmation_days": 30, "reward_validity_days": 30, "invitee_atg": "0", "inviter_atg": "0", "kol_cross_activity_limit": 0, "minimum_money": "1.5", "expected_version": 0}
+	status, out, _ := f.call(t, "POST", base+"/commissions", body, "")
 	mustOK(t, status, out)
-	current := defaults()
-	want := map[string]any{"minimum_money": first["minimum_money"], "flat_fee_money": first["flat_fee_money"], "fee_rate": first["fee_rate"], "requires_dual_approval": true, "method_reference": first["method_reference"], "expected_version": float64(1)}
-	if !reflect.DeepEqual(current, want) {
-		t.Fatal("published policy was replaced by application-row defaults", current, want)
+	policy, err := f.a.Incentives.CurrentWithdrawalPolicy(context.Background(), nil, f.a.Installation.OperatorID)
+	if err != nil || policy.MinimumMoney.String() != "1.5" || !policy.FlatFeeMoney.IsZero() || !policy.FeeRate.IsZero() || policy.RequiresDualApproval {
+		t.Fatal(policy, err)
 	}
-	current["minimum_money"] = "6.000000000000000001"
-	status, out, _ = f.call(t, "POST", path, map[string]any{"configuration": current}, "")
-	mustOK(t, status, out)
-	if out["version"] != float64(2) {
-		t.Fatal("second policy edit used the wrong CAS", out)
+	status, page, _ = f.call(t, "GET", base+"/commissions", nil, "")
+	mustOK(t, status, page)
+	if page["items"].([]any)[0].(map[string]any)["values"].(map[string]any)["minimum_money"] != "1.5" {
+		t.Fatal(page["items"])
 	}
-	current = defaults()
-	if current["expected_version"] != float64(2) || current["minimum_money"] != "6.000000000000000001" || current["flat_fee_money"] != first["flat_fee_money"] {
-		t.Fatal("second policy revision did not become the next editor baseline", current)
+	status, out, _ = f.call(t, "POST", base+"/withdrawals", map[string]any{"minimum_money": "9"}, "")
+	if status != 409 {
+		t.Fatal(status, out)
 	}
 }

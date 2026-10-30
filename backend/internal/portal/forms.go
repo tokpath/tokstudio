@@ -35,7 +35,9 @@ func businessFields(o operation) []field {
 		confirmation.Help = "按整天填写，默认 30 天。等待期满且相关消费没有未结争议后，才计入资格，对应佣金才能使用或提现。已经开始等待的记录仍按原来的到期时间，不会因为后来改政策而延长。"
 		reward := defaultField("reward_validity_days", "注册奖励有效天数", "integer", 30)
 		reward.Help = "注册赠送额度从注册成功起按整天计算，默认 30 天。到期后尚未使用的注册奖励不再可用。"
-		return []field{f("threshold_money", "分佣资格门槛 结算币种", "decimal"), f("direct_percent", "直接邀请佣金 %", "decimal"), f("indirect_percent", "间接邀请佣金 %", "decimal"), confirmation, f("invitee_atg", "受邀人注册赠送 ATG", "decimal"), f("inviter_atg", "邀请人注册赠送 ATG", "decimal"), reward, defaultField("kol_cross_activity_limit", "同一 KOL 跨活动每人限次", "integer", 0), version}
+		minimum := f("minimum_money", "佣金最低提现 结算币种", "decimal")
+		minimum.Help = "单笔佣金提现不能低于这个额度。提现手续费由申请人承担，不在这里另设。审批固定为单人。"
+		return []field{f("threshold_money", "分佣资格门槛 结算币种", "decimal"), f("direct_percent", "直接邀请佣金 %", "decimal"), f("indirect_percent", "间接邀请佣金 %", "decimal"), confirmation, f("invitee_atg", "受邀人注册赠送 ATG", "decimal"), f("inviter_atg", "邀请人注册赠送 ATG", "decimal"), reward, defaultField("kol_cross_activity_limit", "同一 KOL 跨活动每人限次", "integer", 0), minimum, version}
 	case "activities":
 		return campaignFields(true, version)
 	case "marketing":

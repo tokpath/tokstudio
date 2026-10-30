@@ -212,7 +212,7 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 			rule := "单笔提现总额不能低于经营方公布的最低额度 " + minimum + " 结算币种。"
 			p["description"] = rule
 			p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum, "unit": "MONEY", "detail": "单笔提现总额不能低于经营方公布的这个额度。"}}
-			amount.Help = "不能低于经营方公布的最低提现额度。"
+			amount.Help = "提现手续费由你承担。经营方单人审批后付款。"
 			quote.Fields = []field{amount}
 			quote.Description = rule
 		} else {
@@ -669,6 +669,11 @@ func (a *Application) operatorResource(c *gin.Context) {
 			handleError(c, e)
 			return
 		}
+		withdrawal, withdrawalErr := a.Incentives.CurrentWithdrawalPolicy(ctx, nil, op.ID)
+		if withdrawalErr != nil && !errors.Is(withdrawalErr, incentives.ErrNotReady) {
+			handleError(c, withdrawalErr)
+			return
+		}
 		if e == nil {
 			shown := values(policy)
 			delete(shown, "direct_rate")
@@ -677,10 +682,21 @@ func (a *Application) operatorResource(c *gin.Context) {
 			shown["indirect_percent"] = ratePercentage(policy.IndirectRate)
 			shown["confirmation_days"] = policyDays(policy.ConfirmationSeconds)
 			shown["reward_validity_days"] = policyDays(policy.RewardValiditySeconds)
+			if withdrawalErr == nil {
+				shown["minimum_money"] = withdrawal.MinimumMoney
+			}
 			items = append(items, entity(policy.ID, "effective", policy.Version, shown))
 		}
-		p["columns"] = []gin.H{col("threshold_money", "资格门槛", "money"), col("direct_percent", "直接邀请佣金 %", "decimal"), col("indirect_percent", "间接邀请佣金 %", "decimal"), col("confirmation_days", "确认等待天数", "text"), col("reward_validity_days", "注册奖励有效天数", "text"), col("invitee_atg", "受邀奖励", "atg"), col("inviter_atg", "邀请奖励", "atg"), col("kol_cross_activity_limit", "同一 KOL 跨活动每人限次", "text")}
-		p["operations"] = []operation{{Name: "policy", Label: "设置邀请与分佣规则", Method: "POST", Path: base, Fields: []field{jsonField("threshold_money、direct_percent、indirect_percent、confirmation_days、invitee_atg、inviter_atg、reward_validity_days、kol_cross_activity_limit、expected_version")}, Description: "注册赠送、资格门槛与两级佣金在此统一设置。比例填写百分数，例如 15 表示 15%。提高门槛不影响已取得的资格，已有订单保留成交规则。"}}
+		fields := businessFields(operation{Path: base, Fields: []field{jsonField("threshold_money、direct_percent、indirect_percent、confirmation_days、invitee_atg、inviter_atg、reward_validity_days、kol_cross_activity_limit、minimum_money、expected_version")}})
+		if withdrawalErr == nil {
+			for i := range fields {
+				if fields[i].Name == "minimum_money" {
+					fields[i].Default = withdrawal.MinimumMoney
+				}
+			}
+		}
+		p["columns"] = []gin.H{col("threshold_money", "资格门槛", "money"), col("direct_percent", "直接邀请佣金 %", "decimal"), col("indirect_percent", "间接邀请佣金 %", "decimal"), col("confirmation_days", "确认等待天数", "text"), col("reward_validity_days", "注册奖励有效天数", "text"), col("invitee_atg", "受邀奖励", "atg"), col("inviter_atg", "邀请奖励", "atg"), col("kol_cross_activity_limit", "同一 KOL 跨活动每人限次", "text"), col("minimum_money", "佣金最低提现 结算币种", "money")}
+		p["operations"] = []operation{{Name: "policy", Label: "设置邀请与分佣规则", Method: "POST", Path: base, Fields: fields, Description: "注册赠送、资格门槛、两级佣金和佣金最低提现额度在此统一设置。比例填写百分数，例如 15 表示 15%。提现手续费由申请人承担，审批为单人。提高门槛不影响已取得的资格，已有订单保留成交规则。"}}
 	case "business-status":
 		row, e := a.Organization.GetBusinessStatus(ctx, nil, op.ID)
 		if e != nil {

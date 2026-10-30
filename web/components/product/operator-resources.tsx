@@ -166,7 +166,7 @@ function CustomerWithdrawalBar({ minimum }: { minimum?: { value: string; unit?: 
     { label: "冻结金额", value: wallet?.frozen, money: true },
     { label: "最低提现额度", value: minimum?.value, money: minimum?.unit === "MONEY" },
   ];
-  return <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-8 gap-y-3">{amounts.map(item => <div key={item.label} className="min-w-0"><p className="text-xs text-ink-mute">{t(item.label)}</p>{item.money && item.value ? <p className="mt-1 text-lg font-semibold"><Money value={item.value} unit="MONEY" /></p> : <p className="mt-1 text-lg font-semibold">{item.value ? t(item.value) : t("尚未读取")}</p>}</div>)}</div>;
+  return <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-8 gap-y-3">{amounts.map(item => <div key={item.label} className="min-w-0"><p className="text-xs text-ink-mute">{t(item.label)}</p>{item.money && item.value ? <p className="mt-1 text-lg font-semibold"><Money value={item.value} unit="MONEY" /></p> : <p className="mt-1 text-lg font-semibold">{item.value ? t(item.value) : t("尚未读取")}</p>}</div>)}<p className="w-full text-xs leading-6 text-ink-mute">{t("提现手续费由你承担。经营方单人审批后付款。")}</p></div>;
 }
 export function ResourceCollection({ page, operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, toolbar, initialValues, actionsOnly = false, record, inspectionLinks, businessView, procurementSection, onProcurementSection }: ResourceOptions & { page: ResourcePage; toolbar?: ReactNode; initialValues?: Record<string, JSONValue>; actionsOnly?: boolean }) {
   const { t, locale } = useI18n();

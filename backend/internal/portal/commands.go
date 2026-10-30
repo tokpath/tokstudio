@@ -293,6 +293,7 @@ func (a *Application) operatorCommand(c *gin.Context) {
 				RewardValidityDays *int64          `json:"reward_validity_days"`
 				DirectPercent      *ledger.Decimal `json:"direct_percent"`
 				IndirectPercent    *ledger.Decimal `json:"indirect_percent"`
+				MinimumMoney       *ledger.Decimal `json:"minimum_money"`
 			}
 			if json.Unmarshal(config, &in) != nil || in.ConfirmationDays == nil || in.RewardValidityDays == nil || in.DirectPercent == nil || in.IndirectPercent == nil {
 				return nil, incentives.ErrInvalidInput
@@ -311,7 +312,13 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			in.ConfirmationSeconds = confirmation
 			in.RewardValiditySeconds = reward
 			out, e := a.Incentives.SetPolicy(ctx, tx, actor, op.ID, in.PolicyInput)
-			return gin.H{"id": out.ID, "status": "published", "version": out.Version}, e
+			if e != nil || in.MinimumMoney == nil {
+				return gin.H{"id": out.ID, "status": "published", "version": out.Version}, e
+			}
+			if _, e = a.Incentives.SetCommissionWithdrawalMinimum(ctx, tx, actor, op.ID, *in.MinimumMoney); e != nil {
+				return nil, e
+			}
+			return gin.H{"id": out.ID, "status": "published", "version": out.Version}, nil
 		case "branding", "channel-themes":
 			target, targetErr := a.brandingTarget(c, op)
 			if targetErr != nil {

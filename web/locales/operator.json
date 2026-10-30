@@ -1,4 +1,44 @@
 {
+  "佣金最低提现": {
+    "en": "Minimum commission withdrawal",
+    "ja": "コミッション最低出金額",
+    "ru": "Минимальный вывод комиссии"
+  },
+  "佣金最低提现 结算币种": {
+    "en": "Minimum commission withdrawal settlement currency",
+    "ja": "コミッション最低出金 決済通貨",
+    "ru": "Минимальный вывод комиссии валюта расчётов"
+  },
+  "尚未设置": {
+    "en": "Not set",
+    "ja": "未設定",
+    "ru": "Не задано"
+  },
+  "提现手续费由申请人承担。审批固定为单人。": {
+    "en": "The applicant bears the withdrawal fee. Approval is by one person.",
+    "ja": "出金手数料は申請者が負担します。承認は1人です。",
+    "ru": "Комиссию за вывод оплачивает заявитель. Одобряет один человек."
+  },
+  "单笔佣金提现不能低于这个额度。提现手续费由申请人承担，不在这里另设。审批固定为单人。": {
+    "en": "A commission withdrawal cannot be below this amount. The applicant bears the fee; it is not set here. Approval is by one person.",
+    "ja": "コミッションの出金は、この額を下回れません。出金手数料は申請者負担で、ここでは設定しません。承認は1人です。",
+    "ru": "Вывод комиссии не может быть ниже этой суммы. Комиссию оплачивает заявитель, здесь она не задаётся. Одобряет один человек."
+  },
+  "注册赠送、资格门槛、两级佣金和佣金最低提现额度在此统一设置。比例填写百分数，例如 15 表示 15%。提现手续费由申请人承担，审批为单人。提高门槛不影响已取得的资格，已有订单保留成交规则。": {
+    "en": "Set registration gifts, the qualification threshold, both commission levels, and the minimum commission withdrawal here. Enter percents, for example 15 means 15%. The applicant bears the withdrawal fee, and one person approves. Raising the threshold does not remove an existing qualification, and existing orders keep their original terms.",
+    "ja": "登録特典、資格の基準、2段階のコミッション、コミッション最低出金額をここで設定します。割合は百分率で、15 は 15% です。出金手数料は申請者負担、承認は1人です。基準を上げても取得済みの資格は残り、既存の注文は元の条件を保ちます。",
+    "ru": "Здесь задаются подарок за регистрацию, порог квалификации, обе ставки комиссии и минимальный вывод комиссии. Проценты указываются числом, например 15 означает 15%. Комиссию за вывод оплачивает заявитель, одобряет один человек. Повышение порога не отменяет полученную квалификацию, а существующие заказы сохраняют условия сделки."
+  },
+  "在此审批并付款。佣金最低提现额度在邀请与分佣规则中设置。提现手续费由申请人承担，审批为单人。": {
+    "en": "Approve and pay here. Set the minimum commission withdrawal on Invitation and commission rules. The applicant bears the fee, and one person approves.",
+    "ja": "ここでは承認と支払いを行います。コミッション最低出金額は「招待とコミッション規則」で設定します。出金手数料は申請者負担、承認は1人です。",
+    "ru": "Здесь одобряют и выплачивают. Минимальный вывод комиссии задаётся в правилах приглашений и комиссии. Комиссию оплачивает заявитель, одобряет один человек."
+  },
+  "佣金最低提现额度请在邀请与分佣规则中设置。提现手续费由申请人承担，审批为单人。": {
+    "en": "Set the minimum commission withdrawal on Invitation and commission rules. The applicant bears the fee, and one person approves.",
+    "ja": "コミッション最低出金額は「招待とコミッション規則」で設定してください。出金手数料は申請者負担、承認は1人です。",
+    "ru": "Минимальный вывод комиссии задаётся в правилах приглашений и комиссии. Комиссию оплачивает заявитель, одобряет один человек."
+  },
   "发给我的通知": {
     "en": "Notices to me",
     "ja": "自分宛ての通知",

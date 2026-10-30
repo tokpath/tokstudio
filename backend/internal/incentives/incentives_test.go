@@ -804,24 +804,13 @@ func TestPostgresWithdrawalIndependentReviewerAndActualPayment(t *testing.T) {
 	if _, err = f.s.ApproveWithdrawal(f.ctx, nil, f.owner, f.operator, w.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = f.s.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w.ID); !errors.Is(err, organization.ErrForbidden) {
-		t.Fatalf("same person approved and paid dual-review payout: %v", err)
-	}
-	finance := uuid.NewString()
-	invitation, err := f.org.InviteStaff(f.ctx, nil, f.owner, f.operator, "finance@example.test", "finance")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err = f.org.AcceptStaffInvitation(f.ctx, nil, invitation.Token, organization.VerifiedStaff{ID: finance, Email: "finance@example.test", EmailVerified: true}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = f.s.BeginWithdrawalPayment(f.ctx, nil, finance, f.operator, w.ID); err != nil {
+	if _, err = f.s.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w.ID); err != nil {
 		t.Fatal(err)
 	}
 	if account := f.balance(t, customer.Customer.ID, "commission:available"); account.Balance.Cmp(d("10")) != 0 || account.Held.Cmp(d("10")) != 0 {
 		t.Fatalf("approval treated as paid: %+v", account)
 	}
-	if _, err = f.s.VerifyWithdrawalPaid(f.ctx, nil, finance, f.operator, w.ID, WithdrawalPaymentProof{PaymentReference: "bank-actual-payout", Evidence: "verified bank execution", Currency: "USD", OriginalAmount: "8", ValuationEvidence: "actual USD", PaidMoney: d("8"), PaidAt: time.Now().UTC()}); err != nil {
+	if _, err = f.s.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, WithdrawalPaymentProof{PaymentReference: "bank-actual-payout", Evidence: "verified bank execution", Currency: "USD", OriginalAmount: "8", ValuationEvidence: "actual USD", PaidMoney: d("8"), PaidAt: time.Now().UTC()}); err != nil {
 		t.Fatal(err)
 	}
 	if account := f.balance(t, customer.Customer.ID, "commission:available"); !account.Balance.IsZero() || !account.Held.IsZero() {

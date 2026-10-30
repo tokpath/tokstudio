@@ -81,7 +81,7 @@ func (a *Application) DiscoverWorkerTasks(ctx context.Context) error {
 	for _, kind := range []string{"registration_release", "unpaid_orders", "kvoucher_payments", "commerce_events", "incentive_events", "remediation_events", "catalog_changes", "retention"} {
 		interval := time.Minute
 		if kind == "kvoucher_payments" {
-			interval = 15 * time.Second
+			interval = 5 * time.Second
 		}
 		if e := a.schedule(ctx, kind, "global", workerPayload{}, interval); e != nil {
 			return e

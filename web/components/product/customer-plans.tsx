@@ -118,7 +118,7 @@ export function PaymentAction({ order: initialOrder, onChangeMethod }: { order: 
   const { session } = useProduct();
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 10000); return () => clearInterval(timer); }, []);
-  const latest = useQuery({ queryKey: ["order-detail", initialOrder.id], queryFn: () => request(`/api/v1/me/orders/${encodeURIComponent(initialOrder.id)}`, OrderSchema), enabled: session?.kind === "customer", initialData: initialOrder, refetchInterval: query => query.state.data && !finalOrderStates.includes(query.state.data.status) ? 5000 : false });
+  const latest = useQuery({ queryKey: ["order-detail", initialOrder.id], queryFn: () => request(`/api/v1/me/orders/${encodeURIComponent(initialOrder.id)}`, OrderSchema), enabled: session?.kind === "customer", initialData: initialOrder, refetchInterval: query => query.state.data && !finalOrderStates.includes(query.state.data.status) ? 20000 : false });
   const [cancelled, setCancelled] = useState<Order>();
   const order = cancelled ?? (session?.kind === "customer" ? latest.data : initialOrder);
   const reconcile = useCommand(`/api/v1/me/orders/${order.id}/reconcile`, CommandResultSchema);
@@ -141,7 +141,7 @@ export function PaymentAction({ order: initialOrder, onChangeMethod }: { order: 
       if (!stop) await latest.refetch();
     };
     void look();
-    const timer = setInterval(() => void look(), 5000);
+    const timer = setInterval(() => void look(), 20000);
     return () => { stop = true; clearInterval(timer); };
   }, [session?.kind, action?.kind, channelOpened, paid, closed, delivered, order.id, latest.refetch]);
   return <div className="space-y-5"><div className="th-payment-summary"><div className="mb-5 flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold">{order.plan_name || (order.kind === "topup" ? t("结算币种 支付余额充值") : t("本次订单"))}</h3><p className="mt-2 break-all font-mono text-xs text-ink-mute">{order.id}</p></div><Status value={order.status} /></div><ol aria-label={t("订单状态")} className="mb-6 grid grid-cols-3 gap-2 text-xs">{[{ label: t("订单已建立"), done: true }, { label: paid ? t("收款已核实") : t("等待足额核实"), done: paid }, { label: delivered ? t("资产已交付") : t("等待交付"), done: delivered }].map((step, i) => <li key={step.label} className={`border-t-2 pt-3 ${step.done ? "border-success text-success" : "border-hairline text-ink-mute"}`}>{i + 1} · {step.label}</li>)}</ol><DetailPairs items={[{ label: t("最终应付"), value: <span className="text-2xl font-semibold"><Money value={order.amount_money} unit={orderCurrency} /></span> }, { label: t("已核实收款"), value: <Money value={order.paid_money} unit={orderCurrency} /> }, { label: t("实际经营方"), value: order.operator_name }, { label: t("订单建立"), value: <When value={order.created_at} /> }, ...(order.monetary_snapshot ? [{ label: t("订单冻结基础比例"), value: t("每 1 {currency} = {ratio} ATG（版本 {version}）", { currency: order.monetary_snapshot.currency, ratio: order.monetary_snapshot.atg_per_unit, version: order.monetary_snapshot.version }) }] : []), ...(order.expires_at ? [{ label: t("付款截止"), value: <When value={order.expires_at} /> }] : []), ...(order.delivered_at ? [{ label: t("交付时间"), value: <When value={order.delivered_at} /> }] : []), ...(order.purchase_atg !== undefined ? [{ label: t("购买服务额度"), value: <Money value={order.purchase_atg} /> }] : []), ...(order.gift_atg !== undefined ? [{ label: t("赠送服务额度"), value: <Money value={order.gift_atg} /> }] : [])]} />

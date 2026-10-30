@@ -33,7 +33,7 @@ function Experience({ models, initialModel, onSelect, newExperience }: { models:
   const blockedNavigation = useCustomerPendingGuard(command.busy || command.unresolved);
   const model = models.find(item => item.id === modelID);
   const pending = !!command.result && pendingStatuses.includes(command.result.status);
-  const task = useQuery({ queryKey: ["request-detail", command.result?.request_id], enabled: pending, queryFn: () => request(`/api/v1/me/requests/${encodeURIComponent(command.result!.request_id)}`, RequestSchema), refetchInterval: query => query.state.data && !pendingStatuses.includes(query.state.data.status) ? false : 3000 });
+  const task = useQuery({ queryKey: ["request-detail", command.result?.request_id], enabled: pending, queryFn: () => request(`/api/v1/me/requests/${encodeURIComponent(command.result!.request_id)}`, RequestSchema), refetchInterval: query => query.state.data && !pendingStatuses.includes(query.state.data.status) ? false : 10000 });
   const result = command.result, current = task.data || result, resultURL = safeAssetURL(task.data?.result_url || result?.result_url);
   const stillPending = current && pendingStatuses.includes(current.status);
   function resetFile() { setFile(undefined); }

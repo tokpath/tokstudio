@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useRef, type ReactNode, type CSSP
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeSchema, PublicContextSchema, SessionSchema, CommandResultSchema, type PublicContext, type Session } from "@/lib/contracts";
-import { request, setCSRFToken } from "@/lib/api-client";
+import { request, setCSRFToken, warmConnection } from "@/lib/api-client";
 import { safeAssetURL } from "@/lib/decimal";
 import { brandForeground, resolveTheme } from "@/lib/theme";
 import { operatorLanding } from "@/lib/navigation";
@@ -33,6 +33,16 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     previousMonetaryStatus.current = monetaryStatus;
   }, [cache, monetaryStatus]);
   const session = useQuery({ queryKey: ["session"], queryFn: async () => { const value = await request("/api/v1/auth/me", SessionSchema); setCSRFToken(value.kind !== "anonymous" ? value.csrf_token : undefined); return value; } });
+  useEffect(() => {
+    let hiddenAt = 0;
+    const onChange = () => {
+      if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
+      if (hiddenAt && Date.now() - hiddenAt >= 45_000) warmConnection();
+      hiddenAt = 0;
+    };
+    document.addEventListener("visibilitychange", onChange);
+    return () => document.removeEventListener("visibilitychange", onChange);
+  }, []);
   const current = session.data;
   const presentationOperator = current?.kind === "customer" ? current.operator : context.data?.operator;
   const theme = ThemeSchema.parse(resolveTheme(resolveTheme(context.data?.brand.theme, presentationOperator?.theme), current?.kind === "customer" ? current.operator.theme : context.data?.theme));

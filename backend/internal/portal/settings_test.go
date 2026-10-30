@@ -145,11 +145,15 @@ func TestPostgresSettingsNotificationHasReadableContentAndOptionalReference(t *t
 	status, page, _ := f.call(t, "GET", path+"?q=Readable%20settings", nil, "")
 	mustOK(t, status, page)
 	rows := page["items"].([]any)
-	if len(rows) != 1 {
+	if len(rows) != 1 || rows[0].(map[string]any)["values"].(map[string]any)["record_kind"] != "personal" {
 		t.Fatal(page)
 	}
-	v := rows[0].(map[string]any)["values"].(map[string]any)
-	if v["title"] != "Readable settings notice" || v["body"] != "A useful message" || v["recipient_id"] != owner || v["severity"] != "info" {
+	notices := rows[0].(map[string]any)["values"].(map[string]any)["notices"].([]any)
+	if len(notices) != 1 {
+		t.Fatal(rows[0])
+	}
+	v := notices[0].(map[string]any)
+	if v["title"] != "Readable settings notice" || v["body"] != "A useful message" || v["recipient_id"] != owner {
 		t.Fatal(v)
 	}
 	var notice operations.Notification

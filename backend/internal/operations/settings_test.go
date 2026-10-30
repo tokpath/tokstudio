@@ -57,9 +57,50 @@ func TestManagedNotificationsSearchPaginationReadStateAndAuthorization(t *testin
 	if _, _, err = s.ListOperatorNotifications(ctx, auth.actor, operator, "invalid", "", "", 50); !errors.Is(err, ErrInvalid) {
 		t.Fatal(err)
 	}
+	mine := uuid.NewString()
+	shared := "catalog:" + uuid.NewString()
+	onlyMine := "risk:" + uuid.NewString()
+	if _, err = s.Emit(ctx, nil, Notification{OperatorID: operator, RecipientID: customer, BusinessKey: shared, Category: "mandatory", Severity: "info", Title: "模型与计价计划变更", Body: "shared body", Reference: "catalog-change:shared"}); err != nil {
+		t.Fatal(err)
+	}
+	other := uuid.NewString()
+	readAt := time.Now()
+	for _, row := range []Notification{
+		{ID: uuid.NewString(), OperatorID: operator, RecipientID: other, BusinessKey: shared, Category: "mandatory", Severity: "info", Title: "模型与计价计划变更", Body: "shared body", Reference: "catalog-change:shared", Fingerprint: "synthetic", CreatedAt: time.Now(), ReadAt: &readAt},
+		{ID: mine, OperatorID: operator, RecipientID: auth.actor, BusinessKey: onlyMine, Category: "mandatory", Severity: "info", Title: "只发给我", Body: "personal body", Reference: "risk:mine", Fingerprint: "synthetic", CreatedAt: time.Now()},
+	} {
+		if err = s.DB.Create(&row).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err = s.DB.Table("operations_deliveries").Create(map[string]any{"notification_id": row.ID, "message_ciphertext": "synthetic", "state": "pending", "next_attempt_at": time.Now(), "error_code": ""}).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	personal, events, groupCursor, err := s.ListNotificationGroups(ctx, auth.actor, operator, "", "", "", 50)
+	if err != nil || personal.UnreadCount != 1 || personal.TotalCount != 1 || personal.Notices[0].ID != mine || groupCursor == "" {
+		t.Fatal(personal, len(events), groupCursor, err)
+	}
+	var sharedGroup NotificationGroup
+	for _, event := range events {
+		if event.Key == shared {
+			sharedGroup = event
+		}
+		if event.Key == onlyMine {
+			t.Fatal("a notice sent only to the signed-in person is not a separate event")
+		}
+	}
+	if sharedGroup.TotalCount != 2 || sharedGroup.UnreadCount != 1 || len(sharedGroup.Notices) != 2 || sharedGroup.Notices[0].ReadStatus != "unread" || sharedGroup.Notices[1].ReadStatus != "read" {
+		t.Fatal(sharedGroup)
+	}
+	if _, _, _, err = s.ListNotificationGroups(ctx, auth.actor, operator, "invalid", "", "", 50); !errors.Is(err, ErrInvalid) {
+		t.Fatal(err)
+	}
 	auth.deny.Store(true)
 	if _, _, err = s.ListOperatorNotifications(ctx, auth.actor, operator, "", "", "", 50); !errors.Is(err, ErrForbidden) {
 		t.Fatal("revoked operator read", err)
+	}
+	if _, _, _, err = s.ListNotificationGroups(ctx, auth.actor, operator, "", "", "", 50); !errors.Is(err, ErrForbidden) {
+		t.Fatal("revoked grouped notification read", err)
 	}
 }
 

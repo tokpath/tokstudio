@@ -172,30 +172,17 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		p["columns"] = []gin.H{col("metric", "事实指标", "text"), col("value", "精确值", "decimal")}
 		p["description"] = "来自当前经营方真实账本、采购和请求事实；未知供应商成本单列，不作为零成本。"
 	case "notifications":
-		rows, next, e := a.Operations.ListOperatorNotifications(ctx, actor, op.ID, c.Query("cursor"), c.Query("q"), c.Query("status"), 50)
+		personal, events, next, e := a.Operations.ListNotificationGroups(ctx, actor, op.ID, c.Query("cursor"), c.Query("q"), c.Query("status"), 30)
 		if e != nil {
 			handleError(c, e)
 			return true
 		}
-		for _, row := range rows {
-			v := values(row)
-			v["read_status"] = "unread"
-			if row.ReadAt != nil {
-				v["read_status"] = "read"
-			}
-			if row.SystemGenerated() {
-				v["title"] = httpx.LocalizedText(httpx.RequestLocale(c.Request), row.Title)
-				v["body"] = httpx.LocalizedText(httpx.RequestLocale(c.Request), row.Body)
-			}
-			r := entity(row.ID, row.State, 1, v)
-			r["allowed_actions"] = []string{}
-			if row.State == "needs_attention" {
-				r["allowed_actions"] = []string{"retry"}
-			}
-			items = append(items, r)
+		items = append(items, entity(personal.Key, "grouped", 1, personal))
+		for _, event := range events {
+			items = append(items, entity(event.Key, "grouped", 1, event))
 		}
 		p["title"] = "通知管理"
-		p["description"] = "按标题、正文或关联事项查找通知。站内通知始终保留，邮件状态和阅读状态分别显示。"
+		p["description"] = "发给你的通知单独显示未读条数。发给其他人的同一次通知合成一组，显示未读人数和总人数。同一事项的两次发送是两组。"
 		p["search_supported"], p["status_supported"], p["next_cursor"] = true, true, next
 		p["columns"] = []gin.H{col("recipient_id", "收件人", "text"), col("category", "通知类别", "text"), col("state", "邮件状态", "status"), col("read_status", "阅读状态", "status"), col("created_at", "发送时间", "datetime")}
 		p["operations"] = []operation{{Name: "announce", Label: "发送业务通知", Method: "POST", Path: base, Fields: []field{jsonField("收件人、通知类别、标题和正文")}}}

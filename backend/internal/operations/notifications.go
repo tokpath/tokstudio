@@ -8,6 +8,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/platform/mail"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"sort"
 	"strings"
 	"time"
 )
@@ -209,6 +210,170 @@ type ManagedNotification struct {
 	NextAttemptAt time.Time  `json:"next_attempt_at"`
 }
 
+type NotificationNotice struct {
+	ID              string    `json:"id"`
+	RecipientID     string    `json:"recipient_id"`
+	RecipientName   string    `json:"recipient_name"`
+	RecipientEmail  string    `json:"recipient_email"`
+	BusinessKey     string    `json:"business_key"`
+	Title           string    `json:"title"`
+	Body            string    `json:"body"`
+	Category        string    `json:"category"`
+	Reference       string    `json:"reference"`
+	ReadStatus      string    `json:"read_status"`
+	State           string    `json:"state"`
+	CreatedAt       time.Time `json:"created_at"`
+	SystemGenerated bool      `json:"system_generated"`
+}
+type NotificationGroup struct {
+	Kind            string               `json:"record_kind"`
+	Key             string               `json:"business_key"`
+	Title           string               `json:"title"`
+	Body            string               `json:"body"`
+	Category        string               `json:"category"`
+	CreatedAt       time.Time            `json:"created_at"`
+	UnreadCount     int                  `json:"unread_count"`
+	TotalCount      int                  `json:"total_count"`
+	SystemGenerated bool                 `json:"system_generated"`
+	Notices         []NotificationNotice `json:"notices"`
+}
+
+type notificationGroupCursor struct {
+	At  time.Time `json:"at"`
+	Key string    `json:"key"`
+}
+
+func (s *Service) ListNotificationGroups(ctx context.Context, actor, operator, cursor, search, state string, limit int) (NotificationGroup, []NotificationGroup, string, error) {
+	if limit < 1 || limit > 100 || len(search) > 200 {
+		return NotificationGroup{}, nil, "", ErrInvalid
+	}
+	var position notificationGroupCursor
+	if cursor != "" {
+		raw, err := base64.RawURLEncoding.DecodeString(cursor)
+		if err != nil || json.Unmarshal(raw, &position) != nil || position.At.IsZero() || position.Key == "" {
+			return NotificationGroup{}, nil, "", ErrInvalid
+		}
+	}
+	var personal NotificationGroup
+	var events []NotificationGroup
+	next := ""
+	err := s.within(ctx, nil, func(t *gorm.DB) error {
+		if err := s.require(ctx, t, actor, operator, "operations.manage"); err != nil {
+			return err
+		}
+		filter, args := notificationListFilter(search, state)
+		personalNotices, err := s.notificationNotices(t, operator, "n.recipient_id=?"+filter, append([]any{actor}, args...))
+		if err != nil {
+			return err
+		}
+		sortNotificationNotices(personalNotices)
+		personal = NotificationGroup{Kind: "personal", Key: "personal", Notices: personalNotices, TotalCount: len(personalNotices)}
+		for _, notice := range personalNotices {
+			if notice.ReadStatus == "unread" {
+				personal.UnreadCount++
+			}
+		}
+		type eventKey struct {
+			BusinessKey, Title, Body, Category string
+			CreatedAt                          time.Time
+			TotalCount, UnreadCount            int
+		}
+		keys := []eventKey{}
+		eventSQL := `SELECT business_key, title, body, category, created_at, total_count, unread_count FROM (
+SELECT n.business_key, (array_agg(n.title ORDER BY n.created_at ASC))[1] AS title, (array_agg(n.body ORDER BY n.created_at ASC))[1] AS body, (array_agg(n.category ORDER BY n.created_at ASC))[1] AS category, MIN(n.created_at) AS created_at, COUNT(*) AS total_count, COUNT(*) FILTER (WHERE n.read_at IS NULL) AS unread_count
+FROM operations_notifications n JOIN operations_deliveries d ON d.notification_id=n.id
+WHERE n.operator_id=?` + filter + `
+GROUP BY n.business_key
+HAVING COUNT(*) FILTER (WHERE n.recipient_id<>?)>0
+) groups`
+		eventArgs := append([]any{operator}, args...)
+		eventArgs = append(eventArgs, actor)
+		if cursor != "" {
+			eventSQL += ` WHERE (created_at, business_key) < (?, ?)`
+			eventArgs = append(eventArgs, position.At, position.Key)
+		}
+		eventSQL += ` ORDER BY created_at DESC, business_key DESC LIMIT ?`
+		eventArgs = append(eventArgs, limit+1)
+		if err = t.Raw(eventSQL, eventArgs...).Scan(&keys).Error; err != nil {
+			return err
+		}
+		if len(keys) > limit {
+			keys = keys[:limit]
+			last := keys[len(keys)-1]
+			encoded, _ := json.Marshal(notificationGroupCursor{At: last.CreatedAt, Key: last.BusinessKey})
+			next = base64.RawURLEncoding.EncodeToString(encoded)
+		}
+		if len(keys) == 0 {
+			return nil
+		}
+		keyValues := make([]string, len(keys))
+		for i, key := range keys {
+			keyValues[i] = key.BusinessKey
+		}
+		notices, err := s.notificationNotices(t, operator, "n.business_key IN ?"+filter, append([]any{keyValues}, args...))
+		if err != nil {
+			return err
+		}
+		byKey := map[string][]NotificationNotice{}
+		for _, notice := range notices {
+			byKey[notice.BusinessKey] = append(byKey[notice.BusinessKey], notice)
+		}
+		for _, key := range keys {
+			grouped := byKey[key.BusinessKey]
+			sortNotificationNotices(grouped)
+			events = append(events, NotificationGroup{Kind: "event", Key: key.BusinessKey, Title: key.Title, Body: key.Body, Category: key.Category, CreatedAt: key.CreatedAt, UnreadCount: key.UnreadCount, TotalCount: key.TotalCount, SystemGenerated: systemNotificationNamespace(key.BusinessKey) != "", Notices: grouped})
+		}
+		return nil
+	})
+	return personal, events, next, err
+}
+func notificationListFilter(search, state string) (string, []any) {
+	clause := ""
+	args := []any{}
+	if state != "" {
+		clause += " AND d.state=?"
+		args = append(args, state)
+	}
+	if term := strings.ToLower(strings.TrimSpace(search)); term != "" {
+		clause += " AND strpos(lower(n.title||' '||n.body||' '||n.reference),?)>0"
+		args = append(args, term)
+	}
+	return clause, args
+}
+func (s *Service) notificationNotices(t *gorm.DB, operator, where string, args []any) ([]NotificationNotice, error) {
+	rows := []struct {
+		ID, RecipientID, RecipientName, RecipientEmail, BusinessKey, Title, Body, Category, Reference, State string
+		CreatedAt                                                                                            time.Time
+		ReadAt                                                                                               *time.Time
+	}{}
+	query := `SELECT n.id, n.recipient_id, COALESCE(NULLIF(st.display_name,''), NULLIF(cu.display_name,''), '') AS recipient_name, COALESCE(NULLIF(st.email,''), NULLIF(ident.email_normalized,''), '') AS recipient_email, n.business_key, n.title, n.body, n.category, n.reference, n.created_at, n.read_at, d.state
+FROM operations_notifications n
+JOIN operations_deliveries d ON d.notification_id=n.id
+LEFT JOIN portal_staff st ON st.id=n.recipient_id
+LEFT JOIN organization_customers cu ON cu.id=n.recipient_id
+LEFT JOIN LATERAL (SELECT email_normalized FROM organization_customer_identities WHERE customer_id=n.recipient_id AND is_current=true LIMIT 1) ident ON true
+WHERE n.operator_id=? AND ` + where
+	if err := t.Raw(query, append([]any{operator}, args...)...).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]NotificationNotice, len(rows))
+	for i, row := range rows {
+		status := "unread"
+		if row.ReadAt != nil {
+			status = "read"
+		}
+		out[i] = NotificationNotice{ID: row.ID, RecipientID: row.RecipientID, RecipientName: row.RecipientName, RecipientEmail: row.RecipientEmail, BusinessKey: row.BusinessKey, Title: row.Title, Body: row.Body, Category: row.Category, Reference: row.Reference, ReadStatus: status, State: row.State, CreatedAt: row.CreatedAt, SystemGenerated: systemNotificationNamespace(row.BusinessKey) != ""}
+	}
+	return out, nil
+}
+func sortNotificationNotices(notices []NotificationNotice) {
+	sort.SliceStable(notices, func(i, j int) bool {
+		if unread, other := notices[i].ReadStatus == "unread", notices[j].ReadStatus == "unread"; unread != other {
+			return unread
+		}
+		return notices[i].CreatedAt.After(notices[j].CreatedAt)
+	})
+}
 func (s *Service) ListOperatorNotifications(ctx context.Context, actor, operator, cursor, search, state string, limit int) ([]ManagedNotification, string, error) {
 	if limit < 1 || limit > 100 {
 		limit = 30

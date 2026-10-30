@@ -1,4 +1,54 @@
 {
+  "发给我的通知": {
+    "en": "Notices to me",
+    "ja": "自分宛ての通知",
+    "ru": "Уведомления мне"
+  },
+  "未读 {count} 条": {
+    "en": "{count} unread",
+    "ja": "未読 {count} 件",
+    "ru": "Непрочитанных: {count}"
+  },
+  "未读 {unread} 人 / 共 {total} 人": {
+    "en": "{unread} unread / {total} recipients",
+    "ja": "未読 {unread} 人 / 全 {total} 人",
+    "ru": "Не прочитали: {unread} / всего: {total}"
+  },
+  "还没有发给其他人的通知事件": {
+    "en": "No notices sent to other people",
+    "ja": "他の人に送った通知イベントはありません",
+    "ru": "Нет уведомлений другим людям"
+  },
+  "同一次发送会合成一组。同一事项的两次发送分别成组。": {
+    "en": "One send becomes one group. Two sends of the same matter become two groups.",
+    "ja": "同じ送信は1つのグループになります。同じ件の2回の送信は別々のグループです。",
+    "ru": "Одна отправка образует одну группу. Две отправки одного события — две группы."
+  },
+  "未读的人排在前面，已读的人排在后面。": {
+    "en": "People who have not read it are listed first, then people who have.",
+    "ja": "未読の人が先、既読の人が後です。",
+    "ru": "Сначала те, кто не прочитал, затем те, кто прочитал."
+  },
+  "未读通知排在前面，已读通知排在后面。": {
+    "en": "Unread notices are listed first, then read notices.",
+    "ja": "未読の通知が先、既読の通知が後です。",
+    "ru": "Сначала непрочитанные уведомления, затем прочитанные."
+  },
+  "这次通知没有收件人": {
+    "en": "This notice has no recipients",
+    "ja": "この通知に受信者はいません",
+    "ru": "У этого уведомления нет получателей"
+  },
+  "还没有发给你的通知": {
+    "en": "No notices have been sent to you",
+    "ja": "あなた宛ての通知はまだありません",
+    "ru": "Вам ещё не отправляли уведомления"
+  },
+  "发给你的通知单独显示未读条数。发给其他人的同一次通知合成一组，显示未读人数和总人数。同一事项的两次发送是两组。": {
+    "en": "Notices to you show only your unread count. One send to other people is one group, with unread and total recipients. Two sends of the same matter are two groups.",
+    "ja": "自分宛ての通知は未読件数だけを表示します。他の人への同じ送信は1グループで、未読人数と総人数を表示します。同じ件の2回の送信は2グループです。",
+    "ru": "Уведомления вам показывают только число непрочитанных. Одна отправка другим людям — одна группа с числом непрочитавших и общим числом. Две отправки одного события — две группы."
+  },
   "没有查看权限": {
     "en": "No viewing permission",
     "ja": "閲覧権限がありません",

@@ -35,7 +35,7 @@ function MarkRead({ operatorID, noticeID, onRead }: { operatorID: string; notice
   </>;
 }
 
-export function OperatorNotificationGroups({ page, operatorID, onRetry }: { page: { items: Entity[]; row_operations: Operation[] }; operatorID?: string; onRetry: (noticeID: string) => void }) {
+export function OperatorNotificationGroups({ page, operatorID, showEvents = true, onRetry }: { page: { items: Entity[]; row_operations: Operation[] }; operatorID?: string; showEvents?: boolean; onRetry: (noticeID: string) => void }) {
   const { t } = useI18n();
   const [openID, setOpenID] = useState<string>();
   const [marked, setMarked] = useState<Record<string, true>>({});
@@ -49,8 +49,8 @@ export function OperatorNotificationGroups({ page, operatorID, onRetry }: { page
   return <>
     <div className="space-y-3">
       {personal && <Card><div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-semibold">{t("发给我的通知")}</h2><p className="mt-2 text-sm text-ink-secondary">{t("未读 {count} 条", { count: unreadOf(personal) })}</p></div><Button variant="outline" onClick={() => setOpenID(personal.id)}>{t("查看详情")}</Button></div></Card>}
-      {events.map(item => <Card key={item.id}><div className="flex flex-wrap items-center justify-between gap-4"><div className="min-w-0"><h2 className="font-semibold">{copy(item.values.system_generated === true, text(item.values.title), t)}</h2><p className="mt-2 text-xs text-ink-mute"><When value={text(item.values.created_at)} /></p><p className="mt-2 text-sm text-ink-secondary">{t("未读 {unread} 人 / 共 {total} 人", { unread: unreadOf(item), total: count(item.values.total_count) })}</p></div><Button variant="outline" onClick={() => setOpenID(item.id)}>{t("查看详情")}</Button></div></Card>)}
-      {!events.length && <Empty title={t("还没有发给其他人的通知事件")}>{t("同一次发送会合成一组。同一事项的两次发送分别成组。")}</Empty>}
+      {showEvents && events.map(item => <Card key={item.id}><div className="flex flex-wrap items-center justify-between gap-4"><div className="min-w-0"><h2 className="font-semibold">{copy(item.values.system_generated === true, text(item.values.title), t)}</h2><p className="mt-2 text-xs text-ink-mute"><When value={text(item.values.created_at)} /></p><p className="mt-2 text-sm text-ink-secondary">{t("未读 {unread} 人 / 共 {total} 人", { unread: unreadOf(item), total: count(item.values.total_count) })}</p></div><Button variant="outline" onClick={() => setOpenID(item.id)}>{t("查看详情")}</Button></div></Card>)}
+      {showEvents && !events.length && <Empty title={t("还没有发给其他人的通知事件")}>{t("同一次发送会合成一组。同一事项的两次发送分别成组。")}</Empty>}
     </div>
     <Dialog.Root open={!!open} onOpenChange={next => { if (!next) setOpenID(undefined); }}>
       <Dialog.Portal>

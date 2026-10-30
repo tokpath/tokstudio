@@ -202,6 +202,28 @@ it("opens a public model from the list only after a route exists", async () => {
   await waitFor(() => expect(posts).toEqual([{ enabled: true, expected_version: 4 }]));
 });
 
+it("filters notification groups with localized type labels", () => {
+  show(<ResourceCollection operatorID="operator-one" resource="notifications" embedded page={page([
+    { id: "personal", values: { record_kind: "personal", unread_count: 1, total_count: 1, notices: [] } },
+    { id: "catalog:one", values: { record_kind: "event", title: "价格变更", system_generated: false, created_at: "2026-10-30T08:33:00Z", unread_count: 1, total_count: 2, notices: [] } },
+  ], { title: "通知管理", description: "", search_supported: false, status_supported: false })} />);
+  expect(screen.getByRole("button", { name: "发给我的通知" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "通知事件" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "personal" })).toBeNull();
+  expect(screen.getByRole("heading", { name: "发给我的通知" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "价格变更" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "发给我的通知" }));
+  expect(screen.getByRole("heading", { name: "发给我的通知" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "价格变更" })).toBeNull();
+  expect(screen.queryByText("还没有发给其他人的通知事件")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "通知事件" }));
+  expect(screen.queryByRole("heading", { name: "发给我的通知" })).toBeNull();
+  expect(screen.getByRole("heading", { name: "价格变更" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "全部" }));
+  expect(screen.getByRole("heading", { name: "发给我的通知" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "价格变更" })).toBeTruthy();
+});
+
 it("names the platform when an OEM task requires platform-only tooling", async () => {
  permissions = ["overview.read"];
  vi.stubGlobal("fetch", vi.fn(async () => response(page([{ id: "metric", values: { metric: "pending_usage", value: "1" } }]))));

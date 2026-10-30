@@ -39,7 +39,7 @@ it("shows the unread count on the customer notification bell", async () => {
   expect(link.textContent).toContain("12");
 });
 
-it("expands authorized operator links vertically and leaves notifications out of the sidebar", () => {
+it("keeps operator notifications at the bottom of the sidebar, outside the settings group", () => {
   state.session = staff(["payments.read", "refunds.read", "notifications.read", "providers.read"]); state.path = "/manage/one/payments"; mount("one");
   const business = screen.getByRole("navigation", { name: "工作台", exact: true });
   const finance = within(business).getByRole("navigation", { name: "资金办理内导航" });
@@ -47,8 +47,8 @@ it("expands authorized operator links vertically and leaves notifications out of
   expect(within(finance).getByRole("link", { name: "收款办理" }).getAttribute("aria-current")).toBe("page");
   expect(within(business).queryByRole("link", { name: "订单与交付" })).toBeNull();
   expect(within(business).queryByRole("link", { name: "通知管理" })).toBeNull();
-  expect(screen.queryByRole("navigation", { name: "工作台工具", exact: true })).toBeNull();
-  expect(screen.queryByRole("link", { name: "通知管理" })).toBeNull();
+  const tools = screen.getByRole("navigation", { name: "工作台工具", exact: true });
+  expect(within(tools).getByRole("link", { name: "通知管理" }).getAttribute("href")).toBe("/manage/one/notifications");
 });
 
 it("keeps settings collapsed on the notification page and pins the sidebar note", () => {

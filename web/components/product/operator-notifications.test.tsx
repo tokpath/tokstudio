@@ -20,4 +20,6 @@ it("shows my unread count and each send as its own group, with unread recipients
   const dialog = screen.getByRole("dialog");
   const names = within(dialog).getAllByRole("heading", { level: 3 }).map(item => item.textContent);
   expect(names).toEqual(["未读的人", "已读的人"]);
+  expect(within(dialog).getAllByText("邮件尚未发送")).toHaveLength(2);
+  expect(within(dialog).queryByText("待处理")).toBeNull();
 });

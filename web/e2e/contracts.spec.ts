@@ -69,19 +69,16 @@ test("unknown financial action freezes input and retries its exact key and body"
   await page.goto("/workspace/withdrawals"); await page.getByRole("button", { name: "申请提现" }).click(); await page.getByLabel("申请金额 结算币种").fill("0.000000000000000001"); await page.getByRole("checkbox").check(); await page.getByRole("button", { name: "申请提现" }).last().click(); await expect(page.getByText("连接中断，操作结果尚未核实。请沿用本次操作重试或查询记录。")).toBeVisible(); await expect(page.getByLabel("申请金额 结算币种")).toBeDisabled(); await page.getByRole("button", { name: "重试本次操作" }).click(); await expect(page.getByText("提现已申请，款项尚未支付")).toBeVisible(); expect(attempts).toHaveLength(2); expect(attempts[0]).toEqual(attempts[1]);
 });
 
-test("staff notification entry is a bell beside the signed-in account", async ({ page }) => {
+test("staff notification entry sits at the bottom of the sidebar", async ({ page }) => {
   await api(page, { kind: "staff", staff: { id: "staff-1", email: "owner@example.test", display_name: "负责人" }, workspaces: [{ operator: { ...operator, kind: "platform" }, permissions: ["invoices.read", "notifications.read", "business-status.read", "staff.read"] }], active_operator_id: operator.id, csrf_token: "csrf_test" });
   await page.goto(`/manage/${operator.id}/invoices`);
   await expect(page.getByRole("heading", { name: "票据办理" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "工作台", exact: true }).getByRole("link", { name: "通知管理" })).toHaveCount(0);
-  const bell = page.getByRole("link", { name: "通知管理", exact: true });
+  const tools = page.getByRole("navigation", { name: "工作台工具", exact: true });
+  const bell = tools.getByRole("link", { name: "通知管理", exact: true });
   await expect(bell).toBeVisible();
   await expect(bell).toHaveAttribute("href", `/manage/${operator.id}/notifications`);
-  await expect(bell).toHaveText("");
-  const name = page.getByText("负责人", { exact: true });
-  const bellBox = await bell.boundingBox();
-  const nameBox = await name.boundingBox();
-  expect(bellBox && nameBox && bellBox.x < nameBox.x && Math.abs(bellBox.y - nameBox.y) < 24).toBeTruthy();
+  await expect(page.locator("header").getByRole("link", { name: "通知管理" })).toHaveCount(0);
   await bell.click();
   await expect(page).toHaveURL(new RegExp(`/manage/${operator.id}/notifications$`));
   await expect(page.getByRole("navigation", { name: "设置内导航", exact: true })).toHaveCount(0);

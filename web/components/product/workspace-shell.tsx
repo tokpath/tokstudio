@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CreditsSchema } from "@/lib/contracts";
 import { authContinuation, safeCustomerNext } from "@/lib/customer-next";
 import { request } from "@/lib/api-client";
-import { customerSections, operatorLanding, sectionForResource, visibleOperatorSections } from "@/lib/navigation";
+import { canReadResource, customerSections, operatorLanding, sectionForResource, visibleOperatorSections } from "@/lib/navigation";
 import { Empty, ErrorPanel, Loading, Notice } from "./shared";
 import { UnreadBadge, useUnreadNotifications } from "./notification-count";
 
@@ -19,7 +19,8 @@ const kindNames: Record<string, string> = { platform: "平台经营空间", oem:
 export function WorkspaceShell({ children, operatorID }: { children: ReactNode; operatorID?: string }) {
   const { t } = useI18n();
   const { session, sessionError, reload } = useProduct();
-  const unread = useUnreadNotifications(session?.kind === "customer" ? "/api/v1/me/notifications/unread-count" : undefined);
+  const staffWorkspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
+  const unread = useUnreadNotifications(session?.kind === "customer" ? "/api/v1/me/notifications/unread-count" : staffWorkspace && canReadResource(staffWorkspace, "notifications") ? `/api/v1/operators/${encodeURIComponent(staffWorkspace.operator.id)}/notifications/unread-count` : undefined);
   const path = usePathname(), router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false), [continuation, setContinuation] = useState<string>(), [collapsedSection, setCollapsedSection] = useState<string>();
   const credits = useQuery({ queryKey: ["credits"], queryFn: () => request("/api/v1/me/credits", CreditsSchema), enabled: session?.kind === "customer" });
@@ -35,14 +36,13 @@ export function WorkspaceShell({ children, operatorID }: { children: ReactNode; 
   const base = operatorID ? `/manage/${encodeURIComponent(operatorID)}` : "/workspace";
   const resource = path.slice(base.length).replace(/^\//, "");
   const onStaffNotifications = Boolean(workspace) && resource.split("/")[0] === "notifications";
-  // 通知页从页眉铃铛进入，不再属于左侧「设置」分组，避免打开时把设置菜单展开。
+  // 通知不放进左侧「设置」分组，避免打开通知时把设置菜单展开。经营方和客户都把铃铛放在左侧栏底部。
   const activeSection = sectionForResource(sections.map(section => workspace ? { ...section, items: section.items.filter(([item]) => item !== "notifications") } : section), resource);
   const hrefFor = (resource: string) => `${base}${resource ? `/${resource}` : ""}`;
   const displayName = workspace?.operator.name || (session.kind === "customer" ? session.operator.name : t("工作空间"));
   const primarySections = sections.filter(section => section.id !== "account").map(section => ({ ...section, items: section.items.filter(([item]) => item !== "notifications") })).filter(section => section.items.length);
-  // 经营后台的通知入口放在页眉账号旁边。客户工作台仍把账号和通知留在左侧工具区。
-  const tools = workspace ? [] : customerSections.find(section => section.id === "account")!.items;
-  const utilityLinks = tools.map(([item, label]) => { const Icon = item === "notifications" ? Bell : CircleUserRound; const unreadLabel = item === "notifications" && unread > 0 ? t("通知与订阅，{count} 条未读", { count: unread }) : undefined; return <Link key={item} href={hrefFor(item)} aria-label={unreadLabel} aria-current={resource.split("/")[0] === item ? "page" : undefined} className={`th-nav-item ${resource.split("/")[0] === item ? "bg-brand-soft font-semibold text-brand-emphasis" : "text-ink-secondary hover:bg-canvas"}`}><span className="relative inline-flex"><Icon size={17} aria-hidden="true" />{item === "notifications" && <UnreadBadge count={unread} />}</span>{t(label)}</Link>; });
+  const tools: readonly (readonly [string, string])[] = workspace ? (canReadResource(workspace, "notifications") ? [["notifications", "通知管理"]] : []) : customerSections.find(section => section.id === "account")!.items;
+  const utilityLinks = tools.map(([item, label]) => { const Icon = item === "notifications" ? Bell : CircleUserRound; const unreadLabel = item === "notifications" && unread > 0 ? t(label === "通知管理" ? "通知管理，{count} 条未读" : "通知与订阅，{count} 条未读", { count: unread }) : undefined; return <Link key={item} href={hrefFor(item)} aria-label={unreadLabel} aria-current={resource.split("/")[0] === item ? "page" : undefined} className={`th-nav-item ${resource.split("/")[0] === item ? "bg-brand-soft font-semibold text-brand-emphasis" : "text-ink-secondary hover:bg-canvas"}`}><span className="relative inline-flex"><Icon size={17} aria-hidden="true" />{item === "notifications" && <UnreadBadge count={unread} />}</span>{t(label)}</Link>; });
   const navigation = primarySections.map(section => {
     const Icon = icons[section.id as keyof typeof icons] || SlidersHorizontal;
     const active = section.id === activeSection?.id;

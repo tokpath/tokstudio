@@ -346,12 +346,9 @@ func (s *Service) notificationNotices(t *gorm.DB, operator, where string, args [
 		CreatedAt                                                                                            time.Time
 		ReadAt                                                                                               *time.Time
 	}{}
-	query := `SELECT n.id, n.recipient_id, COALESCE(NULLIF(st.display_name,''), NULLIF(cu.display_name,''), '') AS recipient_name, COALESCE(NULLIF(st.email,''), NULLIF(ident.email_normalized,''), '') AS recipient_email, n.business_key, n.title, n.body, n.category, n.reference, n.created_at, n.read_at, d.state
+	query := `SELECT n.id, n.recipient_id, '' AS recipient_name, '' AS recipient_email, n.business_key, n.title, n.body, n.category, n.reference, n.created_at, n.read_at, d.state
 FROM operations_notifications n
 JOIN operations_deliveries d ON d.notification_id=n.id
-LEFT JOIN portal_staff st ON st.id=n.recipient_id
-LEFT JOIN organization_customers cu ON cu.id=n.recipient_id
-LEFT JOIN LATERAL (SELECT email_normalized FROM organization_customer_identities WHERE customer_id=n.recipient_id AND is_current=true LIMIT 1) ident ON true
 WHERE n.operator_id=? AND ` + where
 	if err := t.Raw(query, append([]any{operator}, args...)...).Scan(&rows).Error; err != nil {
 		return nil, err

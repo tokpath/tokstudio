@@ -177,6 +177,10 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			handleError(c, e)
 			return true
 		}
+		if e = a.labelNotificationRecipients(c, op.ID, actor, &personal, events); e != nil {
+			handleError(c, e)
+			return true
+		}
 		items = append(items, entity(personal.Key, "grouped", 1, personal))
 		for _, event := range events {
 			items = append(items, entity(event.Key, "grouped", 1, event))
@@ -467,6 +471,68 @@ func (a *Application) setNotificationPreferences(c *gin.Context) {
 		return
 	}
 	c.JSON(200, commandResult(id.Customer.Customer.ID, "preferences_updated"))
+}
+
+func (a *Application) labelNotificationRecipients(c *gin.Context, operator, actor string, personal *operations.NotificationGroup, events []operations.NotificationGroup) error {
+	ids := []string{}
+	seen := map[string]bool{}
+	collect := func(notices []operations.NotificationNotice) {
+		for _, notice := range notices {
+			if notice.RecipientID != "" && !seen[notice.RecipientID] {
+				seen[notice.RecipientID] = true
+				ids = append(ids, notice.RecipientID)
+			}
+		}
+	}
+	collect(personal.Notices)
+	for i := range events {
+		collect(events[i].Notices)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	labels := map[string]string{}
+	var staff []humanLabelRow
+	if err := a.DB.WithContext(c.Request.Context()).Table("portal_staff s").Select("s.id,concat_ws(' · ',NULLIF(s.display_name,''),s.email) AS label").Where("s.id IN ?", ids).Where("EXISTS (SELECT 1 FROM organization_staff_memberships m WHERE m.staff_id=s.id AND m.operator_id=?)", operator).Scan(&staff).Error; err != nil {
+		return err
+	}
+	for _, row := range staff {
+		if row.Label != "" {
+			labels[row.ID] = row.Label
+		}
+	}
+	mayEmail := false
+	for _, permission := range []string{"customers.read", "refunds.manage", "withdrawals.manage"} {
+		if a.Organization.RequirePermission(c.Request.Context(), nil, actor, operator, permission) == nil {
+			mayEmail = true
+			break
+		}
+	}
+	selectLabel := "c.display_name AS label"
+	if mayEmail {
+		selectLabel = "concat_ws(' · ',NULLIF(c.display_name,''),NULLIF((SELECT email_normalized FROM organization_customer_identities e WHERE e.customer_id=c.id AND e.is_current=true LIMIT 1),'')) AS label"
+	}
+	var customers []humanLabelRow
+	if err := a.DB.WithContext(c.Request.Context()).Table("organization_customers c").Select("c.id,"+selectLabel).Where("c.id IN ?", ids).Where("EXISTS (SELECT 1 FROM organization_service_ownerships own WHERE own.customer_id=c.id AND own.operator_id=? AND own.ended_at IS NULL)", operator).Scan(&customers).Error; err != nil {
+		return err
+	}
+	for _, row := range customers {
+		if row.Label != "" && labels[row.ID] == "" {
+			labels[row.ID] = row.Label
+		}
+	}
+	apply := func(notices []operations.NotificationNotice) {
+		for i := range notices {
+			if label := labels[notices[i].RecipientID]; label != "" {
+				notices[i].RecipientName = label
+			}
+		}
+	}
+	apply(personal.Notices)
+	for i := range events {
+		apply(events[i].Notices)
+	}
+	return nil
 }
 
 var _ = errors.Is

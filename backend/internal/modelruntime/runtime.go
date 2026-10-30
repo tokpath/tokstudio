@@ -141,24 +141,9 @@ type Result struct {
 	Usage             Usage             `json:"usage"`
 	OutputDelivered   bool              `json:"output_delivered"`
 	ErrorCode         string            `json:"error_code,omitempty"`
-	// ProviderStatus and ProviderError keep the supplier HTTP status and body
-	// for later diagnosis. Credentials are removed before either value is stored.
-	ProviderStatus int    `json:"provider_status,omitempty"`
-	ProviderError  string `json:"provider_error,omitempty"`
-}
-
-// UpstreamFailure is a supplier rejection or outage. Detail is safe to show
-// and store; it does not include the outbound credential.
-type UpstreamFailure struct {
-	Status int
-	Detail string
-}
-
-func (e *UpstreamFailure) Error() string {
-	if e == nil || strings.TrimSpace(e.Detail) == "" {
-		return "upstream_error"
-	}
-	return e.Detail
+	// Only the HTTP status and a system-owned ErrorCode cross the SDK boundary.
+	// Supplier error text is never returned or recorded.
+	ProviderStatus int `json:"provider_status,omitempty"`
 }
 
 // Money preserves the currency documented by the source. Supplier observations

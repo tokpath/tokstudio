@@ -120,11 +120,12 @@ func TestBifrostNoImplicitRetryAndErrorContentPrivate(t *testing.T) {
 	if calls.Load() != 1 {
 		t.Fatalf("SDK retried %d times", calls.Load())
 	}
-	if !strings.Contains(out.ProviderError, "Invalid token") || !strings.Contains(e.Error(), "Invalid token") {
-		t.Fatal("supplier response was not recorded", out.ProviderError, e)
+	if out.ErrorCode != "upstream_authentication_failed" || e.Error() != out.ErrorCode {
+		t.Fatal("supplier failure was not safely classified", out.ErrorCode, e)
 	}
-	if strings.Contains(out.ProviderError, "platform-secret-do-not-log") || strings.Contains(out.ProviderError, "sk-live-secret-value") {
-		t.Fatal("credential leaked into recorded supplier error", out.ProviderError)
+	encoded, _ := json.Marshal(out)
+	if strings.Contains(string(encoded), "Invalid token") || strings.Contains(string(encoded), "secret-value") {
+		t.Fatal("supplier content was retained")
 	}
 }
 func TestBifrostStreamingUsageAndDisconnect(t *testing.T) {

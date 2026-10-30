@@ -30,7 +30,7 @@ type AttemptRecord struct {
 	Definition                            json.RawMessage `gorm:"type:jsonb"`
 	State, ProviderRequestID, TaskID      string
 	Usage                                 json.RawMessage `gorm:"type:jsonb"`
-	CostStatus, ErrorCode, ProviderError  string
+	CostStatus, ErrorCode                 string
 	ProviderStatus                        int
 	CostRecordedAt                        *time.Time
 	OutputDelivered                       bool
@@ -41,10 +41,7 @@ type AttemptRecord struct {
 func (AttemptRecord) TableName() string { return "usage_attempts" }
 
 func failureReason(result modelruntime.Result) string {
-	if result.ProviderError != "" {
-		return result.ProviderError
-	}
-	return result.ErrorCode
+	return modelruntime.SafeErrorCode(result.ErrorCode)
 }
 
 type resultRow struct {
@@ -172,8 +169,10 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 		attemptCtx, attemptSpan := otel.Tracer("tokenhub/usage").Start(executionCtx, "model.upstream_attempt")
 		attemptSpan.SetAttributes(attribute.String("tokenhub.attempt_id", attempt.ID), attribute.String("tokenhub.upstream_id", upstream.ID), attribute.String("tokenhub.provider_id", upstream.ProviderID))
 		last, lastErr = s.Runtime.Execute(attemptCtx, attempt, input, wrapped)
-		if last.ProviderError == "" && lastErr != nil {
-			last.ProviderError = modelruntime.Diagnostic(lastErr)
+		last.ErrorCode = modelruntime.SafeErrorCode(last.ErrorCode)
+		last.ProviderStatus = modelruntime.SafeProviderStatus(last.ProviderStatus)
+		if last.ErrorCode == "" && lastErr != nil {
+			last.ErrorCode = modelruntime.Diagnostic(lastErr)
 		}
 		attemptSpan.SetAttributes(attribute.String("tokenhub.outcome", last.State), attribute.Bool("tokenhub.usage_reliable", last.Usage.Reliable))
 		attemptSpan.End()
@@ -263,7 +262,7 @@ func (s *Service) RecordAttempt(ctx context.Context, requestID, attemptID string
 			result.ProviderRequestID = row.ProviderRequestID
 		}
 		now := s.wallNow()
-		updates := map[string]any{"state": result.State, "provider_request_id": result.ProviderRequestID, "task_id": result.TaskID, "error_code": result.ErrorCode, "provider_status": result.ProviderStatus, "provider_error": result.ProviderError, "output_delivered": row.OutputDelivered || result.OutputDelivered, "completed_at": now}
+		updates := map[string]any{"state": result.State, "provider_request_id": result.ProviderRequestID, "task_id": result.TaskID, "error_code": modelruntime.SafeErrorCode(result.ErrorCode), "provider_status": modelruntime.SafeProviderStatus(result.ProviderStatus), "output_delivered": row.OutputDelivered || result.OutputDelivered, "completed_at": now}
 		if result.InputFacts != nil {
 			var definition modelruntime.Attempt
 			if e := json.Unmarshal(row.Definition, &definition); e != nil {

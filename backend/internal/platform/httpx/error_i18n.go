@@ -82,16 +82,18 @@ func localizedErrorMessage(locale, code, message string) string {
 	return LocalizedErrorMessage(locale, code, message)
 }
 
+const UpstreamUnavailableMessage = "模型服务暂时不可用，请稍后重试或联系经营方，并提供请求编号"
+
 // LocalizedErrorMessage changes presentation only; callers keep error codes,
 // retryability, request IDs and operation state unchanged.
 func LocalizedErrorMessage(locale, code, message string) string {
+	// This boundary must remain safe even if a future caller passes SDK text.
+	if code == "upstream_error" {
+		message = UpstreamUnavailableMessage
+	}
 	index := localeIndex(locale)
 	if text, ok := uiCatalog[message]; ok {
 		return text[index+1]
-	}
-	// Supplier bodies are diagnostic facts, not catalogued product copy.
-	if code == "upstream_error" && strings.TrimSpace(message) != "" && message != "upstream_error" {
-		return message
 	}
 	if tail, ok := strings.CutPrefix(message, "仍有未满足事项："); ok {
 		parts := strings.Split(tail, "；")

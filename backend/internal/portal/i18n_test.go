@@ -3,6 +3,7 @@ package portal
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -47,26 +48,36 @@ func TestPortalLocalizedErrorsPreserveDetailedBusinessContract(t *testing.T) {
 	}
 }
 
-func TestUpstreamFailureKeepsTheSupplierResponse(t *testing.T) {
+func TestUpstreamFailureIsPrivateAndLocalized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	writer := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(writer)
-	c.Request = httptest.NewRequest("POST", "/v1/me/playground", nil)
-	c.Request.Header.Set("Accept-Language", "en")
-	c.Set("request_id", "http-request")
-	detail := `HTTP 401 {"error":{"message":"Invalid token","type":"onerouter_api_error"}}`
-	handleError(c, &modelruntime.UpstreamFailure{Status: 401, Detail: detail})
-	var got struct {
-		Error struct {
-			Code, Message string
-			RequestID     string `json:"request_id"`
+	for _, locale := range []string{"zh", "en", "ja", "ru"} {
+		for _, status := range []int{0, 400, 401, 403, 429, 500, 504} {
+			writer := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(writer)
+			c.Request = httptest.NewRequest("POST", "/v1/me/playground", nil)
+			c.Request.Header.Set("Accept-Language", locale)
+			c.Set("request_id", "http-request")
+			// Wrappers themselves may include a key or a credential-bearing URL.
+			handleError(c, fmt.Errorf("provider-secret: %w", &modelruntime.UpstreamFailure{Status: status}))
+			var got struct {
+				Error struct {
+					Code, Message string
+					RequestID     string `json:"request_id"`
+					Retryable     bool   `json:"retryable"`
+				}
+			}
+			if err := json.Unmarshal(writer.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			source := "模型服务暂时不可用，请稍后重试或联系经营方，并提供请求编号"
+			want := httpx.LocalizedErrorMessage(locale, "upstream_error", source)
+			if writer.Code != 502 || got.Error.Code != "upstream_error" || got.Error.Message != want || got.Error.RequestID != "http-request" || got.Error.Retryable != (status == 0 || status == 408 || status >= 500) {
+				t.Fatal(locale, status, writer.Code, writer.Body.String())
+			}
+			if strings.Contains(writer.Body.String(), "provider-secret") || (locale != "zh" && got.Error.Message == source) {
+				t.Fatal("supplier text escaped or translation missing", locale)
+			}
 		}
-	}
-	if err := json.Unmarshal(writer.Body.Bytes(), &got); err != nil {
-		t.Fatal(err)
-	}
-	if writer.Code != 502 || got.Error.Code != "upstream_error" || got.Error.Message != detail || got.Error.RequestID != "http-request" {
-		t.Fatal(writer.Code, writer.Body.String())
 	}
 }
 

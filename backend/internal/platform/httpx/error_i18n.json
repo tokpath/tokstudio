@@ -389,6 +389,11 @@
       "The configuration has changed. Reload it before saving.",
       "設定が変更されています。保存前に再読み込みしてください。",
       "Настройки изменились. Обновите их перед сохранением."
+    ],
+    "upstream_error": [
+      "The model service is temporarily unavailable. Try again later or contact your operator with the request ID.",
+      "モデルサービスを一時的に利用できません。しばらくしてから再試行するか、リクエスト ID を添えて運営者にお問い合わせください。",
+      "Сервис моделей временно недоступен. Повторите попытку позже или обратитесь к оператору, указав идентификатор запроса."
     ]
   },
   "messages": {
@@ -596,6 +601,11 @@
       "Supported languages are Chinese, English, Japanese and Russian.",
       "対応言語は中国語、英語、日本語、ロシア語です。",
       "Поддерживаются китайский, английский, японский и русский языки."
+    ],
+    "模型服务暂时不可用，请稍后重试或联系经营方，并提供请求编号": [
+      "The model service is temporarily unavailable. Try again later or contact your operator with the request ID.",
+      "モデルサービスを一時的に利用できません。しばらくしてから再試行するか、リクエスト ID を添えて運営者にお問い合わせください。",
+      "Сервис моделей временно недоступен. Повторите попытку позже или обратитесь к оператору, указав идентификатор запроса."
     ]
   }
 }

@@ -74,7 +74,7 @@ func handleError(c *gin.Context, err error) {
 	var upstream *modelruntime.UpstreamFailure
 	if errors.As(err, &upstream) {
 		retry := upstream.Status == 0 || upstream.Status == 408 || upstream.Status >= 500
-		fail(c, 502, "upstream_error", upstream.Error(), retry)
+		fail(c, 502, "upstream_error", httpx.UpstreamUnavailableMessage, retry)
 		return
 	}
 	status, code, msg, retry := 500, "internal_error", "处理失败，请沿用本次操作编号重试", true

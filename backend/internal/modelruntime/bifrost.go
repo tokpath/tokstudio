@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -108,6 +107,22 @@ func (privateLogger) LogHTTPRequest(schemas.LogLevel, string) schemas.LogEventBu
 
 func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) (out Result, err error) {
 	out = Result{AttemptID: a.ID, State: "not_dispatched", ErrorCode: "request_not_dispatched", Usage: Usage{Source: "unknown"}}
+	defer func() {
+		if err == nil {
+			return
+		}
+		var failure *UpstreamFailure
+		if errors.As(err, &failure) {
+			out.ProviderStatus = SafeProviderStatus(failure.Status)
+			out.ErrorCode = failure.Error()
+			// A protocol-level failure inside HTTP 200 may follow partial work.
+			if out.ProviderStatus == 0 {
+				out.State = "outcome_unknown"
+			}
+		} else if out.ErrorCode == "" {
+			out.ErrorCode = Diagnostic(err)
+		}
+	}()
 	if b == nil || b.client == nil {
 		return out, fmt.Errorf("bifrost unavailable")
 	}
@@ -456,104 +471,25 @@ func NativeVideoTaskID(id, provider string) string {
 	}
 	return raw
 }
+
+// Never carry a supplier-controlled message, body, header or error code across
+// the SDK boundary. Even an ordinary sentence can contain the outbound key.
 func executionFailure(out Result, f *schemas.BifrostError) (Result, error) {
-	status, detail := supplierFailureDetail(f)
-	out.ProviderStatus = status
-	out.ProviderError = detail
-	out.ErrorCode = "upstream_error"
-	if status == 429 {
-		out.ErrorCode = "rate_limited"
+	status := 0
+	if f != nil && f.StatusCode != nil {
+		status = SafeProviderStatus(*f.StatusCode)
 	}
+	out.ProviderStatus = status
+	failure := &UpstreamFailure{Status: status}
+	out.ErrorCode = failure.Error()
 	if status == 0 || status == 408 || status >= 500 {
 		out.State = "outcome_unknown"
 	} else {
 		out.State = "failed"
 	}
-	return out, &UpstreamFailure{Status: status, Detail: detail}
+	return out, failure
 }
 
-var providerSecretPattern = regexp.MustCompile(`(?i)bearer\s+\S+|sk-[A-Za-z0-9_\-.]{8,}|"[^"]*(?:api[_-]?key|authorization|secret)[^"]*"\s*:\s*"[^"]*"`)
-
-// Diagnostic is the failure text stored on a request. Supplier details are
-// kept; credential material is removed.
-func Diagnostic(err error) string {
-	if err == nil {
-		return ""
-	}
-	var upstream *UpstreamFailure
-	if errors.As(err, &upstream) {
-		return upstream.Error()
-	}
-	return boundProviderDetail(redactProviderDetail(err.Error()))
-}
-
-func supplierFailureDetail(f *schemas.BifrostError) (int, string) {
-	if f == nil {
-		return 0, ""
-	}
-	status := 0
-	if f.StatusCode != nil {
-		status = *f.StatusCode
-	}
-	message, kind, code := "", "", ""
-	if f.Error != nil {
-		message = f.Error.Message
-		if f.Error.Type != nil {
-			kind = *f.Error.Type
-		}
-		if f.Error.Code != nil {
-			code = *f.Error.Code
-		}
-	}
-	body := strings.TrimSpace(string(f.ExtraFields.NativeErrorResponse))
-	if body == "" && f.ExtraFields.RawResponse != nil {
-		switch value := f.ExtraFields.RawResponse.(type) {
-		case string:
-			body = value
-		case []byte:
-			body = string(value)
-		case json.RawMessage:
-			body = string(value)
-		default:
-			encoded, err := json.Marshal(value)
-			if err == nil {
-				body = string(encoded)
-			}
-		}
-	}
-	detail := strings.TrimSpace(body)
-	if detail == "" {
-		parts := []string{}
-		if status != 0 {
-			parts = append(parts, fmt.Sprintf("HTTP %d", status))
-		}
-		if kind != "" {
-			parts = append(parts, kind)
-		}
-		if code != "" {
-			parts = append(parts, code)
-		}
-		if message != "" {
-			parts = append(parts, message)
-		}
-		detail = strings.Join(parts, " ")
-	} else if status != 0 {
-		detail = fmt.Sprintf("HTTP %d %s", status, detail)
-	}
-	return status, boundProviderDetail(redactProviderDetail(detail))
-}
-
-func redactProviderDetail(value string) string {
-	return providerSecretPattern.ReplaceAllString(value, "[redacted]")
-}
-
-func boundProviderDetail(value string) string {
-	value = strings.ToValidUTF8(strings.TrimSpace(value), "")
-	if len(value) <= 4000 {
-		return value
-	}
-	return value[:4000] + "…"
-}
 func decodePreserved(raw json.RawMessage, dst any) error {
 	if len(raw) == 0 {
 		raw = []byte(`{}`)
@@ -635,6 +571,9 @@ func publicOutput(response any, publicModel string) (json.RawMessage, error) {
 	if json.Unmarshal(raw, &object) != nil || object == nil {
 		return nil, fmt.Errorf("empty upstream response")
 	}
+	if protocolFailure(object) {
+		return nil, &UpstreamFailure{}
+	}
 	delete(object, "extra_fields")
 	delete(object, "prompt")
 	if _, ok := object["model"]; ok {
@@ -643,6 +582,9 @@ func publicOutput(response any, publicModel string) (json.RawMessage, error) {
 	if nested, ok := object["response"]; ok && string(nested) != "null" {
 		var child map[string]json.RawMessage
 		if json.Unmarshal(nested, &child) == nil && child != nil {
+			if protocolFailure(child) {
+				return nil, &UpstreamFailure{}
+			}
 			delete(child, "extra_fields")
 			if _, ok := child["model"]; ok {
 				child["model"], _ = json.Marshal(publicModel)
@@ -651,6 +593,18 @@ func publicOutput(response any, publicModel string) (json.RawMessage, error) {
 		}
 	}
 	return json.Marshal(object)
+}
+
+// Some APIs report errors in HTTP 200 responses or SSE events, including a
+// nested Responses payload or an asynchronous video task. Never emit that text.
+func protocolFailure(object map[string]json.RawMessage) bool {
+	if value := bytes.TrimSpace(object["error"]); len(value) > 0 && !bytes.Equal(value, []byte("null")) {
+		return true
+	}
+	var kind, status string
+	_ = json.Unmarshal(object["type"], &kind)
+	_ = json.Unmarshal(object["status"], &status)
+	return kind == "error" || kind == "response.failed" || status == "failed"
 }
 func verifyRouting(response any, a Attempt) error {
 	raw, e := json.Marshal(response)

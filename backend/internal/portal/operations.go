@@ -186,11 +186,11 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			items = append(items, entity(event.Key, "grouped", 1, event))
 		}
 		p["title"] = "通知管理"
-		p["description"] = "发给你的通知单独显示未读条数。发给其他人的同一次通知合成一组，显示未读人数和总人数。同一事项的两次发送是两组。"
+		p["description"] = "发给你的通知单独显示未读条数，打开详情后可以把未读标成已读。发给其他人的同一次通知合成一组，显示未读人数和总人数。同一事项的两次发送是两组。"
 		p["search_supported"], p["status_supported"], p["next_cursor"] = true, true, next
 		p["columns"] = []gin.H{col("recipient_id", "收件人", "text"), col("category", "通知类别", "text"), col("state", "邮件状态", "status"), col("read_status", "阅读状态", "status"), col("created_at", "发送时间", "datetime")}
 		p["operations"] = []operation{{Name: "announce", Label: "发送业务通知", Method: "POST", Path: base, Fields: []field{jsonField("收件人、通知类别、标题和正文")}}}
-		p["row_operations"] = []operation{{Name: "retry", Label: "重试原通知", Method: "POST", Path: base + "/{id}/retry", Fields: []field{}}}
+		p["row_operations"] = []operation{{Name: "read", Label: "标为已读", Method: "POST", Path: base + "/{id}/read", Fields: []field{}}, {Name: "retry", Label: "重试原通知", Method: "POST", Path: base + "/{id}/retry", Fields: []field{}}}
 	case "reconciliation":
 		rows, e := a.Operations.ListDiscrepancies(ctx, actor, op.ID, 100)
 		if e != nil {
@@ -379,6 +379,12 @@ func (a *Application) operatorOperationsRowCommand(c *gin.Context, op organizati
 	ctx := c.Request.Context()
 	var e error
 	switch {
+	case resource == "notifications" && action == "read":
+		var empty struct{}
+		if !body(c, &empty) {
+			return true
+		}
+		e = a.Operations.ReadNotification(ctx, actor, op.ID, c.Param("id"))
 	case resource == "notifications" && action == "retry":
 		var empty struct{}
 		if !body(c, &empty) {

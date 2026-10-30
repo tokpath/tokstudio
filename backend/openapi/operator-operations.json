@@ -3494,6 +3494,18 @@
     "permission": "operations.manage"
   },
   {
+    "resource": "notifications",
+    "confirmation": "",
+    "description": "只把当前操作员自己收到的这一条标成已读。",
+    "fields": [],
+    "include_version": false,
+    "label": "标为已读",
+    "method": "POST",
+    "name": "read",
+    "path": "/v1/operators/{operatorId}/notifications/{id}/read",
+    "permission": "operations.manage"
+  },
+  {
     "resource": "business-status",
     "confirmation": "",
     "description": "",

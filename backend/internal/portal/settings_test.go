@@ -153,8 +153,19 @@ func TestPostgresSettingsNotificationHasReadableContentAndOptionalReference(t *t
 		t.Fatal(rows[0])
 	}
 	v := notices[0].(map[string]any)
-	if v["title"] != "Readable settings notice" || v["body"] != "A useful message" || v["recipient_id"] != owner {
+	if v["title"] != "Readable settings notice" || v["body"] != "A useful message" || v["recipient_id"] != owner || v["read_status"] != "unread" {
 		t.Fatal(v)
+	}
+	status, out, _ = f.call(t, "POST", path+"/"+fmt.Sprint(v["id"])+"/read", map[string]any{}, "")
+	mustOK(t, status, out)
+	status, page, _ = f.call(t, "GET", path+"?q=Readable%20settings", nil, "")
+	mustOK(t, status, page)
+	rows = page["items"].([]any)
+	values := rows[0].(map[string]any)["values"].(map[string]any)
+	notices = values["notices"].([]any)
+	v = notices[0].(map[string]any)
+	if v["read_status"] != "read" || values["unread_count"] != float64(0) {
+		t.Fatal(values)
 	}
 	var notice operations.Notification
 	if err := f.a.DB.First(&notice, "id=?", fmt.Sprint(out["id"])).Error; err != nil || notice.Reference == "" {

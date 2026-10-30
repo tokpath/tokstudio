@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { CopyButton, useCustomerPendingGuard } from "./customer-ui";
 import { FieldHelp } from "./field-help";
 import { activityShareURL, concessionPreview, percentage } from "./customer-discovery";
-import { Empty, ErrorPanel, Heading, Loading, Money, Notice, Status, When, useCommand } from "./shared";
+import { AlertText, Empty, ErrorPanel, Heading, Loading, Money, Notice, Status, When, useCommand } from "./shared";
 
 const localTime = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
@@ -75,7 +75,7 @@ export function ActivityForm({ item, plans, maximum, close, published }: { item:
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={enabled} onChange={event => setEnabled(event.target.checked)} />{t("启用活动")}</label>
       <label className="flex items-start gap-2 text-sm leading-6 sm:col-span-2"><input type="checkbox" checked={agree} onChange={event => setAgree(event.target.checked)} className="mt-1" />{t("我确认活动让利、期限和使用上限，发布后仅对有效直属受邀客户生效。")}</label>
     </fieldset><aside aria-live="polite" aria-label={t("活动效果预览")} className="rounded-card border border-brand/30 bg-brand-soft/15 p-5 lg:sticky lg:top-6"><div className="mb-4 flex items-center gap-2"><Gift className="h-4 w-4 text-brand-emphasis" /><h3 className="font-semibold">{t("活动效果预览")}</h3></div>{preview && selectedPlan ? <><p className="text-sm font-medium">{selectedPlan.name}</p><dl className="mt-4 space-y-4 text-sm"><div><dt className="mb-1 text-xs text-ink-mute">{t("套餐基础总额度")}</dt><dd><Money value={preview.base} /></dd></div><div><dt className="mb-1 text-xs text-ink-mute">{t("本活动每单加赠")}</dt><dd className="text-xl font-semibold text-brand-emphasis">+<Money value={preview.gift} /></dd></div><div><dt className="mb-1 text-xs text-ink-mute">{t("含本活动的服务额度")}</dt><dd><Money value={preview.total} /></dd></div><div className="border-t border-hairline pt-4"><dt className="mb-1 text-xs text-ink-mute">{t("本人剩余直接佣金比例")}</dt><dd>{localizeNumberText(preview.remainingPoints, locale)}%</dd></div></dl><p className="mt-4 break-words font-mono text-xs leading-6 text-ink-mute">{localizeNumberText(preview.base, locale)} ATG × {localizeNumberText(points, locale)}% = {localizeNumberText(preview.gift, locale)} ATG</p></> : <p className="text-sm leading-7 text-ink-mute">{t("选择套餐并填写有效的让利百分点，立即查看加赠与剩余佣金。")}</p>}<p className="mt-4 text-xs leading-6 text-ink-mute">{t("仅为活动预览，最终权益、次数与组合资格由购买报价核实。")}</p></aside></div>
-    {validation && <p role="alert" className="text-sm text-danger">{t(validation, { maximum: localizeNumberText(percentage(maximum), locale) })}</p>}{!!command.error && <ErrorPanel error={command.error} />}{blocked && <Notice>{blocked}</Notice>}{command.unresolved && <Notice>{t("操作结果待核实，配置已锁定，再次提交会重试原请求。")}</Notice>}
+    {validation && <AlertText>{t(validation, { maximum: localizeNumberText(percentage(maximum), locale) })}</AlertText>}{!!command.error && <ErrorPanel error={command.error} />}{blocked && <Notice>{blocked}</Notice>}{command.unresolved && <Notice>{t("操作结果待核实，配置已锁定，再次提交会重试原请求。")}</Notice>}
     <div className="flex gap-3"><Button type="submit" disabled={command.busy || (!command.unresolved && !agree)}>{command.busy ? t("正在发布…") : command.unresolved ? t("重试原活动发布") : t("确认发布活动")}</Button><Button type="button" variant="outline" disabled={command.busy || command.unresolved} onClick={close}>{t("取消编辑")}</Button></div>
   </form></Card>;
 }

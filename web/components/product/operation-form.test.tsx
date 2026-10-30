@@ -177,6 +177,27 @@ it("prices an image resolution from the component card and leaves audio unchange
   ]);
 });
 
+it("requires the price effective time and scrolls its error into view", async () => {
+  const previous = HTMLElement.prototype.scrollIntoView;
+  const scroll = vi.fn();
+  HTMLElement.prototype.scrollIntoView = scroll;
+  try {
+    const fetch = referenceFetch();
+    vi.stubGlobal("fetch", fetch);
+    mount(priceOperation(priceConfig()));
+    const time = screen.getByLabelText("生效时间");
+    expect(time.closest("[data-config-path]")?.textContent).toContain("*");
+    fireEvent.change(time, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "发布价格版本", exact: true }));
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("生效时间");
+    await waitFor(() => expect(scroll.mock.instances).toContain(alert.parentElement));
+    expect(fetch.mock.calls.filter(call => call[1]?.method === "POST")).toHaveLength(0);
+  } finally {
+    HTMLElement.prototype.scrollIntoView = previous;
+  }
+});
+
 it("locates an invalid unit price without submitting or rounding its amount",async()=>{
   const fetch=referenceFetch();vi.stubGlobal("fetch",fetch);mount(priceOperation(priceConfig()));
   const rate=screen.getByLabelText(/^ATG 单价/);

@@ -8,7 +8,7 @@ import { useProduct } from "./context";
 import { useMonetary } from "./monetary";
 import { canReadResource } from "@/lib/navigation";
 import { compareDecimal } from "@/lib/decimal";
-import { useCommand, Heading, Loading, ErrorPanel, Empty, Money, Notice, Status, Table, When, Stat } from "./shared";
+import { AlertText, useCommand, Heading, Loading, ErrorPanel, Empty, Money, Notice, Status, Table, When, Stat } from "./shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -53,7 +53,7 @@ function BeginTakeover({scope,channels,close}:{scope:string;channels:{id:string;
  <label className="text-sm">{t("合同作价方式")}<select required name="method" className="mt-2 w-full rounded-control border border-hairline bg-canvas-raised p-3"><option value="supply_coverage">{t("按供货覆盖计算")}</option><option value="agreed_atg_value">{t("按约定ATG价格")}</option></select></label>
  <Field name="service_money_per_atg" label={t("承接服务每ATG合同作价 结算币种（大于0）")}/><Field name="procurement_money_per_atg" label={t("采购库存每ATG合同抵扣 结算币种（大于0）")}/><Field name="extra_money" label={t("合同额外结清 结算币种（可负数）")} initial="0"/><Field name="contract_reference" label={t("双方接管合同编号")}/><Field name="evidence" label={t("发起依据与证据引用")}/>
  <label className="md:col-span-2 text-sm leading-7"><input required type="checkbox" className="mr-3"/>{t("确认暂停此渠道新增注册、购买、调用和自动补货。取消方案后也需要另行检查再恢复营业。")}</label></fieldset>
- {validation&&<p role="alert" className="text-danger">{t(validation)}</p>}{command.unresolved&&<Notice>{t("方案办理结果待核实，请保持此面板。重试沿用原始填写内容和同一操作编号。")}</Notice>}{!!command.error&&<ErrorPanel error={command.error}/>}<Button disabled={command.busy}>{command.unresolved?t("重试原方案"):t("建立准备事项")}</Button></form></OperatorPanel>
+ {validation&&<AlertText className="text-danger">{t(validation)}</AlertText>}{command.unresolved&&<Notice>{t("方案办理结果待核实，请保持此面板。重试沿用原始填写内容和同一操作编号。")}</Notice>}{!!command.error&&<ErrorPanel error={command.error}/>}<Button disabled={command.busy}>{command.unresolved?t("重试原方案"):t("建立准备事项")}</Button></form></OperatorPanel>
 }
 function TakeoverCard({item,scope,channelName,canPrepare,canExecute}:{item:Takeover;scope:string;channelName:string;canPrepare:boolean;canExecute:boolean}){
   const { t } = useI18n();
@@ -88,5 +88,5 @@ function TakeoverAction({action,scope,item,direction,close}:{action:"execute"|"c
  {action==="cancel"&&<Field name="evidence" label={t("取消依据")}/>}
  {action==="settle"&&<><Notice>{t("{direction}。分别核实原币收付款事实、结算金额和付款方手续费，不填写汇率。", { direction })}</Notice><Field name="currency" label={t("实际币种")} initial={monetary.currency} onChange={setCurrency}/><Field name="amount" label={t("实际币种金额")}/>{currency.trim().toUpperCase()!==monetary.currency&&<Field name="actual_money" label={t("本次实际结清 结算币种")}/>}<Field name="fee_money" label={t("付款方另付手续费 结算币种")} initial="0"/><Field name="reference" label={t("收付款流水或收据号（可选）")} required={false}/><Field name="evidence" label={t("收付款核实依据")}/><Field name="occurred_at" label={t("实际收付款时间")} type="datetime-local"/></>}
  <label className="md:col-span-2 text-sm leading-7"><input required type="checkbox" className="mr-3"/>{action==="execute"?t("我已审阅上述完整客户、四类资产、采购批次、覆盖计算、合同及正负结清额。服务器会重新核对快照并执行独立复核策略。"):action==="cancel"?t("确认取消方案；不会自动恢复渠道营业。"):t("已核实本次实际收付款，登记内容真实且未重复记录。")}</label></fieldset>
- {validation&&<p role="alert" className="text-danger">{t(validation)}</p>}{command.unresolved&&<Notice>{t("本次办理结果待核实，请保持此面板。重试沿用原始凭证和同一操作编号，不重复办理。")}</Notice>}{!!command.error&&<ErrorPanel error={command.error}/>}<div className="flex gap-3"><Button disabled={command.busy}>{command.unresolved?t("重试原操作"):t("确认提交")}</Button><Button type="button" variant="outline" disabled={command.unresolved||command.busy} onClick={close}>{t("返回")}</Button></div></form></OperatorPanel>
+ {validation&&<AlertText className="text-danger">{t(validation)}</AlertText>}{command.unresolved&&<Notice>{t("本次办理结果待核实，请保持此面板。重试沿用原始凭证和同一操作编号，不重复办理。")}</Notice>}{!!command.error&&<ErrorPanel error={command.error}/>}<div className="flex gap-3"><Button disabled={command.busy}>{command.unresolved?t("重试原操作"):t("确认提交")}</Button><Button type="button" variant="outline" disabled={command.unresolved||command.busy} onClick={close}>{t("返回")}</Button></div></form></OperatorPanel>
 }

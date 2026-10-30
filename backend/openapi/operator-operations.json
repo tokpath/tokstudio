@@ -849,14 +849,14 @@
   {
     "resource": "pricing",
     "confirmation": "",
-    "description": "选择模型和定价对象，填写 ATG 单价。第一次定价保存后立即生效。调整已有价格时填写生效时间，提交后立即通知。",
+    "description": "选择模型和定价对象，填写 ATG 单价和生效时间。提交后立即通知。",
     "fields": [
       {
         "name": "configuration",
         "label": "配置 JSON",
         "kind": "json",
         "required": true,
-        "help": "action:price、price:{scope,model_id,layer,rule,effective_at?,ends_at?}。第一次定价可留空；已有价格请填写生效时间。"
+        "help": "action:price、price:{scope,model_id,layer,rule,effective_at,ends_at?}。生效时间必填。"
       }
     ],
     "include_version": false,

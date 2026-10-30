@@ -12316,7 +12316,7 @@
             }
           }
         },
-        "description": "选择模型和定价对象，填写 ATG 单价。第一次定价保存后立即生效。调整已有价格时填写生效时间，提交后立即通知。 Requires sales.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "选择模型和定价对象，填写 ATG 单价和生效时间。提交后立即通知。 Requires sales.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "sales.manage"
       }
     },

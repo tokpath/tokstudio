@@ -40,9 +40,13 @@ it("requires complete price objects and omits publication bookkeeping and non-pr
   expect(prepared).not.toHaveProperty("price.ends_at");
   expect((prepared as { price: { effective_at: string } }).price.effective_at).toBe("2026-12-01T00:00:00.000Z");
   expect(prepared).not.toHaveProperty("price.published");
-  expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.required).toBeFalsy();
+  expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.required).toBe(true);
   expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.help).toContain("五分钟");
   expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.help).toContain("不强制");
+  expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.help).not.toContain("留空");
+  const missingTime = { action: "price", price: { id: "new-price", model_id: "model-one", scope: { kind: "retail", seller_id: "operator-one" }, layer: "regular", rule: { mode: "manual", components: [{ key: "image", unit: "image", per: "1", rate: "0" }] } } };
+  expect(() => prepareConfiguration(missingTime, configurationSchema(operation)!)).toThrow("生效时间");
+  expect(configurationSchema({ ...operation, name: "listing" })!.fields!.effective_at.required).toBeFalsy();
 });
 it("expands image and video resolution prices and keeps other meters unchanged", () => {
   expect(canonicalResolution("1024X1024")).toBe("1024x1024");

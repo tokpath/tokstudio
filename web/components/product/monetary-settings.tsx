@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMonetary, monetaryRefetchInterval } from "./monetary";
-import { ErrorPanel, Notice, When, useCommand } from "./shared";
+import { AlertText, ErrorPanel, Notice, When, useCommand } from "./shared";
 
 type Draft = { currency: string; atg_per_unit: string; effective_at: string; expected_version: number; confirmed: true };
 export function MonetarySettings({ canManage }: { canManage: boolean }) {
@@ -53,7 +53,7 @@ export function MonetarySettings({ canManage }: { canManage: boolean }) {
       <div className="flex flex-wrap gap-3"><Button disabled={save.busy || (!save.unresolved && !accepted)} onClick={async () => { if (await save.run(save.unresolved ? undefined : draft)) { setDraft(undefined); setAccepted(false); } }}>{t(save.unresolved ? "重试原操作" : "确认预约生效")}</Button><Button variant="outline" disabled={busy} onClick={() => setDraft(undefined)}>{t("返回修改")}</Button></div>
     </div>}
     {canManage && monetary.status === "scheduled" && !draft && <Button className="mt-5" variant="outline" disabled={cancel.busy || save.unresolved} onClick={() => void cancel.run(cancel.unresolved ? undefined : { expected_version: monetary.version })}>{t(cancel.unresolved ? "重试原操作" : "取消预约并重新设置")}</Button>}
-    {!!error && <p className="mt-4 text-sm text-danger" role="alert">{t(error)}</p>}
+    {!!error && <AlertText className="mt-4 text-sm text-danger">{t(error)}</AlertText>}
     {!!save.error && <div className="mt-4"><ErrorPanel error={save.error} /></div>}
     {!!cancel.error && <div className="mt-4"><ErrorPanel error={cancel.error} /></div>}
   </Card>;

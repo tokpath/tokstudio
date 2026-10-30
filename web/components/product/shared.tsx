@@ -1,5 +1,5 @@
 "use client";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { APIError, request, newActionKey } from "@/lib/api-client";
@@ -19,11 +19,24 @@ export const statusLabels: Record<string, string> = {awaiting_settlement:"待核
 export function Status({ value }: { value: string }) { const { t } = useI18n(); const bad = ["failed", "dead", "restricted", "critical", "exception"].includes(value); const good = ["succeeded", "fulfilled", "completed", "active", "published", "available", "ready"].includes(value); const pending = ["pending", "pending_payment", "awaiting_payment", "pending_verification", "unknown", "frozen", "held", "awaiting_approval", "pending_review", "overselling", "warning"].includes(value); return <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${bad ? "bg-danger/10 text-danger" : good ? "bg-success/10 text-success" : pending ? "bg-hold/10 text-hold" : "bg-canvas text-ink-secondary"}`}><span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-current opacity-75" />{t(statusLabels[value] || value)}</span>; }
 export function Loading() { const { t } = useI18n(); return <div role="status" aria-live="polite" className="min-h-36 rounded-card border border-hairline bg-canvas-raised p-6"><span className="sr-only">{t("正在加载当前记录…")}</span><div aria-hidden="true" className="space-y-4 motion-safe:animate-pulse"><div className="h-3 w-32 rounded bg-hairline" /><div className="h-3 w-2/3 rounded bg-hairline/60" /><div className="h-3 w-1/2 rounded bg-hairline/60" /></div></div>; }
 export function Empty({ title = "暂无记录", children }: { title?: string; children?: ReactNode }) { const { t } = useI18n(); return <div className="th-empty rounded-card border border-dashed border-hairline bg-canvas-raised px-6 py-12 text-center"><span aria-hidden="true" className="mx-auto mb-4 grid size-10 place-items-center rounded-xl bg-canvas text-ink-mute"><Inbox className="size-5" /></span><h3 className="text-sm font-medium">{t(title)}</h3>{children && <div className="mx-auto mt-2 max-w-xl text-sm leading-7 text-ink-mute">{children}</div>}</div>; }
+export function useScrollIntoView<T extends HTMLElement = HTMLElement>(active: unknown, block: ScrollLogicalPosition = "nearest") {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    if (active === undefined || active === null || active === false || active === "") return;
+    ref.current?.scrollIntoView?.({ behavior: "smooth", block });
+  }, [active, block]);
+  return ref;
+}
+export function AlertText({ children, className = "text-sm text-danger" }: { children: ReactNode; className?: string }) {
+  const ref = useScrollIntoView<HTMLParagraphElement>(children);
+  return <p ref={ref} role="alert" className={className}>{children}</p>;
+}
 export function ErrorPanel({ error, retry, compact = false }: { error: unknown; retry?: () => void; compact?: boolean }) {
   const { t } = useI18n();
   const e = error instanceof Error ? error : new Error("暂时无法完成请求。");
   const api = error instanceof APIError ? error : undefined;
-  return <div role="alert" className={`rounded-card border border-danger/30 bg-canvas-raised ${compact ? "p-3" : "p-5"}`}><p className="whitespace-pre-line text-sm font-medium text-danger">{t(e.message)}</p>{api?.nextAction && <p className="mt-2 text-sm text-ink-secondary">{t(api.nextAction)}</p>}{api?.requestId && <p className="mt-2 font-mono text-xs text-ink-mute">{t("请求编号")} {api.requestId} · {api.code}</p>}{retry && <Button type="button" variant="outline" size="sm" className="mt-3" onClick={retry}>{t("重试读取")}</Button>}</div>;
+  const ref = useScrollIntoView<HTMLDivElement>(e.message);
+  return <div ref={ref} role="alert" className={`rounded-card border border-danger/30 bg-canvas-raised ${compact ? "p-3" : "p-5"}`}><p className="whitespace-pre-line text-sm font-medium text-danger">{t(e.message)}</p>{api?.nextAction && <p className="mt-2 text-sm text-ink-secondary">{t(api.nextAction)}</p>}{api?.requestId && <p className="mt-2 font-mono text-xs text-ink-mute">{t("请求编号")} {api.requestId} · {api.code}</p>}{retry && <Button type="button" variant="outline" size="sm" className="mt-3" onClick={retry}>{t("重试读取")}</Button>}</div>;
 }
 export function Notice({ children }: { children: ReactNode }) { return <div className="rounded-control border-l-2 border-brand/40 bg-brand-soft/30 px-4 py-3 text-sm leading-7 text-ink-secondary">{children}</div>; }
 export function Stat({ label, value, unit, detail, help }: { label: string; value: string; unit?: string; detail?: string; help?:string }) { const { t } = useI18n(); return <Card className="min-w-0"><p className="text-xs font-medium text-ink-secondary">{t(label)}{help && <FieldHelp title={t(label)}>{t(help)}</FieldHelp>}</p><p className="mt-3 break-words text-[28px] font-semibold tracking-tight">{unit ? <Money value={value} unit={unit} /> : value}</p>{detail && <p className="mt-3 text-xs leading-6 text-ink-mute">{t(detail)}</p>}</Card>; }

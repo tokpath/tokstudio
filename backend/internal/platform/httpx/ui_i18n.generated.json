@@ -23431,9 +23431,9 @@
   ],
   "请填写生效时间。为预留系统通知时间，最好比当前时间晚五分钟，系统不强制。": [
     "请填写生效时间。为预留系统通知时间，最好比当前时间晚五分钟，系统不强制。",
-    "Enter an effective time. Five minutes after the current time is recommended so notices can be delivered, but it is not required.",
-    "適用日時を記入してください。通知時間を確保するため、現在時刻の5分後が目安ですが、必須ではありません。",
-    "Укажите время вступления в силу. Чтобы успеть отправить уведомления, лучше указать время на пять минут позже текущего, но это не обязательно."
+    "Enter the effective time. Five minutes after the current time is recommended so notices can be delivered, but that lead time is not required.",
+    "有効時刻を入力してください。通知時間を確保するため、現在時刻の5分後が目安ですが、その余裕は必須ではありません。",
+    "Укажите время вступления в силу. Чтобы успеть отправить уведомления, лучше выбрать время на пять минут позже текущего, но этот запас не обязателен."
   ],
   "请填写计价方式。": [
     "请填写计价方式。",
@@ -25739,6 +25739,12 @@
     "モデルと価格の適用先を選び、ATG 単価を入力します。初回の価格は保存後すぐに有効になります。既存価格を変えるときは適用日時を記入し、送信と同時に通知されます。",
     "Выберите модель и получателя цены, укажите тарифы ATG. Первая цена действует сразу после сохранения. Для изменения существующей цены укажите время вступления в силу; уведомления отправляются при отправке."
   ],
+  "选择模型和定价对象，填写 ATG 单价和生效时间。提交后立即通知。": [
+    "选择模型和定价对象，填写 ATG 单价和生效时间。提交后立即通知。",
+    "Choose the model and who the price applies to, then enter the ATG rate and effective time. Notices are sent when you submit.",
+    "モデルと価格の対象を選び、ATG 単価と有効時刻を入力します。送信と同時に通知します。",
+    "Выберите модель и область цены, затем укажите тариф ATG и время вступления в силу. Уведомления уходят при отправке."
+  ],
   "选择模型并接入": [
     "选择模型并接入",
     "Choose and integrate a model",
@@ -25762,6 +25768,12 @@
     "Choose a model and set customer or direct partner rates. Billing templates define measurements, ATG rates define credit deductions, and supplier costs are accounted separately. The first price takes effect on save. Changes to an existing price, listing, authorization, or open model need an effective time, and notices are sent on submit. Five minutes after the current time is recommended, but not required.",
     "モデルを選び、お客様向け価格や直属の下位事業者への供給価格を設定します。テンプレートで計量方式、ATG 単価で消費量を決め、仕入原価は別に集計します。初回の価格は保存後すぐに有効になります。既存の価格、公開、利用許可、公開済みモデルの変更は適用日時を記入し、送信と同時に通知されます。現在時刻の5分後が目安ですが、必須ではありません。",
     "Выберите модель и задайте тарифы для клиентов или прямых партнёров. Шаблон определяет единицы измерения, тарифы ATG — списание кредитов, а расходы поставщика учитываются отдельно. Первая цена действует сразу после сохранения. Изменения существующей цены, публикации, разрешения или открытой модели требуют время вступления в силу, уведомления отправляются при отправке. Рекомендуется время на пять минут позже текущего, но это не обязательно."
+  ],
+  "选择模型，设置客户零售价或直属下级供货价。计费模板决定计量方式，ATG 单价决定扣多少额度，供应商成本独立核算。设置价格必须填写生效时间，提交后立即通知。生效时间最好比当前时间晚五分钟，系统不强制。": [
+    "选择模型，设置客户零售价或直属下级供货价。计费模板决定计量方式，ATG 单价决定扣多少额度，供应商成本独立核算。设置价格必须填写生效时间，提交后立即通知。生效时间最好比当前时间晚五分钟，系统不强制。",
+    "Choose a model and set customer or direct-supply prices. The billing template decides how usage is measured, the ATG rate decides the charge, and supplier cost is accounted separately. A price requires an effective time; notices are sent when you submit. Five minutes after the current time is recommended, but that lead time is not required.",
+    "モデルを選び、顧客価格または直下への供給価格を設定します。課金テンプレートが計量方法、ATG 単価が控除額を決め、サプライヤー費用は別に計算します。価格には有効時刻が必要です。送信と同時に通知します。現在時刻の5分後が目安ですが、その余裕は必須ではありません。",
+    "Выберите модель и задайте цены для клиентов или прямых партнёров. Шаблон определяет единицы, тариф ATG — списание, а расходы поставщика учитываются отдельно. Для цены нужно указать время вступления в силу; уведомления уходят при отправке. Лучше выбрать время на пять минут позже текущего, но этот запас не обязателен."
   ],
   "选择模型，购买通用额度，用一个 API 入口接入你的应用。多个 Key 分别管理访问和预算，每笔消费都能找到依据。": [
     "选择模型，购买通用额度，用一个 API 入口接入你的应用。多个 Key 分别管理访问和预算，每笔消费都能找到依据。",

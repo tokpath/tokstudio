@@ -36,6 +36,7 @@ const integer = (label: string, value?: number): ConfigNode => ({ kind: "integer
 const boolean = (label: string, value = false): ConfigNode => ({ kind: "boolean", label, default: value });
 const datetime = (label: string, required = false): ConfigNode => ({ kind: "datetime", label, required });
 const scheduledEffectiveTime: ConfigNode = { ...datetime("生效时间"), help: "已有配置再变更时请填写。为预留系统通知时间，生效时间最好比当前时间晚五分钟，系统不强制。第一次发布留空即可，保存后立即生效。" };
+const requiredEffectiveTime: ConfigNode = { ...datetime("生效时间", true), help: "请填写生效时间。为预留系统通知时间，最好比当前时间晚五分钟，系统不强制。" };
 const select = (label: string, options: [string, string][], value?: string): ConfigNode => ({ kind: "select", label, options, required: true, default: value });
 const object = (label: string, fields: Record<string, ConfigNode>, help?: string): ConfigNode => ({ kind: "object", label, fields, required: true, help });
 const array = (label: string, item: ConfigNode, help?: string): ConfigNode => ({ kind: "array", label, item, default: [], help });
@@ -170,7 +171,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
     action: { ...text("操作"), default: "price", readOnly: true },
     price: object("价目与适用范围", {
       id: { ...text("本次价格版本标识"), generated: "uuid", readOnly: true }, model_id: { ...text("公开模型"), lookup: "models", wildcard: true }, scope: scope("本次定价范围", operatorID),
-      layer: select("价格类别", [["regular", "常规价格"], ["promotion", "限时促销价"]], "regular"), effective_at: scheduledEffectiveTime, ends_at: { ...datetime("促销结束时间", true), when: { field: "layer", values: ["promotion"] } },
+      layer: select("价格类别", [["regular", "常规价格"], ["promotion", "限时促销价"]], "regular"), effective_at: requiredEffectiveTime, ends_at: { ...datetime("促销结束时间", true), when: { field: "layer", values: ["promotion"] } },
       rule: object("计价方式", {
         mode: select("计价方式", [["manual", "设置单价"], ["follow", "跟随上级供货价"]], "manual"),
         components: { ...array("组件价格", component), when: { field: "mode", values: ["manual"] } },

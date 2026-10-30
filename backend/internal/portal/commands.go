@@ -647,7 +647,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			handleError(c, e)
 			return true
 		}
-		p["description"] = "选择模型，设置客户零售价或直属下级供货价。计费模板决定计量方式，ATG 单价决定扣多少额度，供应商成本独立核算。第一次定价保存后立即生效。已有价格、上架、授权和已开放模型的变更请填写生效时间，提交后立即通知。生效时间最好比当前时间晚五分钟，系统不强制。"
+		p["description"] = "选择模型，设置客户零售价或直属下级供货价。计费模板决定计量方式，ATG 单价决定扣多少额度，供应商成本独立核算。设置价格必须填写生效时间，提交后立即通知。生效时间最好比当前时间晚五分钟，系统不强制。"
 		p["search_supported"] = true
 		p["columns"] = []gin.H{col("name", "模型", "text"), col("prices", "客户当前调用价", "text"), col("status", "状态", "status")}
 		listingLabel := "授权与上架"
@@ -655,7 +655,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			listingLabel = "上架与下架"
 		}
 		p["operations"] = []operation{
-			{Name: "price", Label: "设置模型价格", Method: "POST", Path: base, Description: "选择模型和定价对象，填写 ATG 单价。第一次定价保存后立即生效。调整已有价格时填写生效时间，提交后立即通知。", Fields: []field{jsonField("action:price、price:{scope,model_id,layer,rule,effective_at?,ends_at?}。第一次定价可留空；已有价格请填写生效时间。")}},
+			{Name: "price", Label: "设置模型价格", Method: "POST", Path: base, Description: "选择模型和定价对象，填写 ATG 单价和生效时间。提交后立即通知。", Fields: []field{jsonField("action:price、price:{scope,model_id,layer,rule,effective_at,ends_at?}。生效时间必填。")}},
 			{Name: "listing", Label: listingLabel, Method: "POST", Path: base, Description: "第一次上架或授权保存后立即生效。之后的变更请填写生效时间，提交后立即通知。", Fields: []field{jsonField("action:listing 或 authorization、model_id、buyer_id（授权时）、enabled、expected_version、effective_at")}},
 		}
 	default:

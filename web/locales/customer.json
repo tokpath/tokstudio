@@ -649,6 +649,16 @@
     "ja": "操作が完了しました",
     "ru": "Операция завершена"
   },
+  "完整密钥仅本次显示，请立即保存。": {
+    "en": "The full secret is shown only now. Save it immediately.",
+    "ja": "完全なキーは今回のみ表示されます。すぐに保存してください。",
+    "ru": "Полный ключ показывается только сейчас. Сразу сохраните его."
+  },
+  "关闭后无法再次查看。请保存在应用的环境变量中，避免放进网页代码或公开仓库。": {
+    "en": "You cannot view it again after closing. Store it in your application's environment variables, away from webpage code or public repositories.",
+    "ja": "閉じると再表示できません。アプリの環境変数に保存し、Web ページのコードや公開リポジトリには含めないでください。",
+    "ru": "После закрытия посмотреть ключ снова нельзя. Храните его в переменных окружения приложения, не в коде веб-страницы или открытом репозитории."
+  },
   "密钥已创建，列表中也可以随时复制。": {
     "en": "The Key is created. You can also copy it from the list at any time.",
     "ja": "キーを作成しました。一覧からもいつでもコピーできます。",

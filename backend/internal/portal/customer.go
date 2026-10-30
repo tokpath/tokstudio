@@ -50,6 +50,7 @@ func (a *Application) customerRoutes(r *gin.RouterGroup) {
 	r.GET("/plans/:id/offers", a.offers)
 	r.PATCH("/plans/:id/renewal", a.renewal)
 	r.GET("/keys", a.listKeys)
+	r.GET("/keys/:id/secret", a.keySecret)
 	r.POST("/keys", a.createKey)
 	r.PATCH("/keys/:id", a.updateKey)
 	r.POST("/keys/:id/reset", a.resetKey)
@@ -316,15 +317,26 @@ func (a *Application) keyDTOIn(ctx context.Context, tx *gorm.DB, k usage.Key) (g
 	}
 	var models []string
 	_ = json.Unmarshal(k.ModelIDs, &models)
-	dto := gin.H{"id": k.ID, "name": k.Name, "prefix": k.Prefix, "status": k.Status, "model_ids": models, "budget": budget, "rate_limit_rpm": k.RateLimitRPM, "concurrency_limit": k.ConcurrencyLimit, "version": k.Version, "created_at": k.CreatedAt}
-	secret, e := a.Usage.OpenKeySecret(k)
-	if e != nil {
-		return nil, e
+	return gin.H{"id": k.ID, "name": k.Name, "prefix": k.Prefix, "status": k.Status, "model_ids": models, "budget": budget, "rate_limit_rpm": k.RateLimitRPM, "concurrency_limit": k.ConcurrencyLimit, "version": k.Version, "created_at": k.CreatedAt}, nil
+}
+func (a *Application) keySecret(c *gin.Context) {
+	customer := subject(c).Customer.Customer.ID
+	var k usage.Key
+	err := a.DB.WithContext(c.Request.Context()).First(&k, "id=? AND customer_id=? AND kind='api' AND status<>'deleted'", c.Param("id"), customer).Error
+	if err != nil {
+		handleError(c, err)
+		return
 	}
-	if secret != "" {
-		dto["secret"] = secret
+	secret, err := a.Usage.OpenKeySecret(k)
+	if err != nil {
+		handleError(c, err)
+		return
 	}
-	return dto, nil
+	if secret == "" {
+		fail(c, 404, "secret_not_stored", "这是更早创建的 Key，完整密钥未保存。重置后可以随时复制。", false)
+		return
+	}
+	c.JSON(200, gin.H{"secret": secret})
 }
 func (a *Application) listKeys(c *gin.Context) {
 	rows, e := a.Usage.ListKeys(c.Request.Context(), subject(c).Customer.Customer.ID)

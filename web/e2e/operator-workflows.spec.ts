@@ -42,6 +42,7 @@ async function businessAPI(page: Page, financeOnly = false, uncertainAllocation 
     ] };
     else if (path === `${base}/references/receipts`) data = { items: [{ value: "receipt-one", label: "已核实银行收款 · 原流水 bank-one", defaults: { receipt_id: "receipt-one", currency: "USD" } }] };
     else if (path === `${base}/refunds`) { exactRecords.push(url.searchParams.get("record") || ""); data = resource("退款与原路执行", [{ id: "case-one", status: "pending_review", values: { record_kind: "case" } }, { id: "leg-one", presentation: {title:"原银行付款退款 · 10 结算币种",labels:{}}, status: "pending", values: { record_kind: "leg", case_id: "case-one" } }]); }
+    else if (path === `${base}/notifications/unread-count`) data = { count: 0 };
     else throw new Error(`Unexpected read ${path}`);
     await route.fulfill({ json: data });
   });

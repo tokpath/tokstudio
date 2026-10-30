@@ -199,7 +199,29 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		p["title"] = "佣金提现"
 		p["items"] = items
 		p["columns"] = []gin.H{col("id", "提现申请", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("status", "状态", "status")}
-		p["operations"] = []operation{{Name: "quote", Label: "核算提现费用", Method: "POST", Path: "/api/v1/me/withdrawals/quotes", Fields: []field{f("amount_money", "提现总额 结算币种", "decimal")}}}
+		amount := f("amount_money", "提现总额 结算币种", "decimal")
+		quote := operation{Name: "quote", Label: "核算提现费用", Method: "POST", Path: "/api/v1/me/withdrawals/quotes", Fields: []field{amount}}
+		var policy incentives.WithdrawalPolicy
+		found := a.DB.WithContext(ctx).Table("incentives_withdrawal_policies").Where("operator_id=?", op).Order("version DESC").Limit(1).Find(&policy)
+		if found.Error != nil {
+			handleError(c, found.Error)
+			return
+		}
+		if found.RowsAffected > 0 {
+			minimum := policy.MinimumMoney.String()
+			rule := "单笔提现总额不能低于经营方公布的最低额度 " + minimum + " 结算币种。"
+			p["description"] = rule
+			p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum, "unit": "MONEY", "detail": "单笔提现总额不能低于经营方公布的这个额度。"}}
+			amount.Help = "不能低于经营方公布的最低提现额度。"
+			quote.Fields = []field{amount}
+			quote.Description = rule
+		} else {
+			rule := "经营方尚未公布提现规则，暂时不能核算费用。"
+			p["description"] = rule
+			p["summary"] = []gin.H{{"label": "最低提现额度", "value": "尚未公布", "detail": rule}}
+			quote.Description = rule
+		}
+		p["operations"] = []operation{quote}
 	case "account":
 		email, e := a.Organization.CustomerEmail(ctx, nil, customer)
 		if e != nil {

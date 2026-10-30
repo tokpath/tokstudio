@@ -71,6 +71,22 @@ func TestPostgresCustomerWithdrawalCancellationOnlyBeforeReview(t *testing.T) {
 	mustOK(t, status, quote)
 	status, page, _ := f.call(t, "GET", "/v1/me/withdrawals/workspace", nil, "")
 	mustOK(t, status, page)
+	var minimum map[string]any
+	for _, raw := range page["summary"].([]any) {
+		item := raw.(map[string]any)
+		if item["label"] == "最低提现额度" {
+			minimum = item
+		}
+	}
+	if minimum["value"] != "1" || minimum["unit"] != "MONEY" || !strings.Contains(page["description"].(string), "1 结算币种") {
+		t.Fatal("customer withdrawal page omitted the published minimum", minimum, page["description"])
+	}
+	for _, raw := range page["operations"].([]any) {
+		operation := raw.(map[string]any)
+		if operation["name"] == "quote" && operation["description"] != page["description"] {
+			t.Fatal("fee quote did not repeat the published minimum", operation)
+		}
+	}
 	if len(page["items"].([]any)) != 8 {
 		t.Fatal("missing withdrawal states or fee quote", page)
 	}

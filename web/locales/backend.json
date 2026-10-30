@@ -2434,6 +2434,36 @@
     "ja": "最低出金 決済通貨",
     "ru": "Минимум вывода валюта расчётов"
   },
+  "最低提现额度": {
+    "en": "Minimum withdrawal",
+    "ja": "最低出金額",
+    "ru": "Минимальная сумма вывода"
+  },
+  "单笔提现总额不能低于经营方公布的最低额度 {amount} 结算币种。": {
+    "en": "Each withdrawal total must be at least the operator's published minimum of {amount} settlement currency.",
+    "ja": "1回の出金合計は、事業者が公表した最低額 {amount} 決済通貨 以上である必要があります。",
+    "ru": "Сумма одного вывода не может быть ниже опубликованного оператором минимума {amount} валюта расчётов."
+  },
+  "单笔提现总额不能低于经营方公布的这个额度。": {
+    "en": "Each withdrawal total must be at least this minimum published by the operator.",
+    "ja": "1回の出金合計は、事業者が公表したこの最低額以上である必要があります。",
+    "ru": "Сумма одного вывода не может быть ниже этого минимума, опубликованного оператором."
+  },
+  "不能低于经营方公布的最低提现额度。": {
+    "en": "It cannot be below the minimum withdrawal published by the operator.",
+    "ja": "事業者が公表した最低出金額を下回ることはできません。",
+    "ru": "Сумма не может быть ниже минимума вывода, опубликованного оператором."
+  },
+  "经营方尚未公布提现规则，暂时不能核算费用。": {
+    "en": "The operator has not published withdrawal rules yet, so the fee cannot be calculated.",
+    "ja": "事業者はまだ出金ルールを公表していないため、手数料を計算できません。",
+    "ru": "Оператор ещё не опубликовал правила вывода, поэтому комиссию рассчитать нельзя."
+  },
+  "尚未公布": {
+    "en": "Not published",
+    "ja": "未公表",
+    "ru": "Не опубликовано"
+  },
   "固定手续费 结算币种": {
     "en": "Fixed fee settlement currency",
     "ja": "固定手数料 決済通貨",

@@ -29,6 +29,18 @@ it("offers cancellation only for the server-authorized pending withdrawal and co
   expect((fetch.mock.calls[0][1]?.headers as Headers).get("Idempotency-Key")).toMatch(/^[0-9a-f-]{36}$/);
 });
 
+it("shows the operator minimum on the withdrawal page and again inside the fee form", () => {
+  const rule = "单笔提现总额不能低于经营方公布的最低额度 1 结算币种。";
+  const page: ResourcePage = { title: "佣金提现", description: rule, summary: [{ label: "最低提现额度", value: "1", unit: "MONEY", detail: "单笔提现总额不能低于经营方公布的这个额度。" }], items: [], columns: [{ key: "amount_money", label: "总额", kind: "money" }], operations: [{ name: "quote", label: "核算提现费用", method: "POST", path: "/api/v1/me/withdrawals/quotes", description: rule, fields: [{ name: "amount_money", label: "提现总额 结算币种", kind: "decimal", required: true, help: "不能低于经营方公布的最低提现额度。" }] }], row_operations: [] };
+  mount(<ResourceCollection resource="withdrawals/workspace" customer page={page} />);
+  expect(screen.getByRole("heading", { name: "佣金提现" })).toBeTruthy();
+  expect(screen.getByText(rule)).toBeTruthy();
+  expect(screen.getByText("最低提现额度")).toBeTruthy();
+  expect(screen.getByLabelText("1 USD")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "核算提现费用" }));
+  expect(within(screen.getByRole("dialog")).getByText(rule)).toBeTruthy();
+});
+
 it("submits the policy snapshot as nested configuration with its actual hidden version", async () => {
   const fetch = vi.fn(async (_path: RequestInfo | URL, _init?: RequestInit) => new Response(JSON.stringify({ id: "policy-three", status: "published", version: 3 }), { status: 200 }));
   vi.stubGlobal("fetch", fetch);

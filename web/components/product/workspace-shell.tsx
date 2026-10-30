@@ -12,12 +12,14 @@ import { authContinuation, safeCustomerNext } from "@/lib/customer-next";
 import { request } from "@/lib/api-client";
 import { customerSections, operatorLanding, sectionForResource, visibleOperatorSections } from "@/lib/navigation";
 import { Empty, ErrorPanel, Loading, Notice } from "./shared";
+import { UnreadBadge, useUnreadNotifications } from "./notification-count";
 
 const icons = { overview: LayoutDashboard, models: BookOpen, keys: KeyRound, usage: ChartNoAxesCombined, funds: CreditCard, promotion: Gift, account: CircleUserRound, customers: Users, products: Package, marketing: Gift, finance: CreditCard, cooperation: Handshake, reports: ChartNoAxesCombined, settings: Settings2, technology: TerminalSquare };
 const kindNames: Record<string, string> = { platform: "平台经营空间", oem: "OEM 经营空间", channel: "渠道经营空间" };
 export function WorkspaceShell({ children, operatorID }: { children: ReactNode; operatorID?: string }) {
   const { t } = useI18n();
   const { session, sessionError, reload } = useProduct();
+  const unread = useUnreadNotifications(session?.kind === "customer" ? "/api/v1/me/notifications/unread-count" : undefined);
   const path = usePathname(), router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false), [continuation, setContinuation] = useState<string>(), [collapsedSection, setCollapsedSection] = useState<string>();
   const credits = useQuery({ queryKey: ["credits"], queryFn: () => request("/api/v1/me/credits", CreditsSchema), enabled: session?.kind === "customer" });
@@ -40,7 +42,7 @@ export function WorkspaceShell({ children, operatorID }: { children: ReactNode; 
   const primarySections = sections.filter(section => section.id !== "account").map(section => ({ ...section, items: section.items.filter(([item]) => item !== "notifications") })).filter(section => section.items.length);
   // 经营后台的通知入口放在页眉账号旁边。客户工作台仍把账号和通知留在左侧工具区。
   const tools = workspace ? [] : customerSections.find(section => section.id === "account")!.items;
-  const utilityLinks = tools.map(([item, label]) => { const Icon = item === "notifications" ? Bell : CircleUserRound; return <Link key={item} href={hrefFor(item)} aria-current={resource.split("/")[0] === item ? "page" : undefined} className={`th-nav-item ${resource.split("/")[0] === item ? "bg-brand-soft font-semibold text-brand-emphasis" : "text-ink-secondary hover:bg-canvas"}`}><Icon size={17} aria-hidden="true" />{t(label)}</Link>; });
+  const utilityLinks = tools.map(([item, label]) => { const Icon = item === "notifications" ? Bell : CircleUserRound; const unreadLabel = item === "notifications" && unread > 0 ? t("通知与订阅，{count} 条未读", { count: unread }) : undefined; return <Link key={item} href={hrefFor(item)} aria-label={unreadLabel} aria-current={resource.split("/")[0] === item ? "page" : undefined} className={`th-nav-item ${resource.split("/")[0] === item ? "bg-brand-soft font-semibold text-brand-emphasis" : "text-ink-secondary hover:bg-canvas"}`}><span className="relative inline-flex"><Icon size={17} aria-hidden="true" />{item === "notifications" && <UnreadBadge count={unread} />}</span>{t(label)}</Link>; });
   const navigation = primarySections.map(section => {
     const Icon = icons[section.id as keyof typeof icons] || SlidersHorizontal;
     const active = section.id === activeSection?.id;

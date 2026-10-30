@@ -164,6 +164,16 @@ func (s *Service) ListNotifications(ctx context.Context, actor, operator string,
 	})
 	return out, e
 }
+func (s *Service) UnreadNotificationCount(ctx context.Context, actor, operator string) (int64, error) {
+	var count int64
+	err := s.within(ctx, nil, func(t *gorm.DB) error {
+		if _, e := s.self(ctx, t, actor, operator); e != nil {
+			return e
+		}
+		return t.Model(&Notification{}).Where("operator_id=? AND recipient_id=? AND read_at IS NULL", operator, actor).Count(&count).Error
+	})
+	return count, err
+}
 func (s *Service) ReadNotification(ctx context.Context, actor, operator, id string) error {
 	return s.within(ctx, nil, func(t *gorm.DB) error {
 		if _, e := s.self(ctx, t, actor, operator); e != nil {

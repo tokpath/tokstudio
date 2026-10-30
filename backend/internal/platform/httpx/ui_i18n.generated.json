@@ -25793,6 +25793,12 @@
     "通知と購読",
     "Уведомления и подписки"
   ],
+  "通知与订阅，{count} 条未读": [
+    "通知与订阅，{count} 条未读",
+    "Notifications & subscriptions, {count} unread",
+    "通知と購読、未読 {count} 件",
+    "Уведомления и подписки, непрочитанных: {count}"
+  ],
   "通知并检查覆盖": [
     "通知并检查覆盖",
     "Notify and check coverage",
@@ -25816,6 +25822,12 @@
     "Notification management",
     "通知管理",
     "Управление уведомлениями"
+  ],
+  "通知管理，{count} 条未读": [
+    "通知管理，{count} 条未读",
+    "Notification management, {count} unread",
+    "通知管理、未読 {count} 件",
+    "Управление уведомлениями, непрочитанных: {count}"
   ],
   "通知类别": [
     "通知类别",

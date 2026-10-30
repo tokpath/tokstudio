@@ -26,6 +26,9 @@ func TestManagedNotificationsSearchPaginationReadStateAndAuthorization(t *testin
 	if err := s.ReadNotification(ctx, customer, operator, target.ID); err != nil {
 		t.Fatal(err)
 	}
+	if unread, err := s.UnreadNotificationCount(ctx, customer, operator); err != nil || unread != 52 {
+		t.Fatal("unread count must exclude the one already read notice", unread, err)
+	}
 	rows, cursor, err := s.ListOperatorNotifications(ctx, auth.actor, operator, "", "", "", 50)
 	if err != nil || len(rows) != 50 || cursor == "" {
 		t.Fatal(len(rows), cursor, err)

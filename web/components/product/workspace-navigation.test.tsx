@@ -24,10 +24,19 @@ it("places account and notifications in the sidebar tools and expands only the c
   expect(within(business).queryByRole("link", { name: "通知与订阅" })).toBeNull();
   expect(within(tools).getByRole("link", { name: "账号与安全" }).getAttribute("href")).toBe("/workspace/account");
   expect(within(tools).getByRole("link", { name: "通知与订阅" }).getAttribute("href")).toBe("/workspace/notifications");
+  expect(within(tools).getByRole("link", { name: "通知与订阅" }).textContent).toBe("通知与订阅");
   const expanded = within(business).getByRole("navigation", { name: "套餐与资金内导航" });
   expect(expanded.closest("aside")).not.toBeNull();
   expect(within(expanded).getAllByRole("link")).toHaveLength(6);
   expect(within(business).queryByRole("navigation", { name: "模型与接入内导航" })).toBeNull();
+});
+
+it("shows the unread count on the customer notification bell", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => new Response(JSON.stringify(String(input).endsWith("/unread-count") ? { count: 12 } : {}), { status: String(input).endsWith("/unread-count") ? 200 : 500 })));
+  state.session = customer; state.path = "/workspace/plans"; mount();
+  const tools = screen.getByRole("navigation", { name: "工作台工具", exact: true });
+  const link = await within(tools).findByRole("link", { name: "通知与订阅，12 条未读" });
+  expect(link.textContent).toContain("12");
 });
 
 it("expands authorized operator links vertically and leaves notifications out of the sidebar", () => {

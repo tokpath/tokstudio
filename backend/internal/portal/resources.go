@@ -285,6 +285,7 @@ func (a *Application) operatorRoutes(r *gin.RouterGroup) {
 	r.POST("/order-context/:id/allocate", a.allocateOrderReceipt)
 	r.GET("/refunds/:id/destination", a.staffRefundDestination)
 	r.GET("/reports/financial", a.financialReport)
+	r.GET("/notifications/unread-count", a.staffUnreadNotifications)
 	r.GET("/references/:reference", a.references)
 	r.GET("/:resource/:id/files", a.invoiceFiles)
 	r.GET("/:resource/:id/files/:fileID", a.downloadInvoiceFile)

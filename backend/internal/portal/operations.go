@@ -56,6 +56,23 @@ func (d recipientDirectory) ResolveRecipient(ctx context.Context, tx *gorm.DB, o
 	}
 	return operations.Recipient{}, operations.ErrForbidden
 }
+func (a *Application) unreadNotifications(c *gin.Context) {
+	id := subject(c)
+	count, e := a.Operations.UnreadNotificationCount(c.Request.Context(), id.Customer.Customer.ID, id.Customer.Ownership.OperatorID)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	c.JSON(200, gin.H{"count": count})
+}
+func (a *Application) staffUnreadNotifications(c *gin.Context) {
+	count, e := a.Operations.UnreadNotificationCount(c.Request.Context(), subject(c).Staff.ID, c.Param("operatorId"))
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	c.JSON(200, gin.H{"count": count})
+}
 func (a *Application) notifications(c *gin.Context) {
 	id := subject(c)
 	rows, next, e := a.Operations.ListNotificationsPage(c.Request.Context(), id.Customer.Customer.ID, id.Customer.Ownership.OperatorID, c.Query("cursor"), c.Query("q"), 50)

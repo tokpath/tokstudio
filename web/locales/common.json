@@ -789,6 +789,11 @@
     "ja": "通知と購読",
     "ru": "Уведомления и подписки"
   },
+  "通知与订阅，{count} 条未读": {
+    "en": "Notifications & subscriptions, {count} unread",
+    "ja": "通知と購読、未読 {count} 件",
+    "ru": "Уведомления и подписки, непрочитанных: {count}"
+  },
   "客户": {
     "en": "Customers",
     "ja": "顧客",
@@ -1008,6 +1013,11 @@
     "en": "Notification management",
     "ja": "通知管理",
     "ru": "Управление уведомлениями"
+  },
+  "通知管理，{count} 条未读": {
+    "en": "Notification management, {count} unread",
+    "ja": "通知管理、未読 {count} 件",
+    "ru": "Управление уведомлениями, непрочитанных: {count}"
   },
   "操作审计": {
     "en": "Audit log",

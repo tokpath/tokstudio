@@ -74,6 +74,7 @@ export const ReferralSchema = z.object({ invite_code: InviteCodeSchema, invite_u
 export const ChannelInvitationSchema = z.object({ invite_code: InviteCodeSchema, invite_url: z.string(), brand_name: z.string(), enabled: z.boolean(), registration_open: z.boolean() });
 export const CommissionSchema = z.object({ id: ID, source_id: ID, type: z.string(), hop: z.number().int(), status: z.string(), amount_money: SignedDecimal, basis_money: Decimal, created_at: z.string(), confirms_at: z.string().nullable(), description: z.string().optional() });
 export const NotificationSchema = z.object({ id: ID, title: z.string(), body: z.string(), category: z.string(), necessary: z.boolean(), system_generated: z.boolean().optional(), read_at: z.string().nullable(), created_at: z.string(), action_url: z.string().optional(), delivery_status: z.string().optional() });
+export const UnreadCountSchema = z.object({ count: z.number().int().nonnegative() });
 export const SettlementSchema = z.object({ id: ID, status: z.string(), amount_money: Decimal, fee_money: Decimal.optional(), net_money: Decimal.optional(), reason: z.string().optional(), created_at: z.string(), paid_at: z.string().nullable().optional(), reference: z.string().optional(), download_url: z.string().optional() });
 export const ActivitySchema = z.object({ id: ID, name: z.string(), plan_id: ID, status: z.string(), benefit_points: Decimal, starts_at: z.string(), ends_at: z.string(), per_customer_limit: z.number().int(), total_limit: z.number().int().nullable(), version: z.number().int() });
 

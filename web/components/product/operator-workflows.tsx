@@ -8,7 +8,7 @@ import { z } from "zod";
 import { ArrowRight, Check, Circle, ClipboardCheck, ShieldCheck, Sparkles } from "lucide-react";
 import { request } from "@/lib/api-client";
 import { EntitySchema, OperationSchema, ResourcePageSchema, SignedDecimal, type Entity, type JSONValue, type ResourcePage } from "@/lib/contracts";
-import { canReadResource, resourceLabel } from "@/lib/navigation";
+import { canReadResource, operatorResourcePath, resourceLabel } from "@/lib/navigation";
 import { useProduct } from "./context";
 import { ResourceCollection, ResourceScreen, OperatorPanel, OperatorPage, ResourceValue, ReadFacts } from "./operator-resources";
 import { Heading, Empty, ErrorPanel, Loading, Money, Notice, Stat, Status, When } from "./shared";
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { subjectURL, subjectReturnURL } from "./operator-list-state";
 import { FieldHelp } from "./field-help";
 import { ChannelInvitationCard } from "./channel-invitation";
+import { OperatorCommissionsScreen } from "./operator-commissions";
 import { ReadinessAction, ReadinessSchema } from "./readiness";
 
 export function OperatorWorkflowScreen({ operatorID, resource, record }: { operatorID: string; resource: string; record?: string }) {
@@ -27,6 +28,7 @@ export function OperatorWorkflowScreen({ operatorID, resource, record }: { opera
   const workflow = workflows[resource];
   useEffect(() => { setSubject(record && (resource === "customers" || resource === "orders") ? { resource, row: { id: record, values: {} } } : undefined); }, [record, resource]);
   useEffect(() => { const restore = () => { const id = new URLSearchParams(window.location.search).get("record"); setSubject(id && (resource === "customers" || resource === "orders") ? { resource, row: { id, values: {} } } : undefined); }; window.addEventListener("popstate", restore); return () => window.removeEventListener("popstate", restore); }, [resource]);
+  if (resource === "commissions") return <OperatorCommissionsScreen operatorID={operatorID} record={record} />;
   if (!canReadResource(workspace, resource)) return <Empty title={t("没有查看权限")}>{t("此页面需要当前经营方明确授予相应权限。")}</Empty>;
   const close = () => { const target = subjectReturnURL(operatorID, resource); if (target.split("?")[0] === window.location.pathname && !new URL(target, window.location.origin).searchParams.has("record")) { window.history.pushState(window.history.state, "", target); setSubject(undefined); } else { window.location.assign(target); } };
   return <>
@@ -64,7 +66,7 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
   const isOpening = businessRow && ["registration", "new_purchase", "model_usage"].every(key => businessRow.values[key] === false);
   const focusTitles: Record<string, string> = { owner: "经营总览与待办", finance: "今天需要核实的资金事项", technology: "今天需要处理的服务异常", support: "今天需要跟进的客户事项", operations: "今天需要处理的经营事项" };
   const focusResources: Record<string, string[]> = { owner: ["customers", "plans", "payments", isPlatform ? "providers" : "procurement"], finance: ["payments", "refunds", "reconciliation", "withdrawals", "invoices"], technology: ["requests", "providers", "routes", "jobs"], support: ["customers", "orders", "refunds", "restrictions"], operations: ["customers", "plans", "marketing", "coverage", "alerts", isPlatform ? "providers" : "procurement"] };
-  const destination = (resource: string) => `/manage/${encodeURIComponent(operatorID)}/${resource === "receipt-valuations" ? "payments?section=pending" : resource}`;
+  const destination = (resource: string) => operatorResourcePath(operatorID, resource === "receipt-valuations" ? "payments?section=pending" : resource);
   return <>
     <Heading eyebrow={t("经营工作台")} title={t(focusTitles[focus])} description={t("{operator}的待办、营业项目和服务责任。所有数据均来自当前空间已授权的经营范围。", { operator: workspace?.operator.name || t("当前经营方") })} actions={<span className="rounded-full border border-hairline bg-canvas-raised px-3 py-2 text-xs text-ink-mute">{workspace?.operator.kind === "platform" ? t("平台经营") : workspace?.operator.kind === "oem" ? t("OEM 独立经营") : t("渠道独立经营")}
     </span>} />
@@ -313,7 +315,6 @@ const workflows: Record<string, Workflow> = {
   plans: { eyebrow: "商品与定价", title: "把套餐条款做成清楚的商品", description: "设置套餐总售价，分别记录购买额度与赠送额度。修改后新订单使用新条件，已有成交保留原条款。", steps: [["定义商品", "确认成交 结算币种、购买/赠送 ATG、有效期和公开条款。"], ["准备销售", "核对收款就绪、模型价格和销售承载空间。"], ["发布与续费", "分别控制新购与续费；涨价或权益减少时，由客户重新确认。"]], links: ["pricing", "payment-methods", "coverage", "marketing"] },
   pricing: { eyebrow: "商品与定价", title: "管理上架模型与各层调用价", description: "模型调用价格与采购额度的购买报价分别管理。新价格适用于新受理请求，已有请求保留受理快照。", steps: [["核对模型授权", "在已授权范围选择上架，平台停用后不能继续受理。"], ["设置有效价格", "设置客户或直属下级的 ATG 单价，也可按倍率跟随上级供货价。"], ["通知并检查覆盖", "系统自动处理调价通知、生效安排和承载重算。"]], links: ["coverage", "procurement", "plans"] },
   marketing: { eyebrow: "营销与推广", title: "套餐活动与 KOL 推广", description: "设置套餐活动价或加赠，按时间、客户范围和名额生效。需要与 KOL 优惠同享时，在对应活动上开放组合。", steps: [], links: [] },
-  commissions: { eyebrow: "营销与推广", title: "公布推荐规则，保留每笔佣金依据", description: "在此设置注册赠送和 KOL 规则；客户的推广收益与功能状态，在客户工作台查看和办理。", steps: [], links: [] },
   procurement: { eyebrow: "采购与合作", title: "采购补货与对下供货分开办理", description: "选择我方采购或我方供货视图，沿报价、付款和交付追踪。采购余额不过期，补货不锁定未来模型调用价。", steps: [["确认阶梯报价", "按采购金额查看阶梯赠送、到账额度与退出约定。"], ["先全款到账", "真实支付或已核实人工收款；建单不增加余额。"], ["交付与有限补货", "完成库存交付；自动补货须有独立授权和限额。"]], links: ["operators", "coverage", "procurement-invoices", "exits"] },
   coverage: { eyebrow: "采购与合作", title: "看清销售责任，提前安排补货", description: "采购余额、已承诺服务与待交付责任共同影响销售承载。超卖授权用于销售管理，真实调用必须采购余额充足。", steps: [["核对当前责任", "查看购买与赠送服务所需的实际采购覆盖。"], ["设置授权和缓冲", "按明确权限设置销售超卖与预警缓冲。"], ["采购与风险处置", "承载不足时补货或限制新增销售，保留存量责任。"]], links: ["procurement", "alerts", "business-status"] },
   operators: { eyebrow: "采购与合作", title: "开通合作主体，明确各自经营责任", description: "平台可创建 OEM 和直属渠道，OEM 可创建自己的直属渠道。渠道没有下级经营方。", steps: [["确定主体与品牌", "明确实际经营主体、品牌和直接供货关系。"], ["邀请负责人", "合作主体负责人在自己的空间配置人员和收款。"], ["定制并开业", "上级按授权定制域名及外观，开通不自动开放营业。"]], links: ["contracts", "domains", "channel-themes", "takeovers"] },

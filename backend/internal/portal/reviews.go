@@ -122,7 +122,7 @@ func (a *Application) approvalsResource(c *gin.Context, op organization.Operator
 		}
 		for _, r := range rows {
 			if r.Status == "requested" {
-				items = append(items, entity(r.ID, r.Status, 1, gin.H{"kind": "佣金提现", "amount_money": r.AmountMoney, "requested_by": r.CustomerID, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + "/withdrawals?record=" + r.ID}))
+				items = append(items, entity(r.ID, r.Status, 1, gin.H{"kind": "佣金提现", "amount_money": r.AmountMoney, "requested_by": r.CustomerID, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + "/commissions?section=requests&record=" + r.ID}))
 			}
 		}
 	}

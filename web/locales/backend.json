@@ -7135,5 +7135,45 @@
     "en": "Read business notifications addressed to you and mark them as read.",
     "ja": "自分宛ての業務通知を確認し、既読にできます。",
     "ru": "Просматривайте адресованные вам уведомления и отмечайте их прочитанными。"
+  },
+  "邀请与分佣": {
+    "en": "Invitations & commissions",
+    "ja": "招待とコミッション",
+    "ru": "Приглашения и комиссии"
+  },
+  "分佣规则": {
+    "en": "Commission rules",
+    "ja": "コミッションルール",
+    "ru": "Правила комиссий"
+  },
+  "邀请与分佣事项": {
+    "en": "Invitation and commission tasks",
+    "ja": "招待・コミッションの管理項目",
+    "ru": "Разделы приглашений и комиссий"
+  },
+  "注册奖励、分佣规则和佣金提现在此统一管理。": {
+    "en": "Manage registration rewards, commission rules and commission withdrawals here.",
+    "ja": "登録特典、コミッションルール、コミッションの出金をまとめて管理します。",
+    "ru": "Управляйте бонусами за регистрацию, правилами комиссий и выводом комиссий в одном разделе."
+  },
+  "设置注册赠送、KOL 资格门槛、两级分佣和最低提现金额。": {
+    "en": "Set registration rewards, KOL eligibility, two-level commissions and the minimum withdrawal amount.",
+    "ja": "登録特典、KOL 資格の条件、2段階コミッション、最低出金額を設定します。",
+    "ru": "Настройте бонусы за регистрацию, порог статуса KOL, комиссии двух уровней и минимальную сумму вывода."
+  },
+  "审核佣金提现并线下付款，核实实际付款后完成扣账；结果未知时继续核实原付款。": {
+    "en": "Review commission withdrawals and pay externally. Complete the debit after verifying payment; keep checking the original payment if its outcome is unknown.",
+    "ja": "コミッションの出金を審査して外部で支払い、実際の支払いを確認後に精算します。結果が不明な場合は元の支払いを引き続き確認します。",
+    "ru": "Проверяйте заявки и оплачивайте их вне системы. Списание завершается после подтверждения оплаты; при неизвестном результате продолжайте проверять исходный платёж."
+  },
+  "佣金提现申请": {
+    "en": "Commission withdrawal applications",
+    "ja": "コミッション出金申請",
+    "ru": "Заявки на вывод комиссий"
+  },
+  "在邀请与分佣中审批并登记线下付款。最低提现金额在分佣规则中设置，手续费在提现方式中设置。": {
+    "en": "Review requests and record external payments under Invitations & commissions. Set the minimum in Commission rules and fees in Payout methods.",
+    "ja": "招待とコミッションで申請の審査と外部支払いの記録を行います。最低出金額はコミッションルールで、手数料は出金方法で設定します。",
+    "ru": "Рассматривайте заявки и регистрируйте внешние выплаты в разделе «Приглашения и комиссии». Минимальная сумма задаётся в правилах комиссий, сборы — в способах выплаты."
   }
 }

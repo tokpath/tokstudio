@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { canReadResource, customerSections, operatorNav, operatorLanding, sectionForResource, staffNotificationPath, visibleOperatorSections } from "./navigation";
+import { canReadResource, customerSections, operatorNav, operatorLanding, operatorResourcePath, sectionForResource, staffNotificationPath, visibleOperatorSections } from "./navigation";
 
 describe("task navigation and organization boundaries", () => {
   it("keeps every established operator capability reachable once without duplicate risk or content storage settings", () => {
     const resources = operatorNav.flatMap(section => section.items.map(([resource]) => resource));
-    expect(resources).toHaveLength(45);
-    expect(new Set(resources).size).toBe(45);
+    expect(resources).toHaveLength(44);
+    expect(new Set(resources).size).toBe(44);
+    expect(resources).not.toContain("withdrawals");
     expect(resources).toContain("routes");
     expect(resources).toContain("payment-quotes");
     expect(resources).toContain("pricing");
@@ -43,5 +44,13 @@ describe("task navigation and organization boundaries", () => {
   it("lands staff on an authorized task instead of an inaccessible overview", () => {
     expect(operatorLanding({operator:{id:"finance",kind:"oem"},permissions:["payments.read"]})).toBe("/manage/finance/payments");
     expect(sectionForResource(operatorNav,"refunds/record")?.id).toBe("finance");
+  });
+  it("gives payout staff the combined entry without granting commission rule access", () => {
+    const finance = {operator:{id:"finance",kind:"oem"},permissions:["withdrawals.read", "withdrawals.manage"]};
+    expect(canReadResource(finance,"commissions")).toBe(false);
+    expect(visibleOperatorSections(finance).flatMap(group=>group.items)).toEqual([["commissions","邀请与分佣"]]);
+    expect(operatorLanding(finance)).toBe("/manage/finance/commissions");
+    expect(operatorResourcePath("finance","withdrawals")).toBe("/manage/finance/commissions?section=requests");
+    expect(sectionForResource(customerSections,"withdrawals")?.id).toBe("promotion");
   });
 });

@@ -13,7 +13,7 @@ import { pricingRefetchInterval } from "./pricing-refresh";
 import { X, ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 import { request } from "@/lib/api-client";
 import { CommandResultSchema, CreditsSchema, ResourcePageSchema, type Entity, type Operation, type JSONValue, type ResourcePage } from "@/lib/contracts";
-import { canReadResource, resourceLabel } from "@/lib/navigation";
+import { canReadResource, operatorResourcePath, resourceLabel } from "@/lib/navigation";
 import { useNavigationBlock } from "@/lib/navigation-guard";
 import { useProduct } from "./context";
 import { InvoiceFiles } from "./invoice-files";
@@ -52,15 +52,16 @@ type ResourceOptions = {
   record?: string;
   inspectionLinks?: boolean;
   businessView?: string;
+  controlledView?: string;
   procurementSection?: string;
   onProcurementSection?: (section:string)=>void;
 };
 
-export function ResourceScreen({ operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, record, inspectionLinks }: ResourceOptions) {
+export function ResourceScreen({ operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, record, inspectionLinks, controlledView }: ResourceOptions) {
   const { t } = useI18n();
   const cache = useQueryClient();
   const { session } = useProduct();
-  const [filters, setFilters] = useState(readResourceListState);
+  const [filters, setFilters] = useState(() => ({ ...readResourceListState(), ...(controlledView !== undefined ? { view: controlledView } : {}) }));
   const [query, setQuery] = useState(filters.q);
   const searchDescription = useId();
   const scope = operatorID ? `/api/v1/operators/${encodeURIComponent(operatorID)}` : "/api/v1/me";
@@ -92,8 +93,8 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   };
   const statuses = [...new Set([...(resourceName==="procurement" ? (filters.section==="quotes" ? ["quote","disabled","expired","archived"] : filters.section==="automatic" ? ["authorization","prepared","awaiting_manual_payment","outcome_unknown","verified_payment_delivery_pending","completed","failed_unpaid","cancelled_unpaid"] : ["awaiting_payment","paid","completed","closed","exception"]) : resourceFilterStatuses[resourceName] || []), ...page.items.flatMap(item => item.status ? [item.status] : []), filters.status].filter(Boolean))];
   return <>
-    {record && <div className="mb-5"><Notice><div className="flex flex-wrap items-center justify-between gap-3"><span>{t("正在办理关联事项")}</span><Link className="text-brand-emphasis underline" href={operatorID ? `/manage/${encodeURIComponent(operatorID)}/${resource}` : `/workspace/${resource}`}>{t("返回全部记录")}</Link></div></Notice></div>}
-    {page.views && <div aria-label={t("业务视图")} className="mb-5 flex flex-wrap gap-2">{page.views.map(item => <Button key={item.value} variant={(filters.view || page.views?.[0]?.value) === item.value ? "default" : "outline"} onClick={() => apply({ view: item.value, ...(resourceName==="procurement" ? {section:"orders",status:""} : {}) })}>{t(item.label)}</Button>)}</div>}
+    {record && <div className="mb-5"><Notice><div className="flex flex-wrap items-center justify-between gap-3"><span>{t("正在办理关联事项")}</span><Link className="text-brand-emphasis underline" href={operatorID ? operatorResourcePath(operatorID, resource) : `/workspace/${resource}`}>{t("返回全部记录")}</Link></div></Notice></div>}
+    {controlledView === undefined && page.views && <div aria-label={t("业务视图")} className="mb-5 flex flex-wrap gap-2">{page.views.map(item => <Button key={item.value} variant={(filters.view || page.views?.[0]?.value) === item.value ? "default" : "outline"} onClick={() => apply({ view: item.value, ...(resourceName==="procurement" ? {section:"orders",status:""} : {}) })}>{t(item.label)}</Button>)}</div>}
     <ResourceCollection page={page} operatorID={operatorID} resource={resource} customer={customer} embedded={embedded} layout={layout} onInspect={onInspect} inspectionLinks={inspectionLinks} businessView={filters.view || page.views?.[0]?.value} procurementSection={record ? (page.items[0]?.values.record_kind==="quote" ? "quotes" : ["authorization","replenishment_attempt"].includes(String(page.items[0]?.values.record_kind)) ? "automatic" : "orders") : filters.section || "orders"} onProcurementSection={section=>apply({section,status:""})} record={record} toolbar={serverSearch || statusFilter ? <div className="min-w-0 flex-1 basis-[32rem]"><form onSubmit={event => { event.preventDefault(); apply({ q: query.trim() }); }}>
       <div className="flex flex-wrap items-center gap-2">{serverSearch && <div className="relative min-w-48 flex-1"><Search size={15} aria-hidden className="absolute left-3 top-3.5 text-ink-mute" /><Input aria-label={t("搜索记录")} aria-describedby={searchDescription} placeholder={resourceName === "notifications" ? t("搜索通知标题、正文或关联事项") : resourceName === "customers" ? t("搜索客户名称或邮箱") : resourceName === "invoices" ? t("搜索发票编号、开票凭证或原始收款编号") : t("搜索业务编号、名称或关联记录")} value={query} onChange={event => setQuery(event.target.value)} className="pl-9" /></div>}
       {statusFilter && <label className="flex items-center gap-2 text-xs text-ink-secondary"><span>{t("状态")}</span><select className="min-h-11 rounded-control border border-hairline bg-canvas-raised px-3 text-sm" aria-label={t("筛选状态")} value={filters.status} onChange={event => apply({ status: event.target.value })}><option value="">{t("全部状态")}</option>{statuses.map(status => <option key={status} value={status}>{t(resourceFilterStatusLabel(resourceName, status))}</option>)}</select></label>}

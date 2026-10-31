@@ -131,8 +131,8 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 		row["allowed_actions"] = actions
 		items = append(items, row)
 	}
-	p["title"] = "提现办理"
-	p["description"] = "在此审批并付款。佣金最低提现额度在邀请与分佣规则中设置。提现手续费由申请人承担，审批为单人。"
+	p["title"] = "佣金提现申请"
+	p["description"] = "在邀请与分佣中审批并登记线下付款。最低提现金额在分佣规则中设置，手续费在提现方式中设置。"
 	p["items"] = items
 	p["next_cursor"] = next
 	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}

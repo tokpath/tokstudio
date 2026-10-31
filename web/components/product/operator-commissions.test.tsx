@@ -12,7 +12,9 @@ const page = (name:string, extra:Partial<ResourcePage> = {}):ResourcePage => ({t
 const response = (value:unknown) => new Response(JSON.stringify(value),{status:200,headers:{"Content-Type":"application/json"}});
 function mount(record?:string) {
   const cache = new QueryClient({defaultOptions:{queries:{retry:false}}});
-  render(<QueryClientProvider client={cache}><OperatorCommissionsScreen operatorID="operator-one" record={record}/></QueryClientProvider>);
+  const content = (value?:string) => <QueryClientProvider client={cache}><OperatorCommissionsScreen operatorID="operator-one" record={value}/></QueryClientProvider>;
+  const view = render(content(record));
+  return (value?:string) => view.rerender(content(value));
 }
 
 it("puts rules, payout methods and applications in one entry and resets filters between tabs",async()=>{
@@ -53,6 +55,17 @@ it("does not expose payout data to staff who manage only referral rules",async()
   mount();await screen.findByText("Referral rule");
   expect(screen.getAllByRole("tab")).toHaveLength(1);
   expect(calls.every(url=>!url.includes("withdrawals"))).toBe(true);
+});
+
+it("leaves linked application context when returning to all applications on the same route",async()=>{
+  window.history.replaceState(null,"","/manage/operator-one/commissions?section=requests&record=payout-one");
+  const calls:string[]=[];
+  vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL)=>{const url=String(input);calls.push(url);return response(page(url.includes("record=")?"Linked payout":"All payouts"));}));
+  const rerender=mount("payout-one");await screen.findByText("Linked payout");
+  window.history.replaceState(null,"","/manage/operator-one/commissions?section=requests");
+  rerender();await screen.findByText("All payouts");
+  expect(calls.at(-1)).not.toContain("record=");
+  expect(screen.queryByText("正在办理关联事项")).toBeNull();
 });
 
 it("keeps an uncertain payout action mounted when switching tabs and retries the original action",async()=>{

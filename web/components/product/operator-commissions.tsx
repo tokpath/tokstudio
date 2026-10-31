@@ -33,6 +33,7 @@ export function OperatorCommissionsScreen({ operatorID, record }: { operatorID: 
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);
   }, []);
+  useEffect(() => { setCurrent(location(record)); }, [operatorID, record]);
   useEffect(() => {
     if (!selected) return;
     const url = new URL(window.location.href);
@@ -53,7 +54,7 @@ export function OperatorCommissionsScreen({ operatorID, record }: { operatorID: 
     <div role="tablist" aria-label={t("邀请与分佣事项")} className="mb-5 flex flex-wrap gap-2">{available.map(item => <Button key={item.id} id={`${panel}-${item.id}`} role="tab" aria-selected={selected.id === item.id} aria-controls={panel} variant={selected.id === item.id ? "default" : "outline"} onClick={() => select(item.id)}>{t(item.label)}</Button>)}</div>
     <section role="tabpanel" id={panel} aria-labelledby={`${panel}-${selected.id}`}>
       <p className="mb-5 text-sm leading-7 text-ink-secondary">{t(selected.description)}</p>
-      <ResourceScreen key={`${operatorID}:${selected.id}`} operatorID={operatorID} resource={selected.resource} controlledView={selected.view} embedded record={selected.id === "requests" ? current.record : undefined}/>
+      <ResourceScreen key={`${operatorID}:${selected.id}:${current.record || "all"}`} operatorID={operatorID} resource={selected.resource} controlledView={selected.view} embedded record={selected.id === "requests" ? current.record : undefined}/>
     </section>
   </>;
 }

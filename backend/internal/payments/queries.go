@@ -94,11 +94,22 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 		}
 		currency := merchantCurrency(m)
 		supported, reason := SettlementSupport(m, settings.Currency)
+		_, fiatPayment := fiatMinorDigits(currency)
+		if currency != settings.Currency && fiatPayment && m.Driver != "kvoucher" && m.Driver != "nowpayments" {
+			fx, err := s.FXSettings(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if !fx.Enabled {
+				supported = false
+				reason = "请等待平台启用外币付款报价来源。"
+			}
+		}
 		if settings.Status != "locked" {
 			supported = false
 			reason = "系统清算设置尚未正式生效，暂不可付款。"
 		}
-		view := PublicMethod{ID: m.ID, Driver: m.Driver, Currency: currency, Configured: true, SettlementCurrency: settings.Currency, SettlementSupported: supported, UnsupportedReason: reason, RequiresSettlementConfirmation: (m.Driver == "manual" || m.Driver == "evm_wallet") && currency != settings.Currency, RefundAPI: m.Driver == "stripe" || m.Driver == "alipay" || m.Driver == "wechat", AutoCharge: m.Driver == "stripe"}
+		view := PublicMethod{ID: m.ID, Driver: m.Driver, Currency: currency, Configured: true, SettlementCurrency: settings.Currency, SettlementSupported: supported, UnsupportedReason: reason, RequiresSettlementConfirmation: (m.Driver == "manual" || m.Driver == "evm_wallet") && currency != settings.Currency && !fiatPayment, RefundAPI: m.Driver == "stripe" || m.Driver == "alipay" || m.Driver == "wechat", AutoCharge: m.Driver == "stripe"}
 		if m.Driver == "evm_wallet" {
 			view.Network = m.Credentials["chain_id"]
 			view.TokenContract = m.Credentials["token_contract"]

@@ -224,16 +224,27 @@ test('procurement revisions explicitly retain authorization identity and require
   assert.equal(revise.properties.payment.properties.customer_ref.writeOnly, true);
 });
 
-test('refund and withdrawal policies retain actual policy version types and nullable review thresholds', () => {
+test('refund rules and payout methods retain their actual concurrency fields', () => {
   const refund = document.components.schemas.Operator_refunds_policy;
   assert.equal(refund.properties.action.const, 'policy');
   assert.equal(refund.properties.second_review_above.anyOf[1].type, 'null');
   assert.equal(refund.required.includes('second_review_above'), false);
   assert.equal(refund.properties.expected_version.type, 'integer');
-  const withdrawal = document.components.schemas.Operator_withdrawals_policy.properties.configuration;
-  assert.equal(withdrawal.properties.expected_version.type, 'integer');
-  assert.equal(withdrawal.properties.requires_dual_approval.type, 'boolean');
-  assert.equal(withdrawal.properties.fee_rate.$ref, '#/components/schemas/LedgerDecimal');
+  for (const name of ['Operator_withdrawals_method', 'Operator_withdrawals_edit_method']) {
+    const method = document.components.schemas[name];
+    assert.equal(method.properties.expected_version.type, 'integer');
+    assert.deepEqual(method.properties.fee_mode.enum, ['fixed', 'percent']);
+    assert.equal(method.properties.fee_percent.$ref, '#/components/schemas/LedgerDecimal');
+    assert.equal(method.properties.configuration, undefined);
+    assert.equal(method.properties.requires_dual_approval, undefined);
+    assert.equal(method.properties.minimum_money, undefined);
+  }
+  const quote = document.paths['/v1/me/withdrawals/quotes'].post.requestBody.content['application/json'].schema;
+  assert.equal(quote.properties.method_id.format, 'uuid');
+  const source = document.components.schemas.Operator_payment_quotes_configure;
+  assert.deepEqual(source.properties.source.enum, ['frankfurter']);
+  assert.equal(source.properties.enabled.type, 'boolean');
+  assert.equal(source.properties.rate, undefined);
 });
 
 test('generator check is reproducible and does not write reviewed or generated artifacts', () => {

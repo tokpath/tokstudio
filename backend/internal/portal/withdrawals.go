@@ -21,14 +21,15 @@ type withdrawalPreview struct {
 func (withdrawalPreview) TableName() string { return "portal_withdrawal_quotes" }
 func (a *Application) withdrawalQuote(c *gin.Context) {
 	var in struct {
-		Amount ledger.Decimal `json:"amount_money"`
+		Amount   ledger.Decimal `json:"amount_money"`
+		MethodID string         `json:"method_id"`
 	}
 	if !body(c, &in) {
 		return
 	}
 	id := subject(c)
 	raw, e := a.command(c, "withdrawal-quote:"+id.Customer.Customer.ID, in, func(tx *gorm.DB) (any, error) {
-		quote, e := a.Incentives.QuoteWithdrawal(c.Request.Context(), tx, id.Customer.Ownership.OperatorID, in.Amount)
+		quote, e := a.Incentives.QuoteWithdrawal(c.Request.Context(), tx, id.Customer.Ownership.OperatorID, in.Amount, in.MethodID)
 		if e != nil {
 			return nil, e
 		}
@@ -84,6 +85,39 @@ func (a *Application) cancelWithdrawal(c *gin.Context) {
 	c.JSON(200, commandResult(c.Param("id"), "cancelled"))
 }
 func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
+	p["views"] = []gin.H{{"value": "requests", "label": "提现申请"}, {"value": "methods", "label": "提现方式"}}
+	if c.Query("view") == "methods" {
+		methods, err := a.Incentives.WithdrawalMethods(c.Request.Context(), nil, op.ID, false)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		items := []any{}
+		for _, m := range methods {
+			v := values(m)
+			v["fee_mode"] = "fixed"
+			if m.FeeRate.Sign() > 0 {
+				v["fee_mode"] = "percent"
+			}
+			v["fee_percent"] = ratePercentage(m.FeeRate)
+			status := "disabled"
+			if m.Enabled {
+				status = "enabled"
+			}
+			row := entity(m.MethodID, status, m.Version, v)
+			row["allowed_actions"] = []string{"edit_method"}
+			items = append(items, row)
+		}
+		p["title"] = "提现方式"
+		p["description"] = "设置可用提现方式及固定手续费或手续费率。申请时固定本次费用和实付金额，线下按实付金额付款，无需逐笔登记实际手续费。"
+		p["items"] = items
+		p["columns"] = []gin.H{col("method_name", "提现方式", "text"), col("flat_fee_money", "固定手续费", "money"), col("fee_percent", "手续费率 %", "decimal"), col("enabled", "开放申请", "boolean")}
+		fields := withdrawalMethodFields()
+		p["operations"] = []operation{{Name: "method", Label: "新增提现方式", Method: "POST", Path: base, Fields: fields}}
+		p["row_operations"] = []operation{{Name: "edit_method", Label: "修改提现方式", Method: "POST", Path: base + "/{id}/edit_method", Fields: fields}}
+		a.resourceResponse(c, p)
+		return
+	}
 	p["search_supported"], p["status_supported"] = true, true
 	rows, next, e := a.Incentives.WithdrawalsForOperator(c.Request.Context(), nil, actor, op.ID, c.Query("cursor"), 50, c.Query("q"), c.Query("status"))
 	if e != nil {
@@ -101,15 +135,74 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 	p["description"] = "在此审批并付款。佣金最低提现额度在邀请与分佣规则中设置。提现手续费由申请人承担，审批为单人。"
 	p["items"] = items
 	p["next_cursor"] = next
-	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
+	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
 	p["operations"] = []operation{}
 	p["row_operations"] = withdrawalRowOperations(base)
 	a.resourceResponse(c, p)
 }
+func withdrawalMethodFields() []field {
+	mode := f("fee_mode", "手续费方式", "select")
+	mode.Options = []gin.H{{"value": "fixed", "label": "固定金额"}, {"value": "percent", "label": "按比例"}}
+	mode.Default = "fixed"
+	fixed := f("flat_fee_money", "固定手续费 结算币种", "decimal")
+	fixed.Default = "0"
+	fixed.VisibleWhen = &fieldVisibility{Field: "fee_mode", Values: []string{"fixed"}}
+	rate := f("fee_percent", "手续费率 %", "decimal")
+	rate.Default = "0"
+	rate.VisibleWhen = &fieldVisibility{Field: "fee_mode", Values: []string{"percent"}}
+	rate.Help = "填写 2 表示按提现总额收取 2%。手续费按清算币种最小支付单位四舍五入，确认后固定。"
+	enabled := f("enabled", "开放申请", "boolean")
+	enabled.Default = true
+	return []field{f("method_name", "提现方式名称", "text"), mode, fixed, rate, enabled, defaultField("expected_version", "当前版本", "hidden", 0)}
+}
+func (a *Application) saveWithdrawalMethod(c *gin.Context, op organization.Operator, actor, methodID string) {
+	var in struct {
+		Name     string         `json:"method_name"`
+		Mode     string         `json:"fee_mode"`
+		Fixed    ledger.Decimal `json:"flat_fee_money"`
+		Percent  ledger.Decimal `json:"fee_percent"`
+		Enabled  bool           `json:"enabled"`
+		Expected int64          `json:"expected_version"`
+	}
+	if !body(c, &in) {
+		return
+	}
+	p := incentives.WithdrawalPolicy{MethodID: methodID, MethodName: in.Name, Enabled: in.Enabled, MinimumMoney: ledger.FromInt64(1)}
+	if in.Name == "" {
+		handleError(c, incentives.ErrInvalidInput)
+		return
+	}
+	if p.MethodID == "" {
+		p.MethodID = uuid.NewString()
+	}
+	switch in.Mode {
+	case "fixed":
+		p.FlatFeeMoney = in.Fixed
+	case "percent":
+		var err error
+		p.FeeRate, err = percentageRate(in.Percent)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+	default:
+		handleError(c, incentives.ErrInvalidInput)
+		return
+	}
+	raw, err := a.command(c, "withdrawal-method:"+methodID, in, func(tx *gorm.DB) (any, error) {
+		saved, err := a.Incentives.SetWithdrawalPolicy(c.Request.Context(), tx, actor, op.ID, p, in.Expected)
+		return commandResult(saved.MethodID, "saved"), err
+	})
+	jsonResponse(c, raw, err)
+}
 func (a *Application) withdrawalStaffCommand(c *gin.Context, op organization.Operator, actor string) {
-	fail(c, 409, "pending_configuration", "佣金最低提现额度请在邀请与分佣规则中设置。提现手续费由申请人承担，审批为单人。", false)
+	a.saveWithdrawalMethod(c, op, actor, "")
 }
 func (a *Application) withdrawalStaffAction(c *gin.Context, op organization.Operator, actor, action string) {
+	if action == "edit_method" {
+		a.saveWithdrawalMethod(c, op, actor, c.Param("id"))
+		return
+	}
 	ctx := c.Request.Context()
 	var out incentives.Withdrawal
 	var e error

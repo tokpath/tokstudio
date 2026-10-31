@@ -76,8 +76,9 @@ func TestManagedNotificationsSearchPaginationReadStateAndAuthorization(t *testin
 			t.Fatal(err)
 		}
 	}
+	s.Recipients = operationRecipients{operator: operator, customer: auth.actor}
 	personal, events, groupCursor, err := s.ListNotificationGroups(ctx, auth.actor, operator, "", "", "", 50)
-	if err != nil || personal.UnreadCount != 1 || personal.TotalCount != 1 || personal.Notices[0].ID != mine || groupCursor == "" {
+	if err != nil || personal.UnreadCount != 1 || personal.TotalCount != 1 || len(personal.Notices) != 0 || groupCursor == "" {
 		t.Fatal(personal, len(events), groupCursor, err)
 	}
 	var sharedGroup NotificationGroup
@@ -89,7 +90,7 @@ func TestManagedNotificationsSearchPaginationReadStateAndAuthorization(t *testin
 			t.Fatal("a notice sent only to the signed-in person is not a separate event")
 		}
 	}
-	if sharedGroup.TotalCount != 2 || sharedGroup.UnreadCount != 1 || len(sharedGroup.Notices) != 2 || sharedGroup.Notices[0].ReadStatus != "unread" || sharedGroup.Notices[1].ReadStatus != "read" {
+	if sharedGroup.TotalCount != 2 || sharedGroup.UnreadCount != 1 || len(sharedGroup.Notices) != 0 {
 		t.Fatal(sharedGroup)
 	}
 	if _, _, _, err = s.ListNotificationGroups(ctx, auth.actor, operator, "invalid", "", "", 50); !errors.Is(err, ErrInvalid) {
@@ -99,8 +100,8 @@ func TestManagedNotificationsSearchPaginationReadStateAndAuthorization(t *testin
 	if _, _, err = s.ListOperatorNotifications(ctx, auth.actor, operator, "", "", "", 50); !errors.Is(err, ErrForbidden) {
 		t.Fatal("revoked operator read", err)
 	}
-	if _, _, _, err = s.ListNotificationGroups(ctx, auth.actor, operator, "", "", "", 50); !errors.Is(err, ErrForbidden) {
-		t.Fatal("revoked grouped notification read", err)
+	if mine, groups, _, err := s.ListNotificationGroups(ctx, auth.actor, operator, "", "", "", 50); err != nil || mine.TotalCount != 1 || len(groups) != 0 {
+		t.Fatal("personal notification access must not grant management access", err)
 	}
 }
 

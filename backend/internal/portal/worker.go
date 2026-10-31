@@ -250,6 +250,9 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 	case "unpaid_orders":
 		return a.expireUnpaidOrders(ctx, 50)
 	case "kvoucher_payments":
+		if err := a.Payments.RefreshQuoteRates(ctx); err != nil {
+			return err
+		}
 		return a.reconcileOpenKVoucher(ctx, 10)
 	case "registration_reward":
 		return a.Incentives.DeliverRegistrationRewards(ctx, nil, p.ID)

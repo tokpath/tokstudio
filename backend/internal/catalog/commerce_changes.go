@@ -96,7 +96,7 @@ func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, e
 				return e
 			}
 		}
-		out = CatalogChange{ID: uuid.NewString(), OperatorID: actor, Kind: kind, ResourceID: resource, Payload: raw, Fingerprint: changeFingerprint(kind, resource, raw), EffectiveAt: effective.UTC(), ExpectedVersion: expected, State: "announcing", Evidence: evidence, CreatedAt: now}
+		out = CatalogChange{ID: uuid.NewString(), OperatorID: actor, Kind: kind, ResourceID: resource, Payload: raw, Fingerprint: changeFingerprint(kind, resource, raw), EffectiveAt: effective.UTC(), ExpectedVersion: expected, State: "announced", AnnouncedAt: &now, Evidence: evidence, CreatedAt: now}
 		if kind != "price" {
 			previous := tx.DB.WithContext(ctx).Model(&CatalogChange{}).Where("operator_id=? AND kind=? AND resource_id=? AND state IN ('announcing','announced')", actor, kind, resource)
 			if kind == "authorization" {
@@ -114,30 +114,32 @@ func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, e
 				return e
 			}
 		}
+		if kind == "price" {
+			var v PriceVersion
+			if err := json.Unmarshal(out.Payload, &v); err != nil {
+				return err
+			}
+			v.NoticeID = out.ID
+			if err := tx.publishPrice(context.WithValue(ctx, catalogApplyKey{}, true), actor, v, c.ValidateCoverage); err != nil {
+				return err
+			}
+			out.State = "applied"
+			out.AppliedAt = &now
+			if err := tx.DB.Model(&out).Updates(map[string]any{"state": out.State, "applied_at": now}).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 	if e != nil {
 		return out, e
 	}
-	return c.finishNotice(ctx, out)
+	return out, nil
 }
 
-// finishNotice sends the saved plan's notices before the request returns.
-// The operator's effective time is kept even when it is soon or already due.
-func (c ChangeController) finishNotice(ctx context.Context, change CatalogChange) (CatalogChange, error) {
-	for i := 0; i < 1000 && change.State == "announcing"; i++ {
-		if _, e := c.Run(ctx, 20); e != nil {
-			return change, e
-		}
-		if e := c.Catalog.DB.WithContext(ctx).First(&change, "id=?", change.ID).Error; e != nil {
-			return change, e
-		}
-	}
-	if change.State == "announcing" {
-		return change, ErrChangeNotice
-	}
-	return change, nil
-}
+// The committed change is a durable outbox entry. Run expands its audience in
+// bounded transactions after the publication transaction has released its locks.
 func (c ChangeController) SchedulePrice(ctx context.Context, actor string, v PriceVersion, evidence string) (CatalogChange, error) {
 	if v.Scope.SellerID != actor {
 		return CatalogChange{}, ErrCatalogForbidden
@@ -198,7 +200,7 @@ func (c ChangeController) Run(ctx context.Context, limit int) ([]CatalogChange, 
 		limit = 20
 	}
 	rows := []CatalogChange{}
-	if e := c.Catalog.DB.WithContext(ctx).Where("state IN ('announcing','announced')").Order("last_checked_at,id").Limit(limit).Find(&rows).Error; e != nil {
+	if e := c.Catalog.DB.WithContext(ctx).Where("state IN ('announcing','announced') OR (state='applied' AND EXISTS(SELECT 1 FROM tokenhub_catalog_change_audiences a WHERE a.change_id=tokenhub_catalog_changes.id AND NOT a.done))").Order("last_checked_at,id").Limit(limit).Find(&rows).Error; e != nil {
 		return nil, e
 	}
 	for i := range rows {
@@ -206,13 +208,13 @@ func (c ChangeController) Run(ctx context.Context, limit int) ([]CatalogChange, 
 		if e := c.Catalog.DB.WithContext(ctx).Model(&CatalogChange{}).Where("id=?", change.ID).Update("last_checked_at", time.Now().UTC()).Error; e != nil {
 			return rows, e
 		}
-		if change.State == "announcing" {
+		if change.State == "announcing" || change.State == "announced" || change.State == "applied" {
 			e := c.Catalog.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 				var current CatalogChange
 				if e := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&current, "id=?", change.ID).Error; e != nil {
 					return e
 				}
-				if current.State != "announcing" {
+				if current.State != "announcing" && current.State != "announced" && current.State != "applied" {
 					*change = current
 					return nil
 				}
@@ -255,16 +257,23 @@ func (c ChangeController) Run(ctx context.Context, limit int) ([]CatalogChange, 
 				}
 				if remaining == 0 {
 					now := c.now().Truncate(time.Microsecond)
-					state := "announced"
+					announcedAt := current.AnnouncedAt
+					if announcedAt == nil {
+						announcedAt = &now
+					}
+					state := current.State
+					if state == "announcing" {
+						state = "announced"
+					}
 					code := ""
 					if current.Kind == "emergency_model_disable" {
 						state = "applied"
 					}
-					if e := tx.Model(&current).Updates(map[string]any{"state": state, "announced_at": now, "error_code": code}).Error; e != nil {
+					if e := tx.Model(&current).Updates(map[string]any{"state": state, "announced_at": announcedAt, "error_code": code}).Error; e != nil {
 						return e
 					}
 					current.State = state
-					current.AnnouncedAt = &now
+					current.AnnouncedAt = announcedAt
 					current.ErrorCode = code
 				}
 				*change = current

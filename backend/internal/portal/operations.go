@@ -191,6 +191,13 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		p["columns"] = []gin.H{col("recipient_id", "收件人", "text"), col("category", "通知类别", "text"), col("state", "邮件状态", "status"), col("read_status", "阅读状态", "status"), col("created_at", "发送时间", "datetime")}
 		p["operations"] = []operation{{Name: "announce", Label: "发送业务通知", Method: "POST", Path: base, Fields: []field{jsonField("收件人、通知类别、标题和正文")}}}
 		p["row_operations"] = []operation{{Name: "read", Label: "标为已读", Method: "POST", Path: base + "/{id}/read", Fields: []field{}}, {Name: "retry", Label: "重试原通知", Method: "POST", Path: base + "/{id}/retry", Fields: []field{}}}
+		if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "operations.manage") != nil {
+			p["title"] = "我的通知"
+			p["description"] = "查看发给本人的业务通知，可以标为已读。"
+			p["operations"] = []operation{}
+			p["row_operations"] = []operation{{Name: "read", Label: "标为已读", Method: "POST", Path: base + "/{id}/read", Fields: []field{}}}
+		}
+
 	case "reconciliation":
 		rows, e := a.Operations.ListDiscrepancies(ctx, actor, op.ID, 100)
 		if e != nil {
@@ -542,3 +549,26 @@ func (a *Application) labelNotificationRecipients(c *gin.Context, operator, acto
 }
 
 var _ = errors.Is
+
+// Recipient details are loaded only when opened and are cursor-paginated.
+func (a *Application) staffNotificationNotices(c *gin.Context) {
+	op, actor, ok := a.staffScope(c, "notifications")
+	if !ok {
+		return
+	}
+	rows, next, err := a.Operations.ListNotificationNotices(c.Request.Context(), actor, op.ID, c.Query("group"), c.Query("cursor"), c.Query("q"), c.Query("status"), 30)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+	group := operations.NotificationGroup{Notices: rows}
+	if err = a.labelNotificationRecipients(c, op.ID, actor, &group, nil); err != nil {
+		handleError(c, err)
+		return
+	}
+	items := []any{}
+	for _, notice := range group.Notices {
+		items = append(items, entity(notice.ID, notice.ReadStatus, 1, notice))
+	}
+	c.JSON(200, gin.H{"title": "通知明细", "description": "", "items": items, "next_cursor": next, "columns": []any{}, "operations": []operation{}, "row_operations": []operation{}})
+}

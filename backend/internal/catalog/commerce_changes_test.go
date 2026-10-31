@@ -30,11 +30,11 @@ func TestPostgresPriceRevisionKeepsTheOperatorEffectiveTime(t *testing.T) {
 	next := priceAt(uuid.NewString(), scope, chosen, "2")
 	change, err := c.SchedulePrice(context.Background(), "platform", next, "")
 	if err != nil || !change.EffectiveAt.Equal(chosen.UTC()) || change.AnnouncedAt == nil {
-		t.Fatal("revision did not keep the chosen time and notify immediately", change, err)
+		t.Fatal("revision did not keep the chosen time and queue the notification plan", change, err)
 	}
 	var notices int64
-	if err = s.DB.Table("test_catalog_announcements").Where("change_id=?", change.ID).Count(&notices).Error; err != nil || notices != 1 {
-		t.Fatal("notice was not sent on submit", notices, err)
+	if err = s.DB.Table("test_catalog_announcements").Where("change_id=?", change.ID).Count(&notices).Error; err != nil || notices != 0 {
+		t.Fatal("notification fan-out must happen after submit", notices, err)
 	}
 	current, err := (PriceResolver{Source: s}).Resolve(context.Background(), scope, "model", *now)
 	if err != nil || current.Lineage[0].VersionID != "base" {
@@ -127,14 +127,17 @@ func TestPostgresCatalogPriceRequiresActualAdvanceNotice(t *testing.T) {
 	}
 	sink.fail = true
 	change, e := c.SchedulePrice(context.Background(), "platform", next, "approved price plan")
-	if e == nil {
-		t.Fatal("notification transaction failure ignored")
+	if e != nil {
+		t.Fatal("durable publication must not call the delivery sink", e)
+	}
+	if _, e = c.Run(context.Background(), 20); e == nil {
+		t.Fatal("delivery failure must remain retryable")
 	}
 	sink.fail = false
 	var count int64
 	_ = s.DB.Table("tokenhub_model_price_versions").Where("id=?", next.ID).Count(&count).Error
-	if count != 0 {
-		t.Fatal("price applied before notification commit")
+	if count != 1 {
+		t.Fatal("published price must reference the durable notification plan", count)
 	}
 	sink.fail = false
 	if _, e = c.Run(context.Background(), 20); e != nil {

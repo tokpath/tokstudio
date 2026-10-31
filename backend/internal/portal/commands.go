@@ -104,6 +104,10 @@ func (a *Application) operatorCommand(c *gin.Context) {
 		a.refundStaffCommand(c, op, actor)
 		return
 	}
+	if resource == "payment-quotes" {
+		a.paymentQuoteSettingsCommand(c, op, actor)
+		return
+	}
 	if resource == "withdrawals" {
 		a.withdrawalStaffCommand(c, op, actor)
 		return

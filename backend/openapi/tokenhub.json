@@ -3,7 +3,7 @@
   "info": {
     "title": "TokenHub API",
     "version": "0.1.0",
-    "description": "Actual new application contract. Direct API paths start /v1. Browser reverse proxy paths start /api/v1 and strip /api before Gin. Customer and staff use HttpOnly tokenhub_session; model API uses a brand-bound Bearer Key. All money/ATG amounts are exact decimal strings. MONEY denotes the independently configured global settlement currency; actual original-currency transfers and supplier reference, reported and statement costs remain separate. No exchange rates, cross-currency conversion or profit calculations are provided. Domain ownership, permission and business state are enforced server-side. This contract covers all model endpoints and core browser flows; operator commands use explicit request schemas derived from the actual typed workflows and reviewed technical DTOs."
+    "description": "Actual new application contract. Direct API paths start /v1. Browser reverse proxy paths start /api/v1 and strip /api before Gin. Customer and staff use HttpOnly tokenhub_session; model API uses a brand-bound Bearer Key. All money/ATG amounts are exact decimal strings. MONEY denotes the independently configured global settlement currency; actual original-currency transfers and supplier reference, reported and statement costs remain separate. Per-payment currency quotes prefer the payment provider and fall back to the configured Frankfurter source. These quotes determine only the payable amount for that order; assets, supplier costs and cross-currency profit are never converted. Domain ownership, permission and business state are enforced server-side. This contract covers all model endpoints and core browser flows; operator commands use explicit request schemas derived from the actual typed workflows and reviewed technical DTOs."
   },
   "servers": [
     {
@@ -6340,6 +6340,158 @@
         }
       }
     },
+    "/v1/operators/{operatorId}/notifications/notices": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_notifications_notices",
+        "summary": "Cursor-paginated personal notices or authorized event recipients",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "required": false,
+            "description": "personal, or a permitted notification event key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque detail cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Search within this authorized group",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact delivery state",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/me/notifications/preferences": {
       "get": {
         "operationId": "get__v1_me_notifications_preferences",
@@ -7613,7 +7765,7 @@
     "/v1/me/withdrawals/quotes": {
       "post": {
         "operationId": "post__v1_me_withdrawals_quotes",
-        "summary": "Quote real fees before commission withdrawal",
+        "summary": "Quote fees for the chosen commission payout method",
         "tags": [
           "Customer browser API"
         ],
@@ -7731,6 +7883,10 @@
                 "properties": {
                   "amount_money": {
                     "$ref": "#/components/schemas/LedgerDecimal"
+                  },
+                  "method_id": {
+                    "type": "string",
+                    "format": "uuid"
                   }
                 },
                 "required": [
@@ -12023,6 +12179,300 @@
           }
         },
         "description": "材料齐全后启用实际驱动。协议测试证据不能代替真实商户验收。 Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
+      }
+    },
+    "/v1/operators/{operatorId}/payment-quotes": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_payment_quotes",
+        "summary": "Read exact operator payment-quotes workspace",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque page cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
+      },
+      "post": {
+        "operationId": "post__v1_operators_operatorId_payment_quotes",
+        "summary": "设置报价来源",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_payment_quotes_configure"
+              }
+            }
+          }
+        },
+        "description": "Only the platform can configure the payment reference quote source; OEM and channel operators can inspect it. No manual exchange rate is accepted. Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "payments.manage"
       }
     },
@@ -18349,7 +18799,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_withdrawals",
-        "summary": "发布提现规则",
+        "summary": "新增提现方式",
         "tags": [
           "Operator browser API"
         ],
@@ -18471,12 +18921,12 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Operator_withdrawals_policy"
+                "$ref": "#/components/schemas/Operator_withdrawals_method"
               }
             }
           }
         },
-        "description": " Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "Configure one payout method with either a fixed fee or a percentage. The fee and net payment are fixed when the customer confirms the application. No actual payout fee is entered. Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "withdrawals.manage"
       }
     },
@@ -24711,7 +25161,7 @@
             }
           }
         },
-        "description": "One URL per operator. Signature is HMAC-SHA256 over the raw body using the hex SHA-256 of the webhook secret registered for that operator. Retrieving the reload code records the receipt; a Gkash return URL is not payment evidence. When the settlement currency is USD, KVoucher converts the USD obligation into a MYR face using its USD-per-MYR rate plus a 2 percent fee, and the receipt remains the USD obligation. When the settlement currency is MYR, the receipt retains the verified MYR amount.",
+        "description": "One URL per operator. Signature is HMAC-SHA256 over the raw body using the hex SHA-256 of the webhook secret registered for that operator. Retrieving the reload code records the receipt; a Gkash return URL is not payment evidence. Each checkout freezes the actual MYR amount using the channel quote where available, otherwise the configured reference source. Verified receipts always retain the actual MYR amount. Missing, expired or mismatched quote relations require settlement confirmation and never imply full payment of the order.",
         "requestBody": {
           "required": true,
           "content": {
@@ -34226,6 +34676,148 @@
         "x-required-permission": "payments.manage"
       }
     },
+    "/v1/operators/{operatorId}/withdrawals/{id}/edit_method": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_withdrawals_id_edit_method",
+        "summary": "修改提现方式",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_withdrawals_edit_method"
+              }
+            }
+          }
+        },
+        "description": "Configure one payout method with either a fixed fee or a percentage. The fee and net payment are fixed when the customer confirms the application. No actual payout fee is entered. Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "withdrawals.manage"
+      }
+    },
     "/v1/operators/{operatorId}/takeovers/{id}/refresh": {
       "post": {
         "operationId": "post__v1_operators_operatorId_takeovers_id_refresh",
@@ -37827,6 +38419,86 @@
                   {
                     "type": "object",
                     "properties": {
+                      "payment_quote": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "source_url": {
+                                "type": "string"
+                              },
+                              "rate": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                              },
+                              "rate_date": {
+                                "type": "string"
+                              },
+                              "quoted_at": {
+                                "type": "string"
+                              },
+                              "expires_at": {
+                                "type": "string"
+                              },
+                              "pay_money": {
+                                "type": "object",
+                                "properties": {
+                                  "currency": {
+                                    "type": "string"
+                                  },
+                                  "amount": {
+                                    "type": "string",
+                                    "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                                  }
+                                },
+                                "required": [
+                                  "currency",
+                                  "amount"
+                                ],
+                                "additionalProperties": true
+                              },
+                              "settlement_money": {
+                                "type": "object",
+                                "properties": {
+                                  "currency": {
+                                    "type": "string"
+                                  },
+                                  "amount": {
+                                    "type": "string",
+                                    "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                                  }
+                                },
+                                "required": [
+                                  "currency",
+                                  "amount"
+                                ],
+                                "additionalProperties": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "source",
+                              "source_url",
+                              "rate",
+                              "rate_date",
+                              "quoted_at",
+                              "expires_at",
+                              "pay_money",
+                              "settlement_money"
+                            ],
+                            "additionalProperties": true
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "settlement_money": {
                         "type": "object",
                         "properties": {
@@ -38486,6 +39158,86 @@
               {
                 "type": "object",
                 "properties": {
+                  "payment_quote": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "source_url": {
+                            "type": "string"
+                          },
+                          "rate": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                          },
+                          "rate_date": {
+                            "type": "string"
+                          },
+                          "quoted_at": {
+                            "type": "string"
+                          },
+                          "expires_at": {
+                            "type": "string"
+                          },
+                          "pay_money": {
+                            "type": "object",
+                            "properties": {
+                              "currency": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                              }
+                            },
+                            "required": [
+                              "currency",
+                              "amount"
+                            ],
+                            "additionalProperties": true
+                          },
+                          "settlement_money": {
+                            "type": "object",
+                            "properties": {
+                              "currency": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                              }
+                            },
+                            "required": [
+                              "currency",
+                              "amount"
+                            ],
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "source",
+                          "source_url",
+                          "rate",
+                          "rate_date",
+                          "quoted_at",
+                          "expires_at",
+                          "pay_money",
+                          "settlement_money"
+                        ],
+                        "additionalProperties": true
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "settlement_money": {
                     "type": "object",
                     "properties": {
@@ -51925,53 +52677,106 @@
         ],
         "additionalProperties": false
       },
-      "Operator_withdrawals_policy": {
+      "Operator_withdrawals_method": {
         "type": "object",
         "properties": {
-          "configuration": {
-            "type": "object",
-            "properties": {
-              "minimum_money": {
-                "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "最低提现 清算币种"
-              },
-              "flat_fee_money": {
-                "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "固定手续费 清算币种"
-              },
-              "fee_rate": {
-                "$ref": "#/components/schemas/LedgerDecimal",
-                "description": "手续费比例（0到1）"
-              },
-              "requires_dual_approval": {
-                "type": "boolean",
-                "description": "必须双人审批付款"
-              },
-              "method_reference": {
-                "type": "string",
-                "description": "对客户公示付款方式规则"
-              },
-              "expected_version": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "当前规则版本"
-              }
-            },
-            "required": [
-              "minimum_money",
-              "flat_fee_money",
-              "fee_rate",
-              "requires_dual_approval",
-              "method_reference",
-              "expected_version"
+          "method_name": {
+            "type": "string",
+            "description": "提现方式名称"
+          },
+          "fee_mode": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "percent"
             ],
-            "additionalProperties": false
+            "description": "手续费方式"
+          },
+          "flat_fee_money": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "固定手续费 结算币种",
+            "x-visible-when": {
+              "field": "fee_mode",
+              "values": [
+                "fixed"
+              ]
+            },
+            "x-required-when-visible": true
+          },
+          "fee_percent": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "手续费率 %",
+            "x-visible-when": {
+              "field": "fee_mode",
+              "values": [
+                "percent"
+              ]
+            },
+            "x-required-when-visible": true
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "开放申请"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "当前版本"
           }
         },
         "required": [
-          "configuration"
+          "method_name",
+          "fee_mode",
+          "enabled",
+          "expected_version"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "fee_mode": {
+                  "enum": [
+                    "fixed"
+                  ]
+                }
+              },
+              "required": [
+                "fee_mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "flat_fee_money": {}
+              },
+              "required": [
+                "flat_fee_money"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "fee_mode": {
+                  "enum": [
+                    "percent"
+                  ]
+                }
+              },
+              "required": [
+                "fee_mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "fee_percent": {}
+              },
+              "required": [
+                "fee_percent"
+              ]
+            }
+          }
+        ]
       },
       "Operator_withdrawals_approve": {
         "type": "object",
@@ -52840,6 +53645,134 @@
         },
         "required": [
           "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_withdrawals_edit_method": {
+        "type": "object",
+        "properties": {
+          "method_name": {
+            "type": "string",
+            "description": "提现方式名称"
+          },
+          "fee_mode": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "percent"
+            ],
+            "description": "手续费方式"
+          },
+          "flat_fee_money": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "固定手续费 结算币种",
+            "x-visible-when": {
+              "field": "fee_mode",
+              "values": [
+                "fixed"
+              ]
+            },
+            "x-required-when-visible": true
+          },
+          "fee_percent": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "手续费率 %",
+            "x-visible-when": {
+              "field": "fee_mode",
+              "values": [
+                "percent"
+              ]
+            },
+            "x-required-when-visible": true
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "开放申请"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "当前版本"
+          }
+        },
+        "required": [
+          "method_name",
+          "fee_mode",
+          "enabled",
+          "expected_version"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "fee_mode": {
+                  "enum": [
+                    "fixed"
+                  ]
+                }
+              },
+              "required": [
+                "fee_mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "flat_fee_money": {}
+              },
+              "required": [
+                "flat_fee_money"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "fee_mode": {
+                  "enum": [
+                    "percent"
+                  ]
+                }
+              },
+              "required": [
+                "fee_mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "fee_percent": {}
+              },
+              "required": [
+                "fee_percent"
+              ]
+            }
+          }
+        ]
+      },
+      "Operator_payment_quotes_configure": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "frankfurter"
+            ],
+            "description": "参考汇率来源"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "启用参考报价"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "配置版本"
+          }
+        },
+        "required": [
+          "source",
+          "enabled",
+          "expected_version"
         ],
         "additionalProperties": false
       },

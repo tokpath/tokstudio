@@ -495,7 +495,7 @@ func TestPostgresWithdrawalUnknownRecoveryAndOffsetsNeverTouchOtherAssets(t *tes
 	f.buy(t, b.Customer.ID, "b-source", "100", ActivitySelection{})
 	events := f.consume(t, b.Customer.ID, "100")
 	f.seed(t, a.Customer.ID, "customer:money", "9")
-	policy, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumMoney: d("5"), FlatFeeMoney: d("1"), FeeRate: d("0.1"), MethodReference: "manual verified payout"}, 0)
+	policy, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumMoney: d("5"), FlatFeeMoney: d("2"), MethodReference: "manual verified payout"}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -793,7 +793,7 @@ func TestPostgresWithdrawalIndependentReviewerAndActualPayment(t *testing.T) {
 	peer := f.register(t, "commission-origin@example.test", customer.InviteCode)
 	f.buy(t, peer.Customer.ID, "real-commission-origin", "100", ActivitySelection{})
 	f.consume(t, peer.Customer.ID, "100")
-	policy, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumMoney: d("5"), FlatFeeMoney: d("1"), FeeRate: d("0.1"), MethodReference: "manual transfer", RequiresDualApproval: true}, 0)
+	policy, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumMoney: d("5"), FlatFeeMoney: d("2"), MethodReference: "manual transfer", RequiresDualApproval: true}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

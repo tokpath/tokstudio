@@ -55,8 +55,17 @@ func TestPostgresMonetaryOwnerScheduleCancelAndPermanentLock(t *testing.T) {
 	status, out, _ = f.call(t, "POST", "/v1/monetary/settings", in, "")
 	mustOK(t, status, out)
 	time.Sleep(time.Until(at.Add(25 * time.Millisecond)))
-	status, out, _ = f.call(t, "GET", "/v1/monetary/settings", nil, "")
-	mustOK(t, status, out)
+	// The database owns the effective-time clock. A container clock can lag
+	// the test host slightly; wait for the transition instead of assuming 25ms.
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		status, out, _ = f.call(t, "GET", "/v1/monetary/settings", nil, "")
+		mustOK(t, status, out)
+		if out["status"] != "scheduled" || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 	if out["status"] != "locked" || out["currency"] != "CNY" || out["atg_per_unit"] != "10" {
 		t.Fatal(out)
 	}

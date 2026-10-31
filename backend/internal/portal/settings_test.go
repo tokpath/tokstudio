@@ -148,11 +148,13 @@ func TestPostgresSettingsNotificationHasReadableContentAndOptionalReference(t *t
 	if len(rows) != 1 || rows[0].(map[string]any)["values"].(map[string]any)["record_kind"] != "personal" {
 		t.Fatal(page)
 	}
-	notices := rows[0].(map[string]any)["values"].(map[string]any)["notices"].([]any)
+	status, details, _ := f.call(t, "GET", path+"/notices?group=personal&q=Readable%20settings", nil, "")
+	mustOK(t, status, details)
+	notices := details["items"].([]any)
 	if len(notices) != 1 {
-		t.Fatal(rows[0])
+		t.Fatal(details)
 	}
-	v := notices[0].(map[string]any)
+	v := notices[0].(map[string]any)["values"].(map[string]any)
 	if v["title"] != "Readable settings notice" || v["body"] != "A useful message" || v["recipient_id"] != owner || v["read_status"] != "unread" {
 		t.Fatal(v)
 	}
@@ -162,8 +164,10 @@ func TestPostgresSettingsNotificationHasReadableContentAndOptionalReference(t *t
 	mustOK(t, status, page)
 	rows = page["items"].([]any)
 	values := rows[0].(map[string]any)["values"].(map[string]any)
-	notices = values["notices"].([]any)
-	v = notices[0].(map[string]any)
+	status, details, _ = f.call(t, "GET", path+"/notices?group=personal&q=Readable%20settings", nil, "")
+	mustOK(t, status, details)
+	notices = details["items"].([]any)
+	v = notices[0].(map[string]any)["values"].(map[string]any)
 	if v["read_status"] != "read" || values["unread_count"] != float64(0) {
 		t.Fatal(values)
 	}

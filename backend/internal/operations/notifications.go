@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/platform/mail"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -226,6 +228,8 @@ type NotificationNotice struct {
 	SystemGenerated bool      `json:"system_generated"`
 }
 type NotificationGroup struct {
+	FilterSearch    string               `json:"filter_search,omitempty"`
+	FilterState     string               `json:"filter_state,omitempty"`
 	Kind            string               `json:"record_kind"`
 	Key             string               `json:"business_key"`
 	Title           string               `json:"title"`
@@ -258,20 +262,21 @@ func (s *Service) ListNotificationGroups(ctx context.Context, actor, operator, c
 	var events []NotificationGroup
 	next := ""
 	err := s.within(ctx, nil, func(t *gorm.DB) error {
-		if err := s.require(ctx, t, actor, operator, "operations.manage"); err != nil {
+		if _, err := s.self(ctx, t, actor, operator); err != nil {
 			return err
 		}
 		filter, args := notificationListFilter(search, state)
-		personalNotices, err := s.notificationNotices(t, operator, "n.recipient_id=?"+filter, append([]any{actor}, args...))
-		if err != nil {
+		var counts struct{ TotalCount, UnreadCount int }
+		if err := t.Raw("SELECT count(*) AS total_count,count(*) FILTER(WHERE n.read_at IS NULL) AS unread_count FROM operations_notifications n JOIN operations_deliveries d ON d.notification_id=n.id WHERE n.operator_id=? AND n.recipient_id=?"+filter, append([]any{operator, actor}, args...)...).Scan(&counts).Error; err != nil {
 			return err
 		}
-		sortNotificationNotices(personalNotices)
-		personal = NotificationGroup{Kind: "personal", Key: "personal", Notices: personalNotices, TotalCount: len(personalNotices)}
-		for _, notice := range personalNotices {
-			if notice.ReadStatus == "unread" {
-				personal.UnreadCount++
+		personal = NotificationGroup{FilterSearch: search, FilterState: state, Kind: "personal", Key: "personal", Notices: []NotificationNotice{}, TotalCount: counts.TotalCount, UnreadCount: counts.UnreadCount}
+		// Membership permits reading one's own notices, not managing recipients.
+		if err := s.require(ctx, t, actor, operator, "operations.manage"); err != nil {
+			if errors.Is(err, ErrForbidden) || errors.Is(err, organization.ErrForbidden) {
+				return nil
 			}
+			return err
 		}
 		type eventKey struct {
 			BusinessKey, Title, Body, Category string
@@ -279,22 +284,26 @@ func (s *Service) ListNotificationGroups(ctx context.Context, actor, operator, c
 			TotalCount, UnreadCount            int
 		}
 		keys := []eventKey{}
-		eventSQL := `SELECT business_key, title, body, category, created_at, total_count, unread_count FROM (
-SELECT n.business_key, (array_agg(n.title ORDER BY n.created_at ASC))[1] AS title, (array_agg(n.body ORDER BY n.created_at ASC))[1] AS body, (array_agg(n.category ORDER BY n.created_at ASC))[1] AS category, MIN(n.created_at) AS created_at, COUNT(*) AS total_count, COUNT(*) FILTER (WHERE n.read_at IS NULL) AS unread_count
+		eventSQL := `SELECT groups.*, first_notice.title, first_notice.body, first_notice.category FROM (
+SELECT n.business_key, MIN(n.created_at) AS created_at, COUNT(*) AS total_count, COUNT(*) FILTER (WHERE n.read_at IS NULL) AS unread_count
 FROM operations_notifications n JOIN operations_deliveries d ON d.notification_id=n.id
 WHERE n.operator_id=?` + filter + `
 GROUP BY n.business_key
 HAVING COUNT(*) FILTER (WHERE n.recipient_id<>?)>0
-) groups`
+) groups JOIN LATERAL (
+ SELECT title,body,category FROM operations_notifications first
+ WHERE first.operator_id=? AND first.business_key=groups.business_key
+ ORDER BY first.created_at,first.id LIMIT 1
+) first_notice ON true`
 		eventArgs := append([]any{operator}, args...)
-		eventArgs = append(eventArgs, actor)
+		eventArgs = append(eventArgs, actor, operator)
 		if cursor != "" {
 			eventSQL += ` WHERE (created_at, business_key) < (?, ?)`
 			eventArgs = append(eventArgs, position.At, position.Key)
 		}
 		eventSQL += ` ORDER BY created_at DESC, business_key DESC LIMIT ?`
 		eventArgs = append(eventArgs, limit+1)
-		if err = t.Raw(eventSQL, eventArgs...).Scan(&keys).Error; err != nil {
+		if err := t.Raw(eventSQL, eventArgs...).Scan(&keys).Error; err != nil {
 			return err
 		}
 		if len(keys) > limit {
@@ -306,27 +315,71 @@ HAVING COUNT(*) FILTER (WHERE n.recipient_id<>?)>0
 		if len(keys) == 0 {
 			return nil
 		}
-		keyValues := make([]string, len(keys))
-		for i, key := range keys {
-			keyValues[i] = key.BusinessKey
-		}
-		notices, err := s.notificationNotices(t, operator, "n.business_key IN ?"+filter, append([]any{keyValues}, args...))
-		if err != nil {
-			return err
-		}
-		byKey := map[string][]NotificationNotice{}
-		for _, notice := range notices {
-			byKey[notice.BusinessKey] = append(byKey[notice.BusinessKey], notice)
-		}
 		for _, key := range keys {
-			grouped := byKey[key.BusinessKey]
-			sortNotificationNotices(grouped)
-			events = append(events, NotificationGroup{Kind: "event", Key: key.BusinessKey, Title: key.Title, Body: key.Body, Category: key.Category, CreatedAt: key.CreatedAt, UnreadCount: key.UnreadCount, TotalCount: key.TotalCount, SystemGenerated: systemNotificationNamespace(key.BusinessKey) != "", Notices: grouped})
+			events = append(events, NotificationGroup{FilterSearch: search, FilterState: state, Kind: "event", Key: key.BusinessKey, Title: key.Title, Body: key.Body, Category: key.Category, CreatedAt: key.CreatedAt, UnreadCount: key.UnreadCount, TotalCount: key.TotalCount, SystemGenerated: systemNotificationNamespace(key.BusinessKey) != "", Notices: []NotificationNotice{}})
 		}
 		return nil
 	})
 	return personal, events, next, err
 }
+
+type notificationNoticeCursor struct {
+	Unread bool      `json:"unread"`
+	At     time.Time `json:"at"`
+	ID     string    `json:"id"`
+}
+
+func (s *Service) ListNotificationNotices(ctx context.Context, actor, operator, group, cursor, search, state string, limit int) ([]NotificationNotice, string, error) {
+	if limit < 1 || limit > 100 || group == "" || len(group) > 500 || len(search) > 200 {
+		return nil, "", ErrInvalid
+	}
+	var position notificationNoticeCursor
+	if cursor != "" {
+		raw, err := base64.RawURLEncoding.DecodeString(cursor)
+		if err != nil || json.Unmarshal(raw, &position) != nil || position.At.IsZero() || !validID(position.ID) {
+			return nil, "", ErrInvalid
+		}
+	}
+	var rows []NotificationNotice
+	err := s.within(ctx, nil, func(t *gorm.DB) error {
+		if _, err := s.self(ctx, t, actor, operator); err != nil {
+			return err
+		}
+		where := "n.recipient_id=?"
+		args := []any{actor}
+		if group != "personal" {
+			if err := s.require(ctx, t, actor, operator, "operations.manage"); err != nil {
+				return err
+			}
+			where = "n.business_key=?"
+			args = []any{group}
+		}
+		filter, values := notificationListFilter(search, state)
+		where += filter
+		args = append(args, values...)
+		if cursor != "" {
+			where += " AND ((n.read_at IS NULL),n.created_at,n.id)<(?,?,?::uuid)"
+			args = append(args, position.Unread, position.At, position.ID)
+		}
+		where += " ORDER BY (n.read_at IS NULL) DESC,n.created_at DESC,n.id DESC LIMIT ?"
+		args = append(args, limit+1)
+		var err error
+		rows, err = s.notificationNotices(t, operator, where, args)
+		return err
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	next := ""
+	if len(rows) > limit {
+		rows = rows[:limit]
+		last := rows[len(rows)-1]
+		raw, _ := json.Marshal(notificationNoticeCursor{Unread: last.ReadStatus == "unread", At: last.CreatedAt, ID: last.ID})
+		next = base64.RawURLEncoding.EncodeToString(raw)
+	}
+	return rows, next, nil
+}
+
 func notificationListFilter(search, state string) (string, []any) {
 	clause := ""
 	args := []any{}

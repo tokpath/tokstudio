@@ -710,6 +710,7 @@ func procurementPaymentAction(ch payments.Checkout) gin.H {
 		p = gin.H{"kind": "offline"}
 	}
 	p["settlement_money"] = ch.SettlementMoney
+	p["payment_quote"] = ch.PaymentQuote
 	if ch.Instructions != "" {
 		p["instructions"] = ch.Instructions
 	}

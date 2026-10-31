@@ -43,7 +43,22 @@ func TestPostgresExpiredUnpaidOrderReleasesAndRecordedPaymentStays(t *testing.T)
 	if err := f.a.DB.Table("payments_verified_facts").Create(map[string]any{"id": uuid.NewString(), "merchant_id": manual.ID, "operator_id": op, "order_id": paid, "kind": "receipt", "fingerprint": "recorded-payment", "fact": `{}`, "valuation": `{}`, "state": "verified", "observed_at": now}).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := f.a.expireUnpaidOrders(t.Context(), 50); err != nil {
+	online, err := f.a.Payments.SaveMerchant(t.Context(), owner, payments.Merchant{ID: uuid.NewString(), OperatorID: op, Driver: "kvoucher", Enabled: true, Credentials: map[string]string{"kvoucher_api_key": "fixture", "kvoucher_api_secret": "fixture"}}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	protected := []string{}
+	for _, state := range []string{"executing", "created", "outcome_unknown", "awaiting_settlement", "verified"} {
+		id := create("online-"+state, now.Add(-2*time.Hour))
+		if err := f.a.DB.Model(&checkoutRow{}).Where("order_id=?", id).Update("merchant_id", online.ID).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := f.a.DB.Table("payments_intents").Create(map[string]any{"merchant_id": online.ID, "order_id": id, "operator_id": op, "fingerprint": id, "state": state, "order_ciphertext": "fixture", "created_at": now.Add(-time.Hour), "updated_at": now.Add(-time.Hour)}).Error; err != nil {
+			t.Fatal(err)
+		}
+		protected = append(protected, id)
+	}
+	if err := f.a.expireUnpaidOrders(t.Context(), 1); err != nil {
 		t.Fatal(err)
 	}
 	statusOf := func(id string) string {
@@ -63,4 +78,10 @@ func TestPostgresExpiredUnpaidOrderReleasesAndRecordedPaymentStays(t *testing.T)
 	if statusOf(expired) != "closed" {
 		t.Fatal("repeat expiry changed the closed order", statusOf(expired))
 	}
+	for _, id := range protected {
+		if statusOf(id) != "pending" {
+			t.Fatal("unresolved online payment was closed")
+		}
+	}
+
 }

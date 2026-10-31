@@ -6950,5 +6950,190 @@
     "en": "Enter the public model ID and select its capabilities. Customer requests and pages use this ID. Toggle availability in the list after configuring a route. Set billing templates and retail/wholesale ATG prices in Model pricing. Reference prices on supplier models are used only to calculate upstream costs.",
     "ja": "公開モデル ID と呼び出せる機能を設定します。顧客リクエストと画面はこの ID を使います。ルート設定後、一覧で公開を切り替えます。課金テンプレートと小売・卸売 ATG 価格は「モデルと価格」で設定します。供給元モデルの参考価格表は上流コストの計算にのみ使用します。",
     "ru": "Укажите идентификатор публичной модели и её возможности. Запросы клиентов и страницы используют этот идентификатор. После настройки маршрута доступ переключается в списке. Шаблоны тарификации и розничные/оптовые цены в ATG задаются в разделе «Модели и цены». Справочные цены моделей поставщиков используются только для расчёта затрат."
+  },
+  "人工转账": {
+    "en": "Manual transfer",
+    "ja": "手動送金",
+    "ru": "Ручной перевод"
+  },
+  "付款报价来源": {
+    "en": "Payment quote sources",
+    "ja": "支払見積りの情報源",
+    "ru": "Источники платёжных котировок"
+  },
+  "优先使用支付通道报价，通道无报价时使用 Frankfurter 参考汇率。首次外币付款时获取并缓存，之后自动更新。报价只确定本单付款金额，不换算资产、供应商成本或利润。": {
+    "en": "Use the payment provider’s quote first, with Frankfurter reference rates as a fallback. Rates are cached on the first foreign-currency payment and refreshed automatically. Quotes price this payment only; they do not convert assets, supplier costs, or profit.",
+    "ja": "決済サービスの見積りを優先し、提供されない場合は Frankfurter の参考為替レートを使用します。初回の外貨支払時に取得・保存し、その後自動更新します。見積りは本支払の金額のみを決定し、資産・仕入先コスト・利益の換算には使用しません。",
+    "ru": "Приоритет имеет котировка платёжного провайдера; при её отсутствии используются справочные курсы Frankfurter. Курсы сохраняются при первом валютном платеже и обновляются автоматически. Котировка определяет только сумму этого платежа, без пересчёта активов, затрат поставщиков и прибыли."
+  },
+  "修改提现方式": {
+    "en": "Edit withdrawal method",
+    "ja": "出金方法を編集",
+    "ru": "Изменить способ вывода"
+  },
+  "加载更多": {
+    "en": "Load more",
+    "ja": "さらに読み込む",
+    "ru": "Загрузить ещё"
+  },
+  "参考汇率来源": {
+    "en": "Reference rate source",
+    "ja": "参考為替レートの情報源",
+    "ru": "Источник справочного курса"
+  },
+  "启用参考报价": {
+    "en": "Enable reference quotes",
+    "ja": "参考レートによる見積りを有効化",
+    "ru": "Включить справочные котировки"
+  },
+  "固定手续费": {
+    "en": "Fixed fee",
+    "ja": "固定手数料",
+    "ru": "Фиксированная комиссия"
+  },
+  "固定金额": {
+    "en": "Fixed amount",
+    "ja": "固定額",
+    "ru": "Фиксированная сумма"
+  },
+  "填写 2 表示按提现总额收取 2%。手续费按清算币种最小支付单位四舍五入，确认后固定。": {
+    "en": "Enter 2 for a 2% fee on the withdrawal total. The fee is rounded to the settlement currency’s smallest payment unit and fixed on confirmation.",
+    "ja": "2 を入力すると出金総額の 2% です。手数料は清算通貨の最小支払単位に四捨五入し、確認時に確定します。",
+    "ru": "Введите 2 для комиссии 2% от суммы вывода. Комиссия округляется до минимальной платёжной единицы расчётной валюты и фиксируется при подтверждении."
+  },
+  "手续费方式": {
+    "en": "Fee type",
+    "ja": "手数料の種類",
+    "ru": "Тип комиссии"
+  },
+  "手续费率 %": {
+    "en": "Fee rate %",
+    "ja": "手数料率 %",
+    "ru": "Ставка комиссии %"
+  },
+  "报价来源": {
+    "en": "Quote source",
+    "ja": "見積りの情報源",
+    "ru": "Источник котировки"
+  },
+  "按比例": {
+    "en": "Percentage",
+    "ja": "割合",
+    "ru": "Процент"
+  },
+  "提现方式": {
+    "en": "Withdrawal methods",
+    "ja": "出金方法",
+    "ru": "Способы вывода"
+  },
+  "提现方式名称": {
+    "en": "Withdrawal method name",
+    "ja": "出金方法の名称",
+    "ru": "Название способа вывода"
+  },
+  "新增提现方式": {
+    "en": "Add withdrawal method",
+    "ja": "出金方法を追加",
+    "ru": "Добавить способ вывода"
+  },
+  "无需人工填写汇率。没有有效报价时暂停该方式的跨币种付款；通道自己的报价仍优先使用。": {
+    "en": "No manual exchange rate is needed. Cross-currency payments pause when no valid quote is available. Provider quotes retain priority.",
+    "ja": "為替レートの手入力は不要です。有効な見積りがない場合、その方法での異通貨支払を停止します。決済サービスの見積りを優先します。",
+    "ru": "Курс не нужно вводить вручную. Если действительной котировки нет, валютные платежи этим способом приостанавливаются. Котировки провайдера имеют приоритет."
+  },
+  "暂时无法取得有效付款报价，请稍后重试或选择其他付款方式；报价来源由平台配置。": {
+    "en": "A valid payment quote is temporarily unavailable. Try again later or choose another method. Quote sources are configured by the platform.",
+    "ja": "現在、有効な支払見積りを取得できません。後でもう一度試すか、別の方法を選んでください。情報源はプラットフォームが設定します。",
+    "ru": "Не удалось получить действительную платёжную котировку. Повторите попытку позже или выберите другой способ. Источники настраивает платформа."
+  },
+  "最近成功同步": {
+    "en": "Last successful sync",
+    "ja": "最終同期成功日時",
+    "ru": "Последняя успешная синхронизация"
+  },
+  "本次实际需支付": {
+    "en": "Amount to pay",
+    "ja": "今回の支払額",
+    "ru": "Сумма к оплате"
+  },
+  "来源说明": {
+    "en": "Source information",
+    "ja": "情報源の説明",
+    "ru": "Сведения об источнике"
+  },
+  "汇率数据日期": {
+    "en": "Rate data date",
+    "ja": "為替レートの日付",
+    "ru": "Дата курса"
+  },
+  "设置可用提现方式及固定手续费或手续费率。申请时固定本次费用和实付金额，线下按实付金额付款，无需逐笔登记实际手续费。": {
+    "en": "Set available withdrawal methods with a fixed or percentage fee. The fee and payout are fixed when requested. Record the offline payout without entering actual transaction fees separately.",
+    "ja": "利用可能な出金方法と固定額または割合の手数料を設定します。申請時に手数料と支払額を確定し、その金額をオフラインで支払います。実際の手数料を取引ごとに入力する必要はありません。",
+    "ru": "Настройте способы вывода с фиксированной или процентной комиссией. Комиссия и выплата фиксируются при подаче заявки. Выплата выполняется вручную; отдельно вводить фактические комиссии не требуется."
+  },
+  "设置报价来源": {
+    "en": "Configure quote source",
+    "ja": "見積りの情報源を設定",
+    "ru": "Настроить источник котировок"
+  },
+  "请按本单显示的 MYR 金额在 Gkash 完成付款，付款后返回核实原订单。": {
+    "en": "Pay the displayed MYR amount through Gkash, then return to verify this order.",
+    "ja": "表示された MYR 金額を Gkash で支払い、戻って元の注文を確認してください。",
+    "ru": "Оплатите указанную сумму MYR через Gkash, затем вернитесь для проверки исходного заказа."
+  },
+  "请由平台配置付款报价来源": {
+    "en": "Ask the platform to configure payment quote sources.",
+    "ja": "支払見積りの情報源はプラットフォームが設定します。",
+    "ru": "Источники платёжных котировок настраивает платформа."
+  },
+  "请等待平台启用外币付款报价来源。": {
+    "en": "Await platform activation of foreign-currency quote sources.",
+    "ja": "プラットフォームによる外貨見積りの有効化をお待ちください。",
+    "ru": "Дождитесь включения платформой источника валютных котировок."
+  },
+  "请等待平台启用外币付款报价来源。通道自己的报价不受影响。": {
+    "en": "Await platform activation of the reference quote source. Provider quotes remain available.",
+    "ja": "プラットフォームによる参考見積りの有効化をお待ちください。決済サービス独自の見積りは引き続き利用できます。",
+    "ru": "Дождитесь включения справочного источника платформой. Котировки платёжных провайдеров продолжают работать."
+  },
+  "请等待经营方配置可用提现方式。": {
+    "en": "Await configuration of withdrawal methods by your operator.",
+    "ja": "運営者による出金方法の設定をお待ちください。",
+    "ru": "Дождитесь настройки способов вывода оператором."
+  },
+  "费用从提现总额中扣除，确认后固定；经营方按实付金额线下付款。": {
+    "en": "Fees are deducted from the withdrawal total and fixed on confirmation. The operator pays the net amount offline.",
+    "ja": "手数料は出金総額から差し引き、確認後に確定します。運営者が差引支払額をオフラインで支払います。",
+    "ru": "Комиссия вычитается из суммы вывода и фиксируется при подтверждении. Оператор выплачивает чистую сумму вручную."
+  },
+  "超过付款期限且已确认未付款的订单会自动关闭；线上结果未明时继续核实，请勿重复付款。": {
+    "en": "Overdue orders close automatically only after non-payment is confirmed. Unresolved online payments remain under verification; do not pay again.",
+    "ja": "支払期限を過ぎた注文は未払いが確認された場合のみ自動終了します。オンライン決済の結果が不明な場合は確認を続けます。重複して支払わないでください。",
+    "ru": "Просроченный заказ закрывается автоматически только после подтверждения отсутствия оплаты. Неопределённые онлайн-платежи продолжают проверяться; не платите повторно."
+  },
+  "通知明细": {
+    "en": "Notification details",
+    "ja": "通知の詳細",
+    "ru": "Подробности уведомления"
+  },
+  "尚未同步": {
+    "en": "Not synced yet",
+    "ja": "未同期",
+    "ru": "Ещё не синхронизировано"
+  },
+  "数据已过期": {
+    "en": "Data is stale",
+    "ja": "データの期限切れ",
+    "ru": "Данные устарели"
+  },
+  "我的通知": {
+    "en": "My notifications",
+    "ja": "自分の通知",
+    "ru": "Мои уведомления"
+  },
+  "查看发给本人的业务通知，可以标为已读。": {
+    "en": "Read business notifications addressed to you and mark them as read.",
+    "ja": "自分宛ての業務通知を確認し、既読にできます。",
+    "ru": "Просматривайте адресованные вам уведомления и отмечайте их прочитанными。"
   }
 }

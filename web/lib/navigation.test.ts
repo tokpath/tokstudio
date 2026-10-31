@@ -4,9 +4,10 @@ import { canReadResource, customerSections, operatorNav, operatorLanding, sectio
 describe("task navigation and organization boundaries", () => {
   it("keeps every established operator capability reachable once without duplicate risk or content storage settings", () => {
     const resources = operatorNav.flatMap(section => section.items.map(([resource]) => resource));
-    expect(resources).toHaveLength(44);
-    expect(new Set(resources).size).toBe(44);
+    expect(resources).toHaveLength(45);
+    expect(new Set(resources).size).toBe(45);
     expect(resources).toContain("routes");
+    expect(resources).toContain("payment-quotes");
     expect(resources).toContain("pricing");
     expect(resources).not.toContain("risk");
     expect(resources).not.toContain("retention");

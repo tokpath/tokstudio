@@ -185,42 +185,56 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 			handleError(c, e)
 			return
 		}
+		methods, err := a.Incentives.WithdrawalMethods(ctx, nil, op, true)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		active := map[string]incentives.WithdrawalPolicy{}
+		for _, method := range methods {
+			active[method.ID] = method
+		}
 		for _, preview := range previews {
 			var quote incentives.WithdrawalQuote
 			if json.Unmarshal(preview.Quote, &quote) != nil {
 				handleError(c, incentives.ErrInvalidInput)
 				return
 			}
-			row := entity(preview.ID, "quoted", 1, gin.H{"amount_money": quote.AmountMoney, "fee_money": quote.FeeMoney, "net_money": quote.NetMoney, "expires_at": preview.ExpiresAt})
+			method, available := active[quote.Policy.ID]
+			if !available || quote.AmountMoney.Cmp(method.MinimumMoney) < 0 {
+				continue
+			}
+			row := entity(preview.ID, "quoted", 1, gin.H{"method_name": quote.Policy.MethodName, "amount_money": quote.AmountMoney, "fee_money": quote.FeeMoney, "net_money": quote.NetMoney, "expires_at": preview.ExpiresAt})
 			row["allowed_actions"] = []string{"confirm"}
 			items = append(items, row)
 		}
 		p["row_operations"] = []operation{{Name: "confirm", Label: "确认费用并提交", Method: "POST", Path: "/api/v1/me/withdrawals/quotes/{id}/confirm", Fields: []field{f("recipient_reference", "本人真实收款资料", "textarea")}, Confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。"}, {Name: "cancel", Label: "取消提现申请", Method: "POST", Path: "/api/v1/me/withdrawals/{id}/cancel", Fields: []field{}, Description: "仅尚未审核的本人提现申请可以取消。", Confirmation: "确认取消这笔尚未审核的提现申请？取消成功后释放本笔佣金占用；已进入审核或付款环节的申请须按最新状态继续办理。"}}
 		p["title"] = "佣金提现"
 		p["items"] = items
-		p["columns"] = []gin.H{col("id", "提现申请", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("status", "状态", "status")}
+		p["columns"] = []gin.H{col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("status", "状态", "status")}
 		amount := f("amount_money", "提现总额 结算币种", "decimal")
 		quote := operation{Name: "quote", Label: "核算提现费用", Method: "POST", Path: "/api/v1/me/withdrawals/quotes", Fields: []field{amount}}
-		var policy incentives.WithdrawalPolicy
-		found := a.DB.WithContext(ctx).Table("incentives_withdrawal_policies").Where("operator_id=?", op).Order("version DESC").Limit(1).Find(&policy)
-		if found.Error != nil {
-			handleError(c, found.Error)
-			return
+
+		method := f("method_id", "提现方式", "select")
+		for _, m := range methods {
+			method.Options = append(method.Options, gin.H{"value": m.MethodID, "label": m.MethodName})
 		}
-		if found.RowsAffected > 0 {
-			minimum := policy.MinimumMoney.String()
+		if len(methods) > 0 {
+			method.Default = methods[0].MethodID
+			minimum := methods[0].MinimumMoney.String()
 			rule := "单笔提现总额不能低于经营方公布的最低额度 " + minimum + " 结算币种。"
 			p["description"] = rule
 			p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum, "unit": "MONEY", "detail": "单笔提现总额不能低于经营方公布的这个额度。"}}
-			amount.Help = "提现手续费由你承担。经营方单人审批后付款。"
-			quote.Fields = []field{amount}
+			amount.Help = "费用从提现总额中扣除，确认后固定；经营方按实付金额线下付款。"
+			quote.Fields = []field{method, amount}
 			quote.Description = rule
 		} else {
-			rule := "经营方尚未公布提现规则，暂时不能核算费用。"
-			p["description"] = rule
-			p["summary"] = []gin.H{{"label": "最低提现额度", "value": "尚未公布", "detail": rule}}
-			quote.Description = rule
+			p["description"] = "请等待经营方配置可用提现方式。"
+			p["operations"] = []operation{}
+			a.resourceResponse(c, p)
+			return
 		}
+
 		p["operations"] = []operation{quote}
 	case "account":
 		email, e := a.Organization.CustomerEmail(ctx, nil, customer)
@@ -286,6 +300,7 @@ func (a *Application) operatorRoutes(r *gin.RouterGroup) {
 	r.GET("/refunds/:id/destination", a.staffRefundDestination)
 	r.GET("/reports/financial", a.financialReport)
 	r.GET("/notifications/unread-count", a.staffUnreadNotifications)
+	r.GET("/notifications/notices", a.staffNotificationNotices)
 	r.GET("/references/:reference", a.references)
 	r.GET("/:resource/:id/files", a.invoiceFiles)
 	r.GET("/:resource/:id/files/:fileID", a.downloadInvoiceFile)
@@ -307,7 +322,7 @@ func permissionFor(resource string) string {
 		return "customers.read"
 	case "plans", "orders", "pricing":
 		return "sales.manage"
-	case "payments", "payment-methods", "valuations", "receipt-valuations", "evidence":
+	case "payments", "payment-methods", "payment-quotes", "valuations", "receipt-valuations", "evidence":
 		return "payments.manage"
 	case "marketing", "commissions", "gifts":
 		return "marketing.manage"
@@ -368,6 +383,10 @@ func (a *Application) staffScope(c *gin.Context, resource string) (organization.
 
 	}
 	e = a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, permission)
+	if resource == "notifications" && (c.Request.Method == "GET" || c.Request.Method == "POST" && c.Param("action") == "read") {
+		_, e = a.Operations.UnreadNotificationCount(c.Request.Context(), actor, op.ID)
+	}
+
 	// Finance may inspect exact orders to allocate receipts, without receiving
 	// permission to publish products or force delivery. Writes still use sales.manage.
 	if e != nil && resource == "orders" && c.Request.Method == "GET" {
@@ -535,6 +554,9 @@ func (a *Application) operatorResource(c *gin.Context) {
 		p["columns"] = []gin.H{col("kind", "业务类型", "text"), col("counterparty_name", "客户或采购方", "text"), col("due_money", "应付", "money"), col("external_allocated_money", "外部已分配", "money"), col("paid_atg", "购买权益", "atg"), col("created_at", "创建", "datetime")}
 		p["row_operations"] = []operation{{Name: "fulfill", Label: "重试交付", Permission: "sales.manage", Method: "POST", Path: base + "/{id}/fulfill", Fields: []field{}, Confirmation: "核实原订单资金、覆盖及资格后重试，不能跳过付款条件。"}}
 		p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "fulfill_supply", Label: "重试供货交付", Permission: "payments.manage", Method: "POST", Path: base + "/{id}/fulfill_supply", Fields: []field{}})
+	case "payment-quotes":
+		a.paymentQuoteSettingsResource(c, op, p, base)
+		return
 	case "payment-methods":
 		rows, e := a.Payments.ListMerchantConfigs(ctx, actor, op.ID)
 		if e != nil {

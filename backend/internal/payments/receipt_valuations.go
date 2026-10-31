@@ -79,6 +79,19 @@ func receiptExecutionValue(o Order, f Fact) (MoneyValue, string) {
 		}
 		return v, ""
 	}
+	if q := o.PaymentQuote; q != nil {
+		if q.SettlementMoney.Currency != settlement.Currency || q.SettlementMoney.Amount.Cmp(settlement.Amount) != 0 || q.PayMoney.Currency != f.Money.Currency || q.PayMoney.Amount.Cmp(f.Money.Amount) != 0 {
+			return MoneyValue{}, "quoted_payment_amount_mismatch"
+		}
+		if f.OccurredAt != nil && f.OccurredAt.After(q.ExpiresAt) {
+			return MoneyValue{}, "payment_after_quote_expiry"
+		}
+		value, err := (Valuation{Currency: settlement.Currency, Amount: settlement.Amount, Source: "payment-quote:" + q.ID + "; source:" + q.Source}).Convert(f.Money, time.Time{})
+		if err != nil {
+			return MoneyValue{}, "settlement_confirmation_invalid"
+		}
+		return value, ""
+	}
 	if f.Money.Currency == settlement.Currency {
 		return nativeValue(f.Money, "Verified receipt in the order settlement currency"), ""
 	}

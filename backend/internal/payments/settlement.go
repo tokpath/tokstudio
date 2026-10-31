@@ -13,17 +13,18 @@ func SettlementSupport(m Merchant, currency string) (bool, string) {
 	case "manual", "evm_wallet":
 		supported = true
 	case "stripe":
-		_, supported = stripeMinorDigits(currency)
-		supported = supported && m.Credentials["currency"] == currency
+		_, supported = fiatMinorDigits(currency)
+		_, paySupported := stripeMinorDigits(m.Credentials["currency"])
+		supported = supported && paySupported
 	case "alipay", "wechat":
-		supported = currency == "CNY"
+		_, supported = fiatMinorDigits(currency)
 	case "kvoucher":
-		// Gkash collects MYR. A USD order keeps its USD obligation and the
-		// driver converts that amount into the MYR face, including the fee.
-		supported = currency == "MYR" || currency == "USD"
+		// Gkash collects MYR; foreign settlement obligations use a pinned
+		// per-payment quote without changing the verified receipt currency.
+		_, supported = fiatMinorDigits(currency)
 	case "nowpayments":
-		// These price currencies are covered by the implemented fiat invoice flow.
-		supported = currency == "USD" || currency == "EUR" || currency == "GBP" || currency == "JPY"
+		// Other fiat obligations use a reference-priced provider invoice.
+		_, supported = fiatMinorDigits(currency)
 	}
 	if supported {
 		return true, ""

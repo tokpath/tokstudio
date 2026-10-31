@@ -56,7 +56,7 @@ func TestPostgresCustomerWithdrawalCancellationOnlyBeforeReview(t *testing.T) {
 		} else if err := f.a.DB.Create(&hold).Error; err != nil {
 			t.Fatal(err)
 		}
-		row := incentives.Withdrawal{ID: uuid.NewString(), OperatorID: op, CustomerID: customer, PolicyID: policy.ID, BusinessKey: "withdrawal-view:" + state, Fingerprint: "synthetic fixture", AmountMoney: ledger.MustDecimal("5.000000000000000001"), NetMoney: ledger.MustDecimal("5.000000000000000001"), FeeRemainder: "0", RecipientReference: "synthetic recipient", HoldID: hold.ID, Status: state, CreatedAt: time.Now()}
+		row := incentives.Withdrawal{MethodID: policy.MethodID, MethodName: policy.MethodName, ID: uuid.NewString(), OperatorID: op, CustomerID: customer, PolicyID: policy.ID, BusinessKey: "withdrawal-view:" + state, Fingerprint: "synthetic fixture", AmountMoney: ledger.MustDecimal("5.000000000000000001"), NetMoney: ledger.MustDecimal("5.000000000000000001"), FeeRemainder: "0", RecipientReference: "synthetic recipient", HoldID: hold.ID, Status: state, CreatedAt: time.Now()}
 		if err := f.a.DB.Table("incentives_withdrawals").Create(&row).Error; err != nil {
 			t.Fatal(err)
 		}
@@ -201,7 +201,7 @@ func TestPostgresCommissionPageSetsWithdrawalMinimumOnly(t *testing.T) {
 		t.Fatal(page["items"])
 	}
 	status, out, _ = f.call(t, "POST", base+"/withdrawals", map[string]any{"minimum_money": "9"}, "")
-	if status != 409 {
+	if status != 400 {
 		t.Fatal(status, out)
 	}
 }

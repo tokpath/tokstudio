@@ -10,78 +10,176 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"golang.org/x/text/currency"
 	"gorm.io/gorm"
 )
 
 const commissionWithdrawalTerms = "提现手续费由申请人承担；经营方单人审批后付款。"
 
-func (s *Service) SetCommissionWithdrawalMinimum(ctx context.Context, tx *gorm.DB, actor, operator string, minimum ledger.Decimal) (WithdrawalPolicy, error) {
-	return s.SetWithdrawalPolicy(ctx, tx, actor, operator, WithdrawalPolicy{MinimumMoney: minimum, MethodReference: commissionWithdrawalTerms}, -1)
-}
-func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, operator string, in WithdrawalPolicy, expectedVersion int64) (out WithdrawalPolicy, err error) {
-	if !validID(operator) || expectedVersion < -1 || in.MinimumMoney.Sign() <= 0 || !in.MinimumMoney.Valid() || in.FlatFeeMoney.Sign() < 0 || !in.FlatFeeMoney.Valid() || !rateValid(in.FeeRate) || in.FeeRate.Cmp(ledger.FromInt64(1)) == 0 || in.MethodReference == "" {
+func (s *Service) SetCommissionWithdrawalMinimum(ctx context.Context, tx *gorm.DB, actor, operator string, minimum ledger.Decimal) (out WithdrawalPolicy, err error) {
+	if !minimum.Valid() || minimum.Sign() <= 0 {
 		return out, ErrInvalidInput
 	}
-	err = s.within(ctx, tx, func(tx *gorm.DB) error {
-		permission := "withdrawals.manage"
-		if expectedVersion < 0 {
-			permission = "marketing.manage"
-			in.FlatFeeMoney = ledger.Zero()
-			in.FeeRate = ledger.Zero()
-			in.RequiresDualApproval = false
-			in.MethodReference = commissionWithdrawalTerms
-		}
-		if err := s.org.RequirePermission(ctx, tx, actor, operator, permission); err != nil {
+	err = s.within(ctx, tx, func(t *gorm.DB) error {
+		if err := s.org.RequirePermission(ctx, t, actor, operator, "marketing.manage"); err != nil {
 			return err
 		}
-		if err := s.LockBusiness(ctx, tx, operator); err != nil {
+		if err := s.LockBusiness(ctx, t, operator); err != nil {
 			return err
 		}
-		var old withdrawalPolicyRow
-		q := tx.Where("operator_id=?", operator).Order("version DESC").Limit(1).Find(&old)
-		if q.Error != nil {
-			return q.Error
-		}
-		if expectedVersion < 0 {
-			expectedVersion = old.Version
-		}
-		if old.Version != expectedVersion {
-			return ErrConflict
-		}
-		instant, err := s.BusinessInstant(ctx, tx)
-		if err != nil {
+		if err := t.Exec("INSERT INTO incentives_withdrawal_settings(operator_id,minimum_money) VALUES(?,?) ON CONFLICT(operator_id) DO UPDATE SET minimum_money=excluded.minimum_money", operator, minimum).Error; err != nil {
 			return err
 		}
-		r := withdrawalPolicyRow{ID: uuid.NewString(), OperatorID: operator, Version: old.Version + 1, MinimumMoney: in.MinimumMoney, FlatFeeMoney: in.FlatFeeMoney, FeeRate: in.FeeRate, RequiresDualApproval: in.RequiresDualApproval, MethodReference: in.MethodReference, EffectiveAt: instant.At}
-		if err = tx.Create(&r).Error; err != nil {
-			return err
-		}
-		out = WithdrawalPolicy(r)
-		var before any
-		if q.RowsAffected > 0 {
-			before = WithdrawalPolicy(old)
-		}
-		return s.event(tx, operator, r.ID, "withdrawal.policy_changed", map[string]any{"actor_id": actor, "evidence": in.MethodReference, "before": before, "after": out})
+		out.MinimumMoney = minimum
+		out.OperatorID = operator
+		return s.event(t, operator, operator, "withdrawal.minimum_changed", map[string]any{"actor_id": actor, "minimum_money": minimum})
 	})
 	return
 }
-func (s *Service) QuoteWithdrawal(ctx context.Context, tx *gorm.DB, operator string, amount ledger.Decimal) (WithdrawalQuote, error) {
-	var policy withdrawalPolicyRow
-	q := s.dbFor(ctx, tx).Where("operator_id=?", operator).Order("version DESC").Limit(1).Find(&policy)
-	if q.Error != nil {
-		return WithdrawalQuote{}, q.Error
+
+func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, operator string, in WithdrawalPolicy, expectedVersion int64) (out WithdrawalPolicy, err error) {
+	if !validID(operator) || expectedVersion < 0 || !in.MinimumMoney.Valid() || in.MinimumMoney.Sign() <= 0 || !in.FlatFeeMoney.Valid() || in.FlatFeeMoney.Sign() < 0 || !rateValid(in.FeeRate) || in.FeeRate.Cmp(ledger.FromInt64(1)) == 0 || in.FlatFeeMoney.Sign() > 0 && in.FeeRate.Sign() > 0 {
+		return out, ErrInvalidInput
 	}
-	if q.RowsAffected == 0 {
+	err = s.within(ctx, tx, func(t *gorm.DB) error {
+		if err := s.org.RequirePermission(ctx, t, actor, operator, "withdrawals.manage"); err != nil {
+			return err
+		}
+		if err := s.LockBusiness(ctx, t, operator); err != nil {
+			return err
+		}
+		var latest withdrawalPolicyRow
+		if err := t.Where("operator_id=?", operator).Order("version DESC").Limit(1).Find(&latest).Error; err != nil {
+			return err
+		}
+		// An omitted method selects the operator's initial method, convenient
+		// for bootstrap. The management UI always edits an explicit method.
+		if in.MethodID == "" {
+			in.Enabled = true
+			in.MethodID = latest.MethodID
+			if in.MethodID == "" {
+				in.MethodID = uuid.NewString()
+			}
+		}
+		if !validID(in.MethodID) {
+			return ErrInvalidInput
+		}
+		var previous withdrawalPolicyRow
+		if err := t.Where("operator_id=? AND method_id=?", operator, in.MethodID).Order("version DESC").Limit(1).Find(&previous).Error; err != nil {
+			return err
+		}
+		if previous.Version != expectedVersion {
+			return ErrConflict
+		}
+		if in.MethodName == "" {
+			in.MethodName = "人工转账"
+		}
+		if len(in.MethodName) > 100 {
+			return ErrInvalidInput
+		}
+		if in.MethodReference == "" {
+			in.MethodReference = commissionWithdrawalTerms
+		}
+		instant, err := s.BusinessInstant(ctx, t)
+		if err != nil {
+			return err
+		}
+		r := withdrawalPolicyRow(in)
+		r.ID = uuid.NewString()
+		r.OperatorID = operator
+		r.Version = latest.Version + 1
+		r.EffectiveAt = instant.At
+		if err = t.Create(&r).Error; err != nil {
+			return err
+		}
+		if err = t.Exec("INSERT INTO incentives_withdrawal_settings(operator_id,minimum_money) VALUES(?,?) ON CONFLICT(operator_id) DO NOTHING", operator, in.MinimumMoney).Error; err != nil {
+			return err
+		}
+		out = WithdrawalPolicy(r)
+		return s.event(t, operator, r.ID, "withdrawal.method_changed", map[string]any{"actor_id": actor, "before": previous, "after": out})
+	})
+	return
+}
+
+func (s *Service) WithdrawalMethods(ctx context.Context, tx *gorm.DB, operator string, enabledOnly bool) ([]WithdrawalPolicy, error) {
+	monetary, err := ledger.GetMonetary(ctx, s.dbFor(ctx, tx))
+	if err != nil {
+		return nil, err
+	}
+	var rows []withdrawalPolicyRow
+	if err := s.dbFor(ctx, tx).Raw("SELECT * FROM (SELECT DISTINCT ON(method_id) * FROM incentives_withdrawal_policies WHERE operator_id=? ORDER BY method_id,version DESC) methods ORDER BY method_name,method_id", operator).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	var minimum struct{ MinimumMoney ledger.Decimal }
+	if err := s.dbFor(ctx, tx).Table("incentives_withdrawal_settings").Where("operator_id=?", operator).Limit(1).Find(&minimum).Error; err != nil {
+		return nil, err
+	}
+	out := []WithdrawalPolicy{}
+	for _, r := range rows {
+		if enabledOnly && !r.Enabled {
+			continue
+		}
+		p := WithdrawalPolicy(r)
+		p.Currency = monetary.Currency
+		if minimum.MinimumMoney.Sign() > 0 {
+			p.MinimumMoney = minimum.MinimumMoney
+		}
+		out = append(out, p)
+	}
+	return out, nil
+}
+func (s *Service) QuoteWithdrawal(ctx context.Context, tx *gorm.DB, operator string, amount ledger.Decimal, methodID ...string) (WithdrawalQuote, error) {
+	methods, err := s.WithdrawalMethods(ctx, tx, operator, true)
+	if err != nil {
+		return WithdrawalQuote{}, err
+	}
+	if len(methods) == 0 {
 		return WithdrawalQuote{}, ErrNotReady
 	}
-	return quoteWithdrawal(WithdrawalPolicy(policy), amount)
+	if len(methodID) > 0 && methodID[0] != "" {
+		for _, m := range methods {
+			if m.MethodID == methodID[0] {
+				return quoteWithdrawal(m, amount)
+			}
+		}
+		return WithdrawalQuote{}, ErrNotReady
+	}
+	if len(methods) != 1 {
+		return WithdrawalQuote{}, ErrInvalidInput
+	}
+	return quoteWithdrawal(methods[0], amount)
 }
 func quoteWithdrawal(policy WithdrawalPolicy, amount ledger.Decimal) (WithdrawalQuote, error) {
+	if !amount.Valid() || amount.Sign() <= 0 {
+		return WithdrawalQuote{}, ErrInvalidInput
+	}
+	var scale *big.Int
+	if policy.Currency != "" {
+		unit, err := currency.ParseISO(policy.Currency)
+		if err != nil {
+			return WithdrawalQuote{}, ErrInvalidInput
+		}
+		digits, _ := currency.Standard.Rounding(unit)
+		scale = new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(digits)), nil)
+		// Only the payable part is requested; sub-unit wallet balances remain
+		// available to the customer. Preview precedes the wallet reservation.
+		raw := new(big.Rat).Mul(amount.Rat(), new(big.Rat).SetInt(scale))
+		units := new(big.Int).Quo(raw.Num(), raw.Denom())
+		amount, _ = ledger.Quantize(new(big.Rat).SetFrac(units, scale))
+	}
 	if amount.Sign() <= 0 || !amount.Valid() || amount.Cmp(policy.MinimumMoney) < 0 {
 		return WithdrawalQuote{}, ErrInvalidInput
 	}
 	exact := new(big.Rat).Add(policy.FlatFeeMoney.Rat(), new(big.Rat).Mul(amount.Rat(), policy.FeeRate.Rat()))
 	fee, remainder := ledger.Quantize(exact)
+	if scale != nil {
+		raw := new(big.Rat).Mul(exact, new(big.Rat).SetInt(scale))
+		twice := new(big.Int).Mul(raw.Num(), big.NewInt(2))
+		twice.Add(twice, raw.Denom())
+		units := new(big.Int).Quo(twice, new(big.Int).Mul(raw.Denom(), big.NewInt(2)))
+		fee, _ = ledger.Quantize(new(big.Rat).SetFrac(units, scale))
+		remainder = new(big.Rat).Sub(exact, fee.Rat())
+	}
 	net := amount.Sub(fee)
 	if net.Sign() <= 0 {
 		return WithdrawalQuote{}, ErrInvalidInput
@@ -139,7 +237,11 @@ func (s *Service) RequestWithdrawal(ctx context.Context, tx *gorm.DB, in Withdra
 		if state.ReleaseBlocked {
 			return ErrBlocked
 		}
-		quote, err := s.QuoteWithdrawal(ctx, tx, in.OperatorID, in.AmountMoney)
+		var selected withdrawalPolicyRow
+		if err := tx.First(&selected, "id=? AND operator_id=?", in.PolicyID, in.OperatorID).Error; err != nil {
+			return err
+		}
+		quote, err := s.QuoteWithdrawal(ctx, tx, in.OperatorID, in.AmountMoney, selected.MethodID)
 		if err != nil {
 			return err
 		}
@@ -151,14 +253,14 @@ func (s *Service) RequestWithdrawal(ctx context.Context, tx *gorm.DB, in Withdra
 			return err
 		}
 		id := uuid.NewString()
-		if _, err = s.reserveCommissionUse(ctx, tx, in.OperatorID, in.CustomerID, "withdrawal", id, in.AmountMoney, nil); err != nil {
+		if _, err = s.reserveCommissionUse(ctx, tx, in.OperatorID, in.CustomerID, "withdrawal", id, quote.AmountMoney, nil); err != nil {
 			return err
 		}
-		hold, err := s.ledger.Reserve(ctx, tx, ledger.Reservation{OperatorID: in.OperatorID, BusinessKey: "withdrawal:" + id, Purpose: "commission_withdrawal", ExpiresAt: instant.At.AddDate(10, 0, 0), Amounts: []ledger.Line{{AccountID: account.ID, Amount: in.AmountMoney}}})
+		hold, err := s.ledger.Reserve(ctx, tx, ledger.Reservation{OperatorID: in.OperatorID, BusinessKey: "withdrawal:" + id, Purpose: "commission_withdrawal", ExpiresAt: instant.At.AddDate(10, 0, 0), Amounts: []ledger.Line{{AccountID: account.ID, Amount: quote.AmountMoney}}})
 		if err != nil {
 			return err
 		}
-		r := withdrawalRow{ID: id, OperatorID: in.OperatorID, CustomerID: in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fp, PolicyID: quote.Policy.ID, AmountMoney: quote.AmountMoney, FeeMoney: quote.FeeMoney, NetMoney: quote.NetMoney, FeeRemainder: quote.FeeRemainder, RecipientReference: in.RecipientReference, HoldID: hold.ID, Status: "requested", CreatedAt: instant.At}
+		r := withdrawalRow{MethodID: quote.Policy.MethodID, MethodName: quote.Policy.MethodName, ID: id, OperatorID: in.OperatorID, CustomerID: in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fp, PolicyID: quote.Policy.ID, AmountMoney: quote.AmountMoney, FeeMoney: quote.FeeMoney, NetMoney: quote.NetMoney, FeeRemainder: quote.FeeRemainder, RecipientReference: in.RecipientReference, HoldID: hold.ID, Status: "requested", CreatedAt: instant.At}
 		if err = tx.Create(&r).Error; err != nil {
 			return err
 		}

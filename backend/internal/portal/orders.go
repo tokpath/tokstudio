@@ -221,11 +221,6 @@ func (a *Application) paymentValue(ctx context.Context, operator, driver, curren
 	if e != nil {
 		return payments.Money{}, payments.Valuation{}, e
 	}
-	// KVoucher collects MYR. A USD package or procurement order keeps the USD
-	// obligation; the driver converts it into the Gkash face amount.
-	if driver == "kvoucher" && settings.Currency == "USD" {
-		return payments.Money{Currency: "USD", Amount: due}, payments.Valuation{Currency: "USD"}, nil
-	}
 	money := payments.Money{Currency: currency}
 	if currency == settings.Currency {
 		money.Amount = due
@@ -354,6 +349,7 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 				action["currency"] = ch.PayMoney.Currency
 			}
 			action["settlement_money"] = ch.SettlementMoney
+			action["payment_quote"] = ch.PaymentQuote
 			if ch.Instructions != "" {
 				action["instructions"] = ch.Instructions
 			}
@@ -490,6 +486,21 @@ func (a *Application) customerOrderMayCancel(ctx context.Context, tx *gorm.DB, o
 	if o.Status != "pending" || o.ExternalAllocatedMoney.Sign() > 0 {
 		return false, nil
 	}
+	// An absent/failed checkout row never proves that another online attempt
+	// or a verified but not yet allocated receipt is unpaid.
+	var unresolved int64
+	if err := tx.Table("payments_intents AS i").Joins("JOIN payments_merchants AS m ON m.id=i.merchant_id").Where("i.operator_id=? AND i.order_id=? AND m.driver<>'manual' AND i.state<>'failed'", o.OperatorID, o.ID).Count(&unresolved).Error; err != nil {
+		return false, err
+	}
+	if unresolved > 0 {
+		return false, nil
+	}
+	if err := tx.Table("payments_verified_facts").Where("operator_id=? AND order_id=? AND kind='receipt'", o.OperatorID, o.ID).Count(&unresolved).Error; err != nil {
+		return false, err
+	}
+	if unresolved > 0 {
+		return false, nil
+	}
 	var cr checkoutRow
 	found := tx.WithContext(ctx).Where("order_id=? AND customer_id=?", o.ID, o.CustomerID).Limit(1).Find(&cr)
 	if found.Error != nil {
@@ -562,27 +573,37 @@ func (a *Application) cancelOrder(c *gin.Context) {
 	c.JSON(200, dto)
 }
 
-// expireUnpaidOrders closes customer orders after their payment deadline when
-// no receipt has been recorded, so reserved sales capacity is not held forever.
-// A payment that is later shown to have arrived before the deadline is kept as
-// an exception for the operator to restore, instead of being discarded.
+// expireUnpaidOrders closes only demonstrably unpaid orders. Online outcomes
+// remain reserved and reconcilable after the checkout deadline.
 func (a *Application) expireUnpaidOrders(ctx context.Context, limit int) error {
 	if limit < 1 || limit > 100 {
 		limit = 50
 	}
 	var rows []struct{ ID, CustomerID string }
-	if err := a.DB.WithContext(ctx).Table("commerce_orders").Select("id, customer_id").Where("status='pending' AND external_allocated_money=0 AND expires_at<=clock_timestamp()").Order("expires_at, id").Limit(limit).Find(&rows).Error; err != nil {
+	if err := a.DB.WithContext(ctx).Table("commerce_orders AS o").Select("o.id, o.customer_id").
+		Where("o.status='pending' AND o.external_allocated_money=0 AND o.expires_at<=clock_timestamp()").
+		Where("NOT EXISTS (SELECT 1 FROM payments_verified_facts f WHERE f.order_id=o.id::text AND f.operator_id=o.operator_id::text AND f.kind='receipt')").
+		Where("NOT EXISTS (SELECT 1 FROM payments_intents i JOIN payments_merchants m ON m.id=i.merchant_id WHERE i.order_id=o.id::text AND i.operator_id=o.operator_id::text AND m.driver<>'manual' AND i.state<>'failed')").
+		Where("NOT EXISTS (SELECT 1 FROM portal_order_checkout c JOIN payments_merchants m ON m.id=c.merchant_id::text WHERE c.order_id=o.id AND m.driver<>'manual' AND NOT EXISTS (SELECT 1 FROM payments_intents i WHERE i.merchant_id=c.merchant_id::text AND i.order_id=o.id::text AND i.state='failed'))").
+		Order("o.expires_at, o.id").Limit(limit).Find(&rows).Error; err != nil {
 		return err
 	}
 	for _, row := range rows {
-		var receipts int64
-		if err := a.DB.WithContext(ctx).Table("payments_verified_facts").Where("order_id=? AND kind='receipt'", row.ID).Count(&receipts).Error; err != nil {
+		err := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "checkout:"+row.ID).Error; err != nil {
+				return err
+			}
+			o, err := a.Commerce.GetOrder(ctx, tx, row.CustomerID, row.ID)
+			if err != nil {
+				return err
+			}
+			allowed, err := a.customerOrderMayCancel(ctx, tx, o)
+			if err != nil || !allowed {
+				return err
+			}
+			_, err = a.Commerce.CloseOrder(ctx, tx, row.CustomerID, row.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "付款期限已过且核实没有未完成的线上付款或到账记录，自动关闭订单"})
 			return err
-		}
-		if receipts > 0 {
-			continue
-		}
-		_, err := a.Commerce.CloseOrder(ctx, nil, row.CustomerID, row.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "超过付款期限仍未记下到账，系统自动取消并释放占用"})
+		})
 		if err != nil && !errors.Is(err, commerce.ErrOrderState) && !errors.Is(err, commerce.ErrPaymentUnknown) {
 			return err
 		}
@@ -603,12 +624,19 @@ func (a *Application) openKVoucherChecks(ctx context.Context, limit int) ([]kvou
 		limit = 10
 	}
 	var rows []kvoucherCheckout
-	err := a.DB.WithContext(ctx).Table("payments_intents AS i").
-		Select("i.operator_id, i.merchant_id, i.order_id").
-		Joins("JOIN payments_merchants AS m ON m.id = i.merchant_id AND m.driver = ?", "kvoucher").
-		Where("i.state = 'created' AND COALESCE(i.provider_id, '') <> '' AND i.updated_at <= clock_timestamp() - interval '15 seconds' AND i.updated_at > clock_timestamp() - interval '40 minutes'").
-		Where(`(EXISTS (SELECT 1 FROM commerce_orders AS o WHERE o.id::text = i.order_id AND o.status = 'pending' AND o.external_allocated_money = 0 AND o.expires_at > clock_timestamp()) OR EXISTS (SELECT 1 FROM cooperation_purchase_orders AS p WHERE p.id::text = i.order_id AND p.status = 'awaiting_payment' AND p.allocated_money = 0))`).
-		Order("i.updated_at, i.order_id").Limit(limit).Scan(&rows).Error
+	// Claim before the network call. Unfinished/failed reads rotate to the back
+	// of the queue; old and expired-but-unresolved payments remain eligible.
+	err := a.DB.WithContext(ctx).Raw(`WITH due AS (
+ SELECT i.merchant_id,i.order_id FROM payments_intents i
+ JOIN payments_merchants m ON m.id=i.merchant_id AND m.driver='kvoucher'
+ WHERE i.state IN ('created','outcome_unknown') AND COALESCE(i.provider_id,'')<>''
+ AND i.updated_at<=clock_timestamp()-interval '15 seconds'
+ AND (EXISTS(SELECT 1 FROM commerce_orders o WHERE o.id::text=i.order_id AND o.status='pending' AND o.external_allocated_money=0)
+ OR EXISTS(SELECT 1 FROM cooperation_purchase_orders p WHERE p.id::text=i.order_id AND p.status='awaiting_payment' AND p.allocated_money=0))
+ ORDER BY i.updated_at,i.order_id LIMIT ? FOR UPDATE OF i SKIP LOCKED
+) UPDATE payments_intents i SET updated_at=clock_timestamp() FROM due
+ WHERE i.merchant_id=due.merchant_id AND i.order_id=due.order_id
+ RETURNING i.operator_id,i.merchant_id,i.order_id`, limit).Scan(&rows).Error
 	return rows, err
 }
 func (a *Application) reconcileOpenKVoucher(ctx context.Context, limit int) error {
@@ -625,7 +653,7 @@ func (a *Application) reconcileOpenKVoucher(ctx context.Context, limit int) erro
 	return nil
 }
 func kvoucherStillWaiting(err error) bool {
-	return errors.Is(err, payments.ErrNotFinal) || errors.Is(err, payments.ErrProvider) || errors.Is(err, payments.ErrOutcomeUnknown) || errors.Is(err, payments.ErrNotConfigured)
+	return errors.Is(err, payments.ErrNotFinal) || errors.Is(err, payments.ErrProvider) || errors.Is(err, payments.ErrOutcomeUnknown) || errors.Is(err, payments.ErrNotConfigured) || errors.Is(err, payments.ErrAwaitingSettlement)
 }
 func (a *Application) reconcileOrder(c *gin.Context) {
 	id := subject(c)

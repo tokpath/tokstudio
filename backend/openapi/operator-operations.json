@@ -4451,53 +4451,76 @@
   {
     "resource": "withdrawals",
     "confirmation": "",
-    "description": "",
+    "description": "Configure one payout method with either a fixed fee or a percentage. The fee and net payment are fixed when the customer confirms the application. No actual payout fee is entered.",
     "fields": [
       {
-        "kind": "decimal",
-        "label": "最低提现 清算币种",
-        "name": "configuration.minimum_money",
-        "required": true
-      },
-      {
-        "default_value": "0",
-        "kind": "decimal",
-        "label": "固定手续费 清算币种",
-        "name": "configuration.flat_fee_money",
-        "required": true
-      },
-      {
-        "default_value": "0",
-        "kind": "decimal",
-        "label": "手续费比例（0到1）",
-        "name": "configuration.fee_rate",
-        "required": true
-      },
-      {
-        "default_value": false,
-        "kind": "boolean",
-        "label": "必须双人审批付款",
-        "name": "configuration.requires_dual_approval",
-        "required": true
-      },
-      {
+        "name": "method_name",
+        "label": "提现方式名称",
         "kind": "text",
-        "label": "对客户公示付款方式规则",
-        "name": "configuration.method_reference",
         "required": true
       },
       {
-        "default_value": 0,
+        "name": "fee_mode",
+        "label": "手续费方式",
+        "kind": "select",
+        "required": true,
+        "default_value": "fixed",
+        "options": [
+          {
+            "value": "fixed",
+            "label": "固定金额"
+          },
+          {
+            "value": "percent",
+            "label": "按比例"
+          }
+        ]
+      },
+      {
+        "name": "flat_fee_money",
+        "label": "固定手续费 结算币种",
+        "kind": "decimal",
+        "required": true,
+        "default_value": "0",
+        "visible_when": {
+          "field": "fee_mode",
+          "values": [
+            "fixed"
+          ]
+        }
+      },
+      {
+        "name": "fee_percent",
+        "label": "手续费率 %",
+        "kind": "decimal",
+        "required": true,
+        "default_value": "0",
+        "visible_when": {
+          "field": "fee_mode",
+          "values": [
+            "percent"
+          ]
+        }
+      },
+      {
+        "name": "enabled",
+        "label": "开放申请",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本",
         "kind": "hidden",
-        "label": "当前规则版本",
-        "name": "configuration.expected_version",
+        "default_value": 0,
         "required": true
       }
     ],
     "include_version": false,
-    "label": "发布提现规则",
+    "label": "新增提现方式",
     "method": "POST",
-    "name": "policy",
+    "name": "method",
     "path": "/v1/operators/{operatorId}/withdrawals",
     "permission": "withdrawals.manage"
   },
@@ -5631,5 +5654,119 @@
     "path": "/v1/operators/{operatorId}/payments/{id}/accounting",
     "permission": "payments.manage",
     "resource": "payments"
+  },
+  {
+    "resource": "withdrawals",
+    "confirmation": "",
+    "description": "Configure one payout method with either a fixed fee or a percentage. The fee and net payment are fixed when the customer confirms the application. No actual payout fee is entered.",
+    "fields": [
+      {
+        "name": "method_name",
+        "label": "提现方式名称",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "fee_mode",
+        "label": "手续费方式",
+        "kind": "select",
+        "required": true,
+        "default_value": "fixed",
+        "options": [
+          {
+            "value": "fixed",
+            "label": "固定金额"
+          },
+          {
+            "value": "percent",
+            "label": "按比例"
+          }
+        ]
+      },
+      {
+        "name": "flat_fee_money",
+        "label": "固定手续费 结算币种",
+        "kind": "decimal",
+        "required": true,
+        "default_value": "0",
+        "visible_when": {
+          "field": "fee_mode",
+          "values": [
+            "fixed"
+          ]
+        }
+      },
+      {
+        "name": "fee_percent",
+        "label": "手续费率 %",
+        "kind": "decimal",
+        "required": true,
+        "default_value": "0",
+        "visible_when": {
+          "field": "fee_mode",
+          "values": [
+            "percent"
+          ]
+        }
+      },
+      {
+        "name": "enabled",
+        "label": "开放申请",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本",
+        "kind": "hidden",
+        "default_value": 0,
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "修改提现方式",
+    "method": "POST",
+    "name": "edit_method",
+    "path": "/v1/operators/{operatorId}/withdrawals/{id}/edit_method",
+    "permission": "withdrawals.manage"
+  },
+  {
+    "resource": "payment-quotes",
+    "name": "configure",
+    "method": "POST",
+    "path": "/v1/operators/{operatorId}/payment-quotes",
+    "permission": "payments.manage",
+    "label": "设置报价来源",
+    "description": "Only the platform can configure the payment reference quote source; OEM and channel operators can inspect it. No manual exchange rate is accepted.",
+    "confirmation": "",
+    "include_version": false,
+    "fields": [
+      {
+        "name": "source",
+        "label": "参考汇率来源",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "value": "frankfurter",
+            "label": "Frankfurter"
+          }
+        ]
+      },
+      {
+        "name": "enabled",
+        "label": "启用参考报价",
+        "kind": "boolean",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "配置版本",
+        "kind": "hidden",
+        "required": true,
+        "default_value": 1
+      }
+    ]
   }
 ]

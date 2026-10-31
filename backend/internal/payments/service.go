@@ -7,7 +7,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/google/uuid"
 	"io/fs"
+	"math/big"
 	"sort"
 	"time"
 
@@ -20,7 +22,7 @@ import (
 //go:embed schema.sql
 var schema string
 
-//go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql
+//go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql zzzzzz_payment_quotes.sql
 var migrationFS embed.FS
 
 //go:embed zz_refund_executions.sql
@@ -44,10 +46,13 @@ var receiptRecoverySchema string
 //go:embed zzzzz_native_settlement.sql
 var nativeSettlementSchema string
 
+//go:embed zzzzzz_payment_quotes.sql
+var paymentQuoteSchema string
+
 func Migrations() (string, fs.FS) { return "payments", migrationFS }
 
 func Schema() string {
-	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema
+	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema
 }
 
 type Authorizer interface {
@@ -63,6 +68,8 @@ type RefundApproval interface {
 	RequireApprovedRefund(context.Context, *gorm.DB, string, Refund) error
 }
 type Service struct {
+	FXTransport    *Transport
+	FXBaseURL      string
 	DB             *gorm.DB
 	EncryptionKey  string
 	Authorize      Authorizer
@@ -73,7 +80,7 @@ type Service struct {
 }
 
 func NewService(db *gorm.DB, key string, auth Authorizer, http *Transport, sink ReceiptSink) *Service {
-	return &Service{DB: db, EncryptionKey: key, Authorize: auth, Drivers: map[string]Driver{"stripe": Stripe{http}, "alipay": Alipay{http}, "wechat": Wechat{http}, "nowpayments": NOWPayments{http}, "evm_wallet": EVMWallet{http}, "manual": Manual{}, "kvoucher": KVoucher{http}}, Sink: sink}
+	return &Service{FXTransport: http, DB: db, EncryptionKey: key, Authorize: auth, Drivers: map[string]Driver{"stripe": Stripe{http}, "alipay": Alipay{http}, "wechat": Wechat{http}, "nowpayments": NOWPayments{http}, "evm_wallet": EVMWallet{http}, "manual": Manual{}, "kvoucher": KVoucher{http}}, Sink: sink}
 }
 
 type MerchantView struct {
@@ -262,7 +269,7 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	if supported, _ := SettlementSupport(m, settings.Currency); !supported {
 		return Checkout{}, ErrUnsupported
 	}
-	if o.Money.Currency != merchantCurrency(m) && !kvoucherUSDObligation(m, o) {
+	if o.Money.Currency != merchantCurrency(m) {
 		return Checkout{}, ErrInvalid
 	}
 	o.PaymentDriver = m.Driver
@@ -278,6 +285,16 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 		Order                      Order
 		PaymentMethod, CustomerRef string
 	}{o, o.PaymentMethod, o.CustomerRef})
+	var exists int64
+	if e = s.DB.WithContext(ctx).Table("payments_intents").Where("merchant_id=? AND order_id=?", merchant, o.ID).Count(&exists).Error; e != nil {
+		return Checkout{}, e
+	}
+	if exists == 0 {
+		o, e = s.preparePaymentQuote(ctx, m, o)
+		if e != nil {
+			return Checkout{}, e
+		}
+	}
 	fresh := false
 	var saved intentRow
 	e = s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -331,6 +348,33 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 		return Checkout{}, ErrOutcomeUnknown
 	}
 	checkout, callErr := d.Create(ctx, m, o)
+	if m.Driver == "nowpayments" && callErr == nil && checkout.PayMoney != nil {
+		q := o.PaymentQuote
+		if q == nil {
+			q = &PaymentQuote{ID: uuid.NewString(), SettlementMoney: o.Settlement(), Source: "NOWPayments", SourceURL: "https://nowpayments.io/", RateDate: time.Now().UTC(), QuotedAt: time.Now().UTC(), ExpiresAt: o.ExpiresAt}
+		}
+		if o.ProviderPriceMoney != nil {
+			invoiceMoney := *o.ProviderPriceMoney
+			q.InvoiceMoney = &invoiceMoney
+			q.Source = "NOWPayments + Frankfurter"
+		}
+		q.PayMoney = *checkout.PayMoney
+		ratio := new(big.Rat).Quo(q.PayMoney.Amount.Rat(), q.SettlementMoney.Amount.Rat())
+		q.Rate, _ = ledger.Quantize(ratio)
+		q.RateNumerator, q.RateDenominator = ratio.Num().String(), ratio.Denom().String()
+		o.PaymentQuote = q
+		o.Money = q.PayMoney
+	}
+	if o.PaymentQuote != nil && checkout.PayMoney != nil && (checkout.PayMoney.Currency != o.Money.Currency || checkout.PayMoney.Amount.Cmp(o.Money.Amount) != 0) {
+		checkout = Checkout{ProviderID: checkout.ProviderID}
+		callErr = ErrConflict
+	}
+	checkout.PaymentQuote = o.PaymentQuote
+	if checkout.PayMoney == nil && o.Money.Amount.Sign() > 0 {
+		payment := o.Money
+		checkout.PayMoney = &payment
+	}
+
 	if checkout.SettlementMoney == nil {
 		settlement := o.Settlement()
 		checkout.SettlementMoney = &settlement
@@ -342,13 +386,17 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 			state = "failed"
 		}
 	}
+	orderCipher, sealErr := s.seal(o)
+	if sealErr != nil {
+		return Checkout{}, sealErr
+	}
 	cipher, sealErr := s.seal(checkout)
 	if sealErr != nil {
 		return Checkout{}, sealErr
 	}
 	persistCtx, cancelPersist := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancelPersist()
-	updateErr := s.DB.WithContext(persistCtx).Table("payments_intents").Where("merchant_id=? AND order_id=?", merchant, o.ID).Updates(map[string]any{"state": state, "checkout_ciphertext": cipher, "provider_id": checkout.ProviderID, "updated_at": time.Now().UTC()}).Error
+	updateErr := s.DB.WithContext(persistCtx).Table("payments_intents").Where("merchant_id=? AND order_id=?", merchant, o.ID).Updates(map[string]any{"state": state, "order_ciphertext": orderCipher, "checkout_ciphertext": cipher, "provider_id": checkout.ProviderID, "updated_at": time.Now().UTC()}).Error
 	if updateErr != nil {
 		return checkout, ErrOutcomeUnknown
 	}

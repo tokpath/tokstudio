@@ -20,10 +20,8 @@ import (
 
 const kvoucherOfficialBase = "https://kvoucher.com/api/kv/merchant/v1"
 
-// KVoucher collects a customer payment through a merchant's own KVoucher account.
-// Gkash charges MYR. A USD order is converted with KVoucher's USD-per-MYR rate
-// and a 2% fee; the receipt stays the USD obligation. A MYR order is charged
-// and recorded in MYR. Retrieving the reload code is the receipt.
+// KVoucher collects MYR. Order pricing is fixed before creation by the payment
+// quote service. A verified receipt always retains its actual MYR denomination.
 type KVoucher struct{ HTTP *Transport }
 
 func (KVoucher) Name() string { return "kvoucher" }
@@ -34,8 +32,20 @@ func (KVoucher) Validate(m Merchant) []string {
 	}
 	return missing
 }
-func kvoucherUSDObligation(m Merchant, o Order) bool {
-	return m.Driver == "kvoucher" && o.Settlement().Currency == "USD" && o.Money.Currency == "USD" && o.Money.Amount.Cmp(o.Settlement().Amount) == 0 && o.Money.Amount.Sign() > 0
+func (k KVoucher) QuotePayment(ctx context.Context, m Merchant, o Order) (PaymentQuote, error) {
+	if o.Settlement().Currency != "USD" || o.Money.Currency != "MYR" {
+		return PaymentQuote{}, ErrUnsupported
+	}
+	usdPerMYR, err := k.usdPerMYR(ctx, m)
+	if err != nil {
+		return PaymentQuote{}, err
+	}
+	ratio := new(big.Rat).Inv(usdPerMYR.Rat())
+	origin, err := k.origin(m)
+	if err != nil {
+		return PaymentQuote{}, err
+	}
+	return quoteMoneyRat(o, ratio, "KVoucher", origin+"/api/exchange-rates?base=MYR", time.Now().UTC())
 }
 func (k KVoucher) Create(ctx context.Context, m Merchant, o Order) (Checkout, error) {
 	if e := ready(m, k); e != nil {
@@ -45,34 +55,14 @@ func (k KVoucher) Create(ctx context.Context, m Merchant, o Order) (Checkout, er
 		return Checkout{}, ErrInvalid
 	}
 	settlement := o.Settlement()
-	var face string
-	var instructions string
-	switch settlement.Currency {
-	case "MYR":
-		if o.Money.Currency != "MYR" || o.Money.Amount.Cmp(settlement.Amount) != 0 {
-			return Checkout{}, ErrInvalid
-		}
-		if _, e := o.Money.Minor(2); e != nil {
-			return Checkout{}, e
-		}
-		face = o.Money.Amount.String()
-		instructions = "请在 Gkash 完成付款。付款币种为MYR，订单按实际核实的收款总额入账。付完后回到此页并核实原通道。"
-	case "USD":
-		if !kvoucherUSDObligation(m, o) {
-			return Checkout{}, ErrInvalid
-		}
-		rate, e := k.usdPerMYR(ctx, m)
-		if e != nil {
-			return Checkout{}, e
-		}
-		face, e = myrFaceForUSD(o.Money.Amount, rate)
-		if e != nil {
-			return Checkout{}, e
-		}
-		instructions = "请在 Gkash 完成付款。付款页金额是按实时汇率把应付美元换成的 MYR，并含通道手续费。本订单仍按应付美元入账。付完后回到此页并核实原通道。"
-	default:
-		return Checkout{}, ErrUnsupported
+	if o.Money.Currency != "MYR" || o.Money.Validate() != nil {
+		return Checkout{}, ErrInvalid
 	}
+	if _, err := o.Money.Minor(2); err != nil {
+		return Checkout{}, err
+	}
+	face := o.Money.Amount.String()
+	instructions := "请按本单显示的 MYR 金额在 Gkash 完成付款，付款后返回核实原订单。"
 	created, e := k.order(ctx, m, http.MethodPost, "/orders", map[string]any{
 		"custom_items":    []map[string]any{{"denomination": json.Number(face), "quantity": 1, "description": "Order " + o.ID}},
 		"currency":        "MYR",
@@ -97,8 +87,8 @@ func (k KVoucher) Create(ctx context.Context, m Merchant, o Order) (Checkout, er
 	if e != nil {
 		return Checkout{}, e
 	}
-	if settlement.Currency == "MYR" && (form.Money == nil || form.Money.Currency != "MYR" || form.Money.Amount.Cmp(settlement.Amount) != 0) {
-		return Checkout{}, ErrUnsupported
+	if form.Money == nil || form.Money.Currency != "MYR" || form.Money.Amount.Cmp(o.Money.Amount) != 0 {
+		return Checkout{ProviderID: order.ID.String()}, ErrConflict
 	}
 	checkout := Checkout{ProviderID: order.ID.String(), State: "pending", URL: form.Action, FormFields: form.Fields, Instructions: instructions, PayMoney: form.Money, SettlementMoney: &settlement}
 	return checkout, nil
@@ -137,7 +127,10 @@ func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error)
 			return Fact{}, ErrNotFinal
 		}
 	}
-	if len(order.Items) != 1 || order.Items[0].Qty < 1 || order.Items[0].Denomination == "" {
+	if order.ID.String() != o.ProviderID {
+		return Fact{}, ErrConflict
+	}
+	if len(order.Items) != 1 || order.Items[0].Qty != 1 || order.Items[0].Denomination == "" {
 		return Fact{}, ErrProvider
 	}
 	pins, e := k.pins(ctx, m, o.ID, order.Items[0].Denomination.String(), order.Items[0].Qty)
@@ -154,9 +147,7 @@ func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error)
 		return Fact{}, ErrProvider
 	}
 	gross := Money{Currency: "MYR", Amount: amount}
-	if o.Settlement().Currency == "USD" && o.Money.Currency == "USD" {
-		gross = o.Money
-	}
+
 	return receiptFact(m, o, order.ID.String(), gross, &now, evidence)
 }
 func (KVoucher) Refund(context.Context, Merchant, Refund) (RefundStatus, error) {
@@ -414,33 +405,6 @@ func gkashForm(raw []byte) (gkashCheckout, error) {
 		out.Money = &Money{Currency: fields["v_currency"], Amount: amount}
 	}
 	return out, nil
-}
-func myrFaceForUSD(due, usdPerMYR ledger.Decimal) (string, error) {
-	if due.Sign() <= 0 || usdPerMYR.Sign() <= 0 {
-		return "", ErrInvalid
-	}
-	// Gkash bills MYR. One MYR buys usdPerMYR dollars, and KVoucher adds 2%.
-	// Face = due USD / (USD per MYR × 1.02), rounded to the nearest sen.
-	fee := big.NewRat(102, 100)
-	divisor := new(big.Rat).Mul(usdPerMYR.Rat(), fee)
-	face := new(big.Rat).Quo(due.Rat(), divisor)
-	cents := new(big.Rat).Mul(face, big.NewRat(100, 1))
-	rounded := new(big.Int).Quo(new(big.Int).Add(new(big.Int).Mul(cents.Num(), big.NewInt(2)), cents.Denom()), new(big.Int).Mul(cents.Denom(), big.NewInt(2)))
-	whole := new(big.Int).Quo(rounded, big.NewInt(100))
-	frac := new(big.Int).Rem(rounded, big.NewInt(100))
-	if frac.Sign() < 0 {
-		frac.Abs(frac)
-	}
-	// KVoucher verifies the raw JSON. A trailing zero such as 4.00 is rewritten
-	// before verification and then rejected as a bad signature. 4 and 40.02 are stable.
-	if frac.Sign() == 0 {
-		return whole.String(), nil
-	}
-	text := frac.String()
-	if len(text) == 1 {
-		text = "0" + text
-	}
-	return whole.String() + "." + strings.TrimRight(text, "0"), nil
 }
 func kvoucherSignature(secret string, body []byte, header string) bool {
 	sum := sha256.Sum256([]byte(secret))

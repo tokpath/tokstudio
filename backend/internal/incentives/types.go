@@ -205,6 +205,10 @@ type CorrectionInput struct {
 	AmountMoney     ledger.Decimal `json:"amount_money"`
 }
 type WithdrawalPolicy struct {
+	Currency             string         `json:"currency,omitempty" gorm:"-"`
+	MethodID             string         `json:"method_id"`
+	MethodName           string         `json:"method_name"`
+	Enabled              bool           `json:"enabled"`
 	ID                   string         `json:"id"`
 	OperatorID           string         `json:"operator_id"`
 	Version              int64          `json:"version"`
@@ -231,6 +235,8 @@ type WithdrawalQuote struct {
 	FeeRemainder string           `json:"fee_remainder"`
 }
 type Withdrawal struct {
+	MethodID           string         `json:"method_id"`
+	MethodName         string         `json:"method_name"`
 	OriginalOperatorID string         `json:"original_operator_id" gorm:"default:(-)"`
 	ID                 string         `json:"id"`
 	OperatorID         string         `json:"operator_id"`

@@ -49,10 +49,14 @@ func (d NOWPayments) Create(ctx context.Context, m Merchant, o Order) (Checkout,
 		return Checkout{}, ErrInvalid
 	}
 	settlement := o.Settlement()
+	price := settlement
+	if o.ProviderPriceMoney != nil {
+		price = *o.ProviderPriceMoney
+	}
 	if supported, _ := SettlementSupport(m, settlement.Currency); !supported {
 		return Checkout{}, ErrUnsupported
 	}
-	raw, e := d.call(ctx, m, http.MethodPost, "/v1/payment", map[string]any{"price_amount": json.Number(settlement.Amount.String()), "price_currency": strings.ToLower(settlement.Currency), "pay_currency": m.Credentials["pay_currency"], "order_id": o.ID, "order_description": o.Description, "ipn_callback_url": o.NotifyURL, "is_fixed_rate": true, "is_fee_paid_by_user": false})
+	raw, e := d.call(ctx, m, http.MethodPost, "/v1/payment", map[string]any{"price_amount": json.Number(price.Amount.String()), "price_currency": strings.ToLower(price.Currency), "pay_currency": m.Credentials["pay_currency"], "order_id": o.ID, "order_description": o.Description, "ipn_callback_url": o.NotifyURL, "is_fixed_rate": true, "is_fee_paid_by_user": false})
 	if e != nil {
 		return Checkout{}, e
 	}
@@ -109,6 +113,12 @@ func (d NOWPayments) Lookup(ctx context.Context, m Merchant, o Order) (Fact, err
 	fact, e := receiptFact(m, o, o.ProviderID, Money{Currency: o.Money.Currency, Amount: amount}, nil, json.RawMessage(raw))
 	if e != nil {
 		return fact, e
+	}
+	if o.ProviderPriceMoney != nil {
+		price, err := ledger.ParseDecimal(response.PriceAmount.String())
+		if err != nil || !strings.EqualFold(response.PriceCurrency, o.ProviderPriceMoney.Currency) || price.Cmp(o.ProviderPriceMoney.Amount) != 0 {
+			return Fact{}, ErrConflict
+		}
 	}
 	// The provider's authenticated transaction carries the settlement relation.
 	// Missing or partial relations remain pending for finance confirmation.

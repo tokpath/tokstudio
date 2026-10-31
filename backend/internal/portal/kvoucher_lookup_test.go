@@ -12,7 +12,7 @@ import (
 )
 
 func TestKVoucherWaitingErrorsDoNotStopTheBatch(t *testing.T) {
-	if !kvoucherStillWaiting(payments.ErrNotFinal) || !kvoucherStillWaiting(payments.ErrProvider) || kvoucherStillWaiting(errors.New("database down")) {
+	if !kvoucherStillWaiting(payments.ErrNotFinal) || !kvoucherStillWaiting(payments.ErrProvider) || !kvoucherStillWaiting(payments.ErrAwaitingSettlement) || kvoucherStillWaiting(errors.New("database down")) {
 		t.Fatal("only an unfinished channel read should be skipped")
 	}
 }
@@ -65,7 +65,28 @@ func TestPostgresOpenKVoucherChecksSkipFreshClosedAndManualOrders(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(rows) != 1 || rows[0].OrderID != ready || rows[0].MerchantID != kvoucher.ID {
+	if len(rows) != 2 {
 		t.Fatalf("%+v", rows)
 	}
+	seen := map[string]bool{}
+	for i := 0; i < 11; i++ {
+		id := create("old-unresolved-"+uuid.NewString(), "pending", now.Add(-time.Minute))
+		intent(kvoucher.ID, id, now.Add(-2*time.Hour))
+	}
+	for i := 0; i < 4; i++ {
+		batch, err := f.a.openKVoucherChecks(t.Context(), 3)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, row := range batch {
+			if seen[row.OrderID] {
+				t.Fatal("a waiting payment starved newer payments")
+			}
+			seen[row.OrderID] = true
+		}
+	}
+	if len(seen) != 11 {
+		t.Fatal("old or expired unresolved payments were omitted", len(seen))
+	}
+
 }

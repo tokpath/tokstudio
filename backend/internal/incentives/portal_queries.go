@@ -98,7 +98,13 @@ func (s *Service) CurrentWithdrawalPolicy(ctx context.Context, tx *gorm.DB, oper
 	if q.Error != nil {
 		return WithdrawalPolicy{}, q.Error
 	}
-	if q.RowsAffected == 0 {
+	var setting struct{ MinimumMoney ledger.Decimal }
+	if err := s.dbFor(ctx, tx).Table("incentives_withdrawal_settings").Where("operator_id=?", operator).Limit(1).Find(&setting).Error; err != nil {
+		return WithdrawalPolicy{}, err
+	}
+	if setting.MinimumMoney.Sign() > 0 {
+		r.MinimumMoney = setting.MinimumMoney
+	} else if q.RowsAffected == 0 {
 		return WithdrawalPolicy{}, ErrNotReady
 	}
 	return WithdrawalPolicy(r), nil

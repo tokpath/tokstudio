@@ -725,6 +725,24 @@
     "プラン",
     "ПЛАНЫ"
   ],
+  "PayPal · 邮箱、账户姓名": [
+    "PayPal · 邮箱、账户姓名",
+    "PayPal · email, account name",
+    "PayPal · メール、口座名義",
+    "PayPal · почта, имя счёта"
+  ],
+  "PayPal 按邮箱定位收款账户。姓名供经营方核对，邮箱错误会使款项进入错误账户。": [
+    "PayPal 按邮箱定位收款账户。姓名供经营方核对，邮箱错误会使款项进入错误账户。",
+    "PayPal finds the account by email. The name lets the operator check it; a wrong email sends the money to the wrong account.",
+    "PayPal はメールで口座を特定します。氏名は事業者の確認用で、メールを誤ると別の口座へ入ります。",
+    "PayPal находит счёт по почте. Имя нужно оператору для проверки; ошибка в почте отправит деньги на другой счёт."
+  ],
+  "PayPal 邮箱": [
+    "PayPal 邮箱",
+    "PayPal email",
+    "PayPal メール",
+    "Почта PayPal"
+  ],
   "QUICK START": [
     "QUICK START",
     "QUICK START",
@@ -1204,6 +1222,12 @@
     "Too many requests. Try again later.",
     "リクエストが多すぎます。時間をおいて再試行してください。",
     "Слишком много запросов. Повторите позже."
+  ],
+  "USDT · 网络、钱包地址": [
+    "USDT · 网络、钱包地址",
+    "USDT · network, wallet address",
+    "USDT · ネットワーク、ウォレットアドレス",
+    "USDT · сеть, адрес кошелька"
   ],
   "UTC自然周期": [
     "UTC自然周期",
@@ -2279,6 +2303,12 @@
     "課金しない",
     "Не тарифицировать"
   ],
+  "不足最小支付单位的尾数仍留在佣金钱包，不计入本次申请。": [
+    "不足最小支付单位的尾数仍留在佣金钱包，不计入本次申请。",
+    "Any remainder below the smallest payable unit stays in the commission wallet and is not part of this request.",
+    "最小支払単位未満の端数はコミッション財布に残り、今回の申請には含まれません。",
+    "Остаток меньше минимальной единицы платежа остаётся в кошельке комиссии и не входит в эту заявку."
+  ],
   "不选择关联记录": [
     "不选择关联记录",
     "Do not select a linked record",
@@ -2362,6 +2392,12 @@
     "Identity and revision matching the public model",
     "公開モデルと一致する同一性とバージョン",
     "Идентичность и версия, совпадающие с публичной моделью"
+  ],
+  "与收款银行账户上的英文姓名一致。": [
+    "与收款银行账户上的英文姓名一致。",
+    "Must match the English name on the receiving bank account.",
+    "受取銀行口座の英語氏名と一致させてください。",
+    "Должно совпадать с английским именем на банковском счёте."
   ],
   "与模型计量组件完全一致，例如 input_tokens 或 image:1024x1024:high。": [
     "与模型计量组件完全一致，例如 input_tokens 或 image:1024x1024:high。",
@@ -3449,6 +3485,12 @@
     "低",
     "Низкое"
   ],
+  "低于最低提现额度。": [
+    "低于最低提现额度。",
+    "Below the minimum withdrawal amount.",
+    "最低出金額を下回っています。",
+    "Ниже минимальной суммы вывода."
+  ],
   "低于此采购余额时补货": [
     "低于此采购余额时补货",
     "Replenish below this procurement balance",
@@ -4108,6 +4150,12 @@
     "Supplier independently verifies buyer's refund address",
     "供給者が買い手の返金先を独立確認",
     "Поставщик независимо проверяет адрес возврата покупателя"
+  ],
+  "供经营方核对。PayPal 发款以邮箱为准。": [
+    "供经营方核对。PayPal 发款以邮箱为准。",
+    "For the operator to check. PayPal sends the payout to the email.",
+    "事業者の確認用です。PayPal の送金先はメールです。",
+    "Для проверки оператором. PayPal отправляет выплату на эту почту."
   ],
   "供货买方（本经营方）": [
     "供货买方（本经营方）",
@@ -7199,6 +7247,12 @@
     "未実行の申請を取消",
     "Отменить неисполненную заявку"
   ],
+  "取消申请": [
+    "取消申请",
+    "Cancel request",
+    "申請を取り消す",
+    "Отменить заявку"
+  ],
   "取消申请已提交，最终费用与状态以原请求记录为准。": [
     "取消申请已提交，最终费用与状态以原请求记录为准。",
     "Cancellation requested. Final charges and status are determined by the original request record.",
@@ -7660,6 +7714,12 @@
     "Accepting",
     "受付中",
     "Принимает"
+  ],
+  "可支付金额为 0。不足最小支付单位的尾数仍留在佣金钱包。": [
+    "可支付金额为 0。不足最小支付单位的尾数仍留在佣金钱包。",
+    "The payable amount is 0. A remainder below the smallest payable unit stays in the commission wallet.",
+    "支払可能額は 0 です。最小支払単位未満の端数はコミッション財布に残ります。",
+    "Сумма к выплате равна 0. Остаток меньше минимальной единицы остаётся в кошельке комиссии."
   ],
   "可用": [
     "可用",
@@ -8423,6 +8483,24 @@
     "固定額",
     "Фиксированная сумма"
   ],
+  "国际电汇": [
+    "国际电汇",
+    "International wire",
+    "国際電信送金",
+    "Международный перевод"
+  ],
+  "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址": [
+    "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址",
+    "International wire · English name, bank, account or IBAN, SWIFT, country, address",
+    "国際電信送金 · 英語氏名、銀行、口座または IBAN、SWIFT、国、住所",
+    "Международный перевод · имя, банк, счёт или IBAN, SWIFT, страна, адрес"
+  ],
+  "国际电汇需要收款人英文姓名、银行、账号或 IBAN、SWIFT/BIC、银行所在地和收款人地址。": [
+    "国际电汇需要收款人英文姓名、银行、账号或 IBAN、SWIFT/BIC、银行所在地和收款人地址。",
+    "An international wire needs the recipient's English name, bank, account number or IBAN, SWIFT/BIC, bank location, and address.",
+    "国際電信送金には英語氏名、銀行、口座番号または IBAN、SWIFT/BIC、銀行所在地、住所が必要です。",
+    "Международный перевод требует английское имя, банк, счёт или IBAN, SWIFT/BIC, место банка и адрес."
+  ],
   "图像": [
     "图像",
     "Image",
@@ -8711,11 +8789,59 @@
     "検証済みのモデル識別情報とリビジョンを入力します。例：vendor-model-2026-01。異なるモデルやバージョンが混在しないように、上流ルートは対応する公開モデルの識別情報と一致する必要があります。",
     "Укажите проверенную идентичность и ревизию модели, например vendor-model-2026-01. Вышестоящий маршрут должен соответствовать публичной модели, чтобы под одним ID не смешивались разные модели или версии."
   ],
+  "填写已验证的 PayPal 邮箱。PayPal 按邮箱、手机号或付款人编号发款。": [
+    "填写已验证的 PayPal 邮箱。PayPal 按邮箱、手机号或付款人编号发款。",
+    "Enter a verified PayPal email. PayPal pays by email, mobile number, or payer ID.",
+    "確認済みの PayPal メールを入力してください。PayPal はメール、携帯番号、または支払人 ID で送金します。",
+    "Укажите подтверждённую почту PayPal. PayPal платит по почте, телефону или идентификатору плательщика."
+  ],
+  "填写开户银行名称，例如中国工商银行。": [
+    "填写开户银行名称，例如中国工商银行。",
+    "Enter the bank name, for example Industrial and Commercial Bank of China.",
+    "開設銀行名を入力してください。例：中国工商銀行。",
+    "Укажите банк, например Industrial and Commercial Bank of China."
+  ],
+  "填写所选网络上的 USDT 地址。选错网络可能导致无法到账。": [
+    "填写所选网络上的 USDT 地址。选错网络可能导致无法到账。",
+    "Enter the USDT address on the selected network. The wrong network can make the funds unrecoverable.",
+    "選択したネットワークの USDT アドレスを入力してください。ネットワークを誤ると着金できないことがあります。",
+    "Укажите адрес USDT в выбранной сети. Неверная сеть может сделать перевод недоступным."
+  ],
   "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合结算币种的收款总额与本次估值依据分别填写。": [
     "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合结算币种的收款总额与本次估值依据分别填写。",
     "Enter the gross amount in the original currency before our receipt fee, excluding sending fees paid separately by the payer. Enter the settlement currency gross receipt and the current valuation evidence separately.",
     "当方の入金手数料控除前の元通貨額を入力し、支払人が別途負担する送金手数料は含めません。決済通貨換算の入金総額と今回の換算根拠は別に入力します。",
     "Укажите сумму в исходной валюте до нашей комиссии, без отдельно оплаченных отправителем расходов. Сумму поступления в валюта расчётов и основание текущей оценки укажите отдельно."
+  ],
+  "填写支付宝登录用的手机号或邮箱。如果这个手机号绑定了多个支付宝账号，改填 2088 开头的用户号。": [
+    "填写支付宝登录用的手机号或邮箱。如果这个手机号绑定了多个支付宝账号，改填 2088 开头的用户号。",
+    "Enter the mobile number or email used to sign in to Alipay. If that number is linked to more than one Alipay account, use the user ID that starts with 2088.",
+    "Alipay のログイン用携帯番号またはメールを入力してください。その番号が複数のアカウントに紐づく場合は 2088 で始まるユーザー番号を使ってください。",
+    "Укажите телефон или почту входа Alipay. Если номер привязан к нескольким аккаунтам, укажите идентификатор, начинающийся с 2088."
+  ],
+  "填写收款人地址，电汇通常需要它才能入账。": [
+    "填写收款人地址，电汇通常需要它才能入账。",
+    "Enter the recipient address. A wire usually needs it before the funds can be credited.",
+    "受取人住所を入力してください。電信送金の入金には通常必要です。",
+    "Укажите адрес получателя. Для зачисления перевода он обычно нужен."
+  ],
+  "填写收款账号或 IBAN，不要包含空格。": [
+    "填写收款账号或 IBAN，不要包含空格。",
+    "Enter the account number or IBAN without spaces.",
+    "口座番号または IBAN を空白なしで入力してください。",
+    "Введите номер счёта или IBAN без пробелов."
+  ],
+  "填写收款银行所在的国家或地区。": [
+    "填写收款银行所在的国家或地区。",
+    "Enter the country or region of the receiving bank.",
+    "受取銀行の所在国または地域を入力してください。",
+    "Укажите страну или регион банка получателя."
+  ],
+  "填写收款银行的英文名称。": [
+    "填写收款银行的英文名称。",
+    "Enter the receiving bank's English name.",
+    "受取銀行の英語名を入力してください。",
+    "Укажите английское название банка получателя."
   ],
   "填写有效金额和连续阶梯后显示试算结果。": [
     "填写有效金额和连续阶梯后显示试算结果。",
@@ -8771,11 +8897,29 @@
     "事業者から取得した SMTP パスワードまたは認証コードを入力してください。空欄の場合、このブランドの保存済みパスワードを保持します。",
     "Введите SMTP-пароль или код авторизации от провайдера. Оставьте пустым, чтобы сохранить пароль этого бренда."
   ],
+  "填写银行卡号，不要包含空格。": [
+    "填写银行卡号，不要包含空格。",
+    "Enter the card number without spaces.",
+    "カード番号を空白なしで入力してください。",
+    "Введите номер карты без пробелов."
+  ],
   "填写银行或支付通道为本次实际收付款出具的唯一流水号，不要重复登记同一笔款项。它与合同编号分别记录，提交后仍按真实凭证核实。": [
     "填写银行或支付通道为本次实际收付款出具的唯一流水号，不要重复登记同一笔款项。它与合同编号分别记录，提交后仍按真实凭证核实。",
     "Enter the unique transaction reference issued by the bank or payment channel for this actual payment. Do not register the same payment twice. It is separate from the contract number, and the actual proof remains subject to verification.",
     "銀行または決済サービスが今回の実際の入出金に発行した一意の取引番号を入力します。同じ支払いを重複登録しないでください。契約番号とは別に記録し、提出後も実際の証憑に基づいて確認します。",
     "Укажите уникальный номер этой фактической операции, выданный банком или платёжным каналом. Не регистрируйте один платёж дважды. Номер хранится отдельно от договора; поданные данные проверяются по реальному подтверждению."
+  ],
+  "境内银行卡": [
+    "境内银行卡",
+    "Domestic bank card",
+    "国内銀行カード",
+    "Внутренняя банковская карта"
+  ],
+  "境内银行卡 · 户名、开户银行、卡号、支行": [
+    "境内银行卡 · 户名、开户银行、卡号、支行",
+    "Domestic bank card · name, bank, card number, branch",
+    "国内銀行カード · 名義、銀行、カード番号、支店",
+    "Внутренняя карта · имя, банк, номер, отделение"
   ],
   "处理中": [
     "处理中",
@@ -10283,6 +10427,18 @@
     "顧客向け小売価格",
     "Розничная цена для клиентов"
   ],
+  "客户需填写与银行卡一致的户名、开户银行、卡号和开户支行。跨行或对公转账通常要靠支行名称入账。": [
+    "客户需填写与银行卡一致的户名、开户银行、卡号和开户支行。跨行或对公转账通常要靠支行名称入账。",
+    "The customer must enter the account name, bank, card number, and branch that match the card. Cross-bank or business transfers usually rely on the branch name.",
+    "顧客はカードと一致する名義、銀行、カード番号、支店を入力します。他行または法人口座への送金では通常、支店名が必要です。",
+    "Клиент указывает имя, банк, номер карты и отделение. Для межбанковского или корпоративного перевода обычно нужно отделение."
+  ],
+  "客户需选择 USDT 网络并填写该网络上的钱包地址。网络和地址不一致可能导致无法到账。": [
+    "客户需选择 USDT 网络并填写该网络上的钱包地址。网络和地址不一致可能导致无法到账。",
+    "The customer chooses the USDT network and enters a wallet address on that network. A mismatch can make the funds unrecoverable.",
+    "顧客は USDT のネットワークを選び、そのアドレスを入力します。不一致だと着金できないことがあります。",
+    "Клиент выбирает сеть USDT и адрес в этой сети. Несовпадение может сделать перевод недоступным."
+  ],
   "客户默认入口": [
     "客户默认入口",
     "Default customer endpoint",
@@ -10601,6 +10757,12 @@
     "価格が未設定です。計量テンプレートを確認して、このモデルの ATG 単価を入力してください。",
     "Цены ещё не заданы. Проверьте шаблон тарификации и укажите тарифы ATG для модели."
   ],
+  "尚未审核的申请可以取消。取消后释放这笔佣金占用。": [
+    "尚未审核的申请可以取消。取消后释放这笔佣金占用。",
+    "A request can be cancelled before review. Cancellation releases the reserved commission.",
+    "審査前の申請は取り消せます。取り消すと確保されたコミッションが戻ります。",
+    "Заявку можно отменить до проверки. Отмена освобождает зарезервированную комиссию."
+  ],
   "尚未就绪": [
     "尚未就绪",
     "Not ready yet",
@@ -10678,6 +10840,12 @@
     "Not loaded yet",
     "未取得",
     "Ещё не загружено"
+  ],
+  "尚未选择收款材料": [
+    "尚未选择收款材料",
+    "Recipient details not selected",
+    "受取情報が未選択",
+    "Реквизиты ещё не выбраны"
   ],
   "尚未配置该业务的开通检查": [
     "尚未配置该业务的开通检查",
@@ -12305,6 +12473,18 @@
     "退会清算を開始",
     "Начать расчёты для закрытия"
   ],
+  "开户支行": [
+    "开户支行",
+    "Bank branch",
+    "支店",
+    "Отделение банка"
+  ],
+  "开户银行": [
+    "开户银行",
+    "Bank name",
+    "開設銀行",
+    "Банк"
+  ],
   "开放模型": [
     "开放模型",
     "Enable model",
@@ -13067,6 +13247,12 @@
     "WeChat API v3 暗号化キー",
     "Ключ шифрования WeChat API v3"
   ],
+  "微信号或绑定手机号": [
+    "微信号或绑定手机号",
+    "WeChat ID or bound mobile number",
+    "WeChat ID または登録携帯番号",
+    "WeChat ID или привязанный телефон"
+  ],
   "微信商户API私钥PEM": [
     "微信商户API私钥PEM",
     "WeChat merchant API private key PEM",
@@ -13078,6 +13264,12 @@
     "WeChat merchant certificate serial number",
     "WeChat 加盟店証明書シリアル番号",
     "Серийный номер сертификата продавца WeChat"
+  ],
+  "微信实名": [
+    "微信实名",
+    "WeChat legal name",
+    "WeChat 実名",
+    "Настоящее имя WeChat"
   ],
   "微信平台公钥ID": [
     "微信平台公钥ID",
@@ -13096,6 +13288,12 @@
     "WeChat Pay",
     "WeChat Pay",
     "WeChat Pay"
+  ],
+  "微信支付 · 实名、微信号或手机号": [
+    "微信支付 · 实名、微信号或手机号",
+    "WeChat Pay · legal name, WeChat ID or mobile number",
+    "WeChat Pay · 実名、WeChat ID または携帯番号",
+    "WeChat Pay · имя, WeChat ID или телефон"
   ],
   "微信支付商户号": [
     "微信支付商户号",
@@ -13120,6 +13318,12 @@
     "Essential payment, asset, security, and fulfillment notices will still be sent. Changes apply immediately to emails not yet sent.",
     "必要な資金、資産、安全、履行に関する通知は引き続き送信します。変更は未送信のメールに直ちに適用されます。",
     "Необходимые уведомления о платежах, активах, безопасности и исполнении продолжат поступать. Изменения сразу применяются к ещё не отправленным письмам."
+  ],
+  "必须与钱包地址的网络一致。": [
+    "必须与钱包地址的网络一致。",
+    "Must match the wallet address network.",
+    "ウォレットアドレスのネットワークと一致させてください。",
+    "Должна совпадать с сетью адреса кошелька."
   ],
   "必须双人审批付款": [
     "必须双人审批付款",
@@ -13576,6 +13780,12 @@
     "Fee settlement currency",
     "手数料 決済通貨",
     "Комиссия валюта расчётов"
+  ],
+  "手续费不低于可支付金额，无法申请。": [
+    "手续费不低于可支付金额，无法申请。",
+    "The fee is not lower than the payable amount, so this request cannot be submitted.",
+    "手数料が支払可能額以上のため申請できません。",
+    "Комиссия не меньше суммы к выплате, заявку отправить нельзя."
   ],
   "手续费待核实，净到账金额暂不确定。": [
     "手续费待核实，净到账金额暂不确定。",
@@ -14045,6 +14255,12 @@
     "名称または ID で検索",
     "Поиск по названию или идентификатору"
   ],
+  "按固定金额收取手续费": [
+    "按固定金额收取手续费",
+    "A fixed fee applies",
+    "固定額の手数料を取ります",
+    "Комиссия взимается фиксированной суммой"
+  ],
   "按套餐基础额度加赠 {amount}%": [
     "按套餐基础额度加赠 {amount}%",
     "Bonus of {amount}% of base package credits",
@@ -14176,6 +14392,12 @@
     "Percentage",
     "割合",
     "Процент"
+  ],
+  "按比例收取手续费": [
+    "按比例收取手续费",
+    "A percentage fee applies",
+    "割合で手数料を取ります",
+    "Комиссия взимается в процентах"
   ],
   "按百万像素": [
     "按百万像素",
@@ -14615,6 +14837,12 @@
     "営業開始設定の確認を送信",
     "Отправить проверку настроек запуска"
   ],
+  "提交提现申请": [
+    "提交提现申请",
+    "Submit withdrawal request",
+    "出金申請を送信",
+    "Отправить заявку на вывод"
+  ],
   "提交结果待核实，输入已锁定。重试将沿用同一幂等编号和原内容，不会创建另一笔请求。": [
     "提交结果待核实，输入已锁定。重试将沿用同一幂等编号和原内容，不会创建另一笔请求。",
     "The submission result is awaiting verification, and input is locked. Retrying uses the same idempotency ID and original content without creating another request.",
@@ -14734,6 +14962,12 @@
     "Withdrawal entered payment processing",
     "出金が支払処理に進みました",
     "Вывод перешёл к выплате"
+  ],
+  "提现金额 结算币种": [
+    "提现金额 结算币种",
+    "Withdrawal amount settlement currency",
+    "出金額 決済通貨",
+    "Сумма вывода валюта расчётов"
   ],
   "提醒间隔秒数": [
     "提醒间隔秒数",
@@ -14885,17 +15119,41 @@
     "Alipay",
     "Alipay"
   ],
+  "支付宝 · 实名、登录账号": [
+    "支付宝 · 实名、登录账号",
+    "Alipay · legal name, login account",
+    "Alipay · 実名、ログインアカウント",
+    "Alipay · имя, логин"
+  ],
+  "支付宝实名": [
+    "支付宝实名",
+    "Alipay legal name",
+    "Alipay 実名",
+    "Настоящее имя Alipay"
+  ],
   "支付宝应用RSA2私钥PEM": [
     "支付宝应用RSA2私钥PEM",
     "Alipay app RSA2 private key PEM",
     "Alipay アプリ RSA2 秘密鍵 PEM",
     "Закрытый ключ RSA2 приложения Alipay, PEM"
   ],
+  "支付宝用登录账号收款时，必须同时提供与该账号实名一致的姓名。": [
+    "支付宝用登录账号收款时，必须同时提供与该账号实名一致的姓名。",
+    "When Alipay pays a login account, the name must match that account's verified identity.",
+    "Alipay がログインアカウントへ支払うときは、その実名と一致する氏名が必要です。",
+    "Когда Alipay платит на логин, имя должно совпадать с подтверждённой личностью."
+  ],
   "支付宝签约卖家ID": [
     "支付宝签约卖家ID",
     "Alipay contracted seller ID",
     "Alipay 契約販売者 ID",
     "Идентификатор договорного продавца Alipay"
+  ],
+  "支付宝账号": [
+    "支付宝账号",
+    "Alipay account",
+    "Alipay アカウント",
+    "Аккаунт Alipay"
   ],
   "支付宝验签公钥PEM": [
     "支付宝验签公钥PEM",
@@ -15040,6 +15298,24 @@
     "Verify receipt facts, fund allocation, and credit delivery separately. Open the order to see linked receipts, payment evidence, and next actions.",
     "入金事実、資金割当、利用枠付与を個別に確認します。注文を開くと関連入金、支払証憑、次の処理を確認できます。",
     "Отдельно проверяйте поступления, распределение средств и выдачу единиц. В заказе доступны связанные поступления, платёжные подтверждения и следующие действия."
+  ],
+  "收款人地址": [
+    "收款人地址",
+    "Recipient address",
+    "受取人住所",
+    "Адрес получателя"
+  ],
+  "收款人姓名": [
+    "收款人姓名",
+    "Recipient name",
+    "受取人氏名",
+    "Имя получателя"
+  ],
+  "收款人英文姓名": [
+    "收款人英文姓名",
+    "Recipient name in English",
+    "受取人の英語氏名",
+    "Имя получателя на английском"
   ],
   "收款估值待办": [
     "收款估值待办",
@@ -15191,6 +15467,12 @@
     "受取人情報（任意）",
     "Данные получателя (необязательно)"
   ],
+  "收款材料": [
+    "收款材料",
+    "Recipient materials",
+    "受取情報",
+    "Реквизиты"
+  ],
   "收款流水或收据号（可选）": [
     "收款流水或收据号（可选）",
     "Payment reference or receipt number (optional)",
@@ -15274,6 +15556,12 @@
     "Receipt amount check",
     "入金額の確認",
     "Проверка суммы поступления"
+  ],
+  "收款银行": [
+    "收款银行",
+    "Receiving bank",
+    "受取銀行",
+    "Банк получателя"
   ],
   "收起": [
     "收起",
@@ -17021,6 +17309,12 @@
     "今回の申請 決済通貨",
     "Запрашиваемые валюта расчётов в этот раз"
   ],
+  "本次申请总额": [
+    "本次申请总额",
+    "Amount requested this time",
+    "今回の申請総額",
+    "Сумма этой заявки"
+  ],
   "本次真实交易与入账关联凭证": [
     "本次真实交易与入账关联凭证",
     "Evidence linking the actual transaction to the posted amount",
@@ -18449,6 +18743,12 @@
     "送信中",
     "Отправка"
   ],
+  "正在提交…": [
+    "正在提交…",
+    "Submitting…",
+    "送信中…",
+    "Отправка…"
+  ],
   "正在提交支付…": [
     "正在提交支付…",
     "Submitting payment…",
@@ -19841,6 +20141,12 @@
     "有効開始",
     "Начало действия"
   ],
+  "用于核对收款人。微信单笔转账金额达到 2000 元时必须与实名一致。": [
+    "用于核对收款人。微信单笔转账金额达到 2000 元时必须与实名一致。",
+    "Used to check the recipient. WeChat requires the legal name when a single transfer reaches 2,000 yuan.",
+    "受取人の確認に使います。WeChat は 1 回の送金が 2000 元以上のとき実名を要求します。",
+    "Нужно для проверки получателя. WeChat требует настоящее имя, если один перевод достигает 2000 юаней."
+  ],
   "用于真实模型调用；不提供采购授信。": [
     "用于真实模型调用；不提供采购授信。",
     "Used for actual model calls; procurement credit is not provided.",
@@ -19972,6 +20278,12 @@
     "Request domain verification",
     "ドメイン認証を申請",
     "Запросить проверку домена"
+  ],
+  "申请提现": [
+    "申请提现",
+    "Request a withdrawal",
+    "出金を申請",
+    "Запросить вывод"
   ],
   "申请提现 / 查看付款": [
     "申请提现 / 查看付款",
@@ -21581,6 +21893,18 @@
     "事業者負担 ATG",
     "Покрыто оператором ATG"
   ],
+  "经营方按微信号或绑定手机号线下付款。微信线上转账使用的 OpenID 不在这里收集；单笔达到 2000 元时，微信要求姓名与实名一致。": [
+    "经营方按微信号或绑定手机号线下付款。微信线上转账使用的 OpenID 不在这里收集；单笔达到 2000 元时，微信要求姓名与实名一致。",
+    "The operator pays offline using the WeChat ID or bound mobile number. The OpenID for an online WeChat transfer is not collected here; at 2,000 yuan WeChat requires the legal name.",
+    "事業者は WeChat ID または登録携帯番号でオフライン支払いをします。オンライン送金の OpenID は収集せず、2000 元以上では実名が必要です。",
+    "Оператор платит офлайн по WeChat ID или телефону. OpenID онлайн-перевода здесь не собирается; от 2000 юаней WeChat требует настоящее имя."
+  ],
+  "经营方按此线下付款。微信线上转账使用的 OpenID 不会在这里收集。": [
+    "经营方按此线下付款。微信线上转账使用的 OpenID 不会在这里收集。",
+    "The operator pays offline with this information. The OpenID used for an online WeChat transfer is not collected here.",
+    "事業者はこの情報でオフライン支払いをします。オンライン送金用の OpenID はここでは収集しません。",
+    "Оператор платит офлайн по этим данным. OpenID для онлайн-перевода WeChat здесь не собирается."
+  ],
   "经营方活动": [
     "经营方活动",
     "Operator campaign",
@@ -21622,6 +21946,12 @@
     "Operator gift ATG",
     "事業者特典 ATG",
     "Бонусы оператора ATG"
+  ],
+  "经营方还没有为这个提现方式选定支付方式和收款材料。": [
+    "经营方还没有为这个提现方式选定支付方式和收款材料。",
+    "The operator has not chosen a payment method and recipient details for this withdrawal method.",
+    "事業者はこの出金方法の支払方法と受取情報をまだ選んでいません。",
+    "Оператор ещё не выбрал способ оплаты и реквизиты для этого метода вывода."
   ],
   "经营方采购": [
     "经营方采购",
@@ -22204,6 +22534,12 @@
     "Website",
     "ウェブサイト",
     "Сайт"
+  ],
+  "网络": [
+    "网络",
+    "Network",
+    "ネットワーク",
+    "Сеть"
   ],
   "网络/Chain ID": [
     "网络/Chain ID",
@@ -23957,6 +24293,12 @@
     "業務フィールドを入力してください",
     "Введите деловые поля"
   ],
+  "请输入提现金额。": [
+    "请输入提现金额。",
+    "Enter a withdrawal amount.",
+    "出金額を入力してください。",
+    "Введите сумму вывода."
+  ],
   "请输入非负十进制 结算币种 金额，最多 24 位小数。": [
     "请输入非负十进制 结算币种 金额，最多 24 位小数。",
     "Enter a non-negative decimal settlement currency amount with up to 24 decimal places.",
@@ -23986,6 +24328,12 @@
     "Select an actual business record",
     "実際の業務レコードを選択",
     "Выберите существующую деловую запись"
+  ],
+  "请选择支付方式，客户将按该方式需要的收款材料填写。": [
+    "请选择支付方式，客户将按该方式需要的收款材料填写。",
+    "Choose a payment method. The customer will fill in the recipient details that method requires.",
+    "支払方法を選択してください。顧客はその方法に必要な受取情報を記入します。",
+    "Выберите способ оплаты. Клиент заполнит реквизиты, которые он требует."
   ],
   "请选择有效区间，截止时间须晚于起始时间。": [
     "请选择有效区间，截止时间须晚于起始时间。",
@@ -24353,6 +24701,12 @@
     "アカウントを作成しました。ログイン先、メールアドレス、初期パスワードを責任者に渡してください。初回ログイン時にパスワード変更が必要です。",
     "Аккаунт создан. Передайте владельцу адрес входа, почту и начальный пароль. При первом входе потребуется сменить пароль."
   ],
+  "账号或 IBAN": [
+    "账号或 IBAN",
+    "Account number or IBAN",
+    "口座番号または IBAN",
+    "Номер счёта или IBAN"
+  ],
   "账号或密码错误": [
     "账号或密码错误",
     "The account or password is incorrect.",
@@ -24376,6 +24730,12 @@
     "Account entries",
     "口座別仕訳",
     "Записи по счетам"
+  ],
+  "账户姓名": [
+    "账户姓名",
+    "Account name",
+    "口座名義",
+    "Имя счёта"
   ],
   "账户用途": [
     "账户用途",
@@ -24953,6 +25313,12 @@
     "システム設定に従う",
     "Как в системе"
   ],
+  "跨行或对公转账通常需要支行名称。": [
+    "跨行或对公转账通常需要支行名称。",
+    "Cross-bank or business transfers usually need the branch name.",
+    "他行または法人口座への送金では通常、支店名が必要です。",
+    "Для межбанковского или корпоративного перевода обычно нужно отделение."
+  ],
   "路由": [
     "路由",
     "Route",
@@ -25343,6 +25709,12 @@
     "キャンペーンはまだありません",
     "Кампаний пока нет"
   ],
+  "还没有提现申请。": [
+    "还没有提现申请。",
+    "There are no withdrawal requests yet.",
+    "出金申請はまだありません。",
+    "Заявок на вывод пока нет."
+  ],
   "还没有模型调用": [
     "还没有模型调用",
     "No model requests yet",
@@ -25390,6 +25762,12 @@
     "The Google callback test for this domain passed. Enable it in the brand settings, then customers can use it.",
     "このドメインの Google 戻り先テストは成功しました。ブランド設定で有効にすると、顧客が利用できます。",
     "Проверка возврата Google для этого домена прошла. Включите её в настройках бренда, после этого клиенты смогут входить."
+  ],
+  "这个方式尚未指定收款材料。请联系经营方选定支付方式和收款材料后再申请。": [
+    "这个方式尚未指定收款材料。请联系经营方选定支付方式和收款材料后再申请。",
+    "This method does not specify recipient details yet. Ask the operator to choose a payment method and its materials before you apply.",
+    "この方式には受取情報がまだ指定されていません。申請前に事業者へ支払方法と必要資料の選択を依頼してください。",
+    "Для этого способа ещё не заданы реквизиты. Попросите оператора выбрать способ оплаты и необходимые данные."
   ],
   "这个邮箱已在本品牌用密码注册。请使用密码登录；Google 不会自动并入已有账号": [
     "这个邮箱已在本品牌用密码注册。请使用密码登录；Google 不会自动并入已有账号",
@@ -25769,6 +26147,12 @@
     "プランと対象を選択",
     "Выбрать пакет и аудиторию"
   ],
+  "选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。": [
+    "选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。",
+    "After a payment method is selected, the customer must provide that method's recipient details. An existing request keeps the details from when it was submitted.",
+    "支払方法を選ぶと、顧客はその受取情報を記入します。送信済みの申請は当時の情報を保持します。",
+    "После выбора способа клиент заполняет его реквизиты. Уже отправленная заявка сохраняет данные на момент отправки."
+  ],
   "选择一笔尚未分配的收款，系统按该笔 结算币种 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。": [
     "选择一笔尚未分配的收款，系统按该笔 结算币种 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。",
     "Select one unallocated receipt. Its settlement currency value and this quote determine purchased and bonus ATG; the order and delivery complete together.",
@@ -25972,6 +26356,12 @@
     "Choose our purchasing or supplying view and track quotes, payments, and delivery. Procurement balance does not expire; replenishment does not lock future model call prices.",
     "自社の調達・供給ビューを選び、見積もり、支払い、提供を追跡します。調達残高に期限はなく、補充は将来のモデル呼出価格を固定しません。",
     "Выберите наши закупки или поставки и отслеживайте предложения, оплату и исполнение. Закупочный остаток не истекает; пополнение не фиксирует будущие цены вызовов моделей."
+  ],
+  "选择提现方式并填写金额后，可以立刻比较手续费。选定后填写该方式要求的收款资料，一次提交。": [
+    "选择提现方式并填写金额后，可以立刻比较手续费。选定后填写该方式要求的收款资料，一次提交。",
+    "After you choose a method and enter an amount, compare the fees immediately. Then fill in that method's recipient details and submit once.",
+    "方式と金額を選ぶと手数料をすぐ比較できます。その方式の受取情報を記入して一度で送信します。",
+    "После выбора способа и суммы сразу сравните комиссию. Затем заполните реквизиты этого способа и отправьте одну заявку."
   ],
   "选择支持相应能力的供应商模型，上下移动调整优先顺序。": [
     "选择支持相应能力的供应商模型，上下移动调整优先顺序。",
@@ -27305,6 +27695,12 @@
     "金額は正確な十進数文字列で入力してください。",
     "Суммы должны быть точными десятичными строками."
   ],
+  "钱包地址": [
+    "钱包地址",
+    "Wallet address",
+    "ウォレットアドレス",
+    "Адрес кошелька"
+  ],
   "银行/NOW实际付款流水": [
     "银行/NOW实际付款流水",
     "Actual bank/NOW payment reference",
@@ -27353,11 +27749,23 @@
     "銀行支払計画と根拠",
     "План банковского платежа и подтверждение"
   ],
+  "银行卡号": [
+    "银行卡号",
+    "Bank card number",
+    "銀行カード番号",
+    "Номер карты"
+  ],
   "银行或通道追回凭证": [
     "银行或通道追回凭证",
     "Bank or provider recovery evidence",
     "銀行・決済先による回収証明",
     "Подтверждение взыскания банком или провайдером"
+  ],
+  "银行所在国家或地区": [
+    "银行所在国家或地区",
+    "Bank country or region",
+    "銀行所在国または地域",
+    "Страна или регион банка"
   ],
   "银行核实依据": [
     "银行核实依据",
@@ -27754,6 +28162,18 @@
     "Item name",
     "項目名",
     "Название элемента"
+  ],
+  "须与支付宝账号的实名一致。用登录账号收款时，支付宝要求填写真实姓名。": [
+    "须与支付宝账号的实名一致。用登录账号收款时，支付宝要求填写真实姓名。",
+    "Must match the Alipay account's verified name. Alipay requires the legal name when paying a login account.",
+    "Alipay アカウントの実名と一致させてください。ログインアカウントへの支払では実名が必要です。",
+    "Должно совпадать с подтверждённым именем Alipay. Для выплаты на логин Alipay требует настоящее имя."
+  ],
+  "须与银行卡户名一致。": [
+    "须与银行卡户名一致。",
+    "Must match the bank account name.",
+    "銀行口座名義と一致させてください。",
+    "Должно совпадать с именем владельца счёта."
   ],
   "须重新复核": [
     "须重新复核",

@@ -93,6 +93,8 @@ export const ResourcePageSchema = z.object({ views:z.array(z.object({value:z.str
   operations: z.array(OperationSchema), row_operations: z.array(OperationSchema),
   availability: z.array(AvailabilitySchema).optional(), next_cursor: z.string().nullable().optional(),
   summary: z.array(z.object({ label: z.string(), value: z.string(), unit: z.string().optional(), detail: z.string().optional() })).optional(),
+  payout_methods: z.array(z.object({ id: z.string(), name: z.string(), kind: z.string(), kind_label: z.string(), summary: z.string(), flat_fee_money: Decimal, fee_rate: Decimal, minimum_money: Decimal, fields: z.array(z.object({ name: z.string(), label: z.string(), help: z.string(), kind: z.enum(["text", "select"]), options: z.array(z.object({ value: z.string(), label: z.string() })).optional() })) })).optional(),
+  currency_digits: z.number().int().nonnegative().optional(),
 });
 export type ResourcePage = z.infer<typeof ResourcePageSchema>;
 

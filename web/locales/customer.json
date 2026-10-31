@@ -3323,5 +3323,325 @@
     "en": "Separate bonus",
     "ja": "独立した付与",
     "ru": "Отдельный бонус"
+  },
+  "申请提现": {
+    "en": "Request a withdrawal",
+    "ja": "出金を申請",
+    "ru": "Запросить вывод"
+  },
+  "选择提现方式并填写金额后，可以立刻比较手续费。选定后填写该方式要求的收款资料，一次提交。": {
+    "en": "After you choose a method and enter an amount, compare the fees immediately. Then fill in that method's recipient details and submit once.",
+    "ja": "方式と金額を選ぶと手数料をすぐ比較できます。その方式の受取情報を記入して一度で送信します。",
+    "ru": "После выбора способа и суммы сразу сравните комиссию. Затем заполните реквизиты этого способа и отправьте одну заявку."
+  },
+  "提现金额 结算币种": {
+    "en": "Withdrawal amount settlement currency",
+    "ja": "出金額 決済通貨",
+    "ru": "Сумма вывода валюта расчётов"
+  },
+  "不足最小支付单位的尾数仍留在佣金钱包，不计入本次申请。": {
+    "en": "Any remainder below the smallest payable unit stays in the commission wallet and is not part of this request.",
+    "ja": "最小支払単位未満の端数はコミッション財布に残り、今回の申請には含まれません。",
+    "ru": "Остаток меньше минимальной единицы платежа остаётся в кошельке комиссии и не входит в эту заявку."
+  },
+  "提现方式": {
+    "en": "Withdrawal method",
+    "ja": "出金方法",
+    "ru": "Способ вывода"
+  },
+  "按比例收取手续费": {
+    "en": "A percentage fee applies",
+    "ja": "割合で手数料を取ります",
+    "ru": "Комиссия взимается в процентах"
+  },
+  "按固定金额收取手续费": {
+    "en": "A fixed fee applies",
+    "ja": "固定額の手数料を取ります",
+    "ru": "Комиссия взимается фиксированной суммой"
+  },
+  "这个方式尚未指定收款材料。请联系经营方选定支付方式和收款材料后再申请。": {
+    "en": "This method does not specify recipient details yet. Ask the operator to choose a payment method and its materials before you apply.",
+    "ja": "この方式には受取情報がまだ指定されていません。申請前に事業者へ支払方法と必要資料の選択を依頼してください。",
+    "ru": "Для этого способа ещё не заданы реквизиты. Попросите оператора выбрать способ оплаты и необходимые данные."
+  },
+  "收款资料": {
+    "en": "Recipient details",
+    "ja": "受取情報",
+    "ru": "Реквизиты получателя"
+  },
+  "本次申请总额": {
+    "en": "Amount requested this time",
+    "ja": "今回の申請総額",
+    "ru": "Сумма этой заявки"
+  },
+  "请输入提现金额。": {
+    "en": "Enter a withdrawal amount.",
+    "ja": "出金額を入力してください。",
+    "ru": "Введите сумму вывода."
+  },
+  "可支付金额为 0。不足最小支付单位的尾数仍留在佣金钱包。": {
+    "en": "The payable amount is 0. A remainder below the smallest payable unit stays in the commission wallet.",
+    "ja": "支払可能額は 0 です。最小支払単位未満の端数はコミッション財布に残ります。",
+    "ru": "Сумма к выплате равна 0. Остаток меньше минимальной единицы остаётся в кошельке комиссии."
+  },
+  "低于最低提现额度。": {
+    "en": "Below the minimum withdrawal amount.",
+    "ja": "最低出金額を下回っています。",
+    "ru": "Ниже минимальной суммы вывода."
+  },
+  "手续费不低于可支付金额，无法申请。": {
+    "en": "The fee is not lower than the payable amount, so this request cannot be submitted.",
+    "ja": "手数料が支払可能額以上のため申請できません。",
+    "ru": "Комиссия не меньше суммы к выплате, заявку отправить нельзя."
+  },
+  "提交提现申请": {
+    "en": "Submit withdrawal request",
+    "ja": "出金申請を送信",
+    "ru": "Отправить заявку на вывод"
+  },
+  "正在提交…": {
+    "en": "Submitting…",
+    "ja": "送信中…",
+    "ru": "Отправка…"
+  },
+  "提现申请": {
+    "en": "Withdrawal request",
+    "ja": "出金申請",
+    "ru": "Заявка на вывод"
+  },
+  "尚未审核的申请可以取消。取消后释放这笔佣金占用。": {
+    "en": "A request can be cancelled before review. Cancellation releases the reserved commission.",
+    "ja": "審査前の申請は取り消せます。取り消すと確保されたコミッションが戻ります。",
+    "ru": "Заявку можно отменить до проверки. Отмена освобождает зарезервированную комиссию."
+  },
+  "还没有提现申请。": {
+    "en": "There are no withdrawal requests yet.",
+    "ja": "出金申請はまだありません。",
+    "ru": "Заявок на вывод пока нет."
+  },
+  "取消申请": {
+    "en": "Cancel request",
+    "ja": "申請を取り消す",
+    "ru": "Отменить заявку"
+  },
+  "尚未选择收款材料": {
+    "en": "Recipient details not selected",
+    "ja": "受取情報が未選択",
+    "ru": "Реквизиты ещё не выбраны"
+  },
+  "经营方还没有为这个提现方式选定支付方式和收款材料。": {
+    "en": "The operator has not chosen a payment method and recipient details for this withdrawal method.",
+    "ja": "事業者はこの出金方法の支払方法と受取情報をまだ選んでいません。",
+    "ru": "Оператор ещё не выбрал способ оплаты и реквизиты для этого метода вывода."
+  },
+  "境内银行卡": {
+    "en": "Domestic bank card",
+    "ja": "国内銀行カード",
+    "ru": "Внутренняя банковская карта"
+  },
+  "国际电汇": {
+    "en": "International wire",
+    "ja": "国際電信送金",
+    "ru": "Международный перевод"
+  },
+  "支付宝实名": {
+    "en": "Alipay legal name",
+    "ja": "Alipay 実名",
+    "ru": "Настоящее имя Alipay"
+  },
+  "支付宝账号": {
+    "en": "Alipay account",
+    "ja": "Alipay アカウント",
+    "ru": "Аккаунт Alipay"
+  },
+  "须与支付宝账号的实名一致。用登录账号收款时，支付宝要求填写真实姓名。": {
+    "en": "Must match the Alipay account's verified name. Alipay requires the legal name when paying a login account.",
+    "ja": "Alipay アカウントの実名と一致させてください。ログインアカウントへの支払では実名が必要です。",
+    "ru": "Должно совпадать с подтверждённым именем Alipay. Для выплаты на логин Alipay требует настоящее имя."
+  },
+  "填写支付宝登录用的手机号或邮箱。如果这个手机号绑定了多个支付宝账号，改填 2088 开头的用户号。": {
+    "en": "Enter the mobile number or email used to sign in to Alipay. If that number is linked to more than one Alipay account, use the user ID that starts with 2088.",
+    "ja": "Alipay のログイン用携帯番号またはメールを入力してください。その番号が複数のアカウントに紐づく場合は 2088 で始まるユーザー番号を使ってください。",
+    "ru": "Укажите телефон или почту входа Alipay. Если номер привязан к нескольким аккаунтам, укажите идентификатор, начинающийся с 2088."
+  },
+  "微信实名": {
+    "en": "WeChat legal name",
+    "ja": "WeChat 実名",
+    "ru": "Настоящее имя WeChat"
+  },
+  "微信号或绑定手机号": {
+    "en": "WeChat ID or bound mobile number",
+    "ja": "WeChat ID または登録携帯番号",
+    "ru": "WeChat ID или привязанный телефон"
+  },
+  "用于核对收款人。微信单笔转账金额达到 2000 元时必须与实名一致。": {
+    "en": "Used to check the recipient. WeChat requires the legal name when a single transfer reaches 2,000 yuan.",
+    "ja": "受取人の確認に使います。WeChat は 1 回の送金が 2000 元以上のとき実名を要求します。",
+    "ru": "Нужно для проверки получателя. WeChat требует настоящее имя, если один перевод достигает 2000 юаней."
+  },
+  "经营方按此线下付款。微信线上转账使用的 OpenID 不会在这里收集。": {
+    "en": "The operator pays offline with this information. The OpenID used for an online WeChat transfer is not collected here.",
+    "ja": "事業者はこの情報でオフライン支払いをします。オンライン送金用の OpenID はここでは収集しません。",
+    "ru": "Оператор платит офлайн по этим данным. OpenID для онлайн-перевода WeChat здесь не собирается."
+  },
+  "收款人姓名": {
+    "en": "Recipient name",
+    "ja": "受取人氏名",
+    "ru": "Имя получателя"
+  },
+  "须与银行卡户名一致。": {
+    "en": "Must match the bank account name.",
+    "ja": "銀行口座名義と一致させてください。",
+    "ru": "Должно совпадать с именем владельца счёта."
+  },
+  "开户银行": {
+    "en": "Bank name",
+    "ja": "開設銀行",
+    "ru": "Банк"
+  },
+  "填写开户银行名称，例如中国工商银行。": {
+    "en": "Enter the bank name, for example Industrial and Commercial Bank of China.",
+    "ja": "開設銀行名を入力してください。例：中国工商銀行。",
+    "ru": "Укажите банк, например Industrial and Commercial Bank of China."
+  },
+  "银行卡号": {
+    "en": "Bank card number",
+    "ja": "銀行カード番号",
+    "ru": "Номер карты"
+  },
+  "填写银行卡号，不要包含空格。": {
+    "en": "Enter the card number without spaces.",
+    "ja": "カード番号を空白なしで入力してください。",
+    "ru": "Введите номер карты без пробелов."
+  },
+  "开户支行": {
+    "en": "Bank branch",
+    "ja": "支店",
+    "ru": "Отделение банка"
+  },
+  "跨行或对公转账通常需要支行名称。": {
+    "en": "Cross-bank or business transfers usually need the branch name.",
+    "ja": "他行または法人口座への送金では通常、支店名が必要です。",
+    "ru": "Для межбанковского или корпоративного перевода обычно нужно отделение."
+  },
+  "PayPal 邮箱": {
+    "en": "PayPal email",
+    "ja": "PayPal メール",
+    "ru": "Почта PayPal"
+  },
+  "填写已验证的 PayPal 邮箱。PayPal 按邮箱、手机号或付款人编号发款。": {
+    "en": "Enter a verified PayPal email. PayPal pays by email, mobile number, or payer ID.",
+    "ja": "確認済みの PayPal メールを入力してください。PayPal はメール、携帯番号、または支払人 ID で送金します。",
+    "ru": "Укажите подтверждённую почту PayPal. PayPal платит по почте, телефону или идентификатору плательщика."
+  },
+  "账户姓名": {
+    "en": "Account name",
+    "ja": "口座名義",
+    "ru": "Имя счёта"
+  },
+  "供经营方核对。PayPal 发款以邮箱为准。": {
+    "en": "For the operator to check. PayPal sends the payout to the email.",
+    "ja": "事業者の確認用です。PayPal の送金先はメールです。",
+    "ru": "Для проверки оператором. PayPal отправляет выплату на эту почту."
+  },
+  "收款人英文姓名": {
+    "en": "Recipient name in English",
+    "ja": "受取人の英語氏名",
+    "ru": "Имя получателя на английском"
+  },
+  "与收款银行账户上的英文姓名一致。": {
+    "en": "Must match the English name on the receiving bank account.",
+    "ja": "受取銀行口座の英語氏名と一致させてください。",
+    "ru": "Должно совпадать с английским именем на банковском счёте."
+  },
+  "收款银行": {
+    "en": "Receiving bank",
+    "ja": "受取銀行",
+    "ru": "Банк получателя"
+  },
+  "填写收款银行的英文名称。": {
+    "en": "Enter the receiving bank's English name.",
+    "ja": "受取銀行の英語名を入力してください。",
+    "ru": "Укажите английское название банка получателя."
+  },
+  "账号或 IBAN": {
+    "en": "Account number or IBAN",
+    "ja": "口座番号または IBAN",
+    "ru": "Номер счёта или IBAN"
+  },
+  "填写收款账号或 IBAN，不要包含空格。": {
+    "en": "Enter the account number or IBAN without spaces.",
+    "ja": "口座番号または IBAN を空白なしで入力してください。",
+    "ru": "Введите номер счёта или IBAN без пробелов."
+  },
+  "银行所在国家或地区": {
+    "en": "Bank country or region",
+    "ja": "銀行所在国または地域",
+    "ru": "Страна или регион банка"
+  },
+  "填写收款银行所在的国家或地区。": {
+    "en": "Enter the country or region of the receiving bank.",
+    "ja": "受取銀行の所在国または地域を入力してください。",
+    "ru": "Укажите страну или регион банка получателя."
+  },
+  "收款人地址": {
+    "en": "Recipient address",
+    "ja": "受取人住所",
+    "ru": "Адрес получателя"
+  },
+  "填写收款人地址，电汇通常需要它才能入账。": {
+    "en": "Enter the recipient address. A wire usually needs it before the funds can be credited.",
+    "ja": "受取人住所を入力してください。電信送金の入金には通常必要です。",
+    "ru": "Укажите адрес получателя. Для зачисления перевода он обычно нужен."
+  },
+  "网络": {
+    "en": "Network",
+    "ja": "ネットワーク",
+    "ru": "Сеть"
+  },
+  "必须与钱包地址的网络一致。": {
+    "en": "Must match the wallet address network.",
+    "ja": "ウォレットアドレスのネットワークと一致させてください。",
+    "ru": "Должна совпадать с сетью адреса кошелька."
+  },
+  "钱包地址": {
+    "en": "Wallet address",
+    "ja": "ウォレットアドレス",
+    "ru": "Адрес кошелька"
+  },
+  "填写所选网络上的 USDT 地址。选错网络可能导致无法到账。": {
+    "en": "Enter the USDT address on the selected network. The wrong network can make the funds unrecoverable.",
+    "ja": "選択したネットワークの USDT アドレスを入力してください。ネットワークを誤ると着金できないことがあります。",
+    "ru": "Укажите адрес USDT в выбранной сети. Неверная сеть может сделать перевод недоступным."
+  },
+  "客户需填写与银行卡一致的户名、开户银行、卡号和开户支行。跨行或对公转账通常要靠支行名称入账。": {
+    "en": "The customer must enter the account name, bank, card number, and branch that match the card. Cross-bank or business transfers usually rely on the branch name.",
+    "ja": "顧客はカードと一致する名義、銀行、カード番号、支店を入力します。他行または法人口座への送金では通常、支店名が必要です。",
+    "ru": "Клиент указывает имя, банк, номер карты и отделение. Для межбанковского или корпоративного перевода обычно нужно отделение."
+  },
+  "支付宝用登录账号收款时，必须同时提供与该账号实名一致的姓名。": {
+    "en": "When Alipay pays a login account, the name must match that account's verified identity.",
+    "ja": "Alipay がログインアカウントへ支払うときは、その実名と一致する氏名が必要です。",
+    "ru": "Когда Alipay платит на логин, имя должно совпадать с подтверждённой личностью."
+  },
+  "经营方按微信号或绑定手机号线下付款。微信线上转账使用的 OpenID 不在这里收集；单笔达到 2000 元时，微信要求姓名与实名一致。": {
+    "en": "The operator pays offline using the WeChat ID or bound mobile number. The OpenID for an online WeChat transfer is not collected here; at 2,000 yuan WeChat requires the legal name.",
+    "ja": "事業者は WeChat ID または登録携帯番号でオフライン支払いをします。オンライン送金の OpenID は収集せず、2000 元以上では実名が必要です。",
+    "ru": "Оператор платит офлайн по WeChat ID или телефону. OpenID онлайн-перевода здесь не собирается; от 2000 юаней WeChat требует настоящее имя."
+  },
+  "PayPal 按邮箱定位收款账户。姓名供经营方核对，邮箱错误会使款项进入错误账户。": {
+    "en": "PayPal finds the account by email. The name lets the operator check it; a wrong email sends the money to the wrong account.",
+    "ja": "PayPal はメールで口座を特定します。氏名は事業者の確認用で、メールを誤ると別の口座へ入ります。",
+    "ru": "PayPal находит счёт по почте. Имя нужно оператору для проверки; ошибка в почте отправит деньги на другой счёт."
+  },
+  "国际电汇需要收款人英文姓名、银行、账号或 IBAN、SWIFT/BIC、银行所在地和收款人地址。": {
+    "en": "An international wire needs the recipient's English name, bank, account number or IBAN, SWIFT/BIC, bank location, and address.",
+    "ja": "国際電信送金には英語氏名、銀行、口座番号または IBAN、SWIFT/BIC、銀行所在地、住所が必要です。",
+    "ru": "Международный перевод требует английское имя, банк, счёт или IBAN, SWIFT/BIC, место банка и адрес."
+  },
+  "客户需选择 USDT 网络并填写该网络上的钱包地址。网络和地址不一致可能导致无法到账。": {
+    "en": "The customer chooses the USDT network and enters a wallet address on that network. A mismatch can make the funds unrecoverable.",
+    "ja": "顧客は USDT のネットワークを選び、そのアドレスを入力します。不一致だと着金できないことがあります。",
+    "ru": "Клиент выбирает сеть USDT и адрес в этой сети. Несовпадение может сделать перевод недоступным."
   }
 }

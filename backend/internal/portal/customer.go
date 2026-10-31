@@ -75,6 +75,7 @@ func (a *Application) customerRoutes(r *gin.RouterGroup) {
 	r.GET("/commissions", a.commissions)
 	r.GET("/:resource/workspace", a.customerWorkspace)
 	r.POST("/topups", a.topup)
+	r.POST("/withdrawals", a.applyWithdrawal)
 	r.POST("/withdrawals/quotes", a.withdrawalQuote)
 	r.POST("/withdrawals/quotes/:id/confirm", a.confirmWithdrawal)
 	r.POST("/withdrawals/:id/cancel", a.cancelWithdrawal)

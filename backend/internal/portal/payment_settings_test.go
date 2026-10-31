@@ -15,7 +15,7 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 	status, page, _ := f.call(t, "GET", base+"?view=methods", nil, "")
 	mustOK(t, status, page)
 	fields := operationFields(t, page, "method")
-	for _, name := range []string{"method_name", "fee_mode", "flat_fee_money", "fee_percent", "enabled", "expected_version"} {
+	for _, name := range []string{"payout_kind", "method_name", "fee_mode", "flat_fee_money", "fee_percent", "enabled", "expected_version"} {
 		if fields[name] == nil {
 			t.Fatal("missing method field", name)
 		}
@@ -26,8 +26,8 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 		}
 	}
 	for _, method := range []map[string]any{
-		{"method_name": "Bank transfer", "fee_mode": "fixed", "flat_fee_money": "1", "enabled": true},
-		{"method_name": "Wallet payout", "fee_mode": "percent", "fee_percent": "2", "enabled": true},
+		{"payout_kind": "bank_cn", "method_name": "Bank transfer", "fee_mode": "fixed", "flat_fee_money": "1", "enabled": true},
+		{"payout_kind": "alipay", "method_name": "Wallet payout", "fee_mode": "percent", "fee_percent": "2", "enabled": true},
 	} {
 		key := uuid.NewString()
 		status, out, _ := f.call(t, "POST", base, method, key)
@@ -42,7 +42,7 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 	mustOK(t, status, page)
 	row := page["items"].([]any)[0].(map[string]any)
 	method := row["values"].(map[string]any)
-	status, out, _ := f.call(t, "POST", base+"/"+row["id"].(string)+"/edit_method", map[string]any{"method_name": method["method_name"], "fee_mode": "fixed", "flat_fee_money": "1.5", "enabled": true, "expected_version": row["version"]}, uuid.NewString())
+	status, out, _ := f.call(t, "POST", base+"/"+row["id"].(string)+"/edit_method", map[string]any{"payout_kind": "bank_cn", "method_name": method["method_name"], "fee_mode": "fixed", "flat_fee_money": "1.5", "enabled": true, "expected_version": row["version"]}, uuid.NewString())
 	mustOK(t, status, out)
 	f.openRegistration(t)
 	f.registered(t, "method-choice@example.test")
@@ -52,6 +52,20 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 	options := operationFields(t, page, "quote")["method_id"]["options"].([]any)
 	if len(options) != 2 {
 		t.Fatal("customer cannot choose the configured payout method", options)
+	}
+	foundAlipay := false
+	for _, raw := range page["payout_methods"].([]any) {
+		method := raw.(map[string]any)
+		if method["kind"] != "alipay" {
+			continue
+		}
+		foundAlipay = true
+		if len(method["fields"].([]any)) != 2 || method["summary"] == "" {
+			t.Fatal("alipay payout did not publish its recipient materials", method)
+		}
+	}
+	if !foundAlipay {
+		t.Fatal("customer payout methods omitted alipay", page["payout_methods"])
 	}
 	status, out, _ = f.call(t, "POST", "/v1/me/withdrawals/quotes", map[string]any{"method_id": options[0].(map[string]any)["value"], "amount_money": "10"}, uuid.NewString())
 	mustOK(t, status, out)

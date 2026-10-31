@@ -165,7 +165,7 @@ func (s *demoBuilder) setup(operator, actor string) (commerce.PackageQuote, ince
 	if e != nil {
 		return quote, policy, e
 	}
-	_, e = s.a.Incentives.SetWithdrawalPolicy(s.ctx, s.tx, actor, operator, incentives.WithdrawalPolicy{MinimumMoney: d("1"), FlatFeeMoney: ledger.Zero(), FeeRate: ledger.Zero(), MethodReference: "TEST ONLY: artificial evidence, no real payout"}, 0)
+	_, e = s.a.Incentives.SetWithdrawalPolicy(s.ctx, s.tx, actor, operator, incentives.WithdrawalPolicy{MethodName: "支付宝", PayoutKind: "alipay", MinimumMoney: d("1"), FlatFeeMoney: ledger.Zero(), FeeRate: ledger.Zero(), MethodReference: "TEST ONLY: artificial evidence, no real payout"}, 0)
 	return quote, policy, e
 }
 func (s *demoBuilder) customer(brand, operator, email, name, invite string) (organization.RegistrationResult, error) {

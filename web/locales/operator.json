@@ -2969,5 +2969,50 @@
     "en": "Supplier model",
     "ja": "供給元モデル",
     "ru": "Модель поставщика"
+  },
+  "支付方式": {
+    "en": "Payment method",
+    "ja": "支払方法",
+    "ru": "Способ оплаты"
+  },
+  "选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。": {
+    "en": "After a payment method is selected, the customer must provide that method's recipient details. An existing request keeps the details from when it was submitted.",
+    "ja": "支払方法を選ぶと、顧客はその受取情報を記入します。送信済みの申請は当時の情報を保持します。",
+    "ru": "После выбора способа клиент заполняет его реквизиты. Уже отправленная заявка сохраняет данные на момент отправки."
+  },
+  "收款材料": {
+    "en": "Recipient materials",
+    "ja": "受取情報",
+    "ru": "Реквизиты"
+  },
+  "境内银行卡 · 户名、开户银行、卡号、支行": {
+    "en": "Domestic bank card · name, bank, card number, branch",
+    "ja": "国内銀行カード · 名義、銀行、カード番号、支店",
+    "ru": "Внутренняя карта · имя, банк, номер, отделение"
+  },
+  "支付宝 · 实名、登录账号": {
+    "en": "Alipay · legal name, login account",
+    "ja": "Alipay · 実名、ログインアカウント",
+    "ru": "Alipay · имя, логин"
+  },
+  "微信支付 · 实名、微信号或手机号": {
+    "en": "WeChat Pay · legal name, WeChat ID or mobile number",
+    "ja": "WeChat Pay · 実名、WeChat ID または携帯番号",
+    "ru": "WeChat Pay · имя, WeChat ID или телефон"
+  },
+  "PayPal · 邮箱、账户姓名": {
+    "en": "PayPal · email, account name",
+    "ja": "PayPal · メール、口座名義",
+    "ru": "PayPal · почта, имя счёта"
+  },
+  "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址": {
+    "en": "International wire · English name, bank, account or IBAN, SWIFT, country, address",
+    "ja": "国際電信送金 · 英語氏名、銀行、口座または IBAN、SWIFT、国、住所",
+    "ru": "Международный перевод · имя, банк, счёт или IBAN, SWIFT, страна, адрес"
+  },
+  "USDT · 网络、钱包地址": {
+    "en": "USDT · network, wallet address",
+    "ja": "USDT · ネットワーク、ウォレットアドレス",
+    "ru": "USDT · сеть, адрес кошелька"
   }
 }

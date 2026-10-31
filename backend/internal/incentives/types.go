@@ -209,6 +209,7 @@ type WithdrawalPolicy struct {
 	Currency             string         `json:"currency,omitempty" gorm:"-"`
 	MethodID             string         `json:"method_id"`
 	MethodName           string         `json:"method_name"`
+	PayoutKind           string         `json:"payout_kind"`
 	Enabled              bool           `json:"enabled"`
 	ID                   string         `json:"id"`
 	OperatorID           string         `json:"operator_id"`

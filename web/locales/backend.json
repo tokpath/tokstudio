@@ -7180,5 +7180,10 @@
     "en": "Review requests and record external payments under Invitations & commissions. Set the minimum in Commission rules and fees in Payout methods.",
     "ja": "招待とコミッションで申請の審査と外部支払いの記録を行います。最低出金額はコミッションルールで、手数料は出金方法で設定します。",
     "ru": "Рассматривайте заявки и регистрируйте внешние выплаты в разделе «Приглашения и комиссии». Минимальная сумма задаётся в правилах комиссий, сборы — в способах выплаты."
+  },
+  "请选择支付方式，客户将按该方式需要的收款材料填写。": {
+    "en": "Choose a payment method. The customer will fill in the recipient details that method requires.",
+    "ja": "支払方法を選択してください。顧客はその方法に必要な受取情報を記入します。",
+    "ru": "Выберите способ оплаты. Клиент заполнит реквизиты, которые он требует."
   }
 }

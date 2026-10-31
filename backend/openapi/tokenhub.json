@@ -33262,7 +33262,7 @@
             }
           }
         },
-        "description": " Required explicit review: 确认真实付款凭证与清算币种净额一致后释放占用并完成账务。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "Record that the fixed net was paid. The settlement amount is taken from the application. A different currency also requires the original amount and the evidence linking it to that net. Required explicit review: 确认已按申请时固定的实付净额完成付款。提交后释放占用并完成账务。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "withdrawals.manage"
       }
     },
@@ -52793,25 +52793,21 @@
           },
           "evidence": {
             "type": "string",
-            "description": "付款核实说明"
+            "description": "付款核实说明 — 写明如何核实这笔钱已经付给申请人。"
           },
           "currency": {
             "type": "string",
-            "description": "实际付款币种"
+            "description": "实际付款币种 — 默认是结算币种。用结算币种付款时不用再填金额。如果实际付出的是另一种货币，改成那种货币。"
           },
           "original_amount": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "实际付款金额",
+            "description": "实际原币付款金额 — 填写实际付出的原币金额。账上仍按申请时已经固定的实付净额入账。",
             "x-required-when-currency-differs-from-settlement": true
           },
           "valuation_evidence": {
             "type": "string",
-            "description": "本笔原币付款与清算金额的关联凭证（跨币必填）",
+            "description": "本笔原币付款与实付净额的关联凭证 — 说明这笔原币付款对应申请里的实付净额。",
             "x-required-when-currency-differs-from-settlement": true
-          },
-          "paid_money": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "已付净额清算币种"
           },
           "paid_at": {
             "type": "string",
@@ -52822,7 +52818,6 @@
         "required": [
           "evidence",
           "currency",
-          "paid_money",
           "paid_at"
         ],
         "additionalProperties": false

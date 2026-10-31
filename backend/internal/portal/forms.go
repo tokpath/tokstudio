@@ -69,11 +69,6 @@ func businessFields(o operation) []field {
 			fields = append(fields, v)
 		}
 		return fields
-	case "withdrawals":
-		if o.Name == "verify_paid" {
-			return []field{optional("payment_reference", "付款流水或收据号（可选）", "text"), f("evidence", "付款核实说明", "textarea"), f("currency", "实际付款币种", "text"), optional("original_amount", "实际原币付款金额（同结算币种可省略）", "decimal"), optional("valuation_evidence", "本笔原币付款与清偿金额关联凭证（跨币必填）", "textarea"), f("paid_money", "已核实清偿净额（结算币种）", "decimal"), f("paid_at", "实际付款时刻", "datetime")}
-		}
-		return o.Fields
 	case "invoices":
 		return []field{optional("issuer_id", "原始开票经营方", "hidden"), f("lines.0.receipt_id", "原始收款编号", "text"), f("lines.0.amount_money", "本次申请 结算币种", "decimal"), f("details.title", "发票抬头", "text"), f("details.tax_id", "纳税识别号", "text"), f("details.email", "接收邮箱", "email"), optional("details.address", "发票地址", "text")}
 	case "refunds":

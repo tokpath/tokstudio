@@ -374,25 +374,50 @@ func (s *Service) MarkWithdrawalUnknown(ctx context.Context, tx *gorm.DB, actor,
 		return s.event(tx, operator, id, "withdrawal.outcome_unknown", map[string]any{"actor_id": actor, "evidence": evidence, "before": before, "after": Withdrawal(r)})
 	})
 }
+func completeWithdrawalProof(proof *WithdrawalPaymentProof, net ledger.Decimal, settlement string) error {
+	proof.Currency = strings.ToUpper(strings.TrimSpace(proof.Currency))
+	if proof.Evidence == "" || proof.Currency == "" || proof.PaidAt.IsZero() || !net.Valid() || net.Sign() <= 0 {
+		return ErrInvalidInput
+	}
+	// The settlement amount was fixed when the customer applied. Recording
+	// payment does not choose a second amount.
+	proof.PaidMoney = net
+	if proof.Currency == settlement {
+		if strings.TrimSpace(proof.OriginalAmount) != "" {
+			amount, err := ledger.ParseDecimal(strings.TrimSpace(proof.OriginalAmount))
+			if err != nil || amount.Cmp(net) != 0 {
+				return ErrWithdrawalSameCurrencyAmount
+			}
+		}
+		proof.OriginalAmount = net.String()
+		if strings.TrimSpace(proof.ValuationEvidence) == "" {
+			proof.ValuationEvidence = "Verified payment in the settlement currency"
+		}
+		return nil
+	}
+	amount, err := ledger.ParseDecimal(strings.TrimSpace(proof.OriginalAmount))
+	if err != nil || amount.Sign() <= 0 || strings.TrimSpace(proof.ValuationEvidence) == "" {
+		return ErrWithdrawalForeignAmount
+	}
+	proof.OriginalAmount = amount.String()
+	return nil
+}
+
 func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, operator, id string, proof WithdrawalPaymentProof) (out Withdrawal, err error) {
-	original, parseErr := ledger.ParseDecimal(proof.OriginalAmount)
-	if proof.Evidence == "" || proof.Currency == "" || proof.Currency != strings.ToUpper(proof.Currency) || proof.ValuationEvidence == "" || proof.PaidAt.IsZero() || parseErr != nil || original.Sign() <= 0 || !proof.PaidMoney.Valid() || proof.PaidMoney.Sign() <= 0 {
+	proof.PaidAt = proof.PaidAt.UTC()
+	if proof.PaidAt.After(time.Now().UTC().Add(5 * time.Minute)) {
 		return out, ErrInvalidInput
 	}
-	proof.PaidAt = proof.PaidAt.UTC()
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
 		monetary, e := ledger.GetMonetary(ctx, tx)
 		if e != nil {
 			return e
 		}
-		if proof.Currency == monetary.Currency && original.Cmp(proof.PaidMoney) != 0 {
-			return ErrInvalidInput
-		}
-		if proof.PaidAt.After(time.Now().UTC().Add(5 * time.Minute)) {
-			return ErrInvalidInput
-		}
 		r, err := s.withdrawalForStaff(ctx, tx, actor, operator, id)
 		if err != nil {
+			return err
+		}
+		if err = completeWithdrawalProof(&proof, r.NetMoney, monetary.Currency); err != nil {
 			return err
 		}
 		if strings.TrimSpace(proof.PaymentReference) == "" {
@@ -417,9 +442,6 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 		}
 		if r.Status != "paying" && r.Status != "unknown" {
 			return ErrWithdrawalState
-		}
-		if r.NetMoney.Cmp(proof.PaidMoney) != 0 {
-			return ErrInvalidInput
 		}
 		before := Withdrawal(r)
 		available, err := s.account(ctx, tx, operator, r.CustomerID, "commission:available")

@@ -28,15 +28,17 @@ func normalizeWithdrawalPaymentProof(proof incentives.WithdrawalPaymentProof, se
 	if proof.Currency != settlementCurrency {
 		return proof, nil
 	}
-	if strings.TrimSpace(proof.OriginalAmount) != "" {
+	if proof.PaidMoney.Sign() > 0 && strings.TrimSpace(proof.OriginalAmount) != "" {
 		amount, err := ledger.ParseDecimal(proof.OriginalAmount)
 		if err != nil || amount.Cmp(proof.PaidMoney) != 0 {
-			return proof, incentives.ErrInvalidInput
+			return proof, incentives.ErrWithdrawalSameCurrencyAmount
 		}
 	}
-	proof.OriginalAmount = proof.PaidMoney.String()
-	if strings.TrimSpace(proof.ValuationEvidence) == "" {
-		proof.ValuationEvidence = "Verified payment in the settlement currency"
+	if proof.PaidMoney.Sign() > 0 {
+		proof.OriginalAmount = proof.PaidMoney.String()
+		if strings.TrimSpace(proof.ValuationEvidence) == "" {
+			proof.ValuationEvidence = "Verified payment in the settlement currency"
+		}
 	}
 	return proof, nil
 }

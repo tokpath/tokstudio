@@ -279,8 +279,20 @@ func (a *Application) withdrawalStaffAction(c *gin.Context, op organization.Oper
 	c.JSON(200, commandResult(c.Param("id"), status))
 }
 
+func withdrawalPaymentFields() []field {
+	currency := f("currency", "实际付款币种", "text")
+	currency.Help = "默认是结算币种。用结算币种付款时不用再填金额。如果实际付出的是另一种货币，改成那种货币。"
+	original := f("original_amount", "实际原币付款金额", "decimal")
+	original.Help = "填写实际付出的原币金额。账上仍按申请时已经固定的实付净额入账。"
+	link := f("valuation_evidence", "本笔原币付款与实付净额的关联凭证", "textarea")
+	link.Help = "说明这笔原币付款对应申请里的实付净额。"
+	evidence := f("evidence", "付款核实说明", "textarea")
+	evidence.Help = "写明如何核实这笔钱已经付给申请人。"
+	return []field{optional("payment_reference", "付款流水或收据号（可选）", "text"), evidence, currency, original, link, f("paid_at", "实际付款时刻", "datetime")}
+}
+
 func withdrawalRowOperations(base string) []operation {
-	return []operation{{Name: "approve", Label: "审批", Method: "POST", Path: base + "/{id}/approve", Fields: []field{}, Confirmation: "确认原申请费用、收款资料及权限。提现固定为单人审批，审批人可以继续登记付款。"}, {Name: "begin_payment", Label: "登记开始真实付款", Method: "POST", Path: base + "/{id}/begin_payment", Fields: []field{}, Confirmation: "将保存付款意图，未知结果不得再次盲目付款。"}, {Name: "unknown", Label: "标记付款结果未知", Method: "POST", Path: base + "/{id}/unknown", Fields: []field{f("evidence", "查询与不确定性依据", "textarea")}}, {Name: "verify_paid", Label: "登记已核实实际付款", Method: "POST", Path: base + "/{id}/verify_paid", Fields: []field{jsonField("payment_reference、evidence、currency、original_amount、valuation_evidence、paid_money；必须是本次真实付款事实。")}, Confirmation: "确认真实付款凭证与结算币种净额一致后释放占用并完成账务。"}, {Name: "fail", Label: "确认未付并终止", Method: "POST", Path: base + "/{id}/fail", Fields: []field{f("evidence", "已核实未付款依据", "textarea"), f("verified_unpaid", "已核实未付", "boolean")}, Confirmation: "未知结果不能终止并再次付款。"}}
+	return []operation{{Name: "approve", Label: "审批", Method: "POST", Path: base + "/{id}/approve", Fields: []field{}, Confirmation: "确认原申请费用、收款资料及权限。提现固定为单人审批，审批人可以继续登记付款。"}, {Name: "begin_payment", Label: "登记开始真实付款", Method: "POST", Path: base + "/{id}/begin_payment", Fields: []field{}, Confirmation: "将保存付款意图，未知结果不得再次盲目付款。"}, {Name: "unknown", Label: "标记付款结果未知", Method: "POST", Path: base + "/{id}/unknown", Fields: []field{f("evidence", "查询与不确定性依据", "textarea")}}, {Name: "verify_paid", Label: "登记已核实实际付款", Method: "POST", Path: base + "/{id}/verify_paid", Fields: withdrawalPaymentFields(), Confirmation: "确认已按申请时固定的实付净额完成付款。提交后释放占用并完成账务。"}, {Name: "fail", Label: "确认未付并终止", Method: "POST", Path: base + "/{id}/fail", Fields: []field{f("evidence", "已核实未付款依据", "textarea"), f("verified_unpaid", "已核实未付", "boolean")}, Confirmation: "未知结果不能终止并再次付款。"}}
 }
 
 func withdrawalAllowedActions(status string) []string {

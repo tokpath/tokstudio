@@ -107,6 +107,10 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 400, "invalid_verification", "验证凭据无效或已过期，请重新发起验证", false
 	case errors.Is(err, incentives.ErrWithdrawalMinimum):
 		status, code, msg, retry = 400, "invalid_input", "佣金最低提现不能小于 1 结算币种。", false
+	case errors.Is(err, incentives.ErrWithdrawalSameCurrencyAmount):
+		status, code, msg, retry = 400, "invalid_input", "用结算币种付款时，金额就是申请里已经固定的实付净额，不能再填一个不同的数字。", false
+	case errors.Is(err, incentives.ErrWithdrawalForeignAmount):
+		status, code, msg, retry = 400, "invalid_input", "跨币付款需要填写实际原币金额，以及这笔原币和实付净额的关联凭证。", false
 	case errors.Is(err, modelpricing.ErrInput), errors.Is(err, ledger.ErrAmount), errors.Is(err, cooperation.ErrExitTerms), errors.Is(err, branding.ErrInvalidInput), errors.Is(err, remediation.ErrInvalid), errors.Is(err, operations.ErrInvalid), errors.Is(err, incentives.ErrInvalidInput), errors.Is(err, catalog.ErrInvalidInput), errors.Is(err, payments.ErrInvalid), errors.Is(err, organization.ErrInvalidInput), errors.Is(err, organization.ErrInvalidRelationship), errors.Is(err, commerce.ErrInvalidInput), errors.Is(err, modelruntime.ErrInvalidRequest), errors.Is(err, usage.ErrKey):
 		status, code, msg, retry = 400, "invalid_input", "输入不完整、不符合限制或身份凭据不可用", false
 	case errors.Is(err, usage.ErrSecretDisplayed):

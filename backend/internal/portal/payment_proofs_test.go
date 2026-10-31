@@ -32,6 +32,11 @@ func TestPaymentProofsUseConfiguredCurrencyAndRejectContradictoryAmounts(t *test
 	if _, err = normalizeWithdrawalPaymentProof(withdrawal, "CNY"); err == nil {
 		t.Fatal("same-currency contradictory withdrawal proof was rewritten")
 	}
+	blank := incentives.WithdrawalPaymentProof{Currency: "USD"}
+	paid, err = normalizeWithdrawalPaymentProof(blank, "USD")
+	if err != nil || paid.OriginalAmount != "" || paid.PaidMoney.Sign() != 0 {
+		t.Fatal("an omitted settlement amount was invented before the fixed net is known", paid, err)
+	}
 	withdrawal.Currency, withdrawal.ValuationEvidence = "USD", "verified one transfer"
 	paid, err = normalizeWithdrawalPaymentProof(withdrawal, "CNY")
 	if err != nil || paid.OriginalAmount != "10" || paid.ValuationEvidence != withdrawal.ValuationEvidence {

@@ -54,6 +54,9 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				if f.Name == "currency" && f.Default == nil && settlementCurrency != "" {
 					f.Default = settlementCurrency
 				}
+				if resource == "withdrawals" && (f.Name == "original_amount" || f.Name == "valuation_evidence") && settlementCurrency != "" {
+					f.VisibleWhen = &fieldVisibility{Not: true, Field: "currency", Values: []string{settlementCurrency}}
+				}
 				if f.Name == "delivery_mode" && !a.operatorMailAvailable(c) {
 					options := []gin.H{}
 					for _, option := range f.Options {

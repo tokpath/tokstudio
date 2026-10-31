@@ -4584,8 +4584,8 @@
   },
   {
     "resource": "withdrawals",
-    "confirmation": "确认真实付款凭证与清算币种净额一致后释放占用并完成账务。",
-    "description": "",
+    "confirmation": "确认已按申请时固定的实付净额完成付款。提交后释放占用并完成账务。",
+    "description": "Record that the fixed net was paid. The settlement amount is taken from the application. A different currency also requires the original amount and the evidence linking it to that net.",
     "fields": [
       {
         "kind": "text",
@@ -4596,30 +4596,27 @@
         "kind": "textarea",
         "label": "付款核实说明",
         "name": "evidence",
+        "help": "写明如何核实这笔钱已经付给申请人。",
         "required": true
       },
       {
-        "default_value": "清算币种",
         "kind": "text",
         "label": "实际付款币种",
         "name": "currency",
+        "help": "默认是结算币种。用结算币种付款时不用再填金额。如果实际付出的是另一种货币，改成那种货币。",
         "required": true
       },
       {
         "kind": "decimal",
-        "label": "实际付款金额",
-        "name": "original_amount"
+        "label": "实际原币付款金额",
+        "name": "original_amount",
+        "help": "填写实际付出的原币金额。账上仍按申请时已经固定的实付净额入账。"
       },
       {
-        "kind": "text",
-        "label": "本笔原币付款与清算金额的关联凭证（跨币必填）",
-        "name": "valuation_evidence"
-      },
-      {
-        "kind": "decimal",
-        "label": "已付净额清算币种",
-        "name": "paid_money",
-        "required": true
+        "kind": "textarea",
+        "label": "本笔原币付款与实付净额的关联凭证",
+        "name": "valuation_evidence",
+        "help": "说明这笔原币付款对应申请里的实付净额。"
       },
       {
         "kind": "datetime",

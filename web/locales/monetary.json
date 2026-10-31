@@ -69,21 +69,6 @@
     "ja": "決済通道の着金日時（決済手数料確認済みの場合）",
     "ru": "Время зачисления от провайдера (при подтверждённой комиссии расчёта)"
   },
-  "实际原币付款金额（同结算币种可省略）": {
-    "en": "Actual original currency payment amount (optional for settlement currency)",
-    "ja": "実際の元通貨支払額（決済通貨と同じ場合は省略可）",
-    "ru": "Фактическая сумма платежа в исходной валюте (для валюты расчётов можно не указывать)"
-  },
-  "本笔原币付款与清偿金额关联凭证（跨币必填）": {
-    "en": "Evidence linking the original currency payment to the settled obligation (required across currencies)",
-    "ja": "元通貨の支払いと弁済額の対応証憑（異通貨の場合は必須）",
-    "ru": "Документ связи платежа в исходной валюте с погашенной суммой (обязателен при разных валютах)"
-  },
-  "已核实清偿净额（结算币种）": {
-    "en": "Verified net obligation settled (settlement currency)",
-    "ja": "確認済み弁済純額（決済通貨）",
-    "ru": "Подтверждённая чистая сумма погашения (валюта расчётов)"
-  },
   "已核实本次清偿金额（结算币种）": {
     "en": "Verified amount settled this time (settlement currency)",
     "ja": "今回の確認済み弁済額（決済通貨）",

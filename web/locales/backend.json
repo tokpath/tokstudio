@@ -3809,6 +3809,51 @@
     "ja": "実際の支払通貨",
     "ru": "Фактическая валюта оплаты"
   },
+  "默认是结算币种。用结算币种付款时不用再填金额。如果实际付出的是另一种货币，改成那种货币。": {
+    "en": "Defaults to the settlement currency. Paying in the settlement currency does not need another amount. If the money actually sent was in another currency, change this to that currency.",
+    "ja": "初期値は決済通貨です。決済通貨で支払う場合、金額を再入力する必要はありません。実際に別の通貨で支払った場合は、その通貨に変更してください。",
+    "ru": "По умолчанию это валюта расчётов. При оплате в валюте расчётов сумму заново вводить не нужно. Если деньги фактически ушли в другой валюте, укажите её."
+  },
+  "实际原币付款金额": {
+    "en": "Actual amount in the original currency",
+    "ja": "実際の原通貨支払額",
+    "ru": "Фактическая сумма в исходной валюте"
+  },
+  "填写实际付出的原币金额。账上仍按申请时已经固定的实付净额入账。": {
+    "en": "Enter the amount actually sent in the original currency. The books still use the net fixed when the application was submitted.",
+    "ja": "実際に支払った原通貨の金額を記入してください。帳簿は申請時に確定した実支払純額のまま記帳します。",
+    "ru": "Укажите сумму, фактически отправленную в исходной валюте. В учёте остаётся чистая сумма, зафиксированная при подаче заявки."
+  },
+  "本笔原币付款与实付净额的关联凭证": {
+    "en": "Evidence linking this original-currency payment to the fixed net",
+    "ja": "この原通貨の支払いと確定済み実支払純額を結び付ける根拠",
+    "ru": "Подтверждение связи этой оплаты в исходной валюте с фиксированной чистой суммой"
+  },
+  "说明这笔原币付款对应申请里的实付净额。": {
+    "en": "Explain how this original-currency payment matches the application's fixed net.",
+    "ja": "この原通貨の支払いが、申請時に確定した実支払純額に対応することを説明してください。",
+    "ru": "Поясните, как эта оплата в исходной валюте соответствует чистой сумме заявки."
+  },
+  "写明如何核实这笔钱已经付给申请人。": {
+    "en": "Describe how you verified that this money was paid to the applicant.",
+    "ja": "このお金が申請者に支払われたことを、どのように確認したか書いてください。",
+    "ru": "Опишите, как вы проверили, что эти деньги выплачены заявителю."
+  },
+  "确认已按申请时固定的实付净额完成付款。提交后释放占用并完成账务。": {
+    "en": "Confirm the payment was made for the net fixed when the application was submitted. Submitting releases the hold and completes the books.",
+    "ja": "申請時に確定した実支払純額で支払いが完了したことを確認してください。送信すると保留が解放され、帳簿が完成します。",
+    "ru": "Подтвердите, что выплата сделана на чистую сумму, зафиксированную при подаче заявки. После отправки удержание снимается и учёт завершается."
+  },
+  "用结算币种付款时，金额就是申请里已经固定的实付净额，不能再填一个不同的数字。": {
+    "en": "When paying in the settlement currency, the amount is the net already fixed on the application. Do not enter a different number.",
+    "ja": "決済通貨で支払う場合、金額は申請時に確定した実支払純額です。別の数字を入力しないでください。",
+    "ru": "При оплате в валюте расчётов сумма равна чистой сумме, уже зафиксированной в заявке. Нельзя указать другое число."
+  },
+  "跨币付款需要填写实际原币金额，以及这笔原币和实付净额的关联凭证。": {
+    "en": "A payment in another currency needs the original amount and the evidence linking it to the fixed net.",
+    "ja": "別の通貨で支払う場合は、実際の原通貨金額と、その金額を確定済み実支払純額に結び付ける根拠が必要です。",
+    "ru": "Для оплаты в другой валюте нужны исходная сумма и подтверждение её связи с фиксированной чистой суммой."
+  },
   "已付净额结算币种": {
     "en": "Net settlement currency paid",
     "ja": "支払済み純額 決済通貨",
@@ -4518,11 +4563,6 @@
     "en": "Lookup and uncertainty evidence",
     "ja": "照会・不確実性の根拠",
     "ru": "Основание проверки и неопределённости"
-  },
-  "确认真实付款凭证与结算币种净额一致后释放占用并完成账务。": {
-    "en": "Verify actual payment evidence matches the net settlement currency amount before releasing the hold and completing accounting.",
-    "ja": "実際の支払証明と 決済通貨 純額の一致を確認してから、確保を解除して会計処理を完了してください。",
-    "ru": "Перед снятием резерва и завершением учёта проверьте, что подтверждение реального платежа соответствует чистой сумме валюта расчётов."
   },
   "已核实未付": {
     "en": "Verified unpaid",

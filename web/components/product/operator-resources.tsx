@@ -185,8 +185,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const operations = page.operations.filter(operation => canOperate(operation) && (resourceName !== "procurement" || (operation.name === "quote" ? procurementTab === "quotes" : operation.name === "authorization" ? procurementTab === "automatic" : true)));
   const settings = operations.filter(operation => ["refunds","withdrawals","invoices"].includes(resourceName) && (operation.name === "policy" || operation.name.startsWith("invoice_policy_")));
   const primaryOperations = operations.filter(operation => !settings.includes(operation));
-  const payoutRequest = customer && resourceName === "withdrawals" && page.payout_methods;
-  const shownPrimary = payoutRequest ? [] : primaryOperations;
+  const customerWithdrawals = customer && resourceName === "withdrawals";
   const editable = editableOperations[resourceName];
   const editOperation = editable && operations.find(operation => operation.name === editable.name);
   const rowOperations = (row: Entity) => page.row_operations.filter(operation => canOperate(operation) && (!row.allowed_actions || row.allowed_actions.includes(operation.name)));
@@ -235,13 +234,13 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     </div>)}
     {resourceName === "procurement" && <div className="mb-5"><div role="tablist" aria-label={t("采购办理事项")} className="flex flex-wrap gap-2">{[["orders", businessView === "supplier" ? "供货订单" : "采购订单"], ["quotes", businessView === "supplier" ? "供货报价" : "采购报价"], ["automatic", "自动补货"]].filter(([key]) => key !== "automatic" || businessView !== "supplier").map(([key, title]) => <Button key={key} role="tab" aria-selected={procurementTab === key} variant={procurementTab === key ? "default" : "outline"} onClick={() => setProcurementTab(key)}>{t(title)}</Button>)}</div><p className="mt-3 text-xs leading-6 text-ink-mute">{t(businessView === "supplier" ? "供货订单列出每一笔采购占用的库存。未付款订单不限时，直到付清或取消后才释放。" : procurementTab === "quotes" ? "选择已生效报价创建采购订单。创建后即占用供货库存，付款并交付后才增加采购余额。" : procurementTab === "automatic" ? "在此管理有限补货授权和原执行结果。结果未知时只查询原付款。" : "每一行显示这笔订单占用的供货库存。未付款不限时，直到付清或取消。需要新增采购时打开采购报价。")}</p></div>}
     {operatorID && ["procurement", "operators"].includes(resourceName) && workspace?.permissions.some(permission => ["*", "cooperation.manage"].includes(permission)) && <p className="mb-4 text-sm"><Link className="text-brand-emphasis underline" href={`/manage/${encodeURIComponent(operatorID)}/contracts`}>{t("上传或查看可选合作合同")}</Link></p>}
-    {resourceName !== "providers" && (toolbar || operations.length > 0) && <div className="th-toolbar">{customer && resourceName === "withdrawals" && <CustomerWithdrawalBar minimum={page.summary?.find(item => item.label === "最低提现额度")} />}{toolbar}
-      <div className={`${customer && resourceName === "withdrawals" ? "ml-auto " : ""}flex flex-wrap items-center gap-2`}>{shownPrimary.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
+    {resourceName !== "providers" && (toolbar || operations.length > 0 || customerWithdrawals) && <div className="th-toolbar">{customerWithdrawals && <CustomerWithdrawalBar minimum={page.summary?.find(item => item.label === "最低提现额度")} />}{toolbar}
+      <div className={`${customerWithdrawals ? "ml-auto " : ""}flex flex-wrap items-center gap-2`}>{primaryOperations.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
       </Button>)}
       {settings.length>0 && <details className="relative"><summary className="cursor-pointer rounded-control border border-hairline bg-canvas-raised px-4 py-3 text-sm">{t("办理设置")}</summary><div className="absolute right-0 z-20 mt-2 min-w-56 space-y-1 rounded-control border border-hairline bg-canvas-raised p-2 shadow-lg">{settings.map(operation => <Button key={operation.name} type="button" variant="ghost" className="w-full justify-start" onClick={() => selectOperation(operation)}>{t(operation.label)}</Button>)}</div></details>}
       </div>
     </div>}
-    {payoutRequest && <div className="mb-6"><CustomerWithdrawalRequest methods={page.payout_methods || []} digits={page.currency_digits ?? 2} /></div>}
+    {customerWithdrawals && <div className="mb-6"><CustomerWithdrawalRequest methods={page.payout_methods || []} digits={page.currency_digits ?? 2} /></div>}
     {resourceName === "providers" && toolbar && <div className="th-toolbar">{toolbar}</div>}
     {kinds.length > 1 && !["procurement", "refunds", "providers"].includes(resourceName) && <div className="mb-5 flex flex-wrap items-center gap-2 text-xs text-ink-mute">
       <SlidersHorizontal size={14} aria-hidden />
@@ -269,7 +268,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     </Card>)}{!rows.length && <div className="xl:col-span-2">
       <Empty>{t("当前筛选下没有记录。")}</Empty>
     </div>}
-    </div> : payoutRequest ? <CustomerWithdrawalApplications rows={rows} cancel={page.row_operations.find(operation => operation.name === "cancel")} onCancel={selectOperation} /> : renderTable(rows)}
+    </div> : customerWithdrawals ? <CustomerWithdrawalApplications rows={rows} cancel={page.row_operations.find(operation => operation.name === "cancel")} onCancel={selectOperation} /> : renderTable(rows)}
     {selection && <OperatorPanel title={t(selection.operation.label)} description={selection.row ? recordTitle(selection.row, resourceName, locale) : customer ? t("在当前客户范围内办理") : t("在当前经营范围内办理")} open blocked={blocked} close={closeOperation}>
       <OperationForm key={`${selection.operation.name}:${selection.row?.id || "new"}`} operation={selection.operation} row={selection.row} operatorID={operatorID} embedded initialValues={{ ...savedValues, ...initialValues }} lockedFields={Object.keys(initialValues || {})} onBlockedChange={setBlocked} onAbandon={() => setSelection(undefined)} />
     </OperatorPanel>}

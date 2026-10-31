@@ -15,7 +15,7 @@ func TestPostgresReviewBlockKeepsAccrualButStopsCommissionPurchaseAndNewPayoutEx
 	f.qualify(t, a.Customer.ID, "review-own-paid100")
 	f.buy(t, b.Customer.ID, "review-child-first100", "100", ActivitySelection{})
 	f.consume(t, b.Customer.ID, "100")
-	policy, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumMoney: d("1"), MethodReference: "verified bank payout"}, 0)
+	policy, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{PayoutKind: "bank_cn", MinimumMoney: d("1"), MethodReference: "verified bank payout"}, 0)
 	if e != nil {
 		t.Fatal(e)
 	}

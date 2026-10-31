@@ -44,7 +44,8 @@ func (s *Service) SetCommissionWithdrawalMinimum(ctx context.Context, tx *gorm.D
 }
 
 func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, operator string, in WithdrawalPolicy, expectedVersion int64) (out WithdrawalPolicy, err error) {
-	if !validID(operator) || expectedVersion < 0 || !in.MinimumMoney.Valid() || in.MinimumMoney.Sign() <= 0 || !in.FlatFeeMoney.Valid() || in.FlatFeeMoney.Sign() < 0 || !rateValid(in.FeeRate) || in.FeeRate.Cmp(ledger.FromInt64(1)) == 0 || in.FlatFeeMoney.Sign() > 0 && in.FeeRate.Sign() > 0 {
+	profile, knownKind := FindPayoutProfile(in.PayoutKind)
+	if !validID(operator) || expectedVersion < 0 || !knownKind || !in.MinimumMoney.Valid() || in.MinimumMoney.Sign() <= 0 || !in.FlatFeeMoney.Valid() || in.FlatFeeMoney.Sign() < 0 || !rateValid(in.FeeRate) || in.FeeRate.Cmp(ledger.FromInt64(1)) == 0 || in.FlatFeeMoney.Sign() > 0 && in.FeeRate.Sign() > 0 {
 		return out, ErrInvalidInput
 	}
 	err = s.within(ctx, tx, func(t *gorm.DB) error {
@@ -78,7 +79,7 @@ func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, o
 			return ErrConflict
 		}
 		if in.MethodName == "" {
-			in.MethodName = "人工转账"
+			in.MethodName = profile.Label
 		}
 		if len(in.MethodName) > 100 {
 			return ErrInvalidInput

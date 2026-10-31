@@ -96,13 +96,13 @@ test("customer Key edits retain authored input, precise money, and the existing 
 
 test("an unresolved financial modal switches language and retries the exact JSON and idempotency key", async ({ page }) => {
   await api(page); const attempts: { key: string; body: string | null }[] = [];
-  await page.route("**/api/v1/me/withdrawals/workspace", route => route.fulfill({ json: { ...resource("提现申请"), operations: [{ name: "apply", label: "确认费用并提交", method: "POST", path: "/api/v1/me/withdrawals", fields: [{ name: "amount_money", label: "申请金额 结算币种", kind: "decimal", required: true }, { name: "evidence", label: "付款核实说明", kind: "text", required: true }], confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。" }] } }));
-  await page.route("**/api/v1/me/withdrawals", async route => {
+  await page.route("**/api/v1/me/refunds/workspace", route => route.fulfill({ json: { ...resource("退款办理"), operations: [{ name: "apply", label: "确认费用并提交", method: "POST", path: "/api/v1/me/refunds", fields: [{ name: "amount_money", label: "申请金额 结算币种", kind: "decimal", required: true }, { name: "evidence", label: "付款核实说明", kind: "text", required: true }], confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。" }] } }));
+  await page.route("**/api/v1/me/refunds", async route => {
     attempts.push({ key: route.request().headers()["idempotency-key"], body: route.request().postData() });
     if (attempts.length === 1) await route.abort("connectionreset");
     else await route.fulfill({ json: { id: "withdrawal-i18n", status: "pending" } });
   });
-  await page.goto("/workspace/withdrawals"); await page.getByRole("button", { name: "确认费用并提交", exact: true }).click();
+  await page.goto("/workspace/refunds"); await page.getByRole("button", { name: "确认费用并提交", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("申请金额 结算币种", { exact: false }).fill("0.000000000000000001"); await dialog.getByRole("textbox", { name: /^付款核实说明/ }).fill("查看详情");
   await dialog.getByRole("checkbox").check(); await dialog.getByRole("button", { name: "确认费用并提交", exact: true }).click();

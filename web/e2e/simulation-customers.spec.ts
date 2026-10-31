@@ -221,8 +221,15 @@ test("KOL activity, explicit combination, paid entitlement, shared Key budget, t
     const walletBefore = await get(kol, "/me/credits");
     await kol.goto("/workspace/withdrawals");
     const payoutAmount = walletBefore.commission_money.available;
-    expect((await resourceAction(kol, "核算提现费用", { "提现总额 结算币种": payoutAmount }, "/api/v1/me/withdrawals/quotes")).status).toBe(200);
-    const submitted = await resourceAction(kol, "确认费用并提交", { "本人真实收款资料": "SYNTHETIC ONLY: isolated customer's own payout reference" }, "/confirm");
+    await kol.getByLabel(/^提现金额 /).fill(payoutAmount);
+    await kol.getByLabel("收款人姓名", { exact: true }).fill("Synthetic Payee");
+    await kol.getByLabel("开户银行", { exact: true }).fill("Synthetic Bank");
+    await kol.getByLabel("银行卡号", { exact: true }).fill("6222021234567890123");
+    await kol.getByLabel("开户支行", { exact: true }).fill("Synthetic Branch");
+    const submittedWait = kol.waitForResponse(response => response.url().endsWith("/api/v1/me/withdrawals") && response.request().method() === "POST");
+    await kol.getByRole("button", { name: "提交提现申请", exact: true }).click();
+    const submittedHTTP = await submittedWait;
+    const submitted = { status: submittedHTTP.status(), body: await submittedHTTP.json() };
     expect(submitted.status).toBe(200);
     const held = await get(kol, "/me/credits"); expect(held.commission_money.held).toBe(payoutAmount);
     expect(held.commission_money.available).toBe("0");

@@ -49,12 +49,15 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 	f.login(t, "customer", "method-choice@example.test", "customer-password-test")
 	status, page, _ = f.call(t, "GET", "/v1/me/withdrawals/workspace", nil, "")
 	mustOK(t, status, page)
-	options := operationFields(t, page, "quote")["method_id"]["options"].([]any)
-	if len(options) != 2 {
-		t.Fatal("customer cannot choose the configured payout method", options)
+	if len(page["operations"].([]any)) != 0 {
+		t.Fatal("customer withdrawal page still publishes a separate fee quote", page["operations"])
+	}
+	methods := page["payout_methods"].([]any)
+	if len(methods) != 2 {
+		t.Fatal("customer cannot choose the configured payout method", methods)
 	}
 	foundAlipay := false
-	for _, raw := range page["payout_methods"].([]any) {
+	for _, raw := range methods {
 		method := raw.(map[string]any)
 		if method["kind"] != "alipay" {
 			continue
@@ -65,10 +68,8 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 		}
 	}
 	if !foundAlipay {
-		t.Fatal("customer payout methods omitted alipay", page["payout_methods"])
+		t.Fatal("customer payout methods omitted alipay", methods)
 	}
-	status, out, _ = f.call(t, "POST", "/v1/me/withdrawals/quotes", map[string]any{"method_id": options[0].(map[string]any)["value"], "amount_money": "10"}, uuid.NewString())
-	mustOK(t, status, out)
 }
 
 func TestPaymentQuoteSourceIsVisibleButOnlyPlatformCanConfigureIt(t *testing.T) {

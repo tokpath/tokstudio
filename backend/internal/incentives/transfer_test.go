@@ -67,7 +67,7 @@ func TestPostgresTakeoverTransfersWalletQualificationsCommissionsAndPendingWithd
 	if e != nil {
 		t.Fatal(e)
 	}
-	payout, e := channel.s.SetWithdrawalPolicy(channel.ctx, nil, channel.owner, channel.operator, WithdrawalPolicy{MinimumMoney: d("1"), MethodReference: "manual-bank-transfer"}, 0)
+	payout, e := channel.s.SetWithdrawalPolicy(channel.ctx, nil, channel.owner, channel.operator, WithdrawalPolicy{PayoutKind: "bank_cn", MinimumMoney: d("1"), MethodReference: "manual-bank-transfer"}, 0)
 	if e != nil {
 		t.Fatal(e)
 	}

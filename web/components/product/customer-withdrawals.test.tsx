@@ -32,14 +32,16 @@ it("offers cancellation only for the server-authorized pending withdrawal and co
 
 const credits = { customer_atg: { available: "0", held: "0", purchased_remaining: "0", gift_remaining: "0" }, money_balance: { available: "0", held: "0" }, commission_money: { available: "0.002184", held: "0", frozen: "0.001861", recovery_due: "0" }, qualification: { confirmed_money: "0", pending_money: "0", threshold_money: "1", qualified_at: null, function_status: "active" } };
 
-it("shows available, frozen and minimum amounts beside the fee button", async () => {
+it("shows available, frozen and minimum amounts on the one-step withdrawal page", async () => {
   const rule = "单笔提现总额不能低于经营方公布的最低额度 1 结算币种。";
-  const page: ResourcePage = { title: "佣金提现", description: rule, summary: [{ label: "最低提现额度", value: "1", unit: "MONEY", detail: "单笔提现总额不能低于经营方公布的这个额度。" }], items: [], columns: [{ key: "amount_money", label: "总额", kind: "money" }], operations: [{ name: "quote", label: "核算提现费用", method: "POST", path: "/api/v1/me/withdrawals/quotes", description: rule, fields: [{ name: "amount_money", label: "提现总额 结算币种", kind: "decimal", required: true, help: "不能低于经营方公布的最低提现额度。" }] }], row_operations: [] };
+  const page: ResourcePage = { title: "佣金提现", description: rule, summary: [{ label: "最低提现额度", value: "1", unit: "MONEY", detail: "单笔提现总额不能低于经营方公布的这个额度。" }], items: [], columns: [{ key: "amount_money", label: "总额", kind: "money" }], operations: [], payout_methods: [], currency_digits: 2, row_operations: [] };
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(credits), { status: 200 })));
   mount(<ResourceCollection resource="withdrawals/workspace" customer page={page} />);
-  const bar = screen.getByRole("button", { name: "核算提现费用" }).parentElement!.parentElement!;
+  const bar = screen.getByText("可用金额").closest(".th-toolbar")!;
   expect(screen.getByRole("heading", { name: "佣金提现" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "申请提现" })).toBeTruthy();
   expect(screen.getByText(rule)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "核算提现费用" })).toBeNull();
   expect(within(bar).getByText("可用金额")).toBeTruthy();
   expect(within(bar).getByText("冻结金额")).toBeTruthy();
   expect(within(bar).getByText("最低提现额度")).toBeTruthy();
@@ -47,8 +49,6 @@ it("shows available, frozen and minimum amounts beside the fee button", async ()
   await waitFor(() => expect(within(bar).getByLabelText("0.002184 USD")).toBeTruthy());
   expect(within(bar).getByLabelText("0.001861 USD")).toBeTruthy();
   expect(within(bar).getByLabelText("1 USD")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "核算提现费用" }));
-  expect(within(screen.getByRole("dialog")).getByText(rule)).toBeTruthy();
 });
 
 it("submits the policy snapshot as nested configuration with its actual hidden version", async () => {

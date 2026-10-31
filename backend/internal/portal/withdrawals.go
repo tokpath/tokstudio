@@ -2,7 +2,6 @@ package portal
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,69 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type withdrawalPreview struct {
-	ID, CustomerID, OperatorID string
-	Quote                      json.RawMessage `gorm:"type:jsonb"`
-	ExpiresAt, CreatedAt       time.Time
-}
-
-func (withdrawalPreview) TableName() string { return "portal_withdrawal_quotes" }
-func (a *Application) withdrawalQuote(c *gin.Context) {
-	var in struct {
-		Amount   ledger.Decimal `json:"amount_money"`
-		MethodID string         `json:"method_id"`
-	}
-	if !body(c, &in) {
-		return
-	}
-	id := subject(c)
-	raw, e := a.command(c, "withdrawal-quote:"+id.Customer.Customer.ID, in, func(tx *gorm.DB) (any, error) {
-		quote, e := a.Incentives.QuoteWithdrawal(c.Request.Context(), tx, id.Customer.Ownership.OperatorID, in.Amount, in.MethodID)
-		if e != nil {
-			return nil, e
-		}
-		settings, e := ledger.GetMonetary(c.Request.Context(), tx)
-		if e != nil {
-			return nil, e
-		}
-		encoded, _ := json.Marshal(quote)
-		row := withdrawalPreview{ID: uuid.NewString(), CustomerID: id.Customer.Customer.ID, OperatorID: id.Customer.Ownership.OperatorID, Quote: encoded, ExpiresAt: time.Now().Add(15 * time.Minute), CreatedAt: time.Now()}
-		if e = tx.Create(&row).Error; e != nil {
-			return nil, e
-		}
-		return gin.H{"id": row.ID, "status": "quoted", "message": "总额 " + quote.AmountMoney.String() + " " + settings.Currency + "，手续费 " + quote.FeeMoney.String() + " " + settings.Currency + "，实付 " + quote.NetMoney.String() + " " + settings.Currency + "。请刷新列表核对后，在此报价行确认收款资料。"}, nil
-	})
-	jsonResponse(c, raw, e)
-}
-func (a *Application) confirmWithdrawal(c *gin.Context) {
-	var in struct {
-		Recipient string `json:"recipient_reference"`
-	}
-	if !body(c, &in) {
-		return
-	}
-	id := subject(c)
-	key, _ := key(c)
-	raw, e := a.command(c, "withdrawal-confirm:"+id.Customer.Customer.ID+":"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
-		var row withdrawalPreview
-		if e := tx.Where("id=? AND customer_id=? AND operator_id=? AND expires_at>?", c.Param("id"), id.Customer.Customer.ID, id.Customer.Ownership.OperatorID, time.Now()).Take(&row).Error; e != nil {
-			return nil, e
-		}
-		var q incentives.WithdrawalQuote
-		if e := json.Unmarshal(row.Quote, &q); e != nil {
-			return nil, e
-		}
-		out, e := a.Incentives.RequestWithdrawal(c.Request.Context(), tx, incentives.WithdrawalInput{OperatorID: row.OperatorID, CustomerID: row.CustomerID, BusinessKey: key, RecipientReference: in.Recipient, PolicyID: q.Policy.ID, AmountMoney: q.AmountMoney})
-		if e != nil {
-			return nil, e
-		}
-		if e = tx.Delete(&row).Error; e != nil {
-			return nil, e
-		}
-		return commandResult(out.ID, out.Status), nil
-	})
-	jsonResponse(c, raw, e)
-}
 func (a *Application) applyWithdrawal(c *gin.Context) {
 	var in struct {
 		MethodID  string            `json:"method_id"`
@@ -105,8 +41,8 @@ func (a *Application) applyWithdrawal(c *gin.Context) {
 		if !found {
 			return nil, incentives.ErrNotReady
 		}
-		if method.PayoutKind == "" {
-			return nil, incentives.ErrNotReady
+		if _, ok := incentives.FindPayoutProfile(method.PayoutKind); !ok {
+			return nil, incentives.ErrInvalidInput
 		}
 		reference, err := incentives.FormatPayoutRecipient(method.PayoutKind, in.Recipient)
 		if err != nil {
@@ -197,12 +133,11 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 func customerPayoutMethods(methods []incentives.WithdrawalPolicy) []gin.H {
 	out := []gin.H{}
 	for _, method := range methods {
-		fields := []incentives.PayoutField{}
-		label, summary := "尚未选择收款材料", "经营方还没有为这个提现方式选定支付方式和收款材料。"
-		if profile, ok := incentives.FindPayoutProfile(method.PayoutKind); ok {
-			label, summary, fields = profile.Label, profile.Summary, profile.Fields
+		profile, ok := incentives.FindPayoutProfile(method.PayoutKind)
+		if !ok {
+			continue
 		}
-		out = append(out, gin.H{"id": method.MethodID, "name": method.MethodName, "kind": method.PayoutKind, "kind_label": label, "summary": summary, "flat_fee_money": method.FlatFeeMoney.String(), "fee_rate": method.FeeRate.String(), "minimum_money": method.MinimumMoney.String(), "fields": fields})
+		out = append(out, gin.H{"id": method.MethodID, "name": method.MethodName, "kind": method.PayoutKind, "kind_label": profile.Label, "summary": profile.Summary, "flat_fee_money": method.FlatFeeMoney.String(), "fee_rate": method.FeeRate.String(), "minimum_money": method.MinimumMoney.String(), "fields": profile.Fields})
 	}
 	return out
 }
@@ -216,7 +151,7 @@ func withdrawalMethodFields() []field {
 	rate := f("fee_percent", "手续费率 %", "decimal")
 	rate.Default = "0"
 	rate.VisibleWhen = &fieldVisibility{Field: "fee_mode", Values: []string{"percent"}}
-	rate.Help = "填写 2 表示按提现总额收取 2%。手续费按清算币种最小支付单位四舍五入，确认后固定。"
+	rate.Help = "填写 2 表示按提现总额收取 2%。手续费按清算币种最小支付单位四舍五入，提交后固定。"
 	enabled := f("enabled", "开放申请", "boolean")
 	enabled.Default = true
 	kind := f("payout_kind", "支付方式", "select")

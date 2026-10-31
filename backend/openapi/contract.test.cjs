@@ -233,14 +233,19 @@ test('refund rules and payout methods retain their actual concurrency fields', (
   for (const name of ['Operator_withdrawals_method', 'Operator_withdrawals_edit_method']) {
     const method = document.components.schemas[name];
     assert.equal(method.properties.expected_version.type, 'integer');
+    assert.deepEqual(method.properties.payout_kind.enum, ['bank_cn', 'alipay', 'wechat', 'paypal', 'wire', 'usdt']);
+    assert.equal(method.required.includes('payout_kind'), true);
     assert.deepEqual(method.properties.fee_mode.enum, ['fixed', 'percent']);
     assert.equal(method.properties.fee_percent.$ref, '#/components/schemas/LedgerDecimal');
     assert.equal(method.properties.configuration, undefined);
     assert.equal(method.properties.requires_dual_approval, undefined);
     assert.equal(method.properties.minimum_money, undefined);
   }
-  const quote = document.paths['/v1/me/withdrawals/quotes'].post.requestBody.content['application/json'].schema;
-  assert.equal(quote.properties.method_id.format, 'uuid');
+  const apply = document.paths['/v1/me/withdrawals'].post.requestBody.content['application/json'].schema;
+  assert.equal(apply.properties.method_id.format, 'uuid');
+  assert.equal(apply.required.includes('recipient'), true);
+  assert.equal(document.paths['/v1/me/withdrawals/quotes'], undefined);
+  assert.equal(document.paths['/v1/me/withdrawals/quotes/{id}/confirm'], undefined);
   const source = document.components.schemas.Operator_payment_quotes_configure;
   assert.deepEqual(source.properties.source.enum, ['frankfurter']);
   assert.equal(source.properties.enabled.type, 'boolean');

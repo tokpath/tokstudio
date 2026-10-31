@@ -181,70 +181,31 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 			}
 			items = append(items, row)
 		}
-		var previews []withdrawalPreview
-		if e := a.DB.WithContext(ctx).Where("customer_id=? AND operator_id=? AND expires_at>?", customer, op, time.Now()).Order("created_at DESC,id DESC").Limit(50).Find(&previews).Error; e != nil {
-			handleError(c, e)
-			return
-		}
 		methods, err := a.Incentives.WithdrawalMethods(ctx, nil, op, true)
 		if err != nil {
 			handleError(c, err)
 			return
 		}
-		active := map[string]incentives.WithdrawalPolicy{}
-		for _, method := range methods {
-			active[method.ID] = method
-		}
-		for _, preview := range previews {
-			var quote incentives.WithdrawalQuote
-			if json.Unmarshal(preview.Quote, &quote) != nil {
-				handleError(c, incentives.ErrInvalidInput)
-				return
-			}
-			method, available := active[quote.Policy.ID]
-			if !available || quote.AmountMoney.Cmp(method.MinimumMoney) < 0 {
-				continue
-			}
-			row := entity(preview.ID, "quoted", 1, gin.H{"method_name": quote.Policy.MethodName, "amount_money": quote.AmountMoney, "fee_money": quote.FeeMoney, "net_money": quote.NetMoney, "expires_at": preview.ExpiresAt})
-			row["allowed_actions"] = []string{"confirm"}
-			items = append(items, row)
-		}
-		p["row_operations"] = []operation{{Name: "confirm", Label: "确认费用并提交", Method: "POST", Path: "/api/v1/me/withdrawals/quotes/{id}/confirm", Fields: []field{f("recipient_reference", "本人真实收款资料", "textarea")}, Confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。"}, {Name: "cancel", Label: "取消提现申请", Method: "POST", Path: "/api/v1/me/withdrawals/{id}/cancel", Fields: []field{}, Description: "仅尚未审核的本人提现申请可以取消。", Confirmation: "确认取消这笔尚未审核的提现申请？取消成功后释放本笔佣金占用；已进入审核或付款环节的申请须按最新状态继续办理。"}}
+		p["row_operations"] = []operation{{Name: "cancel", Label: "取消提现申请", Method: "POST", Path: "/api/v1/me/withdrawals/{id}/cancel", Fields: []field{}, Description: "仅尚未审核的本人提现申请可以取消。", Confirmation: "确认取消这笔尚未审核的提现申请？取消成功后释放本笔佣金占用；已进入审核或付款环节的申请须按最新状态继续办理。"}}
 		p["title"] = "佣金提现"
 		p["items"] = items
 		p["columns"] = []gin.H{col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
-		amount := f("amount_money", "提现总额 结算币种", "decimal")
-		quote := operation{Name: "quote", Label: "核算提现费用", Method: "POST", Path: "/api/v1/me/withdrawals/quotes", Fields: []field{amount}}
-
-		method := f("method_id", "提现方式", "select")
-		for _, m := range methods {
-			method.Options = append(method.Options, gin.H{"value": m.MethodID, "label": m.MethodName})
-		}
-		if len(methods) > 0 {
-			method.Default = methods[0].MethodID
-			minimum := methods[0].MinimumMoney.String()
-			rule := "单笔提现总额不能低于经营方公布的最低额度 " + minimum + " 结算币种。"
-			p["description"] = rule
-			p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum, "unit": "MONEY", "detail": "单笔提现总额不能低于经营方公布的这个额度。"}}
-			amount.Help = "费用从提现总额中扣除，确认后固定；经营方按实付金额线下付款。"
-			quote.Fields = []field{method, amount}
-			quote.Description = rule
-		} else {
-			p["description"] = "请等待经营方配置可用提现方式。"
-			p["operations"] = []operation{}
-			p["payout_methods"] = []gin.H{}
-			p["currency_digits"] = incentives.CurrencyMinorDigits("USD")
-			a.resourceResponse(c, p)
-			return
-		}
+		p["operations"] = []operation{}
+		offered := customerPayoutMethods(methods)
 		settings, settingsErr := ledger.GetMonetary(ctx, a.DB)
 		digits := 2
 		if settingsErr == nil {
 			digits = incentives.CurrencyMinorDigits(settings.Currency)
 		}
-		p["payout_methods"] = customerPayoutMethods(methods)
+		p["payout_methods"] = offered
 		p["currency_digits"] = digits
-		p["operations"] = []operation{quote}
+		if len(offered) > 0 {
+			minimum := offered[0]["minimum_money"].(string)
+			p["description"] = "单笔提现总额不能低于经营方公布的最低额度 " + minimum + " 结算币种。"
+			p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum, "unit": "MONEY", "detail": "单笔提现总额不能低于经营方公布的这个额度。"}}
+		} else {
+			p["description"] = "请等待经营方配置可用提现方式。"
+		}
 	case "account":
 		email, e := a.Organization.CustomerEmail(ctx, nil, customer)
 		if e != nil {

@@ -7908,284 +7908,6 @@
         }
       }
     },
-    "/v1/me/withdrawals/quotes": {
-      "post": {
-        "operationId": "post__v1_me_withdrawals_quotes",
-        "summary": "Quote fees for the chosen commission payout method",
-        "tags": [
-          "Customer browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "amount_money": {
-                    "$ref": "#/components/schemas/LedgerDecimal"
-                  },
-                  "method_id": {
-                    "type": "string",
-                    "format": "uuid"
-                  }
-                },
-                "required": [
-                  "amount_money"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/me/withdrawals/quotes/{id}/confirm": {
-      "post": {
-        "operationId": "post__v1_me_withdrawals_quotes_id_confirm",
-        "summary": "Confirm fees and own actual recipient details",
-        "tags": [
-          "Customer browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "recipient_reference": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "recipient_reference"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/me/withdrawals/{id}/cancel": {
       "post": {
         "operationId": "post__v1_me_withdrawals_id_cancel",
@@ -19072,7 +18794,7 @@
             }
           }
         },
-        "description": "Configure one payout method with either a fixed fee or a percentage. The fee and net payment are fixed when the customer confirms the application. No actual payout fee is entered. Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "Configure one payout method. The operator selects a payment profile, which fixes the recipient materials, and either a fixed fee or a percentage. The customer submits one application. The fee and recipient materials are fixed at submission. No actual payout fee is entered. Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "withdrawals.manage"
       }
     },
@@ -34960,7 +34682,7 @@
             }
           }
         },
-        "description": "Configure one payout method with either a fixed fee or a percentage. The fee and net payment are fixed when the customer confirms the application. No actual payout fee is entered. Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "Configure one payout method. The operator selects a payment profile, which fixes the recipient materials, and either a fixed fee or a percentage. The customer submits one application. The fee and recipient materials are fixed at submission. No actual payout fee is entered. Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "withdrawals.manage"
       }
     },
@@ -52926,6 +52648,18 @@
       "Operator_withdrawals_method": {
         "type": "object",
         "properties": {
+          "payout_kind": {
+            "type": "string",
+            "enum": [
+              "bank_cn",
+              "alipay",
+              "wechat",
+              "paypal",
+              "wire",
+              "usdt"
+            ],
+            "description": "支付方式 — 选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。"
+          },
           "method_name": {
             "type": "string",
             "description": "提现方式名称"
@@ -52971,6 +52705,7 @@
           }
         },
         "required": [
+          "payout_kind",
           "method_name",
           "fee_mode",
           "enabled",
@@ -53897,6 +53632,18 @@
       "Operator_withdrawals_edit_method": {
         "type": "object",
         "properties": {
+          "payout_kind": {
+            "type": "string",
+            "enum": [
+              "bank_cn",
+              "alipay",
+              "wechat",
+              "paypal",
+              "wire",
+              "usdt"
+            ],
+            "description": "支付方式 — 选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。"
+          },
           "method_name": {
             "type": "string",
             "description": "提现方式名称"
@@ -53942,6 +53689,7 @@
           }
         },
         "required": [
+          "payout_kind",
           "method_name",
           "fee_mode",
           "enabled",

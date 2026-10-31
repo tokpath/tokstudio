@@ -91,7 +91,7 @@ func (f *testApp) seedCustomerSimulation(t *testing.T, lab string) map[string]an
 				t.Fatal(e)
 			}
 		}
-		if _, e = f.a.Incentives.SetWithdrawalPolicy(ctx, nil, owner, op, incentives.WithdrawalPolicy{MinimumMoney: d("0.00000001"), FlatFeeMoney: ledger.Zero(), FeeRate: ledger.Zero(), MethodReference: "隔离仿真人工付款：未支付取消释放全部占用"}, 0); e != nil {
+		if _, e = f.a.Incentives.SetWithdrawalPolicy(ctx, nil, owner, op, incentives.WithdrawalPolicy{PayoutKind: "bank_cn", MinimumMoney: d("0.00000001"), FlatFeeMoney: ledger.Zero(), FeeRate: ledger.Zero(), MethodReference: "隔离仿真人工付款：未支付取消释放全部占用"}, 0); e != nil {
 			t.Fatal(e)
 		}
 		return preparedChannel{created: created, quote: quote, policy: policy, merchant: merchant.ID}

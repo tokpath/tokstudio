@@ -13,11 +13,14 @@ func TestWithdrawalMethodsKeepIndependentFeesAndFreezeTheChosenPayout(t *testing
 	f.qualify(t, a.Customer.ID, "method-qualification")
 	f.buy(t, b.Customer.ID, "method-order", "100", ActivitySelection{})
 	f.consume(t, b.Customer.ID, "100")
-	fixed, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MethodID: uuid.NewString(), MethodName: "Bank transfer", Enabled: true, MinimumMoney: d("1"), FlatFeeMoney: d("1")}, 0)
+	if _, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MethodID: uuid.NewString(), MethodName: "Missing kind", Enabled: true, MinimumMoney: d("1"), FlatFeeMoney: d("1")}, 0); err != ErrInvalidInput {
+		t.Fatal("a payout method without a payment profile was accepted", err)
+	}
+	fixed, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MethodID: uuid.NewString(), MethodName: "Bank transfer", PayoutKind: "bank_cn", Enabled: true, MinimumMoney: d("1"), FlatFeeMoney: d("1")}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	percent, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MethodID: uuid.NewString(), MethodName: "Wallet payout", Enabled: true, MinimumMoney: d("1"), FeeRate: d("0.02")}, 0)
+	percent, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MethodID: uuid.NewString(), MethodName: "Wallet payout", PayoutKind: "alipay", Enabled: true, MinimumMoney: d("1"), FeeRate: d("0.02")}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

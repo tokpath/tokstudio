@@ -36,7 +36,7 @@ it("shows cancellation only on an application that is still awaiting review", ()
   const cancel = { name: "cancel", label: "取消提现申请", method: "POST" as const, path: "/api/v1/me/withdrawals/{id}/cancel", fields: [] };
   const onCancel = vi.fn();
   mount(<CustomerWithdrawalApplications rows={[{ id: "one", status: "requested", values: { method_name: "支付宝", amount_money: "10", fee_money: "0.2", net_money: "9.8", recipient_reference: "支付宝实名：张三" }, allowed_actions: ["cancel"] }, { id: "two", status: "approved", values: { method_name: "支付宝", amount_money: "10", fee_money: "0.2", net_money: "9.8" }, allowed_actions: [] }]} cancel={cancel} onCancel={onCancel} />);
-  expect(screen.getAllByRole("button", { name: "取消申请" })).toHaveLength(1);
-  fireEvent.click(screen.getByRole("button", { name: "取消申请" }));
+  expect(screen.getAllByRole("button", { name: "取消提现申请" })).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "取消提现申请" }));
   expect(onCancel).toHaveBeenCalledWith(cancel, expect.objectContaining({ id: "one" }));
 });

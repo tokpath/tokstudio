@@ -24,7 +24,7 @@ func TestPostgresCustomerWithdrawalCancellationOnlyBeforeReview(t *testing.T) {
 	mustOK(t, status, me)
 	customer := me["customer"].(map[string]any)["id"].(string)
 	op := f.a.Installation.OperatorID
-	policy, err := f.a.Incentives.SetWithdrawalPolicy(context.Background(), nil, f.a.Installation.OwnerStaffID, op, incentives.WithdrawalPolicy{MinimumMoney: ledger.MustDecimal("1"), MethodReference: "synthetic reviewed bank rules"}, 0)
+	policy, err := f.a.Incentives.SetWithdrawalPolicy(context.Background(), nil, f.a.Installation.OwnerStaffID, op, incentives.WithdrawalPolicy{PayoutKind: "bank_cn", MinimumMoney: ledger.MustDecimal("1"), MethodReference: "synthetic reviewed bank rules"}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,8 +67,6 @@ func TestPostgresCustomerWithdrawalCancellationOnlyBeforeReview(t *testing.T) {
 			}
 		}
 	}
-	status, quote, _ := f.call(t, "POST", "/v1/me/withdrawals/quotes", map[string]any{"amount_money": "5.000000000000000001"}, "")
-	mustOK(t, status, quote)
 	status, page, _ := f.call(t, "GET", "/v1/me/withdrawals/workspace", nil, "")
 	mustOK(t, status, page)
 	var minimum map[string]any
@@ -81,22 +79,21 @@ func TestPostgresCustomerWithdrawalCancellationOnlyBeforeReview(t *testing.T) {
 	if minimum["value"] != "1" || minimum["unit"] != "MONEY" || !strings.Contains(page["description"].(string), "1 结算币种") {
 		t.Fatal("customer withdrawal page omitted the published minimum", minimum, page["description"])
 	}
-	for _, raw := range page["operations"].([]any) {
-		operation := raw.(map[string]any)
-		if operation["name"] == "quote" && operation["description"] != page["description"] {
-			t.Fatal("fee quote did not repeat the published minimum", operation)
-		}
+	if len(page["operations"].([]any)) != 0 {
+		t.Fatal("customer withdrawal page still publishes a separate fee quote", page["operations"])
 	}
-	if len(page["items"].([]any)) != 8 {
-		t.Fatal("missing withdrawal states or fee quote", page)
+	methods := page["payout_methods"].([]any)
+	if len(methods) != 1 || methods[0].(map[string]any)["kind"] != "bank_cn" {
+		t.Fatal("customer withdrawal page did not publish the configured payout profile", methods)
+	}
+	if len(page["items"].([]any)) != 7 {
+		t.Fatal("missing withdrawal states", page)
 	}
 	for _, raw := range page["items"].([]any) {
 		row := raw.(map[string]any)
 		want := []any{}
 		if row["status"] == "requested" {
 			want = []any{"cancel"}
-		} else if row["status"] == "quoted" {
-			want = []any{"confirm"}
 		}
 		if !reflect.DeepEqual(row["allowed_actions"], want) {
 			t.Fatalf("unexpected customer action for %s: %v", row["status"], row["allowed_actions"])

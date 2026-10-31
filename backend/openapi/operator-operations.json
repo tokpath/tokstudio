@@ -4451,8 +4451,23 @@
   {
     "resource": "withdrawals",
     "confirmation": "",
-    "description": "Configure one payout method with either a fixed fee or a percentage. The fee and net payment are fixed when the customer confirms the application. No actual payout fee is entered.",
+    "description": "Configure one payout method. The operator selects a payment profile, which fixes the recipient materials, and either a fixed fee or a percentage. The customer submits one application. The fee and recipient materials are fixed at submission. No actual payout fee is entered.",
     "fields": [
+      {
+        "name": "payout_kind",
+        "label": "支付方式",
+        "kind": "select",
+        "required": true,
+        "help": "选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。",
+        "options": [
+          {"value": "bank_cn", "label": "境内银行卡 · 户名、开户银行、卡号、支行"},
+          {"value": "alipay", "label": "支付宝 · 实名、登录账号"},
+          {"value": "wechat", "label": "微信支付 · 实名、微信号或手机号"},
+          {"value": "paypal", "label": "PayPal · 邮箱、账户姓名"},
+          {"value": "wire", "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"},
+          {"value": "usdt", "label": "USDT · 网络、钱包地址"}
+        ]
+      },
       {
         "name": "method_name",
         "label": "提现方式名称",
@@ -5658,8 +5673,23 @@
   {
     "resource": "withdrawals",
     "confirmation": "",
-    "description": "Configure one payout method with either a fixed fee or a percentage. The fee and net payment are fixed when the customer confirms the application. No actual payout fee is entered.",
+    "description": "Configure one payout method. The operator selects a payment profile, which fixes the recipient materials, and either a fixed fee or a percentage. The customer submits one application. The fee and recipient materials are fixed at submission. No actual payout fee is entered.",
     "fields": [
+      {
+        "name": "payout_kind",
+        "label": "支付方式",
+        "kind": "select",
+        "required": true,
+        "help": "选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。",
+        "options": [
+          {"value": "bank_cn", "label": "境内银行卡 · 户名、开户银行、卡号、支行"},
+          {"value": "alipay", "label": "支付宝 · 实名、登录账号"},
+          {"value": "wechat", "label": "微信支付 · 实名、微信号或手机号"},
+          {"value": "paypal", "label": "PayPal · 邮箱、账户姓名"},
+          {"value": "wire", "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"},
+          {"value": "usdt", "label": "USDT · 网络、钱包地址"}
+        ]
+      },
       {
         "name": "method_name",
         "label": "提现方式名称",

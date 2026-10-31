@@ -20,7 +20,7 @@ func TestPostgresNotificationAudienceUsesPersistedCustomersAndBeneficiariesWitho
 	if e := f.s.ReverseEvent(f.ctx, nil, CorrectionInput{ActorStaffID: f.owner, OperatorID: f.operator, OriginalEventID: consumption[0].ID, BusinessKey: "proven-source-correction", Evidence: "private-sensitive-evidence", AmountMoney: d("10")}); e != nil {
 		t.Fatal(e)
 	}
-	policy, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumMoney: d("5"), FlatFeeMoney: d("1"), MethodReference: "private-bank-arrangement"}, 0)
+	policy, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{PayoutKind: "bank_cn", MinimumMoney: d("5"), FlatFeeMoney: d("1"), MethodReference: "private-bank-arrangement"}, 0)
 	if e != nil {
 		t.Fatal(e)
 	}

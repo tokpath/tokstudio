@@ -24,7 +24,7 @@ func TestPostgresInFlightConsumptionInheritsCommissionSourceGateBeforeItCanBePai
 	if e != nil || !spendable.IsZero() {
 		t.Fatal("late consumption escaped original source restriction", spendable, e)
 	}
-	p, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MinimumMoney: d("1"), MethodReference: "verified manual payout"}, 0)
+	p, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{PayoutKind: "bank_cn", MinimumMoney: d("1"), MethodReference: "verified manual payout"}, 0)
 	if e != nil {
 		t.Fatal(e)
 	}

@@ -22,13 +22,13 @@ const reasons: Record<string, string> = {
 export function CustomerWithdrawalRequest({ methods, digits }: { methods: PayoutMethod[]; digits: number }) {
   const { t } = useI18n();
   const [amount, setAmount] = useState("");
-  const [methodID, setMethodID] = useState(methods.find(method => method.kind)?.id || methods[0]?.id || "");
+  const [methodID, setMethodID] = useState(methods[0]?.id || "");
   const [recipient, setRecipient] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
   const command = useCommand("/api/v1/me/withdrawals", CommandResultSchema);
   const selected = methods.find(method => method.id === methodID);
   const preview = amount ? previewWithdrawal({ amount, flatFee: selected?.flat_fee_money || "0", feeRate: selected?.fee_rate || "0", minimum: selected?.minimum_money || "0", digits }) : undefined;
-  const ready = !!selected?.kind && preview?.ok === true && selected.fields.every(field => (recipient[field.name] || "").trim());
+  const ready = !!selected && preview?.ok === true && selected.fields.every(field => (recipient[field.name] || "").trim());
 
   async function submit() {
     if (!selected || !preview || !preview.ok || command.busy) return;
@@ -41,9 +41,8 @@ export function CustomerWithdrawalRequest({ methods, digits }: { methods: Payout
   return <Card>
     <div className="mb-5"><h2 className="text-lg font-semibold">{t("申请提现")}</h2><p className="mt-2 text-sm leading-6 text-ink-secondary">{t("选择提现方式并填写金额后，可以立刻比较手续费。选定后填写该方式要求的收款资料，一次提交。")}</p></div>
     {!methods.length ? <Notice>{t("请等待经营方配置可用提现方式。")}</Notice> : <div className="space-y-5">
-      <label className="block text-sm">{t("提现金额 结算币种")}<Input className="mt-2" inputMode="decimal" value={amount} onChange={event => { setAmount(event.target.value); setNotice(""); }} required />
-        <p className="mt-2 text-xs leading-6 text-ink-mute">{t("不足最小支付单位的尾数仍留在佣金钱包，不计入本次申请。")}</p>
-      </label>
+      <label className="block text-sm">{t("提现金额 结算币种")}<Input className="mt-2" inputMode="decimal" value={amount} onChange={event => { setAmount(event.target.value); setNotice(""); }} required /></label>
+      <p className="mt-2 text-xs leading-6 text-ink-mute">{t("不足最小支付单位的尾数仍留在佣金钱包，不计入本次申请。")}</p>
       <fieldset className="space-y-3"><legend className="mb-3 text-sm">{t("提现方式")}</legend>{methods.map(method => {
         const quote = amount ? previewWithdrawal({ amount, flatFee: method.flat_fee_money, feeRate: method.fee_rate, minimum: method.minimum_money, digits }) : undefined;
         return <label key={method.id} className={`block cursor-pointer rounded-control border p-4 ${method.id === methodID ? "border-brand bg-brand-soft/20" : "border-hairline"}`}>
@@ -52,8 +51,7 @@ export function CustomerWithdrawalRequest({ methods, digits }: { methods: Payout
           </span>
         </label>;
       })}</fieldset>
-      {selected && !selected.kind && <Notice>{t("这个方式尚未指定收款材料。请联系经营方选定支付方式和收款材料后再申请。")}</Notice>}
-      {selected?.kind && <div className="space-y-4"><div><h3 className="text-sm font-medium">{t("收款资料")}</h3><p className="mt-2 text-sm leading-6 text-ink-secondary">{t(selected.summary)}</p></div>{selected.fields.map(field => <div key={field.name} className="text-sm"><label className="block">{t(field.label)}{field.kind === "select" ? <select className="mt-2 h-11 w-full rounded-control border border-hairline bg-canvas-raised px-3" value={recipient[field.name] || ""} onChange={event => setRecipient(current => ({ ...current, [field.name]: event.target.value }))} required><option value="">{t("请选择")}</option>{field.options?.map(option => <option key={option.value} value={option.value}>{t(option.label)}</option>)}</select> : <Input className="mt-2" value={recipient[field.name] || ""} onChange={event => setRecipient(current => ({ ...current, [field.name]: event.target.value }))} required />}</label>{field.help && <p className="mt-2 text-xs leading-6 text-ink-mute">{t(field.help)}</p>}</div>)}
+      {selected && <div className="space-y-4"><div><h3 className="text-sm font-medium">{t("收款资料")}</h3><p className="mt-2 text-sm leading-6 text-ink-secondary">{t(selected.summary)}</p></div>{selected.fields.map(field => <div key={field.name} className="text-sm"><label className="block">{t(field.label)}{field.kind === "select" ? <select className="mt-2 h-11 w-full rounded-control border border-hairline bg-canvas-raised px-3" value={recipient[field.name] || ""} onChange={event => setRecipient(current => ({ ...current, [field.name]: event.target.value }))} required><option value="">{t("请选择")}</option>{field.options?.map(option => <option key={option.value} value={option.value}>{t(option.label)}</option>)}</select> : <Input className="mt-2" value={recipient[field.name] || ""} onChange={event => setRecipient(current => ({ ...current, [field.name]: event.target.value }))} required />}</label>{field.help && <p className="mt-2 text-xs leading-6 text-ink-mute">{t(field.help)}</p>}</div>)}
         {preview?.ok && <p className="text-sm leading-7">{t("本次申请总额")} <Money value={preview.amount} unit="MONEY" /> · {t("手续费")} <Money value={preview.fee} unit="MONEY" /> · {t("实付")} <Money value={preview.net} unit="MONEY" /></p>}
         {preview && !preview.ok && <p role="alert" className="text-sm text-danger">{t(reasons[preview.reason])}</p>}
       </div>}
@@ -66,7 +64,6 @@ export function CustomerWithdrawalRequest({ methods, digits }: { methods: Payout
 
 export function CustomerWithdrawalApplications({ rows, cancel, onCancel }: { rows: Entity[]; cancel?: Operation; onCancel: (operation: Operation, row: Entity) => void }) {
   const { t } = useI18n();
-  const applications = rows.filter(row => row.status !== "quoted");
-  return <div className="mt-8 space-y-3"><h2 className="text-lg font-semibold">{t("提现申请")}</h2><p className="text-sm leading-6 text-ink-secondary">{t("尚未审核的申请可以取消。取消后释放这笔佣金占用。")}</p>{!applications.length ? <Notice>{t("还没有提现申请。")}</Notice> : applications.map(row => <Card key={row.id}><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-medium">{String(row.values.method_name || t("提现申请"))}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink-secondary">{String(row.values.recipient_reference || "")}</p></div>{row.status && <Status value={row.status} />}</div><div className="mt-4 grid gap-3 text-sm sm:grid-cols-3"><div><p className="text-xs text-ink-mute">{t("总额")}</p><Money value={String(row.values.amount_money || "0")} unit="MONEY" /></div><div><p className="text-xs text-ink-mute">{t("手续费")}</p><Money value={String(row.values.fee_money || "0")} unit="MONEY" /></div><div><p className="text-xs text-ink-mute">{t("实付")}</p><Money value={String(row.values.net_money || "0")} unit="MONEY" /></div></div>{cancel && row.allowed_actions?.includes("cancel") && <Button type="button" variant="outline" className="mt-4" onClick={() => onCancel(cancel, row)}>{t("取消申请")}</Button>}</Card>)}
+  return <div className="mt-8 space-y-3"><h2 className="text-lg font-semibold">{t("提现申请")}</h2><p className="text-sm leading-6 text-ink-secondary">{t("尚未审核的申请可以取消。取消后释放这笔佣金占用。")}</p>{!rows.length ? <Notice>{t("还没有提现申请。")}</Notice> : rows.map(row => <Card key={row.id}><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-medium">{String(row.values.method_name || t("提现申请"))}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink-secondary">{String(row.values.recipient_reference || "")}</p></div>{row.status && <Status value={row.status} />}</div><div className="mt-4 grid gap-3 text-sm sm:grid-cols-3"><div><p className="text-xs text-ink-mute">{t("总额")}</p><Money value={String(row.values.amount_money || "0")} unit="MONEY" /></div><div><p className="text-xs text-ink-mute">{t("手续费")}</p><Money value={String(row.values.fee_money || "0")} unit="MONEY" /></div><div><p className="text-xs text-ink-mute">{t("实付")}</p><Money value={String(row.values.net_money || "0")} unit="MONEY" /></div></div>{cancel && row.allowed_actions?.includes("cancel") && <Button type="button" variant="outline" className="mt-4" onClick={() => onCancel(cancel, row)}>{t(cancel.label)}</Button>}</Card>)}
   </div>;
 }

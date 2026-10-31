@@ -81,7 +81,7 @@ func commissionSources(t *testing.T) commissionSourceFixture {
 }
 func (f commissionSourceFixture) withdrawal(t *testing.T, key string, begin bool) incentives.Withdrawal {
 	t.Helper()
-	policy, e := f.s.Incentives.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, incentives.WithdrawalPolicy{MinimumMoney: d("1"), MethodReference: "verified manual banking"}, 0)
+	policy, e := f.s.Incentives.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, incentives.WithdrawalPolicy{PayoutKind: "bank_cn", MinimumMoney: d("1"), MethodReference: "verified manual banking"}, 0)
 	if e != nil {
 		t.Fatal(e)
 	}

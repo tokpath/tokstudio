@@ -253,9 +253,6 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 		currency, driver := "", ""
 		for _, m := range methods {
 			if m.ID == *cr.MerchantID {
-				if !m.SettlementSupported {
-					return payments.ErrUnsupported
-				}
 				currency, driver = m.Currency, m.Driver
 			}
 		}

@@ -631,9 +631,6 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		currency, driver := "", ""
 		for _, method := range methods {
 			if method.ID == in.MerchantID {
-				if !method.SettlementSupported {
-					return payments.ErrUnsupported
-				}
 				currency, driver = method.Currency, method.Driver
 			}
 		}

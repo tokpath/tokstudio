@@ -289,10 +289,12 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	if e = s.DB.WithContext(ctx).Table("payments_intents").Where("merchant_id=? AND order_id=?", merchant, o.ID).Count(&exists).Error; e != nil {
 		return Checkout{}, e
 	}
+	var quoteErr error
 	if exists == 0 {
-		o, e = s.preparePaymentQuote(ctx, m, o)
-		if e != nil {
-			return Checkout{}, e
+		var quoted Order
+		quoted, quoteErr = s.preparePaymentQuote(ctx, m, o)
+		if quoteErr == nil {
+			o = quoted
 		}
 	}
 	fresh := false
@@ -347,7 +349,11 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 		}
 		return Checkout{}, ErrOutcomeUnknown
 	}
-	checkout, callErr := d.Create(ctx, m, o)
+	var checkout Checkout
+	callErr := quoteErr
+	if callErr == nil {
+		checkout, callErr = d.Create(ctx, m, o)
+	}
 	if m.Driver == "nowpayments" && callErr == nil && checkout.PayMoney != nil {
 		q := o.PaymentQuote
 		if q == nil {
@@ -382,7 +388,9 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	state := "created"
 	if callErr != nil {
 		state = "outcome_unknown"
-		if errors.Is(callErr, ErrUnsupported) || errors.Is(callErr, ErrInvalid) || errors.Is(callErr, ErrProvider) || errors.Is(callErr, ErrNotConfigured) || errors.Is(callErr, ErrForbidden) {
+		// A quote failure happens before any payment creation attempt. Record
+		// that proof so the customer can cancel or choose another method.
+		if quoteErr != nil || errors.Is(callErr, ErrUnsupported) || errors.Is(callErr, ErrInvalid) || errors.Is(callErr, ErrProvider) || errors.Is(callErr, ErrNotConfigured) || errors.Is(callErr, ErrForbidden) {
 			state = "failed"
 		}
 	}

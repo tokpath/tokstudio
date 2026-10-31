@@ -227,3 +227,30 @@ func TestStablecoinPaymentPinsBothReferenceInvoiceAndProviderQuote(t *testing.T)
 		t.Fatal("quote did not discharge the original CNY obligation", amount, err)
 	}
 }
+
+func TestUnavailableQuoteDoesNotLeaveAnUnresolvedOnlinePayment(t *testing.T) {
+	db := paymentDB(t)
+	s := NewService(db, "quote-failure-proof", testPaymentAuth{}, NewTransport(true), nil)
+	var paymentCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.URL.Path, "/v2/rate/") {
+			paymentCalls.Add(1)
+		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+	s.FXBaseURL = server.URL
+	m := Merchant{ID: uuid.NewString(), OperatorID: uuid.NewString(), Driver: "stripe", Enabled: true, APIBaseURL: server.URL, Credentials: map[string]string{"currency": "CNY", "secret_key": "sk_test_fixture", "publishable_key": "pk_test_fixture", "webhook_secret": "whsec_fixture"}}
+	if _, err := s.SaveMerchant(t.Context(), "finance", m, 0); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	o := Order{ID: uuid.NewString(), OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: "CNY"}, SettlementMoney: Money{Currency: "USD", Amount: ledger.FromInt64(10)}, AcceptedAt: now, ExpiresAt: now.Add(time.Hour)}
+	if _, err := s.Create(t.Context(), m.OperatorID, m.ID, o); !errors.Is(err, ErrQuoteUnavailable) {
+		t.Fatal("unavailable reference quote was accepted", err)
+	}
+	intent, err := s.PaymentIntent(t.Context(), m.OperatorID, m.ID, o.ID)
+	if err != nil || intent.State != "failed" || paymentCalls.Load() != 0 {
+		t.Fatal("failure before provider creation must permit cancellation", intent.State, paymentCalls.Load(), err)
+	}
+}

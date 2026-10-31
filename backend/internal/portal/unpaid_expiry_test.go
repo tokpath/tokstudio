@@ -48,6 +48,13 @@ func TestPostgresExpiredUnpaidOrderReleasesAndRecordedPaymentStays(t *testing.T)
 		t.Fatal(err)
 	}
 	protected := []string{}
+	failedOnline := create("online-proven-failed", now.Add(-2*time.Hour))
+	if err := f.a.DB.Model(&checkoutRow{}).Where("order_id=?", failedOnline).Update("merchant_id", online.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := f.a.DB.Table("payments_intents").Create(map[string]any{"merchant_id": online.ID, "order_id": failedOnline, "operator_id": op, "fingerprint": failedOnline, "state": "failed", "order_ciphertext": "fixture", "created_at": now.Add(-time.Hour), "updated_at": now.Add(-time.Hour)}).Error; err != nil {
+		t.Fatal(err)
+	}
 	for _, state := range []string{"executing", "created", "outcome_unknown", "awaiting_settlement", "verified"} {
 		id := create("online-"+state, now.Add(-2*time.Hour))
 		if err := f.a.DB.Model(&checkoutRow{}).Where("order_id=?", id).Update("merchant_id", online.ID).Error; err != nil {
@@ -69,8 +76,10 @@ func TestPostgresExpiredUnpaidOrderReleasesAndRecordedPaymentStays(t *testing.T)
 		}
 		return status
 	}
-	if statusOf(expired) != "closed" || statusOf(open) != "pending" || statusOf(paid) != "pending" {
-		t.Fatalf("expired=%s open=%s paid=%s", statusOf(expired), statusOf(open), statusOf(paid))
+	// With a one-row batch the oldest proven failed payment is closed first;
+	// unresolved older intents must not occupy that slot.
+	if statusOf(failedOnline) != "closed" || statusOf(expired) != "pending" || statusOf(open) != "pending" || statusOf(paid) != "pending" {
+		t.Fatalf("failed=%s expired=%s open=%s paid=%s", statusOf(failedOnline), statusOf(expired), statusOf(open), statusOf(paid))
 	}
 	if err := f.a.expireUnpaidOrders(t.Context(), 50); err != nil {
 		t.Fatal(err)

@@ -2479,10 +2479,10 @@
     "ja": "現在のルールバージョン",
     "ru": "Текущая версия правила"
   },
-  "确认原申请费用、收款资料及权限。启用双人复核时付款人必须与审批人不同。": {
-    "en": "Confirm the original request's fees, recipient details, and permissions. With two-person review enabled, the payer and approver must differ.",
-    "ja": "元の申請の手数料、受取情報、権限を確認してください。二者確認が有効な場合、支払者と承認者は別の人が必要です。",
-    "ru": "Проверьте комиссию исходной заявки, реквизиты и права. При включённой проверке двумя лицами плательщик и утверждающий должны различаться."
+  "确认原申请费用、收款资料及权限。提现固定为单人审批，审批人可以继续登记付款。": {
+    "en": "Confirm the original application's fee, recipient details, and permissions. Withdrawal approval is done by one person, and that approver may also record the payment.",
+    "ja": "元の申請の手数料、受取情報、権限を確認してください。出金は一人が承認し、その承認者が支払いの登録も続けて行えます。",
+    "ru": "Проверьте комиссию исходной заявки, реквизиты получателя и права. Вывод утверждает один сотрудник, и он же может зарегистрировать выплату."
   },
   "标记付款结果未知": {
     "en": "Mark payment outcome as unknown",

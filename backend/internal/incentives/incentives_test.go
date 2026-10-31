@@ -798,10 +798,10 @@ func TestPostgresWithdrawalIndependentReviewerAndActualPayment(t *testing.T) {
 	f.buy(t, peer.Customer.ID, "real-commission-origin", "100", ActivitySelection{})
 	f.consume(t, peer.Customer.ID, "100")
 	policy, err := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{PayoutKind: "bank_cn", MinimumMoney: d("5"), FlatFeeMoney: d("2"), MethodReference: "manual transfer", RequiresDualApproval: true}, 0)
-	if err != nil {
-		t.Fatal(err)
+	if err != nil || policy.RequiresDualApproval {
+		t.Fatal("withdrawal approval is single-person and cannot store a second reviewer", policy, err)
 	}
-	w, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: customer.Customer.ID, BusinessKey: "dual", RecipientReference: "private:payout-profile", PolicyID: policy.ID, AmountMoney: d("10")})
+	w, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: customer.Customer.ID, BusinessKey: "single-approval", RecipientReference: "private:payout-profile", PolicyID: policy.ID, AmountMoney: d("10")})
 	if err != nil {
 		t.Fatal(err)
 	}

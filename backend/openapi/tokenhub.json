@@ -32836,7 +32836,7 @@
             }
           }
         },
-        "description": " Required explicit review: 确认原申请费用、收款资料及权限。启用双人复核时付款人必须与审批人不同。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": " Required explicit review: 确认原申请费用、收款资料及权限。提现固定为单人审批，审批人可以继续登记付款。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "withdrawals.manage"
       }
     },

@@ -78,6 +78,7 @@ func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, o
 		if previous.Version != expectedVersion {
 			return ErrConflict
 		}
+		in.RequiresDualApproval = false
 		if in.MethodName == "" {
 			in.MethodName = profile.Label
 		}

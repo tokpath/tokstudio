@@ -319,61 +319,6 @@ func (s *Service) ApproveWithdrawal(ctx context.Context, tx *gorm.DB, actor, ope
 	})
 	return
 }
-func (s *Service) BeginWithdrawalPayment(ctx context.Context, tx *gorm.DB, actor, operator, id string) (out Withdrawal, err error) {
-	err = s.within(ctx, tx, func(tx *gorm.DB) error {
-		r, err := s.withdrawalForStaff(ctx, tx, actor, operator, id)
-		if err != nil {
-			return err
-		}
-		if r.Status == "paying" {
-			out = Withdrawal(r)
-			return nil
-		}
-		if r.Status != "approved" || r.ApprovedBy == nil {
-			return ErrWithdrawalState
-		}
-		if err = s.RequireCommissionFundingExecution(ctx, tx, operator, r.CustomerID, "withdrawal", r.ID); err != nil {
-			return err
-		}
-		var p withdrawalPolicyRow
-		if err = tx.First(&p, "id=?", r.PolicyID).Error; err != nil {
-			return err
-		}
-		intent := uuid.NewString()
-		r.Status = "paying"
-		r.PaymentActorID = &actor
-		r.PaymentIntentID = &intent
-		if err = tx.Save(&r).Error; err != nil {
-			return err
-		}
-		out = Withdrawal(r)
-		return s.event(tx, operator, id, "withdrawal.payment_intent_recorded", map[string]any{"payment_intent_id": intent, "actor_id": actor})
-	})
-	return
-}
-func (s *Service) MarkWithdrawalUnknown(ctx context.Context, tx *gorm.DB, actor, operator, id, evidence string) error {
-	if evidence == "" {
-		return ErrInvalidInput
-	}
-	return s.within(ctx, tx, func(tx *gorm.DB) error {
-		r, err := s.withdrawalForStaff(ctx, tx, actor, operator, id)
-		if err != nil {
-			return err
-		}
-		if r.Status != "paying" && r.Status != "unknown" {
-			return ErrWithdrawalState
-		}
-		if r.Status == "unknown" && r.PaymentEvidence == evidence {
-			return nil
-		}
-		before := Withdrawal(r)
-		if e := tx.Model(&r).Updates(map[string]any{"status": "unknown", "payment_evidence": evidence}).Error; e != nil {
-			return e
-		}
-		r.Status, r.PaymentEvidence = "unknown", evidence
-		return s.event(tx, operator, id, "withdrawal.outcome_unknown", map[string]any{"actor_id": actor, "evidence": evidence, "before": before, "after": Withdrawal(r)})
-	})
-}
 func completeWithdrawalProof(proof *WithdrawalPaymentProof, net ledger.Decimal, settlement string) error {
 	proof.Currency = strings.ToUpper(strings.TrimSpace(proof.Currency))
 	if proof.Evidence == "" || proof.Currency == "" || proof.PaidAt.IsZero() || !net.Valid() || net.Sign() <= 0 {
@@ -440,8 +385,11 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 			out = Withdrawal(r)
 			return nil
 		}
-		if r.Status != "paying" && r.Status != "unknown" {
+		if r.Status != "approved" {
 			return ErrWithdrawalState
+		}
+		if err = s.RequireCommissionFundingExecution(ctx, tx, operator, r.CustomerID, "withdrawal", r.ID); err != nil {
+			return err
 		}
 		before := Withdrawal(r)
 		available, err := s.account(ctx, tx, operator, r.CustomerID, "commission:available")
@@ -520,7 +468,7 @@ func (s *Service) FailWithdrawal(ctx context.Context, tx *gorm.DB, actor, operat
 		if r.Status == "failed" {
 			return nil
 		}
-		if r.Status != "approved" && r.Status != "paying" && r.Status != "unknown" {
+		if r.Status != "approved" {
 			return ErrWithdrawalState
 		}
 		if err = s.resolveCommissionUse(ctx, tx, operator, r.CustomerID, "withdrawal", r.ID, false); err != nil {

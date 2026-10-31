@@ -115,7 +115,7 @@ const resourceFilterStatuses: Record<string, readonly string[]> = {
   notifications: ["pending", "processing", "accepted", "needs_attention", "suppressed"],
   procurement: ["quote","disabled","expired","archived","awaiting_payment","paid","completed","closed","exception","authorization","prepared","awaiting_manual_payment","outcome_unknown","verified_payment_delivery_pending","failed_unpaid","cancelled_unpaid"],
   refunds: ["pending_review", "approved", "paying", "completed", "rejected", "cancelled", "exception"],
-  withdrawals: ["requested", "approved", "paying", "unknown", "paid", "cancelled", "failed"],
+  withdrawals: ["requested", "approved", "paid", "cancelled", "failed"],
   invoices: ["requested", "issued", "rejected", "review_required", "voided"],
   "procurement-invoices": ["requested", "issued", "rejected", "review_required", "voided"],
   "receipt-valuations": ["awaiting_settlement"],

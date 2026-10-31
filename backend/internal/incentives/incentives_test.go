@@ -510,12 +510,6 @@ func TestPostgresWithdrawalUnknownRecoveryAndOffsetsNeverTouchOtherAssets(t *tes
 	if _, err = f.s.ApproveWithdrawal(f.ctx, nil, f.owner, f.operator, w.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = f.s.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w.ID); err != nil {
-		t.Fatal(err)
-	}
-	if err = f.s.MarkWithdrawalUnknown(f.ctx, nil, f.owner, f.operator, w.ID, "bank result uncertain"); err != nil {
-		t.Fatal(err)
-	}
 	if err = f.s.CancelWithdrawal(f.ctx, nil, a.Customer.ID, w.ID); !errors.Is(err, ErrWithdrawalState) {
 		t.Fatalf("unknown payout hold cancelled: %v", err)
 	}
@@ -556,9 +550,6 @@ func TestPostgresWithdrawalUnknownRecoveryAndOffsetsNeverTouchOtherAssets(t *tes
 		t.Fatal(err)
 	}
 	if _, err = f.s.ApproveWithdrawal(f.ctx, nil, f.owner, f.operator, w2.ID); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = f.s.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w2.ID); err != nil {
 		t.Fatal(err)
 	}
 	if err = f.s.FailWithdrawal(f.ctx, nil, f.owner, f.operator, w2.ID, "bank verified no payment occurred", true); err != nil {
@@ -806,9 +797,6 @@ func TestPostgresWithdrawalIndependentReviewerAndActualPayment(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err = f.s.ApproveWithdrawal(f.ctx, nil, f.owner, f.operator, w.ID); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = f.s.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w.ID); err != nil {
 		t.Fatal(err)
 	}
 	if account := f.balance(t, customer.Customer.ID, "commission:available"); account.Balance.Cmp(d("10")) != 0 || account.Held.Cmp(d("10")) != 0 {

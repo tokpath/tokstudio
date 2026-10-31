@@ -32,7 +32,7 @@ func TestPostgresCustomerWithdrawalCancellationOnlyBeforeReview(t *testing.T) {
 	// Persist each legal workflow state for the projection. The requested row
 	// has a real ledger hold against an explicit synthetic opening balance, so
 	// the HTTP cancellation also proves funds are released exactly once.
-	for _, state := range []string{"requested", "approved", "paying", "unknown", "paid", "cancelled", "failed"} {
+	for _, state := range []string{"requested", "approved", "paid", "cancelled", "failed"} {
 		hold := ledger.Hold{ID: uuid.NewString(), OperatorID: op, BusinessKey: "withdrawal-view:" + state, Fingerprint: "synthetic fixture", Purpose: "commission_withdrawal", Status: "active", ExpiresAt: time.Now().Add(time.Hour), CreatedAt: time.Now()}
 		if state == "requested" {
 			ctx := context.Background()
@@ -86,7 +86,7 @@ func TestPostgresCustomerWithdrawalCancellationOnlyBeforeReview(t *testing.T) {
 	if len(methods) != 1 || methods[0].(map[string]any)["kind"] != "bank_cn" {
 		t.Fatal("customer withdrawal page did not publish the configured payout profile", methods)
 	}
-	if len(page["items"].([]any)) != 7 {
+	if len(page["items"].([]any)) != 5 {
 		t.Fatal("missing withdrawal states", page)
 	}
 	for _, raw := range page["items"].([]any) {

@@ -20,10 +20,8 @@ func (c IncentiveNotifications) EnqueueIncentiveEvent(ctx context.Context, tx *g
 	}
 	messages := map[string][2]string{
 		"withdrawal.requested":                 {"佣金提现已申请", "申请金额已占用，审核不表示已实际打款。请查看提现状态。"},
-		"withdrawal.approved":                  {"佣金提现已审核", "提现已审核，仍须核实实际付款后才结清。"},
-		"withdrawal.payment_intent_recorded":   {"提现进入付款环节", "已记录唯一付款指令，结果未核实前不会重复发起。"},
-		"withdrawal.outcome_unknown":           {"提现付款待核实", "原付款结果暂不能核实，已保留占用，请等待原付款核查。"},
-		"withdrawal.payment_verified":          {"佣金提现付款已核实", "已核实实际提现付款，请查看提现明细与金额。"},
+		"withdrawal.approved":                  {"佣金提现已审核", "提现已审核。经营方登记实际付款后，申请才结束。"},
+		"withdrawal.payment_verified":          {"佣金提现付款已核实", "已核实实际提现付款，申请已结束。请查看提现明细与金额。"},
 		"withdrawal.cancelled":                 {"佣金提现已取消", "本次提现已取消，资金处理结果请查看明细。"},
 		"withdrawal.unpaid_verified":           {"提现未付款已核实", "已确认本次未实际付款，请查看占用释放结果。"},
 		"withdrawal.policy_changed":            {"提现办理规则已更新", "本经营方后续提现办理规则已更新，已申请条款保持原快照。"},

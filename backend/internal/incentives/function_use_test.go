@@ -40,8 +40,9 @@ func TestPostgresReviewBlockKeepsAccrualButStopsCommissionPurchaseAndNewPayoutEx
 	if _, e = f.commerce.Fulfill(f.ctx, nil, o.ID, "worker:review-delivery"); !errors.Is(e, ErrBlocked) {
 		t.Fatal("previously reserved purchase delivered under review", e)
 	}
-	if _, e = f.s.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w.ID); !errors.Is(e, ErrBlocked) {
-		t.Fatal("approved payout began under review", e)
+	blockedProof := WithdrawalPaymentProof{Evidence: "not paid while the source is under review", Currency: "USD", PaidAt: time.Now().UTC()}
+	if _, e = f.s.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, blockedProof); !errors.Is(e, ErrBlocked) {
+		t.Fatal("approved payout was recorded under review", e)
 	}
 	if spendable, e := f.s.CommissionSpendable(f.ctx, nil, f.operator, a.Customer.ID); e != nil || !spendable.IsZero() {
 		t.Fatal(spendable, e)
@@ -57,14 +58,14 @@ func TestPostgresReviewBlockKeepsAccrualButStopsCommissionPurchaseAndNewPayoutEx
 	if _, e = f.commerce.Fulfill(f.ctx, nil, o.ID, "worker:review-delivery"); e != nil {
 		t.Fatal(e)
 	}
-	if _, e = f.s.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w.ID); e != nil {
-		t.Fatal(e)
-	}
-	if _, e = f.s.SetFunctionState(f.ctx, nil, f.owner, f.operator, a.Customer.ID, "active", "new review after actual payout instruction", true); e != nil {
-		t.Fatal(e)
-	}
 	proof := WithdrawalPaymentProof{PaymentReference: "actually-paid-before-new-review", Evidence: "independently verified executed payment", Currency: "USD", OriginalAmount: "5", ValuationEvidence: "actual USD", PaidMoney: d("5"), PaidAt: time.Now().UTC()}
 	if _, e = f.s.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, proof); e != nil {
-		t.Fatal("real executed payment rolled back due later review", e)
+		t.Fatal(e)
+	}
+	if _, e = f.s.SetFunctionState(f.ctx, nil, f.owner, f.operator, a.Customer.ID, "active", "review after the payout was recorded", true); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = f.s.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, proof); e != nil {
+		t.Fatal("recorded payout was reopened by a later review", e)
 	}
 }

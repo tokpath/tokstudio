@@ -12,7 +12,7 @@ function mount(content: React.ReactNode) { const cache = new QueryClient({ defau
 
 it("offers cancellation only for the server-authorized pending withdrawal and confirms its exact request", async () => {
   const cancel: Operation = { name: "cancel", label: "取消提现申请", method: "POST", path: "/api/v1/me/withdrawals/{id}/cancel", fields: [], confirmation: "确认取消这笔尚未审核的提现申请？取消成功后释放本笔佣金占用。" };
-  const page: ResourcePage = { title: "佣金提现", description: "审核前可以取消本人申请。", items: ["requested", "approved", "paying", "unknown", "paid", "cancelled", "failed"].map(status => ({ id: `withdrawal-${status}`, status, values: { amount_money: "5.000000000000000001" }, allowed_actions: status === "requested" ? ["cancel"] : [] })), columns: [{ key: "id", label: "申请编号", kind: "text" }, { key: "amount_money", label: "金额", kind: "money" }], operations: [], row_operations: [cancel] };
+  const page: ResourcePage = { title: "佣金提现", description: "审核前可以取消本人申请。", items: ["requested", "approved", "paid", "cancelled", "failed"].map(status => ({ id: `withdrawal-${status}`, status, values: { amount_money: "5.000000000000000001" }, allowed_actions: status === "requested" ? ["cancel"] : [] })), columns: [{ key: "id", label: "申请编号", kind: "text" }, { key: "amount_money", label: "金额", kind: "money" }], operations: [], row_operations: [cancel] };
   const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => new Response(JSON.stringify(String(input).endsWith("/credits") ? credits : { id: "withdrawal-requested", status: "cancelled" }), { status: 200 }));
   vi.stubGlobal("fetch", fetch);
   mount(<ResourceCollection resource="withdrawals/workspace" customer page={page} />);

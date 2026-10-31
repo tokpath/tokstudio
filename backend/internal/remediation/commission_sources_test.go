@@ -79,7 +79,7 @@ func commissionSources(t *testing.T) commissionSourceFixture {
 	}
 	return result
 }
-func (f commissionSourceFixture) withdrawal(t *testing.T, key string, begin bool) incentives.Withdrawal {
+func (f commissionSourceFixture) withdrawal(t *testing.T, key string) incentives.Withdrawal {
 	t.Helper()
 	policy, e := f.s.Incentives.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, incentives.WithdrawalPolicy{PayoutKind: "bank_cn", MinimumMoney: d("1"), MethodReference: "verified manual banking"}, 0)
 	if e != nil {
@@ -92,12 +92,6 @@ func (f commissionSourceFixture) withdrawal(t *testing.T, key string, begin bool
 	w, e = f.s.Incentives.ApproveWithdrawal(f.ctx, nil, f.owner, f.operator, w.ID)
 	if e != nil {
 		t.Fatal(e)
-	}
-	if begin {
-		w, e = f.s.Incentives.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w.ID)
-		if e != nil {
-			t.Fatal(e)
-		}
 	}
 	return w
 }
@@ -151,9 +145,9 @@ func TestPostgresCommissionPurchaseRefundRestoresOriginalEntryAndDisputeDoesNotF
 }
 func TestPostgresCommissionDisputeBlocksNewExecutionBeforeRestrictionReviewAndKeepsOtherSourceUsable(t *testing.T) {
 	f := commissionSources(t)
-	w := f.withdrawal(t, "pending-source-withdrawal", false)
+	w := f.withdrawal(t, "pending-source-withdrawal")
 	cb := f.chargeback(t, f.source, "already-reserved-source-dispute", "80")
-	if _, e := f.s.Incentives.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w.ID); !errors.Is(e, incentives.ErrBlocked) {
+	if _, e := f.s.Incentives.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, incentives.WithdrawalPaymentProof{Evidence: "would pay a disputed source", Currency: "USD", PaidAt: time.Now().UTC()}); !errors.Is(e, incentives.ErrBlocked) {
 		t.Fatal("issued new transfer after original source dispute", e)
 	}
 	if e := f.s.RestrictChargeback(f.ctx, f.owner, f.operator, cb.ID, "source is still reserved by withdrawal"); !errors.Is(e, ErrReview) {
@@ -189,9 +183,14 @@ func TestPostgresCommissionDisputeBlocksNewExecutionBeforeRestrictionReviewAndKe
 }
 func TestPostgresVerifiedCommissionPayoutFactAfterDisputeRemainsRecordable(t *testing.T) {
 	f := commissionSources(t)
-	w := f.withdrawal(t, "already-executed-source-withdrawal", true)
+	w := f.withdrawal(t, "already-executed-source-withdrawal")
+	paidAt := time.Now().UTC()
+	proof := incentives.WithdrawalPaymentProof{PaymentReference: "real-bank-payout", Evidence: "independently verified completed original instruction", Currency: "USD", OriginalAmount: "12", PaidMoney: d("12"), ValuationEvidence: "actual USD", PaidAt: paidAt}
+	if _, e := f.s.Incentives.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, proof); e != nil {
+		t.Fatal(e)
+	}
 	cb := f.chargeback(t, f.source, "dispute-after-bank-instruction", "80")
-	if _, e := f.s.Incentives.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, incentives.WithdrawalPaymentProof{PaymentReference: "real-bank-payout", Evidence: "independently verified completed original instruction", Currency: "USD", OriginalAmount: "12", PaidMoney: d("12"), ValuationEvidence: "actual USD", PaidAt: time.Now().UTC()}); e != nil {
+	if _, e := f.s.Incentives.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, proof); e != nil {
 		t.Fatal("real executed fact rolled back by new gate", e)
 	}
 	if e := f.s.RestrictChargeback(f.ctx, f.owner, f.operator, cb.ID, "freeze only still controllable original source"); e != nil {
@@ -204,7 +203,7 @@ func TestPostgresVerifiedCommissionPayoutFactAfterDisputeRemainsRecordable(t *te
 }
 func TestPostgresCommissionDisputeAndPayoutInstructionRaceUsesOneBusinessOrder(t *testing.T) {
 	f := commissionSources(t)
-	w := f.withdrawal(t, "racing-source-withdrawal", false)
+	w := f.withdrawal(t, "racing-source-withdrawal")
 	var wg sync.WaitGroup
 	var cb Chargeback
 	var cbErr, payErr error
@@ -215,7 +214,7 @@ func TestPostgresCommissionDisputeAndPayoutInstructionRaceUsesOneBusinessOrder(t
 	}()
 	go func() {
 		defer wg.Done()
-		_, payErr = f.s.Incentives.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w.ID)
+		_, payErr = f.s.Incentives.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, incentives.WithdrawalPaymentProof{Evidence: "race with the source dispute", Currency: "USD", PaidAt: time.Now().UTC()})
 	}()
 	wg.Wait()
 	if cbErr != nil {
@@ -226,7 +225,7 @@ func TestPostgresCommissionDisputeAndPayoutInstructionRaceUsesOneBusinessOrder(t
 	}
 	if payErr == nil {
 		var event incentives.Event
-		if e := f.db.Where("aggregate_id=? AND kind='withdrawal.payment_intent_recorded'", w.ID).First(&event).Error; e != nil {
+		if e := f.db.Where("aggregate_id=? AND kind='withdrawal.payment_verified'", w.ID).First(&event).Error; e != nil {
 			t.Fatal(e)
 		}
 		if event.CreatedAt.After(cb.CreatedAt) {

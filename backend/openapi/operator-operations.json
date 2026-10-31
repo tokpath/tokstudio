@@ -4553,38 +4553,7 @@
   },
   {
     "resource": "withdrawals",
-    "confirmation": "将保存付款意图，未知结果不得再次盲目付款。",
-    "description": "",
-    "fields": [],
-    "include_version": false,
-    "label": "登记开始真实付款",
-    "method": "POST",
-    "name": "begin_payment",
-    "path": "/v1/operators/{operatorId}/withdrawals/{id}/begin_payment",
-    "permission": "withdrawals.manage"
-  },
-  {
-    "resource": "withdrawals",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "kind": "textarea",
-        "label": "查询与不确定性依据",
-        "name": "evidence",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "标记付款结果未知",
-    "method": "POST",
-    "name": "unknown",
-    "path": "/v1/operators/{operatorId}/withdrawals/{id}/unknown",
-    "permission": "withdrawals.manage"
-  },
-  {
-    "resource": "withdrawals",
-    "confirmation": "确认已按申请时固定的实付净额完成付款。提交后释放占用并完成账务。",
+    "confirmation": "确认已按申请时固定的实付净额完成付款。提交后申请结束。",
     "description": "Record that the fixed net was paid. The settlement amount is taken from the application. A different currency also requires the original amount and the evidence linking it to that net.",
     "fields": [
       {
@@ -4626,7 +4595,7 @@
       }
     ],
     "include_version": false,
-    "label": "登记已核实实际付款",
+    "label": "登记付款",
     "method": "POST",
     "name": "verify_paid",
     "path": "/v1/operators/{operatorId}/withdrawals/{id}/verify_paid",
@@ -4634,7 +4603,7 @@
   },
   {
     "resource": "withdrawals",
-    "confirmation": "未知结果不能终止并再次付款。",
+    "confirmation": "确认这笔申请没有实际付款。提交后释放佣金占用，申请结束。",
     "description": "",
     "fields": [
       {

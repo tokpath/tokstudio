@@ -19,16 +19,8 @@ func (s *Service) PreflightTransferResponsibility(ctx context.Context, tx *gorm.
 	if err := s.org.LockResponsibilityTransfer(ctx, tx, in); err != nil {
 		return err
 	}
-	var w withdrawalRow
-	q := tx.Where("operator_id=? AND status IN ('paying','unknown')", in.FromOperatorID).Limit(1).Find(&w)
-	if q.Error != nil {
-		return q.Error
-	}
-	if q.RowsAffected > 0 {
-		return fmt.Errorf("%w: withdrawal %s is %s", ErrTransferBlocked, w.ID, w.Status)
-	}
 	var p promiseRow
-	q = tx.Where("operator_id=? AND status='reserved'", in.FromOperatorID).Limit(1).Find(&p)
+	q := tx.Where("operator_id=? AND status='reserved'", in.FromOperatorID).Limit(1).Find(&p)
 	if q.Error != nil {
 		return q.Error
 	}

@@ -50,9 +50,6 @@ func TestWithdrawalMethodsKeepIndependentFeesAndFreezeTheChosenPayout(t *testing
 	if _, err = f.s.ApproveWithdrawal(f.ctx, nil, f.owner, f.operator, w.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = f.s.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w.ID); err != nil {
-		t.Fatal(err)
-	}
 	paid, err := f.s.VerifyWithdrawalPaid(f.ctx, nil, f.owner, f.operator, w.ID, WithdrawalPaymentProof{Evidence: "Verified offline payout", Currency: "USD", OriginalAmount: "9.01", ValuationEvidence: "actual USD transfer", PaidMoney: d("9.01"), PaidAt: time.Now().UTC()})
 	if err != nil || paid.FeeMoney.String() != "1" || paid.NetMoney.String() != "9.01" {
 		t.Fatal("method change altered the accepted payout", paid, err)

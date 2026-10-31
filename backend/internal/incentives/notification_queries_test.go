@@ -31,23 +31,11 @@ func TestPostgresNotificationAudienceUsesPersistedCustomersAndBeneficiariesWitho
 	if _, e = f.s.ApproveWithdrawal(f.ctx, nil, f.owner, f.operator, w.ID); e != nil {
 		t.Fatal(e)
 	}
-	if _, e = f.s.BeginWithdrawalPayment(f.ctx, nil, f.owner, f.operator, w.ID); e != nil {
-		t.Fatal(e)
-	}
-	for range 2 {
-		if e = f.s.MarkWithdrawalUnknown(f.ctx, nil, f.owner, f.operator, w.ID, "private-sensitive-bank-response"); e != nil {
-			t.Fatal(e)
-		}
-	}
-	var correction, unknown, qualification Event
-	for kind, dest := range map[string]*Event{"consumption.corrected": &correction, "withdrawal.outcome_unknown": &unknown, "qualification.acquired": &qualification} {
+	var correction, approved, qualification Event
+	for kind, dest := range map[string]*Event{"consumption.corrected": &correction, "withdrawal.approved": &approved, "qualification.acquired": &qualification} {
 		if e = f.db.Where("kind=?", kind).Order("created_at DESC,id DESC").First(dest).Error; e != nil {
 			t.Fatal(e)
 		}
-	}
-	var unknownCount int64
-	if e = f.db.Model(&Event{}).Where("kind='withdrawal.outcome_unknown'").Count(&unknownCount).Error; e != nil || unknownCount != 1 {
-		t.Fatalf("unknown replay generated duplicate %d %v", unknownCount, e)
 	}
 	e = f.db.Transaction(func(tx *gorm.DB) error {
 		rows, e := f.s.NotificationEventAudience(f.ctx, tx, correction)
@@ -64,7 +52,7 @@ func TestPostgresNotificationAudienceUsesPersistedCustomersAndBeneficiariesWitho
 		if len(ids) != 2 || !ids[a.Customer.ID] || !ids[b.Customer.ID] {
 			t.Fatalf("correction omitted original beneficiary/customer %+v", rows)
 		}
-		for _, event := range []Event{unknown, qualification} {
+		for _, event := range []Event{approved, qualification} {
 			// Untrusted payload changes are ignored; the stored immutable event
 			// supplies its actual aggregate and a safe amount projection.
 			event.Payload = json.RawMessage(`{"recipient_id":"foreign","secret":"forged"}`)
@@ -79,7 +67,7 @@ func TestPostgresNotificationAudienceUsesPersistedCustomersAndBeneficiariesWitho
 			if strings.Contains(string(encoded), "private-sensitive") || strings.Contains(string(encoded), "bank-account") || strings.Contains(string(encoded), "forged") {
 				t.Fatal("notification exposed private payload", string(encoded))
 			}
-			if event.Kind == "withdrawal.outcome_unknown" && (rows[0].RecipientID != a.Customer.ID || rows[0].AmountMoney == nil || rows[0].AmountMoney.Cmp(d("10")) != 0) {
+			if event.Kind == "withdrawal.approved" && (rows[0].RecipientID != a.Customer.ID || rows[0].AmountMoney == nil || rows[0].AmountMoney.Cmp(d("10")) != 0) {
 				t.Fatal(rows)
 			}
 		}

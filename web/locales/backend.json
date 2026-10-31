@@ -449,25 +449,20 @@
     "ja": "承認",
     "ru": "Одобрить"
   },
-  "将保存付款意图，未知结果不得再次盲目付款。": {
-    "en": "The payment intent will be saved. Do not blindly pay again when the result is unknown.",
-    "ja": "支払意図を保存します。結果不明時は確認せずに再度支払わないでください。",
-    "ru": "Намерение платежа будет сохранено. При неизвестном результате не платите повторно вслепую."
-  },
-  "登记已核实实际付款": {
-    "en": "Record verified actual payment",
-    "ja": "確認済みの実支払いを登録",
-    "ru": "Зарегистрировать проверенный фактический платёж"
+  "登记付款": {
+    "en": "Record payment",
+    "ja": "支払いを登録",
+    "ru": "Зарегистрировать выплату"
   },
   "确认未付并终止": {
     "en": "Confirm unpaid and terminate",
     "ja": "未払を確認して終了",
     "ru": "Подтвердить отсутствие платежа и прекратить"
   },
-  "未知结果不能终止并再次付款。": {
-    "en": "An unknown result cannot be terminated to pay again.",
-    "ja": "結果不明のまま終了して再度支払うことはできません。",
-    "ru": "Нельзя завершить операцию с неизвестным результатом и заплатить снова."
+  "确认这笔申请没有实际付款。提交后释放佣金占用，申请结束。": {
+    "en": "Confirm this application was not actually paid. Submitting releases the commission hold and ends the application.",
+    "ja": "この申請は実際には支払っていないことを確認してください。送信すると報酬の確保が解放され、申請は終了します。",
+    "ru": "Подтвердите, что по этой заявке фактической выплаты не было. После отправки резерв комиссии снимается и заявка завершается."
   },
   "OEM 自主设置销售超卖与预警；真实模型调用仍须足额采购余额。": {
     "en": "OEMs set their own sales oversell allowance and alerts; actual model calls still require sufficient prepaid procurement balance.",
@@ -3839,10 +3834,10 @@
     "ja": "このお金が申請者に支払われたことを、どのように確認したか書いてください。",
     "ru": "Опишите, как вы проверили, что эти деньги выплачены заявителю."
   },
-  "确认已按申请时固定的实付净额完成付款。提交后释放占用并完成账务。": {
-    "en": "Confirm the payment was made for the net fixed when the application was submitted. Submitting releases the hold and completes the books.",
-    "ja": "申請時に確定した実支払純額で支払いが完了したことを確認してください。送信すると保留が解放され、帳簿が完成します。",
-    "ru": "Подтвердите, что выплата сделана на чистую сумму, зафиксированную при подаче заявки. После отправки удержание снимается и учёт завершается."
+  "确认已按申请时固定的实付净额完成付款。提交后申请结束。": {
+    "en": "Confirm the payment was made for the net fixed when the application was submitted. Submitting ends the application.",
+    "ja": "申請時に確定した実支払純額で支払いが完了したことを確認してください。送信すると申請は終了します。",
+    "ru": "Подтвердите, что выплата сделана на чистую сумму, зафиксированную при подаче заявки. После отправки заявка завершается."
   },
   "用结算币种付款时，金额就是申请里已经固定的实付净额，不能再填一个不同的数字。": {
     "en": "When paying in the settlement currency, the amount is the net already fixed on the application. Do not enter a different number.",
@@ -4553,16 +4548,6 @@
     "en": "Withdrawal command not found",
     "ja": "出金コマンドがありません",
     "ru": "Команда вывода не найдена"
-  },
-  "登记开始真实付款": {
-    "en": "Record actual payment started",
-    "ja": "実際の支払開始を記録",
-    "ru": "Зарегистрировать начало реальной выплаты"
-  },
-  "查询与不确定性依据": {
-    "en": "Lookup and uncertainty evidence",
-    "ja": "照会・不確実性の根拠",
-    "ru": "Основание проверки и неопределённости"
   },
   "已核实未付": {
     "en": "Verified unpaid",
@@ -6474,40 +6459,20 @@
     "ja": "報酬出金を審査しました",
     "ru": "Вывод комиссии проверен"
   },
-  "提现已审核，仍须核实实际付款后才结清。": {
-    "en": "The withdrawal has been reviewed and will settle only after actual payment is verified.",
-    "ja": "出金は審査済みですが、実際の支払確認後に清算します。",
-    "ru": "Вывод проверен и будет закрыт только после подтверждения фактической выплаты."
-  },
-  "提现进入付款环节": {
-    "en": "Withdrawal entered payment processing",
-    "ja": "出金が支払処理に進みました",
-    "ru": "Вывод перешёл к выплате"
-  },
-  "已记录唯一付款指令，结果未核实前不会重复发起。": {
-    "en": "A unique payment instruction is recorded. It will not be initiated again until the outcome is verified.",
-    "ja": "一意の支払指示を記録しました。結果を確認するまで重複実行しません。",
-    "ru": "Уникальное платёжное поручение записано. До проверки результата оно не будет запущено повторно."
-  },
-  "提现付款待核实": {
-    "en": "Withdrawal payment awaiting verification",
-    "ja": "出金支払いの確認待ち",
-    "ru": "Выплата вывода ожидает проверки"
-  },
-  "原付款结果暂不能核实，已保留占用，请等待原付款核查。": {
-    "en": "The original payment outcome cannot yet be verified. The hold remains; wait for verification of the original payment.",
-    "ja": "元の支払結果をまだ確認できません。確保を維持していますので、元の支払いの確認をお待ちください。",
-    "ru": "Результат исходной выплаты пока не подтверждён. Резерв сохранён; дождитесь проверки исходной выплаты."
+  "提现已审核。经营方登记实际付款后，申请才结束。": {
+    "en": "The withdrawal has been approved. The application ends when the operator records the actual payment.",
+    "ja": "出金は承認済みです。事業者が実際の支払いを登録すると、申請は終了します。",
+    "ru": "Вывод одобрен. Заявка завершается, когда оператор регистрирует фактическую выплату."
   },
   "佣金提现付款已核实": {
     "en": "Commission withdrawal payment verified",
     "ja": "報酬出金の支払いを確認済み",
     "ru": "Выплата комиссии подтверждена"
   },
-  "已核实实际提现付款，请查看提现明细与金额。": {
-    "en": "The actual withdrawal payment is verified. Review withdrawal details and amounts.",
-    "ja": "実際の出金支払いを確認しました。出金明細と金額を確認してください。",
-    "ru": "Фактическая выплата вывода подтверждена. Проверьте детали и суммы вывода."
+  "已核实实际提现付款，申请已结束。请查看提现明细与金额。": {
+    "en": "The actual withdrawal payment is verified and the application is finished. Review the withdrawal details and amounts.",
+    "ja": "実際の出金支払いを確認し、申請は終了しました。出金明細と金額を確認してください。",
+    "ru": "Фактическая выплата вывода подтверждена, заявка завершена. Проверьте детали и суммы."
   },
   "佣金提现已取消": {
     "en": "Commission withdrawal canceled",

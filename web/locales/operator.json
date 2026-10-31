@@ -19,10 +19,10 @@
     "ja": "出金手数料は申請者が負担します。承認は1人です。",
     "ru": "Комиссию за вывод оплачивает заявитель. Одобряет один человек."
   },
-  "单笔佣金提现不能低于这个额度。提现手续费由申请人承担，不在这里另设。审批固定为单人。": {
-    "en": "A commission withdrawal cannot be below this amount. The applicant bears the fee; it is not set here. Approval is by one person.",
-    "ja": "コミッションの出金は、この額を下回れません。出金手数料は申請者負担で、ここでは設定しません。承認は1人です。",
-    "ru": "Вывод комиссии не может быть ниже этой суммы. Комиссию оплачивает заявитель, здесь она не задаётся. Одобряет один человек."
+  "单笔佣金提现不能低于这个额度，且不能小于 1 结算币种。提现手续费由申请人承担，不在这里另设。审批固定为单人。": {
+    "en": "A commission withdrawal cannot be below this amount, and the amount cannot be less than 1 settlement currency. The applicant bears the fee; it is not set here. Approval is by one person.",
+    "ja": "コミッションの出金は、この額を下回れず、1 決済通貨未満にもできません。出金手数料は申請者負担で、ここでは設定しません。承認は1人です。",
+    "ru": "Вывод комиссии не может быть ниже этой суммы и не может быть меньше 1 валюта расчётов. Комиссию оплачивает заявитель, здесь она не задаётся. Одобряет один человек."
   },
   "注册赠送、资格门槛、两级佣金和佣金最低提现额度在此统一设置。比例填写百分数，例如 15 表示 15%。提现手续费由申请人承担，审批为单人。提高门槛不影响已取得的资格，已有订单保留成交规则。": {
     "en": "Set registration gifts, the qualification threshold, both commission levels, and the minimum commission withdrawal here. Enter percents, for example 15 means 15%. The applicant bears the withdrawal fee, and one person approves. Raising the threshold does not remove an existing qualification, and existing orders keep their original terms.",

@@ -32,6 +32,10 @@ func TestWithdrawalFeeAndRateBoundaries(t *testing.T) {
 	if _, err = quoteWithdrawal(WithdrawalPolicy{MinimumMoney: d("5"), FlatFeeMoney: d("10")}, d("5")); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("negative payout accepted: %v", err)
 	}
+	var service Service
+	if _, err = service.SetCommissionWithdrawalMinimum(context.Background(), nil, "", "", d("0.999")); !errors.Is(err, ErrWithdrawalMinimum) {
+		t.Fatalf("minimum below 1 accepted: %v", err)
+	}
 	if rateValid(d("1.01")) || rateValid(d("-0.01")) || !rateValid(d("0.000000000000000001")) {
 		t.Fatal("rate validation")
 	}

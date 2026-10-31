@@ -105,6 +105,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 400, "invalid_invite_code", "邀请码无效，请更正或显式移除；不会自动更改经营归属", false
 	case errors.Is(err, organization.ErrInvalidVerification):
 		status, code, msg, retry = 400, "invalid_verification", "验证凭据无效或已过期，请重新发起验证", false
+	case errors.Is(err, incentives.ErrWithdrawalMinimum):
+		status, code, msg, retry = 400, "invalid_input", "佣金最低提现不能小于 1 结算币种。", false
 	case errors.Is(err, modelpricing.ErrInput), errors.Is(err, ledger.ErrAmount), errors.Is(err, cooperation.ErrExitTerms), errors.Is(err, branding.ErrInvalidInput), errors.Is(err, remediation.ErrInvalid), errors.Is(err, operations.ErrInvalid), errors.Is(err, incentives.ErrInvalidInput), errors.Is(err, catalog.ErrInvalidInput), errors.Is(err, payments.ErrInvalid), errors.Is(err, organization.ErrInvalidInput), errors.Is(err, organization.ErrInvalidRelationship), errors.Is(err, commerce.ErrInvalidInput), errors.Is(err, modelruntime.ErrInvalidRequest), errors.Is(err, usage.ErrKey):
 		status, code, msg, retry = 400, "invalid_input", "输入不完整、不符合限制或身份凭据不可用", false
 	case errors.Is(err, usage.ErrSecretDisplayed):

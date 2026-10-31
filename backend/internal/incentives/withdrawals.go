@@ -20,6 +20,12 @@ func (s *Service) SetCommissionWithdrawalMinimum(ctx context.Context, tx *gorm.D
 	if !minimum.Valid() || minimum.Sign() <= 0 {
 		return out, ErrInvalidInput
 	}
+	// One settlement unit is the smallest amount an operator may publish.
+	// Smaller values survive the form, then disappear when a quote is cut to
+	// the currency's payable unit.
+	if minimum.Cmp(ledger.FromInt64(1)) < 0 {
+		return out, ErrWithdrawalMinimum
+	}
 	err = s.within(ctx, tx, func(t *gorm.DB) error {
 		if err := s.org.RequirePermission(ctx, t, actor, operator, "marketing.manage"); err != nil {
 			return err

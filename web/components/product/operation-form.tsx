@@ -192,6 +192,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
           const signed = /\/alerts$/.test(operation.path) && ["warning", "critical"].includes(fieldName(field));
           if (!(signed ? SignedDecimal : Decimal).safeParse(value).success || (value.split(".")[1]?.length || 0) > 18) throw new ConfigurationError(signed ? "{label}请输入十进制数，最多 18 位小数" : "{label}请输入非负十进制数，最多 18 位小数", "", { label: field.label });
           if (["direct_rate", "indirect_rate", "concession_rate", "fee_rate", "maximum_ratio"].includes(fieldName(field)) && compareDecimal(value, "1") > 0) throw new ConfigurationError("{label}应使用 0 到 1 的精确小数，例如 5% 填写 0.05", "", { label: field.label });
+          if (field.name === "minimum_money" && /\/commissions$/.test(operation.path) && compareDecimal(value, "1") < 0) throw new ConfigurationError("佣金最低提现不能小于 1 结算币种。", "");
           parsed = value;
         }
         else if (field.kind === "integer" || fieldName(field) === "expected_version" || fieldName(field) === "version") { if (!/^\d+$/.test(value) || !Number.isSafeInteger(Number(value))) throw new ConfigurationError("{label}应为非负整数", "", { label: field.label }); parsed = Number(value); }

@@ -204,4 +204,16 @@ func TestPostgresCommissionPageSetsWithdrawalMinimumOnly(t *testing.T) {
 	if status != 400 {
 		t.Fatal(status, out)
 	}
+	version := page["items"].([]any)[0].(map[string]any)["version"]
+	body["minimum_money"] = "0.999"
+	body["expected_version"] = version
+	status, out, _ = f.call(t, "POST", base+"/commissions", body, "")
+	if status != 400 || out["error"].(map[string]any)["code"] != "invalid_input" || !strings.Contains(out["error"].(map[string]any)["message"].(string), "不能小于 1") {
+		t.Fatal(status, out)
+	}
+	status, page, _ = f.call(t, "GET", base+"/commissions", nil, "")
+	mustOK(t, status, page)
+	if page["items"].([]any)[0].(map[string]any)["values"].(map[string]any)["minimum_money"] != "1.5" {
+		t.Fatal("rejected minimum replaced the published rule", page["items"])
+	}
 }

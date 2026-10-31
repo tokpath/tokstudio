@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
@@ -45,6 +46,30 @@ func TestPortalLocalizedErrorsPreserveDetailedBusinessContract(t *testing.T) {
 				t.Fatalf("lost detailed error: %s", writer.Body)
 			}
 		})
+	}
+}
+
+func TestWithdrawalMinimumErrorStatesTheOneUnitFloor(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	source := "佣金最低提现不能小于 1 结算币种。"
+	for _, locale := range []string{"zh", "en", "ja", "ru"} {
+		writer := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(writer)
+		c.Request = httptest.NewRequest("POST", "/v1/operators/op/commissions", nil)
+		c.Request.Header.Set("Accept-Language", locale)
+		c.Set("request_id", "minimum-request")
+		handleError(c, incentives.ErrWithdrawalMinimum)
+		var got struct {
+			Error struct {
+				Code, Message string
+			}
+		}
+		if err := json.Unmarshal(writer.Body.Bytes(), &got); err != nil {
+			t.Fatal(err)
+		}
+		if writer.Code != 400 || got.Error.Code != "invalid_input" || got.Error.Message != httpx.LocalizedText(locale, source) || (locale != "zh" && got.Error.Message == source) {
+			t.Fatalf("%s: %s", locale, writer.Body)
+		}
 	}
 }
 

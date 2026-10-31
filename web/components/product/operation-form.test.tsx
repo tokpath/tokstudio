@@ -119,6 +119,18 @@ it("renames a supplier key without showing its ids or requiring a new secret", a
   expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({ name: "OpenAI 备用", enabled: true, id: "credential-one", provider_id: "provider-one", expected_version: 4 });
 });
 
+it("refuses a commission withdrawal minimum below one settlement unit before saving the rule", async () => {
+  const fetch = vi.fn();
+  vi.stubGlobal("fetch", fetch);
+  show({ name: "policy", label: "设置邀请与分佣规则", method: "POST", path: "/api/v1/operators/operator-one/commissions", fields: [
+    { name: "minimum_money", label: "佣金最低提现 结算币种", kind: "decimal", required: true },
+  ] });
+  fireEvent.change(screen.getByLabelText("佣金最低提现 USD", { exact: true }), { target: { value: "0.999" } });
+  fireEvent.click(screen.getByRole("button", { name: "设置邀请与分佣规则", exact: true }));
+  expect((await screen.findByRole("alert")).textContent).toContain("佣金最低提现不能小于 1 USD。");
+  expect(fetch).not.toHaveBeenCalled();
+});
+
 it("groups registration validity with gifts and confirmation with commissions", () => {
   show({ name: "policy", label: "发布资格与奖励政策", method: "POST", path: "/api/v1/operators/operator-one/commissions", fields: [
     { name: "threshold_money", label: "终身资格累计净消费门槛 结算币种", kind: "decimal", required: true },

@@ -7762,6 +7762,152 @@
         }
       }
     },
+    "/v1/me/withdrawals": {
+      "post": {
+        "operationId": "post__v1_me_withdrawals",
+        "summary": "Submit one commission withdrawal after the customer compares fees and provides the selected method recipient materials",
+        "tags": [
+          "Customer browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "method_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "amount_money": {
+                    "$ref": "#/components/schemas/LedgerDecimal"
+                  },
+                  "recipient": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Field names required by the selected payout method, such as payee name, account, bank or wallet address."
+                  }
+                },
+                "required": [
+                  "method_id",
+                  "amount_money",
+                  "recipient"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/me/withdrawals/quotes": {
       "post": {
         "operationId": "post__v1_me_withdrawals_quotes",
@@ -46656,6 +46802,106 @@
               ],
               "additionalProperties": true
             }
+          },
+          "payout_methods": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "kind_label": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "flat_fee_money": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                },
+                "fee_rate": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                },
+                "minimum_money": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "text",
+                          "select"
+                        ]
+                      },
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string"
+                            },
+                            "label": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "label"
+                          ],
+                          "additionalProperties": true
+                        }
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "label",
+                      "help",
+                      "kind"
+                    ],
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "kind",
+                "kind_label",
+                "summary",
+                "flat_fee_money",
+                "fee_rate",
+                "minimum_money",
+                "fields"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "currency_digits": {
+            "type": "integer"
           }
         },
         "required": [

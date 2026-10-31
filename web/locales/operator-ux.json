@@ -219,10 +219,10 @@
     "ja": "コミッション出金をフォロー",
     "ru": "Проверить вывод комиссий"
   },
-  "独立复核与实际付款分别核实，未知结果继续查询原操作。": {
-    "en": "Verify independent review and actual payment separately. Query the original operation when its outcome is unknown.",
-    "ja": "独立した再確認と実際の支払いをそれぞれ確認してください。結果が不明な場合は元の操作を照会します。",
-    "ru": "Проверяйте независимое согласование и фактическую выплату отдельно. При неизвестном результате запрашивайте исходную операцию."
+  "已审批的申请登记实际付款后结束。已核实付款的申请不再留在待办。": {
+    "en": "An approved application ends when the actual payment is recorded. A verified payment no longer stays in the task list.",
+    "ja": "承認済みの申請は、実際の支払いを登録すると終了します。支払確認済みの申請は未処理の一覧に残りません。",
+    "ru": "Одобренная заявка завершается после регистрации фактической выплаты. Подтверждённая выплата больше не остаётся в списке дел."
   },
   "已暂停账号": {
     "en": "Account suspended",

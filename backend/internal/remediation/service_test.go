@@ -152,10 +152,7 @@ func (f fixture) balance(t *testing.T) ledger.Account {
 }
 func (f fixture) pay(t *testing.T, leg RefundLeg) {
 	t.Helper()
-	if _, e := f.s.BeginManualRefund(f.ctx, f.owner, f.operator, leg.ID, "bank-payment:"+leg.ID, "finance scheduled original payer return"); e != nil {
-		t.Fatal(e)
-	}
-	p := ExecutionProof{BusinessKey: "confirmed-bank-payment", Reference: "bank-" + leg.ID, Evidence: "verified completed transfer", ActualMoney: leg.AmountMoney, FeeMoney: d("1"), Currency: "USD", Amount: leg.AmountMoney.String(), OccurredAt: time.Now().UTC()}
+	p := ExecutionProof{BusinessKey: "confirmed-bank-payment", Reference: "bank-" + leg.ID, Evidence: "verified completed transfer", ActualMoney: leg.AmountMoney, FeeMoney: d("1"), FeeStatus: "confirmed", Currency: "USD", Amount: leg.AmountMoney.String(), OccurredAt: time.Now().UTC()}
 	if _, e := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p); e != nil {
 		t.Fatal(e)
 	}

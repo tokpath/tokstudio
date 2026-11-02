@@ -454,6 +454,26 @@
     "ja": "支払いを登録",
     "ru": "Зарегистрировать выплату"
   },
+  "仅用于原路必须先锁定执行编号的稳定币或外部通道。普通线下退款直接登记付款。": {
+    "en": "Only when the original route must lock an execution number first, such as stablecoin or an external channel. An ordinary offline refund records the payment directly.",
+    "ja": "元の経路で実行番号を先に固定する必要がある場合だけ使います。通常のオフライン返金は支払いを直接登録します。",
+    "ru": "Только если исходный маршрут должен сначала зафиксировать номер исполнения, например стейблкоин или внешний канал. Обычный офлайн-возврат регистрирует платёж сразу."
+  },
+  "确认已按应退金额完成付款，并填写本次手续费。提交后申请结束。没有手续费填 0。": {
+    "en": "Confirm the refund amount has been paid and enter this fee. Submitting ends the application. Enter 0 when there is no fee.",
+    "ja": "返金すべき金額の支払いを確認し、今回の手数料を記入してください。送信すると申請は終了します。手数料がなければ 0 と記入します。",
+    "ru": "Подтвердите выплату подлежащей возврату суммы и укажите комиссию. После отправки заявка завершается. Если комиссии нет, укажите 0."
+  },
+  "本次退款手续费（结算币种，没有则填 0）": {
+    "en": "Refund fee (settlement currency, enter 0 if none)",
+    "ja": "今回の返金手数料（決済通貨、なければ 0）",
+    "ru": "Комиссия возврата (валюта расчётов, 0 если нет)"
+  },
+  "随本次付款一起入账。填 0 表示没有手续费，不再另核。": {
+    "en": "Recorded with this payment. Enter 0 when there is no fee; it is not checked again.",
+    "ja": "今回の支払いと一緒に記帳します。手数料がなければ 0 と記入し、別途確認はしません。",
+    "ru": "Учитывается вместе с этим платежом. Укажите 0, если комиссии нет; отдельно её больше не проверяют."
+  },
   "确认未付并终止": {
     "en": "Confirm unpaid and terminate",
     "ja": "未払を確認して終了",

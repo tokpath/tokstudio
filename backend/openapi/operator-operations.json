@@ -3720,26 +3720,7 @@
   },
   {
     "resource": "refunds",
-    "confirmation": "将记录原退款责任下本次独立执行编号。仅实际少付后可另行补付剩余金额；结果未知时不得更换编号再次付款。",
-    "description": "",
-    "fields": [
-      {
-        "kind": "textarea",
-        "label": "线下付款计划与说明",
-        "name": "evidence",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "登记外部退款执行意图",
-    "method": "POST",
-    "name": "begin_manual",
-    "path": "/v1/operators/{operatorId}/refunds/{id}/begin_manual",
-    "permission": "refunds.manage"
-  },
-  {
-    "resource": "refunds",
-    "confirmation": "",
+    "confirmation": "确认已按应退金额完成付款，并填写本次手续费。提交后申请结束。没有手续费填 0。",
     "description": "",
     "fields": [
       {
@@ -3769,29 +3750,16 @@
       {
         "default_value": "0",
         "kind": "decimal",
-        "label": "付款方手续费清算币种",
-        "name": "fee_money"
+        "label": "本次退款手续费（清算币种，没有则填 0）",
+        "name": "fee_money",
+        "required": true,
+        "help": "随本次付款一起入账。填 0 表示没有手续费，不再另核。"
       },
       {
         "kind": "datetime",
         "label": "实际付款时间",
         "name": "occurred_at",
         "required": true
-      },
-      {
-        "name": "fee_status",
-        "label": "退款手续费状态",
-        "kind": "select",
-        "options": [
-          {
-            "value": "pending",
-            "label": "稍后核实"
-          },
-          {
-            "value": "confirmed",
-            "label": "已核实金额"
-          }
-        ]
       },
       {
         "kind": "textarea",
@@ -3801,78 +3769,11 @@
       }
     ],
     "include_version": false,
-    "label": "核实实际线下退款",
+    "label": "登记付款",
     "method": "POST",
     "name": "verify_manual",
     "path": "/v1/operators/{operatorId}/refunds/{id}/verify_manual",
     "permission": "refunds.manage"
-  },
-  {
-    "resource": "refunds",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "kind": "textarea",
-        "label": "未知结果依据",
-        "name": "evidence",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "结果未知，保留占用",
-    "method": "POST",
-    "name": "unknown",
-    "path": "/v1/operators/{operatorId}/refunds/{id}/unknown",
-    "permission": "refunds.manage"
-  },
-  {
-    "resource": "refunds",
-    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
-    "description": "",
-    "fields": [
-      {
-        "kind": "text",
-        "label": "原付款币种",
-        "name": "money.currency",
-        "required": true
-      },
-      {
-        "kind": "decimal",
-        "label": "本次实际执行币种金额",
-        "name": "money.amount",
-        "required": true
-      },
-      {
-        "name": "settlement_amount",
-        "label": "本次已核实清偿金额（结算币种，跨币必填）",
-        "kind": "decimal",
-        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
-      },
-      {
-        "name": "settlement_evidence",
-        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
-        "kind": "textarea"
-      }
-    ],
-    "include_version": false,
-    "label": "通过原通道执行",
-    "method": "POST",
-    "name": "execute_api",
-    "path": "/v1/operators/{operatorId}/refunds/{id}/execute_api",
-    "permission": "payments.manage"
-  },
-  {
-    "resource": "refunds",
-    "confirmation": "",
-    "description": "",
-    "fields": [],
-    "include_version": false,
-    "label": "查询原通道结果",
-    "method": "POST",
-    "name": "query_api",
-    "path": "/v1/operators/{operatorId}/refunds/{id}/query_api",
-    "permission": "payments.manage"
   },
   {
     "resource": "refunds",
@@ -4264,49 +4165,6 @@
   },
   {
     "resource": "refunds",
-    "confirmation": "只补本次经营费用，不更改客户实际收到金额和原清偿事实。",
-    "description": "",
-    "fields": [
-      {
-        "kind": "hidden",
-        "label": "原退款责任",
-        "name": "leg_id",
-        "required": true
-      },
-      {
-        "kind": "decimal",
-        "label": "实际已核实经营手续费清算币种（确为零时填0）",
-        "name": "fee_money",
-        "required": true
-      },
-      {
-        "kind": "text",
-        "label": "实际结算流水",
-        "name": "reference",
-        "required": true
-      },
-      {
-        "kind": "textarea",
-        "label": "最终费用核实证据",
-        "name": "evidence",
-        "required": true
-      },
-      {
-        "kind": "datetime",
-        "label": "实际费用发生时刻",
-        "name": "occurred_at",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "核实本次实际退款手续费",
-    "method": "POST",
-    "name": "confirm_fee",
-    "path": "/v1/operators/{operatorId}/refunds/{id}/confirm_fee",
-    "permission": "refunds.manage"
-  },
-  {
-    "resource": "refunds",
     "confirmation": "仅用于已取得外部终态证明。超时、查不到或结果未知不能认定失败；本操作不释放剩余退款责任。",
     "description": "",
     "fields": [
@@ -4427,12 +4285,30 @@
         "required": true,
         "help": "选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。",
         "options": [
-          {"value": "bank_cn", "label": "境内银行卡 · 户名、开户银行、卡号、支行"},
-          {"value": "alipay", "label": "支付宝 · 实名、登录账号"},
-          {"value": "wechat", "label": "微信支付 · 实名、微信号或手机号"},
-          {"value": "paypal", "label": "PayPal · 邮箱、账户姓名"},
-          {"value": "wire", "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"},
-          {"value": "usdt", "label": "USDT · 网络、钱包地址"}
+          {
+            "value": "bank_cn",
+            "label": "境内银行卡 · 户名、开户银行、卡号、支行"
+          },
+          {
+            "value": "alipay",
+            "label": "支付宝 · 实名、登录账号"
+          },
+          {
+            "value": "wechat",
+            "label": "微信支付 · 实名、微信号或手机号"
+          },
+          {
+            "value": "paypal",
+            "label": "PayPal · 邮箱、账户姓名"
+          },
+          {
+            "value": "wire",
+            "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"
+          },
+          {
+            "value": "usdt",
+            "label": "USDT · 网络、钱包地址"
+          }
         ]
       },
       {
@@ -5615,12 +5491,30 @@
         "required": true,
         "help": "选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。",
         "options": [
-          {"value": "bank_cn", "label": "境内银行卡 · 户名、开户银行、卡号、支行"},
-          {"value": "alipay", "label": "支付宝 · 实名、登录账号"},
-          {"value": "wechat", "label": "微信支付 · 实名、微信号或手机号"},
-          {"value": "paypal", "label": "PayPal · 邮箱、账户姓名"},
-          {"value": "wire", "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"},
-          {"value": "usdt", "label": "USDT · 网络、钱包地址"}
+          {
+            "value": "bank_cn",
+            "label": "境内银行卡 · 户名、开户银行、卡号、支行"
+          },
+          {
+            "value": "alipay",
+            "label": "支付宝 · 实名、登录账号"
+          },
+          {
+            "value": "wechat",
+            "label": "微信支付 · 实名、微信号或手机号"
+          },
+          {
+            "value": "paypal",
+            "label": "PayPal · 邮箱、账户姓名"
+          },
+          {
+            "value": "wire",
+            "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"
+          },
+          {
+            "value": "usdt",
+            "label": "USDT · 网络、钱包地址"
+          }
         ]
       },
       {

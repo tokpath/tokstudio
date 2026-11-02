@@ -110,7 +110,7 @@ it("organizes refund cases with exact related legs and payments while retaining 
   expect(within(detail).queryByText("unrelated-leg")).toBeNull();
   expect(within(refund).queryByText("unrelated-leg")).toBeNull();
   expect(within(refund).queryByLabelText("0 USD")).toBeNull();
-  expect(within(refund).getByText("下一步：查询原退款结果并核实实际付款，保留未知金额占用。")).toBeTruthy();
+  expect(within(refund).getByText("下一步：打开详情，登记实际付款。提交后申请结束。")).toBeTruthy();
   expect(screen.getByText("本页其他关联记录")).toBeTruthy();
 });
 

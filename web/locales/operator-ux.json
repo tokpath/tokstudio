@@ -69,10 +69,10 @@
     "ja": "次の手順：承認を完了してください。",
     "ru": "Далее: завершите одобрение."
   },
-  "下一步：打开详情，按每笔原收款办理。": {
-    "en": "Next: open the details and handle each original receipt.",
-    "ja": "次の手順：詳細を開き、元の入金ごとに処理してください。",
-    "ru": "Далее: откройте подробности и обработайте каждое исходное поступление."
+  "下一步：打开详情，登记实际付款。提交后申请结束。": {
+    "en": "Next: open the details and record the payment. The application ends when you submit.",
+    "ja": "次の手順：詳細を開き、実際の支払いを登録してください。送信すると申請は終了します。",
+    "ru": "Далее: откройте подробности и зарегистрируйте платёж. После отправки заявка завершается."
   },
   "这笔申请还没有原收款明细。": {
     "en": "This application has no original-receipt lines yet.",

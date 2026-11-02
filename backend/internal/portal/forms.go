@@ -78,7 +78,9 @@ func businessFields(o operation) []field {
 		case "unallocated":
 			return []field{defaultField("action", "办理类型", "hidden", "unallocated"), f("receipt_id", "原收款编号", "text"), f("amount_money", "退回 结算币种", "decimal"), f("reason", "退款原因", "text"), f("evidence", "核实依据", "textarea")}
 		case "verify_manual":
-			return []field{optional("reference", "退款流水或收据号（可选）", "text"), f("currency", "实际付款币种", "text"), f("amount", "实际币种金额", "decimal"), f("actual_money", "已核实本次清偿金额（结算币种）", "decimal"), optional("fee_money", "付款方已核实清算手续费（可稍后核实）", "decimal"), f("occurred_at", "实际付款时间", "datetime"), f("evidence", "本笔付款与清偿金额的核实说明", "textarea")}
+			fee := defaultField("fee_money", "本次退款手续费（结算币种，没有则填 0）", "decimal", "0")
+			fee.Help = "随本次付款一起入账。填 0 表示没有手续费，不再另核。"
+			return []field{optional("reference", "退款流水或收据号（可选）", "text"), f("currency", "实际付款币种", "text"), f("amount", "实际币种金额", "decimal"), f("actual_money", "已核实本次清偿金额（结算币种）", "decimal"), fee, f("occurred_at", "实际付款时间", "datetime"), f("evidence", "本笔付款与清偿金额的核实说明", "textarea")}
 		case "execute_api":
 			fields := []field{f("money.currency", "原付款币种", "text"), f("money.amount", "本次实际执行币种金额", "decimal")}
 			for _, v := range executionValuationFields("money.currency") {

@@ -301,14 +301,14 @@ test('finance commands derive same-settlement-currency values and retain indepen
  assert.ok(receipt.anyOf.some(rule=>rule.required.includes('settlement_amount')));
  const refund=schemas.Operator_refunds_verify_manual;
  assert.equal(refund.required.includes('actual_money'),false);
+ assert.equal(refund.required.includes('fee_money'),true);
+ assert.equal(refund.properties.fee_status,undefined);
+ assert.equal(schemas.Operator_refunds_execute_api,undefined);
+ assert.equal(schemas.Operator_refunds_begin_manual,undefined);
+ assert.equal(schemas.Operator_refunds_confirm_fee,undefined);
  const withdrawal=schemas.Operator_withdrawals_verify_paid;
  assert.equal(withdrawal.required.includes('original_amount'),false);
  assert.equal(withdrawal.required.includes('valuation_evidence'),false);
- const execution=schemas.Operator_refunds_execute_api;
- assert.ok(execution.properties.settlement_amount);
- assert.ok(execution.properties.settlement_evidence);
- assert.equal(execution.properties.settlement_amount['x-required-when-currency-differs-from-settlement'],true);
- assert.equal(execution.properties.refund_valuation,undefined);
 });
 
 test('finance exposes one account workspace and allocates full order amounts server-side',()=>{

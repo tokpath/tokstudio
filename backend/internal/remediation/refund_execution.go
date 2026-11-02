@@ -124,6 +124,38 @@ func (s *Service) RecordManualRefund(ctx context.Context, actor, op, legID strin
 		if e != nil {
 			return e
 		}
+		// One payment records the transfer and finishes the application.
+		// Approval does not require a separate execution-intent step.
+		if l.State == "approved" && (c.State == "approved" || c.State == "paying" || c.State == "exception") {
+			supplemental := c.State == "exception" && (l.SettledMoney.Sign() > 0 || l.MisdirectedMoney.Sign() > 0) && l.SettledMoney.Cmp(l.AmountMoney) < 0
+			if c.State == "exception" && !supplemental {
+				return ErrState
+			}
+			if required, e := s.externalDestinationRequired(ctx, t, l); e != nil {
+				return e
+			} else if required {
+				if _, e = s.requireAuthorizedDestination(ctx, t, l); e != nil {
+					return e
+				}
+			}
+			if e = s.RequireReceiptRefundExecution(ctx, t, l.SourceOperatorID, l.ReceiptID, l.ID); e != nil {
+				return e
+			}
+			if l.ExecutionKey == "" {
+				l.ExecutionKey = proof.BusinessKey
+			}
+			l.ExecutionMode = "manual"
+			l.State = "executing"
+			if e = t.Save(&l).Error; e != nil {
+				return e
+			}
+			if c.State == "approved" {
+				c.State = "paying"
+				if e = t.Save(&c).Error; e != nil {
+					return e
+				}
+			}
+		}
 		verifiedClosed := false
 		if proof.ExecutionClosureID != "" {
 			var closure RefundExecutionClosure

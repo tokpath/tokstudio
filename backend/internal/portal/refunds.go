@@ -155,6 +155,26 @@ func (a *Application) cancelRefund(c *gin.Context) {
 	}
 	c.JSON(200, commandResult(out.ID, out.State))
 }
+func refundStaffActions(actions []string, destinationRequired bool) []string {
+	out := []string{}
+	seen := map[string]bool{}
+	for _, name := range actions {
+		switch name {
+		case "begin_manual":
+			if !destinationRequired {
+				name = "verify_manual"
+			}
+		case "execute_api", "query_api", "unknown", "confirm_fee":
+			continue
+		}
+		if seen[name] {
+			continue
+		}
+		seen[name] = true
+		out = append(out, name)
+	}
+	return out
+}
 func (a *Application) refundStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
 	p["search_supported"], p["status_supported"] = true, true
 	var rows []remediation.Case
@@ -273,7 +293,7 @@ func (a *Application) refundStaffResource(c *gin.Context, op organization.Operat
 					allowed = append(allowed, "close_execution")
 				}
 			}
-			row["allowed_actions"] = allowed
+			row["allowed_actions"] = refundStaffActions(allowed, status.DestinationRequired)
 			row["values"] = v
 			items = append(items, row)
 			if a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, "ledger.read") == nil {
@@ -289,7 +309,7 @@ func (a *Application) refundStaffResource(c *gin.Context, op organization.Operat
 					row := entity(f.ID, f.FeeStatus, 0, v)
 					row["allowed_actions"] = []string{}
 					if f.FeeStatus == "pending" {
-						row["allowed_actions"] = []string{"confirm_fee"}
+						row["allowed_actions"] = []string{}
 					}
 					items = append(items, row)
 				}
@@ -300,13 +320,12 @@ func (a *Application) refundStaffResource(c *gin.Context, op organization.Operat
 	p["items"] = items
 	p["columns"] = []gin.H{col("route_version", "路由版本", "text"), col("route_history", "已封存执行与授权", "details"), col("record_kind", "记录类型", "text"), col("case_id", "原申请", "text"), col("receipt_id", "原收款来源", "text"), col("amount_money", "清算责任", "money"), col("settled_money", "已真实清偿结算币种", "money"), col("remaining_money", "仍占用待付结算币种", "money"), col("excess_money", "多付经营异常结算币种", "money"), col("reason", "原因", "text"), col("state", "状态", "status")}
 	p["operations"] = []operation{{Name: "package_exception", Label: "登记真实套餐异常", Method: "POST", Path: base, Fields: []field{jsonField("action:'package_exception'、customer_id、order_id、reason(transaction_error/unable_to_fulfill)、evidence；只按原成交剩余责任退款，撤销未用权益与赠送。")}}, {Name: "unallocated", Label: "退回未分配收款", Method: "POST", Path: base, Fields: []field{jsonField("action:'unallocated'、receipt_id、amount_money、reason、evidence")}}}
-	p["row_operations"] = []operation{{Name: "review", Label: "审批", Method: "POST", Path: base + "/{id}/review", Fields: []field{selectField("decision", "审核决定", "approve|批准按原责任办理", "reject|拒绝并保留审核原因"), f("evidence", "审核依据", "textarea")}}, {Name: "cancel", Label: "取消未执行申请", Method: "POST", Path: base + "/{id}/cancel", Fields: []field{f("evidence", "取消依据", "textarea")}}, {Name: "begin_manual", Label: "登记外部退款执行意图", Method: "POST", Path: base + "/{id}/begin_manual", Fields: []field{f("evidence", "线下付款计划与说明", "textarea")}, Confirmation: "将记录原退款责任下本次独立执行编号。仅实际少付后可另行补付剩余金额；结果未知时不得更换编号再次付款。"}, {Name: "verify_manual", Label: "核实实际线下退款", Method: "POST", Path: base + "/{id}/verify_manual", Fields: []field{jsonField("reference、evidence、actual_money、fee_money、currency、amount、occurred_at。必须填写本次实际付款证据。")}}, {Name: "unknown", Label: "结果未知，保留占用", Method: "POST", Path: base + "/{id}/unknown", Fields: []field{f("evidence", "未知结果依据", "textarea")}}, {Name: "execute_api", Label: "通过原通道执行", Permission: "payments.manage", Method: "POST", Path: base + "/{id}/execute_api", Fields: []field{jsonField("money:{currency,amount}、settlement_amount、settlement_evidence；跨币填写本笔真实交易对应的清偿清算金额，原merchant/order由服务器解析。")}, Confirmation: "确认本次实际付款与清偿金额依据；只执行已批准原退款leg，不会重提未知退款。"}, {Name: "query_api", Label: "查询原通道结果", Permission: "payments.manage", Method: "POST", Path: base + "/{id}/query_api", Fields: []field{}}}
+	p["row_operations"] = []operation{{Name: "review", Label: "审批", Method: "POST", Path: base + "/{id}/review", Fields: []field{selectField("decision", "审核决定", "approve|批准按原责任办理", "reject|拒绝并保留审核原因"), f("evidence", "审核依据", "textarea")}}, {Name: "cancel", Label: "取消未执行申请", Method: "POST", Path: base + "/{id}/cancel", Fields: []field{f("evidence", "取消依据", "textarea")}}, {Name: "verify_manual", Label: "登记付款", Method: "POST", Path: base + "/{id}/verify_manual", Fields: []field{jsonField("reference、currency、amount、fee_money、occurred_at、evidence。手续费随本次付款入账，没有则填 0。")}, Confirmation: "确认已按应退金额完成付款，并填写本次手续费。提交后申请结束。没有手续费填 0。"}, {Name: "begin_manual", Label: "登记外部退款执行意图", Method: "POST", Path: base + "/{id}/begin_manual", Fields: []field{f("evidence", "线下付款计划与说明", "textarea")}, Confirmation: "仅用于原路必须先锁定执行编号的稳定币或外部通道。普通线下退款直接登记付款。"}}
 
 	p["columns"] = append(p["columns"].([]gin.H), col("network", "准确网络", "text"), col("asset", "准确资产", "text"), col("token_contract", "代币合约", "text"), col("address", "明确接收地址", "text"), col("authorization_id", "不可变目的地授权", "text"))
 	authorizationFields := []field{f("proposal_id", "本人最新确认", "hidden"), f("payer_authorization_reference", "原付款人明确授权证据", "textarea"), f("verification_evidence", "地址及原付款人核实依据", "textarea"), defaultField("responsible_execution", "已明确选择责任方付款", "hidden", false), optional("route_exception_reference", "同经营方原路受限的替代依据（跨经营方接管可留空）", "textarea")}
 	p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "authorize_destination", Label: "核实客户已确认的退款目的地", Method: "POST", Path: base + "/{id}/authorize_destination", Fields: authorizationFields, Confirmation: "已核实当前行本人最新提案、原付款人授权和接收地址；锁定后不可改为其它地址。"}, operation{Name: "authorize_unallocated_destination", Label: "核实未分配款原付款人授权目的地", Method: "POST", Path: base + "/{id}/authorize_unallocated_destination", Fields: append(refundDestinationFields(), authorizationFields[1:]...), Confirmation: "已核实原付款人明确授权，未从原交易sender推定退款地址。"}, operation{Name: "verify_evm", Label: "只读核实已执行链上退款", Method: "POST", Path: base + "/{id}/verify_evm", Fields: append([]field{f("evm.transaction_hash", "实际退款交易哈希", "text"), f("evm.log_index", "真实ERC20 Transfer日志索引（0x）", "text"), f("verification_evidence", "本次链上查验依据", "textarea")}, executionValuationFields("asset")...), Confirmation: "本操作只读查询实际链上交易，不会签名或发送交易；准确接收地址由已锁定授权取值。"}, operation{Name: "verify_external", Label: "登记NOWPayments外部已核实退款", Method: "POST", Path: base + "/{id}/verify_external", Fields: append([]field{f("external.external_reference", "实际外部退款唯一流水", "text"), f("external.money.currency", "原准确资产代码", "text"), f("external.money.amount", "实际退回原币种金额", "decimal"), f("external.executed_at", "实际执行时刻", "datetime"), f("external.evidence_reference", "外部执行真实凭据", "textarea"), f("verification_evidence", "本次收款地址及事实查验依据", "textarea")}, executionValuationFields("external.money.currency")...), Confirmation: "已在外部渠道核实实际转账。本操作登记真实执行事实，不调用自动退款API。"})
 	p["row_operations"] = append(p["row_operations"].([]operation), responsibleRefundOperations(base)...)
-	p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "confirm_fee", Label: "核实本次实际退款手续费", Method: "POST", Path: base + "/{id}/confirm_fee", Fields: []field{f("leg_id", "原退款责任", "hidden"), f("fee_money", "实际已核实经营手续费结算币种（确为零时填0）", "decimal"), f("reference", "实际结算流水", "text"), f("evidence", "最终费用核实证据", "textarea"), f("occurred_at", "实际费用发生时刻", "datetime")}, Confirmation: "只补本次经营费用，不更改客户实际收到金额和原清偿事实。"})
 	p["columns"] = append(p["columns"].([]gin.H), col("actual_payment_money", "本次实际支付结算币种", "money"), col("fee_status", "手续费核实状态", "status"), col("fee_money", "已核实手续费（待核实为空）", "money"))
 	p["row_operations"] = append(p["row_operations"].([]operation),
 		operation{Name: "verify_manual_failure", Label: "核实外部付款已失败或取消", Method: "POST", Path: base + "/{id}/verify_manual_failure", Fields: []field{f("expected_execution_key", "当前实际付款指令", "hidden"), selectField("result", "外部已核实终态", "failed|实际失败", "cancelled|执行方已取消"), f("external_reference", "外部执行方唯一核实流水", "text"), f("no_further_payment_reference", "不会继续付款的独立核实证明", "textarea"), f("evidence", "实际银行/执行方终态凭据", "textarea"), f("verified_at", "真实核实时刻", "datetime")}, Confirmation: "仅用于已取得外部终态证明。超时、查不到或结果未知不能认定失败；本操作不释放剩余退款责任。"},
@@ -391,6 +410,9 @@ func (a *Application) refundStaffAction(c *gin.Context, op organization.Operator
 			return
 		}
 		in.BusinessKey, _ = key(c)
+		if in.FeeStatus == "" {
+			in.FeeStatus = "confirmed"
+		}
 		settings, err := ledger.GetMonetary(ctx, a.DB)
 		if err != nil {
 			handleError(c, err)

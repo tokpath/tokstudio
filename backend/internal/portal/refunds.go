@@ -32,45 +32,47 @@ func (a *Application) refundWorkspace(c *gin.Context, p gin.H) {
 		return
 	}
 	items := []any{}
+	destinationOperations := []operation{}
 	for _, r := range rows {
 		row := entity(r.ID, r.State, 1, r)
 		actions := []string{}
 		if r.State == "pending_review" || r.State == "approved" {
 			actions = append(actions, "cancel")
 		}
-		row["allowed_actions"] = actions
-		items = append(items, row)
 		statuses, e := a.Remediation.CustomerRefundDestinations(c.Request.Context(), id.Customer.Customer.ID, id.Customer.Customer.BrandID, r.ID)
 		if e != nil {
 			handleError(c, e)
 			return
 		}
+		// A refund is one application. Source slices stay on the server so the
+		// list does not show a second row for the same request.
+		addressed := []remediation.RefundDestination{}
 		for _, status := range statuses {
-			v := values(status)
-			v["record_kind"] = "稳定币退款目的地"
-			if status.Proposal != nil {
-				v["destination"] = values(status.Proposal.RefundDestination)
-			}
 			if status.AuthorizedDestination != nil {
-				for key, value := range values(*status.AuthorizedDestination) {
-					v[key] = value
-				}
+				addressed = append(addressed, *status.AuthorizedDestination)
 			} else if status.Proposal != nil {
-				for key, value := range values(status.Proposal.RefundDestination) {
-					v[key] = value
-				}
+				addressed = append(addressed, status.Proposal.RefundDestination)
 			}
-			legRow := entity(status.LegID, status.State, 0, v)
-			legRow["allowed_actions"] = []string{}
-			if status.DestinationMutable && status.AuthorizationID == "" {
-				if status.DestinationRequired {
-					legRow["allowed_actions"] = []string{"propose_destination", "propose_responsible_destination"}
-				} else {
-					legRow["allowed_actions"] = []string{"propose_responsible_destination"}
-				}
+			if !status.DestinationMutable || status.AuthorizationID != "" {
+				continue
 			}
-			items = append(items, legRow)
+			if status.DestinationRequired {
+				action := customerDestinationOperation(status, false)
+				actions = append(actions, action.Name)
+				destinationOperations = append(destinationOperations, action)
+			}
+			action := customerDestinationOperation(status, true)
+			actions = append(actions, action.Name)
+			destinationOperations = append(destinationOperations, action)
 		}
+		if len(addressed) == 1 {
+			current := row["values"].(gin.H)
+			for key, value := range values(addressed[0]) {
+				current[key] = value
+			}
+		}
+		row["allowed_actions"] = actions
+		items = append(items, row)
 	}
 	p["title"] = "结算币种 余额原路退款"
 	p["description"] = "仅可退本人未使用的结算币种余额，按原始收款来源退回。已购ATG不能按现价或普通退订兑现；错误交易由经营方按原成交证据处理。"
@@ -90,12 +92,25 @@ func (a *Application) refundWorkspace(c *gin.Context, p gin.H) {
 		}
 	}
 	p["operations"] = []operation{request}
-	p["row_operations"] = []operation{{Name: "cancel", Label: "撤销未执行申请", Method: "POST", Path: "/api/v1/me/refunds/{id}/cancel", Fields: []field{}, Confirmation: "只可撤销尚未执行的原申请；已付款和结果未知的申请需继续核实。"}}
+	p["row_operations"] = append([]operation{{Name: "cancel", Label: "撤销未执行申请", Method: "POST", Path: "/api/v1/me/refunds/{id}/cancel", Fields: []field{}, Confirmation: "只可撤销尚未执行的原申请；已付款和结果未知的申请需继续核实。"}}, destinationOperations...)
 
-	p["columns"] = append(p["columns"].([]gin.H), col("network", "退款网络", "text"), col("asset", "准确资产", "text"), col("token_contract", "代币合约", "text"), col("address", "本人授权接收地址", "text"), col("authorization_id", "财务已核实授权", "text"), col("route_version", "剩余款授权版本", "text"), col("history", "已封存授权历史", "details"))
-	p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "propose_destination", Label: "本人确认稳定币退款目的地", Method: "POST", Path: "/api/v1/me/refunds/legs/{id}/destination", Fields: append(append(refundDestinationFields(), defaultField("responsible_execution", "Responsible execution", "hidden", false)), f("authorization_reference", "本人明确授权与地址来源说明", "textarea")), Confirmation: "我已核对网络、准确资产、代币合约和接收地址，并明确授权本次退款退到该目的地。该地址不会从原转账发送方推定；经财务核实锁定后不可更改。"})
-	p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "propose_responsible_destination", Label: "原路受限时明确选择责任方替代付款", Method: "POST", Path: "/api/v1/me/refunds/legs/{id}/responsible-destination", Fields: append(append(refundDestinationFields(), defaultField("responsible_execution", "本人明确选择责任方付款", "hidden", true)), f("authorization_reference", "本人明确授权与接收地址依据", "textarea")), Confirmation: "本人明确授权当前责任经营方通过其自身商户或银行向此准确目的地付款，不授予其使用原经营方商户配置的权利。"})
+	p["columns"] = append(p["columns"].([]gin.H), col("network", "退款网络", "text"), col("asset", "准确资产", "text"), col("token_contract", "代币合约", "text"), col("address", "本人授权接收地址", "text"))
 	a.resourceResponse(c, p)
+}
+func customerDestinationOperation(status remediation.RefundDestinationStatus, responsible bool) operation {
+	name := "propose_destination:" + status.LegID
+	label := "本人确认稳定币退款目的地"
+	path := "/api/v1/me/refunds/legs/" + status.LegID + "/destination"
+	confirmation := "我已核对网络、准确资产、代币合约和接收地址，并明确授权本次退款退到该目的地。该地址不会从原转账发送方推定；经财务核实锁定后不可更改。"
+	choice := defaultField("responsible_execution", "Responsible execution", "hidden", false)
+	if responsible {
+		name = "propose_responsible_destination:" + status.LegID
+		label = "原路受限时明确选择责任方替代付款"
+		path = "/api/v1/me/refunds/legs/" + status.LegID + "/responsible-destination"
+		confirmation = "本人明确授权当前责任经营方通过其自身商户或银行向此准确目的地付款，不授予其使用原经营方商户配置的权利。"
+		choice = defaultField("responsible_execution", "本人明确选择责任方付款", "hidden", true)
+	}
+	return operation{Name: name, Label: label, Method: "POST", Path: path, Fields: append(append(refundDestinationFields(), choice), f("authorization_reference", "本人明确授权与地址来源说明", "textarea")), Confirmation: confirmation}
 }
 func (a *Application) requestRefund(c *gin.Context) {
 	var in struct {

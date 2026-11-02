@@ -29,3 +29,12 @@ it("lets staff read their own notices without notification management permission
  await waitFor(()=>expect(fetch.mock.calls.some(([input,init])=>String(input)==="/api/v1/operators/operator-one/notifications/mine-unread/read"&&init?.method==="POST")).toBe(true));
  await waitFor(()=>expect(within(dialog).queryByRole("button",{name:"标为已读"})).toBeNull());expect(screen.getByText("未读 0 条")).toBeTruthy();
 });
+
+it("marks every personal unread notice from the inbox card",async()=>{
+ const fetch=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{if(init?.method==="POST")return new Response(JSON.stringify({id:"operator-one",status:"updated"}),{status:200});return new Response(JSON.stringify(response([])),{status:200});});vi.stubGlobal("fetch",fetch);mount();
+ expect(screen.getAllByRole("button",{name:"全部标为已读"})).toHaveLength(1);
+ fireEvent.click(screen.getByRole("button",{name:"全部标为已读"}));
+ await waitFor(()=>expect(fetch.mock.calls.some(([input,init])=>String(input)==="/api/v1/operators/operator-one/notifications/read-all"&&init?.method==="POST"&&init.body===JSON.stringify({}))).toBe(true));
+ await waitFor(()=>expect(screen.getByText("未读 0 条")).toBeTruthy());
+ expect(screen.queryByRole("button",{name:"全部标为已读"})).toBeNull();
+});

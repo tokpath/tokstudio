@@ -156,6 +156,11 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 }
 
 func operationPermission(resource, action string) string {
+	// Reading one's own notices is membership, not notification management.
+	// An empty permission keeps the button visible to every staff member who can open the page.
+	if resource == "notifications" && action == "read_all" {
+		return ""
+	}
 	switch resource {
 	case "operators":
 		return "organization.create"

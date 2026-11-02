@@ -79,6 +79,21 @@
     "ja": "自分宛ての通知",
     "ru": "Уведомления мне"
   },
+  "全部标为已读": {
+    "en": "Mark all as read",
+    "ja": "すべて既読にする",
+    "ru": "Отметить все прочитанными"
+  },
+  "只把发给你的未读通知标成已读。发给其他人的通知不会改变。": {
+    "en": "This marks only your unread notices as read. Notices sent to other people stay unchanged.",
+    "ja": "自分宛ての未読通知だけを既読にします。他の人への通知は変わりません。",
+    "ru": "Будут отмечены прочитанными только ваши непрочитанные уведомления. Уведомления другим людям не изменятся."
+  },
+  "确认把发给你的未读通知全部标为已读？": {
+    "en": "Mark all unread notices addressed to you as read?",
+    "ja": "自分宛ての未読通知をすべて既読にしますか？",
+    "ru": "Отметить прочитанными все непрочитанные уведомления, адресованные вам?"
+  },
   "通知事件": {
     "en": "Notice events",
     "ja": "通知イベント",
@@ -133,6 +148,11 @@
     "en": "Notices to you show only your unread count. Open the detail to mark an unread notice as read. One send to other people is one group, with unread and total recipients. Two sends of the same matter are two groups.",
     "ja": "自分宛ての通知は未読件数だけを表示します。詳細を開くと、未読を既読にできます。他の人への同じ送信は1グループで、未読人数と総人数を表示します。同じ件の2回の送信は2グループです。",
     "ru": "Уведомления вам показывают только число непрочитанных. В подробностях непрочитанное можно отметить прочитанным. Одна отправка другим людям — одна группа с числом непрочитавших и общим числом. Две отправки одного события — две группы."
+  },
+  "发给你的通知单独显示未读条数。可以一次把发给你的未读全部标成已读，也可以打开详情后逐条标成已读。发给其他人的同一次通知合成一组，显示未读人数和总人数。同一事项的两次发送是两组。": {
+    "en": "Notices to you show only your unread count. You can mark all of your unread notices at once, or open the detail and mark them one by one. One send to other people is one group, with unread and total recipients. Two sends of the same matter are two groups.",
+    "ja": "自分宛ての通知は未読件数だけを表示します。未読を一度に既読にすることも、詳細を開いて1件ずつ既読にすることもできます。他の人への同じ送信は1グループで、未読人数と総人数を表示します。同じ件の2回の送信は2グループです。",
+    "ru": "Уведомления вам показывают только число непрочитанных. Можно отметить все ваши непрочитанные сразу или открыть подробности и отметить по одному. Одна отправка другим людям — одна группа с числом непрочитавших и общим числом. Две отправки одного события — две группы."
   },
   "只把当前操作员自己收到的这一条标成已读。": {
     "en": "Mark only this notice, received by the signed-in operator, as read.",

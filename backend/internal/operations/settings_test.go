@@ -105,6 +105,58 @@ func TestManagedNotificationsSearchPaginationReadStateAndAuthorization(t *testin
 	}
 }
 
+func TestReadAllNotificationsClearsOnlyTheActorsUnread(t *testing.T) {
+	s, _, _, operator, customer := opsFixture(t)
+	ctx := context.Background()
+	first, err := s.Emit(ctx, nil, Notification{OperatorID: operator, RecipientID: customer, BusinessKey: "read-all:1", Category: "mandatory", Severity: "info", Title: "One", Body: "Body", Reference: "order"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = s.ReadNotification(ctx, customer, operator, first.ID); err != nil {
+		t.Fatal(err)
+	}
+	var already Notification
+	if err = s.DB.First(&already, "id=?", first.ID).Error; err != nil || already.ReadAt == nil {
+		t.Fatal(already, err)
+	}
+	second, err := s.Emit(ctx, nil, Notification{OperatorID: operator, RecipientID: customer, BusinessKey: "read-all:2", Category: "mandatory", Severity: "info", Title: "Two", Body: "Body", Reference: "order"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherID, elsewhereID := uuid.NewString(), uuid.NewString()
+	for _, row := range []Notification{
+		{ID: otherID, OperatorID: operator, RecipientID: uuid.NewString(), BusinessKey: "read-all:other", Category: "mandatory", Severity: "info", Title: "Other person", Body: "Body", Reference: "order", Fingerprint: "synthetic", CreatedAt: time.Now()},
+		{ID: elsewhereID, OperatorID: uuid.NewString(), RecipientID: customer, BusinessKey: "read-all:elsewhere", Category: "mandatory", Severity: "info", Title: "Other operator", Body: "Body", Reference: "order", Fingerprint: "synthetic", CreatedAt: time.Now()},
+	} {
+		if err = s.DB.Create(&row).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	count, err := s.ReadAllNotifications(ctx, customer, operator)
+	if err != nil || count != 1 {
+		t.Fatal(count, err)
+	}
+	var kept, cleared, other, elsewhere Notification
+	if err = s.DB.First(&kept, "id=?", first.ID).Error; err != nil || kept.ReadAt == nil || !kept.ReadAt.Equal(*already.ReadAt) {
+		t.Fatal("already read notice was rewritten", kept.ReadAt, already.ReadAt, err)
+	}
+	if err = s.DB.First(&cleared, "id=?", second.ID).Error; err != nil || cleared.ReadAt == nil {
+		t.Fatal(cleared, err)
+	}
+	if err = s.DB.First(&other, "id=?", otherID).Error; err != nil || other.ReadAt != nil {
+		t.Fatal("another recipient was marked read", other.ReadAt, err)
+	}
+	if err = s.DB.First(&elsewhere, "id=?", elsewhereID).Error; err != nil || elsewhere.ReadAt != nil {
+		t.Fatal("another operator was marked read", elsewhere.ReadAt, err)
+	}
+	if count, err = s.ReadAllNotifications(ctx, customer, operator); err != nil || count != 0 {
+		t.Fatal("marking an already clear inbox must stay successful", count, err)
+	}
+	if _, err = s.ReadAllNotifications(ctx, uuid.NewString(), operator); !errors.Is(err, ErrForbidden) {
+		t.Fatal(err)
+	}
+}
+
 func TestRemoveUnusedContentRepositoryWithExistingData(t *testing.T) {
 	db := operationsDBBefore(t, "0005")
 	op, recipient, item, notice := uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString()

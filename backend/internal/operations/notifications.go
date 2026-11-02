@@ -193,6 +193,25 @@ func (s *Service) ReadNotification(ctx context.Context, actor, operator, id stri
 	})
 }
 
+// ReadAllNotifications marks every unread notice addressed to this person in
+// this operator. Other recipients of the same send keep their own read state.
+// Calling it again is safe: zero unread rows is still success.
+func (s *Service) ReadAllNotifications(ctx context.Context, actor, operator string) (int64, error) {
+	var count int64
+	err := s.within(ctx, nil, func(t *gorm.DB) error {
+		if _, e := s.self(ctx, t, actor, operator); e != nil {
+			return e
+		}
+		r := t.Model(&Notification{}).Where("operator_id=? AND recipient_id=? AND read_at IS NULL", operator, actor).Update("read_at", time.Now().UTC())
+		if r.Error != nil {
+			return r.Error
+		}
+		count = r.RowsAffected
+		return nil
+	})
+	return count, err
+}
+
 type Delivery struct {
 	NotificationID string     `json:"notification_id"`
 	State          string     `json:"state"`

@@ -3458,6 +3458,18 @@
     "permission": "operations.manage"
   },
   {
+    "resource": "notifications",
+    "confirmation": "确认把发给你的未读通知全部标为已读？",
+    "description": "只把发给你的未读通知标成已读。发给其他人的通知不会改变。",
+    "fields": [],
+    "include_version": false,
+    "label": "全部标为已读",
+    "method": "POST",
+    "name": "read_all",
+    "path": "/v1/operators/{operatorId}/notifications/read-all",
+    "permission": "operations.manage"
+  },
+  {
     "resource": "business-status",
     "confirmation": "",
     "description": "",

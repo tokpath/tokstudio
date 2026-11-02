@@ -244,6 +244,7 @@ func (a *Application) operatorRoutes(r *gin.RouterGroup) {
 	r.GET("/reports/financial", a.financialReport)
 	r.GET("/notifications/unread-count", a.staffUnreadNotifications)
 	r.GET("/notifications/notices", a.staffNotificationNotices)
+	r.POST("/notifications/read-all", a.readAllStaffNotifications)
 	r.GET("/references/:reference", a.references)
 	r.GET("/:resource/:id/files", a.invoiceFiles)
 	r.GET("/:resource/:id/files/:fileID", a.downloadInvoiceFile)

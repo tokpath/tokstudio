@@ -73,6 +73,20 @@ func (a *Application) staffUnreadNotifications(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"count": count})
 }
+func (a *Application) readAllStaffNotifications(c *gin.Context) {
+	var empty struct{}
+	if !body(c, &empty) {
+		return
+	}
+	// Membership is enough. This does not require operations.manage, because it
+	// only writes the signed-in person's own read timestamps.
+	count, e := a.Operations.ReadAllNotifications(c.Request.Context(), subject(c).Staff.ID, c.Param("operatorId"))
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	c.JSON(200, gin.H{"id": c.Param("operatorId"), "status": "updated", "count": count})
+}
 func (a *Application) notifications(c *gin.Context) {
 	id := subject(c)
 	rows, next, e := a.Operations.ListNotificationsPage(c.Request.Context(), id.Customer.Customer.ID, id.Customer.Ownership.OperatorID, c.Query("cursor"), c.Query("q"), 50)
@@ -186,15 +200,16 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			items = append(items, entity(event.Key, "grouped", 1, event))
 		}
 		p["title"] = "通知管理"
-		p["description"] = "发给你的通知单独显示未读条数，打开详情后可以把未读标成已读。发给其他人的同一次通知合成一组，显示未读人数和总人数。同一事项的两次发送是两组。"
+		p["description"] = "发给你的通知单独显示未读条数。可以一次把发给你的未读全部标成已读，也可以打开详情后逐条标成已读。发给其他人的同一次通知合成一组，显示未读人数和总人数。同一事项的两次发送是两组。"
 		p["search_supported"], p["status_supported"], p["next_cursor"] = true, true, next
 		p["columns"] = []gin.H{col("recipient_id", "收件人", "text"), col("category", "通知类别", "text"), col("state", "邮件状态", "status"), col("read_status", "阅读状态", "status"), col("created_at", "发送时间", "datetime")}
-		p["operations"] = []operation{{Name: "announce", Label: "发送业务通知", Method: "POST", Path: base, Fields: []field{jsonField("收件人、通知类别、标题和正文")}}}
+		readAll := operation{Name: "read_all", Label: "全部标为已读", Method: "POST", Path: base + "/read-all", Fields: []field{}, Description: "只把发给你的未读通知标成已读。发给其他人的通知不会改变。", Confirmation: "确认把发给你的未读通知全部标为已读？"}
+		p["operations"] = []operation{{Name: "announce", Label: "发送业务通知", Method: "POST", Path: base, Fields: []field{jsonField("收件人、通知类别、标题和正文")}}, readAll}
 		p["row_operations"] = []operation{{Name: "read", Label: "标为已读", Method: "POST", Path: base + "/{id}/read", Fields: []field{}}, {Name: "retry", Label: "重试原通知", Method: "POST", Path: base + "/{id}/retry", Fields: []field{}}}
 		if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "operations.manage") != nil {
 			p["title"] = "我的通知"
-			p["description"] = "查看发给本人的业务通知，可以标为已读。"
-			p["operations"] = []operation{}
+			p["description"] = "查看发给本人的业务通知。可以一次全部标为已读，也可以逐条标为已读。"
+			p["operations"] = []operation{readAll}
 			p["row_operations"] = []operation{{Name: "read", Label: "标为已读", Method: "POST", Path: base + "/{id}/read", Fields: []field{}}}
 		}
 

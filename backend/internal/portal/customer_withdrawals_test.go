@@ -273,6 +273,37 @@ func TestPostgresBalanceWithdrawalMinimumIsSetOnItsOwnPage(t *testing.T) {
 	}
 }
 
+func TestSameCurrencyPayoutFormOmitsTheFixedNet(t *testing.T) {
+	f := setupPortal(t)
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	base := "/v1/operators/" + f.a.Installation.OperatorID
+	for _, resource := range []string{"withdrawals", "balance-withdrawals"} {
+		status, page, _ := f.call(t, "GET", base+"/"+resource, nil, "")
+		mustOK(t, status, page)
+		fields := map[string]map[string]any{}
+		for _, raw := range page["row_operations"].([]any) {
+			op := raw.(map[string]any)
+			if op["name"] != "verify_paid" {
+				continue
+			}
+			for _, item := range op["fields"].([]any) {
+				field := item.(map[string]any)
+				fields[field["name"].(string)] = field
+			}
+		}
+		if fields["currency"]["default_value"] != "USD" {
+			t.Fatal(resource, fields["currency"])
+		}
+		for _, name := range []string{"original_amount", "valuation_evidence"} {
+			when, _ := fields[name]["visible_when"].(map[string]any)
+			values, _ := when["values"].([]any)
+			if when["not"] != true || when["field"] != "currency" || len(values) != 1 || values[0] != "USD" {
+				t.Fatal(resource, name, fields[name])
+			}
+		}
+	}
+}
+
 func viewLabels(page map[string]any) []string {
 	views, _ := page["views"].([]any)
 	labels := []string{}

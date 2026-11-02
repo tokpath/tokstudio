@@ -54,7 +54,10 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				if f.Name == "currency" && f.Default == nil && settlementCurrency != "" {
 					f.Default = settlementCurrency
 				}
-				if resource == "withdrawals" && (f.Name == "original_amount" || f.Name == "valuation_evidence") && settlementCurrency != "" {
+				// The application already fixed the settlement net. Paying in that
+				// currency records the net itself, so both payout wallets hide the
+				// amount and its link until the operator changes the currency.
+				if (resource == "withdrawals" || resource == "balance-withdrawals") && (f.Name == "original_amount" || f.Name == "valuation_evidence") && settlementCurrency != "" {
 					f.VisibleWhen = &fieldVisibility{Not: true, Field: "currency", Values: []string{settlementCurrency}}
 				}
 				if f.Name == "delivery_mode" && !a.operatorMailAvailable(c) {

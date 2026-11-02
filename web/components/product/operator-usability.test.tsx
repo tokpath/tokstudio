@@ -102,13 +102,10 @@ it("organizes refund cases with exact related legs and payments while retaining 
   const refund = screen.getByText("case-a").closest("section")!;
   expect(within(refund).getByLabelText("0.000000000000000003 USD")).toBeTruthy();
   expect(within(refund).getByLabelText("2.999999999999999997 USD")).toBeTruthy();
-  expect(within(refund).queryByText("payment-a")).toBeNull();
-  fireEvent.click(within(refund).getByRole("button", { name: "查看详情" }));
-  const detail = screen.getByRole("dialog");
-  expect(within(detail).getByText("payment-a")).toBeTruthy();
-  expect(within(detail).getByText("leg-a")).toBeTruthy();
-  expect(within(detail).queryByText("unrelated-leg")).toBeNull();
+  expect(within(refund).getByText("payment-a")).toBeTruthy();
+  expect(within(refund).getByText("leg-a")).toBeTruthy();
   expect(within(refund).queryByText("unrelated-leg")).toBeNull();
+  expect(refund.querySelector("details")).toBeNull();
   expect(within(refund).queryByLabelText("0 USD")).toBeNull();
   expect(within(refund).getByText("下一步：打开详情，登记实际付款。提交后申请结束。")).toBeTruthy();
   expect(screen.getByText("本页其他关联记录")).toBeTruthy();

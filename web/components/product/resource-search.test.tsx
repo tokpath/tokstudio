@@ -42,15 +42,11 @@ it("groups Chinese refund types by their exact case and leg IDs and keeps future
     { id: "refund-extension", values: { record_kind: "future_record_kind" } },
   ], columns: [{ key: "id", label: "编号", kind: "text" }, { key: "record_kind", label: "记录类型", kind: "text" }], operations: [], row_operations: [] };
   render(<ResourceCollection operatorID="operator-search" resource="refunds" page={page} record="refund-case" />);
-  for (const label of ["退款事项", "future_record_kind"]) expect(screen.getByText(label, { exact: true })).toBeTruthy();
+  for (const label of ["退款事项", "退款分项", "实际退款付款", "future_record_kind"]) expect(screen.getByText(label, { exact: true })).toBeTruthy();
   const refund = screen.getByText("退款事项", {exact:true}).closest("section")!;
-  expect(refund.textContent).not.toContain("实际退款付款");
+  expect(refund.textContent).toContain("实际退款付款");
   expect(refund.textContent).not.toContain("future_record_kind");
-  fireEvent.click(within(refund).getByRole("button", { name: "查看详情" }));
-  const detail = screen.getByRole("dialog");
-  expect(within(detail).getByText("退款分项", { exact: true })).toBeTruthy();
-  expect(within(detail).getByText("实际退款付款", { exact: true })).toBeTruthy();
-  expect(detail.textContent).not.toContain("future_record_kind");
+  expect(refund.querySelector("details")).toBeNull();
   expect(screen.getByText("本页其他关联记录")).toBeTruthy();
   expect(page.items[2].values.record_kind).toBe("actual_refund_payment");
 });

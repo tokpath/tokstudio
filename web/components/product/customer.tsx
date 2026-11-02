@@ -17,6 +17,7 @@ import { ResourceScreen } from "./management";
 import { NotificationPreferences } from "./notification-preferences";
 import { Playground } from "./playground";
 import { Empty, ErrorPanel, Heading, Loading, Status, When, useCommand } from "./shared";
+import { useUnreadNotifications } from "./notification-count";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -40,11 +41,14 @@ export function CustomerPage({ section, initialPlan }: { section: string; initia
   }
   return <WorkspaceShell>{content}</WorkspaceShell>;
 }
-function Notifications() {
+export function Notifications() {
   const { t } = useI18n();
   const paging = useCursor("notifications");
   const data = useQuery({ queryKey: ["notifications", paging.cursor, paging.search], queryFn: ({signal}) => request(paging.path("/api/v1/me/notifications"), collection(NotificationSchema), {signal}) });
-  return <><Heading title={t("通知")} description={t("资金、资产、安全、履约与重要规则属于必要业务通知。营销退订不关闭这些通知；需要重新授权的事项会单独提供确认操作。")} /><NotificationPreferences /><RecordSearch paging={paging} />{data.isPending ? <Loading /> : data.isError ? <ErrorPanel error={data.error} retry={() => void data.refetch()} /> : !data.data.items.length ? <Empty title={t("暂无通知")} /> : <div className="space-y-4">{data.data.items.map(item => <Notification key={item.id} item={item} />)}</div>}<CursorControls paging={paging} next={data.data?.next_cursor} /></>;
+  const unread = useUnreadNotifications("/api/v1/me/notifications/unread-count");
+  const markAll = useCommand("/api/v1/me/notifications/read-all", CommandResultSchema);
+  const pageHasUnread = data.data?.items.some(item => !item.read_at) ?? false;
+  return <><Heading title={t("通知")} description={t("资金、资产、安全、履约与重要规则属于必要业务通知。营销退订不关闭这些通知；需要重新授权的事项会单独提供确认操作。")} actions={unread > 0 || pageHasUnread ? <Button size="sm" variant="outline" disabled={markAll.busy} onClick={() => void markAll.run({})}>{markAll.busy ? t("正在提交，请稍候…") : t("全部标为已读")}</Button> : undefined} />{!!markAll.error && <div className="mb-4"><ErrorPanel error={markAll.error} /></div>}<NotificationPreferences /><RecordSearch paging={paging} />{data.isPending ? <Loading /> : data.isError ? <ErrorPanel error={data.error} retry={() => void data.refetch()} /> : !data.data.items.length ? <Empty title={t("暂无通知")} /> : <div className="space-y-4">{data.data.items.map(item => <Notification key={item.id} item={item} />)}</div>}<CursorControls paging={paging} next={data.data?.next_cursor} /></>;
 }
 function Notification({ item }: { item: ReturnType<typeof NotificationSchema.parse> }) {
   const { t } = useI18n();

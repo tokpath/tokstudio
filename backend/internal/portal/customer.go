@@ -26,6 +26,7 @@ func (a *Application) customerRoutes(r *gin.RouterGroup) {
 	r.GET("/notifications/preferences", a.notificationPreferences)
 	r.GET("/notifications/unread-count", a.unreadNotifications)
 	r.GET("/notifications", a.notifications)
+	r.POST("/notifications/read-all", a.readAllNotifications)
 	r.POST("/notifications/:id/read", a.readNotification)
 	r.POST("/notifications/preferences", a.setNotificationPreferences)
 	r.GET("/refunds/:id/destinations", a.customerRefundDestinations)

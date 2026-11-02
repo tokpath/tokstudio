@@ -75,6 +75,44 @@ func TestFinanceCanReadOwnNotificationsWithoutManagingOtherRecipients(t *testing
 	}
 }
 
+func TestCustomerCanMarkEveryOwnNotificationRead(t *testing.T) {
+	f := setupPortal(t)
+	f.openRegistration(t)
+	f.registered(t, "notices@example.test")
+	f.login(t, "customer", "notices@example.test", "customer-password-test")
+	status, session, _ := f.call(t, "GET", "/v1/auth/me", nil, "")
+	mustOK(t, status, session)
+	customerID := session["customer"].(map[string]any)["id"].(string)
+	operatorID := session["operator"].(map[string]any)["id"].(string)
+	first, err := f.a.Operations.Emit(t.Context(), nil, operations.Notification{OperatorID: operatorID, RecipientID: customerID, BusinessKey: "customer-read-all:1", Category: "mandatory", Severity: "info", Title: "First", Body: "One", Reference: "order"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := f.a.Operations.Emit(t.Context(), nil, operations.Notification{OperatorID: operatorID, RecipientID: customerID, BusinessKey: "customer-read-all:2", Category: "mandatory", Severity: "info", Title: "Second", Body: "Two", Reference: "order"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherID := uuid.NewString()
+	if err = f.a.DB.Create(&operations.Notification{ID: otherID, OperatorID: operatorID, RecipientID: uuid.NewString(), BusinessKey: "customer-read-all:other", Category: "mandatory", Severity: "info", Title: "Other", Body: "Leave unread", Reference: "order", Fingerprint: "synthetic", CreatedAt: time.Now()}).Error; err != nil {
+		t.Fatal(err)
+	}
+	status, out, _ := f.call(t, "POST", "/v1/me/notifications/read-all", map[string]any{}, "")
+	mustOK(t, status, out)
+	if out["count"] != float64(2) {
+		t.Fatal(out)
+	}
+	var firstNotice, secondNotice, other operations.Notification
+	if err = f.a.DB.First(&firstNotice, "id=?", first.ID).Error; err != nil || firstNotice.ReadAt == nil {
+		t.Fatal(firstNotice.ReadAt, err)
+	}
+	if err = f.a.DB.First(&secondNotice, "id=?", second.ID).Error; err != nil || secondNotice.ReadAt == nil {
+		t.Fatal(secondNotice.ReadAt, err)
+	}
+	if err = f.a.DB.First(&other, "id=?", otherID).Error; err != nil || other.ReadAt != nil {
+		t.Fatal("customer marked another recipient read", other.ReadAt, err)
+	}
+}
+
 func operationNamed(t *testing.T, page map[string]any, name string) bool {
 	t.Helper()
 	ops, _ := page["operations"].([]any)

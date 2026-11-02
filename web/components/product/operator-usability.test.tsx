@@ -226,6 +226,12 @@ it("filters notification groups with localized type labels", () => {
   expect(screen.getByRole("heading", { name: "价格变更" })).toBeTruthy();
 });
 
+it("shows a paid balance withdrawal as verified payment", () => {
+  show(<ResourceCollection operatorID="operator-one" resource="balance-withdrawals" embedded page={page([{ id: "wd-1", status: "paid", values: { method_name: "支付宝", amount_money: "10" } }], { columns: [{ key: "method_name", label: "提现方式", kind: "text" }, { key: "amount_money", label: "总额", kind: "money" }] })} />);
+  expect(screen.getByText("已核实付款")).toBeTruthy();
+  expect(screen.queryByText("足额待交付")).toBeNull();
+});
+
 it("saves the balance withdrawal minimum on its own page", async () => {
   const posts: unknown[] = [];
   vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {

@@ -118,6 +118,19 @@ func (a *Application) readNotification(c *gin.Context) {
 	}
 	c.JSON(200, commandResult(c.Param("id"), "read"))
 }
+func (a *Application) readAllNotifications(c *gin.Context) {
+	var empty struct{}
+	if !body(c, &empty) {
+		return
+	}
+	id := subject(c)
+	count, e := a.Operations.ReadAllNotifications(c.Request.Context(), id.Customer.Customer.ID, id.Customer.Ownership.OperatorID)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	c.JSON(200, gin.H{"id": id.Customer.Customer.ID, "status": "updated", "count": count})
+}
 func (a *Application) customerOperationsWorkspace(c *gin.Context, resource string, p gin.H) bool {
 	id := subject(c)
 	ctx := c.Request.Context()

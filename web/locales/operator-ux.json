@@ -69,10 +69,15 @@
     "ja": "次の手順：承認を完了してください。",
     "ru": "Далее: завершите одобрение."
   },
-  "下一步：展开关联明细，按每笔原收款的已授权动作办理。": {
-    "en": "Next: expand linked details and use the authorized actions for each original receipt.",
-    "ja": "次の手順：関連明細を開き、元の入金ごとに許可された操作を行ってください。",
-    "ru": "Далее: откройте детали и выполните разрешённые действия по каждому исходному платежу."
+  "下一步：打开详情，按每笔原收款办理。": {
+    "en": "Next: open the details and handle each original receipt.",
+    "ja": "次の手順：詳細を開き、元の入金ごとに処理してください。",
+    "ru": "Далее: откройте подробности и обработайте каждое исходное поступление."
+  },
+  "这笔申请还没有原收款明细。": {
+    "en": "This application has no original-receipt lines yet.",
+    "ja": "この申請には、まだ元の入金明細がありません。",
+    "ru": "У этой заявки пока нет строк исходных поступлений."
   },
   "下一步：查询原退款结果并核实实际付款，保留未知金额占用。": {
     "en": "Next: query the original refund and verify actual payment. Keep unconfirmed amounts reserved.",

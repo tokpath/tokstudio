@@ -42,10 +42,15 @@ it("groups Chinese refund types by their exact case and leg IDs and keeps future
     { id: "refund-extension", values: { record_kind: "future_record_kind" } },
   ], columns: [{ key: "id", label: "编号", kind: "text" }, { key: "record_kind", label: "记录类型", kind: "text" }], operations: [], row_operations: [] };
   render(<ResourceCollection operatorID="operator-search" resource="refunds" page={page} record="refund-case" />);
-  for (const label of ["退款事项", "退款分项", "实际退款付款", "future_record_kind"]) expect(screen.getByText(label, { exact: true })).toBeTruthy();
+  for (const label of ["退款事项", "future_record_kind"]) expect(screen.getByText(label, { exact: true })).toBeTruthy();
   const refund = screen.getByText("退款事项", {exact:true}).closest("section")!;
-  expect(refund.textContent).toContain("实际退款付款");
+  expect(refund.textContent).not.toContain("实际退款付款");
   expect(refund.textContent).not.toContain("future_record_kind");
+  fireEvent.click(within(refund).getByRole("button", { name: "查看详情" }));
+  const detail = screen.getByRole("dialog");
+  expect(within(detail).getByText("退款分项", { exact: true })).toBeTruthy();
+  expect(within(detail).getByText("实际退款付款", { exact: true })).toBeTruthy();
+  expect(detail.textContent).not.toContain("future_record_kind");
   expect(screen.getByText("本页其他关联记录")).toBeTruthy();
   expect(page.items[2].values.record_kind).toBe("actual_refund_payment");
 });
@@ -95,6 +100,10 @@ it("forwards refund queries to the server and preserves its complete case contex
   fireEvent.click(screen.getByRole("button", { name: "查询", exact: true }));
   await waitFor(() => expect(String(fetch.mock.calls.at(-1)?.[0])).toContain("q=original-bank-proof"));
   await screen.findByText("退款事项", {exact:true});
-  expect(screen.getByText("退款分项", {exact:true})).toBeTruthy(); expect(screen.getByText("实际退款付款", {exact:true})).toBeTruthy();
+  expect(screen.getByText("当前页 1 条")).toBeTruthy();
+  expect(screen.queryByText("实际退款付款", {exact:true})).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "查看详情" }));
+  expect(within(screen.getByRole("dialog")).getByText("退款分项", {exact:true})).toBeTruthy();
+  expect(within(screen.getByRole("dialog")).getByText("实际退款付款", {exact:true})).toBeTruthy();
   expect(page.items.map(item => item.values.record_kind)).toEqual(["case", "leg", "actual_refund_payment"]);
 });

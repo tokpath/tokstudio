@@ -154,7 +154,12 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		p["columns"] = []gin.H{col("package_id", "套餐", "text"), col("gift_atg", "赠送", "atg"), col("concession_rate", "本人佣金让利比例", "decimal"), col("starts_at", "开始", "datetime"), col("ends_at", "结束", "datetime")}
 		p["operations"] = []operation{{Name: "publish", Label: "发布或修订活动", Method: "POST", Path: "/api/v1/me/activities", Fields: []field{jsonField("经营范围及活动归属由服务器确定；填写 campaign_id、package_id、gift_atg、concession_rate、starts_at、ends_at、per_customer_limit、enabled、expected_version 等实际条款。")}, Confirmation: "确认按当前资格及让利额度发布，活动只对有效直属受邀客户生效。"}}
 	case "credit-sources":
-		rows, e := a.Ledger.CustomerGrants(ctx, nil, op, customer)
+		at, beforeID, e := organization.ParseAuditCursor(c.Query("cursor"))
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		rows, e := a.Ledger.PageCustomerGrants(ctx, nil, op, customer, at, beforeID, 50)
 		if e != nil {
 			handleError(c, e)
 			return
@@ -163,9 +168,15 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		for _, g := range rows {
 			items = append(items, entity(g.ID, "issued", 1, g))
 		}
+		events := make([]organization.AuditEvent, len(rows))
+		for i, g := range rows {
+			events[i] = organization.AuditEvent{ID: g.ID, CreatedAt: g.CreatedAt}
+		}
 		p["title"] = "ATG 来源与期限"
+		p["description"] = "按发放时间从新到旧查看每一笔额度来源。"
 		p["items"] = items
-		p["columns"] = []gin.H{col("order_id", "来源订单", "text"), col("total", "总额", "atg"), col("consumed", "已消费", "atg"), col("expired", "已过期", "atg"), col("cancelled", "已取消", "atg"), col("expires_at", "到期", "datetime")}
+		p["next_cursor"] = organization.NextAuditCursor(events, 50)
+		p["columns"] = []gin.H{col("order_id", "来源订单", "text"), col("total", "总额", "atg"), col("consumed", "已消费", "atg"), col("expired", "已过期", "atg"), col("cancelled", "已取消", "atg"), col("created_at", "发放时间", "datetime"), col("expires_at", "到期", "datetime")}
 	case "withdrawals":
 		rows, e := a.Incentives.Withdrawals(ctx, nil, op, customer)
 		if e != nil {

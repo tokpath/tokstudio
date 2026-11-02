@@ -974,6 +974,16 @@
     "ja": "事業範囲とキャンペーンの帰属はサーバーが決定します。campaign_id、package_id、gift_atg、concession_rate、starts_at、ends_at、per_customer_limit、enabled、expected_version などの実際の条件を入力します。",
     "ru": "Область оператора и принадлежность акции определяет сервер. Укажите фактические условия: campaign_id, package_id, gift_atg, concession_rate, starts_at, ends_at, per_customer_limit, enabled, expected_version."
   },
+  "发放时间": {
+    "en": "Issued at",
+    "ja": "付与時刻",
+    "ru": "Время выдачи"
+  },
+  "按发放时间从新到旧查看每一笔额度来源。": {
+    "en": "Each credit source is listed from newest to oldest.",
+    "ja": "付与時刻の新しい順に、それぞれの枠の出どころを表示します。",
+    "ru": "Каждый источник лимита показан от новых к старым."
+  },
   "来源订单": {
     "en": "Source order",
     "ja": "元の注文",

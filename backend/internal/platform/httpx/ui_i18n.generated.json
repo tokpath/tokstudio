@@ -7061,6 +7061,12 @@
     "付与総額",
     "Всего выдано единиц"
   ],
+  "发放时间": [
+    "发放时间",
+    "Issued at",
+    "付与時刻",
+    "Время выдачи"
+  ],
   "发放赠送额度": [
     "发放赠送额度",
     "Grant gift credits",
@@ -14230,6 +14236,12 @@
     "Enter the agreed settlement currency value per ATG of service obligations. For example, 100 ATG at 0.02 settlement currency per ATG is valued at 2 settlement currency. The full obligation snapshot determines the final amount; entering a value does not initiate payment.",
     "双方の接管契約に従って、サービス責任 1 ATG 当たりの 決済通貨 評価額を入力します。例：100 ATG × 0.02 決済通貨 = 2 決済通貨。最終金額は完全な責任スナップショットで確認され、入力しても実際の支払いは開始されません。",
     "Укажите согласованную договором стоимость обязательств в валюта расчётов за ATG. Например, 100 ATG по 0.02 валюта расчётов оцениваются в 2 валюта расчётов. Итог проверяется по полному снимку обязательств; ввод не запускает платёж."
+  ],
+  "按发放时间从新到旧查看每一笔额度来源。": [
+    "按发放时间从新到旧查看每一笔额度来源。",
+    "Each credit source is listed from newest to oldest.",
+    "付与時刻の新しい順に、それぞれの枠の出どころを表示します。",
+    "Каждый источник лимита показан от новых к старым."
   ],
   "按可用状态筛选": [
     "按可用状态筛选",

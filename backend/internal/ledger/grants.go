@@ -171,6 +171,23 @@ func (s *Service) CustomerGrants(ctx context.Context, tx *gorm.DB, operator, cus
 	return rows, err
 }
 
+// PageCustomerGrants lists one customer's credit sources newest first.
+// The cursor is the created time and id of the last row already shown.
+func (s *Service) PageCustomerGrants(ctx context.Context, tx *gorm.DB, operator, customer string, before *time.Time, beforeID string, limit int) ([]Grant, error) {
+	if limit < 1 || limit > 100 {
+		return nil, ErrAmount
+	}
+	var rows []Grant
+	err := s.within(ctx, tx, func(t *gorm.DB) error {
+		q := t.Where("operator_id=? AND customer_id=?", operator, customer)
+		if before != nil {
+			q = q.Where("(created_at,id)<(?,?::uuid)", before.UTC(), beforeID)
+		}
+		return q.Order("created_at DESC,id DESC").Limit(limit).Find(&rows).Error
+	})
+	return rows, err
+}
+
 type CreditReservation struct {
 	OperatorID, CustomerID, BusinessKey string
 	Estimate                            Decimal

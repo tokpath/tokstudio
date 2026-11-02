@@ -113,6 +113,37 @@ func TestGrantSelectionSkipsUnneededLocksAndPagesFEFO(t *testing.T) {
 		}
 	}
 }
+func TestCustomerGrantPagesAreNewestFirst(t *testing.T) {
+	s := New(testDB(t))
+	ctx := context.Background()
+	op, c := uuid.NewString(), uuid.NewString()
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	var issued []Grant
+	for i, key := range []string{"older", "newer"} {
+		g, e := s.IssueGrant(ctx, nil, GrantInput{OperatorID: op, CustomerID: c, BusinessKey: key, ActorID: "test", Reason: "source", PaidMoney: FromInt64(1), Sources: []GrantSource{{"paid", FromInt64(1)}}, EffectiveAt: now})
+		if e != nil {
+			t.Fatal(e)
+		}
+		issued = append(issued, g)
+		when := now.Add(time.Duration(i) * time.Hour)
+		if e = s.db.Model(&Grant{}).Where("id=?", g.ID).Update("created_at", when).Error; e != nil {
+			t.Fatal(e)
+		}
+	}
+	first, e := s.PageCustomerGrants(ctx, nil, op, c, nil, "", 1)
+	if e != nil || len(first) != 1 || first[0].ID != issued[1].ID {
+		t.Fatal("newest grant was not first", first, e)
+	}
+	second, e := s.PageCustomerGrants(ctx, nil, op, c, &first[0].CreatedAt, first[0].ID, 1)
+	if e != nil || len(second) != 1 || second[0].ID != issued[0].ID {
+		t.Fatal("next page did not continue from the newest grant", second, e)
+	}
+	rest, e := s.PageCustomerGrants(ctx, nil, op, c, &second[0].CreatedAt, second[0].ID, 1)
+	if e != nil || len(rest) != 0 {
+		t.Fatal("page continued past the oldest grant", rest, e)
+	}
+}
+
 func TestGrantFEFOAndUnfundedShortfall(t *testing.T) {
 	s := New(testDB(t))
 	ctx := context.Background()

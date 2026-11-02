@@ -149,6 +149,22 @@ func TestPostgresManualGiftUsesCoverageZeroPaidBasisAndTransfersWithoutRewriting
 	if a := channel.balance(t); a.Balance.Cmp(d("25")) != 0 || !a.Held.IsZero() {
 		t.Fatal("gift changed cash wallet", a)
 	}
+	var email string
+	if e = brand.db.Raw("SELECT email_normalized FROM organization_customer_identities WHERE customer_id=? AND is_current=true", channel.customer).Row().Scan(&email); e != nil || email == "" {
+		t.Fatal("gift customer has no current email", email, e)
+	}
+	byEmail, _, e := com.ListManualGifts(channel.ctx, nil, channel.owner, channel.operator, "", "", 10, email)
+	if e != nil || len(byEmail) != 2 || byEmail[0].CustomerID != channel.customer {
+		t.Fatal("gift search did not match the customer account", byEmail, e)
+	}
+	byKey, _, e := com.ListManualGifts(channel.ctx, nil, channel.owner, channel.operator, "", "", 10, "support-case-481")
+	if e != nil || len(byKey) != 1 || byKey[0].ID != gift.ID {
+		t.Fatal("gift search did not match the gift business key", byKey, e)
+	}
+	miss, _, e := com.ListManualGifts(channel.ctx, nil, channel.owner, channel.operator, "", "", 10, "not-a-model-request")
+	if e != nil || len(miss) != 0 {
+		t.Fatal("unrelated request text matched a gift", miss, e)
+	}
 	rows, cursor, e := com.ListManualGifts(channel.ctx, nil, channel.owner, channel.operator, channel.customer, "", 1)
 	if e != nil || len(rows) != 1 || cursor == "" {
 		t.Fatal(rows, cursor, e)

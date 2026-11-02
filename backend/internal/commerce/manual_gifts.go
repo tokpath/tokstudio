@@ -149,7 +149,11 @@ func (s *Service) ListManualGifts(ctx context.Context, tx *gorm.DB, actor, op, c
 	q := s.dbFor(ctx, tx).Where("operator_id=?", op)
 	if len(filters) > 0 && strings.TrimSpace(filters[0]) != "" {
 		term := "%" + strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(strings.TrimSpace(filters[0])) + "%"
-		q = q.Where("(id::text ILIKE ? OR customer_id::text ILIKE ? OR grant_id::text ILIKE ? OR reason ILIKE ? OR evidence ILIKE ?)", term, term, term, term, term)
+		q = q.Where(`(id::text ILIKE ? OR customer_id::text ILIKE ? OR grant_id::text ILIKE ? OR business_key ILIKE ? OR reason ILIKE ? OR evidence ILIKE ? OR EXISTS (
+			SELECT 1 FROM organization_customers c
+			LEFT JOIN organization_customer_identities i ON i.customer_id=c.id AND i.is_current=true
+			WHERE c.id=commerce_manual_gifts.customer_id AND (c.display_name ILIKE ? OR i.email_normalized ILIKE ?)
+		))`, term, term, term, term, term, term, term, term)
 	}
 	if len(filters) > 1 && strings.TrimSpace(filters[1]) != "" && strings.TrimSpace(filters[1]) != "delivered" {
 		q = q.Where("1=0")

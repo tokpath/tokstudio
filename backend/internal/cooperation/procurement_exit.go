@@ -202,7 +202,10 @@ type ProcurementExit struct {
 func (ProcurementExit) TableName() string { return "cooperation_procurement_exits" }
 func (s *Service) RequestProcurementExit(ctx context.Context, tx *gorm.DB, actor, buyer, key, mode, evidence string, quantity ledger.Decimal, guard RemovalGuard) (ProcurementExit, error) {
 	out := ProcurementExit{}
-	if mode != "voluntary_exit" && mode != "supply_failure" {
+	// Delivered procurement inventory is not refunded for a later supply failure.
+	// A pre-agreed voluntary exit can still return unused purchased balance.
+	// Money paid for an order that never received ATG is refunded separately.
+	if mode != "voluntary_exit" {
 		return out, ErrExitTerms
 	}
 	if key == "" || evidence == "" {

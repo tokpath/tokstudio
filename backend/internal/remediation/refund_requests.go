@@ -182,9 +182,8 @@ type PackageExceptionInput struct {
 	Evidence     string `json:"evidence"`
 }
 
-// RequestPackageException is not a customer cancellation route. It handles a
-// documented transaction error or inability to fulfill; past usage keeps its
-// original discounted price. All remaining package sources are held together.
+// RequestPackageException refunds a package or renewal that was paid but never
+// received ATG. A delivered grant cannot be turned back into money.
 func (s *Service) RequestPackageException(ctx context.Context, in PackageExceptionInput) (Case, error) {
 	var out Case
 	if in.Reason != "transaction_error" && in.Reason != "unable_to_fulfill" {
@@ -217,34 +216,21 @@ func (s *Service) RequestPackageException(ctx context.Context, in PackageExcepti
 		if e != nil || found {
 			return e
 		}
-		o, e := s.Commerce.GetOrder(ctx, t, in.CustomerID, in.OrderID)
+		o, e := s.Commerce.MarkUndeliveredRefund(ctx, t, in.CustomerID, in.OrderID)
 		if e != nil {
 			return e
 		}
-		if o.OperatorID != in.OperatorID || (o.Kind != "package" && o.Kind != "renewal") || o.Status != "completed" {
-			return ErrState
-		}
-		var g ledger.Grant
-		if e = t.First(&g, "order_id=? AND operator_id=?", o.ID, in.OperatorID).Error; e != nil {
-			return e
-		}
-		a, e := s.Ledger.AccountInTransaction(ctx, t, g.AccountID)
-		if e != nil {
-			return e
+		if o.OperatorID != in.OperatorID {
+			return ErrScope
 		}
 		at, e := instant(t)
 		if e != nil {
 			return e
 		}
-		if a.Balance.Sign() <= 0 || a.Held.Sign() > 0 || g.ExpiresAt != nil && !g.ExpiresAt.After(at) {
-			return ErrState
+		out = Case{ID: uuid.NewString(), OperatorID: in.OperatorID, CustomerID: &in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "package_exception", OrderID: &o.ID, AmountMoney: o.DueMoney, State: "pending_review", Reason: in.Reason, Evidence: in.Evidence, RequestedBy: in.ActorStaffID, CreatedAt: at, InternalMoney: o.InternalMoney, CommissionMoney: o.CommissionMoney}
+		if e = t.Create(&out).Error; e != nil {
+			return e
 		}
-		amount := g.PaidMoney.Sub(g.ConsumedPaidMoney).Sub(g.ExpiredPaidMoney).Sub(g.CancelledPaidMoney)
-		if !validAmount(amount) {
-			return ErrState
-		}
-		out = Case{ID: uuid.NewString(), OperatorID: in.OperatorID, CustomerID: &in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "package_exception", OrderID: &o.ID, GrantID: &g.ID, AmountMoney: amount, CreditATG: a.Balance, State: "pending_review", Reason: in.Reason, Evidence: in.Evidence, RequestedBy: in.ActorStaffID, CreatedAt: at}
-		weights := []ledger.Decimal{o.InternalMoney, o.CommissionMoney}
 		var allocs []struct {
 			ReceiptID   string
 			AmountMoney ledger.Decimal
@@ -252,33 +238,57 @@ func (s *Service) RequestPackageException(ctx context.Context, in PackageExcepti
 		if e = t.Table("commerce_receipt_allocations").Select("receipt_id,sum(amount_money) AS amount_money").Where("order_id=?", o.ID).Group("receipt_id").Order("receipt_id").Scan(&allocs).Error; e != nil {
 			return e
 		}
-		sum := o.InternalMoney.Add(o.CommissionMoney)
+		group := map[string]ledger.Decimal{}
+		external := ledger.Zero()
 		for _, a := range allocs {
-			weights = append(weights, a.AmountMoney)
-			sum = sum.Add(a.AmountMoney)
+			group[a.ReceiptID] = a.AmountMoney
+			external = external.Add(a.AmountMoney)
 		}
-		if sum.Cmp(o.DueMoney) != 0 {
+		if external.Cmp(o.DueMoney.Sub(o.InternalMoney).Sub(o.CommissionMoney)) != 0 {
 			return ErrConflict
 		}
-		parts, e := ledger.Proportional(amount, weights)
+		return s.createLegs(ctx, t, out, group, nil, in.Evidence)
+	})
+	return out, e
+}
+
+type ProcurementNonDeliveryInput struct {
+	ActorStaffID string `json:"actor_staff_id"`
+	SupplierID   string `json:"supplier_id"`
+	OrderID      string `json:"order_id"`
+	BusinessKey  string `json:"business_key"`
+	Reason       string `json:"reason"`
+	Evidence     string `json:"evidence"`
+}
+
+// RequestProcurementNonDelivery refunds a purchase that was paid but never
+// received ATG. Delivered procurement inventory is not refunded here.
+func (s *Service) RequestProcurementNonDelivery(ctx context.Context, in ProcurementNonDeliveryInput) (Case, error) {
+	var out Case
+	if in.Reason == "" || !validID(in.OrderID) || in.BusinessKey == "" || len(in.BusinessKey) > 150 || in.Evidence == "" {
+		return out, ErrInvalid
+	}
+	e := s.within(ctx, nil, func(t *gorm.DB) error {
+		if e := s.Organization.RequirePermission(ctx, t, in.ActorStaffID, in.SupplierID, "refunds.manage"); e != nil {
+			return e
+		}
+		found, e := s.existing(t, in.SupplierID, in.BusinessKey, fingerprint(in), &out)
+		if e != nil || found {
+			return e
+		}
+		o, allocation, e := s.Cooperation.MarkUndeliveredPurchaseRefund(ctx, t, in.SupplierID, in.OrderID)
 		if e != nil {
 			return e
 		}
-		out.InternalMoney = parts[0]
-		out.CommissionMoney = parts[1]
-		h, e := s.Ledger.Reserve(ctx, t, ledger.Reservation{OperatorID: in.OperatorID, BusinessKey: "exception:" + out.ID, Purpose: "refund", ExpiresAt: at.AddDate(10, 0, 0), Amounts: []ledger.Line{{AccountID: g.AccountID, Amount: out.CreditATG}}})
+		at, e := instant(t)
 		if e != nil {
 			return e
 		}
-		out.GrantHoldID = &h.ID
+		out = Case{ID: uuid.NewString(), OperatorID: in.SupplierID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "procurement_nondelivery", OrderID: &o.ID, AmountMoney: o.DueMoney, State: "pending_review", Reason: in.Reason, Evidence: in.Evidence, RequestedBy: in.ActorStaffID, CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
-		group := map[string]ledger.Decimal{}
-		for i, a := range allocs {
-			group[a.ReceiptID] = parts[i+2]
-		}
-		return s.createLegs(ctx, t, out, group, nil, in.Evidence)
+		return s.createLegs(ctx, t, out, map[string]ledger.Decimal{allocation.ReceiptID: allocation.AmountMoney}, nil, in.Evidence)
 	})
 	return out, e
 }

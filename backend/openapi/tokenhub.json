@@ -16056,19 +16056,12 @@
           "content": {
             "application/json": {
               "schema": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/Operator_exits_request"
-                  },
-                  {
-                    "$ref": "#/components/schemas/Operator_exits_approve_failure"
-                  }
-                ]
+                "$ref": "#/components/schemas/Operator_exits_request"
               }
             }
           }
         },
-        "description": " Required explicit review: 将按原采购批次条款计算可退款并真实移除库存；仅未占用且责任已结清或已批准承接部分可以退出。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": " Required explicit review: 只按成交时约定的自愿退出条款，移除尚未占用的购买库存并计算退款。已经交付的库存不能因为供货失约再退。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "cooperation.manage"
       }
     },
@@ -18644,7 +18637,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_refunds",
-        "summary": "登记真实套餐异常",
+        "summary": "退回未交付套餐",
         "tags": [
           "Operator browser API"
         ],
@@ -18769,6 +18762,9 @@
                 "oneOf": [
                   {
                     "$ref": "#/components/schemas/Operator_refunds_package_exception"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Operator_refunds_procurement_nondelivery"
                   },
                   {
                     "$ref": "#/components/schemas/Operator_refunds_unallocated"
@@ -50137,25 +50133,13 @@
           "mode": {
             "type": "string",
             "enum": [
-              "voluntary_exit",
-              "supply_failure"
+              "voluntary_exit"
             ],
             "description": "退出原因"
           },
           "quantity": {
             "$ref": "#/components/schemas/LedgerDecimal",
             "description": "拟移除采购库存ATG"
-          },
-          "approval_id": {
-            "type": "string",
-            "description": "供货失约批准编号（失约退出必填）",
-            "x-visible-when": {
-              "field": "mode",
-              "values": [
-                "supply_failure"
-              ]
-            },
-            "x-required-when-visible": false
           },
           "evidence": {
             "type": "string",
@@ -50166,29 +50150,6 @@
           "action",
           "mode",
           "quantity"
-        ],
-        "additionalProperties": false
-      },
-      "Operator_exits_approve_failure": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "const": "approve_failure",
-            "description": "办理类型"
-          },
-          "buyer_id": {
-            "type": "string",
-            "description": "直属采购方编号"
-          },
-          "evidence": {
-            "type": "string",
-            "description": "实际供货失约与承接责任依据"
-          }
-        },
-        "required": [
-          "action",
-          "buyer_id",
-          "evidence"
         ],
         "additionalProperties": false
       },
@@ -51203,12 +51164,40 @@
           },
           "evidence": {
             "type": "string",
-            "description": "事实证据"
+            "description": "事实证据 — 只能退还已经付款、但还没有交付 ATG 的套餐或续费。已经交付的额度不能退。"
           }
         },
         "required": [
           "action",
           "customer_id",
+          "order_id",
+          "reason",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_refunds_procurement_nondelivery": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "procurement_nondelivery",
+            "description": "办理类型"
+          },
+          "order_id": {
+            "type": "string",
+            "description": "采购订单"
+          },
+          "reason": {
+            "type": "string",
+            "description": "退款原因"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "事实证据 — 只能退还已经付款、但供货方还没有交付 ATG 的采购订单。已经交付的采购库存不能在这里退。"
+          }
+        },
+        "required": [
+          "action",
           "order_id",
           "reason",
           "evidence"

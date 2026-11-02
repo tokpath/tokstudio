@@ -112,35 +112,8 @@ func TestPostgresCommissionPurchaseRefundRestoresOriginalEntryAndDisputeDoesNotF
 	if e != nil || len(views) != 1 || views[0].SourceEventID != f.sourceEvent.ID || views[0].AmountMoney.Cmp(d("12")) != 0 || views[0].State != "consumed" {
 		t.Fatal(views, e)
 	}
-	c, e := f.s.RequestPackageException(f.ctx, PackageExceptionInput{OperatorID: f.operator, CustomerID: f.customer, OrderID: o.ID, BusinessKey: "cannot-perform-commission-package", ActorStaffID: f.owner, Reason: "unable_to_fulfill", Evidence: "verified total fulfilment failure"})
-	if e != nil {
-		t.Fatal(e)
-	}
-	if _, e = f.s.ReviewRefund(f.ctx, f.owner, f.operator, c.ID, "approve", "approved actual unused rights return"); e != nil {
-		t.Fatal(e)
-	}
-	views, e = f.s.Incentives.OrderCommissionFunding(f.ctx, nil, f.operator, f.customer, o.ID)
-	if e != nil || len(views) != 1 || views[0].RestoredMoney.Cmp(d("12")) != 0 || views[0].SourceEventID != f.sourceEvent.ID {
-		t.Fatal("restoration lost original source", views, e)
-	}
-	cb := f.chargeback(t, f.source, "dispute-restored-origin", "80")
-	if e = f.s.RestrictChargeback(f.ctx, f.owner, f.operator, cb.ID, "restrict only original restored commission source"); e != nil {
-		t.Fatal(e)
-	}
-	a, e := f.s.account(f.ctx, f.db, f.operator, f.customer, "commission:available")
-	if e != nil || a.Held.Cmp(d("12")) != 0 || a.Available().Cmp(d("12")) != 0 {
-		t.Fatal("unrelated commission source frozen", a, e)
-	}
-	spendable, e := f.s.Incentives.CommissionSpendable(f.ctx, nil, f.operator, f.customer)
-	if e != nil || spendable.Cmp(d("12")) != 0 {
-		t.Fatal(spendable, e)
-	}
-	if _, e = f.s.ResolveChargeback(f.ctx, f.owner, f.operator, cb.ID, "merchant_collection_risk", "valid payment verified"); e != nil {
-		t.Fatal(e)
-	}
-	spendable, e = f.s.Incentives.CommissionSpendable(f.ctx, nil, f.operator, f.customer)
-	if e != nil || spendable.Cmp(d("24")) != 0 {
-		t.Fatal("source not restored after independent release", spendable, e)
+	if _, e = f.s.RequestPackageException(f.ctx, PackageExceptionInput{OperatorID: f.operator, CustomerID: f.customer, OrderID: o.ID, BusinessKey: "cannot-perform-commission-package", ActorStaffID: f.owner, Reason: "unable_to_fulfill", Evidence: "verified total fulfilment failure"}); !errors.Is(e, commerce.ErrOrderState) {
+		t.Fatal("delivered package was refunded", e)
 	}
 }
 func TestPostgresCommissionDisputeBlocksNewExecutionBeforeRestrictionReviewAndKeepsOtherSourceUsable(t *testing.T) {
@@ -312,28 +285,8 @@ func TestPostgresRestoringSpentCommissionDuringDisputeKeepsItsOriginalSourceGate
 	if e = f.s.RestrictChargeback(f.ctx, f.owner, f.operator, cb.ID, "original commission already spent"); e != nil {
 		t.Fatal(e)
 	}
-	c, e := f.s.RequestPackageException(f.ctx, PackageExceptionInput{OperatorID: f.operator, CustomerID: f.customer, OrderID: o.ID, BusinessKey: "restore-after-source-dispute", ActorStaffID: f.owner, Reason: "unable_to_fulfill", Evidence: "merchant cannot perform independent purchased package"})
-	if e != nil {
-		t.Fatal(e)
-	}
-	if _, e = f.s.ReviewRefund(f.ctx, f.owner, f.operator, c.ID, "approve", "verified unused package return"); e != nil {
-		t.Fatal(e)
-	}
-	spendable, e := f.s.Incentives.CommissionSpendable(f.ctx, nil, f.operator, f.customer)
-	if e != nil || spendable.Cmp(d("12")) != 0 {
-		t.Fatal("returned disputed commission became a clean new source", spendable, e)
-	}
-	if _, e = f.s.ResolveChargeback(f.ctx, f.owner, f.operator, cb.ID, "invalid_payment", "verified original payment invalid"); e != nil {
-		t.Fatal(e)
-	}
-	a, e := f.s.account(f.ctx, f.db, f.operator, f.customer, "commission:available")
-	spendable, bookErr := f.s.Incentives.CommissionSpendable(f.ctx, nil, f.operator, f.customer)
-	if e != nil || bookErr != nil || a.Available().Cmp(d("12")) != 0 || spendable.Cmp(d("12")) != 0 {
-		t.Fatal("source correction failed after restoration", a, spendable, e, bookErr)
-	}
-	var originalSpent ledger.Decimal
-	if e = f.db.Table("incentives_commission_funding_lots l").Select("l.consumed_money::text").Joins("JOIN incentives_commission_entries c ON c.id=l.entry_id").Joins("JOIN incentives_confirmation_events e ON e.id=c.event_id").Where("e.source_event_id=?", f.sourceEvent.ID).Row().Scan(&originalSpent); e != nil || originalSpent.Cmp(d("12")) != 0 {
-		t.Fatal("correction consumed a normal source before original restored funds", originalSpent, e)
+	if _, e = f.s.RequestPackageException(f.ctx, PackageExceptionInput{OperatorID: f.operator, CustomerID: f.customer, OrderID: o.ID, BusinessKey: "restore-after-source-dispute", ActorStaffID: f.owner, Reason: "unable_to_fulfill", Evidence: "merchant cannot perform independent purchased package"}); !errors.Is(e, commerce.ErrOrderState) {
+		t.Fatal("delivered package was refunded to restore commission", e)
 	}
 }
 

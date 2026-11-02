@@ -245,52 +245,53 @@ func TestPostgresWalletRefundConcurrentReservationsAndCancel(t *testing.T) {
 		t.Fatal(a)
 	}
 }
-func TestPostgresPackageExceptionRefundDoesNotRepriceConsumedOrRetainGift(t *testing.T) {
+func TestPostgresUndeliveredPackageCanBeRefundedAndDeliveredPackageCannot(t *testing.T) {
 	f := setup(t)
-	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "discounted", ExpectedOwnershipVersion: 1})
+	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "paid-not-delivered", ExpectedOwnershipVersion: 1})
 	if e != nil {
 		t.Fatal(e)
 	}
-	r := f.receipt(t, "discounted", "80")
+	r := f.receipt(t, "paid-not-delivered", "80")
 	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ActorStaffID: f.owner, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "paid", AmountMoney: d("80")}); e != nil {
 		t.Fatal(e)
 	}
-	del, e := f.s.Commerce.Fulfill(f.ctx, nil, o.ID, f.owner)
+	c, e := f.s.RequestPackageException(f.ctx, PackageExceptionInput{ActorStaffID: f.owner, OperatorID: f.operator, CustomerID: f.customer, OrderID: o.ID, BusinessKey: "cannot-deliver", Reason: "unable_to_fulfill", Evidence: "verified service permanent closure"})
 	if e != nil {
 		t.Fatal(e)
 	}
-	now, e := instant(f.db)
-	if e != nil {
-		t.Fatal(e)
-	}
-	hold, e := f.s.Ledger.ReserveCredits(f.ctx, nil, ledger.CreditReservation{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "usage-before-refund", Estimate: d("25"), At: now, ExpiresAt: now.Add(time.Hour)})
-	if e != nil {
-		t.Fatal(e)
-	}
-	if _, e = f.s.Ledger.SettleCredits(f.ctx, nil, f.operator, f.customer, hold.ID, "usage-before-refund", d("25"), now); e != nil {
-		t.Fatal(e)
-	}
-	c, e := f.s.RequestPackageException(f.ctx, PackageExceptionInput{ActorStaffID: f.owner, OperatorID: f.operator, CustomerID: f.customer, OrderID: o.ID, BusinessKey: "unfulfilled", Reason: "unable_to_fulfill", Evidence: "verified service permanent closure"})
-	if e != nil {
-		t.Fatal(e)
-	}
-	if c.AmountMoney.Cmp(d("60")) != 0 || c.CreditATG.Cmp(d("75")) != 0 {
+	if c.AmountMoney.Cmp(d("80")) != 0 || c.GrantID != nil {
 		t.Fatal(c)
 	}
-	if _, e = f.s.ReviewRefund(f.ctx, f.owner, f.operator, c.ID, "approve", "verified non-fulfillment"); e != nil {
+	if _, e = f.s.Commerce.Fulfill(f.ctx, nil, o.ID, f.owner); !errors.Is(e, commerce.ErrOrderState) {
+		t.Fatal("delivery continued after the refund request", e)
+	}
+	if _, e = f.s.ReviewRefund(f.ctx, f.owner, f.operator, c.ID, "approve", "verified non-delivery"); e != nil {
 		t.Fatal(e)
 	}
-	g, e := f.s.Ledger.GetGrant(f.ctx, nil, *del.GrantID)
-	if e != nil || g.Cancelled.Cmp(d("75")) != 0 || g.CancelledPaidMoney.Cmp(d("60")) != 0 || g.ConsumedPaidMoney.Cmp(d("20")) != 0 {
-		t.Fatal(g, e)
+	closed, e := f.s.Commerce.GetOrder(f.ctx, nil, f.customer, o.ID)
+	if e != nil || closed.Status != "closed" {
+		t.Fatal(closed, e)
+	}
+	var deliveries int64
+	if e = f.db.Table("commerce_deliveries").Where("order_id=?", o.ID).Count(&deliveries).Error; e != nil || deliveries != 0 {
+		t.Fatal(deliveries, e)
 	}
 	legs, e := f.s.Legs(f.ctx, nil, f.operator, c.ID)
-	if e != nil || len(legs) != 1 {
+	if e != nil || len(legs) != 1 || legs[0].AmountMoney.Cmp(d("80")) != 0 {
 		t.Fatal(legs, e)
 	}
-	f.pay(t, legs[0])
-	a, e := f.s.Ledger.AccountInTransaction(f.ctx, f.db, g.AccountID)
-	if e != nil || !a.Balance.IsZero() {
-		t.Fatal(a, e)
+	delivered, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "already-delivered", ExpectedOwnershipVersion: 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	paid := f.receipt(t, "already-delivered", "80")
+	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ActorStaffID: f.owner, ReceiptID: paid.ID, OrderID: delivered.ID, BusinessKey: "delivered-paid", AmountMoney: d("80")}); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = f.s.Commerce.Fulfill(f.ctx, nil, delivered.ID, f.owner); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = f.s.RequestPackageException(f.ctx, PackageExceptionInput{ActorStaffID: f.owner, OperatorID: f.operator, CustomerID: f.customer, OrderID: delivered.ID, BusinessKey: "too-late", Reason: "unable_to_fulfill", Evidence: "customer changed their mind"}); !errors.Is(e, commerce.ErrOrderState) {
+		t.Fatal("delivered ATG was refunded", e)
 	}
 }

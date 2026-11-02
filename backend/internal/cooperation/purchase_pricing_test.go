@@ -2,6 +2,7 @@ package cooperation
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
@@ -168,5 +169,42 @@ func TestPostgresNonUnitProcurementRatioPreservesFundingAndMovingCost(t *testing
 	settled, e := f.s.SettleProcurement(f.ctx, nil, f.channel, "actual-usage", hold.ID, amount("100.5"), time.Now())
 	if e != nil || settled.CostMoney.String() != "10" {
 		t.Fatal(settled, e)
+	}
+}
+
+func TestPostgresUndeliveredPurchaseCanBeRefundedAndDeliveredPurchaseCannot(t *testing.T) {
+	f, _, _, _ := replenishmentFixture(t, "")
+	q, e := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: tierFixture(), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"exit-v1"}`), Enabled: true})
+	if e != nil {
+		t.Fatal(e)
+	}
+	collector := commerce.New(f.db)
+	now := time.Now().UTC()
+	receipt, e := collector.RecordManualReceipt(f.ctx, nil, f.owner, commerce.VerifiedReceipt{OperatorID: f.platform, ProviderReceiptID: "undelivered-purchase", GrossMoney: amount("2000"), FeeStatus: "pending", Currency: "USD", OriginalAmount: "2000", RecipientReference: "synthetic supplier bank", PayerReference: "synthetic buyer bank", ValuationEvidence: "USD", VerificationEvidence: "synthetic verified transfer", PaidAt: &now, ObservedAt: now})
+	if e != nil {
+		t.Fatal(e)
+	}
+	order, e := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, q.ID, "undelivered", amount("2000"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = f.s.FundPurchase(f.ctx, nil, collector, f.owner, order.ID, receipt.ID, "full", amount("2000")); e != nil {
+		t.Fatal(e)
+	}
+	if _, _, e = f.s.MarkUndeliveredPurchaseRefund(f.ctx, nil, f.platform, order.ID); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = f.s.FulfillPurchase(f.ctx, nil, order.ID, f.owner); !errors.Is(e, commerce.ErrNotPaid) && !errors.Is(e, commerce.ErrOrderState) {
+		t.Fatal("paid purchase was delivered during the refund", e)
+	}
+	if e = f.s.CloseUndeliveredPurchase(f.ctx, nil, f.platform, order.ID); e != nil {
+		t.Fatal(e)
+	}
+	var closed PurchaseOrder
+	if e = f.db.First(&closed, "id=?", order.ID).Error; e != nil || closed.Status != "closed" {
+		t.Fatal(closed, e)
+	}
+	if _, e = f.s.RequestProcurementExit(f.ctx, nil, f.owner, f.channel, "no-failure-refund", "supply_failure", "supplier later could not cover delivered stock", amount("1"), CoverageRemovalGuard{Cooperation: f.s}); !errors.Is(e, ErrExitTerms) {
+		t.Fatal("delivered stock was refunded as a supply failure", e)
 	}
 }

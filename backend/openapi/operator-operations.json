@@ -2195,7 +2195,7 @@
   },
   {
     "resource": "exits",
-    "confirmation": "将按原采购批次条款计算可退款并真实移除库存；仅未占用且责任已结清或已批准承接部分可以退出。",
+    "confirmation": "只按成交时约定的自愿退出条款，移除尚未占用的购买库存并计算退款。已经交付的库存不能因为供货失约再退。",
     "description": "",
     "fields": [
       {
@@ -2214,10 +2214,6 @@
           {
             "label": "按合同自愿退出",
             "value": "voluntary_exit"
-          },
-          {
-            "label": "已有供货失约批准",
-            "value": "supply_failure"
           }
         ]
       },
@@ -2226,17 +2222,6 @@
         "label": "拟移除采购库存ATG",
         "kind": "decimal",
         "required": true
-      },
-      {
-        "name": "approval_id",
-        "label": "供货失约批准编号（失约退出必填）",
-        "kind": "text",
-        "visible_when": {
-          "field": "mode",
-          "values": [
-            "supply_failure"
-          ]
-        }
       },
       {
         "name": "evidence",
@@ -2249,39 +2234,6 @@
     "label": "按合同申请退出库存",
     "method": "POST",
     "name": "request",
-    "path": "/v1/operators/{operatorId}/exits",
-    "permission": "cooperation.manage"
-  },
-  {
-    "resource": "exits",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "name": "action",
-        "label": "办理类型",
-        "kind": "text",
-        "required": true,
-        "default_value": "approve_failure"
-      },
-      {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/buyers",
-        "name": "buyer_id",
-        "label": "直属采购方编号",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "evidence",
-        "label": "实际供货失约与承接责任依据",
-        "kind": "textarea",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "供货方批准真实供货失约",
-    "method": "POST",
-    "name": "approve_failure",
     "path": "/v1/operators/{operatorId}/exits",
     "permission": "cooperation.manage"
   },
@@ -3599,7 +3551,7 @@
             "value": "transaction_error"
           },
           {
-            "label": "无法履行服务",
+            "label": "无法交付",
             "value": "unable_to_fulfill"
           }
         ],
@@ -3609,13 +3561,53 @@
         "kind": "textarea",
         "label": "事实证据",
         "name": "evidence",
+        "required": true,
+        "help": "只能退还已经付款、但还没有交付 ATG 的套餐或续费。已经交付的额度不能退。"
+      }
+    ],
+    "include_version": false,
+    "label": "退回未交付套餐",
+    "method": "POST",
+    "name": "package_exception",
+    "path": "/v1/operators/{operatorId}/refunds",
+    "permission": "refunds.manage"
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "default_value": "procurement_nondelivery",
+        "kind": "hidden",
+        "label": "办理类型",
+        "name": "action",
+        "required": true
+      },
+      {
+        "kind": "text",
+        "label": "采购订单",
+        "name": "order_id",
+        "required": true
+      },
+      {
+        "kind": "text",
+        "label": "退款原因",
+        "name": "reason",
+        "required": true
+      },
+      {
+        "help": "只能退还已经付款、但供货方还没有交付 ATG 的采购订单。已经交付的采购库存不能在这里退。",
+        "kind": "textarea",
+        "label": "事实证据",
+        "name": "evidence",
         "required": true
       }
     ],
     "include_version": false,
-    "label": "登记真实套餐异常",
+    "label": "退回未交付采购",
     "method": "POST",
-    "name": "package_exception",
+    "name": "procurement_nondelivery",
     "path": "/v1/operators/{operatorId}/refunds",
     "permission": "refunds.manage"
   },
@@ -4621,7 +4613,7 @@
         "name": "stage",
         "options": [
           {
-            "label": "原始收款",
+            "label": "原始收款（不含充值）",
             "value": "receipt"
           },
           {

@@ -13,7 +13,7 @@ import (
 // supplies verified outcomes.
 type ReceiptAdjustment struct {
 	ReceiptID      string         `json:"receipt_id"`
-	RemovedMoney     ledger.Decimal `json:"removed_money"`
+	RemovedMoney   ledger.Decimal `json:"removed_money"`
 	ReviewRequired bool           `json:"review_required"`
 	Reference      string         `json:"reference"`
 }
@@ -69,7 +69,6 @@ func (d CommerceInvoiceSource) InvoiceBasis(ctx context.Context, tx *gorm.DB, op
 	if out.EligibleMoney.Sign() < 0 {
 		out.EligibleMoney = ledger.Zero()
 	}
-	out.ReceiptMoney = &out.EligibleMoney
 	capStage := func(v ledger.Decimal) ledger.Decimal {
 		if v.Cmp(out.EligibleMoney) > 0 {
 			return out.EligibleMoney
@@ -77,6 +76,13 @@ func (d CommerceInvoiceSource) InvoiceBasis(ctx context.Context, tx *gorm.DB, op
 		return v
 	}
 	out.TopUpMoney = capStage(basis.TopUpMoney)
+	// A bank receipt that only funded a balance top-up is not a sale. The
+	// receipt stage can invoice the part that paid a package directly.
+	directPurchase := out.EligibleMoney.Sub(out.TopUpMoney)
+	if directPurchase.Sign() < 0 {
+		directPurchase = ledger.Zero()
+	}
+	out.ReceiptMoney = &directPurchase
 	out.PurchaseMoney = capStage(basis.PurchaseMoney)
 	out.ConsumptionMoney = capStage(basis.ConsumptionMoney)
 	out.ReviewRequired = a.ReviewRequired || party.ReviewRequired

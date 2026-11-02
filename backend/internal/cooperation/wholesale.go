@@ -455,3 +455,91 @@ func (s *Service) PurchaseFromReceipt(ctx context.Context, tx *gorm.DB, collecto
 	})
 	return out, err
 }
+
+// MarkUndeliveredPurchaseRefund holds a paid purchase that has not received ATG
+// so delivery cannot start while the refund is open.
+func (s *Service) MarkUndeliveredPurchaseRefund(ctx context.Context, tx *gorm.DB, supplier, orderID string) (PurchaseOrder, PurchaseAllocation, error) {
+	var out PurchaseOrder
+	var allocation PurchaseAllocation
+	err := s.within(ctx, tx, func(t *gorm.DB) error {
+		o, a, e := s.lockUndeliveredPurchase(t, supplier, orderID)
+		if e != nil {
+			return e
+		}
+		if o.Status == "paid" {
+			o.Status = "exception"
+			if e = t.Save(&o).Error; e != nil {
+				return e
+			}
+		}
+		out, allocation = o, a
+		return nil
+	})
+	return out, allocation, err
+}
+
+// ClearUndeliveredPurchaseRefund lets a cancelled request be delivered again.
+func (s *Service) ClearUndeliveredPurchaseRefund(ctx context.Context, tx *gorm.DB, supplier, orderID string) error {
+	return s.within(ctx, tx, func(t *gorm.DB) error {
+		o, _, e := s.lockUndeliveredPurchase(t, supplier, orderID)
+		if e != nil {
+			return e
+		}
+		if o.Status != "exception" {
+			return nil
+		}
+		o.Status = "paid"
+		return t.Save(&o).Error
+	})
+}
+
+// CloseUndeliveredPurchase frees the reserved supply after the receipt funds
+// have been moved to the refund payout.
+func (s *Service) CloseUndeliveredPurchase(ctx context.Context, tx *gorm.DB, supplier, orderID string) error {
+	return s.within(ctx, tx, func(t *gorm.DB) error {
+		o, _, e := s.lockUndeliveredPurchase(t, supplier, orderID)
+		if e != nil {
+			return e
+		}
+		if o.Status != "exception" {
+			return commerce.ErrOrderState
+		}
+		if e = s.Lock(ctx, t, o.BuyerID); e != nil {
+			return e
+		}
+		released := t.Model(&SalesCommitment{}).Where("order_id=? AND status='active'", o.ID).Update("status", "released")
+		if released.Error != nil {
+			return released.Error
+		}
+		if released.RowsAffected != 1 {
+			return commerce.ErrOrderState
+		}
+		o.Status = "closed"
+		return t.Save(&o).Error
+	})
+}
+
+func (s *Service) lockUndeliveredPurchase(tx *gorm.DB, supplier, orderID string) (PurchaseOrder, PurchaseAllocation, error) {
+	var o PurchaseOrder
+	if e := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&o, "id=? AND supplier_id=?", orderID, supplier).Error; e != nil {
+		return o, PurchaseAllocation{}, e
+	}
+	if o.Status != "paid" && o.Status != "exception" || o.AllocatedMoney.Cmp(o.DueMoney) != 0 {
+		return o, PurchaseAllocation{}, commerce.ErrOrderState
+	}
+	var lots int64
+	if e := tx.Model(&ProcurementLot{}).Where("order_id=?", o.ID).Count(&lots).Error; e != nil {
+		return o, PurchaseAllocation{}, e
+	}
+	if lots > 0 || o.Status == "completed" {
+		return o, PurchaseAllocation{}, commerce.ErrOrderState
+	}
+	var a PurchaseAllocation
+	if e := tx.Where("order_id=?", o.ID).Limit(1).Find(&a).Error; e != nil {
+		return o, PurchaseAllocation{}, e
+	}
+	if a.ID == "" || a.AmountMoney.Cmp(o.DueMoney) != 0 {
+		return o, PurchaseAllocation{}, commerce.ErrOrderState
+	}
+	return o, a, nil
+}

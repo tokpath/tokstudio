@@ -130,7 +130,7 @@ func (a *Application) customerOperationsWorkspace(c *gin.Context, resource strin
 		p["items"] = items
 		p["row_operations"] = []operation{{Name: "replacement", Label: "作废后按原来源申请重开", Method: "POST", Path: "/api/v1/me/invoices/{id}/replacement", Fields: businessFields(operation{Path: "/api/v1/me/invoices", Fields: []field{jsonField("")}})}}
 		p["columns"] = []gin.H{col("operator_id", "原始开票经营方", "text"), col("amount_money", "可开票责任", "money"), col("state", "状态", "status"), col("invoice_reference", "开票凭证", "text"), col("reason", "说明", "text"), col("created_at", "申请时间", "datetime")}
-		p["operations"] = []operation{{Name: "invoice", Label: "按原始收款申请发票", Method: "POST", Path: "/api/v1/me/invoices", Fields: []field{jsonField("lines:[{receipt_id,amount_money}]、details:{title,tax_id,email,address}。同一外部收款跨充值与购包只可开票一次。")}}}
+		p["operations"] = []operation{{Name: "invoice", Label: "申请发票", Method: "POST", Path: "/api/v1/me/invoices", Fields: []field{jsonField("lines:[{receipt_id,amount_money}]、details:{title,tax_id,email,address}。充值不能开票；可开金额按购买或消费阶段计算。")}}}
 		policy, e := a.Operations.GetInvoicePolicy(ctx, customer, op, true)
 		if e != nil {
 			handleError(c, e)
@@ -262,7 +262,11 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			if party == "procurement" {
 				label = "经营方采购"
 			}
-			stage := selectField("stage", "允许开票阶段", "receipt|原始收款", "purchase|完成购买", "consumption|实际消费")
+			receiptLabel := "receipt|原始收款"
+			if party == "customer" {
+				receiptLabel = "receipt|原始收款（不含充值）"
+			}
+			stage := selectField("stage", "允许开票阶段", receiptLabel, "purchase|完成购买", "consumption|实际消费")
 			stage.Default = current.Stage
 			ratio := current.MaximumRatio
 			if current.Version == 0 {

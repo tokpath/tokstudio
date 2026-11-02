@@ -59,6 +59,9 @@ func (s *Service) Fulfill(ctx context.Context, tx *gorm.DB, orderID, actorID str
 		if o.Status != "paid" && o.Status != "exception" {
 			return ErrOrderState
 		}
+		if o.ExceptionReason == "delivery_refund_requested" {
+			return ErrOrderState
+		}
 		if o.CoverageStatus == "released" {
 			if s.coverage == nil {
 				return ErrNotReady

@@ -199,7 +199,7 @@ func (a *Application) refundStaffResource(c *gin.Context, op organization.Operat
 	p["title"] = "退款与原路执行"
 	p["items"] = items
 	p["columns"] = []gin.H{col("route_version", "路由版本", "text"), col("route_history", "已封存执行与授权", "details"), col("record_kind", "记录类型", "text"), col("case_id", "原申请", "text"), col("receipt_id", "原收款来源", "text"), col("amount_money", "清算责任", "money"), col("settled_money", "已真实清偿结算币种", "money"), col("remaining_money", "仍占用待付结算币种", "money"), col("excess_money", "多付经营异常结算币种", "money"), col("reason", "原因", "text"), col("state", "状态", "status")}
-	p["operations"] = []operation{{Name: "package_exception", Label: "登记真实套餐异常", Method: "POST", Path: base, Fields: []field{jsonField("action:'package_exception'、customer_id、order_id、reason(transaction_error/unable_to_fulfill)、evidence；只按原成交剩余责任退款，撤销未用权益与赠送。")}}, {Name: "unallocated", Label: "退回未分配收款", Method: "POST", Path: base, Fields: []field{jsonField("action:'unallocated'、receipt_id、amount_money、reason、evidence")}}}
+	p["operations"] = []operation{{Name: "package_exception", Label: "退回未交付套餐", Method: "POST", Path: base, Fields: []field{jsonField("已付款但尚未交付 ATG")}}, {Name: "procurement_nondelivery", Label: "退回未交付采购", Method: "POST", Path: base, Fields: []field{jsonField("已付款但尚未交付 ATG")}}, {Name: "unallocated", Label: "退回未分配收款", Method: "POST", Path: base, Fields: []field{jsonField("action:'unallocated'、receipt_id、amount_money、reason、evidence")}}}
 	p["row_operations"] = []operation{{Name: "review", Label: "审批", Method: "POST", Path: base + "/{id}/review", Fields: []field{selectField("decision", "审核决定", "approve|批准按原责任办理", "reject|拒绝并保留审核原因"), f("evidence", "审核依据", "textarea")}}, {Name: "cancel", Label: "取消未执行申请", Method: "POST", Path: base + "/{id}/cancel", Fields: []field{f("evidence", "取消依据", "textarea")}}, {Name: "verify_manual", Label: "登记付款", Method: "POST", Path: base + "/{id}/verify_manual", Fields: []field{jsonField("reference、currency、amount、fee_money、occurred_at、evidence。手续费随本次付款入账，没有则填 0。")}, Confirmation: "确认已按应退金额完成付款，并填写本次手续费。提交后申请结束。没有手续费填 0。"}, {Name: "begin_manual", Label: "登记外部退款执行意图", Method: "POST", Path: base + "/{id}/begin_manual", Fields: []field{f("evidence", "线下付款计划与说明", "textarea")}, Confirmation: "仅用于原路必须先锁定执行编号的稳定币或外部通道。普通线下退款直接登记付款。"}}
 
 	p["columns"] = append(p["columns"].([]gin.H), col("network", "准确网络", "text"), col("asset", "准确资产", "text"), col("token_contract", "代币合约", "text"), col("address", "明确接收地址", "text"), col("authorization_id", "不可变目的地授权", "text"))
@@ -236,6 +236,8 @@ func (a *Application) refundStaffCommand(c *gin.Context, op organization.Operato
 	switch in.Action {
 	case "package_exception":
 		out, e = a.Remediation.RequestPackageException(c.Request.Context(), remediation.PackageExceptionInput{ActorStaffID: actor, OperatorID: op.ID, CustomerID: in.CustomerID, OrderID: in.OrderID, BusinessKey: key, Reason: in.Reason, Evidence: in.Evidence})
+	case "procurement_nondelivery":
+		out, e = a.Remediation.RequestProcurementNonDelivery(c.Request.Context(), remediation.ProcurementNonDeliveryInput{ActorStaffID: actor, SupplierID: op.ID, OrderID: in.OrderID, BusinessKey: key, Reason: in.Reason, Evidence: in.Evidence})
 	case "unallocated":
 		out, e = a.Remediation.RequestUnallocatedRefund(c.Request.Context(), actor, op.ID, in.ReceiptID, key, in.Reason, in.Evidence, in.Amount)
 	default:

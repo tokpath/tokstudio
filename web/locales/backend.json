@@ -5619,6 +5619,51 @@
     "ja": "元の入金に基づく請求書を申請",
     "ru": "Запросить счёт по исходному поступлению"
   },
+  "申请发票": {
+    "en": "Request an invoice",
+    "ja": "請求書を申請",
+    "ru": "Запросить счёт"
+  },
+  "原始收款（不含充值）": {
+    "en": "Original receipt, excluding top-ups",
+    "ja": "元の入金（チャージを除く）",
+    "ru": "Исходное поступление без пополнений"
+  },
+  "退回未交付套餐": {
+    "en": "Refund an undelivered package",
+    "ja": "未交付のプランを返金",
+    "ru": "Вернуть оплату недоставленного пакета"
+  },
+  "退回未交付采购": {
+    "en": "Refund an undelivered procurement order",
+    "ja": "未交付の仕入れを返金",
+    "ru": "Вернуть оплату недоставленной закупки"
+  },
+  "无法交付": {
+    "en": "Unable to deliver",
+    "ja": "交付できない",
+    "ru": "Невозможно поставить"
+  },
+  "只能退还已经付款、但还没有交付 ATG 的套餐或续费。已经交付的额度不能退。": {
+    "en": "Only a paid package or renewal that has not received ATG can be refunded. Delivered credits cannot be refunded.",
+    "ja": "返金できるのは、支払い済みでまだ ATG が交付されていないプランまたは更新だけです。交付済みの枠は返金できません。",
+    "ru": "Вернуть можно только оплаченный пакет или продление, по которому ATG ещё не выдан. Выданные кредиты не возвращаются."
+  },
+  "只能退还已经付款、但供货方还没有交付 ATG 的采购订单。已经交付的采购库存不能在这里退。": {
+    "en": "Only a paid procurement order that has not received ATG can be refunded. Delivered procurement inventory cannot be refunded here.",
+    "ja": "返金できるのは、支払い済みで仕入先がまだ ATG を交付していない仕入れ注文だけです。交付済みの仕入れ在庫はここでは返金できません。",
+    "ru": "Вернуть можно только оплаченный заказ на закупку, по которому ATG ещё не выдан. Поставленные запасы здесь не возвращаются."
+  },
+  "这里只办理合同里事先约定的自愿退出：移除尚未占用的采购库存，并按原购买比例退款。已经付款但还没交付 ATG 的采购，改在退款页办理。已经交付的库存不能因为后来供货失约再退。": {
+    "en": "This page handles only a pre-agreed voluntary exit: remove unused purchased inventory and refund it in proportion to the original payment. A paid order that never received ATG is refunded from the refund page. Delivered inventory cannot be refunded later because supply failed.",
+    "ja": "このページは、契約であらかじめ定めた任意退出だけを扱います。未使用の購入在庫を外し、元の支払割合で返金します。支払済みで ATG 未交付の仕入れは返金ページで扱います。交付済み在庫は、その後の供給不能を理由に返金できません。",
+    "ru": "Здесь оформляется только заранее согласованный добровольный выход: снимается неиспользованный купленный запас и возвращается пропорционально исходной оплате. Оплаченный, но не поставленный заказ возвращается на странице возвратов. Поставленный запас нельзя вернуть из-за последующего срыва поставки."
+  },
+  "只按成交时约定的自愿退出条款，移除尚未占用的购买库存并计算退款。已经交付的库存不能因为供货失约再退。": {
+    "en": "Remove unused purchased inventory and calculate the refund only under the voluntary exit terms agreed at purchase. Delivered inventory cannot be refunded because supply later failed.",
+    "ja": "購入時に定めた任意退出条項に従い、未使用の購入在庫を外して返金額を計算します。交付済み在庫は供給不能を理由に返金できません。",
+    "ru": "Снимите неиспользованный купленный запас и рассчитайте возврат только по условиям добровольного выхода, согласованным при покупке. Поставленный запас нельзя вернуть из-за срыва поставки."
+  },
   "最高原收款比例": {
     "en": "Maximum share of original receipt",
     "ja": "元の入金に対する最大比率",

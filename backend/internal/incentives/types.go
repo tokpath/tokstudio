@@ -25,6 +25,7 @@ var (
 	ErrBlocked                      = errors.New("incentives: commission release or use is blocked")
 	ErrWithdrawalState              = errors.New("incentives: withdrawal state does not permit this action")
 	ErrWithdrawalMinimum            = errors.New("incentives: withdrawal minimum is below one settlement unit")
+	ErrBalanceWithdrawalMinimum     = errors.New("incentives: balance withdrawal minimum is below one settlement unit")
 	ErrWithdrawalSameCurrencyAmount = errors.New("incentives: same-currency withdrawal amount contradicts the fixed net")
 	ErrWithdrawalForeignAmount      = errors.New("incentives: foreign withdrawal amount is incomplete")
 	ErrRewardPromise                = errors.New("incentives: an active registration reward promise is required")

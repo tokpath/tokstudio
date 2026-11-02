@@ -154,16 +154,19 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 			items = append(items, row)
 		}
 		p["title"] = "提现方式"
+		fields := withdrawalMethodFields()
 		if wallet == "balance" {
+			minimum := a.Incentives.WithdrawalMinimum(c.Request.Context(), nil, op.ID, wallet)
 			p["title"] = "余额提现方式"
-			p["description"] = "设置支付余额可用的提现方式及手续费。申请时固定本次费用和实付金额，手续费由客户承担。审批后按实付金额登记一次付款。"
+			p["description"] = "设置支付余额的最低提现额度和提现方式。手续费在申请时固定，由客户承担。审批后按实付金额登记一次付款。"
+			p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum.String(), "unit": "MONEY", "detail": "单笔支付余额提现不能低于这个额度。"}}
+			p["operations"] = []operation{balanceMinimumOperation(base, minimum), {Name: "method", Label: "新增提现方式", Method: "POST", Path: base, Fields: fields}}
 		} else {
 			p["description"] = "设置可用提现方式及固定手续费或手续费率。申请时固定本次费用和实付金额，线下按实付金额付款，无需逐笔登记实际手续费。"
+			p["operations"] = []operation{{Name: "method", Label: "新增提现方式", Method: "POST", Path: base, Fields: fields}}
 		}
 		p["items"] = items
 		p["columns"] = []gin.H{col("method_name", "提现方式", "text"), col("payout_kind_label", "收款材料", "text"), col("flat_fee_money", "固定手续费", "money"), col("fee_percent", "手续费率 %", "decimal"), col("enabled", "开放申请", "boolean")}
-		fields := withdrawalMethodFields()
-		p["operations"] = []operation{{Name: "method", Label: "新增提现方式", Method: "POST", Path: base, Fields: fields}}
 		p["row_operations"] = []operation{{Name: "edit_method", Label: "修改提现方式", Method: "POST", Path: base + "/{id}/edit_method", Fields: fields}}
 		a.resourceResponse(c, p)
 		return
@@ -184,13 +187,18 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 	p["title"] = "佣金提现申请"
 	p["description"] = "在邀请与分佣中审批并登记线下付款。最低提现金额在分佣规则中设置，手续费在提现方式中设置。"
 	if wallet == "balance" {
+		minimum := a.Incentives.WithdrawalMinimum(c.Request.Context(), nil, op.ID, wallet)
 		p["title"] = "余额提现申请"
-		p["description"] = "审批支付余额提现，并按申请时固定的实付金额登记一次付款。手续费由客户承担，不再关联原来的充值。"
+		p["description"] = "审批支付余额提现，并按申请时固定的实付金额登记一次付款。最低额度在本页设置，手续费在提现方式中设置，由客户承担。"
+		p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum.String(), "unit": "MONEY", "detail": "单笔支付余额提现不能低于这个额度。"}}
+		p["operations"] = []operation{balanceMinimumOperation(base, minimum)}
 	}
 	p["items"] = items
 	p["next_cursor"] = next
 	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
-	p["operations"] = []operation{}
+	if wallet != "balance" {
+		p["operations"] = []operation{}
+	}
 	held := "佣金占用"
 	if wallet == "balance" {
 		held = "支付余额占用"
@@ -208,6 +216,12 @@ func customerPayoutMethods(methods []incentives.WithdrawalPolicy) []gin.H {
 		out = append(out, gin.H{"id": method.MethodID, "name": method.MethodName, "kind": method.PayoutKind, "kind_label": profile.Label, "summary": profile.Summary, "flat_fee_money": method.FlatFeeMoney.String(), "fee_rate": method.FeeRate.String(), "minimum_money": method.MinimumMoney.String(), "fields": profile.Fields})
 	}
 	return out
+}
+func balanceMinimumOperation(base string, minimum ledger.Decimal) operation {
+	amount := f("minimum_money", "余额最低提现 结算币种", "decimal")
+	amount.Default = minimum.String()
+	amount.Help = "单笔支付余额提现不能低于这个额度，且不能小于 1 结算币种。已经提交的申请仍按申请时的额度办理。"
+	return operation{Name: "minimum", Label: "设置最低提现额度", Method: "POST", Path: base, Fields: []field{amount}, Confirmation: "确认更新支付余额的单笔最低提现额度？新申请按这个额度校验。"}
 }
 func withdrawalMethodFields() []field {
 	mode := f("fee_mode", "手续费方式", "select")
@@ -229,7 +243,21 @@ func withdrawalMethodFields() []field {
 	}
 	return []field{kind, f("method_name", "提现方式名称", "text"), mode, fixed, rate, enabled, defaultField("expected_version", "当前版本", "hidden", 0)}
 }
+func (a *Application) saveBalanceWithdrawalMinimum(c *gin.Context, op organization.Operator, actor string, minimum ledger.Decimal) {
+	raw, err := a.command(c, "balance-withdrawal-minimum:"+op.ID, gin.H{"minimum_money": minimum}, func(tx *gorm.DB) (any, error) {
+		saved, err := a.Incentives.SetBalanceWithdrawalMinimum(c.Request.Context(), tx, actor, op.ID, minimum)
+		return commandResult(saved.OperatorID, "saved"), err
+	})
+	jsonResponse(c, raw, err)
+}
 func (a *Application) saveWithdrawalMethod(c *gin.Context, op organization.Operator, actor, methodID string) {
+	var raw json.RawMessage
+	if !body(c, &raw) {
+		return
+	}
+	a.saveWithdrawalMethodBody(c, op, actor, methodID, raw)
+}
+func (a *Application) saveWithdrawalMethodBody(c *gin.Context, op organization.Operator, actor, methodID string, raw json.RawMessage) {
 	var in struct {
 		Kind     string         `json:"payout_kind"`
 		Name     string         `json:"method_name"`
@@ -239,7 +267,8 @@ func (a *Application) saveWithdrawalMethod(c *gin.Context, op organization.Opera
 		Enabled  bool           `json:"enabled"`
 		Expected int64          `json:"expected_version"`
 	}
-	if !body(c, &in) {
+	if json.Unmarshal(raw, &in) != nil {
+		fail(c, 400, "invalid_input", "请求内容格式错误", false)
 		return
 	}
 	if _, ok := incentives.FindPayoutProfile(in.Kind); !ok {
@@ -279,7 +308,29 @@ func (a *Application) saveWithdrawalMethod(c *gin.Context, op organization.Opera
 	jsonResponse(c, raw, err)
 }
 func (a *Application) withdrawalStaffCommand(c *gin.Context, op organization.Operator, actor string) {
-	a.saveWithdrawalMethod(c, op, actor, "")
+	var raw map[string]json.RawMessage
+	if !body(c, &raw) {
+		return
+	}
+	if c.Param("resource") == "balance-withdrawals" {
+		if _, hasKind := raw["payout_kind"]; !hasKind {
+			if minRaw, ok := raw["minimum_money"]; ok {
+				var minimum ledger.Decimal
+				if json.Unmarshal(minRaw, &minimum) != nil {
+					fail(c, 400, "invalid_input", "请输入余额最低提现额度。", false)
+					return
+				}
+				a.saveBalanceWithdrawalMinimum(c, op, actor, minimum)
+				return
+			}
+		}
+	}
+	encoded, err := json.Marshal(raw)
+	if err != nil {
+		fail(c, 400, "invalid_input", "请求内容格式错误", false)
+		return
+	}
+	a.saveWithdrawalMethodBody(c, op, actor, "", encoded)
 }
 func (a *Application) withdrawalStaffAction(c *gin.Context, op organization.Operator, actor, action string) {
 	if action == "edit_method" {

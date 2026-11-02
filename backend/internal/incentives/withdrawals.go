@@ -16,29 +16,52 @@ import (
 
 const commissionWithdrawalTerms = "提现手续费由申请人承担；经营方单人审批后付款。"
 
-func (s *Service) SetCommissionWithdrawalMinimum(ctx context.Context, tx *gorm.DB, actor, operator string, minimum ledger.Decimal) (out WithdrawalPolicy, err error) {
-	if !minimum.Valid() || minimum.Sign() <= 0 {
+func (s *Service) SetCommissionWithdrawalMinimum(ctx context.Context, tx *gorm.DB, actor, operator string, minimum ledger.Decimal) (WithdrawalPolicy, error) {
+	return s.setWithdrawalMinimum(ctx, tx, actor, operator, "commission", "marketing.manage", minimum)
+}
+
+func (s *Service) SetBalanceWithdrawalMinimum(ctx context.Context, tx *gorm.DB, actor, operator string, minimum ledger.Decimal) (WithdrawalPolicy, error) {
+	return s.setWithdrawalMinimum(ctx, tx, actor, operator, "balance", "withdrawals.manage", minimum)
+}
+
+func (s *Service) WithdrawalMinimum(ctx context.Context, tx *gorm.DB, operator, wallet string) ledger.Decimal {
+	if wallet != "balance" {
+		wallet = "commission"
+	}
+	var setting struct{ MinimumMoney ledger.Decimal }
+	if err := s.dbFor(ctx, tx).Table("incentives_withdrawal_settings").Where("operator_id=? AND wallet=?", operator, wallet).Limit(1).Find(&setting).Error; err != nil || setting.MinimumMoney.Sign() <= 0 {
+		return ledger.FromInt64(1)
+	}
+	return setting.MinimumMoney
+}
+
+func (s *Service) setWithdrawalMinimum(ctx context.Context, tx *gorm.DB, actor, operator, wallet, permission string, minimum ledger.Decimal) (out WithdrawalPolicy, err error) {
+	if wallet != "commission" && wallet != "balance" || !minimum.Valid() || minimum.Sign() <= 0 {
 		return out, ErrInvalidInput
 	}
 	// One settlement unit is the smallest amount an operator may publish.
 	// Smaller values survive the form, then disappear when a quote is cut to
 	// the currency's payable unit.
 	if minimum.Cmp(ledger.FromInt64(1)) < 0 {
+		if wallet == "balance" {
+			return out, ErrBalanceWithdrawalMinimum
+		}
 		return out, ErrWithdrawalMinimum
 	}
 	err = s.within(ctx, tx, func(t *gorm.DB) error {
-		if err := s.org.RequirePermission(ctx, t, actor, operator, "marketing.manage"); err != nil {
+		if err := s.org.RequirePermission(ctx, t, actor, operator, permission); err != nil {
 			return err
 		}
 		if err := s.LockBusiness(ctx, t, operator); err != nil {
 			return err
 		}
-		if err := t.Exec("INSERT INTO incentives_withdrawal_settings(operator_id,wallet,minimum_money) VALUES(?,'commission',?) ON CONFLICT(operator_id,wallet) DO UPDATE SET minimum_money=excluded.minimum_money", operator, minimum).Error; err != nil {
+		if err := t.Exec("INSERT INTO incentives_withdrawal_settings(operator_id,wallet,minimum_money) VALUES(?,?,?) ON CONFLICT(operator_id,wallet) DO UPDATE SET minimum_money=excluded.minimum_money", operator, wallet, minimum).Error; err != nil {
 			return err
 		}
 		out.MinimumMoney = minimum
 		out.OperatorID = operator
-		return s.event(t, operator, operator, "withdrawal.minimum_changed", map[string]any{"actor_id": actor, "minimum_money": minimum})
+		out.Wallet = wallet
+		return s.event(t, operator, operator, "withdrawal.minimum_changed", map[string]any{"actor_id": actor, "wallet": wallet, "minimum_money": minimum})
 	})
 	return
 }

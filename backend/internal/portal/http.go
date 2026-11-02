@@ -107,6 +107,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 400, "invalid_verification", "验证凭据无效或已过期，请重新发起验证", false
 	case errors.Is(err, incentives.ErrWithdrawalMinimum):
 		status, code, msg, retry = 400, "invalid_input", "佣金最低提现不能小于 1 结算币种。", false
+	case errors.Is(err, incentives.ErrBalanceWithdrawalMinimum):
+		status, code, msg, retry = 400, "invalid_input", "余额最低提现不能小于 1 结算币种。", false
 	case errors.Is(err, incentives.ErrWithdrawalSameCurrencyAmount):
 		status, code, msg, retry = 400, "invalid_input", "用结算币种付款时，金额就是申请里已经固定的实付净额，不能再填一个不同的数字。", false
 	case errors.Is(err, incentives.ErrWithdrawalForeignAmount):

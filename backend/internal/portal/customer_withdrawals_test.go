@@ -214,3 +214,42 @@ func TestPostgresCommissionPageSetsWithdrawalMinimumOnly(t *testing.T) {
 		t.Fatal("rejected minimum replaced the published rule", page["items"])
 	}
 }
+
+func TestPostgresBalanceWithdrawalMinimumIsSetOnItsOwnPage(t *testing.T) {
+	f := setupPortal(t)
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	base := "/v1/operators/" + f.a.Installation.OperatorID
+	status, page, _ := f.call(t, "GET", base+"/balance-withdrawals?view=methods", nil, "")
+	mustOK(t, status, page)
+	found := false
+	for _, raw := range page["operations"].([]any) {
+		op := raw.(map[string]any)
+		if op["name"] != "minimum" {
+			continue
+		}
+		found = true
+		if op["label"] != "设置最低提现额度" {
+			t.Fatal(op)
+		}
+	}
+	if !found {
+		t.Fatal("balance withdrawal page has no minimum setting", page["operations"])
+	}
+	status, out, _ := f.call(t, "POST", base+"/balance-withdrawals", map[string]any{"minimum_money": "8"}, "")
+	mustOK(t, status, out)
+	if got := f.a.Incentives.WithdrawalMinimum(context.Background(), nil, f.a.Installation.OperatorID, "balance"); got.String() != "8" {
+		t.Fatal(got)
+	}
+	if got := f.a.Incentives.WithdrawalMinimum(context.Background(), nil, f.a.Installation.OperatorID, "commission"); got.String() != "1" {
+		t.Fatal("balance minimum changed the commission floor", got)
+	}
+	status, out, _ = f.call(t, "POST", base+"/balance-withdrawals", map[string]any{"minimum_money": "0.5"}, "")
+	if status != 400 || !strings.Contains(out["error"].(map[string]any)["message"].(string), "不能小于 1") {
+		t.Fatal(status, out)
+	}
+	status, page, _ = f.call(t, "GET", base+"/balance-withdrawals", nil, "")
+	mustOK(t, status, page)
+	if page["summary"].([]any)[0].(map[string]any)["value"] != "8" {
+		t.Fatal(page["summary"])
+	}
+}

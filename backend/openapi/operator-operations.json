@@ -4266,6 +4266,26 @@
     "permission": "refunds.manage"
   },
   {
+    "resource": "balance-withdrawals",
+    "confirmation": "确认更新支付余额的单笔最低提现额度？新申请按这个额度校验。",
+    "description": "",
+    "fields": [
+      {
+        "name": "minimum_money",
+        "label": "余额最低提现 结算币种",
+        "kind": "decimal",
+        "required": true,
+        "help": "单笔支付余额提现不能低于这个额度，且不能小于 1 结算币种。已经提交的申请仍按申请时的额度办理。"
+      }
+    ],
+    "include_version": false,
+    "label": "设置最低提现额度",
+    "method": "POST",
+    "name": "minimum",
+    "path": "/v1/operators/{operatorId}/balance-withdrawals",
+    "permission": "withdrawals.manage"
+  },
+  {
     "resource": "withdrawals",
     "confirmation": "",
     "description": "Configure one payout method. The operator selects a payment profile, which fixes the recipient materials, and either a fixed fee or a percentage. The customer submits one application. The fee and recipient materials are fixed at submission. No actual payout fee is entered.",

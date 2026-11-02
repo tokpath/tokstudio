@@ -35,11 +35,11 @@ func (f *testApp) seedFinanceSimulation(t *testing.T) map[string]any {
 		}
 		return map[string]any{"id": row.ID, "email": email, "password": password}
 	}
-	finance, reviewer := staff("finance@simulation.test"), staff("finance-reviewer@simulation.test")
+	finance := staff("finance@simulation.test")
 	email := "finance-customer@simulation.test"
 	f.registered(t, email)
 	f.login(t, "customer", email, "customer-password-test")
 	status, session, _ := f.call(t, "GET", "/v1/auth/me", nil, "")
 	mustOK(t, status, session)
-	return map[string]any{"operator_id": op, "finance": finance, "reviewer": reviewer, "customer": map[string]any{"id": session["customer"].(map[string]any)["id"], "email": email, "password": "customer-password-test"}}
+	return map[string]any{"operator_id": op, "finance": finance, "customer": map[string]any{"id": session["customer"].(map[string]any)["id"], "email": email, "password": "customer-password-test"}}
 }

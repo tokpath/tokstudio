@@ -759,11 +759,6 @@
     "ja": "現在の責任事業者が自身の加盟店または銀行を通じて、この正確な宛先へ支払うことを明示的に承認します。元の事業者の加盟店設定の使用権限は付与しません。",
     "ru": "Я явно разрешаю текущему ответственному оператору платить на это точное назначение через собственный мерчант или банк. Это не даёт права использовать настройки мерчанта исходного оператора."
   },
-  "独立复核政策版本": {
-    "en": "Independent review policy version",
-    "ja": "独立審査方針のバージョン",
-    "ru": "Версия политики независимой проверки"
-  },
   "路由版本": {
     "en": "Route version",
     "ja": "ルートバージョン",
@@ -783,11 +778,6 @@
     "en": "Return unallocated receipt",
     "ja": "未割当入金を返金",
     "ru": "Вернуть нераспределённое поступление"
-  },
-  "审批/独立复核": {
-    "en": "Approval / independent review",
-    "ja": "承認 / 独立審査",
-    "ru": "Одобрение / независимая проверка"
   },
   "拒绝并保留审核原因": {
     "en": "Reject and retain review reason",
@@ -2194,10 +2184,10 @@
     "ja": "支払い無効。出所に従って訂正",
     "ru": "Недействительный платёж; исправить по источнику"
   },
-  "独立复核与归类证据": {
-    "en": "Independent review and classification evidence",
-    "ja": "独立した再確認と分類の証拠",
-    "ru": "Подтверждение независимой проверки и классификации"
+  "归类证据": {
+    "en": "Classification evidence",
+    "ja": "分類の証拠",
+    "ru": "Подтверждение классификации"
   },
   "本次真实追回结算币种": {
     "en": "Actual settlement currency recovered this time",
@@ -2799,16 +2789,6 @@
     "ja": "責任者による支払いを明示的に選択します",
     "ru": "Я явно выбираю оплату ответственной стороной"
   },
-  "需独立复核的结算币种阈值（留空关闭）": {
-    "en": "settlement currency threshold for independent review (blank disables)",
-    "ja": "独立再確認が必要な 決済通貨 しきい値（空欄で無効）",
-    "ru": "Порог валюта расчётов для независимой проверки (пусто — отключить)"
-  },
-  "二次复核阈值": {
-    "en": "Second review threshold",
-    "ja": "二次再確認しきい値",
-    "ru": "Порог повторной проверки"
-  },
   "已封存执行与授权": {
     "en": "Archived executions and authorizations",
     "ja": "封存済みの実行と承認",
@@ -2823,11 +2803,6 @@
     "en": "Record an actual plan exception",
     "ja": "実際のプラン例外を登録",
     "ru": "Зарегистрировать фактическое исключение плана"
-  },
-  "设置独立复核阈值": {
-    "en": "Set independent review threshold",
-    "ja": "独立再確認しきい値を設定",
-    "ru": "Задать порог независимой проверки"
   },
   "审核决定": {
     "en": "Review decision",
@@ -3414,10 +3389,10 @@
     "ja": "関連機能の設定または検証が未完了です。現在の事業者にお問い合わせください。",
     "ru": "Настройка или проверка возможности не завершена. Свяжитесь с текущим оператором."
   },
-  "此事项需要另一位有权限的人员独立复核": {
-    "en": "This action requires independent review by another authorized person",
-    "ja": "この手続きは権限を持つ別の担当者による独立した再確認が必要です",
-    "ru": "Для этого действия требуется независимая проверка другим уполномоченным сотрудником"
+  "这笔记录还不能这样办理。请先完成原事项要求的核实。": {
+    "en": "This record cannot be processed this way yet. Complete the verification this item requires first.",
+    "ja": "この記録はまだこの方法では処理できません。先にこの事項が求める確認を完了してください。",
+    "ru": "Эту запись пока нельзя обработать таким образом. Сначала завершите требуемую проверку."
   },
   "活动次数、预算或让利额度已达到限制": {
     "en": "The campaign count, budget, or concession limit has been reached",
@@ -4279,10 +4254,10 @@
     "ja": "運営者の回収リスク・顧客特典を維持",
     "ru": "Риск приёма оплаты оператора — сохранить права клиента"
   },
-  "不同归类影响不同责任。请核实真实付款与收款风险，独立复核要求由服务器执行。": {
-    "en": "Classification affects liability. Verify the actual payment and collection risks; the server enforces independent review requirements.",
-    "ja": "分類によって責任が変わります。実際の支払と回収リスクを確認してください。独立した再審査要件はサーバーが適用します。",
-    "ru": "Классификация влияет на ответственность. Проверьте фактическую оплату и риски приёма платежа; сервер обеспечивает независимую проверку."
+  "不同归类影响不同责任。请核实真实付款与收款风险后再提交。": {
+    "en": "Classification affects liability. Verify the actual payment and collection risks before submitting.",
+    "ja": "分類によって責任が変わります。提出前に、実際の支払と回収リスクを確認してください。",
+    "ru": "Классификация влияет на ответственность. Перед отправкой проверьте фактическую оплату и риски приёма платежа."
   },
   "银行或通道追回凭证": {
     "en": "Bank or provider recovery evidence",
@@ -4878,11 +4853,6 @@
     "en": "action:'package_exception', customer_id, order_id, reason(transaction_error/unable_to_fulfill), evidence. Refund only the remaining original liability; revoke unused credits and bonuses.",
     "ja": "action:'package_exception'、customer_id、order_id、reason(transaction_error/unable_to_fulfill)、evidence。元の取引の残責任のみ返金し、未使用特典と付与分を取り消します。",
     "ru": "action:'package_exception', customer_id, order_id, reason(transaction_error/unable_to_fulfill), evidence. Возврат только оставшегося исходного обязательства; неиспользованные кредиты и бонусы отзываются."
-  },
-  "复核政策版本": {
-    "en": "Review policy version",
-    "ja": "審査方針の版",
-    "ru": "Версия политики проверки"
   },
   "批准按原责任办理": {
     "en": "Approve under original liability",

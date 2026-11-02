@@ -744,10 +744,10 @@
     "ja": "{count} 件",
     "ru": "Записей: {count}"
   },
-  "完成独立复核": {
-    "en": "Complete independent review",
-    "ja": "独立審査を完了",
-    "ru": "Завершить независимую проверку"
+  "完成审批": {
+    "en": "Complete approval",
+    "ja": "承認を完了",
+    "ru": "Завершить одобрение"
   },
   "到原业务核对来源、条款和证据，再由具备权限的人员办理。": {
     "en": "Check sources, terms, and evidence in the original transaction, then have authorized staff process it.",
@@ -2189,10 +2189,10 @@
     "ja": "実際の入出金日時",
     "ru": "Время фактического платежа"
   },
-  "我已审阅上述完整客户、四类资产、采购批次、覆盖计算、合同及正负结清额。服务器会重新核对快照并执行独立复核策略。": {
-    "en": "I have reviewed all customers, four asset types, procurement lots, coverage calculations, contracts, and positive or negative settlement amounts above. The server will recheck the snapshot and apply independent review rules.",
-    "ja": "上記の全顧客、4 種類の資産、調達ロット、カバレッジ計算、契約、正負の精算額を審査しました。サーバーがスナップショットを再確認し、独立審査規則を適用します。",
-    "ru": "Я проверил всех клиентов, четыре типа активов, закупочные партии, расчёты обеспечения, договор и положительные или отрицательные суммы расчёта. Сервер повторно проверит снимок и применит правила независимой проверки."
+  "我已审阅上述完整客户、四类资产、采购批次、覆盖计算、合同及正负结清额。服务器会重新核对快照后，由当前人员执行接管。": {
+    "en": "I have reviewed all customers, four asset types, procurement lots, coverage calculations, contracts, and positive or negative settlement amounts above. The server will recheck the snapshot, then the current staff member executes the takeover.",
+    "ja": "上記の全顧客、4 種類の資産、調達ロット、カバレッジ計算、契約、正負の精算額を審査しました。サーバーがスナップショットを再確認したあと、現在の担当者が接管を実行します。",
+    "ru": "Я проверил всех клиентов, четыре типа активов, закупочные партии, расчёты обеспечения, договор и положительные или отрицательные суммы расчёта. Сервер повторно проверит снимок, после чего текущий сотрудник выполнит передачу."
   },
   "确认取消方案；不会自动恢复渠道营业。": {
     "en": "Confirm cancellation; channel business will not reopen automatically.",
@@ -2728,11 +2728,6 @@
     "en": "Preparing",
     "ja": "準備中",
     "ru": "Подготовка"
-  },
-  "待独立复核": {
-    "en": "Awaiting independent review",
-    "ja": "独立審査待ち",
-    "ru": "Ожидает независимой проверки"
   },
   "成本待核实": {
     "en": "Costs pending verification",

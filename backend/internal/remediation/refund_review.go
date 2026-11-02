@@ -43,9 +43,6 @@ func (s *Service) ReviewRefund(ctx context.Context, actor, op, id, decision, evi
 		if out.State != "pending_review" {
 			return ErrState
 		}
-		if out.RequiredReviews > 1 && out.RequestedBy == actor {
-			return ErrReview
-		}
 		at, e := instant(t)
 		if e != nil {
 			return e
@@ -55,13 +52,6 @@ func (s *Service) ReviewRefund(ctx context.Context, actor, op, id, decision, evi
 		}
 		if decision == "reject" {
 			return s.cancel(ctx, t, &out, actor, evidence, "rejected")
-		}
-		var n int64
-		if e = t.Table("remediation_reviews").Where("case_id=? AND decision='approve'", id).Count(&n).Error; e != nil {
-			return e
-		}
-		if n < int64(out.RequiredReviews) {
-			return s.event(t, op, id, "refund.reviewed", actor, evidence, map[string]any{"approvals": n, "required": out.RequiredReviews})
 		}
 		if out.Kind == "package_exception" {
 			if e = s.approvePackage(ctx, t, out, actor); e != nil {

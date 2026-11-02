@@ -104,7 +104,7 @@ func TestPostgresRefundSearchPagesCasesBeforeLoadingTheirDetails(t *testing.T) {
 	now := time.Now().UTC()
 	target := ""
 	for i := 0; i < 55; i++ {
-		r := remediation.Case{ID: uuid.NewString(), OperatorID: op, BusinessKey: fmt.Sprintf("search-refund-%d", i), Fingerprint: "synthetic", Kind: "unallocated", AmountMoney: ledger.MustDecimal("1"), State: "pending_review", Reason: "ordinary", Evidence: "synthetic", RequestedBy: f.a.Installation.OwnerStaffID, RequiredReviews: 1, CreatedAt: now.Add(-time.Duration(i) * time.Minute)}
+		r := remediation.Case{ID: uuid.NewString(), OperatorID: op, BusinessKey: fmt.Sprintf("search-refund-%d", i), Fingerprint: "synthetic", Kind: "unallocated", AmountMoney: ledger.MustDecimal("1"), State: "pending_review", Reason: "ordinary", Evidence: "synthetic", RequestedBy: f.a.Installation.OwnerStaffID, CreatedAt: now.Add(-time.Duration(i) * time.Minute)}
 		if i == 54 {
 			r.Reason = "needle-refund"
 			target = r.ID

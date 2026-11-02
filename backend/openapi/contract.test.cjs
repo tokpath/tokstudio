@@ -224,12 +224,8 @@ test('procurement revisions explicitly retain authorization identity and require
   assert.equal(revise.properties.payment.properties.customer_ref.writeOnly, true);
 });
 
-test('refund rules and payout methods retain their actual concurrency fields', () => {
-  const refund = document.components.schemas.Operator_refunds_policy;
-  assert.equal(refund.properties.action.const, 'policy');
-  assert.equal(refund.properties.second_review_above.anyOf[1].type, 'null');
-  assert.equal(refund.required.includes('second_review_above'), false);
-  assert.equal(refund.properties.expected_version.type, 'integer');
+test('payout methods retain their actual concurrency fields', () => {
+  assert.equal(document.components.schemas.Operator_refunds_policy, undefined);
   for (const name of ['Operator_withdrawals_method', 'Operator_withdrawals_edit_method']) {
     const method = document.components.schemas[name];
     assert.equal(method.properties.expected_version.type, 'integer');

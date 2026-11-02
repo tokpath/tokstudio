@@ -420,12 +420,12 @@ it("validates percentage fractions without converting or rounding their decimal 
   expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({direct_rate:"0.050000000000000001"});
 });
 
-it("types nested concurrency versions while preserving opaque execution keys and explicit nullable policy values",async()=>{
+it("types nested concurrency versions while preserving opaque execution keys",async()=>{
   const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"policy",status:"saved"}),{status:200}));vi.stubGlobal("fetch",fetch);
-  mount({name:"policy",label:"保存嵌套政策",method:"POST",path:"/api/v1/operators/operator-one/refunds",fields:[{name:"configuration.expected_version",label:"真实政策版本",kind:"hidden",default_value:12},{name:"configuration.expected_execution_key",label:"原执行键",kind:"hidden",default_value:"000123-opaque"},{name:"configuration.second_review_above",label:"独立复核阈值",kind:"decimal"},{name:"configuration.fee_rate",label:"手续费比例",kind:"decimal",required:true,default_value:"2"}]});
+  mount({name:"policy",label:"保存嵌套政策",method:"POST",path:"/api/v1/operators/operator-one/refunds",fields:[{name:"configuration.expected_version",label:"真实政策版本",kind:"hidden",default_value:12},{name:"configuration.expected_execution_key",label:"原执行键",kind:"hidden",default_value:"000123-opaque"},{name:"configuration.fee_rate",label:"手续费比例",kind:"decimal",required:true,default_value:"2"}]});
   fireEvent.click(screen.getByRole("button",{name:"保存嵌套政策",exact:true}));expect(fetch).not.toHaveBeenCalled();expect(screen.getByRole("alert").textContent).toContain("0 到 1");
   fireEvent.change(screen.getByLabelText("手续费比例",{exact:false}),{target:{value:"0.000000000000000001"}});fireEvent.click(screen.getByRole("button",{name:"保存嵌套政策",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
-  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({configuration:{expected_version:12,expected_execution_key:"000123-opaque",second_review_above:null,fee_rate:"0.000000000000000001"}});
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({configuration:{expected_version:12,expected_execution_key:"000123-opaque",fee_rate:"0.000000000000000001"}});
 });
 
 it("accepts the ledger's exact eighteenth decimal place and rejects a nineteenth before submitting",async()=>{

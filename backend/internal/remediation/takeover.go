@@ -427,13 +427,6 @@ func (s *Service) ExecuteTakeover(ctx context.Context, actor, brand, id, expecte
 		if fingerprint(snapshot) != expectedSnapshot {
 			return ErrTakeoverBlocked
 		}
-		reviews, e := s.reviews(t, brand, out.ServiceMoney.Add(out.CashMoney))
-		if e != nil {
-			return e
-		}
-		if reviews > 1 && actor == out.RequestedBy {
-			return ErrReview
-		}
 		out.State = "executing"
 		out.ApprovedBy = &actor
 		if e = t.Save(&out).Error; e != nil {

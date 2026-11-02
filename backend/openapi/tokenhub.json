@@ -18491,9 +18491,6 @@
                   },
                   {
                     "$ref": "#/components/schemas/Operator_refunds_unallocated"
-                  },
-                  {
-                    "$ref": "#/components/schemas/Operator_refunds_policy"
                   }
                 ]
               }
@@ -30149,7 +30146,7 @@
     "/v1/operators/{operatorId}/refunds/{id}/review": {
       "post": {
         "operationId": "post__v1_operators_operatorId_refunds_id_review",
-        "summary": "审批/独立复核",
+        "summary": "审批",
         "tags": [
           "Operator browser API"
         ],
@@ -33404,7 +33401,7 @@
             }
           }
         },
-        "description": " Required explicit review: 不同归类影响不同责任。请核实真实付款与收款风险，独立复核要求由服务器执行。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": " Required explicit review: 不同归类影响不同责任。请核实真实付款与收款风险后再提交。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "refunds.manage"
       }
     },
@@ -51680,36 +51677,6 @@
         ],
         "additionalProperties": false
       },
-      "Operator_refunds_policy": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "const": "policy",
-            "description": "办理类型"
-          },
-          "second_review_above": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/LedgerDecimal"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "需独立复核的清算币种阈值（留空关闭）"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "复核政策版本"
-          }
-        },
-        "required": [
-          "action",
-          "expected_version"
-        ],
-        "additionalProperties": false
-      },
       "Operator_refunds_review": {
         "type": "object",
         "properties": {
@@ -52597,7 +52564,7 @@
           },
           "evidence": {
             "type": "string",
-            "description": "独立复核与归类证据"
+            "description": "归类证据"
           }
         },
         "required": [

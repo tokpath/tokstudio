@@ -323,7 +323,7 @@ function sumResourceAmounts(rows: Entity[], key: string): string | undefined {
   return places ? `${sum.slice(0, -places)}.${sum.slice(-places)}` : sum;
 }
 function refundNextStep(row: Entity, legs: Entity[]): string {
-  if (row.status === "pending_review") return "下一步：完成审批与独立复核。";
+  if (row.status === "pending_review") return "下一步：完成审批。";
   if (legs.some(leg => ["unknown", "executing"].includes(leg.status || ""))) return "下一步：查询原退款结果并核实实际付款，保留未知金额占用。";
   if (["completed", "cancelled", "canceled", "rejected"].includes(row.status || "")) return "此事项已结束，可核对原责任与实际付款证据。";
   return "下一步：展开关联明细，按每笔原收款的已授权动作办理。";
@@ -639,7 +639,6 @@ const savedFactLabels: Record<string, string> = {
   "details.address": "发票地址",
   "customer_id": "客户编号",
   "order_id": "原成交订单",
-  "second_review_above": "需独立复核的结算币种阈值（留空关闭）",
   "amount": "实际币种金额",
   "occurred_at": "实际发生时间",
   "operator_id": "经营方编号",

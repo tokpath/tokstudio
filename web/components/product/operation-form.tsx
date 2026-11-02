@@ -183,7 +183,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
         currentField = field.name;
         const value = values[field.name] || "";
         if (field.kind === "file") { if (field.required && !files[field.name]) throw new ConfigurationError("请上传{label}", "", { label: field.label }); if (files[field.name]) activeFiles[field.name] = files[field.name]; continue; }
-        if (!value && !field.required) { if (field.kind === "csv") assign(payload, field.name, []); else if (field.name.startsWith("values.") || fieldName(field) === "second_review_above") assign(payload, field.name, null); continue; }
+        if (!value && !field.required) { if (field.kind === "csv") assign(payload, field.name, []); else if (field.name.startsWith("values.")) assign(payload, field.name, null); continue; }
         if (!value && field.required) throw new ConfigurationError("请填写{label}", "", { label: field.label });
         if (field.name === "initial_password" && value && (value.length < 10 || new TextEncoder().encode(value).length > 72)) throw new ConfigurationError("新账号初始密码至少 10 位，最长 72 字节。", "");
         let parsed: JSONValue;

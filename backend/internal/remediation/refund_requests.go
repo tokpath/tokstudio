@@ -47,11 +47,7 @@ func (s *Service) RequestWalletRefund(ctx context.Context, in WalletRefundInput)
 		if e != nil {
 			return e
 		}
-		reviews, e := s.reviews(t, in.OperatorID, in.AmountMoney)
-		if e != nil {
-			return e
-		}
-		out = Case{ID: uuid.NewString(), OperatorID: in.OperatorID, CustomerID: &in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "wallet", AmountMoney: in.AmountMoney, State: "pending_review", Reason: in.Reason, Evidence: "customer requested unused USD return", RequestedBy: in.CustomerID, RequiredReviews: reviews, CreatedAt: at}
+		out = Case{ID: uuid.NewString(), OperatorID: in.OperatorID, CustomerID: &in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "wallet", AmountMoney: in.AmountMoney, State: "pending_review", Reason: in.Reason, Evidence: "customer requested unused USD return", RequestedBy: in.CustomerID, CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
@@ -132,11 +128,7 @@ func (s *Service) RequestUnallocatedRefund(ctx context.Context, actor, op, recei
 		if e != nil {
 			return e
 		}
-		reviews, e := s.reviews(t, op, amount)
-		if e != nil {
-			return e
-		}
-		out = Case{ID: uuid.NewString(), OperatorID: op, BusinessKey: key, Fingerprint: fp, Kind: "unallocated", AmountMoney: amount, State: "pending_review", Reason: reason, Evidence: evidence, RequestedBy: actor, RequiredReviews: reviews, CreatedAt: at}
+		out = Case{ID: uuid.NewString(), OperatorID: op, BusinessKey: key, Fingerprint: fp, Kind: "unallocated", AmountMoney: amount, State: "pending_review", Reason: reason, Evidence: evidence, RequestedBy: actor, CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
@@ -251,11 +243,7 @@ func (s *Service) RequestPackageException(ctx context.Context, in PackageExcepti
 		if !validAmount(amount) {
 			return ErrState
 		}
-		reviews, e := s.reviews(t, in.OperatorID, amount)
-		if e != nil {
-			return e
-		}
-		out = Case{ID: uuid.NewString(), OperatorID: in.OperatorID, CustomerID: &in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "package_exception", OrderID: &o.ID, GrantID: &g.ID, AmountMoney: amount, CreditATG: a.Balance, State: "pending_review", Reason: in.Reason, Evidence: in.Evidence, RequestedBy: in.ActorStaffID, RequiredReviews: reviews, CreatedAt: at}
+		out = Case{ID: uuid.NewString(), OperatorID: in.OperatorID, CustomerID: &in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "package_exception", OrderID: &o.ID, GrantID: &g.ID, AmountMoney: amount, CreditATG: a.Balance, State: "pending_review", Reason: in.Reason, Evidence: in.Evidence, RequestedBy: in.ActorStaffID, CreatedAt: at}
 		weights := []ledger.Decimal{o.InternalMoney, o.CommissionMoney}
 		var allocs []struct {
 			ReceiptID   string

@@ -21,7 +21,6 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 //go:embed migrate/*.sql
@@ -35,7 +34,7 @@ var (
 	ErrState           = errors.New("financial exception cannot transition from its current state")
 	ErrScope           = errors.New("financial exception is outside the responsible operator or customer")
 	ErrNotReady        = errors.New("financial exception dependency is unavailable")
-	ErrReview          = errors.New("financial exception needs independent review")
+	ErrReview          = errors.New("financial exception is blocked until the required fact is recorded")
 	ErrPaymentMismatch = errors.New("actual external settlement requires reconciliation")
 )
 
@@ -89,61 +88,6 @@ func (s *Service) event(t *gorm.DB, op, subject, action, actor, evidence string,
 	return t.Exec("INSERT INTO remediation_events(id,operator_id,subject_id,action,actor_id,evidence,data,created_at) VALUES(?,?,?,?,?,?,?::jsonb,?)", uuid.NewString(), op, subject, action, actor, evidence, string(b), at).Error
 }
 
-type Policy struct {
-	OperatorID        string          `json:"operator_id"`
-	SecondReviewAbove *ledger.Decimal `json:"second_review_above"`
-	Version           int64           `json:"version"`
-	UpdatedBy         string          `json:"updated_by"`
-	UpdatedAt         time.Time       `json:"updated_at"`
-}
-
-func (Policy) TableName() string { return "remediation_policies" }
-func (s *Service) SetPolicy(ctx context.Context, actor, op string, above *ledger.Decimal, expected int64) (Policy, error) {
-	out := Policy{}
-	if above != nil && (!above.Valid() || above.Sign() < 0) {
-		return out, ErrInvalid
-	}
-	e := s.within(ctx, nil, func(t *gorm.DB) error {
-		if e := s.Organization.RequirePermission(ctx, t, actor, op, "refunds.manage"); e != nil {
-			return e
-		}
-		if e := lock(t, op+":policy"); e != nil {
-			return e
-		}
-		e := t.First(&out, "operator_id=?", op).Error
-		if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
-			return e
-		}
-		if out.Version != expected {
-			return ErrConflict
-		}
-		at, e := instant(t)
-		if e != nil {
-			return e
-		}
-		out = Policy{op, above, expected + 1, actor, at}
-		if e = t.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "operator_id"}}, UpdateAll: true}).Create(&out).Error; e != nil {
-			return e
-		}
-		return s.event(t, op, op, "refund_policy.changed", actor, "operator review policy", out)
-	})
-	return out, e
-}
-func (s *Service) reviews(t *gorm.DB, op string, amount ledger.Decimal) (int, error) {
-	var p Policy
-	e := t.First(&p, "operator_id=?", op).Error
-	if errors.Is(e, gorm.ErrRecordNotFound) {
-		return 1, nil
-	}
-	if e != nil {
-		return 0, e
-	}
-	if p.SecondReviewAbove != nil && amount.Cmp(*p.SecondReviewAbove) >= 0 {
-		return 2, nil
-	}
-	return 1, nil
-}
-
 type Case struct {
 	ID              string         `json:"id"`
 	OperatorID      string         `json:"operator_id"`
@@ -162,7 +106,6 @@ type Case struct {
 	Reason          string         `json:"reason"`
 	Evidence        string         `json:"evidence"`
 	RequestedBy     string         `json:"requested_by"`
-	RequiredReviews int            `json:"required_reviews"`
 	CreatedAt       time.Time      `json:"created_at"`
 	CompletedAt     *time.Time     `json:"completed_at,omitempty"`
 }

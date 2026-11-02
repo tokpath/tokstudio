@@ -45,15 +45,14 @@ async function submit(page: Page, label: string, path: string, values: Record<st
 function localNow() { const now = new Date(); return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
 
 test("finance records one whole payment, links private evidence, reviews a refund and retains unknown-payment holds", async ({ browser }, info) => {
-  const customerContext = await browser.newContext(), financeContext = await browser.newContext(), reviewerContext = await browser.newContext();
-  const customer = await customerContext.newPage(), finance = await financeContext.newPage(), reviewer = await reviewerContext.newPage();
+  const customerContext = await browser.newContext(), financeContext = await browser.newContext();
+  const customer = await customerContext.newPage(), finance = await financeContext.newPage();
   const base = `/api/v1/operators/${persona.operator_id}`, manage = `/manage/${persona.operator_id}`;
   const errors: string[] = [];
-  for (const p of [customer, finance, reviewer]) { p.setDefaultTimeout(20_000); p.on("pageerror", e => errors.push(e.message)); }
+  for (const p of [customer, finance]) { p.setDefaultTimeout(20_000); p.on("pageerror", e => errors.push(e.message)); }
   try {
     await login(customer, "customer", persona.customer);
     await login(finance, "staff", persona.finance);
-    await login(reviewer, "staff", persona.reviewer);
     const startingBalance = Number((await (await customer.request.get("/api/v1/me/credits")).json()).money_balance.available);
     const startingFees = Number((await (await finance.request.get(`${base}/reports/financial`)).json()).costs.payment_fees_money);
     await customer.goto("/workspace/topups");
@@ -84,20 +83,13 @@ test("finance records one whole payment, links private evidence, reviews a refun
     // Finance allocates verified receipts; the durable worker delivers the
     // funded order. Allow its discovery interval and the shared queue backlog.
     await expect.poll(async () => (await (await customer.request.get("/api/v1/me/credits")).json()).money_balance.available, { timeout: 60_000 }).toBe(String(startingBalance + 100));
-    await finance.goto(`${manage}/refunds`);
-    await finance.getByText("办理设置",{exact:true}).click();
-    await finance.getByRole("button", { name: "设置独立复核阈值", exact: true }).click();
-    await submit(finance, "设置独立复核阈值", `${base}/refunds`, { second_review_above: "10" });
     await customer.goto("/workspace/refunds");
     await customer.getByRole("button", { name: "申请结算币种余额原路退回", exact: true }).click();
     const refund = await submit(customer, "申请结算币种余额原路退回", "/api/v1/me/refunds", { amount_money: "20", reason: "Synthetic unused payment balance return" });
     const readCase = async () => (await (await finance.request.get(`${base}/refunds?record=${refund.id}`)).json()).items as { id: string; status: string; values: Record<string, unknown>; presentation?: { title?: string } }[];
-    for (const staff of [finance, reviewer]) {
-      await staff.goto(`${manage}/refunds?record=${refund.id}`);
-      await staff.getByRole("button", { name: "审批/独立复核", exact: true }).click();
-      await submit(staff, "审批/独立复核", `${base}/refunds/${refund.id}/review`, { decision: "approve", evidence: "Independent synthetic bank and original customer source review" });
-      if (staff === finance) expect((await readCase()).find(row => row.id === refund.id)?.status).toBe("pending_review");
-    }
+    await finance.goto(`${manage}/refunds?record=${refund.id}`);
+    await finance.getByRole("button", { name: "审批", exact: true }).click();
+    await submit(finance, "审批", `${base}/refunds/${refund.id}/review`, { decision: "approve", evidence: "Synthetic bank and original customer source review" });
     const approved = await readCase();
     expect(approved.find(row => row.id === refund.id)?.status).toBe("approved");
     const legs = approved.filter(row => row.values.record_kind === "leg");
@@ -181,6 +173,6 @@ test("finance records one whole payment, links private evidence, reviews a refun
     expect(settled.filter(row => row.values.record_kind === "actual_refund_payment")).toHaveLength(1);
     await finance.screenshot({ path: info.outputPath("finance-refund-reconciled.png"), fullPage: true });
     expect(errors).toEqual([]);
-    await info.attach("synthetic-finance-facts", { body: JSON.stringify({ order_id: orderID, receipt_ids: receipts, initial_customer_available_money: String(startingBalance), credited_money: "100", merchant_receipt_fees_money: "3", refund_money: "20", merchant_refund_fee_money: "0.5", final_customer_available_money: credits.money_balance.available, final_customer_held_money: credits.money_balance.held, distinct_reviewers: 2, invoice_id: invoice.id, private_invoice_downloaded: true, other_customer_download_status: 404 }), contentType: "application/json" });
-  } finally { await customerContext.close(); await financeContext.close(); await reviewerContext.close(); }
+    await info.attach("synthetic-finance-facts", { body: JSON.stringify({ order_id: orderID, receipt_ids: receipts, initial_customer_available_money: String(startingBalance), credited_money: "100", merchant_receipt_fees_money: "3", refund_money: "20", merchant_refund_fee_money: "0.5", final_customer_available_money: credits.money_balance.available, final_customer_held_money: credits.money_balance.held, invoice_id: invoice.id, private_invoice_downloaded: true, other_customer_download_status: 404 }), contentType: "application/json" });
+  } finally { await customerContext.close(); await financeContext.close(); }
 });

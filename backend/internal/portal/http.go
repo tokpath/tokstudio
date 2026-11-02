@@ -154,7 +154,7 @@ func handleError(c *gin.Context, err error) {
 	case errors.Is(err, payments.ErrAwaitingSettlement):
 		status, code, msg, retry = 409, "receipt_awaiting_settlement", "原币实际款已保留，等待财务核实本笔收款对应的订单清算金额；请勿重复付款", false
 	case errors.Is(err, remediation.ErrReview):
-		status, code, msg, retry = 409, "independent_review_required", "此事项需要另一位有权限的人员独立复核", false
+		status, code, msg, retry = 409, "prerequisite_required", "这笔记录还不能这样办理。请先完成原事项要求的核实。", false
 	case errors.Is(err, commerce.ErrWholePayment):
 		status, code, msg, retry = 409, "whole_payment_required", "一个订单只关联一笔足额外部付款；金额不符的款项请单独登记并按异常处理", false
 	case errors.Is(err, commerce.ErrExcessAllocation):

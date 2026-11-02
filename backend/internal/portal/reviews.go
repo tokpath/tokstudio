@@ -100,8 +100,8 @@ func (a *Application) approvalsResource(c *gin.Context, op organization.Operator
 			}
 		}
 	}
-	// The combined review page points to each authoritative workflow. It cannot
-	// bypass the domain's independent reviewer and version requirements.
+	// The combined review page only links to the original record. Approval still
+	// happens in that record, by one person who has the required permission.
 	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "cooperation.manage") == nil && a.Organization.RequirePermission(ctx, nil, actor, op.ID, "refunds.manage") == nil {
 		cases, e := a.Remediation.Takeovers(ctx, actor, op.ID)
 		if e != nil {
@@ -127,7 +127,7 @@ func (a *Application) approvalsResource(c *gin.Context, op organization.Operator
 		}
 	}
 	p["title"] = "待复核事项"
-	p["description"] = "集中查看需要审核的事项，进入对应记录办理。是否需要独立复核，按各业务规则执行。"
+	p["description"] = "集中查看需要审核的事项，进入对应记录办理。每项由一位有权限的人员审批。"
 	p["items"] = items
 	p["columns"] = []gin.H{col("kind", "事项", "text"), col("amount_money", "责任结算币种", "money"), col("requested_by", "申请人", "text"), col("created_at", "申请时间", "datetime"), col("workspace", "进入原业务复核", "link")}
 	a.resourceResponse(c, p)

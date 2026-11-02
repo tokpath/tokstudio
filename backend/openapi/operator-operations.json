@@ -3670,39 +3670,6 @@
     "description": "",
     "fields": [
       {
-        "default_value": "policy",
-        "kind": "hidden",
-        "label": "办理类型",
-        "name": "action",
-        "required": true
-      },
-      {
-        "default_value": null,
-        "kind": "decimal",
-        "label": "需独立复核的清算币种阈值（留空关闭）",
-        "name": "second_review_above"
-      },
-      {
-        "default_value": 0,
-        "kind": "hidden",
-        "label": "复核政策版本",
-        "name": "expected_version",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "设置独立复核阈值",
-    "method": "POST",
-    "name": "policy",
-    "path": "/v1/operators/{operatorId}/refunds",
-    "permission": "refunds.manage"
-  },
-  {
-    "resource": "refunds",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
         "kind": "select",
         "label": "审核决定",
         "name": "decision",
@@ -3726,7 +3693,7 @@
       }
     ],
     "include_version": false,
-    "label": "审批/独立复核",
+    "label": "审批",
     "method": "POST",
     "name": "review",
     "path": "/v1/operators/{operatorId}/refunds/{id}/review",
@@ -4691,7 +4658,7 @@
   },
   {
     "resource": "disputes",
-    "confirmation": "不同归类影响不同责任。请核实真实付款与收款风险，独立复核要求由服务器执行。",
+    "confirmation": "不同归类影响不同责任。请核实真实付款与收款风险后再提交。",
     "description": "",
     "fields": [
       {
@@ -4716,7 +4683,7 @@
       },
       {
         "kind": "textarea",
-        "label": "独立复核与归类证据",
+        "label": "归类证据",
         "name": "evidence",
         "required": true
       }

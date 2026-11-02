@@ -29,13 +29,14 @@ var migrations embed.FS
 func Migrations() (string, fs.FS) { f, _ := fs.Sub(migrations, "migrate"); return "remediation", f }
 
 var (
-	ErrInvalid         = errors.New("invalid financial exception input")
-	ErrConflict        = errors.New("financial exception conflicts with its original facts")
-	ErrState           = errors.New("financial exception cannot transition from its current state")
-	ErrScope           = errors.New("financial exception is outside the responsible operator or customer")
-	ErrNotReady        = errors.New("financial exception dependency is unavailable")
-	ErrReview          = errors.New("financial exception is blocked until the required fact is recorded")
-	ErrPaymentMismatch = errors.New("actual external settlement requires reconciliation")
+	ErrInvalid           = errors.New("invalid financial exception input")
+	ErrConflict          = errors.New("financial exception conflicts with its original facts")
+	ErrState             = errors.New("financial exception cannot transition from its current state")
+	ErrScope             = errors.New("financial exception is outside the responsible operator or customer")
+	ErrNotReady          = errors.New("financial exception dependency is unavailable")
+	ErrReview            = errors.New("financial exception is blocked until the required fact is recorded")
+	ErrRefundFullPayment = errors.New("manual refunds require one full approved payment")
+	ErrPaymentMismatch   = errors.New("actual external settlement requires reconciliation")
 )
 
 type Dependencies struct {

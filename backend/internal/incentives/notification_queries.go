@@ -14,6 +14,7 @@ type NotificationAudience struct {
 	OperatorID  string          `json:"operator_id"`
 	RecipientID string          `json:"recipient_id"`
 	Reference   string          `json:"reference"`
+	Wallet      string          `json:"wallet,omitempty"`
 	Kind        string          `json:"kind"`
 	AmountMoney *ledger.Decimal `json:"amount_money,omitempty"`
 	OccurredAt  time.Time       `json:"occurred_at"`
@@ -35,6 +36,7 @@ func (s *Service) NotificationEventAudience(ctx context.Context, tx *gorm.DB, in
 	}
 	ids := map[string]bool{}
 	var amount *ledger.Decimal
+	var wallet string
 	addStaff := func() error {
 		staff, e := s.org.OperatorNotificationStaff(ctx, tx, event.OperatorID)
 		if e != nil {
@@ -55,6 +57,7 @@ func (s *Service) NotificationEventAudience(ctx context.Context, tx *gorm.DB, in
 		if e := tx.First(&withdrawal, "id=?", event.AggregateID).Error; e != nil {
 			return nil, e
 		}
+		wallet = withdrawal.Wallet
 		ids[withdrawal.CustomerID] = true
 		value := withdrawal.AmountMoney
 		amount = &value
@@ -107,7 +110,7 @@ func (s *Service) NotificationEventAudience(ctx context.Context, tx *gorm.DB, in
 	sort.Strings(ordered)
 	out := make([]NotificationAudience, 0, len(ordered))
 	for _, id := range ordered {
-		out = append(out, NotificationAudience{OperatorID: event.OperatorID, RecipientID: id, Reference: event.ID, Kind: event.Kind, AmountMoney: amount, OccurredAt: event.CreatedAt})
+		out = append(out, NotificationAudience{OperatorID: event.OperatorID, RecipientID: id, Reference: event.ID, Kind: event.Kind, Wallet: wallet, AmountMoney: amount, OccurredAt: event.CreatedAt})
 	}
 	return out, nil
 }

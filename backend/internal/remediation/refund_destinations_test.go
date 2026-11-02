@@ -83,7 +83,7 @@ func externalRefundSetupFor(t *testing.T, f fixture, request bool, registryAutho
 			}
 			if tx == "0x"+strings.Repeat("6", 64) {
 				sender = "0x6666666666666666666666666666666666666666"
-				amount = 19000000
+				amount = 20000000
 			}
 			if tx == "0x"+strings.Repeat("7", 64) {
 				sender = "0x6666666666666666666666666666666666666666"
@@ -184,7 +184,7 @@ func (f externalRefundFixture) authorize(t *testing.T) RefundDestinationAuthoriz
 func (f externalRefundFixture) refund(t *testing.T, a RefundDestinationAuthorization, tx string) (payments.Refund, payments.EVMRefundVerification) {
 	t.Helper()
 	settled := d("20")
-	if tx == "4" || tx == "6" {
+	if tx == "4" {
 		settled = d("19")
 	}
 	if tx == "5" || tx == "7" {
@@ -331,34 +331,24 @@ func TestPostgresStablecoinRefundWrongRecipientAndFXMismatchRetainActualFactsWit
 	}
 }
 
-func TestPostgresStablecoinRefundSupplementPreservesBothRPCExecutionFacts(t *testing.T) {
+func TestPostgresStablecoinMismatchKeepsActualFactWithoutSupplementalWorkflow(t *testing.T) {
 	f := externalRefundSetup(t)
 	a := f.authorize(t)
-	if _, e := f.s.BeginManualRefund(f.ctx, f.owner, f.operator, f.leg.ID, "first-instruction", "send approved original 20"); e != nil {
-		t.Fatal(e)
+	if _, err := f.s.BeginManualRefund(f.ctx, f.owner, f.operator, f.leg.ID, "first-instruction", "send approved original 20"); err != nil {
+		t.Fatal(err)
 	}
 	r, v := f.refund(t, a, "4")
-	if out, e := f.s.Payments.RecordEVMRefund(f.ctx, f.owner, f.operator, f.merchant.ID, r, v); !errors.Is(e, payments.ErrSettlementReview) || out.State != "verified_pending_settlement" {
-		t.Fatal(out, e)
+	if out, err := f.s.Payments.RecordEVMRefund(f.ctx, f.owner, f.operator, f.merchant.ID, r, v); !errors.Is(err, payments.ErrSettlementReview) || out.State != "verified_pending_settlement" {
+		t.Fatal(out, err)
 	}
-	if _, e := f.s.BeginManualRefund(f.ctx, f.owner, f.operator, f.leg.ID, "new-supplemental-instruction", "verified actual19; explicitly authorize remaining1"); e != nil {
-		t.Fatal(e)
+	if _, err := f.s.BeginManualRefund(f.ctx, f.owner, f.operator, f.leg.ID, "new-supplemental-instruction", "request another manual payment"); !errors.Is(err, ErrState) {
+		t.Fatal("opened a manual partial-payment workflow", err)
 	}
-	r, v = f.refund(t, a, "5")
-	if out, e := f.s.Payments.RecordEVMRefund(f.ctx, f.owner, f.operator, f.merchant.ID, r, v); e != nil || out.State != "succeeded" {
-		t.Fatal(out, e)
+	var facts int64
+	if err := f.db.Table("payments_verified_facts").Where("kind='refund'").Count(&facts).Error; err != nil || facts != 1 {
+		t.Fatal("original verified fact lost", facts, err)
 	}
-	if a := f.balance(t); a.Balance.Cmp(d("80")) != 0 || !a.Held.IsZero() {
-		t.Fatal(a)
-	}
-	var facts, intents int64
-	_ = f.db.Table("payments_verified_facts").Where("kind='refund'").Count(&facts).Error
-	_ = f.db.Table("payments_refund_intents").Where("business_refund_id=?", f.leg.ID).Count(&intents).Error
-	if facts != 2 || intents != 2 {
-		t.Fatal("supplement rewrote original execution", facts, intents)
-	}
-	cap, e := f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, f.receipt)
-	if e != nil || cap.CompletedMoney.Cmp(d("20")) != 0 || !cap.ReservedMoney.IsZero() {
-		t.Fatal(cap, e)
+	if a := f.balance(t); a.Balance.String() != "81" || a.Held.String() != "1" {
+		t.Fatal("actual external fact changed", a)
 	}
 }

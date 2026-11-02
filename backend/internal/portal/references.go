@@ -360,6 +360,35 @@ func (a *Application) references(c *gin.Context) {
 		if !require("sales.manage", "refunds.manage", "payments.manage") {
 			return
 		}
+		if c.Query("purpose") == "procurement-refund" {
+			if !require("refunds.manage") {
+				return
+			}
+			var rows []struct {
+				ID, BuyerName string
+				DueMoney      ledger.Decimal
+				CreatedAt     time.Time
+			}
+			err := a.DB.WithContext(ctx).Table("cooperation_purchase_orders o").
+				Select("o.id,b.name AS buyer_name,o.due_money,o.created_at").
+				Joins("JOIN organization_operators b ON b.id=o.buyer_id").
+				Where("o.supplier_id=? AND o.status IN ('paid','exception') AND o.allocated_money=o.due_money", operator).
+				Where("NOT EXISTS(SELECT 1 FROM cooperation_procurement_lots l WHERE l.order_id=o.id::text)").
+				Where("o.id::text>? AND (b.name ILIKE ? OR o.id::text ILIKE ?)", c.Query("cursor"), "%"+query+"%", "%"+query+"%").
+				Order("o.id").Limit(51).Find(&rows).Error
+			if err != nil {
+				handleError(c, err)
+				return
+			}
+			if len(rows) > 50 {
+				rows = rows[:50]
+				next = rows[49].ID
+			}
+			for _, r := range rows {
+				add(r.ID, humanJoin("供货采购", r.BuyerName, r.DueMoney.String()+" "+monetary.Currency, r.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC")), gin.H{"order_id": r.ID})
+			}
+			break
+		}
 		if c.Query("purpose") == "collection" {
 			if !require("payments.manage") {
 				return

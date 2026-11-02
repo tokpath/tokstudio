@@ -115,14 +115,18 @@ func (a *Application) approvalsResource(c *gin.Context, op organization.Operator
 		}
 	}
 	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "withdrawals.manage") == nil {
-		rows, _, e := a.Incentives.WithdrawalsForOperator(ctx, nil, actor, op.ID, "", 100)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		for _, r := range rows {
-			if r.Status == "requested" {
-				items = append(items, entity(r.ID, r.Status, 1, gin.H{"kind": "佣金提现", "amount_money": r.AmountMoney, "requested_by": r.CustomerID, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + "/commissions?section=requests&record=" + r.ID}))
+		for _, wallet := range []string{"commission", "balance"} {
+			rows, _, e := a.Incentives.WithdrawalsForOperator(ctx, nil, actor, op.ID, "", 100, "", "requested", wallet)
+			if e != nil {
+				handleError(c, e)
+				return
+			}
+			kind, workspace := "佣金提现", "/commissions?section=requests"
+			if wallet == "balance" {
+				kind, workspace = "余额提现", "/balance-withdrawals?section=requests"
+			}
+			for _, r := range rows {
+				items = append(items, entity(r.ID, r.Status, 1, gin.H{"kind": kind, "amount_money": r.AmountMoney, "requested_by": r.CustomerID, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + workspace + "&record=" + r.ID}))
 			}
 		}
 	}

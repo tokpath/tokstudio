@@ -483,7 +483,7 @@ export function resourceValueText(value: JSONValue | undefined, field: string | 
   if (typeof value !== "string") return String(value ?? "—");
   if (field === "record_kind") return recordKindLabel(value, locale);
   if (field && ["metric_name", "direction_name", "api_entry_note", "reserved_note", "payment_hold"].includes(field)) return translate(locale,value);
-  if (field === "action") return translate(locale, ({registration:"注册",new_purchase:"新购",renewal:"续费",model_usage:"模型调用",activity:"营销活动",withdrawal:"佣金提现",wallet_refund:"余额提现",customer_login:"登录",all_new_business:"所有新增业务"} as Record<string,string>)[value] || value);
+  if (field === "action") return translate(locale, ({registration:"注册",new_purchase:"新购",renewal:"续费",model_usage:"模型调用",activity:"营销活动",withdrawal:"佣金提现",balance_withdrawal:"余额提现",customer_login:"登录",all_new_business:"所有新增业务"} as Record<string,string>)[value] || value);
   if (field && enumLabelsByField[field]?.[value]) return translate(locale, enumLabelsByField[field][value]);
   if (field && ["status", "state", "fee_status"].includes(field)) return translate(locale, statusLabels[value] || value);
   if (field === "purpose" && value.startsWith("customer:atg:")) return `${translate(locale, "客户 ATG 权益")} · ${value.slice("customer:atg:".length)}`;
@@ -1015,7 +1015,7 @@ const enumLabelsByField: Record<string, Record<string, string>> = {
     "model_usage": "模型调用",
     "activity": "营销活动",
     "withdrawal": "佣金提现",
-    "wallet_refund": "余额提现",
+    "balance_withdrawal": "余额提现",
     "customer_login": "登录",
     "all_new_business": "所有新增业务"
   },

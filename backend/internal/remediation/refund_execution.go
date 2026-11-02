@@ -57,10 +57,7 @@ func (s *Service) BeginManualRefund(ctx context.Context, actor, op, legID, key, 
 		if l.ExecutionKey == key && l.ExecutionMode == "manual" {
 			return nil
 		}
-		caseOpen := c.State == "approved" || c.State == "paying" || c.State == "exception"
-		initial := l.State == "approved" && caseOpen
-		supplemental := l.State == "exception" && caseOpen && (l.SettledMoney.Sign() > 0 || l.MisdirectedMoney.Sign() > 0) && l.SettledMoney.Cmp(l.AmountMoney) < 0
-		if !initial && !supplemental {
+		if l.State != "approved" || (c.State != "approved" && c.State != "paying") {
 			return ErrState
 		}
 		if required, e := s.externalDestinationRequired(ctx, t, l); e != nil {
@@ -84,7 +81,7 @@ func (s *Service) BeginManualRefund(ctx context.Context, actor, op, legID, key, 
 			return e
 		}
 		out = l
-		return s.event(t, op, l.ID, "refund.manual_execution_started", actor, evidence, map[string]any{"case_id": c.ID, "execution_key": key, "supplemental": supplemental, "remaining_money": l.AmountMoney.Sub(l.SettledMoney)})
+		return s.event(t, op, l.ID, "refund.manual_execution_started", actor, evidence, map[string]any{"case_id": c.ID, "execution_key": key, "remaining_money": l.AmountMoney.Sub(l.SettledMoney)})
 	})
 	return out, e
 }
@@ -111,6 +108,38 @@ func (s *Service) MarkRefundUnknown(ctx context.Context, actor, op, legID, evide
 	return out, e
 }
 
+// Manual refunds are a single full payment. The settlement obligation comes
+// from the approved leg; staff only supply the actual foreign payment facts.
+func completeRefundProof(p *ExecutionProof, due ledger.Decimal, currency string) error {
+	p.Currency = strings.ToUpper(strings.TrimSpace(p.Currency))
+	if p.Currency == "" {
+		p.Currency = currency
+	}
+	if !p.ActualMoney.IsZero() && p.ActualMoney.Cmp(due) != 0 {
+		return ErrRefundFullPayment
+	}
+	if p.Currency == currency {
+		if strings.TrimSpace(p.Amount) != "" {
+			amount, err := ledger.ParseDecimal(p.Amount)
+			if err != nil || amount.Cmp(due) != 0 {
+				return ErrRefundFullPayment
+			}
+		}
+		p.Amount = due.String()
+	} else {
+		amount, err := ledger.ParseDecimal(p.Amount)
+		if err != nil || amount.Sign() <= 0 {
+			return ErrInvalid
+		}
+		p.Amount = amount.String()
+	}
+	p.ActualMoney = due
+	if p.FeeStatus == "" {
+		p.FeeStatus = "confirmed"
+	}
+	return nil
+}
+
 // RecordManualRefund records a transfer which finance has actually verified.
 // An application or an intention to transfer is never settlement evidence.
 func (s *Service) RecordManualRefund(ctx context.Context, actor, op, legID string, proof ExecutionProof) (RefundLeg, error) {
@@ -124,13 +153,16 @@ func (s *Service) RecordManualRefund(ctx context.Context, actor, op, legID strin
 		if e != nil {
 			return e
 		}
+		monetary, err := ledger.GetMonetary(ctx, t)
+		if err != nil {
+			return err
+		}
+		if err = completeRefundProof(&proof, l.AmountMoney, monetary.Currency); err != nil {
+			return err
+		}
 		// One payment records the transfer and finishes the application.
 		// Approval does not require a separate execution-intent step.
-		if l.State == "approved" && (c.State == "approved" || c.State == "paying" || c.State == "exception") {
-			supplemental := c.State == "exception" && (l.SettledMoney.Sign() > 0 || l.MisdirectedMoney.Sign() > 0) && l.SettledMoney.Cmp(l.AmountMoney) < 0
-			if c.State == "exception" && !supplemental {
-				return ErrState
-			}
+		if l.State == "approved" && (c.State == "approved" || c.State == "paying") {
 			if required, e := s.externalDestinationRequired(ctx, t, l); e != nil {
 				return e
 			} else if required {

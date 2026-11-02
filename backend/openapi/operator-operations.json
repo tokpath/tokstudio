@@ -3247,7 +3247,7 @@
           },
           {
             "label": "余额提现",
-            "value": "wallet_refund"
+            "value": "balance_withdrawal"
           },
           {
             "label": "登录",
@@ -3741,15 +3741,9 @@
       },
       {
         "kind": "decimal",
-        "label": "实际币种金额",
+        "label": "实际币种金额（跨币付款时填写）",
         "name": "amount",
-        "required": true
-      },
-      {
-        "kind": "decimal",
-        "label": "本笔已核实清偿金额（清算币种）",
-        "name": "actual_money",
-        "help": "原币与全局清算币种相同时按实际金额推导；跨币时必须填写本笔真实付款对应的清偿金额，不提供汇率。"
+        "required": false
       },
       {
         "default_value": "0",
@@ -4165,116 +4159,6 @@
     "method": "POST",
     "name": "verify_responsible_bank",
     "path": "/v1/operators/{operatorId}/refunds/{id}/verify_responsible_bank",
-    "permission": "refunds.manage"
-  },
-  {
-    "resource": "refunds",
-    "confirmation": "仅用于已取得外部终态证明。超时、查不到或结果未知不能认定失败；本操作不释放剩余退款责任。",
-    "description": "",
-    "fields": [
-      {
-        "kind": "hidden",
-        "label": "当前实际付款指令",
-        "name": "expected_execution_key",
-        "required": true
-      },
-      {
-        "kind": "select",
-        "label": "外部已核实终态",
-        "name": "result",
-        "options": [
-          {
-            "label": "实际失败",
-            "value": "failed"
-          },
-          {
-            "label": "执行方已取消",
-            "value": "cancelled"
-          }
-        ],
-        "required": true
-      },
-      {
-        "kind": "text",
-        "label": "外部执行方唯一核实流水",
-        "name": "external_reference",
-        "required": true
-      },
-      {
-        "kind": "textarea",
-        "label": "不会继续付款的独立核实证明",
-        "name": "no_further_payment_reference",
-        "required": true
-      },
-      {
-        "kind": "textarea",
-        "label": "实际银行/执行方终态凭据",
-        "name": "evidence",
-        "required": true
-      },
-      {
-        "kind": "datetime",
-        "label": "真实核实时刻",
-        "name": "verified_at",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "核实外部付款已失败或取消",
-    "method": "POST",
-    "name": "verify_manual_failure",
-    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_manual_failure",
-    "permission": "refunds.manage"
-  },
-  {
-    "resource": "refunds",
-    "confirmation": "保留历史授权、已付事实和剩余占用。封存后必须由客户重新指定剩余款目的地、财务重新核实；未知结果不会允许封存。",
-    "description": "",
-    "fields": [
-      {
-        "kind": "hidden",
-        "label": "本次旧执行编号",
-        "name": "expected_execution_key",
-        "required": true
-      },
-      {
-        "kind": "select",
-        "label": "独立核实封存原因",
-        "name": "reason",
-        "options": [
-          {
-            "label": "已失败且不会再付",
-            "value": "failed"
-          },
-          {
-            "label": "已终止且不会再付",
-            "value": "terminated"
-          },
-          {
-            "label": "实际少付且旧指令已结束",
-            "value": "settled_partial"
-          }
-        ],
-        "required": true
-      },
-      {
-        "kind": "textarea",
-        "label": "旧指令不会继续付款的独立证明",
-        "name": "no_further_payment_reference",
-        "required": true
-      },
-      {
-        "kind": "textarea",
-        "label": "核实与封存依据",
-        "name": "evidence",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "封存已终止执行并重新授权剩余款",
-    "method": "POST",
-    "name": "close_execution",
-    "path": "/v1/operators/{operatorId}/refunds/{id}/close_execution",
     "permission": "refunds.manage"
   },
   {
@@ -5641,5 +5525,44 @@
         "default_value": 1
       }
     ]
+  },
+  {
+    "resource": "refunds",
+    "name": "confirm_fee",
+    "label": "登记退款手续费",
+    "method": "POST",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/confirm_fee",
+    "fields": [
+      {
+        "name": "leg_id",
+        "label": "原退款明细",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "fee_money",
+        "label": "已核实退款手续费（结算币种，没有则填 0）",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "reference",
+        "label": "费用流水或收据号（可选）",
+        "kind": "text"
+      },
+      {
+        "name": "occurred_at",
+        "label": "费用发生时间",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "费用核实说明",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "permission": "refunds.manage"
   }
 ]

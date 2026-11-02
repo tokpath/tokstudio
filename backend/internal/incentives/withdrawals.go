@@ -286,7 +286,7 @@ func (s *Service) RequestWithdrawal(ctx context.Context, tx *gorm.DB, in Withdra
 		balance := selected.Wallet == "balance"
 		action := "withdrawal"
 		if balance {
-			action = "wallet_refund"
+			action = "balance_withdrawal"
 		}
 		if err = s.org.RequireCustomerAction(ctx, tx, in.CustomerID, in.OperatorID, action); err != nil {
 			return err
@@ -362,6 +362,14 @@ func (s *Service) withdrawalForStaff(ctx context.Context, tx *gorm.DB, actor, op
 	err := tx.First(&r, "id=? AND operator_id=?", id, operator).Error
 	return r, err
 }
+func (s *Service) requireWithdrawalAction(ctx context.Context, tx *gorm.DB, r withdrawalRow) error {
+	action := "withdrawal"
+	if r.Wallet == "balance" {
+		action = "balance_withdrawal"
+	}
+	return s.org.RequireCustomerAction(ctx, tx, r.CustomerID, r.OperatorID, action)
+}
+
 func (s *Service) ApproveWithdrawal(ctx context.Context, tx *gorm.DB, actor, operator, id string) (out Withdrawal, err error) {
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
 		r, err := s.withdrawalForStaff(ctx, tx, actor, operator, id)
@@ -374,6 +382,9 @@ func (s *Service) ApproveWithdrawal(ctx context.Context, tx *gorm.DB, actor, ope
 		}
 		if r.Status != "requested" {
 			return ErrWithdrawalState
+		}
+		if err = s.requireWithdrawalAction(ctx, tx, r); err != nil {
+			return err
 		}
 		r.Status = "approved"
 		r.ApprovedBy = &actor
@@ -453,6 +464,9 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 		}
 		if r.Status != "approved" {
 			return ErrWithdrawalState
+		}
+		if err = s.requireWithdrawalAction(ctx, tx, r); err != nil {
+			return err
 		}
 		balance := r.Wallet == "balance"
 		if !balance {
@@ -550,7 +564,7 @@ func (s *Service) FailWithdrawal(ctx context.Context, tx *gorm.DB, actor, operat
 		if r.Status == "failed" {
 			return nil
 		}
-		if r.Status != "approved" {
+		if r.Status != "approved" && r.Status != "requested" {
 			return ErrWithdrawalState
 		}
 		if r.Wallet != "balance" {

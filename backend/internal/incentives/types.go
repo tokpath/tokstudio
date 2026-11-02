@@ -1,6 +1,6 @@
 // Package incentives owns qualification, two-hop commissions, campaign
-// commitments and verified manual commission payouts. It never changes a
-// customer's USD wallet or ATG to collect a commission recovery.
+// commitments and verified manual payouts from commission or payment wallets.
+// Commission recovery never takes payment-wallet funds or ATG.
 package incentives
 
 import (
@@ -25,6 +25,7 @@ var (
 	ErrBlocked                      = errors.New("incentives: commission release or use is blocked")
 	ErrWithdrawalState              = errors.New("incentives: withdrawal state does not permit this action")
 	ErrWithdrawalMinimum            = errors.New("incentives: withdrawal minimum is below one settlement unit")
+	ErrWithdrawalTermsChanged       = errors.New("incentives: withdrawal terms changed before submission")
 	ErrBalanceWithdrawalMinimum     = errors.New("incentives: balance withdrawal minimum is below one settlement unit")
 	ErrWithdrawalSameCurrencyAmount = errors.New("incentives: same-currency withdrawal amount contradicts the fixed net")
 	ErrWithdrawalForeignAmount      = errors.New("incentives: foreign withdrawal amount is incomplete")

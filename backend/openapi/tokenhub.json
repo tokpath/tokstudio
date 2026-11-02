@@ -8012,6 +8012,10 @@
                     "type": "string",
                     "format": "uuid"
                   },
+                  "policy_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
                   "amount_money": {
                     "$ref": "#/components/schemas/LedgerDecimal"
                   },
@@ -8025,6 +8029,7 @@
                 },
                 "required": [
                   "method_id",
+                  "policy_id",
                   "amount_money",
                   "recipient"
                 ],
@@ -8293,6 +8298,10 @@
                     "type": "string",
                     "format": "uuid"
                   },
+                  "policy_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
                   "amount_money": {
                     "$ref": "#/components/schemas/LedgerDecimal"
                   },
@@ -8306,6 +8315,7 @@
                 },
                 "required": [
                   "method_id",
+                  "policy_id",
                   "amount_money",
                   "recipient"
                 ],
@@ -32239,290 +32249,6 @@
         "x-required-permission": "refunds.manage"
       }
     },
-    "/v1/operators/{operatorId}/refunds/{id}/verify_manual_failure": {
-      "post": {
-        "operationId": "post__v1_operators_operatorId_refunds_id_verify_manual_failure",
-        "summary": "核实外部付款已失败或取消",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Operator_refunds_verify_manual_failure"
-              }
-            }
-          }
-        },
-        "description": " Required explicit review: 仅用于已取得外部终态证明。超时、查不到或结果未知不能认定失败；本操作不释放剩余退款责任。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "refunds.manage"
-      }
-    },
-    "/v1/operators/{operatorId}/refunds/{id}/close_execution": {
-      "post": {
-        "operationId": "post__v1_operators_operatorId_refunds_id_close_execution",
-        "summary": "封存已终止执行并重新授权剩余款",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Operator_refunds_close_execution"
-              }
-            }
-          }
-        },
-        "description": " Required explicit review: 保留历史授权、已付事实和剩余占用。封存后必须由客户重新指定剩余款目的地、财务重新核实；未知结果不会允许封存。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "refunds.manage"
-      }
-    },
     "/v1/operators/{operatorId}/balance-withdrawals": {
       "post": {
         "operationId": "post__v1_operators_operatorId_balance_withdrawals",
@@ -34359,6 +34085,148 @@
         },
         "description": "Configure one payout method. The operator selects a payment profile, which fixes the recipient materials, and either a fixed fee or a percentage. The customer submits one application. The fee and recipient materials are fixed at submission. No actual payout fee is entered. Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "withdrawals.manage"
+      }
+    },
+    "/v1/operators/{operatorId}/refunds/{id}/confirm_fee": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_refunds_id_confirm_fee",
+        "summary": "登记退款手续费",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_refunds_confirm_fee"
+              }
+            }
+          }
+        },
+        "description": " Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/takeovers/{id}/refresh": {
@@ -46208,6 +46076,9 @@
                 "id": {
                   "type": "string"
                 },
+                "policy_id": {
+                  "type": "string"
+                },
                 "name": {
                   "type": "string"
                 },
@@ -46285,6 +46156,7 @@
               },
               "required": [
                 "id",
+                "policy_id",
                 "name",
                 "kind",
                 "kind_label",
@@ -51332,7 +51204,7 @@
               "model_usage",
               "activity",
               "withdrawal",
-              "wallet_refund",
+              "balance_withdrawal",
               "customer_login",
               "all_new_business"
             ],
@@ -51686,12 +51558,7 @@
           },
           "amount": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "实际币种金额"
-          },
-          "actual_money": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "本笔已核实清偿金额（清算币种） — 原币与全局清算币种相同时按实际金额推导；跨币时必须填写本笔真实付款对应的清偿金额，不提供汇率。",
-            "x-required-when-currency-differs-from-settlement": true
+            "description": "实际币种金额（跨币付款时填写）"
           },
           "fee_money": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -51709,7 +51576,6 @@
         },
         "required": [
           "currency",
-          "amount",
           "fee_money",
           "occurred_at",
           "evidence"
@@ -52100,82 +51966,6 @@
           "merchant_id",
           "external",
           "verification_evidence"
-        ],
-        "additionalProperties": false
-      },
-      "Operator_refunds_verify_manual_failure": {
-        "type": "object",
-        "properties": {
-          "expected_execution_key": {
-            "type": "string",
-            "description": "当前实际付款指令"
-          },
-          "result": {
-            "type": "string",
-            "enum": [
-              "failed",
-              "cancelled"
-            ],
-            "description": "外部已核实终态"
-          },
-          "external_reference": {
-            "type": "string",
-            "description": "外部执行方唯一核实流水"
-          },
-          "no_further_payment_reference": {
-            "type": "string",
-            "description": "不会继续付款的独立核实证明"
-          },
-          "evidence": {
-            "type": "string",
-            "description": "实际银行/执行方终态凭据"
-          },
-          "verified_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "真实核实时刻"
-          }
-        },
-        "required": [
-          "expected_execution_key",
-          "result",
-          "external_reference",
-          "no_further_payment_reference",
-          "evidence",
-          "verified_at"
-        ],
-        "additionalProperties": false
-      },
-      "Operator_refunds_close_execution": {
-        "type": "object",
-        "properties": {
-          "expected_execution_key": {
-            "type": "string",
-            "description": "本次旧执行编号"
-          },
-          "reason": {
-            "type": "string",
-            "enum": [
-              "failed",
-              "terminated",
-              "settled_partial"
-            ],
-            "description": "独立核实封存原因"
-          },
-          "no_further_payment_reference": {
-            "type": "string",
-            "description": "旧指令不会继续付款的独立证明"
-          },
-          "evidence": {
-            "type": "string",
-            "description": "核实与封存依据"
-          }
-        },
-        "required": [
-          "expected_execution_key",
-          "reason",
-          "no_further_payment_reference",
-          "evidence"
         ],
         "additionalProperties": false
       },
@@ -53288,6 +53078,39 @@
           "source",
           "enabled",
           "expected_version"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_refunds_confirm_fee": {
+        "type": "object",
+        "properties": {
+          "leg_id": {
+            "type": "string",
+            "description": "原退款明细"
+          },
+          "fee_money": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "已核实退款手续费（结算币种，没有则填 0）"
+          },
+          "reference": {
+            "type": "string",
+            "description": "费用流水或收据号（可选）"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "费用发生时间"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "费用核实说明"
+          }
+        },
+        "required": [
+          "leg_id",
+          "fee_money",
+          "occurred_at",
+          "evidence"
         ],
         "additionalProperties": false
       },

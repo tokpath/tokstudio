@@ -72,11 +72,11 @@ func TestPostgresSeparateReceiptsFromSamePayerKeepCustomerInvoiceRefundsIsolated
 	}
 	leg = f.approvedRefundLeg(t, "party-a-fx-shortfall", "10")
 	p.BusinessKey, p.Reference, p.ActualMoney, p.Amount = "short-conversion", "bank-shortfall", d("9"), "9"
-	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p); e != ErrPaymentMismatch {
-		t.Fatal("actual short refund not preserved for reconciliation", e)
+	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p); e != ErrRefundFullPayment {
+		t.Fatal("manual refund accepted an amount below its approved obligation", e)
 	}
 	facts, e = f.s.FinancialRefundFacts(f.ctx, nil, f.operator, time.Now().Add(-time.Hour), time.Now().Add(time.Hour))
-	if e != nil || facts.MismatchCount != 1 || facts.OutstandingMoney.Cmp(d("1")) != 0 {
-		t.Fatal("actual FX shortfall disappeared from liability report", facts, e)
+	if e != nil || facts.MismatchCount != 0 || facts.OutstandingMoney.Cmp(d("10")) != 0 {
+		t.Fatal("rejected manual input changed the approved refund liability", facts, e)
 	}
 }

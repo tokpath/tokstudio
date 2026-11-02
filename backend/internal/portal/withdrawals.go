@@ -17,11 +17,16 @@ func (a *Application) applyBalanceWithdrawal(c *gin.Context) {
 }
 func (a *Application) applyWalletWithdrawal(c *gin.Context, wallet string) {
 	var in struct {
+		PolicyID  string            `json:"policy_id"`
 		MethodID  string            `json:"method_id"`
 		Amount    ledger.Decimal    `json:"amount_money"`
 		Recipient map[string]string `json:"recipient"`
 	}
 	if !body(c, &in) {
+		return
+	}
+	if _, err := uuid.Parse(in.PolicyID); err != nil {
+		handleError(c, incentives.ErrInvalidInput)
 		return
 	}
 	id := subject(c)
@@ -43,7 +48,10 @@ func (a *Application) applyWalletWithdrawal(c *gin.Context, wallet string) {
 			}
 		}
 		if !found {
-			return nil, incentives.ErrNotReady
+			return nil, incentives.ErrWithdrawalTermsChanged
+		}
+		if method.ID != in.PolicyID {
+			return nil, incentives.ErrWithdrawalTermsChanged
 		}
 		if _, ok := incentives.FindPayoutProfile(method.PayoutKind); !ok {
 			return nil, incentives.ErrInvalidInput
@@ -56,7 +64,10 @@ func (a *Application) applyWalletWithdrawal(c *gin.Context, wallet string) {
 		if err != nil {
 			return nil, err
 		}
-		out, err := a.Incentives.RequestWithdrawal(c.Request.Context(), tx, incentives.WithdrawalInput{OperatorID: operatorID, CustomerID: id.Customer.Customer.ID, BusinessKey: idem, RecipientReference: reference, PolicyID: quote.Policy.ID, AmountMoney: quote.AmountMoney})
+		if quote.Policy.ID != in.PolicyID {
+			return nil, incentives.ErrWithdrawalTermsChanged
+		}
+		out, err := a.Incentives.RequestWithdrawal(c.Request.Context(), tx, incentives.WithdrawalInput{OperatorID: operatorID, CustomerID: id.Customer.Customer.ID, BusinessKey: idem, RecipientReference: reference, PolicyID: in.PolicyID, AmountMoney: quote.AmountMoney})
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +243,7 @@ func customerPayoutMethods(methods []incentives.WithdrawalPolicy) []gin.H {
 		if !ok {
 			continue
 		}
-		out = append(out, gin.H{"id": method.MethodID, "name": method.MethodName, "kind": method.PayoutKind, "kind_label": profile.Label, "summary": profile.Summary, "flat_fee_money": method.FlatFeeMoney.String(), "fee_rate": method.FeeRate.String(), "minimum_money": method.MinimumMoney.String(), "fields": profile.Fields})
+		out = append(out, gin.H{"id": method.MethodID, "policy_id": method.ID, "name": method.MethodName, "kind": method.PayoutKind, "kind_label": profile.Label, "summary": profile.Summary, "flat_fee_money": method.FlatFeeMoney.String(), "fee_rate": method.FeeRate.String(), "minimum_money": method.MinimumMoney.String(), "fields": profile.Fields})
 	}
 	return out
 }

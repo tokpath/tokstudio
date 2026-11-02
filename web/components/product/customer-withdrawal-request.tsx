@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CommandResultSchema, type Entity, type Operation } from "@/lib/contracts";
+import { useQueryClient } from "@tanstack/react-query";
+import { APIError } from "@/lib/api-client";
+import { useNavigationBlock } from "@/lib/navigation-guard";
 import { previewWithdrawal } from "@/lib/withdrawal-fee";
 import { useI18n } from "@/components/i18n";
 import { Button } from "@/components/ui/button";
@@ -10,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { ErrorPanel, Money, Notice, Status, useCommand, withdrawalStatusLabels } from "./shared";
 
 export type PayoutField = { name: string; label: string; help: string; kind: "text" | "select"; options?: { value: string; label: string }[] };
-export type PayoutMethod = { id: string; name: string; kind: string; kind_label: string; summary: string; flat_fee_money: string; fee_rate: string; minimum_money: string; fields: PayoutField[] };
+export type PayoutMethod = { id: string; policy_id: string; name: string; kind: string; kind_label: string; summary: string; flat_fee_money: string; fee_rate: string; minimum_money: string; fields: PayoutField[] };
 
 const reasons: Record<string, string> = {
   invalid: "请输入提现金额。",
@@ -30,26 +33,34 @@ export function CustomerWithdrawalRequest({ methods, digits, submitPath = "/api/
   const [amount, setAmount] = useState("");
   const [methodID, setMethodID] = useState(methods[0]?.id || "");
   const [recipient, setRecipient] = useState<Record<string, string>>({});
+  const [methodSnapshot, setMethodSnapshot] = useState<PayoutMethod[]>();
   const [notice, setNotice] = useState("");
   const command = useCommand(submitPath, CommandResultSchema);
-  const selected = methods.find(method => method.id === methodID);
+  const cache = useQueryClient();
+  useEffect(() => { if (command.error instanceof APIError && command.error.code === "withdrawal_terms_changed") void cache.invalidateQueries(); }, [cache, command.error]);
+  const frozen = command.busy || command.unresolved;
+  const blocked = useNavigationBlock(frozen);
+  const displayedMethods = frozen && methodSnapshot ? methodSnapshot : methods;
+  const selected = displayedMethods.find(method => method.id === methodID);
   const preview = amount ? previewWithdrawal({ amount, flatFee: selected?.flat_fee_money || "0", feeRate: selected?.fee_rate || "0", minimum: selected?.minimum_money || "0", digits }) : undefined;
   const ready = !!selected && preview?.ok === true && selected.fields.every(field => (recipient[field.name] || "").trim());
 
   async function submit() {
     if (!selected || !preview || !preview.ok || command.busy) return;
     setNotice("");
-    const body = { method_id: selected.id, amount_money: amount, recipient: Object.fromEntries(selected.fields.map(field => [field.name, (recipient[field.name] || "").trim()])) };
+    if (!command.unresolved) setMethodSnapshot(methods);
+    const body = { method_id: selected.id, policy_id: selected.policy_id, amount_money: amount, recipient: Object.fromEntries(selected.fields.map(field => [field.name, (recipient[field.name] || "").trim()])) };
     const result = await command.run(body);
     if (result) { setRecipient({}); setNotice(result.message || "已提交提现申请。"); }
   }
 
   return <Card>
     <div className="mb-5"><h2 className="text-lg font-semibold">{t("申请提现")}</h2><p className="mt-2 text-sm leading-6 text-ink-secondary">{t("选择提现方式并填写金额后，可以立刻比较手续费。选定后填写该方式要求的收款资料，一次提交。")}</p></div>
-    {!methods.length ? <Notice>{t("请等待经营方配置可用提现方式。")}</Notice> : <div className="space-y-5">
+    {!displayedMethods.length ? <Notice>{t("请等待经营方配置可用提现方式。")}</Notice> : <div className="space-y-5">
+      <fieldset disabled={frozen} className="space-y-5">
       <label className="block text-sm">{t("提现金额 结算币种")}<Input className="mt-2" inputMode="decimal" value={amount} onChange={event => { setAmount(event.target.value); setNotice(""); }} required /></label>
       <p className="mt-2 text-xs leading-6 text-ink-mute">{t(walletName === "支付余额" ? "不足最小支付单位的尾数仍留在支付余额，不计入本次申请。" : "不足最小支付单位的尾数仍留在佣金钱包，不计入本次申请。")}</p>
-      <fieldset className="space-y-3"><legend className="mb-3 text-sm">{t("提现方式")}</legend>{methods.map(method => {
+      <fieldset className="space-y-3"><legend className="mb-3 text-sm">{t("提现方式")}</legend>{displayedMethods.map(method => {
         const quote = amount ? previewWithdrawal({ amount, flatFee: method.flat_fee_money, feeRate: method.fee_rate, minimum: method.minimum_money, digits }) : undefined;
         return <label key={method.id} className={`block cursor-pointer rounded-control border p-4 ${method.id === methodID ? "border-brand bg-brand-soft/20" : "border-hairline"}`}>
           <span className="flex flex-wrap items-start justify-between gap-3"><span className="flex items-start gap-2"><input type="radio" name="payout-method" checked={method.id === methodID} onChange={() => { setMethodID(method.id); setNotice(""); }} /><span><span className="font-medium">{method.name}</span><span className="mt-1 block text-xs text-ink-mute">{t(method.kind_label)}</span></span></span>
@@ -61,9 +72,11 @@ export function CustomerWithdrawalRequest({ methods, digits, submitPath = "/api/
         {preview?.ok && <p className="text-sm leading-7">{t("本次申请总额")} <Money value={preview.amount} unit="MONEY" /> · {t("手续费")} <Money value={preview.fee} unit="MONEY" /> · {t(receivedLabel(walletName))} <Money value={preview.net} unit="MONEY" /></p>}
         {preview && !preview.ok && <p role="alert" className="text-sm text-danger">{t(payoutReason(preview.reason, walletName))}</p>}
       </div>}
+      </fieldset>
       {!!command.error && <ErrorPanel error={command.error} />}
+      {(command.unresolved || blocked) && <Notice>{t("请保持此办理面板，查询业务记录或重试本次操作。重试会复用原提交内容与同一操作编号，避免重复办理。")}</Notice>}
       {notice && <Notice>{t(notice)}</Notice>}
-      <Button type="button" disabled={!ready || command.busy} onClick={() => void submit()}>{command.busy ? t("正在提交…") : t("提交提现申请")}</Button>
+      <Button type="button" disabled={(!ready && !command.unresolved) || command.busy} onClick={() => void submit()}>{command.busy ? t("正在提交…") : command.unresolved ? t("重试本次操作") : t("提交提现申请")}</Button>
     </div>}
   </Card>;
 }

@@ -3,7 +3,9 @@ package operations
 import (
 	"context"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
+	"strings"
 )
 
 type IncentiveAudience interface {
@@ -46,15 +48,23 @@ func (c IncentiveNotifications) EnqueueIncentiveEvent(ctx context.Context, tx *g
 	if e != nil {
 		return e
 	}
+	monetary, e := ledger.GetMonetary(ctx, tx)
+	if e != nil {
+		return e
+	}
 	for _, recipient := range audience {
 		if recipient.OperatorID != event.OperatorID || recipient.Kind != event.Kind || !validID(recipient.RecipientID) {
 			return ErrInvalid
 		}
+		title := message[0]
+		if recipient.Wallet == "balance" {
+			title = strings.ReplaceAll(title, "佣金提现", "余额提现")
+		}
 		body := message[1]
 		if recipient.AmountMoney != nil {
-			body += " 本次申请金额 " + recipient.AmountMoney.String() + " USD。"
+			body += " 本次申请金额 " + recipient.AmountMoney.String() + " " + monetary.Currency + "。"
 		}
-		if _, e = c.Operations.Emit(ctx, tx, Notification{OperatorID: recipient.OperatorID, RecipientID: recipient.RecipientID, BusinessKey: "incentive:" + event.ID, Category: "mandatory", Severity: "info", Title: message[0], Body: body, Reference: "incentive-event:" + recipient.Reference}); e != nil {
+		if _, e = c.Operations.Emit(ctx, tx, Notification{OperatorID: recipient.OperatorID, RecipientID: recipient.RecipientID, BusinessKey: "incentive:" + event.ID, Category: "mandatory", Severity: "info", Title: title, Body: body, Reference: "incentive-event:" + recipient.Reference}); e != nil {
 			return e
 		}
 	}

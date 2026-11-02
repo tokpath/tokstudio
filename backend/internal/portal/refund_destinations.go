@@ -101,38 +101,15 @@ func (a *Application) externalRefundAction(c *gin.Context, actor, operator, acti
 			return true
 		}
 		k, _ := key(c)
+		if in.Reference == "" {
+			in.Reference = "manual:refund-fee:" + c.Param("id")
+		}
 		out, e := a.Remediation.ConfirmRefundFee(c.Request.Context(), nil, remediation.RefundFeeInput{OperatorID: operator, LegID: in.LegID, PaymentBusinessKey: business, BusinessKey: k, ActorID: actor, FeeMoney: in.FeeMoney, Reference: in.Reference, Evidence: in.Evidence, OccurredAt: in.OccurredAt})
 		if e != nil {
 			handleError(c, e)
 			return true
 		}
 		c.JSON(200, commandResult(out.ID, "confirmed"))
-		return true
-	case "close_execution":
-		var in remediation.RefundExecutionClosureInput
-		if !body(c, &in) {
-			return true
-		}
-		in.BusinessKey, _ = key(c)
-		out, e := a.Remediation.CloseRefundExecution(c.Request.Context(), actor, operator, c.Param("id"), in)
-		if e != nil {
-			handleError(c, e)
-			return true
-		}
-		c.JSON(200, commandResult(out.ID, "awaiting_new_destination"))
-		return true
-	case "verify_manual_failure":
-		var in remediation.ManualRefundFailureInput
-		if !body(c, &in) {
-			return true
-		}
-		in.BusinessKey, _ = key(c)
-		out, e := a.Remediation.RecordManualRefundFailure(c.Request.Context(), actor, operator, c.Param("id"), in)
-		if e != nil {
-			handleError(c, e)
-			return true
-		}
-		c.JSON(200, commandResult(out.ID, "exception"))
 		return true
 	case "authorize_destination", "authorize_unallocated_destination":
 		var in remediation.RefundDestinationAuthorizationInput

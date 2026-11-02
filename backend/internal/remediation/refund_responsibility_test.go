@@ -52,17 +52,11 @@ func TestPostgresUnavailableOriginalBankUsesExplicitCustomerAuthorizedReplacemen
 	if e != nil {
 		t.Fatal(e)
 	}
-	proof := payments.ExternalRefundVerification{ReceiptID: leg.ReceiptID, ExternalReference: "replacement-first-9", Money: payments.Money{Currency: "USD", Amount: d("9")}, ExecutedAt: at, EvidenceReference: "actual executed bank payment 9", Destination: payments.ExternalRefundDestination{Network: a.Network, Asset: a.Asset, Address: a.Address, AuthorizationReference: a.ID, VerificationEvidence: "verified completed actual outgoing bank transaction"}}
-	if out, e := f.s.Payments.RecordResponsibleBankRefund(f.ctx, f.owner, f.operator, m.ID, payments.Refund{ID: leg.ID}, proof); !errors.Is(e, payments.ErrSettlementReview) || out.State != "verified_pending_settlement" {
-		t.Fatal(out, e)
-	}
-	if _, e = f.s.BeginManualRefund(f.ctx, f.owner, f.operator, leg.ID, "replacement-second-instruction", "first actual9 confirmed; explicitly authorize last1"); e != nil {
-		t.Fatal(e)
-	}
-	proof.ExternalReference = "replacement-final-1"
-	proof.Money.Amount = d("1")
-	if out, e := f.s.Payments.RecordResponsibleBankRefund(f.ctx, f.owner, f.operator, m.ID, payments.Refund{ID: leg.ID}, proof); e != nil || out.State != "succeeded" {
-		t.Fatal(out, e)
+	proof := payments.ExternalRefundVerification{ReceiptID: leg.ReceiptID, ExternalReference: "replacement-full-10", Money: payments.Money{Currency: "USD", Amount: d("10")}, ExecutedAt: at, EvidenceReference: "actual full bank payment 10", Destination: payments.ExternalRefundDestination{Network: a.Network, Asset: a.Asset, Address: a.Address, AuthorizationReference: a.ID, VerificationEvidence: "verified completed actual outgoing bank transaction"}}
+	for range 2 {
+		if out, e := f.s.Payments.RecordResponsibleBankRefund(f.ctx, f.owner, f.operator, m.ID, payments.Refund{ID: leg.ID}, proof); e != nil || out.State != "succeeded" {
+			t.Fatal(out, e)
+		}
 	}
 	if a := f.balance(t); a.Balance.Cmp(d("90")) != 0 || !a.Held.IsZero() {
 		t.Fatal(a)
@@ -146,21 +140,10 @@ func TestPostgresTakeoverRefundUsesBrandOwnWalletAndBankWithoutFormerMerchantAcc
 	if _, e = brand.s.Payments.RecordResponsibleEVMRefund(brand.ctx, channel.owner, brand.operator, current.ID, r, v); e == nil {
 		t.Fatal("former channel owner spent brand funds")
 	}
-	if out, e := brand.s.Payments.RecordResponsibleEVMRefund(brand.ctx, brand.owner, brand.operator, current.ID, r, v); !errors.Is(e, payments.ErrSettlementReview) || out.State != "verified_pending_settlement" {
-		t.Fatal(out, e)
-	}
-	cap, e := brand.s.ReceiptRefundCapacity(brand.ctx, nil, channel.operator, ext.receipt)
-	if e != nil || cap.CompletedMoney.Cmp(d("19")) != 0 || cap.ReservedMoney.Cmp(d("1")) != 0 {
-		t.Fatal(cap, e)
-	}
-	if _, e = brand.s.BeginManualRefund(brand.ctx, brand.owner, brand.operator, ext.leg.ID, "brand-wallet-supplement", "verified original19; authorize remaining1 from brand"); e != nil {
-		t.Fatal(e)
-	}
-	r, v = ext.refund(t, a, "7")
 	if out, e := brand.s.Payments.RecordResponsibleEVMRefund(brand.ctx, brand.owner, brand.operator, current.ID, r, v); e != nil || out.State != "succeeded" {
 		t.Fatal(out, e)
 	}
-	cap, e = brand.s.ReceiptRefundCapacity(brand.ctx, nil, channel.operator, ext.receipt)
+	cap, e := brand.s.ReceiptRefundCapacity(brand.ctx, nil, channel.operator, ext.receipt)
 	if e != nil || cap.CompletedMoney.Cmp(d("20")) != 0 || !cap.ReservedMoney.IsZero() {
 		t.Fatal(cap, e)
 	}

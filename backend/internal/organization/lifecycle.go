@@ -180,7 +180,7 @@ type ScopeFreezeInput struct {
 
 func freezeAction(action string) bool {
 	switch action {
-	case "registration", "new_purchase", "renewal", "model_usage", "activity", "withdrawal", "wallet_refund", "customer_login", "all_new_business":
+	case "registration", "new_purchase", "renewal", "model_usage", "activity", "withdrawal", "balance_withdrawal", "customer_login", "all_new_business":
 		return true
 	}
 	return false

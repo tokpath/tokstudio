@@ -60,6 +60,11 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				if (resource == "withdrawals" || resource == "balance-withdrawals") && (f.Name == "original_amount" || f.Name == "valuation_evidence") && settlementCurrency != "" {
 					f.VisibleWhen = &fieldVisibility{Not: true, Field: "currency", Values: []string{settlementCurrency}}
 				}
+				if resource == "refunds" && ops[i].Name == "verify_manual" && f.Name == "amount" && settlementCurrency != "" {
+					f.Required = true
+					f.VisibleWhen = &fieldVisibility{Not: true, Field: "currency", Values: []string{settlementCurrency}}
+					f.Help = "用结算币种足额付款时，系统直接记录应退金额；跨币付款填写实际付出的原币金额。"
+				}
 				if f.Name == "delivery_mode" && !a.operatorMailAvailable(c) {
 					options := []gin.H{}
 					for _, option := range f.Options {
@@ -131,6 +136,9 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				}
 				if lookup != "" && f.Kind != "hidden" {
 					f.LookupURL = scope + "/references/" + lookup
+					if resource == "refunds" && ops[i].Name == "procurement_nondelivery" && lookup == "orders" {
+						f.LookupURL += "?purpose=procurement-refund"
+					}
 					if lookup == "orders" && (strings.HasSuffix(ops[i].Path, "/payments") || strings.HasSuffix(ops[i].Path, "/allocate") && strings.Contains(ops[i].Path, "/payments/")) {
 						f.LookupURL += "?purpose=collection"
 					}

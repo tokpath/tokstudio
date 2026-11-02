@@ -26,7 +26,7 @@ func (s *Service) RequestWalletRefund(ctx context.Context, in WalletRefundInput)
 		return out, ErrInvalid
 	}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
-		if e := s.Organization.RequireCustomerAction(ctx, t, in.CustomerID, in.OperatorID, "wallet_refund"); e != nil {
+		if e := s.Organization.RequireCustomerAction(ctx, t, in.CustomerID, in.OperatorID, "balance_withdrawal"); e != nil {
 			return e
 		}
 		own, e := s.Organization.CurrentOwnership(ctx, t, in.CustomerID)

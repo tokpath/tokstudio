@@ -239,6 +239,11 @@ test('payout methods retain their actual concurrency fields', () => {
   }
   const apply = document.paths['/v1/me/withdrawals'].post.requestBody.content['application/json'].schema;
   assert.equal(apply.properties.method_id.format, 'uuid');
+  for (const wallet of ['withdrawals','balance-withdrawals']) {
+    const input=document.paths['/v1/me/'+wallet].post.requestBody.content['application/json'].schema;
+    assert.equal(input.properties.policy_id.format,'uuid');
+    assert.ok(input.required.includes('policy_id'));
+  }
   assert.equal(apply.required.includes('recipient'), true);
   assert.equal(document.paths['/v1/me/withdrawals/quotes'], undefined);
   assert.equal(document.paths['/v1/me/withdrawals/quotes/{id}/confirm'], undefined);
@@ -305,7 +310,10 @@ test('finance commands derive same-settlement-currency values and retain indepen
  assert.equal(refund.properties.fee_status,undefined);
  assert.equal(schemas.Operator_refunds_execute_api,undefined);
  assert.equal(schemas.Operator_refunds_begin_manual,undefined);
- assert.equal(schemas.Operator_refunds_confirm_fee,undefined);
+ assert.ok(schemas.Operator_refunds_confirm_fee);
+ assert.equal(refund.properties.actual_money,undefined);
+ assert.equal(schemas.Operator_refunds_close_execution,undefined);
+ assert.equal(schemas.Operator_refunds_verify_manual_failure,undefined);
  const withdrawal=schemas.Operator_withdrawals_verify_paid;
  assert.equal(withdrawal.required.includes('original_amount'),false);
  assert.equal(withdrawal.required.includes('valuation_evidence'),false);

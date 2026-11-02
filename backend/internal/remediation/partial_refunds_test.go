@@ -26,80 +26,36 @@ func TestPostgresCashRefundUsesInternalReferenceAndRemainsIdempotent(t *testing.
 	}
 }
 
-func TestPostgresPartialRefundClearsOnlyActualPrincipalAndSupplementHasIndependentFact(t *testing.T) {
+func TestPostgresManualRefundRejectsPartialAmountAndThenPaysFullOnce(t *testing.T) {
 	f := setup(t)
 	f.topup(t, "actual-partial-source", "100")
 	leg := f.approvedRefundLeg(t, "actual-partial-return", "10")
-	p := ExecutionProof{BusinessKey: "actual-9", Reference: "actual-first-bank-transfer", Evidence: "independently verified actual payment 9", ActualMoney: d("9"), FeeStatus: "pending", Currency: "USD", Amount: "9", OccurredAt: time.Now().UTC()}
-	out, e := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p)
-	if !errors.Is(e, ErrPaymentMismatch) || out.State != "exception" || out.SettledMoney.Cmp(d("9")) != 0 {
-		t.Fatal(out, e)
+	p := ExecutionProof{BusinessKey: "actual-9", Reference: "test-first-bank-transfer", Evidence: "test amount input", ActualMoney: d("9"), Currency: "USD", Amount: "9", OccurredAt: time.Now().UTC()}
+	if _, err := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p); !errors.Is(err, ErrRefundFullPayment) {
+		t.Fatal("partial amount accepted", err)
 	}
-	if a := f.balance(t); a.Balance.Cmp(d("91")) != 0 || a.Held.Cmp(d("1")) != 0 {
-		t.Fatal("full principal remained frozen after partial payment", a)
+	if a := f.balance(t); a.Balance.String() != "100" || a.Held.String() != "10" {
+		t.Fatal("rejected input changed wallet", a)
 	}
-	cap, e := f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, leg.ReceiptID)
-	if e != nil || cap.CompletedMoney.Cmp(d("9")) != 0 || cap.ReservedMoney.Cmp(d("1")) != 0 || cap.AvailableMoney.Cmp(d("90")) != 0 {
-		t.Fatal(cap, e)
+	var n int64
+	if err := f.db.Table("remediation_payment_observations").Where("leg_id=?", leg.ID).Count(&n).Error; err != nil || n != 0 {
+		t.Fatal("rejected input created payment facts", n, err)
 	}
-	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p); !errors.Is(e, ErrPaymentMismatch) {
-		t.Fatal("partial replay", e)
+	p.BusinessKey = "full-once"
+	p.Reference = ""
+	p.ActualMoney = ledger.Zero()
+	p.Amount = ""
+	for range 2 {
+		out, err := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p)
+		if err != nil || out.State != "completed" || out.SettledMoney.String() != "10" {
+			t.Fatal(out, err)
+		}
 	}
-	changedKey := p
-	changedKey.BusinessKey = "same-actual-transfer-under-new-key"
-	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, changedKey); !errors.Is(e, ErrState) {
-		t.Fatal("actual transfer reused with another command", e)
-	}
-	var allocated []struct{ RefundedMoney ledger.Decimal }
-	if e = f.db.Table("commerce_wallet_funding_allocations a").Select("a.refunded_money").Joins("JOIN remediation_wallet_links l ON l.allocation_id=a.id").Where("l.leg_id=?", leg.ID).Scan(&allocated).Error; e != nil || len(allocated) != 1 || allocated[0].RefundedMoney.Cmp(d("9")) != 0 {
-		t.Fatal(allocated, e)
-	}
-	rows, e := f.s.InvoicePartyReceiptAdjustments(f.ctx, nil, f.operator, f.customer, []string{leg.ReceiptID})
-	if e != nil || rows[0].RemovedMoney.Cmp(d("9")) != 0 || !rows[0].ReviewRequired {
-		t.Fatal(rows, e)
-	}
-	cash, e := f.s.account(f.ctx, f.db, f.operator, f.operator, "control:external_cash")
-	if e != nil || cash.Balance.Cmp(d("9")) != 0 {
-		t.Fatal("actual cash missing from ledger", cash, e)
-	}
-	second := p
-	second.BusinessKey = "actual-1"
-	second.Reference = "actual-second-bank-transfer"
-	second.ActualMoney = d("1")
-	second.Amount = "1"
-	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, second); !errors.Is(e, ErrState) {
-		t.Fatal("new payment cleared under previous instruction", e)
-	}
-	if _, e = f.s.BeginManualRefund(f.ctx, f.owner, f.operator, leg.ID, "explicit-supplemental-instruction", "verified first actual payment; authorize only remaining 1"); e != nil {
-		t.Fatal(e)
-	}
-	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, changedKey); !errors.Is(e, ErrConflict) {
-		t.Fatal("actual transfer was reusable after new instruction", e)
-	}
-	out, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, second)
-	if e != nil || out.State != "completed" || out.SettledMoney.Cmp(d("10")) != 0 {
-		t.Fatal(out, e)
-	}
-	if a := f.balance(t); a.Balance.Cmp(d("90")) != 0 || !a.Held.IsZero() {
+	if a := f.balance(t); a.Balance.String() != "90" || !a.Held.IsZero() {
 		t.Fatal(a)
 	}
-	cap, e = f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, leg.ReceiptID)
-	if e != nil || cap.CompletedMoney.Cmp(d("10")) != 0 || !cap.ReservedMoney.IsZero() {
-		t.Fatal(cap, e)
-	}
-	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, second); e != nil {
-		t.Fatal("supplement replay", e)
-	}
-	var count int64
-	_ = f.db.Table("remediation_payment_observations").Where("leg_id=?", leg.ID).Count(&count).Error
-	if count != 2 {
-		t.Fatal("payment facts collapsed or duplicated", count)
-	}
-	if e = f.db.Transaction(func(tx *gorm.DB) error {
-		_, e := f.s.ObserveReceiptRefund(f.ctx, tx, f.operator, leg.ReceiptID, "different-obligation", "payment:does-not-exist", d("1"))
-		return e
-	}); e == nil {
-		t.Fatal("unknown obligation consumed capacity")
+	if err := f.db.Table("remediation_payment_observations").Where("leg_id=?", leg.ID).Count(&n).Error; err != nil || n != 1 {
+		t.Fatal("full payment duplicated", n, err)
 	}
 }
 
@@ -144,39 +100,19 @@ func TestPostgresReceiptRefundObservationUniquenessAndPartialCapacity(t *testing
 	}
 }
 
-func TestPostgresRefundOverpaymentRecordsCashWithoutTakingOtherCustomerPrincipal(t *testing.T) {
+func TestPostgresManualRefundRejectsAmountAboveApprovedObligation(t *testing.T) {
 	f := setup(t)
 	f.topup(t, "actual-overpayment-source", "100")
 	leg := f.approvedRefundLeg(t, "actual-overpayment-return", "10")
-	p := ExecutionProof{BusinessKey: "actual-21", Reference: "bank-accidental-extra-payment", Evidence: "actual bank execution 21 against approved 10", ActualMoney: d("21"), Currency: "USD", Amount: "21", OccurredAt: time.Now().UTC()}
-	out, e := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p)
-	if !errors.Is(e, ErrPaymentMismatch) || out.State != "completed" || out.SettledMoney.Cmp(d("10")) != 0 || out.ExcessMoney.Cmp(d("11")) != 0 {
-		t.Fatal(out, e)
+	p := ExecutionProof{BusinessKey: "actual-21", Reference: "test-overpayment", Evidence: "test amount input", ActualMoney: d("21"), Currency: "USD", Amount: "21", OccurredAt: time.Now().UTC()}
+	if _, err := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p); !errors.Is(err, ErrRefundFullPayment) {
+		t.Fatal("excess amount accepted", err)
 	}
-	c, e := f.s.GetCase(f.ctx, nil, f.operator, leg.CaseID)
-	if e != nil || c.State != "completed" {
-		t.Fatal("merchant mistake blocked cleared customer liability", c, e)
+	if a := f.balance(t); a.Balance.String() != "100" || a.Held.String() != "10" {
+		t.Fatal("rejected amount changed wallet", a)
 	}
-	if a := f.balance(t); a.Balance.Cmp(d("90")) != 0 || !a.Held.IsZero() {
-		t.Fatal("overpayment seized legitimate unapproved customer balance", a)
-	}
-	cash, e := f.s.account(f.ctx, f.db, f.operator, f.operator, "control:external_cash")
-	if e != nil || cash.Balance.Cmp(d("21")) != 0 {
-		t.Fatal(cash, e)
-	}
-	loss, e := f.s.account(f.ctx, f.db, f.operator, f.operator, "control:refund_overpayment")
-	if e != nil || loss.Balance.Cmp(d("-11")) != 0 {
-		t.Fatal(loss, e)
-	}
-	cap, e := f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, leg.ReceiptID)
-	if e != nil || cap.CompletedMoney.Cmp(d("10")) != 0 || cap.AvailableMoney.Cmp(d("90")) != 0 {
-		t.Fatal("excess consumed another source's refundable capacity", cap, e)
-	}
-	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p); !errors.Is(e, ErrPaymentMismatch) {
-		t.Fatal("excess review replay lost", e)
-	}
-	facts, e := f.s.FinancialRefundFacts(f.ctx, nil, f.operator, time.Now().Add(-time.Hour), time.Now().Add(time.Hour))
-	if e != nil || facts.MismatchCount != 1 || !facts.OutstandingMoney.IsZero() {
-		t.Fatal(facts, e)
+	cap, err := f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, leg.ReceiptID)
+	if err != nil || !cap.CompletedMoney.IsZero() || cap.ReservedMoney.String() != "10" {
+		t.Fatal("rejected amount consumed refund capacity", cap, err)
 	}
 }

@@ -7345,5 +7345,85 @@
     "en": "Choose a payment method. The customer will fill in the recipient details that method requires.",
     "ja": "支払方法を選択してください。顧客はその方法に必要な受取情報を記入します。",
     "ru": "Выберите способ оплаты. Клиент заполнит реквизиты, которые он требует."
+  },
+  "提现方式或手续费已更新，请刷新页面，核对最新费用后重新提交。": {
+    "en": "The withdrawal method or fee has changed. Review the refreshed fees before submitting again.",
+    "ja": "出金方法または手数料が更新されました。最新の手数料を確認して再申請してください。",
+    "ru": "Способ вывода или комиссия изменились. Проверьте обновлённые условия и отправьте заявку заново."
+  },
+  "请按已批准的应退金额一次足额付款。用结算币种付款时无需另填金额，跨币付款只登记实际原币金额。": {
+    "en": "Pay the full approved refund in one payment. No amount entry is needed in the settlement currency; for another currency, record the amount actually paid.",
+    "ja": "承認済みの返金額を一括で全額お支払いください。決済通貨では金額の再入力は不要です。他の通貨では実際の支払額を記録してください。",
+    "ru": "Выплатите всю утверждённую сумму возврата одним платежом. В расчётной валюте сумму вводить не нужно; для другой валюты укажите фактически выплаченную сумму."
+  },
+  "跟进余额提现": {
+    "en": "Handle balance withdrawals",
+    "ja": "残高の出金を処理",
+    "ru": "Обработка вывода платёжного баланса"
+  },
+  "实际币种金额（跨币付款时填写）": {
+    "en": "Amount in the payment currency (for cross-currency payments)",
+    "ja": "実際の支払通貨の金額（異なる通貨の場合）",
+    "ru": "Сумма в валюте платежа (если валюта отличается)"
+  },
+  "用结算币种足额付款时，系统直接记录应退金额；跨币付款填写实际付出的原币金额。": {
+    "en": "For a full refund in the settlement currency, the system records the approved amount. For another currency, enter the amount actually paid.",
+    "ja": "決済通貨で全額を返金する場合、承認済み金額が自動記録されます。他の通貨では実際に支払った金額を入力してください。",
+    "ru": "При полном возврате в расчётной валюте система записывает утверждённую сумму. Для другой валюты укажите фактически выплаченную сумму."
+  },
+  "登记退款手续费": {
+    "en": "Record refund fee",
+    "ja": "返金手数料を記録",
+    "ru": "Записать комиссию за возврат"
+  },
+  "原退款明细": {
+    "en": "Original refund detail",
+    "ja": "元の返金明細",
+    "ru": "Исходная запись возврата"
+  },
+  "已核实退款手续费（结算币种，没有则填 0）": {
+    "en": "Verified refund fee (settlement currency; enter 0 if none)",
+    "ja": "確認済み返金手数料（決済通貨、なければ0）",
+    "ru": "Подтверждённая комиссия за возврат (расчётная валюта; 0, если нет)"
+  },
+  "费用流水或收据号（可选）": {
+    "en": "Fee transaction or receipt number (optional)",
+    "ja": "手数料の取引・領収書番号（任意）",
+    "ru": "Номер операции или квитанции комиссии (необязательно)"
+  },
+  "费用发生时间": {
+    "en": "Fee incurred at",
+    "ja": "手数料の発生日時",
+    "ru": "Время возникновения комиссии"
+  },
+  "费用核实说明": {
+    "en": "Fee verification notes",
+    "ja": "手数料の確認内容",
+    "ru": "Описание подтверждения комиссии"
+  },
+  "只登记经营方承担的退款费用，不改变客户应退金额。": {
+    "en": "Records only the operator’s refund cost; the customer’s refund amount stays the same.",
+    "ja": "事業者が負担する返金手数料のみを記録します。顧客への返金額は変わりません。",
+    "ru": "Записывается только расход оператора на возврат. Сумма возврата клиенту не меняется."
+  },
+  "余额提现已申请": {
+    "en": "Balance withdrawal requested",
+    "ja": "残高出金を申請しました",
+    "ru": "Подана заявка на вывод платёжного баланса"
+  },
+  "余额提现已审核": {
+    "en": "Balance withdrawal approved",
+    "ja": "残高出金が承認されました",
+    "ru": "Вывод платёжного баланса одобрен"
+  },
+  "余额提现付款已核实": {
+    "en": "Balance withdrawal payment verified",
+    "ja": "残高出金の支払いを確認しました",
+    "ru": "Выплата платёжного баланса подтверждена"
+  },
+  "余额提现已取消": {
+    "en": "Balance withdrawal cancelled",
+    "ja": "残高出金を取り消しました",
+    "ru": "Вывод платёжного баланса отменён"
   }
 }

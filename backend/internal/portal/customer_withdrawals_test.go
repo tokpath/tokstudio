@@ -221,19 +221,33 @@ func TestPostgresBalanceWithdrawalMinimumIsSetOnItsOwnPage(t *testing.T) {
 	base := "/v1/operators/" + f.a.Installation.OperatorID
 	status, page, _ := f.call(t, "GET", base+"/balance-withdrawals?view=methods", nil, "")
 	mustOK(t, status, page)
-	found := false
+	if labels := viewLabels(page); len(labels) != 3 || labels[0] != "提现申请" || labels[1] != "提现方式" || labels[2] != "最低提现额度" {
+		t.Fatal(page["views"])
+	}
 	for _, raw := range page["operations"].([]any) {
-		op := raw.(map[string]any)
-		if op["name"] != "minimum" {
-			continue
-		}
-		found = true
-		if op["label"] != "设置最低提现额度" {
-			t.Fatal(op)
+		if raw.(map[string]any)["name"] == "minimum" {
+			t.Fatal("minimum setting still shares the methods page", raw)
 		}
 	}
-	if !found {
-		t.Fatal("balance withdrawal page has no minimum setting", page["operations"])
+	if _, ok := page["summary"]; ok {
+		t.Fatal("methods page still shows the minimum card", page["summary"])
+	}
+	status, commission, _ := f.call(t, "GET", base+"/withdrawals", nil, "")
+	mustOK(t, status, commission)
+	if labels := viewLabels(commission); len(labels) != 2 {
+		t.Fatal("commission withdrawals gained the balance minimum page", commission["views"])
+	}
+	status, page, _ = f.call(t, "GET", base+"/balance-withdrawals?view=minimum", nil, "")
+	mustOK(t, status, page)
+	if page["title"] != "余额最低提现额度" || len(page["items"].([]any)) != 0 {
+		t.Fatal(page["title"], page["items"])
+	}
+	ops := page["operations"].([]any)
+	if len(ops) != 1 || ops[0].(map[string]any)["name"] != "minimum" || ops[0].(map[string]any)["label"] != "设置最低提现额度" || ops[0].(map[string]any)["confirmation"] != "" {
+		t.Fatal(ops)
+	}
+	if ops[0].(map[string]any)["fields"].([]any)[0].(map[string]any)["default_value"] != "1" {
+		t.Fatal(ops[0])
 	}
 	status, out, _ := f.call(t, "POST", base+"/balance-withdrawals", map[string]any{"minimum_money": "8"}, "")
 	mustOK(t, status, out)
@@ -247,9 +261,23 @@ func TestPostgresBalanceWithdrawalMinimumIsSetOnItsOwnPage(t *testing.T) {
 	if status != 400 || !strings.Contains(out["error"].(map[string]any)["message"].(string), "不能小于 1") {
 		t.Fatal(status, out)
 	}
+	status, page, _ = f.call(t, "GET", base+"/balance-withdrawals?view=minimum", nil, "")
+	mustOK(t, status, page)
+	if page["operations"].([]any)[0].(map[string]any)["fields"].([]any)[0].(map[string]any)["default_value"] != "8" {
+		t.Fatal(page["operations"])
+	}
 	status, page, _ = f.call(t, "GET", base+"/balance-withdrawals", nil, "")
 	mustOK(t, status, page)
-	if page["summary"].([]any)[0].(map[string]any)["value"] != "8" {
-		t.Fatal(page["summary"])
+	if _, ok := page["summary"]; ok {
+		t.Fatal("request list still shows the minimum card", page["summary"])
 	}
+}
+
+func viewLabels(page map[string]any) []string {
+	views, _ := page["views"].([]any)
+	labels := []string{}
+	for _, raw := range views {
+		labels = append(labels, raw.(map[string]any)["label"].(string))
+	}
+	return labels
 }

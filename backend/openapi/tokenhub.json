@@ -32526,7 +32526,7 @@
             }
           }
         },
-        "description": " Required explicit review: 确认更新支付余额的单笔最低提现额度？新申请按这个额度校验。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": " Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "withdrawals.manage"
       }
     },

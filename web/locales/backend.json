@@ -1434,6 +1434,41 @@
     "ja": "支払残高の出金はこの額を下回ることができません。",
     "ru": "Вывод платёжного баланса не может быть ниже этой суммы."
   },
+  "设置支付余额可用的提现方式及手续费。手续费在申请时固定，由客户承担。最低提现额度在单独的页面设置。": {
+    "en": "Set the methods and fees for withdrawing a payment balance. The fee is fixed when the customer applies and is paid by the customer. The minimum is set on its own page.",
+    "ja": "支払残高の出金方法と手数料を設定します。手数料は申請時に固定され、お客様が負担します。最低出金額は専用のページで設定します。",
+    "ru": "Задайте способы и комиссию для вывода платёжного баланса. Комиссия фиксируется при заявке и оплачивается клиентом. Минимум задаётся на отдельной странице."
+  },
+  "审批支付余额提现，并按申请时固定的实付金额登记一次付款。最低额度在最低提现额度页设置，手续费在提现方式中设置，由客户承担。": {
+    "en": "Approve a payment-balance withdrawal, then record one payout for the net amount fixed at request time. Set the minimum on the minimum-withdrawal page. The fee is set on the withdrawal method and paid by the customer.",
+    "ja": "支払残高の出金を承認し、申請時に固定した実払額で一度だけ支払いを記録します。最低額は最低出金額のページで設定します。手数料は出金方法で設定し、お客様が負担します。",
+    "ru": "Одобрите вывод платёжного баланса и зарегистрируйте одну выплату на сумму, зафиксированную при заявке. Минимум задаётся на странице минимальной суммы. Комиссия задаётся в способе вывода и оплачивается клиентом."
+  },
+  "余额最低提现额度": {
+    "en": "Minimum balance withdrawal",
+    "ja": "残高の最低出金額",
+    "ru": "Минимальный вывод баланса"
+  },
+  "单笔支付余额提现不能低于这个额度，且不能小于 1 结算币种。已经提交的申请仍按申请时的额度办理。新申请按保存后的额度校验。": {
+    "en": "A payment-balance withdrawal cannot be below this amount, and the amount cannot be less than 1 settlement currency. Applications already submitted keep the minimum from when they were submitted. New applications use the saved amount.",
+    "ja": "支払残高の出金は、この額を下回ることができず、1 決済通貨未満にもできません。提出済みの申請は提出時の最低額のままです。新しい申請は保存後の額で確認されます。",
+    "ru": "Вывод платёжного баланса не может быть ниже этой суммы и не может быть меньше 1 валюта расчётов. Уже отправленные заявки сохраняют минимум на момент подачи. Новые заявки проверяются по сохранённой сумме."
+  },
+  "请输入余额最低提现额度。": {
+    "en": "Enter the minimum balance withdrawal.",
+    "ja": "残高の最低出金額を入力してください。",
+    "ru": "Введите минимальную сумму вывода баланса."
+  },
+  "保存最低提现额度": {
+    "en": "Save the minimum withdrawal",
+    "ja": "最低出金額を保存",
+    "ru": "Сохранить минимальную сумму вывода"
+  },
+  "最低提现额度已保存。新申请按这个额度校验。": {
+    "en": "The minimum withdrawal is saved. New applications are checked against this amount.",
+    "ja": "最低出金額を保存しました。新しい申請はこの額で確認されます。",
+    "ru": "Минимальная сумма вывода сохранена. Новые заявки проверяются по этой сумме."
+  },
   "设置支付余额的最低提现额度和提现方式。手续费在申请时固定，由客户承担。审批后按实付金额登记一次付款。": {
     "en": "Set the minimum and the methods for withdrawing a payment balance. The fee is fixed when the customer applies and is paid by the customer. After approval, record one payout for the net amount.",
     "ja": "支払残高の最低出金額と出金方法を設定します。手数料は申請時に固定され、お客様が負担します。承認後は実払額で一度だけ支払いを記録します。",

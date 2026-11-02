@@ -60,7 +60,11 @@ func (a *Application) applyWalletWithdrawal(c *gin.Context, wallet string) {
 		if err != nil {
 			return nil, err
 		}
-		return gin.H{"id": out.ID, "status": out.Status, "message": "已提交提现申请。总额 " + quote.AmountMoney.String() + " " + quote.Policy.Currency + "，手续费 " + quote.FeeMoney.String() + " " + quote.Policy.Currency + "，实付 " + quote.NetMoney.String() + " " + quote.Policy.Currency + "。"}, nil
+		received := "实付"
+		if wallet == "balance" {
+			received = "实得"
+		}
+		return gin.H{"id": out.ID, "status": out.Status, "message": "已提交提现申请。总额 " + quote.AmountMoney.String() + " " + quote.Policy.Currency + "，手续费 " + quote.FeeMoney.String() + " " + quote.Policy.Currency + "，" + received + " " + quote.NetMoney.String() + " " + quote.Policy.Currency + "。"}, nil
 	})
 	jsonResponse(c, raw, e)
 }
@@ -105,7 +109,11 @@ func (a *Application) customerWithdrawalWorkspace(c *gin.Context, p gin.H, opera
 	p["row_operations"] = []operation{{Name: "cancel", Label: "取消提现申请", Method: "POST", Path: cancelPath, Fields: []field{}, Description: "仅尚未审核的本人提现申请可以取消。", Confirmation: "确认取消这笔尚未审核的提现申请？取消成功后释放" + held + "；已进入审核或付款环节的申请须按最新状态继续办理。"}}
 	p["title"] = title
 	p["items"] = items
-	p["columns"] = []gin.H{col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
+	netLabel := "实付"
+	if wallet == "balance" {
+		netLabel = "实得"
+	}
+	p["columns"] = []gin.H{col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", netLabel, "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
 	p["operations"] = []operation{}
 	offered := customerPayoutMethods(methods)
 	settings, settingsErr := ledger.GetMonetary(ctx, a.DB)
@@ -125,7 +133,22 @@ func (a *Application) customerWithdrawalWorkspace(c *gin.Context, p gin.H, opera
 	a.resourceResponse(c, p)
 }
 func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base, wallet string) {
-	p["views"] = []gin.H{{"value": "requests", "label": "提现申请"}, {"value": "methods", "label": "提现方式"}}
+	views := []gin.H{{"value": "requests", "label": "提现申请"}, {"value": "methods", "label": "提现方式"}}
+	if wallet == "balance" {
+		views = append(views, gin.H{"value": "minimum", "label": "最低提现额度"})
+	}
+	p["views"] = views
+	if wallet == "balance" && c.Query("view") == "minimum" {
+		minimum := a.Incentives.WithdrawalMinimum(c.Request.Context(), nil, op.ID, wallet)
+		p["title"] = "余额最低提现额度"
+		p["description"] = "单笔支付余额提现不能低于这个额度，且不能小于 1 结算币种。已经提交的申请仍按申请时的额度办理。新申请按保存后的额度校验。"
+		p["items"] = []any{}
+		p["columns"] = []gin.H{}
+		p["operations"] = []operation{balanceMinimumOperation(base, minimum)}
+		p["row_operations"] = []operation{}
+		a.resourceResponse(c, p)
+		return
+	}
 	if c.Query("view") == "methods" {
 		methods, err := a.Incentives.WithdrawalMethods(c.Request.Context(), nil, op.ID, false, wallet)
 		if err != nil {
@@ -156,11 +179,9 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 		p["title"] = "提现方式"
 		fields := withdrawalMethodFields()
 		if wallet == "balance" {
-			minimum := a.Incentives.WithdrawalMinimum(c.Request.Context(), nil, op.ID, wallet)
 			p["title"] = "余额提现方式"
-			p["description"] = "设置支付余额的最低提现额度和提现方式。手续费在申请时固定，由客户承担。审批后按实付金额登记一次付款。"
-			p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum.String(), "unit": "MONEY", "detail": "单笔支付余额提现不能低于这个额度。"}}
-			p["operations"] = []operation{balanceMinimumOperation(base, minimum), {Name: "method", Label: "新增提现方式", Method: "POST", Path: base, Fields: fields}}
+			p["description"] = "设置支付余额可用的提现方式及手续费。手续费在申请时固定，由客户承担。最低提现额度在单独的页面设置。"
+			p["operations"] = []operation{{Name: "method", Label: "新增提现方式", Method: "POST", Path: base, Fields: fields}}
 		} else {
 			p["description"] = "设置可用提现方式及固定手续费或手续费率。申请时固定本次费用和实付金额，线下按实付金额付款，无需逐笔登记实际手续费。"
 			p["operations"] = []operation{{Name: "method", Label: "新增提现方式", Method: "POST", Path: base, Fields: fields}}
@@ -187,11 +208,9 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 	p["title"] = "佣金提现申请"
 	p["description"] = "在邀请与分佣中审批并登记线下付款。最低提现金额在分佣规则中设置，手续费在提现方式中设置。"
 	if wallet == "balance" {
-		minimum := a.Incentives.WithdrawalMinimum(c.Request.Context(), nil, op.ID, wallet)
 		p["title"] = "余额提现申请"
-		p["description"] = "审批支付余额提现，并按申请时固定的实付金额登记一次付款。最低额度在本页设置，手续费在提现方式中设置，由客户承担。"
-		p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum.String(), "unit": "MONEY", "detail": "单笔支付余额提现不能低于这个额度。"}}
-		p["operations"] = []operation{balanceMinimumOperation(base, minimum)}
+		p["description"] = "审批支付余额提现，并按申请时固定的实付金额登记一次付款。最低额度在最低提现额度页设置，手续费在提现方式中设置，由客户承担。"
+		p["operations"] = []operation{}
 	}
 	p["items"] = items
 	p["next_cursor"] = next
@@ -221,7 +240,7 @@ func balanceMinimumOperation(base string, minimum ledger.Decimal) operation {
 	amount := f("minimum_money", "余额最低提现 结算币种", "decimal")
 	amount.Default = minimum.String()
 	amount.Help = "单笔支付余额提现不能低于这个额度，且不能小于 1 结算币种。已经提交的申请仍按申请时的额度办理。"
-	return operation{Name: "minimum", Label: "设置最低提现额度", Method: "POST", Path: base, Fields: []field{amount}, Confirmation: "确认更新支付余额的单笔最低提现额度？新申请按这个额度校验。"}
+	return operation{Name: "minimum", Label: "设置最低提现额度", Method: "POST", Path: base, Fields: []field{amount}}
 }
 func withdrawalMethodFields() []field {
 	mode := f("fee_mode", "手续费方式", "select")

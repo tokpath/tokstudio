@@ -4279,7 +4279,7 @@
   },
   {
     "resource": "balance-withdrawals",
-    "confirmation": "确认更新支付余额的单笔最低提现额度？新申请按这个额度校验。",
+    "confirmation": "",
     "description": "",
     "fields": [
       {

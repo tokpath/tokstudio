@@ -226,6 +226,26 @@ it("filters notification groups with localized type labels", () => {
   expect(screen.getByRole("heading", { name: "价格变更" })).toBeTruthy();
 });
 
+it("saves the balance withdrawal minimum on its own page", async () => {
+  const posts: unknown[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "POST") { posts.push(JSON.parse(String(init.body))); return response({ id: "operator-one", status: "saved" }); }
+    return response({});
+  }));
+  show(<ResourceCollection operatorID="operator-one" resource="balance-withdrawals" businessView="minimum" embedded page={page([], { title: "余额最低提现额度", description: "新申请按保存后的额度校验。", operations: [{ name: "minimum", label: "设置最低提现额度", method: "POST", path: "/api/v1/operators/operator-one/balance-withdrawals", confirmation: "", fields: [{ name: "minimum_money", label: "余额最低提现 USD", kind: "decimal", required: true, default_value: "8", help: "不能小于 1。" }] }] })} />);
+  const input = screen.getByLabelText("余额最低提现 USD", { exact: false }) as HTMLInputElement;
+  expect(input.value).toBe("8");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByText("当前筛选下没有记录。")).toBeNull();
+  fireEvent.change(input, { target: { value: "0.5" } });
+  fireEvent.click(screen.getByRole("button", { name: "保存最低提现额度" }));
+  expect(screen.getByRole("alert").textContent).toContain("不能小于 1");
+  expect(posts).toEqual([]);
+  fireEvent.change(input, { target: { value: "9" } });
+  fireEvent.click(screen.getByRole("button", { name: "保存最低提现额度" }));
+  await waitFor(() => expect(posts).toEqual([{ minimum_money: "9" }]));
+});
+
 it("names the platform when an OEM task requires platform-only tooling", async () => {
  permissions = ["overview.read"];
  vi.stubGlobal("fetch", vi.fn(async () => response(page([{ id: "metric", values: { metric: "pending_usage", value: "1" } }]))));

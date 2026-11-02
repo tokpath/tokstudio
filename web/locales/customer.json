@@ -3424,6 +3424,11 @@
     "ja": "出金申請",
     "ru": "Заявка на вывод"
   },
+  "实得": {
+    "en": "You receive",
+    "ja": "受取額",
+    "ru": "К получению"
+  },
   "尚未审核的申请可以取消。取消后释放这笔佣金占用。": {
     "en": "A request can be cancelled before review. Cancellation releases the reserved commission.",
     "ja": "審査前の申請は取り消せます。取り消すと確保されたコミッションが戻ります。",

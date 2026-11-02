@@ -5,14 +5,15 @@ import { MarketingCard, ReferralPolicyCard } from "./marketing-cards";
 import { LanguageControl, useI18n } from "@/components/i18n";
 import { translate, type Locale } from "@/lib/i18n";
 
-import { createContext, useCallback, useContext, useEffect, useId, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { pricingRefetchInterval } from "./pricing-refresh";
 import { X, ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 import { request } from "@/lib/api-client";
-import { CommandResultSchema, CreditsSchema, ResourcePageSchema, type Entity, type Operation, type JSONValue, type ResourcePage } from "@/lib/contracts";
+import { CommandResultSchema, CreditsSchema, Decimal, ResourcePageSchema, type Entity, type Operation, type JSONValue, type ResourcePage } from "@/lib/contracts";
+import { compareDecimal } from "@/lib/decimal";
 import { canReadResource, operatorResourcePath, resourceLabel } from "@/lib/navigation";
 import { useNavigationBlock } from "@/lib/navigation-guard";
 import { useProduct } from "./context";
@@ -32,6 +33,31 @@ import { FieldHelp } from "./field-help";
 import { businessFieldHelp } from "./business-field-help";
 import { readableResourceValue, resourceColumnVisible } from "@/lib/resource-presentation";
 import { OperatorNotificationGroups } from "./operator-notifications";
+
+function BalanceMinimumSetting({ operation }: { operation: Operation }) {
+  const { t } = useI18n();
+  const field = operation.fields.find(item => item.name === "minimum_money");
+  const saved = typeof field?.default_value === "string" ? field.default_value : "";
+  const [value, setValue] = useState(saved);
+  const [invalid, setInvalid] = useState("");
+  const command = useCommand(operation.path, CommandResultSchema, operation.method);
+  useEffect(() => setValue(saved), [saved]);
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    if (!Decimal.safeParse(value).success) { setInvalid("请输入余额最低提现额度。"); return; }
+    if (compareDecimal(value, "1") < 0) { setInvalid("余额最低提现不能小于 1 结算币种。"); return; }
+    setInvalid("");
+    await command.run({ minimum_money: value });
+  }
+  return <Card className="max-w-xl"><form onSubmit={event => void save(event)} className="space-y-4">
+    <label className="block text-sm font-medium">{t(field?.label || "余额最低提现 结算币种")}<Input className="mt-2 max-w-xs" inputMode="decimal" value={value} onChange={event => { setValue(event.target.value); setInvalid(""); command.reset(); }} required /></label>
+    {field?.help && <p className="text-sm leading-6 text-ink-secondary">{t(field.help)}</p>}
+    {invalid && <p role="alert" className="text-sm text-danger">{t(invalid)}</p>}
+    {!!command.error && <ErrorPanel error={command.error} />}
+    {command.result && <Notice>{t("最低提现额度已保存。新申请按这个额度校验。")}</Notice>}
+    <Button type="submit" disabled={command.busy}>{command.busy ? t("正在提交，请稍候…") : t("保存最低提现额度")}</Button>
+  </form></Card>;
+}
 
 export type InspectResource = (resource: string, row: Entity) => void;
 const PanelLockContext = createContext<((id: string, blocked: boolean) => void) | undefined>(undefined);
@@ -102,7 +128,7 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
       {serverSearch && <Button variant="outline" type="submit" disabled={data.isPending} aria-busy={data.isFetching}>{t("查询")}</Button>}{(serverSearch && filters.q || statusFilter && filters.status) && <Button variant="ghost" type="button" onClick={() => { setQuery(""); apply({ q: "", status: "" }); }}>{t("清除")}</Button>}</div>
       {serverSearch && <p id={searchDescription} className="mt-2 text-xs leading-6 text-ink-mute">{t("在当前权限范围内检索记录，结果按当前列表规则分页。")}</p>}
     </form></div> : undefined} />
-    {resourceName !== "business-status" && <div className="mt-5 flex items-center justify-between gap-3"><p className="text-xs text-ink-mute">{t("当前页 {count} 条", { count: resourceName === "refunds" && page.items.some(item => item.values.record_kind === "case") ? page.items.filter(item => item.values.record_kind === "case").length : page.items.length })}{page.next_cursor ? t(" · 还有后续记录") : ""}</p><div className="flex gap-2">{filters.history.length > 0 && <Button variant="outline" onClick={() => setFilters(current => { const history = [...current.history]; return { ...current, cursor: history.pop() || "", history }; })}>{t("上一页")}</Button>}{page.next_cursor && <Button variant="outline" onClick={() => setFilters(current => ({ ...current, history: [...current.history, current.cursor], cursor: page.next_cursor || "" }))}>{t("下一页")}</Button>}</div></div>}
+    {resourceName !== "business-status" && !(resourceName === "balance-withdrawals" && (filters.view || page.views?.[0]?.value) === "minimum") && <div className="mt-5 flex items-center justify-between gap-3"><p className="text-xs text-ink-mute">{t("当前页 {count} 条", { count: resourceName === "refunds" && page.items.some(item => item.values.record_kind === "case") ? page.items.filter(item => item.values.record_kind === "case").length : page.items.length })}{page.next_cursor ? t(" · 还有后续记录") : ""}</p><div className="flex gap-2">{filters.history.length > 0 && <Button variant="outline" onClick={() => setFilters(current => { const history = [...current.history]; return { ...current, cursor: history.pop() || "", history }; })}>{t("上一页")}</Button>}{page.next_cursor && <Button variant="outline" onClick={() => setFilters(current => ({ ...current, history: [...current.history, current.cursor], cursor: page.next_cursor || "" }))}>{t("下一页")}</Button>}</div></div>}
   </>;
 }
 
@@ -186,7 +212,8 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const setProcurementTab=(next:string)=>{setLocalProcurementTab(next);onProcurementSection?.(next);};
   const resourceName = resource.split("/")[0];
   const canOperate = (operation: Operation) => !operation.permission || !!workspace?.permissions.includes("*") || !!workspace?.permissions.includes(operation.permission);
-  const operations = page.operations.filter(operation => canOperate(operation) && (resourceName !== "procurement" || (operation.name === "quote" ? procurementTab === "quotes" : operation.name === "authorization" ? procurementTab === "automatic" : true)));
+  const balanceMinimum = resourceName === "balance-withdrawals" && businessView === "minimum" ? page.operations.find(operation => operation.name === "minimum" && canOperate(operation)) : undefined;
+  const operations = page.operations.filter(operation => operation.name !== "minimum" && canOperate(operation) && (resourceName !== "procurement" || (operation.name === "quote" ? procurementTab === "quotes" : operation.name === "authorization" ? procurementTab === "automatic" : true)));
   const settings = operations.filter(operation => ["refunds","withdrawals","invoices"].includes(resourceName) && (operation.name === "policy" || operation.name.startsWith("invoice_policy_")));
   const primaryOperations = operations.filter(operation => !settings.includes(operation));
   const customerPayout = customer && (resourceName === "withdrawals" || resourceName === "refunds");
@@ -278,7 +305,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     </Card>)}{!rows.length && <div className="xl:col-span-2">
       <Empty>{t("当前筛选下没有记录。")}</Empty>
     </div>}
-    </div> : customerPayout ? <CustomerWithdrawalApplications rows={rows} walletName={payoutNoun} cancel={page.row_operations.find(operation => operation.name === "cancel")} onCancel={selectOperation} /> : renderTable(rows)}
+    </div> : balanceMinimum ? <BalanceMinimumSetting operation={balanceMinimum} /> : customerPayout ? <CustomerWithdrawalApplications rows={rows} walletName={payoutNoun} cancel={page.row_operations.find(operation => operation.name === "cancel")} onCancel={selectOperation} /> : renderTable(rows)}
     {selection && <OperatorPanel title={t(selection.operation.label)} description={selection.row ? recordTitle(selection.row, resourceName, locale) : customer ? t("在当前客户范围内办理") : t("在当前经营范围内办理")} open blocked={blocked} close={closeOperation}>
       <OperationForm key={`${selection.operation.name}:${selection.row?.id || "new"}`} operation={selection.operation} row={selection.row} operatorID={operatorID} embedded initialValues={{ ...savedValues, ...initialValues }} lockedFields={Object.keys(initialValues || {})} onBlockedChange={setBlocked} onAbandon={() => setSelection(undefined)} />
     </OperatorPanel>}

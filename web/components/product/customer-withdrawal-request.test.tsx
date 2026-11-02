@@ -32,6 +32,18 @@ it("compares fees while switching payout methods and submits the selected materi
   expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toEqual({ method_id: "alipay", amount_money: "10", recipient: { payee_name: "张三", account: "13800138000" } });
 });
 
+it("calls the balance withdrawal net the amount the customer receives", () => {
+  mount(<CustomerWithdrawalRequest methods={methods} digits={2} walletName="支付余额" />);
+  fireEvent.change(screen.getByLabelText("提现金额 USD", { exact: false }), { target: { value: "10" } });
+  expect(screen.getAllByText("实得").length).toBeGreaterThan(0);
+  expect(screen.queryByText("实付")).toBeNull();
+  cleanup();
+  const cancel = { name: "cancel", label: "取消提现申请", method: "POST" as const, path: "/api/v1/me/balance-withdrawals/{id}/cancel", fields: [] };
+  mount(<CustomerWithdrawalApplications walletName="支付余额" rows={[{ id: "one", status: "requested", values: { method_name: "支付宝", amount_money: "10", fee_money: "0.5", net_money: "9.5", recipient_reference: "支付宝实名：张三" }, allowed_actions: ["cancel"] }]} cancel={cancel} onCancel={() => {}} />);
+  expect(screen.getByText("实得")).toBeTruthy();
+  expect(screen.queryByText("实付")).toBeNull();
+});
+
 it("shows cancellation only on an application that is still awaiting review", () => {
   const cancel = { name: "cancel", label: "取消提现申请", method: "POST" as const, path: "/api/v1/me/withdrawals/{id}/cancel", fields: [] };
   const onCancel = vi.fn();

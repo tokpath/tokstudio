@@ -119,7 +119,7 @@ const resourceFilterStatuses: Record<string, readonly string[]> = {
   invoices: ["requested", "issued", "rejected", "review_required", "voided"],
   "procurement-invoices": ["requested", "issued", "rejected", "review_required", "voided"],
   "receipt-valuations": ["awaiting_settlement"],
-  assets: ["open"], ledger: ["open"], gifts: ["delivered"],
+  assets: ["open"], ledger: ["open"],
   jobs: ["pending", "running", "completed", "dead"],
 };
 function resourceFilterStatusLabel(resource: string, status: string): string {

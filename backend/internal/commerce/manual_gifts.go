@@ -155,10 +155,6 @@ func (s *Service) ListManualGifts(ctx context.Context, tx *gorm.DB, actor, op, c
 			WHERE c.id=commerce_manual_gifts.customer_id AND (c.display_name ILIKE ? OR i.email_normalized ILIKE ?)
 		))`, term, term, term, term, term, term, term, term)
 	}
-	if len(filters) > 1 && strings.TrimSpace(filters[1]) != "" && strings.TrimSpace(filters[1]) != "delivered" {
-		q = q.Where("1=0")
-	}
-
 	if customer != "" {
 		q = q.Where("customer_id=?", customer)
 	}

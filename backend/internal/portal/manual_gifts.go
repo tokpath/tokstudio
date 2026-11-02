@@ -10,7 +10,7 @@ import (
 )
 
 func (a *Application) manualGiftsResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
-	rows, next, e := a.Commerce.ListManualGifts(c.Request.Context(), nil, actor, op.ID, "", c.Query("cursor"), 50, c.Query("q"), c.Query("status"))
+	rows, next, e := a.Commerce.ListManualGifts(c.Request.Context(), nil, actor, op.ID, "", c.Query("cursor"), 50, c.Query("q"))
 	if e != nil {
 		handleError(c, e)
 		return
@@ -19,7 +19,7 @@ func (a *Application) manualGiftsResource(c *gin.Context, op organization.Operat
 	for _, r := range rows {
 		items = append(items, entity(r.ID, "delivered", 0, r))
 	}
-	p["search_supported"], p["status_supported"] = true, true
+	p["search_supported"], p["status_supported"] = true, false
 	p["title"] = "定向赠送与服务补偿"
 	p["description"] = "选择客户，填写赠送额度、有效期和说明即可发放。赠送不计入分佣资格或佣金基数，系统自动核对履约能力。"
 	p["items"] = items

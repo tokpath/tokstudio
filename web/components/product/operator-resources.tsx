@@ -116,6 +116,7 @@ const resourceFilterStatuses: Record<string, readonly string[]> = {
   procurement: ["quote","disabled","expired","archived","awaiting_payment","paid","completed","closed","exception","authorization","prepared","awaiting_manual_payment","outcome_unknown","verified_payment_delivery_pending","failed_unpaid","cancelled_unpaid"],
   refunds: ["pending_review", "approved", "paying", "completed", "rejected", "cancelled", "exception"],
   withdrawals: ["requested", "approved", "paid", "cancelled", "failed"],
+  "balance-withdrawals": ["requested", "approved", "paid", "cancelled", "failed"],
   invoices: ["requested", "issued", "rejected", "review_required", "voided"],
   "procurement-invoices": ["requested", "issued", "rejected", "review_required", "voided"],
   "receipt-valuations": ["awaiting_settlement"],
@@ -123,7 +124,7 @@ const resourceFilterStatuses: Record<string, readonly string[]> = {
   jobs: ["pending", "running", "completed", "dead"],
 };
 function resourceFilterStatusLabel(resource: string, status: string): string {
-  if (resource === "withdrawals" && withdrawalStatusLabels[status]) return withdrawalStatusLabels[status];
+  if ((resource === "withdrawals" || resource === "balance-withdrawals") && withdrawalStatusLabels[status]) return withdrawalStatusLabels[status];
   if (resource === "refunds" && refundStatusLabels[status]) return refundStatusLabels[status];
   if (resource === "customers" && status === "suspended") return "已暂停账号";
   return ({ partial: "部分付款", anonymized: "已匿名", open: "正常" } as Record<string, string>)[status] || statusLabels[status] || status;
@@ -161,13 +162,14 @@ function PublicModelSwitch({ row, operatorID }: { row: Entity; operatorID: strin
   </div>;
 }
 
-function CustomerWithdrawalBar({ minimum }: { minimum?: { value: string; unit?: string; detail?: string } }) {
+function CustomerWithdrawalBar({ minimum, wallet }: { minimum?: { value: string; unit?: string; detail?: string }; wallet: "commission" | "balance" }) {
   const { t } = useI18n();
   const credits = useQuery({ queryKey: ["credits"], queryFn: () => request("/api/v1/me/credits", CreditsSchema) });
-  const wallet = credits.data?.commission_money;
+  const available = wallet === "balance" ? credits.data?.money_balance?.available : credits.data?.commission_money?.available;
+  const reserved = wallet === "balance" ? credits.data?.money_balance?.held : credits.data?.commission_money?.frozen;
   const amounts = [
-    { label: "可用金额", value: wallet?.available, money: true },
-    { label: "冻结金额", value: wallet?.frozen, money: true },
+    { label: "可用金额", value: available, money: true },
+    { label: wallet === "balance" ? "占用金额" : "冻结金额", value: reserved, money: true },
     { label: "最低提现额度", value: minimum?.value, money: minimum?.unit === "MONEY" },
   ];
   return <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-8 gap-y-3">{amounts.map(item => <div key={item.label} className="min-w-0"><p className="text-xs text-ink-mute">{t(item.label)}</p>{item.money && item.value ? <p className="mt-1 text-lg font-semibold"><Money value={item.value} unit="MONEY" /></p> : <p className="mt-1 text-lg font-semibold">{item.value ? t(item.value) : t("尚未读取")}</p>}</div>)}<p className="w-full text-xs leading-6 text-ink-mute">{t("提现手续费由你承担。经营方单人审批后付款。")}</p></div>;
@@ -187,7 +189,9 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const operations = page.operations.filter(operation => canOperate(operation) && (resourceName !== "procurement" || (operation.name === "quote" ? procurementTab === "quotes" : operation.name === "authorization" ? procurementTab === "automatic" : true)));
   const settings = operations.filter(operation => ["refunds","withdrawals","invoices"].includes(resourceName) && (operation.name === "policy" || operation.name.startsWith("invoice_policy_")));
   const primaryOperations = operations.filter(operation => !settings.includes(operation));
-  const customerWithdrawals = customer && resourceName === "withdrawals";
+  const customerPayout = customer && (resourceName === "withdrawals" || resourceName === "refunds");
+  const payoutWallet = resourceName === "refunds" ? "balance" as const : "commission" as const;
+  const payoutNoun = payoutWallet === "balance" ? "支付余额" : "佣金钱包";
   const editable = editableOperations[resourceName];
   const editOperation = editable && operations.find(operation => operation.name === editable.name);
   const rowOperations = (row: Entity) => page.row_operations.filter(operation => canOperate(operation) && (!row.allowed_actions || row.allowed_actions.includes(operation.name)));
@@ -240,13 +244,13 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     </div>)}
     {resourceName === "procurement" && <div className="mb-5"><div role="tablist" aria-label={t("采购办理事项")} className="flex flex-wrap gap-2">{[["orders", businessView === "supplier" ? "供货订单" : "采购订单"], ["quotes", businessView === "supplier" ? "供货报价" : "采购报价"], ["automatic", "自动补货"]].filter(([key]) => key !== "automatic" || businessView !== "supplier").map(([key, title]) => <Button key={key} role="tab" aria-selected={procurementTab === key} variant={procurementTab === key ? "default" : "outline"} onClick={() => setProcurementTab(key)}>{t(title)}</Button>)}</div><p className="mt-3 text-xs leading-6 text-ink-mute">{t(businessView === "supplier" ? "供货订单列出每一笔采购占用的库存。未付款订单不限时，直到付清或取消后才释放。" : procurementTab === "quotes" ? "选择已生效报价创建采购订单。创建后即占用供货库存，付款并交付后才增加采购余额。" : procurementTab === "automatic" ? "在此管理有限补货授权和原执行结果。结果未知时只查询原付款。" : "每一行显示这笔订单占用的供货库存。未付款不限时，直到付清或取消。需要新增采购时打开采购报价。")}</p></div>}
     {operatorID && ["procurement", "operators"].includes(resourceName) && workspace?.permissions.some(permission => ["*", "cooperation.manage"].includes(permission)) && <p className="mb-4 text-sm"><Link className="text-brand-emphasis underline" href={`/manage/${encodeURIComponent(operatorID)}/contracts`}>{t("上传或查看可选合作合同")}</Link></p>}
-    {resourceName !== "providers" && (toolbar || operations.length > 0 || customerWithdrawals) && <div className="th-toolbar">{customerWithdrawals && <CustomerWithdrawalBar minimum={page.summary?.find(item => item.label === "最低提现额度")} />}{toolbar}
-      <div className={`${customerWithdrawals ? "ml-auto " : ""}flex flex-wrap items-center gap-2`}>{primaryOperations.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
+    {resourceName !== "providers" && (toolbar || operations.length > 0 || customerPayout) && <div className="th-toolbar">{customerPayout && <CustomerWithdrawalBar wallet={payoutWallet} minimum={page.summary?.find(item => item.label === "最低提现额度")} />}{toolbar}
+      <div className={`${customerPayout ? "ml-auto " : ""}flex flex-wrap items-center gap-2`}>{primaryOperations.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
       </Button>)}
       {settings.length>0 && <details className="relative"><summary className="cursor-pointer rounded-control border border-hairline bg-canvas-raised px-4 py-3 text-sm">{t("办理设置")}</summary><div className="absolute right-0 z-20 mt-2 min-w-56 space-y-1 rounded-control border border-hairline bg-canvas-raised p-2 shadow-lg">{settings.map(operation => <Button key={operation.name} type="button" variant="ghost" className="w-full justify-start" onClick={() => selectOperation(operation)}>{t(operation.label)}</Button>)}</div></details>}
       </div>
     </div>}
-    {customerWithdrawals && <div className="mb-6"><CustomerWithdrawalRequest methods={page.payout_methods || []} digits={page.currency_digits ?? 2} /></div>}
+    {customerPayout && <div className="mb-6"><CustomerWithdrawalRequest methods={page.payout_methods || []} digits={page.currency_digits ?? 2} submitPath={payoutWallet === "balance" ? "/api/v1/me/balance-withdrawals" : "/api/v1/me/withdrawals"} walletName={payoutNoun} /></div>}
     {resourceName === "providers" && toolbar && <div className="th-toolbar">{toolbar}</div>}
     {kinds.length > 1 && !["procurement", "refunds", "providers"].includes(resourceName) && <div className="mb-5 flex flex-wrap items-center gap-2 text-xs text-ink-mute">
       <SlidersHorizontal size={14} aria-hidden />
@@ -274,13 +278,13 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     </Card>)}{!rows.length && <div className="xl:col-span-2">
       <Empty>{t("当前筛选下没有记录。")}</Empty>
     </div>}
-    </div> : customerWithdrawals ? <CustomerWithdrawalApplications rows={rows} cancel={page.row_operations.find(operation => operation.name === "cancel")} onCancel={selectOperation} /> : renderTable(rows)}
+    </div> : customerPayout ? <CustomerWithdrawalApplications rows={rows} walletName={payoutNoun} cancel={page.row_operations.find(operation => operation.name === "cancel")} onCancel={selectOperation} /> : renderTable(rows)}
     {selection && <OperatorPanel title={t(selection.operation.label)} description={selection.row ? recordTitle(selection.row, resourceName, locale) : customer ? t("在当前客户范围内办理") : t("在当前经营范围内办理")} open blocked={blocked} close={closeOperation}>
       <OperationForm key={`${selection.operation.name}:${selection.row?.id || "new"}`} operation={selection.operation} row={selection.row} operatorID={operatorID} embedded initialValues={{ ...savedValues, ...initialValues }} lockedFields={Object.keys(initialValues || {})} onBlockedChange={setBlocked} onAbandon={() => setSelection(undefined)} />
     </OperatorPanel>}
     {invoiceID && <InvoiceFiles scope={`${scope}/${resourceName}`} invoiceID={invoiceID} upload={!customer && resourceName === "invoices"} close={() => setInvoiceID("")} />}
     {facts && <OperatorPanel open title={recordTitle(facts, resourceName, locale)} description={t("记录 {id}", { id: facts.id })} close={() => setFacts(undefined)}>
-      <div className="mb-5 space-y-3"><OriginalRecordID id={facts.id} />{facts.status && <Status value={facts.status} labels={resourceName === "refunds" ? refundStatusLabels : resourceName === "withdrawals" ? withdrawalStatusLabels : undefined} />}
+      <div className="mb-5 space-y-3"><OriginalRecordID id={facts.id} />{facts.status && <Status value={facts.status} labels={resourceName === "refunds" ? refundStatusLabels : resourceName === "withdrawals" || resourceName === "balance-withdrawals" ? withdrawalStatusLabels : undefined} />}
       </div>
       <dl className="grid gap-5 sm:grid-cols-2">{page.columns.filter(column => column.key !== "id" && (column.key === "status" || hasResourceValue(facts.values[column.key]))).map(column => <div key={column.key} className="min-w-0">
         <dt className="mb-2 text-xs text-ink-mute">{t(column.label)}{businessFieldHelp(`${resourceName}.${column.key}`, column.help) && <FieldHelp title={t(column.label)}>{t(businessFieldHelp(`${resourceName}.${column.key}`, column.help)!)}</FieldHelp>}
@@ -447,7 +451,7 @@ export function resourceValueText(value: JSONValue | undefined, field: string | 
   if (typeof value !== "string") return String(value ?? "—");
   if (field === "record_kind") return recordKindLabel(value, locale);
   if (field && ["metric_name", "direction_name", "api_entry_note", "reserved_note", "payment_hold"].includes(field)) return translate(locale,value);
-  if (field === "action") return translate(locale, ({registration:"注册",new_purchase:"新购",renewal:"续费",model_usage:"模型调用",activity:"营销活动",withdrawal:"佣金提现",wallet_refund:"余额退款",customer_login:"登录",all_new_business:"所有新增业务"} as Record<string,string>)[value] || value);
+  if (field === "action") return translate(locale, ({registration:"注册",new_purchase:"新购",renewal:"续费",model_usage:"模型调用",activity:"营销活动",withdrawal:"佣金提现",wallet_refund:"余额提现",customer_login:"登录",all_new_business:"所有新增业务"} as Record<string,string>)[value] || value);
   if (field && enumLabelsByField[field]?.[value]) return translate(locale, enumLabelsByField[field][value]);
   if (field && ["status", "state", "fee_status"].includes(field)) return translate(locale, statusLabels[value] || value);
   if (field === "purpose" && value.startsWith("customer:atg:")) return `${translate(locale, "客户 ATG 权益")} · ${value.slice("customer:atg:".length)}`;
@@ -979,7 +983,7 @@ const enumLabelsByField: Record<string, Record<string, string>> = {
     "model_usage": "模型调用",
     "activity": "营销活动",
     "withdrawal": "佣金提现",
-    "wallet_refund": "余额退款",
+    "wallet_refund": "余额提现",
     "customer_login": "登录",
     "all_new_business": "所有新增业务"
   },

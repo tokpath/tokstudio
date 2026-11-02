@@ -44,12 +44,16 @@ func TestPostgresCustomerRefundListShowsOneApplication(t *testing.T) {
 	}
 	status, page, _ := f.call(t, "GET", "/v1/me/refunds/workspace", nil, "")
 	mustOK(t, status, page)
-	items := page["items"].([]any)
-	if len(items) != 1 || items[0].(map[string]any)["id"] != refundID {
-		t.Fatal("one refund application was listed once for each source receipt", items)
+	if page["title"] != "余额提现" {
+		t.Fatal(page["title"])
 	}
-	actions := items[0].(map[string]any)["allowed_actions"].([]any)
-	if len(actions) != 3 {
-		t.Fatal("cancel and both source actions belong on the same application", actions)
+	items, _ := page["items"].([]any)
+	for _, item := range items {
+		if item.(map[string]any)["id"] == refundID {
+			t.Fatal("a balance withdrawal page listed a source-linked refund", items)
+		}
+	}
+	if _, ok := page["payout_methods"]; !ok {
+		t.Fatal("balance withdrawal page has no payout methods", page)
 	}
 }

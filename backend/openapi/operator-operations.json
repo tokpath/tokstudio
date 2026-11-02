@@ -3294,7 +3294,7 @@
             "value": "withdrawal"
           },
           {
-            "label": "余额退款",
+            "label": "余额提现",
             "value": "wallet_refund"
           },
           {
@@ -4625,10 +4625,6 @@
             "value": "receipt"
           },
           {
-            "label": "充值完成",
-            "value": "top_up"
-          },
-          {
             "label": "完成购买",
             "value": "purchase"
           },
@@ -4693,10 +4689,6 @@
           {
             "label": "原始收款",
             "value": "receipt"
-          },
-          {
-            "label": "充值完成",
-            "value": "top_up"
           },
           {
             "label": "完成购买",

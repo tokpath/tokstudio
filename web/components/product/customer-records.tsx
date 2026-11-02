@@ -63,7 +63,7 @@ function OrderDetailDrawer({ orderID, onClose }: { orderID?: string; onClose: ()
           <Dialog.Close asChild><Button variant="ghost" size="icon" aria-label={t("收起详情")}><X /></Button></Dialog.Close>
         </div>
         {detail.isPending ? <Loading /> : detail.isError ? <ErrorPanel error={detail.error} retry={() => void detail.refetch()} /> : detail.data ? <PaymentAction order={detail.data} /> : null}
-        <div className="mt-5 flex flex-wrap gap-5 border-t border-hairline pt-5 text-sm text-brand-emphasis"><Link href="/workspace/credit-sources" className="underline">{t("额度与到期记录")}</Link><Link href="/workspace/invoices" className="underline">{t("开票与交易凭证")}</Link><Link href="/workspace/refunds" className="underline">{t("退款与异常办理")}</Link></div>
+        <div className="mt-5 flex flex-wrap gap-5 border-t border-hairline pt-5 text-sm text-brand-emphasis"><Link href="/workspace/credit-sources" className="underline">{t("额度与到期记录")}</Link><Link href="/workspace/invoices" className="underline">{t("开票与交易凭证")}</Link><Link href="/workspace/refunds" className="underline">{t("余额提现")}</Link></div>
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog.Root>;

@@ -94,12 +94,12 @@ func (s *Service) CurrentWithdrawalPolicy(ctx context.Context, tx *gorm.DB, oper
 		return WithdrawalPolicy{}, ErrInvalidInput
 	}
 	var r withdrawalPolicyRow
-	q := s.dbFor(ctx, tx).Where("operator_id=?", operator).Order("version DESC").Limit(1).Find(&r)
+	q := s.dbFor(ctx, tx).Where("operator_id=? AND wallet=?", operator, "commission").Order("version DESC").Limit(1).Find(&r)
 	if q.Error != nil {
 		return WithdrawalPolicy{}, q.Error
 	}
 	var setting struct{ MinimumMoney ledger.Decimal }
-	if err := s.dbFor(ctx, tx).Table("incentives_withdrawal_settings").Where("operator_id=?", operator).Limit(1).Find(&setting).Error; err != nil {
+	if err := s.dbFor(ctx, tx).Table("incentives_withdrawal_settings").Where("operator_id=? AND wallet=?", operator, "commission").Limit(1).Find(&setting).Error; err != nil {
 		return WithdrawalPolicy{}, err
 	}
 	if setting.MinimumMoney.Sign() > 0 {
@@ -122,6 +122,11 @@ func (s *Service) WithdrawalsForOperator(ctx context.Context, tx *gorm.DB, actor
 	if len(filters) > 1 && strings.TrimSpace(filters[1]) != "" {
 		q = q.Where("status=?", strings.TrimSpace(filters[1]))
 	}
+	wallet := "commission"
+	if len(filters) > 2 && strings.TrimSpace(filters[2]) == "balance" {
+		wallet = "balance"
+	}
+	q = q.Where("wallet=?", wallet)
 
 	if cursor != "" {
 		at, id, e := readIncentiveCursor(cursor)

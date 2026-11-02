@@ -30,7 +30,7 @@ func (s *Service) SaveInvoicePolicy(ctx context.Context, actor string, p Invoice
 	if p.PartyKind != "customer" && p.PartyKind != "procurement" {
 		return p, ErrInvalid
 	}
-	if (p.Stage != "receipt" && p.Stage != "top_up" && p.Stage != "purchase" && p.Stage != "consumption") || p.RulesReference == "" || p.MaximumRatio.Sign() < 0 || p.MaximumRatio.Cmp(ledger.FromInt64(1)) > 0 || !p.MaximumRatio.Valid() {
+	if (p.Stage != "receipt" && p.Stage != "purchase" && p.Stage != "consumption") || p.RulesReference == "" || p.MaximumRatio.Sign() < 0 || p.MaximumRatio.Cmp(ledger.FromInt64(1)) > 0 || !p.MaximumRatio.Valid() {
 		return p, ErrInvalid
 	}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
@@ -135,8 +135,6 @@ func eligibleInvoiceAmount(b InvoiceBasis, stage string, ratio ledger.Decimal) (
 		if b.ReceiptMoney != nil {
 			value = *b.ReceiptMoney
 		}
-	case "top_up":
-		value = b.TopUpMoney
 	case "purchase":
 		value = b.PurchaseMoney
 	case "consumption":

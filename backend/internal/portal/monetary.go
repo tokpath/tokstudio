@@ -84,7 +84,7 @@ func (a *Application) monetaryTransactionGuard(c *gin.Context) {
 			resource = parts[4]
 		}
 	}
-	if contains([]string{"orders", "topups", "playground", "activities", "payments", "refunds", "withdrawals", "disputes", "takeovers", "exits", "gifts", "procurement", "registration"}, resource) {
+	if contains([]string{"orders", "topups", "playground", "activities", "payments", "refunds", "withdrawals", "balance-withdrawals", "disputes", "takeovers", "exits", "gifts", "procurement", "registration"}, resource) {
 		if _, e := ledger.RequireMonetary(c.Request.Context(), a.DB); e != nil {
 			handleError(c, e)
 		}

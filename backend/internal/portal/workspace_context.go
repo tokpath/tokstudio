@@ -201,7 +201,7 @@ func (a *Application) customerContext(c *gin.Context) {
 				row["allowed_actions"] = withdrawalAllowedActions(r.Status)
 				return row
 			})
-			p["row_operations"] = withdrawalRowOperations("/api/v1/operators/" + op.ID + "/withdrawals")
+			p["row_operations"] = withdrawalRowOperations("/api/v1/operators/"+op.ID+"/withdrawals", "佣金占用")
 			a.appendContextSection(c, &out, "withdrawals", "佣金提现", p)
 		}
 		if a.contextSection(c, tx, actor, op.ID, "invoices") {

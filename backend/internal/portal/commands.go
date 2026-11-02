@@ -108,7 +108,7 @@ func (a *Application) operatorCommand(c *gin.Context) {
 		a.paymentQuoteSettingsCommand(c, op, actor)
 		return
 	}
-	if resource == "withdrawals" {
+	if resource == "withdrawals" || resource == "balance-withdrawals" {
 		a.withdrawalStaffCommand(c, op, actor)
 		return
 	}
@@ -433,7 +433,7 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 		a.inviteStaff(c, child, actor)
 		return
 	}
-	if resource == "withdrawals" {
+	if resource == "withdrawals" || resource == "balance-withdrawals" {
 		a.withdrawalStaffAction(c, op, actor, action)
 		return
 	}

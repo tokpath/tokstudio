@@ -77,6 +77,8 @@ func (a *Application) customerRoutes(r *gin.RouterGroup) {
 	r.POST("/topups", a.topup)
 	r.POST("/withdrawals", a.applyWithdrawal)
 	r.POST("/withdrawals/:id/cancel", a.cancelWithdrawal)
+	r.POST("/balance-withdrawals", a.applyBalanceWithdrawal)
+	r.POST("/balance-withdrawals/:id/cancel", a.cancelWithdrawal)
 }
 func (a *Application) publicOperator(c *gin.Context) (organization.Operator, error) {
 	if id := subject(c); id != nil && id.Session.Kind == "customer" {

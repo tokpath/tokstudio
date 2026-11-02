@@ -484,6 +484,11 @@
     "ja": "この申請は実際には支払っていないことを確認してください。送信すると報酬の確保が解放され、申請は終了します。",
     "ru": "Подтвердите, что по этой заявке фактической выплаты не было. После отправки резерв комиссии снимается и заявка завершается."
   },
+  "确认这笔申请没有实际付款。提交后释放支付余额占用，申请结束。": {
+    "en": "Confirm this application was not actually paid. Submitting releases the payment-balance hold and ends the application.",
+    "ja": "この申請は実際には支払っていないことを確認してください。送信すると支払残高の確保が解放され、申請は終了します。",
+    "ru": "Подтвердите, что по этой заявке фактической выплаты не было. После отправки резерв платёжного баланса снимается и заявка завершается."
+  },
   "OEM 自主设置销售超卖与预警；真实模型调用仍须足额采购余额。": {
     "en": "OEMs set their own sales oversell allowance and alerts; actual model calls still require sufficient prepaid procurement balance.",
     "ja": "OEM は販売超過枠と警告を自ら設定します。実際のモデル呼出には十分な前払い調達残高が必要です。",
@@ -5058,6 +5063,36 @@
     "en": "Cancel this withdrawal request before review? Successful cancellation releases its commission reservation. Requests already under review or payment must follow their latest status.",
     "ja": "審査前のこの出金申請を取り消しますか？取消成功後にコミッションの確保を解除します。審査・支払中の申請は最新の状態に従って処理してください。",
     "ru": "Отменить ещё не проверенную заявку на вывод? После успешной отмены резерв комиссии освобождается. Если проверка или оплата уже началась, действуйте по текущему статусу."
+  },
+  "确认取消这笔尚未审核的提现申请？取消成功后释放这笔支付余额占用；已进入审核或付款环节的申请须按最新状态继续办理。": {
+    "en": "Cancel this withdrawal request before review? Successful cancellation releases its payment-balance reservation. Requests already under review or payment must follow their latest status.",
+    "ja": "審査前のこの出金申請を取り消しますか？取消成功後に支払残高の確保を解除します。審査・支払中の申請は最新の状態に従って処理してください。",
+    "ru": "Отменить ещё не проверенную заявку на вывод? После успешной отмены резерв платёжного баланса освобождается. Если проверка или оплата уже началась, действуйте по текущему статусу."
+  },
+  "余额提现申请": {
+    "en": "Balance withdrawal requests",
+    "ja": "残高出金の申請",
+    "ru": "Заявки на вывод баланса"
+  },
+  "余额提现方式": {
+    "en": "Balance withdrawal methods",
+    "ja": "残高の出金方法",
+    "ru": "Способы вывода баланса"
+  },
+  "审批支付余额提现，并按申请时固定的实付金额登记一次付款。手续费由客户承担，不再关联原来的充值。": {
+    "en": "Approve a payment-balance withdrawal, then record one payout for the net amount fixed at request time. The customer pays the fee. The payout is not tied to the original top-up.",
+    "ja": "支払残高の出金を承認し、申請時に固定した実払額で一度だけ支払いを記録します。手数料はお客様負担です。元の入金とは紐付けません。",
+    "ru": "Одобрите вывод платёжного баланса и один раз зарегистрируйте выплату на сумму, зафиксированную при заявке. Комиссию платит клиент. Выплата не привязана к исходному пополнению."
+  },
+  "设置支付余额可用的提现方式及手续费。申请时固定本次费用和实付金额，手续费由客户承担。审批后按实付金额登记一次付款。": {
+    "en": "Set the methods and fees for withdrawing a payment balance. The fee and net amount are fixed when the customer applies, and the customer pays the fee. After approval, record one payout for that net amount.",
+    "ja": "支払残高の出金方法と手数料を設定します。手数料と実払額は申請時に固定され、手数料はお客様負担です。承認後は実払額で一度だけ支払いを記録します。",
+    "ru": "Настройте способы и комиссию вывода платёжного баланса. Комиссия и сумма к выплате фиксируются при заявке, комиссию платит клиент. После одобрения зарегистрируйте одну выплату на эту сумму."
+  },
+  "支付余额请通过余额提现申请办理，不再按原充值逐笔退回。": {
+    "en": "Withdraw the payment balance as one withdrawal. It is no longer returned receipt by receipt.",
+    "ja": "支払残高は残高出金として申請してください。元の入金ごとに返す処理は行いません。",
+    "ru": "Платёжный баланс выводится одной заявкой. Возврат отдельно по каждому пополнению больше не выполняется."
   },
   "提现总额 结算币种": {
     "en": "Withdrawal total (settlement currency)",

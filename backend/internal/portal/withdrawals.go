@@ -11,7 +11,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func (a *Application) applyWithdrawal(c *gin.Context) {
+func (a *Application) applyWithdrawal(c *gin.Context) { a.applyWalletWithdrawal(c, "commission") }
+func (a *Application) applyBalanceWithdrawal(c *gin.Context) {
+	a.applyWalletWithdrawal(c, "balance")
+}
+func (a *Application) applyWalletWithdrawal(c *gin.Context, wallet string) {
 	var in struct {
 		MethodID  string            `json:"method_id"`
 		Amount    ledger.Decimal    `json:"amount_money"`
@@ -26,8 +30,8 @@ func (a *Application) applyWithdrawal(c *gin.Context) {
 		return
 	}
 	operatorID := id.Customer.Ownership.OperatorID
-	raw, e := a.command(c, "withdrawal-apply:"+id.Customer.Customer.ID, in, func(tx *gorm.DB) (any, error) {
-		methods, err := a.Incentives.WithdrawalMethods(c.Request.Context(), tx, operatorID, true)
+	raw, e := a.command(c, wallet+"-withdrawal-apply:"+id.Customer.Customer.ID, in, func(tx *gorm.DB) (any, error) {
+		methods, err := a.Incentives.WithdrawalMethods(c.Request.Context(), tx, operatorID, true, wallet)
 		if err != nil {
 			return nil, err
 		}
@@ -69,10 +73,61 @@ func (a *Application) cancelWithdrawal(c *gin.Context) {
 	}
 	c.JSON(200, commandResult(c.Param("id"), "cancelled"))
 }
-func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
+func (a *Application) customerWithdrawalWorkspace(c *gin.Context, p gin.H, operatorID, customerID, wallet string) {
+	ctx := c.Request.Context()
+	rows, e := a.Incentives.Withdrawals(ctx, nil, operatorID, customerID, wallet)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	items := []any{}
+	for _, w := range rows {
+		row := entity(w.ID, w.Status, 1, w)
+		row["allowed_actions"] = []string{}
+		if w.Status == "requested" {
+			row["allowed_actions"] = []string{"cancel"}
+		}
+		items = append(items, row)
+	}
+	methods, err := a.Incentives.WithdrawalMethods(ctx, nil, operatorID, true, wallet)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+	cancelPath := "/api/v1/me/withdrawals/{id}/cancel"
+	held := "本笔佣金占用"
+	title := "佣金提现"
+	if wallet == "balance" {
+		cancelPath = "/api/v1/me/balance-withdrawals/{id}/cancel"
+		held = "这笔支付余额占用"
+		title = "余额提现"
+	}
+	p["row_operations"] = []operation{{Name: "cancel", Label: "取消提现申请", Method: "POST", Path: cancelPath, Fields: []field{}, Description: "仅尚未审核的本人提现申请可以取消。", Confirmation: "确认取消这笔尚未审核的提现申请？取消成功后释放" + held + "；已进入审核或付款环节的申请须按最新状态继续办理。"}}
+	p["title"] = title
+	p["items"] = items
+	p["columns"] = []gin.H{col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
+	p["operations"] = []operation{}
+	offered := customerPayoutMethods(methods)
+	settings, settingsErr := ledger.GetMonetary(ctx, a.DB)
+	digits := 2
+	if settingsErr == nil {
+		digits = incentives.CurrencyMinorDigits(settings.Currency)
+	}
+	p["payout_methods"] = offered
+	p["currency_digits"] = digits
+	if len(offered) > 0 {
+		minimum := offered[0]["minimum_money"].(string)
+		p["description"] = "单笔提现总额不能低于经营方公布的最低额度 " + minimum + " 结算币种。手续费在申请时固定，由你承担。"
+		p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum, "unit": "MONEY", "detail": "单笔提现总额不能低于经营方公布的这个额度。"}}
+	} else {
+		p["description"] = "请等待经营方配置可用提现方式。"
+	}
+	a.resourceResponse(c, p)
+}
+func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base, wallet string) {
 	p["views"] = []gin.H{{"value": "requests", "label": "提现申请"}, {"value": "methods", "label": "提现方式"}}
 	if c.Query("view") == "methods" {
-		methods, err := a.Incentives.WithdrawalMethods(c.Request.Context(), nil, op.ID, false)
+		methods, err := a.Incentives.WithdrawalMethods(c.Request.Context(), nil, op.ID, false, wallet)
 		if err != nil {
 			handleError(c, err)
 			return
@@ -99,7 +154,12 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 			items = append(items, row)
 		}
 		p["title"] = "提现方式"
-		p["description"] = "设置可用提现方式及固定手续费或手续费率。申请时固定本次费用和实付金额，线下按实付金额付款，无需逐笔登记实际手续费。"
+		if wallet == "balance" {
+			p["title"] = "余额提现方式"
+			p["description"] = "设置支付余额可用的提现方式及手续费。申请时固定本次费用和实付金额，手续费由客户承担。审批后按实付金额登记一次付款。"
+		} else {
+			p["description"] = "设置可用提现方式及固定手续费或手续费率。申请时固定本次费用和实付金额，线下按实付金额付款，无需逐笔登记实际手续费。"
+		}
 		p["items"] = items
 		p["columns"] = []gin.H{col("method_name", "提现方式", "text"), col("payout_kind_label", "收款材料", "text"), col("flat_fee_money", "固定手续费", "money"), col("fee_percent", "手续费率 %", "decimal"), col("enabled", "开放申请", "boolean")}
 		fields := withdrawalMethodFields()
@@ -109,7 +169,7 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 		return
 	}
 	p["search_supported"], p["status_supported"] = true, true
-	rows, next, e := a.Incentives.WithdrawalsForOperator(c.Request.Context(), nil, actor, op.ID, c.Query("cursor"), 50, c.Query("q"), c.Query("status"))
+	rows, next, e := a.Incentives.WithdrawalsForOperator(c.Request.Context(), nil, actor, op.ID, c.Query("cursor"), 50, c.Query("q"), c.Query("status"), wallet)
 	if e != nil {
 		handleError(c, e)
 		return
@@ -123,11 +183,19 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 	}
 	p["title"] = "佣金提现申请"
 	p["description"] = "在邀请与分佣中审批并登记线下付款。最低提现金额在分佣规则中设置，手续费在提现方式中设置。"
+	if wallet == "balance" {
+		p["title"] = "余额提现申请"
+		p["description"] = "审批支付余额提现，并按申请时固定的实付金额登记一次付款。手续费由客户承担，不再关联原来的充值。"
+	}
 	p["items"] = items
 	p["next_cursor"] = next
 	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
 	p["operations"] = []operation{}
-	p["row_operations"] = withdrawalRowOperations(base)
+	held := "佣金占用"
+	if wallet == "balance" {
+		held = "支付余额占用"
+	}
+	p["row_operations"] = withdrawalRowOperations(base, held)
 	a.resourceResponse(c, p)
 }
 func customerPayoutMethods(methods []incentives.WithdrawalPolicy) []gin.H {
@@ -178,7 +246,11 @@ func (a *Application) saveWithdrawalMethod(c *gin.Context, op organization.Opera
 		fail(c, 400, "invalid_input", "请选择支付方式，客户将按该方式需要的收款材料填写。", false)
 		return
 	}
-	p := incentives.WithdrawalPolicy{MethodID: methodID, MethodName: in.Name, PayoutKind: in.Kind, Enabled: in.Enabled, MinimumMoney: ledger.FromInt64(1)}
+	wallet := "commission"
+	if c.Param("resource") == "balance-withdrawals" {
+		wallet = "balance"
+	}
+	p := incentives.WithdrawalPolicy{Wallet: wallet, MethodID: methodID, MethodName: in.Name, PayoutKind: in.Kind, Enabled: in.Enabled, MinimumMoney: ledger.FromInt64(1)}
 	if in.Name == "" {
 		handleError(c, incentives.ErrInvalidInput)
 		return
@@ -281,8 +353,8 @@ func withdrawalPaymentFields() []field {
 	return []field{optional("payment_reference", "付款流水或收据号（可选）", "text"), evidence, currency, original, link, f("paid_at", "实际付款时刻", "datetime")}
 }
 
-func withdrawalRowOperations(base string) []operation {
-	return []operation{{Name: "approve", Label: "审批", Method: "POST", Path: base + "/{id}/approve", Fields: []field{}, Confirmation: "确认原申请费用、收款资料及权限。提现固定为单人审批，审批人可以继续登记付款。"}, {Name: "verify_paid", Label: "登记付款", Method: "POST", Path: base + "/{id}/verify_paid", Fields: withdrawalPaymentFields(), Confirmation: "确认已按申请时固定的实付净额完成付款。提交后申请结束。"}, {Name: "fail", Label: "确认未付并终止", Method: "POST", Path: base + "/{id}/fail", Fields: []field{f("evidence", "已核实未付款依据", "textarea"), f("verified_unpaid", "已核实未付", "boolean")}, Confirmation: "确认这笔申请没有实际付款。提交后释放佣金占用，申请结束。"}}
+func withdrawalRowOperations(base, held string) []operation {
+	return []operation{{Name: "approve", Label: "审批", Method: "POST", Path: base + "/{id}/approve", Fields: []field{}, Confirmation: "确认原申请费用、收款资料及权限。提现固定为单人审批，审批人可以继续登记付款。"}, {Name: "verify_paid", Label: "登记付款", Method: "POST", Path: base + "/{id}/verify_paid", Fields: withdrawalPaymentFields(), Confirmation: "确认已按申请时固定的实付净额完成付款。提交后申请结束。"}, {Name: "fail", Label: "确认未付并终止", Method: "POST", Path: base + "/{id}/fail", Fields: []field{f("evidence", "已核实未付款依据", "textarea"), f("verified_unpaid", "已核实未付", "boolean")}, Confirmation: "确认这笔申请没有实际付款。提交后释放" + held + "，申请结束。"}}
 }
 
 func withdrawalAllowedActions(status string) []string {

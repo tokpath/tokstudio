@@ -2,7 +2,6 @@ package portal
 
 import (
 	"encoding/json"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
@@ -24,127 +23,8 @@ func (a *Application) refunds(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"items": items})
 }
-func (a *Application) refundWorkspace(c *gin.Context, p gin.H) {
-	id := subject(c)
-	rows, e := a.Remediation.CustomerCases(c.Request.Context(), id.Customer.Customer.ID, id.Customer.Customer.BrandID)
-	if e != nil {
-		handleError(c, e)
-		return
-	}
-	items := []any{}
-	destinationOperations := []operation{}
-	for _, r := range rows {
-		row := entity(r.ID, r.State, 1, r)
-		actions := []string{}
-		if r.State == "pending_review" || r.State == "approved" {
-			actions = append(actions, "cancel")
-		}
-		statuses, e := a.Remediation.CustomerRefundDestinations(c.Request.Context(), id.Customer.Customer.ID, id.Customer.Customer.BrandID, r.ID)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		// A refund is one application. Source slices stay on the server so the
-		// list does not show a second row for the same request.
-		addressed := []remediation.RefundDestination{}
-		for _, status := range statuses {
-			if status.AuthorizedDestination != nil {
-				addressed = append(addressed, *status.AuthorizedDestination)
-			} else if status.Proposal != nil {
-				addressed = append(addressed, status.Proposal.RefundDestination)
-			}
-			if !status.DestinationMutable || status.AuthorizationID != "" {
-				continue
-			}
-			if status.DestinationRequired {
-				action := customerDestinationOperation(status, false)
-				actions = append(actions, action.Name)
-				destinationOperations = append(destinationOperations, action)
-			}
-			action := customerDestinationOperation(status, true)
-			actions = append(actions, action.Name)
-			destinationOperations = append(destinationOperations, action)
-		}
-		if len(addressed) == 1 {
-			current := row["values"].(gin.H)
-			for key, value := range values(addressed[0]) {
-				current[key] = value
-			}
-		}
-		row["allowed_actions"] = actions
-		items = append(items, row)
-	}
-	p["title"] = "结算币种 余额原路退款"
-	p["description"] = "仅可退本人未使用的结算币种余额，按原始收款来源退回。已购ATG不能按现价或普通退订兑现；错误交易由经营方按原成交证据处理。"
-	p["items"] = items
-	p["columns"] = []gin.H{col("operator_id", "原责任经营方", "text"), col("amount_money", "申请结算币种", "money"), col("kind", "类型", "text"), col("state", "处理状态", "status"), col("reason", "申请原因", "text"), col("created_at", "申请时间", "datetime")}
-	request := operation{Name: "request", Label: "申请结算币种余额原路退回", Method: "POST", Path: "/api/v1/me/refunds", Fields: []field{f("amount_money", "申请金额 结算币种", "decimal"), f("reason", "退款原因", "textarea")}, Confirmation: "将占用本人未使用结算币种余额并进入原路退款审核；未知支付结果期间不会重复付款。"}
-	if id := subject(c); id != nil && id.Customer.Customer.ID != "" {
-		if channels := a.Payments.KVoucherRefundChannels(c.Request.Context(), id.Customer.Ownership.OperatorID); len(channels) > 0 {
-			options := make([]string, 0, len(channels))
-			labels := map[string]string{"bank": "银行卡", "alipay": "支付宝", "wechat": "微信支付", "tng": "Touch 'n Go", "duitnow": "DuitNow"}
-			for _, channel := range channels {
-				options = append(options, channel+"|"+labels[channel])
-			}
-			request.Label = "申请退款并登记收款账号"
-			request.Fields = []field{f("amount_money", "申请金额 结算币种", "decimal"), selectField("payout_method", "收款方式", options...), f("payout_account", "收款账号", "text"), f("reason", "退款原因", "textarea")}
-			request.Confirmation = "提交后占用未使用的 结算币种 余额。经营方按你登记的账号线下打款，不会通过原支付通道自动退回。"
-		}
-	}
-	p["operations"] = []operation{request}
-	p["row_operations"] = append([]operation{{Name: "cancel", Label: "撤销未执行申请", Method: "POST", Path: "/api/v1/me/refunds/{id}/cancel", Fields: []field{}, Confirmation: "只可撤销尚未执行的原申请；已付款和结果未知的申请需继续核实。"}}, destinationOperations...)
-
-	p["columns"] = append(p["columns"].([]gin.H), col("network", "退款网络", "text"), col("asset", "准确资产", "text"), col("token_contract", "代币合约", "text"), col("address", "本人授权接收地址", "text"))
-	a.resourceResponse(c, p)
-}
-func customerDestinationOperation(status remediation.RefundDestinationStatus, responsible bool) operation {
-	name := "propose_destination:" + status.LegID
-	label := "本人确认稳定币退款目的地"
-	path := "/api/v1/me/refunds/legs/" + status.LegID + "/destination"
-	confirmation := "我已核对网络、准确资产、代币合约和接收地址，并明确授权本次退款退到该目的地。该地址不会从原转账发送方推定；经财务核实锁定后不可更改。"
-	choice := defaultField("responsible_execution", "Responsible execution", "hidden", false)
-	if responsible {
-		name = "propose_responsible_destination:" + status.LegID
-		label = "原路受限时明确选择责任方替代付款"
-		path = "/api/v1/me/refunds/legs/" + status.LegID + "/responsible-destination"
-		confirmation = "本人明确授权当前责任经营方通过其自身商户或银行向此准确目的地付款，不授予其使用原经营方商户配置的权利。"
-		choice = defaultField("responsible_execution", "本人明确选择责任方付款", "hidden", true)
-	}
-	return operation{Name: name, Label: label, Method: "POST", Path: path, Fields: append(append(refundDestinationFields(), choice), f("authorization_reference", "本人明确授权与地址来源说明", "textarea")), Confirmation: confirmation}
-}
 func (a *Application) requestRefund(c *gin.Context) {
-	var in struct {
-		Amount        ledger.Decimal `json:"amount_money"`
-		Reason        string         `json:"reason"`
-		PayoutMethod  string         `json:"payout_method"`
-		PayoutAccount string         `json:"payout_account"`
-	}
-	if !body(c, &in) {
-		return
-	}
-	id := subject(c)
-	channels := a.Payments.KVoucherRefundChannels(c.Request.Context(), id.Customer.Ownership.OperatorID)
-	if len(channels) > 0 {
-		allowed := false
-		for _, channel := range channels {
-			if channel == in.PayoutMethod {
-				allowed = true
-			}
-		}
-		if !allowed || strings.TrimSpace(in.PayoutAccount) == "" {
-			handleError(c, payments.ErrInvalid)
-			return
-		}
-		labels := map[string]string{"bank": "银行卡", "alipay": "支付宝", "wechat": "微信支付", "tng": "Touch 'n Go", "duitnow": "DuitNow"}
-		in.Reason = "线下退款方式：" + labels[in.PayoutMethod] + "\n收款账号：" + strings.TrimSpace(in.PayoutAccount) + "\n退款原因：" + in.Reason
-	}
-	key, _ := key(c)
-	out, e := a.Remediation.RequestWalletRefund(c.Request.Context(), remediation.WalletRefundInput{OperatorID: id.Customer.Ownership.OperatorID, CustomerID: id.Customer.Customer.ID, BusinessKey: key, AmountMoney: in.Amount, Reason: in.Reason})
-	if e != nil {
-		handleError(c, e)
-		return
-	}
-	c.JSON(200, commandResult(out.ID, out.State))
+	fail(c, 409, "use_balance_withdrawal", "支付余额请通过余额提现申请办理，不再按原充值逐笔退回。", false)
 }
 func (a *Application) cancelRefund(c *gin.Context) {
 	id := subject(c)

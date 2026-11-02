@@ -209,6 +209,7 @@ type CorrectionInput struct {
 }
 type WithdrawalPolicy struct {
 	Currency             string         `json:"currency,omitempty" gorm:"-"`
+	Wallet               string         `json:"wallet" gorm:"default:commission"`
 	MethodID             string         `json:"method_id"`
 	MethodName           string         `json:"method_name"`
 	PayoutKind           string         `json:"payout_kind"`
@@ -239,6 +240,7 @@ type WithdrawalQuote struct {
 	FeeRemainder string           `json:"fee_remainder"`
 }
 type Withdrawal struct {
+	Wallet             string         `json:"wallet" gorm:"default:commission"`
 	MethodID           string         `json:"method_id"`
 	MethodName         string         `json:"method_name"`
 	OriginalOperatorID string         `json:"original_operator_id" gorm:"default:(-)"`

@@ -33,7 +33,7 @@ func (s *Service) SetCommissionWithdrawalMinimum(ctx context.Context, tx *gorm.D
 		if err := s.LockBusiness(ctx, t, operator); err != nil {
 			return err
 		}
-		if err := t.Exec("INSERT INTO incentives_withdrawal_settings(operator_id,minimum_money) VALUES(?,?) ON CONFLICT(operator_id) DO UPDATE SET minimum_money=excluded.minimum_money", operator, minimum).Error; err != nil {
+		if err := t.Exec("INSERT INTO incentives_withdrawal_settings(operator_id,wallet,minimum_money) VALUES(?,'commission',?) ON CONFLICT(operator_id,wallet) DO UPDATE SET minimum_money=excluded.minimum_money", operator, minimum).Error; err != nil {
 			return err
 		}
 		out.MinimumMoney = minimum
@@ -78,6 +78,16 @@ func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, o
 		if previous.Version != expectedVersion {
 			return ErrConflict
 		}
+		if in.Wallet != "commission" && in.Wallet != "balance" {
+			if previous.Wallet == "commission" || previous.Wallet == "balance" {
+				in.Wallet = previous.Wallet
+			} else {
+				in.Wallet = "commission"
+			}
+		}
+		if previous.MethodID != "" && previous.Wallet != "" && previous.Wallet != in.Wallet {
+			return ErrConflict
+		}
 		in.RequiresDualApproval = false
 		if in.MethodName == "" {
 			in.MethodName = profile.Label
@@ -100,7 +110,7 @@ func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, o
 		if err = t.Create(&r).Error; err != nil {
 			return err
 		}
-		if err = t.Exec("INSERT INTO incentives_withdrawal_settings(operator_id,minimum_money) VALUES(?,?) ON CONFLICT(operator_id) DO NOTHING", operator, in.MinimumMoney).Error; err != nil {
+		if err = t.Exec("INSERT INTO incentives_withdrawal_settings(operator_id,wallet,minimum_money) VALUES(?,?,?) ON CONFLICT(operator_id,wallet) DO NOTHING", operator, in.Wallet, in.MinimumMoney).Error; err != nil {
 			return err
 		}
 		out = WithdrawalPolicy(r)
@@ -109,17 +119,20 @@ func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, o
 	return
 }
 
-func (s *Service) WithdrawalMethods(ctx context.Context, tx *gorm.DB, operator string, enabledOnly bool) ([]WithdrawalPolicy, error) {
+func (s *Service) WithdrawalMethods(ctx context.Context, tx *gorm.DB, operator string, enabledOnly bool, wallet string) ([]WithdrawalPolicy, error) {
+	if wallet != "balance" {
+		wallet = "commission"
+	}
 	monetary, err := ledger.GetMonetary(ctx, s.dbFor(ctx, tx))
 	if err != nil {
 		return nil, err
 	}
 	var rows []withdrawalPolicyRow
-	if err := s.dbFor(ctx, tx).Raw("SELECT * FROM (SELECT DISTINCT ON(method_id) * FROM incentives_withdrawal_policies WHERE operator_id=? ORDER BY method_id,version DESC) methods ORDER BY method_name,method_id", operator).Scan(&rows).Error; err != nil {
+	if err := s.dbFor(ctx, tx).Raw("SELECT * FROM (SELECT DISTINCT ON(method_id) * FROM incentives_withdrawal_policies WHERE operator_id=? AND wallet=? ORDER BY method_id,version DESC) methods ORDER BY method_name,method_id", operator, wallet).Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 	var minimum struct{ MinimumMoney ledger.Decimal }
-	if err := s.dbFor(ctx, tx).Table("incentives_withdrawal_settings").Where("operator_id=?", operator).Limit(1).Find(&minimum).Error; err != nil {
+	if err := s.dbFor(ctx, tx).Table("incentives_withdrawal_settings").Where("operator_id=? AND wallet=?", operator, wallet).Limit(1).Find(&minimum).Error; err != nil {
 		return nil, err
 	}
 	out := []WithdrawalPolicy{}
@@ -137,7 +150,18 @@ func (s *Service) WithdrawalMethods(ctx context.Context, tx *gorm.DB, operator s
 	return out, nil
 }
 func (s *Service) QuoteWithdrawal(ctx context.Context, tx *gorm.DB, operator string, amount ledger.Decimal, methodID ...string) (WithdrawalQuote, error) {
-	methods, err := s.WithdrawalMethods(ctx, tx, operator, true)
+	wallet := "commission"
+	if len(methodID) > 0 && methodID[0] != "" {
+		var selected string
+		err := s.dbFor(ctx, tx).Raw("SELECT wallet FROM incentives_withdrawal_policies WHERE operator_id=? AND method_id=? ORDER BY version DESC LIMIT 1", operator, methodID[0]).Row().Scan(&selected)
+		if err != nil {
+			return WithdrawalQuote{}, ErrNotReady
+		}
+		if selected == "balance" {
+			wallet = "balance"
+		}
+	}
+	methods, err := s.WithdrawalMethods(ctx, tx, operator, true, wallet)
 	if err != nil {
 		return WithdrawalQuote{}, err
 	}
@@ -209,9 +233,6 @@ func (s *Service) RequestWithdrawal(ctx context.Context, tx *gorm.DB, in Withdra
 		if _, err = s.org.LockOwnership(ctx, tx, own.CustomerID, own.OperatorID, own.Version); err != nil {
 			return err
 		}
-		if err = s.org.RequireCustomerAction(ctx, tx, in.CustomerID, in.OperatorID, "withdrawal"); err != nil {
-			return err
-		}
 		if err = s.org.RequireBusiness(ctx, tx, in.OperatorID, organization.Settlement); err != nil {
 			return err
 		}
@@ -235,19 +256,29 @@ func (s *Service) RequestWithdrawal(ctx context.Context, tx *gorm.DB, in Withdra
 		if err != nil {
 			return err
 		}
-		if err = s.advance(ctx, tx, in.OperatorID, in.CustomerID, instant.At); err != nil {
-			return err
-		}
-		state, err := s.stateAt(tx, in.OperatorID, in.CustomerID, instant.At)
-		if err != nil {
-			return err
-		}
-		if state.ReleaseBlocked {
-			return ErrBlocked
-		}
 		var selected withdrawalPolicyRow
 		if err := tx.First(&selected, "id=? AND operator_id=?", in.PolicyID, in.OperatorID).Error; err != nil {
 			return err
+		}
+		balance := selected.Wallet == "balance"
+		action := "withdrawal"
+		if balance {
+			action = "wallet_refund"
+		}
+		if err = s.org.RequireCustomerAction(ctx, tx, in.CustomerID, in.OperatorID, action); err != nil {
+			return err
+		}
+		if !balance {
+			if err = s.advance(ctx, tx, in.OperatorID, in.CustomerID, instant.At); err != nil {
+				return err
+			}
+			state, err := s.stateAt(tx, in.OperatorID, in.CustomerID, instant.At)
+			if err != nil {
+				return err
+			}
+			if state.ReleaseBlocked {
+				return ErrBlocked
+			}
 		}
 		quote, err := s.QuoteWithdrawal(ctx, tx, in.OperatorID, in.AmountMoney, selected.MethodID)
 		if err != nil {
@@ -256,19 +287,31 @@ func (s *Service) RequestWithdrawal(ctx context.Context, tx *gorm.DB, in Withdra
 		if quote.Policy.ID != in.PolicyID {
 			return ErrConflict
 		}
-		account, err := s.account(ctx, tx, in.OperatorID, in.CustomerID, "commission:available")
+		purpose := "commission:available"
+		holdPurpose := "commission_withdrawal"
+		if balance {
+			purpose = "customer:money"
+			holdPurpose = "balance_withdrawal"
+		}
+		account, err := s.account(ctx, tx, in.OperatorID, in.CustomerID, purpose)
 		if err != nil {
 			return err
 		}
 		id := uuid.NewString()
-		if _, err = s.reserveCommissionUse(ctx, tx, in.OperatorID, in.CustomerID, "withdrawal", id, quote.AmountMoney, nil); err != nil {
-			return err
+		if !balance {
+			if _, err = s.reserveCommissionUse(ctx, tx, in.OperatorID, in.CustomerID, "withdrawal", id, quote.AmountMoney, nil); err != nil {
+				return err
+			}
 		}
-		hold, err := s.ledger.Reserve(ctx, tx, ledger.Reservation{OperatorID: in.OperatorID, BusinessKey: "withdrawal:" + id, Purpose: "commission_withdrawal", ExpiresAt: instant.At.AddDate(10, 0, 0), Amounts: []ledger.Line{{AccountID: account.ID, Amount: quote.AmountMoney}}})
+		hold, err := s.ledger.Reserve(ctx, tx, ledger.Reservation{OperatorID: in.OperatorID, BusinessKey: "withdrawal:" + id, Purpose: holdPurpose, ExpiresAt: instant.At.AddDate(10, 0, 0), Amounts: []ledger.Line{{AccountID: account.ID, Amount: quote.AmountMoney}}})
 		if err != nil {
 			return err
 		}
-		r := withdrawalRow{MethodID: quote.Policy.MethodID, MethodName: quote.Policy.MethodName, ID: id, OperatorID: in.OperatorID, CustomerID: in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fp, PolicyID: quote.Policy.ID, AmountMoney: quote.AmountMoney, FeeMoney: quote.FeeMoney, NetMoney: quote.NetMoney, FeeRemainder: quote.FeeRemainder, RecipientReference: in.RecipientReference, HoldID: hold.ID, Status: "requested", CreatedAt: instant.At}
+		wallet := "commission"
+		if balance {
+			wallet = "balance"
+		}
+		r := withdrawalRow{Wallet: wallet, MethodID: quote.Policy.MethodID, MethodName: quote.Policy.MethodName, ID: id, OperatorID: in.OperatorID, CustomerID: in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fp, PolicyID: quote.Policy.ID, AmountMoney: quote.AmountMoney, FeeMoney: quote.FeeMoney, NetMoney: quote.NetMoney, FeeRemainder: quote.FeeRemainder, RecipientReference: in.RecipientReference, HoldID: hold.ID, Status: "requested", CreatedAt: instant.At}
 		if err = tx.Create(&r).Error; err != nil {
 			return err
 		}
@@ -388,15 +431,27 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 		if r.Status != "approved" {
 			return ErrWithdrawalState
 		}
-		if err = s.RequireCommissionFundingExecution(ctx, tx, operator, r.CustomerID, "withdrawal", r.ID); err != nil {
-			return err
+		balance := r.Wallet == "balance"
+		if !balance {
+			if err = s.RequireCommissionFundingExecution(ctx, tx, operator, r.CustomerID, "withdrawal", r.ID); err != nil {
+				return err
+			}
 		}
 		before := Withdrawal(r)
-		available, err := s.account(ctx, tx, operator, r.CustomerID, "commission:available")
+		source := "commission:available"
+		payoutPurpose := "control:commission_payouts"
+		kind := "commission_payout"
+		if balance {
+			source = "customer:money"
+			// Cash actually leaves the operator. The fee stays as withdrawal income.
+			payoutPurpose = "control:external_cash"
+			kind = "balance_payout"
+		}
+		available, err := s.account(ctx, tx, operator, r.CustomerID, source)
 		if err != nil {
 			return err
 		}
-		payouts, err := s.account(ctx, tx, operator, operator, "control:commission_payouts")
+		payouts, err := s.account(ctx, tx, operator, operator, payoutPurpose)
 		if err != nil {
 			return err
 		}
@@ -408,11 +463,13 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 			}
 			lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: r.FeeMoney})
 		}
-		if _, err = s.ledger.Capture(ctx, tx, r.HoldID, ledger.Posting{OperatorID: operator, BusinessKey: "withdrawal-paid:" + r.ID, Kind: "commission_payout", SourceID: r.ID, ActorID: actor, Reason: proof.Evidence, Lines: lines}, nil); err != nil {
+		if _, err = s.ledger.Capture(ctx, tx, r.HoldID, ledger.Posting{OperatorID: operator, BusinessKey: "withdrawal-paid:" + r.ID, Kind: kind, SourceID: r.ID, ActorID: actor, Reason: proof.Evidence, Lines: lines}, nil); err != nil {
 			return err
 		}
-		if err = s.resolveCommissionUse(ctx, tx, operator, r.CustomerID, "withdrawal", r.ID, true); err != nil {
-			return err
+		if !balance {
+			if err = s.resolveCommissionUse(ctx, tx, operator, r.CustomerID, "withdrawal", r.ID, true); err != nil {
+				return err
+			}
 		}
 		r.Status = "paid"
 		r.PaymentReference = &proof.PaymentReference
@@ -444,8 +501,10 @@ func (s *Service) CancelWithdrawal(ctx context.Context, tx *gorm.DB, customer, i
 		if r.Status != "requested" {
 			return ErrWithdrawalState
 		}
-		if err := s.resolveCommissionUse(ctx, tx, r.OperatorID, r.CustomerID, "withdrawal", r.ID, false); err != nil {
-			return err
+		if r.Wallet != "balance" {
+			if err := s.resolveCommissionUse(ctx, tx, r.OperatorID, r.CustomerID, "withdrawal", r.ID, false); err != nil {
+				return err
+			}
 		}
 		if _, err := s.ledger.Release(ctx, tx, r.OperatorID, r.HoldID, "withdrawal-cancel:"+id); err != nil {
 			return err
@@ -471,8 +530,10 @@ func (s *Service) FailWithdrawal(ctx context.Context, tx *gorm.DB, actor, operat
 		if r.Status != "approved" {
 			return ErrWithdrawalState
 		}
-		if err = s.resolveCommissionUse(ctx, tx, operator, r.CustomerID, "withdrawal", r.ID, false); err != nil {
-			return err
+		if r.Wallet != "balance" {
+			if err = s.resolveCommissionUse(ctx, tx, operator, r.CustomerID, "withdrawal", r.ID, false); err != nil {
+				return err
+			}
 		}
 		if _, err = s.ledger.Release(ctx, tx, operator, r.HoldID, "withdrawal-failed:"+id); err != nil {
 			return err

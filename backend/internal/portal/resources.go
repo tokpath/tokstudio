@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
-	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
 )
@@ -107,7 +106,7 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 	p := page(resource)
 	switch resource {
 	case "refunds":
-		a.refundWorkspace(c, p)
+		a.customerWithdrawalWorkspace(c, p, op, customer, "balance")
 		return
 	case "topups":
 		p["title"] = "结算币种 充值"
@@ -178,45 +177,8 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		p["next_cursor"] = organization.NextAuditCursor(events, 50)
 		p["columns"] = []gin.H{col("order_id", "来源订单", "text"), col("total", "总额", "atg"), col("consumed", "已消费", "atg"), col("expired", "已过期", "atg"), col("cancelled", "已取消", "atg"), col("created_at", "发放时间", "datetime"), col("expires_at", "到期", "datetime")}
 	case "withdrawals":
-		rows, e := a.Incentives.Withdrawals(ctx, nil, op, customer)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		items := []any{}
-		for _, w := range rows {
-			row := entity(w.ID, w.Status, 1, w)
-			row["allowed_actions"] = []string{}
-			if w.Status == "requested" {
-				row["allowed_actions"] = []string{"cancel"}
-			}
-			items = append(items, row)
-		}
-		methods, err := a.Incentives.WithdrawalMethods(ctx, nil, op, true)
-		if err != nil {
-			handleError(c, err)
-			return
-		}
-		p["row_operations"] = []operation{{Name: "cancel", Label: "取消提现申请", Method: "POST", Path: "/api/v1/me/withdrawals/{id}/cancel", Fields: []field{}, Description: "仅尚未审核的本人提现申请可以取消。", Confirmation: "确认取消这笔尚未审核的提现申请？取消成功后释放本笔佣金占用；已进入审核或付款环节的申请须按最新状态继续办理。"}}
-		p["title"] = "佣金提现"
-		p["items"] = items
-		p["columns"] = []gin.H{col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
-		p["operations"] = []operation{}
-		offered := customerPayoutMethods(methods)
-		settings, settingsErr := ledger.GetMonetary(ctx, a.DB)
-		digits := 2
-		if settingsErr == nil {
-			digits = incentives.CurrencyMinorDigits(settings.Currency)
-		}
-		p["payout_methods"] = offered
-		p["currency_digits"] = digits
-		if len(offered) > 0 {
-			minimum := offered[0]["minimum_money"].(string)
-			p["description"] = "单笔提现总额不能低于经营方公布的最低额度 " + minimum + " 结算币种。"
-			p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum, "unit": "MONEY", "detail": "单笔提现总额不能低于经营方公布的这个额度。"}}
-		} else {
-			p["description"] = "请等待经营方配置可用提现方式。"
-		}
+		a.customerWithdrawalWorkspace(c, p, op, customer, "commission")
+		return
 	case "account":
 		email, e := a.Organization.CustomerEmail(ctx, nil, customer)
 		if e != nil {
@@ -337,7 +299,7 @@ func permissionFor(resource string) string {
 		return "reports.view"
 	case "restrictions":
 		return "security.manage"
-	case "withdrawals":
+	case "withdrawals", "balance-withdrawals":
 		return "withdrawals.manage"
 	case "refunds", "disputes", "takeovers", "approvals":
 		return "refunds.manage"
@@ -782,7 +744,10 @@ func (a *Application) operatorResource(c *gin.Context) {
 		a.refundStaffResource(c, op, actor, p, base)
 		return
 	case "withdrawals":
-		a.withdrawalStaffResource(c, op, actor, p, base)
+		a.withdrawalStaffResource(c, op, actor, p, base, "commission")
+		return
+	case "balance-withdrawals":
+		a.withdrawalStaffResource(c, op, actor, p, base, "balance")
 		return
 	case "catalog", "providers", "routes", "pricing":
 		if a.catalogResource(c, op, actor, resource, p, base) {

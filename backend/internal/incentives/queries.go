@@ -285,7 +285,10 @@ func (s *Service) PromotionOverview(ctx context.Context, tx *gorm.DB, operator, 
 	})
 	return
 }
-func (s *Service) Withdrawals(ctx context.Context, tx *gorm.DB, operator, customer string) ([]Withdrawal, error) {
+func (s *Service) Withdrawals(ctx context.Context, tx *gorm.DB, operator, customer, wallet string) ([]Withdrawal, error) {
+	if wallet != "balance" {
+		wallet = "commission"
+	}
 	own, err := s.org.CurrentOwnership(ctx, tx, customer)
 	if err != nil {
 		return nil, err
@@ -294,7 +297,7 @@ func (s *Service) Withdrawals(ctx context.Context, tx *gorm.DB, operator, custom
 		return nil, ErrNotEligible
 	}
 	var rows []withdrawalRow
-	if err = s.dbFor(ctx, tx).Where("operator_id=? AND customer_id=?", operator, customer).Order("created_at DESC,id DESC").Limit(200).Find(&rows).Error; err != nil {
+	if err = s.dbFor(ctx, tx).Where("operator_id=? AND customer_id=? AND wallet=?", operator, customer, wallet).Order("created_at DESC,id DESC").Limit(200).Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]Withdrawal, len(rows))

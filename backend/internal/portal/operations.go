@@ -262,7 +262,7 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			if party == "procurement" {
 				label = "经营方采购"
 			}
-			stage := selectField("stage", "允许开票阶段", "receipt|原始收款", "top_up|充值完成", "purchase|完成购买", "consumption|实际消费")
+			stage := selectField("stage", "允许开票阶段", "receipt|原始收款", "purchase|完成购买", "consumption|实际消费")
 			stage.Default = current.Stage
 			ratio := current.MaximumRatio
 			if current.Version == 0 {

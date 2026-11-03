@@ -513,9 +513,6 @@ func TestPostgresWithdrawalUnknownRecoveryAndOffsetsNeverTouchOtherAssets(t *tes
 	if err = f.s.CancelWithdrawal(f.ctx, nil, a.Customer.ID, w.ID); !errors.Is(err, ErrWithdrawalState) {
 		t.Fatalf("unknown payout hold cancelled: %v", err)
 	}
-	if err = f.s.FailWithdrawal(f.ctx, nil, f.owner, f.operator, w.ID, "no proof", false); !errors.Is(err, ErrWithdrawalState) {
-		t.Fatalf("unknown payout released without proof: %v", err)
-	}
 	if err = f.s.ReverseEvent(f.ctx, nil, CorrectionInput{ActorStaffID: f.owner, OperatorID: f.operator, OriginalEventID: events[0].ID, BusinessKey: "reverse-original", Evidence: "proven wrong paid base", AmountMoney: d("100")}); err != nil {
 		t.Fatal(err)
 	}
@@ -552,7 +549,7 @@ func TestPostgresWithdrawalUnknownRecoveryAndOffsetsNeverTouchOtherAssets(t *tes
 	if _, err = f.s.ApproveWithdrawal(f.ctx, nil, f.owner, f.operator, w2.ID); err != nil {
 		t.Fatal(err)
 	}
-	if err = f.s.FailWithdrawal(f.ctx, nil, f.owner, f.operator, w2.ID, "bank verified no payment occurred", true); err != nil {
+	if err = f.s.FailWithdrawal(f.ctx, nil, f.owner, f.operator, w2.ID, "bank verified no payment occurred"); err != nil {
 		t.Fatal(err)
 	}
 	if account := f.balance(t, a.Customer.ID, "commission:available"); account.Balance.Cmp(d("5")) != 0 || !account.Held.IsZero() {

@@ -100,8 +100,8 @@ test("finance records one whole payment, links private evidence, reviews a refun
     const heldBeforePayment = await (await customer.request.get("/api/v1/me/credits")).json();
     expect(heldBeforePayment.money_balance.available).toBe(String(startingBalance + 80)); expect(heldBeforePayment.money_balance.held).toBe("20");
     await finance.goto(`${manage}/balance-withdrawals`);
-    await finance.getByRole("button", { name: "审批", exact: true }).click();
-    await submit(finance, "审批", `${base}/balance-withdrawals/${withdrawalID}/approve`);
+    await finance.getByRole("button", { name: "通过", exact: true }).click();
+    await submit(finance, "通过", `${base}/balance-withdrawals/${withdrawalID}/approve`);
     await finance.goto(`${manage}/balance-withdrawals`);
     await finance.getByRole("button", { name: "登记付款", exact: true }).click();
     await submit(finance, "登记付款", `${base}/balance-withdrawals/${withdrawalID}/verify_paid`, { evidence: "SYNTHETIC settled payout to the declared Alipay account", currency: "USD", paid_at: localNow() });

@@ -15,6 +15,7 @@ type NotificationAudience struct {
 	RecipientID string          `json:"recipient_id"`
 	Reference   string          `json:"reference"`
 	Wallet      string          `json:"wallet,omitempty"`
+	Reason      string          `json:"reason,omitempty"`
 	Kind        string          `json:"kind"`
 	AmountMoney *ledger.Decimal `json:"amount_money,omitempty"`
 	OccurredAt  time.Time       `json:"occurred_at"`
@@ -36,7 +37,7 @@ func (s *Service) NotificationEventAudience(ctx context.Context, tx *gorm.DB, in
 	}
 	ids := map[string]bool{}
 	var amount *ledger.Decimal
-	var wallet string
+	var wallet, reason string
 	addStaff := func() error {
 		staff, e := s.org.OperatorNotificationStaff(ctx, tx, event.OperatorID)
 		if e != nil {
@@ -61,6 +62,9 @@ func (s *Service) NotificationEventAudience(ctx context.Context, tx *gorm.DB, in
 		ids[withdrawal.CustomerID] = true
 		value := withdrawal.AmountMoney
 		amount = &value
+		if event.Kind == "withdrawal.unpaid_verified" {
+			reason = strings.TrimSpace(withdrawal.PaymentEvidence)
+		}
 	case event.Kind == "qualification.acquired" || event.Kind == "commission.function_changed" || event.Kind == "commission.pending_offset_recovered":
 		ids[event.AggregateID] = true
 	case event.Kind == "consumption.corrected" || event.Kind == "confirmation.dispute_changed" || event.Kind == "commission.source_restricted" || event.Kind == "commission.source_released":
@@ -110,7 +114,7 @@ func (s *Service) NotificationEventAudience(ctx context.Context, tx *gorm.DB, in
 	sort.Strings(ordered)
 	out := make([]NotificationAudience, 0, len(ordered))
 	for _, id := range ordered {
-		out = append(out, NotificationAudience{OperatorID: event.OperatorID, RecipientID: id, Reference: event.ID, Kind: event.Kind, Wallet: wallet, AmountMoney: amount, OccurredAt: event.CreatedAt})
+		out = append(out, NotificationAudience{OperatorID: event.OperatorID, RecipientID: id, Reference: event.ID, Kind: event.Kind, Wallet: wallet, Reason: reason, AmountMoney: amount, OccurredAt: event.CreatedAt})
 	}
 	return out, nil
 }

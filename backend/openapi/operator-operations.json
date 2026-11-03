@@ -4292,11 +4292,11 @@
   },
   {
     "resource": "withdrawals",
-    "confirmation": "确认原申请费用、收款资料及权限。提现固定为单人审批，审批人可以继续登记付款。",
+    "confirmation": "确认通过这笔提现申请？通过后可以登记付款。",
     "description": "",
     "fields": [],
     "include_version": false,
-    "label": "审批",
+    "label": "通过",
     "method": "POST",
     "name": "approve",
     "path": "/v1/operators/{operatorId}/withdrawals/{id}/approve",
@@ -4354,24 +4354,18 @@
   },
   {
     "resource": "withdrawals",
-    "confirmation": "确认这笔申请没有实际付款。提交后释放佣金占用，申请结束。",
+    "confirmation": "确认拒绝这笔提现申请？提交后释放佣金占用，申请结束。",
     "description": "",
     "fields": [
       {
         "kind": "textarea",
-        "label": "已核实未付款依据",
+        "label": "拒绝理由",
         "name": "evidence",
-        "required": true
-      },
-      {
-        "kind": "boolean",
-        "label": "已核实未付",
-        "name": "verified_unpaid",
-        "required": true
+        "help": "填写后会出现在发给申请人的通知里。可以不填。"
       }
     ],
     "include_version": false,
-    "label": "确认未付并终止",
+    "label": "拒绝",
     "method": "POST",
     "name": "fail",
     "path": "/v1/operators/{operatorId}/withdrawals/{id}/fail",

@@ -1,11 +1,13 @@
 package portal
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 )
 
@@ -89,10 +91,17 @@ func TestPostgresBalanceWithdrawalRequiresDisplayedTermsAndAppearsInReviews(t *t
 	if !found {
 		t.Fatal("balance withdrawal absent from pending approvals", page)
 	}
-	status, out, _ := f.call(t, "POST", "/v1/operators/"+op+"/balance-withdrawals/"+id+"/fail", map[string]any{"verified_unpaid": true, "evidence": "not approved and not paid"}, uuid.NewString())
+	status, out, _ := f.call(t, "POST", "/v1/operators/"+op+"/balance-withdrawals/"+id+"/fail", map[string]any{"evidence": "资料与收款账户不一致"}, uuid.NewString())
 	mustOK(t, status, out)
 	var held ledger.Decimal
 	if err := f.a.DB.Table("ledger_accounts").Select("held").Where("id=?", account.ID).Row().Scan(&held); err != nil || !held.IsZero() {
 		t.Fatal("rejected withdrawal retained a hold", held, err)
+	}
+	if _, err := f.a.Incentives.RelayEvents(ctx, nil, 50, operations.IncentiveNotifications{Operations: f.a.Operations, Audience: f.a.Incentives}); err != nil {
+		t.Fatal(err)
+	}
+	var notice operations.Notification
+	if err := f.a.DB.Where("recipient_id=? AND title=?", customer, "余额提现已拒绝").First(&notice).Error; err != nil || !strings.Contains(notice.Body, "拒绝理由：资料与收款账户不一致。") {
+		t.Fatal(notice.Body, err)
 	}
 }

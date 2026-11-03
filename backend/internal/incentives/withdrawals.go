@@ -552,10 +552,8 @@ func (s *Service) CancelWithdrawal(ctx context.Context, tx *gorm.DB, customer, i
 		return s.event(tx, r.OperatorID, id, "withdrawal.cancelled", map[string]any{"customer_id": customer})
 	})
 }
-func (s *Service) FailWithdrawal(ctx context.Context, tx *gorm.DB, actor, operator, id, evidence string, verifiedUnpaid bool) error {
-	if !verifiedUnpaid || evidence == "" {
-		return ErrWithdrawalState
-	}
+func (s *Service) FailWithdrawal(ctx context.Context, tx *gorm.DB, actor, operator, id, evidence string) error {
+	evidence = strings.TrimSpace(evidence)
 	return s.within(ctx, tx, func(tx *gorm.DB) error {
 		r, err := s.withdrawalForStaff(ctx, tx, actor, operator, id)
 		if err != nil {

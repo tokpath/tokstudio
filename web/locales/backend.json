@@ -449,6 +449,21 @@
     "ja": "承認",
     "ru": "Одобрить"
   },
+  "通过": {
+    "en": "Approve",
+    "ja": "可決",
+    "ru": "Одобрить"
+  },
+  "拒绝": {
+    "en": "Reject",
+    "ja": "拒否",
+    "ru": "Отклонить"
+  },
+  "拒绝理由": {
+    "en": "Reason for rejection",
+    "ja": "拒否理由",
+    "ru": "Причина отказа"
+  },
   "登记付款": {
     "en": "Record payment",
     "ja": "支払いを登録",
@@ -2573,6 +2588,26 @@
     "en": "Current rule version",
     "ja": "現在のルールバージョン",
     "ru": "Текущая версия правила"
+  },
+  "确认通过这笔提现申请？通过后可以登记付款。": {
+    "en": "Approve this withdrawal? After approval you can record the payment.",
+    "ja": "この出金申請を可決しますか？可決後に支払いを登録できます。",
+    "ru": "Одобрить эту заявку на вывод? После одобрения можно зарегистрировать выплату."
+  },
+  "确认拒绝这笔提现申请？提交后释放佣金占用，申请结束。": {
+    "en": "Reject this withdrawal? Submitting releases the commission hold and ends the application.",
+    "ja": "この出金申請を拒否しますか？送信すると報酬の確保が解放され、申請は終了します。",
+    "ru": "Отклонить эту заявку на вывод? После отправки резерв комиссии снимается и заявка завершается."
+  },
+  "确认拒绝这笔提现申请？提交后释放支付余额占用，申请结束。": {
+    "en": "Reject this withdrawal? Submitting releases the payment-balance hold and ends the application.",
+    "ja": "この出金申請を拒否しますか？送信すると支払残高の確保が解放され、申請は終了します。",
+    "ru": "Отклонить эту заявку на вывод? После отправки резерв платёжного баланса снимается и заявка завершается."
+  },
+  "填写后会出现在发给申请人的通知里。可以不填。": {
+    "en": "If you enter a reason, it is included in the notice sent to the applicant. You can leave it blank.",
+    "ja": "記入すると、申請者への通知に含まれます。空欄でも構いません。",
+    "ru": "Если указать причину, она попадёт в уведомление заявителю. Поле можно оставить пустым."
   },
   "确认原申请费用、收款资料及权限。提现固定为单人审批，审批人可以继续登记付款。": {
     "en": "Confirm the original application's fee, recipient details, and permissions. Withdrawal approval is done by one person, and that approver may also record the payment.",
@@ -6633,6 +6668,21 @@
     "en": "This withdrawal is canceled. Check details for the result of funds processing.",
     "ja": "今回の出金を取り消しました。資金処理結果は明細を確認してください。",
     "ru": "Этот вывод отменён. Результат обработки средств смотрите в деталях."
+  },
+  "佣金提现已拒绝": {
+    "en": "Commission withdrawal rejected",
+    "ja": "報酬出金を拒否しました",
+    "ru": "Вывод комиссии отклонён"
+  },
+  "余额提现已拒绝": {
+    "en": "Balance withdrawal rejected",
+    "ja": "残高出金を拒否しました",
+    "ru": "Вывод баланса отклонён"
+  },
+  "这笔提现申请已被拒绝，占用已释放。": {
+    "en": "This withdrawal was rejected and the hold has been released.",
+    "ja": "この出金申請は拒否され、確保は解放されました。",
+    "ru": "Эта заявка на вывод отклонена, резерв снят."
   },
   "提现未付款已核实": {
     "en": "Withdrawal nonpayment verified",

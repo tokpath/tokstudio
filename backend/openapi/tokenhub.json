@@ -32386,7 +32386,7 @@
     "/v1/operators/{operatorId}/withdrawals/{id}/approve": {
       "post": {
         "operationId": "post__v1_operators_operatorId_withdrawals_id_approve",
-        "summary": "审批",
+        "summary": "通过",
         "tags": [
           "Operator browser API"
         ],
@@ -32521,7 +32521,7 @@
             }
           }
         },
-        "description": " Required explicit review: 确认原申请费用、收款资料及权限。提现固定为单人审批，审批人可以继续登记付款。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": " Required explicit review: 确认通过这笔提现申请？通过后可以登记付款。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "withdrawals.manage"
       }
     },
@@ -32670,7 +32670,7 @@
     "/v1/operators/{operatorId}/withdrawals/{id}/fail": {
       "post": {
         "operationId": "post__v1_operators_operatorId_withdrawals_id_fail",
-        "summary": "确认未付并终止",
+        "summary": "拒绝",
         "tags": [
           "Operator browser API"
         ],
@@ -32805,7 +32805,7 @@
             }
           }
         },
-        "description": " Required explicit review: 确认这笔申请没有实际付款。提交后释放佣金占用，申请结束。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": " Required explicit review: 确认拒绝这笔提现申请？提交后释放佣金占用，申请结束。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "withdrawals.manage"
       }
     },
@@ -52145,17 +52145,10 @@
         "properties": {
           "evidence": {
             "type": "string",
-            "description": "已核实未付款依据"
-          },
-          "verified_unpaid": {
-            "type": "boolean",
-            "description": "已核实未付"
+            "description": "拒绝理由 — 填写后会出现在发给申请人的通知里。可以不填。"
           }
         },
-        "required": [
-          "evidence",
-          "verified_unpaid"
-        ],
+        "required": [],
         "additionalProperties": false
       },
       "Operator_disputes_record": {

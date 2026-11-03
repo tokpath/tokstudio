@@ -143,7 +143,7 @@ func TestPostgresCommissionDisputeBlocksNewExecutionBeforeRestrictionReviewAndKe
 	if _, e = f.s.Commerce.CloseOrder(f.ctx, nil, f.customer, o.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "independent payment lookup unpaid"}); e != nil {
 		t.Fatal(e)
 	}
-	if e = f.s.Incentives.FailWithdrawal(f.ctx, nil, f.owner, f.operator, w.ID, "bank verified original instruction never executed", true); e != nil {
+	if e = f.s.Incentives.FailWithdrawal(f.ctx, nil, f.owner, f.operator, w.ID, "bank verified original instruction never executed"); e != nil {
 		t.Fatal(e)
 	}
 	if e = f.s.RestrictChargeback(f.ctx, f.owner, f.operator, cb.ID, "original reservation now cleared"); e != nil {

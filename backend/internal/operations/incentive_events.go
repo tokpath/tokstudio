@@ -25,7 +25,7 @@ func (c IncentiveNotifications) EnqueueIncentiveEvent(ctx context.Context, tx *g
 		"withdrawal.approved":                  {"佣金提现已审核", "提现已审核。经营方登记实际付款后，申请才结束。"},
 		"withdrawal.payment_verified":          {"佣金提现付款已核实", "已核实实际提现付款，申请已结束。请查看提现明细与金额。"},
 		"withdrawal.cancelled":                 {"佣金提现已取消", "本次提现已取消，资金处理结果请查看明细。"},
-		"withdrawal.unpaid_verified":           {"提现未付款已核实", "已确认本次未实际付款，请查看占用释放结果。"},
+		"withdrawal.unpaid_verified":           {"佣金提现已拒绝", "这笔提现申请已被拒绝，占用已释放。"},
 		"withdrawal.policy_changed":            {"提现办理规则已更新", "本经营方后续提现办理规则已更新，已申请条款保持原快照。"},
 		"qualification.acquired":               {"推广资格已取得", "已确认金额达到本经营方资格条件，请查看资格及推广规则。"},
 		"commission.function_changed":          {"推广功能状态已变更", "推广功能状态已记录变更。此前正确佣金继续按原规则结清。"},
@@ -63,6 +63,9 @@ func (c IncentiveNotifications) EnqueueIncentiveEvent(ctx context.Context, tx *g
 		body := message[1]
 		if recipient.AmountMoney != nil {
 			body += " 本次申请金额 " + recipient.AmountMoney.String() + " " + monetary.Currency + "。"
+		}
+		if event.Kind == "withdrawal.unpaid_verified" && strings.TrimSpace(recipient.Reason) != "" {
+			body += "拒绝理由：" + strings.TrimSpace(recipient.Reason) + "。"
 		}
 		if _, e = c.Operations.Emit(ctx, tx, Notification{OperatorID: recipient.OperatorID, RecipientID: recipient.RecipientID, BusinessKey: "incentive:" + event.ID, Category: "mandatory", Severity: "info", Title: title, Body: body, Reference: "incentive-event:" + recipient.Reference}); e != nil {
 			return e

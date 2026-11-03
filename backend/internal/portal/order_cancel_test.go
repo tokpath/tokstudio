@@ -69,3 +69,57 @@ func TestPostgresCustomerCanCancelUnpaidManualOrderButNotAnOpenOnlineCheckout(t 
 		t.Fatal("open online checkout was cancelled", status, out)
 	}
 }
+
+func TestCustomerPurchaseListOmitsBalanceTopUps(t *testing.T) {
+	f := setupPortal(t)
+	f.openRegistration(t)
+	f.registered(t, "purchase-list@example.test")
+	f.login(t, "customer", "purchase-list@example.test", "customer-password-test")
+	var customerID string
+	if err := f.a.DB.Raw("SELECT customer_id FROM organization_customer_identities WHERE email_normalized=? AND is_current", "purchase-list@example.test").Scan(&customerID).Error; err != nil || customerID == "" {
+		t.Fatal(err, customerID)
+	}
+	op := f.a.Installation.OperatorID
+	now := time.Now().UTC()
+	zero := ledger.MustDecimal("0")
+	save := func(key, kind string, at time.Time) string {
+		t.Helper()
+		id := uuid.NewString()
+		paid := zero
+		if kind == "package" {
+			paid = ledger.MustDecimal("40")
+		}
+		order := commerce.Order{ID: id, OperatorID: op, OriginalOperatorID: op, OriginalOwnershipVersion: 1, BrandID: f.a.Installation.BrandID, CustomerID: customerID, OwnershipVersion: 1, BusinessKey: key, Fingerprint: key, Kind: kind, DueMoney: ledger.MustDecimal("40"), PaidATG: paid, PackageGiftATG: zero, MerchantGiftATG: zero, KOLGiftATG: zero, InternalMoney: zero, CommissionMoney: zero, ExternalAllocatedMoney: zero, InternalStatus: "none", CoverageStatus: "none", Status: "pending", Period: ledger.Lifetime, Timezone: "UTC", ExpiresAt: now.Add(time.Hour), CreatedAt: at}
+		if err := f.a.DB.Table("commerce_orders").Create(&order).Error; err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	purchaseID := save("purchase-list-package", "package", now)
+	topupID := save("purchase-list-topup", "topup", now.Add(-time.Minute))
+	status, list, _ := f.call(t, "GET", "/v1/me/orders", nil, "")
+	mustOK(t, status, list)
+	if !listHasID(list, purchaseID) || listHasID(list, topupID) {
+		t.Fatal(list["items"])
+	}
+	status, list, _ = f.call(t, "GET", "/v1/me/orders?q=topup", nil, "")
+	mustOK(t, status, list)
+	if listHasID(list, topupID) {
+		t.Fatal("search brought a top-up back into purchase history", list["items"])
+	}
+	status, page, _ := f.call(t, "GET", "/v1/me/topups/workspace", nil, "")
+	mustOK(t, status, page)
+	if !listHasID(page, topupID) || listHasID(page, purchaseID) {
+		t.Fatal(page["items"])
+	}
+}
+
+func listHasID(page map[string]any, id string) bool {
+	items, _ := page["items"].([]any)
+	for _, raw := range items {
+		if raw.(map[string]any)["id"] == id {
+			return true
+		}
+	}
+	return false
+}

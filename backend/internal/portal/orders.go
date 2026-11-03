@@ -360,7 +360,7 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 	return dto, nil
 }
 func (a *Application) orders(c *gin.Context) {
-	rows, e := a.Commerce.ListCustomerOrdersPage(c.Request.Context(), nil, subject(c).Customer.Customer.ID, c.Query("cursor"), c.Query("q"), 51)
+	rows, e := a.Commerce.ListCustomerPurchaseOrdersPage(c.Request.Context(), nil, subject(c).Customer.Customer.ID, c.Query("cursor"), c.Query("q"), 51)
 	if e != nil {
 		handleError(c, e)
 		return

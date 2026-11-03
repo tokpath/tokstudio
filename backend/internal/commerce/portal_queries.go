@@ -53,6 +53,15 @@ func (s *Service) ListCustomerOrdersPage(ctx context.Context, tx *gorm.DB, custo
 	return orderPage(s.dbFor(ctx, tx).Where("customer_id=?", customer), cursor, query, limit)
 }
 
+// ListCustomerPurchaseOrdersPage is the customer's purchase history. Balance
+// top-ups are wallet funding, not package purchases, and stay on the top-up page.
+func (s *Service) ListCustomerPurchaseOrdersPage(ctx context.Context, tx *gorm.DB, customer, cursor, query string, limit int) ([]Order, error) {
+	if !validID(customer) || limit < 1 || limit > 100 {
+		return nil, ErrInvalidInput
+	}
+	return orderPage(s.dbFor(ctx, tx).Where("customer_id=? AND kind<>?", customer, "topup"), cursor, query, limit)
+}
+
 // ListOperatorOrders never includes a child's retail orders. The application's
 // staff permission check must authorize this exact operator before calling it.
 func (s *Service) ListOperatorOrders(ctx context.Context, tx *gorm.DB, operator, cursor, query string, limit int, status ...string) ([]Order, error) {

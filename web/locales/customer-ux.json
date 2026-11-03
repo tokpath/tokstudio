@@ -149,6 +149,11 @@
     "ja": "注文番号、種類、状態で検索",
     "ru": "Номер, тип или статус заказа"
   },
+  "查询套餐购买和续费；选择状态会替换当前关键词。": {
+    "en": "Search package purchases and renewals. Selecting a status replaces the current search term.",
+    "ja": "プランの購入と更新を検索します。状態を選択すると現在のキーワードが置き換わります。",
+    "ru": "Поиск по покупкам и продлениям пакетов. Выбранный статус заменит текущий поисковый запрос."
+  },
   "查询全部订单；选择状态会替换当前关键词。": {
     "en": "Search all orders. Selecting a status replaces the current search term.",
     "ja": "すべての注文を検索します。状態を選択すると現在のキーワードが置き換わります。",

@@ -2443,10 +2443,10 @@
     "ja": "未準備",
     "ru": "Ещё не готово"
   },
-  "上传已出具的真实票据文件。S3对象保持私有，下载时重新核对经营方或申请人身份。上传不代表已经开票，还需登记真实凭证编号。": {
-    "en": "Upload an actually issued invoice file. S3 objects remain private and downloads recheck operator or applicant identity. Uploading does not mark the invoice as issued; the actual document number must also be recorded.",
-    "ja": "実際に発行した請求書ファイルをアップロードしてください。S3 オブジェクトは非公開とし、取得時に事業者または申請者の本人確認を行います。アップロードだけでは発行済みにならず、実際の証憑番号の登録も必要です。",
-    "ru": "Загрузите файл фактически выданного документа. Объекты S3 остаются закрытыми; при загрузке проверяется оператор или заявитель. Загрузка файла не означает выдачу документа — нужно также зарегистрировать его реальный номер."
+  "先在本页上传已出具的票据文件（PDF、PNG 或 JPEG，不超过 10MiB）。选择「外部开具已完成」前，必须已经保存一份文件，再填写下方的开票结果。": {
+    "en": "Upload the issued invoice file on this page first (PDF, PNG, or JPEG, up to 10 MiB). Before marking it issued, save a file, then fill in the result below.",
+    "ja": "このページで、発行済みの請求書ファイルを先にアップロードしてください（PDF、PNG、JPEG、10 MiB 以下）。「外部発行完了」を選ぶ前にファイルを保存し、その下の結果を記入します。",
+    "ru": "Сначала загрузите на этой странице файл выданного документа (PDF, PNG или JPEG, до 10 МиБ). Перед отметкой о выдаче сохраните файл, затем заполните результат ниже."
   },
   "票据文件（PDF/PNG/JPEG，不超过10MiB）": {
     "en": "Invoice file (PDF/PNG/JPEG, up to 10 MiB)",

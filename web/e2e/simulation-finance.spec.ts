@@ -138,14 +138,13 @@ test("finance records one whole payment, links private evidence, reviews a refun
     await finance.goto(`${manage}/invoices`);
     await control(finance, "搜索记录").fill(invoice.id);
     await finance.getByRole("button", { name: "查询", exact: true }).click();
-    await expect(finance.getByRole("button", { name: "文件与下载", exact: true })).toHaveCount(1);
-    await finance.getByRole("button", { name: "文件与下载", exact: true }).click();
+    await expect(finance.getByRole("button", { name: "文件与下载", exact: true })).toHaveCount(0);
+    await finance.getByRole("button", { name: "登记实际开票结果", exact: true }).click();
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+cWZkAAAAASUVORK5CYII=", "base64");
     await control(finance, "票据文件（PDF/PNG/JPEG，不超过10MiB）").setInputFiles({ name: "synthetic-invoice.png", mimeType: "image/png", buffer: png });
     const uploaded = finance.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `${base}/invoices/${invoice.id}/files`);
     await finance.getByRole("button", { name: "上传真实私有文件", exact: true }).click();
     expect((await uploaded).status()).toBe(200);
-    await finance.getByRole("button", { name: "登记实际开票结果", exact: true }).click();
     await submit(finance, "登记实际开票结果", `${base}/invoices/${invoice.id}/register`, { state: "issued", invoice_reference: `SYNTHETIC-${randomUUID()}`, evidence: "SYNTHETIC invoice only; no legal document issued", reason: "Local role simulation" });
     await customer.reload();
     await control(customer, "搜索记录").fill(invoice.id);

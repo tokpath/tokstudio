@@ -26,6 +26,7 @@ var ErrForbidden = errors.New("operations permission denied")
 var ErrInvalid = errors.New("invalid operations command")
 var ErrConflict = errors.New("operations command conflicts with recorded facts")
 var ErrNotReady = errors.New("operations dependency is not configured")
+var ErrInvoiceDocument = errors.New("issued invoice requires a stored document")
 var ErrExpired = errors.New("temporary content has expired")
 var ErrTooLarge = errors.New("export range contains too many records; select a smaller range")
 

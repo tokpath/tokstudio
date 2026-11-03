@@ -70,7 +70,7 @@ func testPrivateInvoiceFiles(t *testing.T, realS3 bool) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = s.RegisterInvoice(ctx, a.actor, operator, i.ID, "issued", "legal-001", "external-invoice-proof", "verified external issue"); !errors.Is(e, ErrNotReady) {
+	if _, e = s.RegisterInvoice(ctx, a.actor, operator, i.ID, "issued", "legal-001", "external-invoice-proof", "verified external issue"); !errors.Is(e, ErrInvoiceDocument) {
 		t.Fatalf("reference string stood in for an actual invoice document: %v", e)
 	}
 	upload := InvoiceUpload{Filename: "legal-invoice.pdf", ContentType: "application/pdf", Data: invoicePDFFixture()}

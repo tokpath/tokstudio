@@ -13,21 +13,21 @@ import (
 
 type InvoiceBasis struct {
 	ReceiptID           string          `json:"receipt_id"`
-	EligibleMoney         ledger.Decimal  `json:"eligible_money"`
+	EligibleMoney       ledger.Decimal  `json:"eligible_money"`
 	AdjustmentReference string          `json:"adjustment_reference"`
 	ReviewRequired      bool            `json:"review_required"`
 	Evidence            string          `json:"evidence"`
-	ReceiptMoney          *ledger.Decimal `json:"receipt_money,omitempty"`
-	TopUpMoney            ledger.Decimal  `json:"top_up_money"`
-	PurchaseMoney         ledger.Decimal  `json:"purchase_money"`
-	ConsumptionMoney      ledger.Decimal  `json:"consumption_money"`
-	GlobalEligibleMoney   *ledger.Decimal `json:"global_eligible_money,omitempty"`
+	ReceiptMoney        *ledger.Decimal `json:"receipt_money,omitempty"`
+	TopUpMoney          ledger.Decimal  `json:"top_up_money"`
+	PurchaseMoney       ledger.Decimal  `json:"purchase_money"`
+	ConsumptionMoney    ledger.Decimal  `json:"consumption_money"`
+	GlobalEligibleMoney *ledger.Decimal `json:"global_eligible_money,omitempty"`
 }
 type InvoiceSource interface {
 	InvoiceBasis(context.Context, *gorm.DB, string, string, string) (InvoiceBasis, error)
 }
 type InvoiceLine struct {
-	ReceiptID string         `json:"receipt_id"`
+	ReceiptID   string         `json:"receipt_id"`
 	AmountMoney ledger.Decimal `json:"amount_money"`
 }
 type InvoiceDetails struct {
@@ -45,7 +45,7 @@ type Invoice struct {
 	ReplacesInvoiceID *string        `json:"replaces_invoice_id,omitempty"`
 	BusinessKey       string         `json:"business_key"`
 	Fingerprint       string         `json:"-"`
-	AmountMoney         ledger.Decimal `json:"amount_money"`
+	AmountMoney       ledger.Decimal `json:"amount_money"`
 	State             string         `json:"state"`
 	DetailsCiphertext string         `json:"-"`
 	CreatedAt         time.Time      `json:"created_at"`
@@ -233,7 +233,7 @@ func (s *Service) RegisterInvoice(ctx context.Context, actor, operator, id, stat
 				return e
 			}
 			if files == 0 {
-				return ErrNotReady
+				return ErrInvoiceDocument
 			}
 			lines := []InvoiceLine{}
 			if e := t.Table("operations_invoice_sources").Where("invoice_id=?", id).Order("receipt_id").Find(&lines).Error; e != nil {

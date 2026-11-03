@@ -103,3 +103,18 @@ it("forwards refund queries to the server and preserves its complete case contex
   expect(within(screen.getByRole("dialog")).getByText("实际退款付款", {exact:true})).toBeTruthy();
   expect(page.items.map(item => item.values.record_kind)).toEqual(["case", "leg", "actual_refund_payment"]);
 });
+
+it("puts the invoice file on the same page as the issue result", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200, headers: { "content-type": "application/json" } })));
+  const page: ResourcePage = { title: "票据办理", description: "", columns: [{ key: "id", label: "编号", kind: "text" }], items: [{ id: "invoice-one", status: "requested", values: {}, presentation: { title: "客户发票", labels: {} } }], operations: [], row_operations: [{ name: "register", label: "登记实际开票结果", method: "POST", path: "/api/v1/operators/operator-search/invoices/{id}/register", fields: [{ name: "state", label: "实际办理状态", kind: "select", required: true, options: [{ value: "issued", label: "外部开具已完成" }] }] }] };
+  const cache = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const { unmount } = render(<QueryClientProvider client={cache()}><ResourceCollection operatorID="operator-search" resource="invoices" page={page} /></QueryClientProvider>);
+  expect(screen.queryByRole("button", { name: "文件与下载" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "登记实际开票结果", exact: true }));
+  const dialog = await screen.findByRole("dialog");
+  expect(within(dialog).getByRole("heading", { name: "票据文件" })).toBeTruthy();
+  expect(within(dialog).getByLabelText("票据文件（PDF/PNG/JPEG，不超过10MiB）")).toBeTruthy();
+  unmount();
+  render(<QueryClientProvider client={cache()}><ResourceCollection operatorID="operator-search" resource="invoices" customer page={page} /></QueryClientProvider>);
+  expect(screen.getByRole("button", { name: "文件与下载", exact: true })).toBeTruthy();
+});

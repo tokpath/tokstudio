@@ -1955,12 +1955,6 @@
     "任意の提携契約書をアップロード",
     "Загрузить необязательный договор сотрудничества"
   ],
-  "上传已出具的真实票据文件。S3对象保持私有，下载时重新核对经营方或申请人身份。上传不代表已经开票，还需登记真实凭证编号。": [
-    "上传已出具的真实票据文件。S3对象保持私有，下载时重新核对经营方或申请人身份。上传不代表已经开票，还需登记真实凭证编号。",
-    "Upload an actually issued invoice file. S3 objects remain private and downloads recheck operator or applicant identity. Uploading does not mark the invoice as issued; the actual document number must also be recorded.",
-    "実際に発行した請求書ファイルをアップロードしてください。S3 オブジェクトは非公開とし、取得時に事業者または申請者の本人確認を行います。アップロードだけでは発行済みにならず、実際の証憑番号の登録も必要です。",
-    "Загрузите файл фактически выданного документа. Объекты S3 остаются закрытыми; при загрузке проверяется оператор или заявитель. Загрузка файла не означает выдачу документа — нужно также зарегистрировать его реальный номер."
-  ],
   "上传并关联凭据": [
     "上传并关联凭据",
     "Upload and attach",
@@ -4930,6 +4924,12 @@
     "First point the domain to this system in your external DNS service and configure HTTPS on your server or cloud service. This page registers, checks and enables brand domains. API URLs are generated as https://your-domain/v1; channels use their brand’s URL.",
     "外部 DNS でドメインを本システムに向け、サーバーまたはクラウドで HTTPS を設定してください。この画面でブランドドメインを登録・確認・有効化すると、API URL が https://ドメイン/v1 として自動生成されます。チャネルは所属ブランドの URL を使います。",
     "Сначала направьте домен на эту систему через внешний DNS и настройте HTTPS на сервере или в облаке. Здесь можно зарегистрировать, проверить и включить домен бренда. Адрес API создаётся в виде https://ваш-домен/v1; каналы используют адрес своего бренда."
+  ],
+  "先在本页上传已出具的票据文件（PDF、PNG 或 JPEG，不超过 10MiB）。选择「外部开具已完成」前，必须已经保存一份文件，再填写下方的开票结果。": [
+    "先在本页上传已出具的票据文件（PDF、PNG 或 JPEG，不超过 10MiB）。选择「外部开具已完成」前，必须已经保存一份文件，再填写下方的开票结果。",
+    "Upload the issued invoice file on this page first (PDF, PNG, or JPEG, up to 10 MiB). Before marking it issued, save a file, then fill in the result below.",
+    "このページで、発行済みの請求書ファイルを先にアップロードしてください（PDF、PNG、JPEG、10 MiB 以下）。「外部発行完了」を選ぶ前にファイルを保存し、その下の結果を記入します。",
+    "Сначала загрузите на этой странице файл выданного документа (PDF, PNG или JPEG, до 10 МиБ). Перед отметкой о выдаче сохраните файл, затем заполните результат ниже."
   ],
   "先填写模型名称和请求时使用的标识。每项能力填写怎么调用和怎么计费。第一次先不要对客户开放。": [
     "先填写模型名称和请求时使用的标识。每项能力填写怎么调用和怎么计费。第一次先不要对客户开放。",
@@ -9412,6 +9412,12 @@
     "External issuance completed",
     "外部発行完了",
     "Внешнее оформление завершено"
+  ],
+  "外部开具已完成前，请先上传票据文件。支持 PDF、PNG 或 JPEG。": [
+    "外部开具已完成前，请先上传票据文件。支持 PDF、PNG 或 JPEG。",
+    "Upload the invoice file before marking it issued. PDF, PNG, and JPEG are accepted.",
+    "外部発行完了にする前に、請求書ファイルをアップロードしてください。PDF、PNG、JPEG に対応しています。",
+    "Перед отметкой о выдаче загрузите файл документа. Подходят PDF, PNG и JPEG."
   ],
   "外部执行方唯一核实流水": [
     "外部执行方唯一核实流水",

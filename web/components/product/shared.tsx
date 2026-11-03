@@ -46,7 +46,7 @@ export function Table<T>({ rows, columns, getID, empty }: { rows: T[]; columns: 
 
 // A network-ambiguous attempt keeps its exact body and UUID until queried or
 // retried. Successful actions clear the attempt so the next action gets a new ID.
-export function useCommand<T extends z.ZodTypeAny>(path: string, schema: T, method: "POST" | "PATCH" | "DELETE" = "POST") {
+export function useCommand<T extends z.ZodTypeAny>(path: string, schema: T, method: "POST" | "PATCH" | "DELETE" = "POST", hooks?: { onUploadProgress?: (loaded: number, total: number) => void }) {
   const cache = useQueryClient();
   const attempt = useRef<{ key: string; fingerprint: string; body: unknown } | undefined>(undefined);
   const [busy, setBusy] = useState(false), [error, setError] = useState<unknown>(), [result, setResult] = useState<z.infer<T>>();
@@ -57,7 +57,7 @@ export function useCommand<T extends z.ZodTypeAny>(path: string, schema: T, meth
     if (!attempt.current || (!unresolved && attempt.current.fingerprint !== fingerprint)) attempt.current = { key: newActionKey(), fingerprint, body };
     const current = attempt.current;
     setBusy(true); setError(undefined);
-    try { const value = await request(path, schema, { method, body: current.body, actionKey: current.key }); setResult(value); attempt.current = undefined; await cache.invalidateQueries(); return value; }
+    try { const value = await request(path, schema, { method, body: current.body, actionKey: current.key, onUploadProgress: hooks?.onUploadProgress }); setResult(value); attempt.current = undefined; await cache.invalidateQueries(); return value; }
     catch (e) { setError(e); return undefined; }
     finally { setBusy(false); }
   }

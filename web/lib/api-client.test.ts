@@ -33,9 +33,9 @@ describe("validated business HTTP client", () => {
       await vi.advanceTimersByTimeAsync(12_000);
       expect(await command).toBe("fail");
       const file = request("/api/v1/operators/op/invoices/id/files", CommandResultSchema, { method: "POST", actionKey: "file", body: new FormData() }).then(() => "ok", () => "fail");
-      await vi.advanceTimersByTimeAsync(12_000);
+      await vi.advanceTimersByTimeAsync(90_000);
       expect(await Promise.race([file, Promise.resolve("pending")])).toBe("pending");
-      await vi.advanceTimersByTimeAsync(78_000);
+      await vi.advanceTimersByTimeAsync(90_000);
       expect(await file).toBe("fail");
     } finally {
       vi.useRealTimers();

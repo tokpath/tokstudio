@@ -13,7 +13,7 @@ export function newActionKey() { return crypto.randomUUID(); }
 const requestTimeoutMs = 12_000;
 // Ordinary commands stay short so a dead connection is not left ambiguous.
 // A file upload includes the transfer and the private-storage write after it.
-const uploadTimeoutMs = 90_000;
+const uploadTimeoutMs = 180_000;
 
 // An idle tab often keeps a connection the proxy has already closed. The next
 // click then waits until the browser gives up. A short timeout drops that
@@ -40,7 +40,31 @@ async function readResponse<T extends z.ZodTypeAny>(response: Response, schema: 
   return result.data;
 }
 
-export async function request<T extends z.ZodTypeAny>(path: string, schema: T, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; actionKey?: string; signal?: AbortSignal } = {}): Promise<z.infer<T>> {
+function uploadWithProgress<T extends z.ZodTypeAny>(path: string, schema: T, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; actionKey?: string; onUploadProgress?: (loaded: number, total: number) => void }): Promise<z.infer<T>> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(options.method || "POST", path);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.setRequestHeader("Accept-Language", getClientLocale());
+    xhr.setRequestHeader("Idempotency-Key", options.actionKey || "");
+    if (csrfToken) xhr.setRequestHeader("X-CSRF-Token", csrfToken);
+    xhr.timeout = uploadTimeoutMs;
+    xhr.upload.onprogress = event => options.onUploadProgress?.(event.loaded, event.lengthComputable ? event.total : 0);
+    const fail = () => reject(new APIError("network_unknown", "连接中断，操作结果尚未核实。请沿用本次操作重试或查询记录。", "", true));
+    xhr.onerror = fail;
+    xhr.ontimeout = fail;
+    xhr.onload = () => {
+      const headers = new Headers();
+      const requestId = xhr.getResponseHeader("X-Request-ID");
+      if (requestId) headers.set("X-Request-ID", requestId);
+      readResponse(new Response(xhr.responseText, { status: xhr.status, headers }), schema).then(resolve, reject);
+    };
+    xhr.send(options.body as XMLHttpRequestBodyInit);
+  });
+}
+
+export async function request<T extends z.ZodTypeAny>(path: string, schema: T, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; actionKey?: string; signal?: AbortSignal; onUploadProgress?: (loaded: number, total: number) => void } = {}): Promise<z.infer<T>> {
   const method = options.method || "GET";
   if (!path.startsWith("/api/v1/")) throw new Error("Business API path must start with /api/v1/");
   const headers = new Headers({ Accept: "application/json", "Accept-Language": getClientLocale() });
@@ -51,6 +75,7 @@ export async function request<T extends z.ZodTypeAny>(path: string, schema: T, o
     headers.set("Idempotency-Key", options.actionKey);
     if (csrfToken) headers.set("X-CSRF-Token", csrfToken);
   }
+  if (multipart && options.onUploadProgress) return uploadWithProgress(path, schema, options);
   const attempts = method === "GET" ? 2 : 1;
   let lastError: unknown;
   for (let attempt = 0; attempt < attempts; attempt++) {

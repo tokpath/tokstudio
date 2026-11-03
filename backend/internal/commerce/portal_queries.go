@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
 )
 
@@ -238,6 +240,118 @@ func (s *Service) CustomerInvoiceReceiptReferences(ctx context.Context, tx *gorm
 	}
 	e := query.Order("r.id").Limit(limit).Scan(&rows).Error
 	return rows, e
+}
+
+// CustomerInvoicePurchase is one completed package or renewal. A balance
+// top-up funds the wallet and is not itself something the customer can invoice.
+type CustomerInvoicePurchase struct {
+	ID         string
+	Kind       string
+	Name       string
+	OperatorID string
+	DueMoney   ledger.Decimal
+	CreatedAt  time.Time
+}
+
+// OrderFundingSlice is one original receipt that paid part of a purchase,
+// either directly or through balance that came from an earlier top-up.
+type OrderFundingSlice struct {
+	ReceiptID   string
+	AmountMoney ledger.Decimal
+	Direct      bool
+}
+
+// OrderInvoiceFunding is empty when the id is not this customer's order at
+// this issuer. Callers can then treat the id as a receipt.
+type OrderInvoiceFunding struct {
+	Found    bool
+	Kind     string
+	Status   string
+	DueMoney ledger.Decimal
+	Consumed ledger.Decimal
+	Slices   []OrderFundingSlice
+}
+
+func (s *Service) CustomerInvoicePurchases(ctx context.Context, tx *gorm.DB, customer, q, cursor string, limit int) ([]CustomerInvoicePurchase, string, error) {
+	if !validID(customer) || limit < 1 || limit > 50 || len(q) > 200 {
+		return nil, "", ErrInvalidInput
+	}
+	query := s.dbFor(ctx, tx).Table("commerce_orders AS o").
+		Select("o.id::text AS id,o.kind,COALESCE(p.name,'') AS name,o.original_operator_id::text AS operator_id,o.due_money::text AS due_money,o.created_at").
+		Joins("LEFT JOIN commerce_package_quotes qte ON qte.id=o.quote_id").
+		Joins("LEFT JOIN commerce_packages p ON p.id=qte.package_id").
+		Where("o.customer_id=? AND o.status='completed' AND o.kind IN ?", customer, []string{"package", "renewal"})
+	if cursor != "" {
+		body, err := base64.RawURLEncoding.DecodeString(cursor)
+		if err != nil {
+			return nil, "", ErrInvalidInput
+		}
+		var value OrderCursor
+		if json.Unmarshal(body, &value) != nil || !validID(value.ID) || value.At.IsZero() {
+			return nil, "", ErrInvalidInput
+		}
+		query = query.Where("(o.created_at,o.id) < (?,?)", value.At, value.ID)
+	}
+	if q != "" {
+		pattern := "%" + q + "%"
+		query = query.Where("(o.id::text ILIKE ? OR COALESCE(p.name,'') ILIKE ?)", pattern, pattern)
+	}
+	rows := []CustomerInvoicePurchase{}
+	if err := query.Order("o.created_at DESC,o.id DESC").Limit(limit + 1).Scan(&rows).Error; err != nil {
+		return nil, "", err
+	}
+	next := ""
+	if len(rows) > limit {
+		next = NextOrderCursor(Order{ID: rows[limit-1].ID, CreatedAt: rows[limit-1].CreatedAt})
+		rows = rows[:limit]
+	}
+	return rows, next, nil
+}
+
+func (s *Service) OrderInvoiceFunding(ctx context.Context, tx *gorm.DB, operator, customer, order string) (OrderInvoiceFunding, error) {
+	var out OrderInvoiceFunding
+	if !validID(operator) || !validID(customer) || !validID(order) {
+		return out, ErrInvalidInput
+	}
+	err := s.within(ctx, tx, func(t *gorm.DB) error {
+		var row struct {
+			Kind     string
+			Status   string
+			DueMoney ledger.Decimal
+		}
+		err := t.Table("commerce_orders").Select("kind,status,due_money::text AS due_money").Where("id=? AND customer_id=? AND original_operator_id=?", order, customer, operator).Take(&row).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		out.Found, out.Kind, out.Status, out.DueMoney = true, row.Kind, row.Status, row.DueMoney
+		if row.Status != "completed" || (row.Kind != "package" && row.Kind != "renewal") {
+			return nil
+		}
+		if err = t.Raw(`SELECT receipt_id,amount_money,direct FROM (
+			SELECT a.receipt_id::text AS receipt_id,a.amount_money::text AS amount_money,true AS direct
+			FROM commerce_receipt_allocations a JOIN commerce_receipts r ON r.id=a.receipt_id
+			WHERE a.order_id=? AND r.operator_id=?
+			UNION ALL
+			SELECT l.receipt_id::text,(a.amount_money-a.restored_money)::text,false
+			FROM commerce_wallet_funding_allocations a
+			JOIN commerce_wallet_funding_commands c ON c.id=a.command_id
+			JOIN commerce_wallet_funding_lots l ON l.id=a.lot_id
+			JOIN commerce_receipts r ON r.id=l.receipt_id
+			WHERE c.kind='order' AND c.reference_id=? AND a.status='consumed' AND a.amount_money>a.restored_money AND r.operator_id=?
+		) funding ORDER BY receipt_id,direct DESC`, order, operator, order, operator).Scan(&out.Slices).Error; err != nil {
+			return err
+		}
+		if s.ledger == nil {
+			return ErrNotReady
+		}
+		consumed, err := s.ledger.PaidConsumptionByOrder(ctx, t, customer, []string{order})
+		out.Consumed = consumed[order]
+		return err
+	})
+	return out, err
 }
 
 // CustomerHistoricalReceiptReferences returns only original receipts actually

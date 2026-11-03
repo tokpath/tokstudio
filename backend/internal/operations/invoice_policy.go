@@ -128,6 +128,12 @@ func (s *Service) GetIssuerInvoicePolicy(ctx context.Context, actor, issuer, par
 	})
 	return out, e
 }
+
+// EligibleInvoiceAmount is the stage cap for one receipt before invoices already issued.
+func EligibleInvoiceAmount(b InvoiceBasis, stage string, ratio ledger.Decimal) (ledger.Decimal, error) {
+	return eligibleInvoiceAmount(b, stage, ratio)
+}
+
 func eligibleInvoiceAmount(b InvoiceBasis, stage string, ratio ledger.Decimal) (ledger.Decimal, error) {
 	value := b.EligibleMoney
 	switch stage {

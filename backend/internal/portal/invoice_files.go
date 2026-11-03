@@ -160,6 +160,11 @@ func (a *Application) replaceInvoice(c *gin.Context) {
 			handleError(c, err)
 			return
 		}
+		in.Lines, e = a.customerInvoiceLines(c.Request.Context(), id.Customer.Customer.ID, invoice.OperatorID, in.Lines)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
 		out, e = a.Operations.RequestInvoiceReplacement(c.Request.Context(), id.Customer.Customer.ID, invoice.OperatorID, c.Param("id"), key, in.Lines, in.Details)
 	} else {
 		op, actor, ok := a.staffScope(c, "procurement-invoices")

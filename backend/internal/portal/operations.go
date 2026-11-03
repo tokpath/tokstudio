@@ -157,7 +157,7 @@ func (a *Application) customerOperationsWorkspace(c *gin.Context, resource strin
 		p["items"] = items
 		p["row_operations"] = []operation{{Name: "replacement", Label: "作废后按原来源申请重开", Method: "POST", Path: "/api/v1/me/invoices/{id}/replacement", Fields: businessFields(operation{Path: "/api/v1/me/invoices", Fields: []field{jsonField("")}})}}
 		p["columns"] = []gin.H{col("operator_id", "原始开票经营方", "text"), col("amount_money", "可开票责任", "money"), col("state", "状态", "status"), col("invoice_reference", "开票凭证", "text"), col("reason", "说明", "text"), col("created_at", "申请时间", "datetime")}
-		p["operations"] = []operation{{Name: "invoice", Label: "申请发票", Method: "POST", Path: "/api/v1/me/invoices", Fields: []field{jsonField("lines:[{receipt_id,amount_money}]、details:{title,tax_id,email,address}。充值不能开票；可开金额按购买或消费阶段计算。")}}}
+		p["operations"] = []operation{{Name: "invoice", Label: "申请发票", Method: "POST", Path: "/api/v1/me/invoices", Fields: []field{jsonField("选择已完成的套餐购买或续费。余额充值不能开票。")}}}
 		policy, e := a.Operations.GetInvoicePolicy(ctx, customer, op, true)
 		if e != nil {
 			handleError(c, e)
@@ -493,6 +493,12 @@ func (a *Application) requestInvoice(c *gin.Context) {
 	key, _ := key(c)
 	if in.IssuerID == "" {
 		in.IssuerID = id.Customer.Ownership.OperatorID
+	}
+	var e error
+	in.Lines, e = a.customerInvoiceLines(c.Request.Context(), id.Customer.Customer.ID, in.IssuerID, in.Lines)
+	if e != nil {
+		handleError(c, e)
+		return
 	}
 	out, e := a.Operations.RequestHistoricalInvoice(c.Request.Context(), id.Customer.Customer.ID, in.IssuerID, key, in.Lines, in.Details)
 	if e != nil {

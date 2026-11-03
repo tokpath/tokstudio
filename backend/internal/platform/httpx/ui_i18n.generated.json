@@ -4871,6 +4871,12 @@
     "ルーティング対象にする",
     "Допустить к маршрутизации"
   ],
+  "充值不能开票。请选择已完成的套餐购买或续费。": [
+    "充值不能开票。请选择已完成的套餐购买或续费。",
+    "Top-ups cannot be invoiced. Choose a completed package purchase or renewal.",
+    "チャージは請求できません。完了したプラン購入または更新を選んでください。",
+    "Пополнение нельзя включить в документ. Выберите завершённую покупку или продление пакета."
+  ],
   "充值余额": [
     "充值余额",
     "Top up balance",
@@ -17573,6 +17579,12 @@
     "今回の申請総額",
     "Сумма этой заявки"
   ],
+  "本次申请超过这笔购买还可以开的金额。": [
+    "本次申请超过这笔购买还可以开的金额。",
+    "This request exceeds the amount this purchase can still invoice.",
+    "今回の申請は、この購入でまだ請求できる金額を超えています。",
+    "Эта заявка превышает сумму, которую ещё можно включить в документ по этой покупке."
+  ],
   "本次真实交易与入账关联凭证": [
     "本次真实交易与入账关联凭证",
     "Evidence linking the actual transaction to the posted amount",
@@ -25265,6 +25277,12 @@
     "購入分の残高",
     "Остаток купленных кредитов"
   ],
+  "购买订单": [
+    "购买订单",
+    "Purchase order",
+    "購入注文",
+    "Заказ на покупку"
+  ],
   "购买记录": [
     "购买记录",
     "Purchase history",
@@ -26261,6 +26279,12 @@
     "この記録はまだこの方法では処理できません。先にこの事項が求める確認を完了してください。",
     "Эту запись пока нельзя обработать таким образом. Сначала завершите требуемую проверку."
   ],
+  "这笔购买按当前开票阶段还不能开票。余额充值不能开票；用余额支付的套餐，要等经营方把开票阶段设为完成购买或实际消费。": [
+    "这笔购买按当前开票阶段还不能开票。余额充值不能开票；用余额支付的套餐，要等经营方把开票阶段设为完成购买或实际消费。",
+    "This purchase cannot be invoiced at the current stage. Balance top-ups cannot be invoiced. A package paid from balance can be invoiced after the operator sets the stage to completed purchase or actual consumption.",
+    "この購入は現在の請求段階では請求できません。残高チャージは請求できません。残高で支払ったプランは、事業者が段階を購入完了または実際の消費にすると請求できます。",
+    "Эту покупку нельзя включить в документ на текущем этапе. Пополнение баланса нельзя включить в документ. Пакет, оплаченный с баланса, можно включить после того, как оператор выберет этап завершённой покупки или фактического потребления."
+  ],
   "这里只办理合同里事先约定的自愿退出：移除尚未占用的采购库存，并按原购买比例退款。已经付款但还没交付 ATG 的采购，改在退款页办理。已经交付的库存不能因为后来供货失约再退。": [
     "这里只办理合同里事先约定的自愿退出：移除尚未占用的采购库存，并按原购买比例退款。已经付款但还没交付 ATG 的采购，改在退款页办理。已经交付的库存不能因为后来供货失约再退。",
     "This page handles only a pre-agreed voluntary exit: remove unused purchased inventory and refund it in proportion to the original payment. A paid order that never received ATG is refunded from the refund page. Delivered inventory cannot be refunded later because supply failed.",
@@ -26734,6 +26758,12 @@
     "Selecting saved provider credentials fills in the matching provider reference. It must identify the actual provider and is recorded separately from the provider protocol and model names.",
     "保存済みのプロバイダー認証情報を選択すると、対応するプロバイダー参照が入力されます。実際の供給主体を指定し、プロトコル名やモデル名とは別に記録します。",
     "После выбора сохранённых учётных данных подставляется ссылка на соответствующего поставщика. Она должна указывать на реального поставщика и хранится отдельно от названий протокола и модели."
+  ],
+  "选择已完成的套餐购买或续费。余额充值不能开票。": [
+    "选择已完成的套餐购买或续费。余额充值不能开票。",
+    "Choose a completed package purchase or renewal. Balance top-ups cannot be invoiced.",
+    "完了したプラン購入または更新を選んでください。残高チャージは請求できません。",
+    "Выберите завершённую покупку или продление пакета. Пополнение баланса нельзя включить в документ."
   ],
   "选择已就绪的支付方式": [
     "选择已就绪的支付方式",

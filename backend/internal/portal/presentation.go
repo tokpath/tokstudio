@@ -149,6 +149,13 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 						f.LookupURL += "?whole=true"
 					}
 					f.Label = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(f.Label, " ID", ""), "ID", ""), "编号", "")
+					// Customers invoice a completed purchase. The stored invoice line
+					// is still the receipt that funded that purchase.
+					if c.Param("operatorId") == "" && resource == "invoices" && f.Name == "lines.0.receipt_id" {
+						f.LookupURL += "?purpose=invoice"
+						f.Label = "购买订单"
+						f.Help = "选择已完成的套餐购买或续费。余额充值不能开票。"
+					}
 				}
 				if resource == "payment-methods" && strings.HasPrefix(f.Name, "credentials.") {
 					name := strings.TrimPrefix(f.Name, "credentials.")

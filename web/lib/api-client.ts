@@ -11,6 +11,9 @@ export function setCSRFToken(token?: string) { csrfToken = token; }
 export function newActionKey() { return crypto.randomUUID(); }
 
 const requestTimeoutMs = 12_000;
+// Ordinary commands stay short so a dead connection is not left ambiguous.
+// A file upload includes the transfer and the private-storage write after it.
+const uploadTimeoutMs = 90_000;
 
 // An idle tab often keeps a connection the proxy has already closed. The next
 // click then waits until the browser gives up. A short timeout drops that
@@ -53,7 +56,7 @@ export async function request<T extends z.ZodTypeAny>(path: string, schema: T, o
   for (let attempt = 0; attempt < attempts; attempt++) {
     const controller = new AbortController();
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, requestTimeoutMs);
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, multipart ? uploadTimeoutMs : requestTimeoutMs);
     const stop = () => controller.abort();
     options.signal?.addEventListener("abort", stop);
     try {

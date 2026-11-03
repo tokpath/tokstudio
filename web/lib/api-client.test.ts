@@ -22,6 +22,25 @@ describe("validated business HTTP client", () => {
     await expect(request("/api/v1/me/orders/order-1", CommandResultSchema)).resolves.toMatchObject({ id: "order-1" });
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+  it("waits longer for a file upload than for an ordinary command", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetch = vi.fn((_url: unknown, options: { signal: AbortSignal }) => new Promise((_resolve, reject) => {
+        options.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+      }));
+      vi.stubGlobal("fetch", fetch);
+      const command = request("/api/v1/me/orders", CommandResultSchema, { method: "POST", actionKey: "command", body: {} }).then(() => "ok", () => "fail");
+      await vi.advanceTimersByTimeAsync(12_000);
+      expect(await command).toBe("fail");
+      const file = request("/api/v1/operators/op/invoices/id/files", CommandResultSchema, { method: "POST", actionKey: "file", body: new FormData() }).then(() => "ok", () => "fail");
+      await vi.advanceTimersByTimeAsync(12_000);
+      expect(await Promise.race([file, Promise.resolve("pending")])).toBe("pending");
+      await vi.advanceTimersByTimeAsync(78_000);
+      expect(await file).toBe("fail");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("opens a fresh connection when the tab has been idle", async () => {
     const fetch = vi.fn().mockResolvedValue(new Response("ok"));
     vi.stubGlobal("fetch", fetch);

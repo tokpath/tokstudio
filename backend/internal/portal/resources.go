@@ -251,6 +251,7 @@ func (a *Application) operatorRoutes(r *gin.RouterGroup) {
 	r.GET("/evidence/:id/content", a.downloadEvidence)
 	r.GET("/contracts/:id/content", a.downloadContract)
 	r.POST("/invoices/:id/files", a.uploadInvoiceFile)
+	r.DELETE("/invoices/:id/files/:fileID", a.deleteInvoiceFile)
 	r.POST("/:resource/:id/replacement", a.replaceInvoice)
 	r.POST("/branding/logo", a.uploadLogo)
 	r.GET("/:resource", a.operatorResource)

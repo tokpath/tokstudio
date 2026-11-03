@@ -117,6 +117,40 @@ func (s *Service) UploadInvoiceFile(ctx context.Context, actor, operator, invoic
 	return out, e
 }
 
+// DeleteInvoiceFile withdraws a file that was saved before the invoice result
+// is registered. An issued or voided invoice keeps its stored document.
+func (s *Service) DeleteInvoiceFile(ctx context.Context, actor, operator, invoiceID, fileID string) error {
+	var objectKey string
+	err := s.within(ctx, nil, func(tx *gorm.DB) error {
+		if err := s.require(ctx, tx, actor, operator, "invoices.manage"); err != nil {
+			return err
+		}
+		var invoice Invoice
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&invoice, "id=? AND operator_id=?", invoiceID, operator).Error; err != nil {
+			return err
+		}
+		if invoice.State != "requested" {
+			return ErrInvoiceFileKept
+		}
+		var file InvoiceFile
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&file, "id=? AND invoice_id=? AND operator_id=?", fileID, invoiceID, operator).Error; err != nil {
+			return err
+		}
+		objectKey = file.ObjectKey
+		if file.State == "removed" {
+			return nil
+		}
+		return tx.Model(&InvoiceFile{}).Where("id=?", file.ID).Update("state", "removed").Error
+	})
+	if err != nil || objectKey == "" || s.InvoiceStore == nil {
+		return err
+	}
+	if err = s.InvoiceStore.Delete(ctx, objectKey); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Service) invoiceReader(ctx context.Context, tx *gorm.DB, actor, operator, invoiceID string, customer bool, buyer string) (Invoice, error) {
 	var out Invoice
 	if e := tx.First(&out, "id=?", invoiceID).Error; e != nil {

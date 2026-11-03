@@ -123,3 +123,49 @@ func testPrivateInvoiceFiles(t *testing.T, realS3 bool) {
 		t.Fatalf("private invoice file access not audited: %d %v", accesses, e)
 	}
 }
+
+func TestInvoiceFileCanBeRemovedBeforeTheResultIsRegistered(t *testing.T) {
+	s, a, _, operator, customer := opsFixture(t)
+	ctx := context.Background()
+	s.Invoices = &invoiceBasis{value: ledger.FromInt64(10)}
+	if _, e := s.SaveInvoicePolicy(ctx, a.actor, InvoicePolicy{OperatorID: operator, Enabled: true, Stage: "receipt", MaximumRatio: ledger.FromInt64(1), RulesReference: "published-invoice-policy"}, 0); e != nil {
+		t.Fatal(e)
+	}
+	receipt := uuid.NewString()
+	lines := []InvoiceLine{{receipt, ledger.FromInt64(6)}}
+	invoice, e := s.RequestInvoice(ctx, customer, operator, "invoice-remove-file", lines, InvoiceDetails{Title: "Verified Buyer"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	uploaded, e := s.UploadInvoiceFile(ctx, a.actor, operator, invoice.ID, "wrong-file", InvoiceUpload{Filename: "dot.png", ContentType: "image/png", Data: pngFixture()})
+	if e != nil || uploaded.State != "ready" {
+		t.Fatal(uploaded, e)
+	}
+	if e = s.DeleteInvoiceFile(ctx, a.actor, operator, invoice.ID, uploaded.ID); e != nil {
+		t.Fatal(e)
+	}
+	if e = s.DeleteInvoiceFile(ctx, a.actor, operator, invoice.ID, uploaded.ID); e != nil {
+		t.Fatal("removing the same file again failed", e)
+	}
+	rows, e := s.ListInvoiceFiles(ctx, a.actor, operator, invoice.ID, false)
+	if e != nil || len(rows) != 0 {
+		t.Fatal("removed file stayed on the invoice", rows, e)
+	}
+	if _, e = s.InvoiceStore.Get(ctx, uploaded.ObjectKey); e == nil {
+		t.Fatal("removed file remained in private storage")
+	}
+	kept, e := s.UploadInvoiceFile(ctx, a.actor, operator, invoice.ID, "kept-file", InvoiceUpload{Filename: "legal-invoice.pdf", ContentType: "application/pdf", Data: invoicePDFFixture()})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.RegisterInvoice(ctx, a.actor, operator, invoice.ID, "issued", "legal-001", "external-invoice-proof", "verified external issue"); e != nil {
+		t.Fatal(e)
+	}
+	if e = s.DeleteInvoiceFile(ctx, a.actor, operator, invoice.ID, kept.ID); !errors.Is(e, ErrInvoiceFileKept) {
+		t.Fatal("issued invoice file was removed", e)
+	}
+}
+
+func pngFixture() []byte {
+	return []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82}
+}

@@ -137,6 +137,17 @@ func (a *Application) uploadInvoiceFile(c *gin.Context) {
 	}
 	c.JSON(200, commandResult(out.ID, out.State))
 }
+func (a *Application) deleteInvoiceFile(c *gin.Context) {
+	op, actor, ok := a.staffScope(c, "invoices")
+	if !ok {
+		return
+	}
+	if err := a.Operations.DeleteInvoiceFile(c.Request.Context(), actor, op.ID, c.Param("id"), c.Param("fileID")); err != nil {
+		handleError(c, err)
+		return
+	}
+	c.JSON(200, commandResult(c.Param("fileID"), "removed"))
+}
 func (a *Application) replaceInvoice(c *gin.Context) {
 	raw, ok := decodeConfiguration(c)
 	if !ok {

@@ -52252,7 +52252,6 @@
           "stage": {
             "type": "string",
             "enum": [
-              "receipt",
               "purchase",
               "consumption"
             ],
@@ -52296,7 +52295,6 @@
           "stage": {
             "type": "string",
             "enum": [
-              "receipt",
               "purchase",
               "consumption"
             ],

@@ -290,15 +290,15 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			if party == "procurement" {
 				label = "经营方采购"
 			}
-			receiptLabel := "receipt|原始收款"
-			if party == "customer" {
-				receiptLabel = "receipt|原始收款（不含充值）"
-			}
-			stage := selectField("stage", "允许开票阶段", receiptLabel, "purchase|完成购买", "consumption|实际消费")
+			stage := selectField("stage", "允许开票阶段", "purchase|完成购买", "consumption|实际消费")
 			stage.Default = current.Stage
 			ratio := current.MaximumRatio
+			// A new rule, or one still stored at the removed receipt stage, opens on
+			// completed purchase. Receipt is no longer a choice for either party.
+			if current.Version == 0 || current.Stage == "" || current.Stage == "receipt" {
+				stage.Default = "purchase"
+			}
 			if current.Version == 0 {
-				stage.Default = "receipt"
 				ratio = ledger.FromInt64(1)
 			}
 			invoiceOps = append(invoiceOps, operation{Name: "invoice_policy_" + party, Label: "设置" + label + "开票规则", Method: "POST", Path: base, Fields: []field{defaultField("party_kind", "办理对象", "hidden", party), defaultField("enabled", "开放申请", "boolean", current.Enabled), stage, defaultField("maximum_ratio", "最高原收款比例（0到1）", "decimal", ratio), defaultField("rules_reference", "公开办理规则依据", "text", current.RulesReference), defaultField("expected_version", "版本", "hidden", current.Version)}})

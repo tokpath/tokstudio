@@ -4523,10 +4523,6 @@
         "name": "stage",
         "options": [
           {
-            "label": "原始收款（不含充值）",
-            "value": "receipt"
-          },
-          {
             "label": "完成购买",
             "value": "purchase"
           },
@@ -4588,10 +4584,6 @@
         "label": "允许开票阶段",
         "name": "stage",
         "options": [
-          {
-            "label": "原始收款",
-            "value": "receipt"
-          },
           {
             "label": "完成购买",
             "value": "purchase"

@@ -113,6 +113,24 @@ func TestCustomerInvoiceChoicesArePurchasesNotTopUps(t *testing.T) {
 	}
 
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	status, rules, _ := f.call(t, "GET", "/v1/operators/"+op+"/invoices", nil, "")
+	mustOK(t, status, rules)
+	for _, raw := range rules["operations"].([]any) {
+		operation := raw.(map[string]any)
+		for _, field := range operation["fields"].([]any) {
+			row := field.(map[string]any)
+			if row["name"] != "stage" {
+				continue
+			}
+			var values []string
+			for _, option := range row["options"].([]any) {
+				values = append(values, option.(map[string]any)["value"].(string))
+			}
+			if len(values) != 2 || values[0] != "purchase" || values[1] != "consumption" || row["default_value"] != "purchase" {
+				t.Fatal(operation["label"], values, row["default_value"])
+			}
+		}
+	}
 	status, saved, _ := f.call(t, "POST", "/v1/operators/"+op+"/invoices", map[string]any{"party_kind": "customer", "enabled": true, "stage": "receipt", "maximum_ratio": "1", "rules_reference": "invoice contract", "expected_version": 0}, "")
 	mustOK(t, status, saved)
 	f.login(t, "customer", "invoice-purchase@example.test", "customer-password-test")

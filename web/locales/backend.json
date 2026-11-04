@@ -5839,6 +5839,16 @@
     "ja": "元の事実",
     "ru": "Исходный факт"
   },
+  "已核实的外部收款。兑换码不在账本或办理页展示。": {
+    "en": "Verified external receipt. Redeemable codes are not shown in the ledger or processing pages.",
+    "ja": "確認済みの外部入金です。引換コードは台帳や処理画面に表示しません。",
+    "ru": "Подтверждённое внешнее поступление. Коды погашения не показываются в книге и на страницах обработки."
+  },
+  "资产账户列出每个主体名下的余额和占用。记账流水列出改变这些余额的入账记录。收款、退款和提现在各自的办理页处理，不在这里办理。": {
+    "en": "Asset accounts list each owner's balance and amount on hold. Journal entries list the postings that changed those balances. Receipts, refunds, and withdrawals are handled on their own pages.",
+    "ja": "資産口座は主体ごとの残高と確保額です。仕訳はそれらの残高を変えた記帳です。入金、返金、出金はそれぞれの処理ページで行います。",
+    "ru": "Счета активов показывают остаток и удержание каждого владельца. Проводки показывают записи, изменившие эти остатки. Поступления, возвраты и выводы оформляются на своих страницах."
+  },
   "按领域事实运行对账": {
     "en": "Run reconciliation from domain facts",
     "ja": "領域の事実に基づいて照合を実行",

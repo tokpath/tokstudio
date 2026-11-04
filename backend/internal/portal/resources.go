@@ -545,6 +545,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 		return
 	case "ledger":
 		p["views"] = []gin.H{{"value": "accounts", "label": "资产账户"}, {"value": "journals", "label": "记账流水"}}
+		p["description"] = "资产账户列出每个主体名下的余额和占用。记账流水列出改变这些余额的入账记录。收款、退款和提现在各自的办理页处理，不在这里办理。"
 		if c.Query("view") == "journals" {
 			a.ledgerJournalsResource(c, op, p)
 			return

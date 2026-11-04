@@ -141,7 +141,7 @@ func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error)
 		return Fact{}, ErrNotFinal
 	}
 	now := time.Now().UTC()
-	evidence := map[string]any{"kvoucher_order_id": order.ID.String(), "kvoucher_order_no": order.OrderNo, "status": order.Status, "pins": pins}
+	evidence := map[string]any{"kvoucher_order_id": order.ID.String(), "kvoucher_order_no": order.OrderNo, "status": order.Status, "pin_count": len(pins)}
 	amount, e := ledger.ParseDecimal(order.Items[0].Denomination.String())
 	if e != nil {
 		return Fact{}, ErrProvider

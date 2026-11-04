@@ -518,7 +518,7 @@ export function resourceValueText(value: JSONValue | undefined, field: string | 
   if (field && ["status", "state", "fee_status"].includes(field)) return translate(locale, statusLabels[value] || value);
   if (field === "purpose" && value.startsWith("customer:atg:")) return `${translate(locale, "客户 ATG 权益")} · ${value.slice("customer:atg:".length)}`;
   if (field === "payout_kind_label") return translate(locale, value);
-  if (field && ["status", "state", "fee_status", "kind", "purpose", "method", "mode", "metric", "type", "capability"].includes(field)) return translate(locale, systemValueLabels[value] || factLabels[value] || value);
+  if (field && ["status", "state", "fee_status", "kind", "purpose", "method", "mode", "metric", "type", "capability", "reason"].includes(field)) return translate(locale, systemValueLabels[value] || factLabels[value] || value);
   return value;
 }
 function normalizeFactKey(key: string): string {
@@ -1061,6 +1061,20 @@ const systemValueLabels: Record<string, string> = {
   "customer:atg": "客户 ATG 权益",
   "commission:available": "可用佣金",
   "commission:frozen": "冻结佣金",
+  "receipt_allocation": "收款分配到订单",
+  "commission_release": "佣金解冻",
+  "grant": "权益发放",
+  "package_payment": "套餐付款",
+  "external_receipt": "外部收款入账",
+  "wallet_topup": "余额充值入账",
+  "verified external receipt": "已核实的外部收款",
+  "verified receipt assigned to original order": "已核实收款分配到原订单",
+  "verified receipt assigned to trusted external order": "已核实收款分配到外部订单",
+  "confirmed commission; pending recovery settled first": "已确认佣金；先结清待抵扣",
+  "fully paid package delivery": "套餐已足额交付",
+  "capture selected customer USD and available commission": "扣减客户余额和可用佣金",
+  "consume verified allocated receipt funds": "扣减已分配的收款",
+  "verified fully paid wallet topup": "余额充值已足额入账",
   "control:provider_receivable": "通道未结应收",
   "receipt:unallocated": "未分配收款",
   "control:takeover": "接管权益对账",

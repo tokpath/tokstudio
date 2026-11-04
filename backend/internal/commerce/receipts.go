@@ -145,9 +145,11 @@ func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedRece
 			}
 			lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: f.FeeMoney.Neg()})
 		}
-		reason := f.VerificationEvidence
-		if strings.TrimSpace(reason) == "" {
+		reason := strings.TrimSpace(f.VerificationEvidence)
+		if reason == "" {
 			reason = "Staff confirmed offline receipt"
+		} else if strings.Contains(reason, "pin_code") || strings.Contains(reason, `"pins"`) {
+			reason = "verified external receipt"
 		}
 		if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: f.OperatorID, BusinessKey: "receipt:" + r.ID, Kind: "external_receipt", SourceID: r.ID, ActorID: f.VerifiedBy, Reason: reason, Lines: lines}); err != nil {
 			return err

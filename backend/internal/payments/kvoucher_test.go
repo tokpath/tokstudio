@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -121,7 +122,7 @@ func TestKVoucherWebhookSignatureAndPaidRetrieval(t *testing.T) {
 		t.Fatal(fact, err, retrieved)
 	}
 	var evidence map[string]any
-	if json.Unmarshal(fact.Evidence, &evidence) != nil || evidence["kvoucher_order_no"] != "B2B-1" {
+	if json.Unmarshal(fact.Evidence, &evidence) != nil || evidence["kvoucher_order_no"] != "B2B-1" || strings.Contains(string(fact.Evidence), "pin_code") {
 		t.Fatal(string(fact.Evidence))
 	}
 	body := []byte(`{"event_id":"evt-1","event":"order.pins_loaded","data":{"id":30,"metadata":{"order_ref":"order-1"}}}`)

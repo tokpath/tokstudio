@@ -22,6 +22,40 @@ type humanPresentation struct {
 }
 type humanLabelRow struct{ ID, Label string }
 
+// A voucher code is a bearer secret. It can be redeemed by anyone who sees it,
+// so the ledger and receipt pages keep the payment fact without the code.
+func hideRedeemableCodes(value any) any {
+	switch item := value.(type) {
+	case string:
+		if strings.Contains(item, "pin_code") || strings.Contains(item, `"pins"`) {
+			return "已核实的外部收款。兑换码不在账本或办理页展示。"
+		}
+		return item
+	case gin.H:
+		for key, child := range item {
+			item[key] = hideRedeemableCodes(child)
+		}
+		return item
+	case map[string]any:
+		for key, child := range item {
+			item[key] = hideRedeemableCodes(child)
+		}
+		return item
+	case []any:
+		for i := range item {
+			item[i] = hideRedeemableCodes(item[i])
+		}
+		return item
+	case []gin.H:
+		for i := range item {
+			hideRedeemableCodes(item[i])
+		}
+		return item
+	default:
+		return value
+	}
+}
+
 func humanString(v gin.H, keys ...string) string {
 	for _, key := range keys {
 		if text, ok := v[key].(string); ok && strings.TrimSpace(text) != "" {
@@ -124,6 +158,7 @@ func (a *Application) projectResourceLabels(c *gin.Context, p gin.H, resource st
 		if !ok {
 			continue
 		}
+		hideRedeemableCodes(v)
 		for key, val := range v {
 			text, ok := val.(string)
 			if !ok {

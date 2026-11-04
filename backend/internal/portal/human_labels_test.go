@@ -230,3 +230,16 @@ func TestPostgresOperatorsOfferFirstOwnerOnlyWithoutAnyOwnerMembership(t *testin
 		t.Fatal("first-owner action does not match existing membership guard", found)
 	}
 }
+
+func TestHideRedeemableCodesRemovesVoucherSecrets(t *testing.T) {
+	raw := `{"status":"pins_loaded","pins":[{"pin_code":"TEST-PIN","serial":"SN"}]}`
+	values := gin.H{"reason": raw, "note": "ordinary ledger note"}
+	hideRedeemableCodes(values)
+	reason := values["reason"].(string)
+	if strings.Contains(reason, "TEST-PIN") || strings.Contains(reason, "pin_code") || strings.Contains(reason, "serial") {
+		t.Fatal(reason)
+	}
+	if values["note"] != "ordinary ledger note" {
+		t.Fatal(values["note"])
+	}
+}

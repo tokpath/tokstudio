@@ -627,7 +627,7 @@ func TestPostgresPublicContextAndManagementActions(t *testing.T) {
 	f.openRegistration(t)
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	scope := "/v1/operators/" + f.a.Installation.OperatorID
-	for _, resource := range []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "pricing", "marketing", "commissions", "ledger", "refunds", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "procurement", "alerts", "takeovers", "exits", "branding", "domains", "channel-themes", "staff", "approvals", "notifications", "business-status", "audit", "providers", "catalog", "routes", "requests", "jobs", "mail"} {
+	for _, resource := range []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "pricing", "marketing", "commissions", "ledger", "refunds", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "procurement", "alerts", "takeovers", "exits", "branding", "domains", "channel-themes", "staff", "notifications", "business-status", "audit", "providers", "catalog", "routes", "requests", "jobs", "mail"} {
 		status, out, _ = f.call(t, "GET", scope+"/"+resource, nil, "")
 		mustOK(t, status, out)
 		if _, has := out["items"]; !has {
@@ -637,6 +637,10 @@ func TestPostgresPublicContextAndManagementActions(t *testing.T) {
 	status, out, _ = f.call(t, "GET", scope+"/valuations", nil, "")
 	if status != 404 {
 		t.Fatal("removed exchange-rate configuration remains available", status, out)
+	}
+	status, out, _ = f.call(t, "GET", scope+"/approvals", nil, "")
+	if status != 404 {
+		t.Fatal("removed approval inbox remains available", status, out)
 	}
 	// Ordinary package UI submits explicit fields, without constructing JSON.
 	action := uuid.NewString()

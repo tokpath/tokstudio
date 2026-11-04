@@ -7,10 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
-	"github.com/tokpath/tokstudio/backend/internal/remediation"
 )
 
 func TestPostgresSettingsSimpleCommandsRetainReadinessVersionAndAudit(t *testing.T) {
@@ -18,7 +16,7 @@ func TestPostgresSettingsSimpleCommandsRetainReadinessVersionAndAudit(t *testing
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	op := f.a.Installation.OperatorID
 	base := "/v1/operators/" + op
-	for _, removed := range []string{"risk", "retention"} {
+	for _, removed := range []string{"risk", "retention", "approvals"} {
 		status, out, _ := f.call(t, "GET", base+"/"+removed, nil, "")
 		if status != 404 {
 			t.Fatal("removed workspace still exposed", removed, status, out)
@@ -107,31 +105,17 @@ func TestPostgresSettingsAuditAndReviewRespectActualPermissions(t *testing.T) {
 	}
 	f.login(t, "staff", reviewer.Email, "owner-password-test")
 	base := "/v1/operators/" + op
-	if err := f.a.DB.Create(&remediation.Case{ID: uuid.NewString(), OperatorID: op, BusinessKey: "settings-review", Fingerprint: "synthetic", Kind: "unallocated", AmountMoney: ledger.MustDecimal("1"), State: "pending_review", Reason: "test", Evidence: "test", RequestedBy: owner, CreatedAt: time.Now()}).Error; err != nil {
+	if err := f.a.Organization.SetMembership(context.Background(), nil, organization.SetMembershipInput{ActorStaffID: owner, OperatorID: op, StaffID: reviewer.ID, Role: "custom", Status: "active", Grants: []string{"ledger.read"}}); err != nil {
 		t.Fatal(err)
 	}
-	for _, test := range []struct {
-		grants   []string
-		resource string
-		views    int
-	}{{[]string{"withdrawals.manage"}, "approvals", 0}, {[]string{"ledger.read"}, "audit", 3}} {
-		if err := f.a.Organization.SetMembership(context.Background(), nil, organization.SetMembershipInput{ActorStaffID: owner, OperatorID: op, StaffID: reviewer.ID, Role: "custom", Status: "active", Grants: test.grants}); err != nil {
-			t.Fatal(err)
-		}
-		status, page, _ := f.call(t, "GET", base+"/"+test.resource, nil, "")
-		mustOK(t, status, page)
-		if test.resource == "approvals" && len(page["items"].([]any)) != 0 {
-			t.Fatal("withdrawal reviewer saw unauthorized refunds", page)
-		}
-		if test.views > 0 {
-			if len(page["views"].([]any)) != test.views {
-				t.Fatal("unreadable audit tabs", page)
-			}
-			status, out, _ := f.call(t, "GET", base+"/audit?view=organization", nil, "")
-			if status != 403 {
-				t.Fatal("audit escaped permissions", status, out)
-			}
-		}
+	status, page, _ := f.call(t, "GET", base+"/audit", nil, "")
+	mustOK(t, status, page)
+	if len(page["views"].([]any)) != 3 {
+		t.Fatal("unreadable audit tabs", page)
+	}
+	status, out, _ := f.call(t, "GET", base+"/audit?view=organization", nil, "")
+	if status != 403 {
+		t.Fatal("audit escaped permissions", status, out)
 	}
 }
 

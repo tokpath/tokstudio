@@ -85,57 +85,6 @@ func (a *Application) auditResource(c *gin.Context, op organization.Operator, ac
 	p["columns"] = []gin.H{col("action", "操作事实", "text"), col("subject_id", "关联主体", "text"), col("actor_id", "实际操作者", "text"), col("evidence", "依据", "text"), col("before", "变更前记录", "details"), col("after", "变更后记录", "details"), col("data", "原始业务事实", "details"), col("created_at", "记录时间", "datetime")}
 	a.resourceResponse(c, p)
 }
-func (a *Application) approvalsResource(c *gin.Context, op organization.Operator, actor string, p gin.H) {
-	ctx := c.Request.Context()
-	items := []any{}
-	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "refunds.manage") == nil {
-		cases, e := a.Remediation.Cases(ctx, op.ID, "")
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		for _, r := range cases {
-			if r.State == "pending_review" {
-				items = append(items, entity(r.ID, r.State, 1, gin.H{"kind": "客户退款", "amount_money": r.AmountMoney, "requested_by": r.RequestedBy, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + "/refunds?record=" + r.ID}))
-			}
-		}
-	}
-	// The combined review page only links to the original record. Approval still
-	// happens in that record, by one person who has the required permission.
-	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "cooperation.manage") == nil && a.Organization.RequirePermission(ctx, nil, actor, op.ID, "refunds.manage") == nil {
-		cases, e := a.Remediation.Takeovers(ctx, actor, op.ID)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		for _, r := range cases {
-			if r.State == "awaiting_approval" {
-				items = append(items, entity(r.ID, r.State, 1, gin.H{"kind": "渠道接管", "amount_money": r.SettlementDueMoney, "requested_by": r.RequestedBy, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + "/takeovers?record=" + r.ID}))
-			}
-		}
-	}
-	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "withdrawals.manage") == nil {
-		for _, wallet := range []string{"commission", "balance"} {
-			rows, _, e := a.Incentives.WithdrawalsForOperator(ctx, nil, actor, op.ID, "", 100, "", "requested", wallet)
-			if e != nil {
-				handleError(c, e)
-				return
-			}
-			kind, workspace := "佣金提现", "/commissions?section=requests"
-			if wallet == "balance" {
-				kind, workspace = "余额提现", "/balance-withdrawals?section=requests"
-			}
-			for _, r := range rows {
-				items = append(items, entity(r.ID, r.Status, 1, gin.H{"kind": kind, "amount_money": r.AmountMoney, "requested_by": r.CustomerID, "created_at": r.CreatedAt, "workspace": "/manage/" + op.ID + workspace + "&record=" + r.ID}))
-			}
-		}
-	}
-	p["title"] = "待复核事项"
-	p["description"] = "集中查看需要审核的事项，进入对应记录办理。每项由一位有权限的人员审批。"
-	p["items"] = items
-	p["columns"] = []gin.H{col("kind", "事项", "text"), col("amount_money", "责任结算币种", "money"), col("requested_by", "申请人", "text"), col("created_at", "申请时间", "datetime"), col("workspace", "进入原业务复核", "link")}
-	a.resourceResponse(c, p)
-}
 func (a *Application) staffMembershipAction(c *gin.Context, op organization.Operator, actor string) {
 	var in struct {
 		Role   string `json:"role"`

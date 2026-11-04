@@ -9,7 +9,7 @@ const staff = { kind: "staff", staff: { id: "staff-i18n", email: "staff@example.
 const credits = { customer_atg: { available: "12.000000000000000001", held: "0.01", purchased_remaining: "10.000000000000000001", gift_remaining: "2" }, money_balance: { available: "20", held: "0" }, commission_money: { available: "3", held: "1", frozen: "0.000000000000000001", recovery_due: "0" }, qualification: { confirmed_money: "50", pending_money: "5", threshold_money: "100", qualified_at: null, function_status: "normal" } };
 const model = { id: "public-chat", name: "公开文本模型", capabilities: ["chat"], status: "published", prices: [{ component: "输入", amount_atg: "0.00000001", unit: "token" }] };
 const existingKey = { id: "key-existing-i18n", name: "应用密钥", prefix: "th_existing_prefix", status: "active", model_ids: null, budget: { limit_atg: "5.000000000000000001", period: "month", timezone: "Asia/Shanghai", spent_atg: "0", held_atg: "0", overage_atg: "0", window_start: null, window_end: null }, rate_limit_rpm: null, concurrency_limit: null, version: 3, created_at: "2026-10-16T00:00:00Z" };
-function resource(title = "待复核事项") { return { title, description: "当前经营范围的真实记录；金额按原始高精度十进制展示", items: [], columns: [], operations: [], row_operations: [] }; }
+function resource(title = "业务记录") { return { title, description: "当前经营范围的真实记录；金额按原始高精度十进制展示", items: [], columns: [], operations: [], row_operations: [] }; }
 function text(locale: Locale, source: string) { const value = translate(locale, source); if (locale !== "zh" && /[\u3400-\u9fff]/.test(source)) expect(value, `Missing ${locale} catalog entry: ${source}`).not.toBe(source); return value; }
 async function api(page: Page, session: unknown = customer) {
   await page.route("**/api/v1/**", async route => {

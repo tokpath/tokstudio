@@ -303,7 +303,7 @@ func permissionFor(resource string) string {
 		return "security.manage"
 	case "withdrawals", "balance-withdrawals":
 		return "withdrawals.manage"
-	case "refunds", "disputes", "takeovers", "approvals":
+	case "refunds", "disputes", "takeovers":
 		return "refunds.manage"
 	}
 	return ""
@@ -345,9 +345,6 @@ func (a *Application) staffScope(c *gin.Context, resource string) (organization.
 	}
 	if e != nil && resource == "audit" {
 		e = a.permitAny(c, actor, op.ID, "ledger.read", "branding.manage")
-	}
-	if e != nil && resource == "approvals" {
-		e = a.permitAny(c, actor, op.ID, "withdrawals.manage")
 	}
 	if e != nil && resource == "refunds" {
 		e = a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, "payments.manage")
@@ -429,9 +426,6 @@ func (a *Application) operatorResource(c *gin.Context) {
 		return
 	case "audit":
 		a.auditResource(c, op, actor, p)
-		return
-	case "approvals":
-		a.approvalsResource(c, op, actor, p)
 		return
 	case "disputes":
 		a.disputesResource(c, op, actor, p, base)

@@ -78,19 +78,6 @@ func TestPostgresBalanceWithdrawalRequiresDisplayedTermsAndAppearsInReviews(t *t
 		id = out["id"].(string)
 	}
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
-	status, page, _ = f.call(t, "GET", "/v1/operators/"+op+"/approvals", nil, "")
-	mustOK(t, status, page)
-	found := false
-	for _, raw := range page["items"].([]any) {
-		row := raw.(map[string]any)
-		if row["id"] == id {
-			v := row["values"].(map[string]any)
-			found = v["kind"] == "余额提现" && v["workspace"] == "/manage/"+op+"/balance-withdrawals?section=requests&record="+id
-		}
-	}
-	if !found {
-		t.Fatal("balance withdrawal absent from pending approvals", page)
-	}
 	status, out, _ := f.call(t, "POST", "/v1/operators/"+op+"/balance-withdrawals/"+id+"/fail", map[string]any{"evidence": "资料与收款账户不一致"}, uuid.NewString())
 	mustOK(t, status, out)
 	var held ledger.Decimal

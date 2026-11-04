@@ -111,6 +111,9 @@ func TestConfiguredNonUSDSettlementPreservesForeignUSDReceipt(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now().UTC()
+	if err := db.Exec(`INSERT INTO payments_fx_rates(base_currency,quote_currency,rate,rate_date,fetched_at,attempted_at) VALUES('CNY','USD',?,?,?,?)`, ledger.MustDecimal("0.14"), now.UTC().Truncate(24*time.Hour), now, now).Error; err != nil {
+		t.Fatal(err)
+	}
 	order := Order{ID: uuid.NewString(), OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: "USD"}, SettlementMoney: Money{Currency: "CNY", Amount: ledger.FromInt64(70)}, AcceptedAt: now, ExpiresAt: now.Add(time.Hour)}
 	if _, err := s.Create(ctx, m.OperatorID, m.ID, order); err != nil {
 		t.Fatal(err)

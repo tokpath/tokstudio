@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -95,12 +96,78 @@ func (s *Service) ListOperatorAccounts(ctx context.Context, tx *gorm.DB, operato
 			q = q.Where("id>?", cursor)
 		}
 		if query != "" {
-			q = q.Where("(id::text ILIKE ? OR owner_id::text ILIKE ? OR purpose ILIKE ?)", "%"+query+"%", "%"+query+"%", "%"+query+"%")
+			term := likePattern(query)
+			clauses := []string{
+				`id::text ILIKE ? ESCAPE '\'`,
+				`owner_id::text ILIKE ? ESCAPE '\'`,
+				`purpose ILIKE ? ESCAPE '\'`,
+				`unit ILIKE ? ESCAPE '\'`,
+				`EXISTS (SELECT 1 FROM organization_customers c LEFT JOIN organization_customer_identities i ON i.customer_id=c.id AND i.is_current=true WHERE c.id=ledger_accounts.owner_id AND (c.display_name ILIKE ? ESCAPE '\' OR i.email_normalized ILIKE ? ESCAPE '\'))`,
+				`EXISTS (SELECT 1 FROM organization_operators o WHERE o.id=ledger_accounts.owner_id AND (o.name ILIKE ? ESCAPE '\' OR COALESCE(o.legal_name,'') ILIKE ? ESCAPE '\'))`,
+			}
+			args := []any{term, term, term, term, term, term, term, term}
+			if purposes := accountPurposesMatching(query); len(purposes) > 0 {
+				var parts []string
+				for _, purpose := range purposes {
+					parts = append(parts, "(purpose = ? OR purpose LIKE ? ESCAPE '\\')")
+					args = append(args, purpose, likePattern(purpose+":"))
+				}
+				clauses = append(clauses, "("+strings.Join(parts, " OR ")+")")
+			}
+			if currency, err := currentSettlementCurrency(t); err == nil && strings.EqualFold(strings.TrimSpace(query), currency) {
+				clauses = append(clauses, "unit = 'MONEY'")
+			}
+			q = q.Where(strings.Join(clauses, " OR "), args...)
 		}
 		return q.Find(&result).Error
 	})
 	return result, err
 }
+
+func likePattern(query string) string {
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.TrimSpace(query))
+	return "%" + escaped + "%"
+}
+
+func currentSettlementCurrency(tx *gorm.DB) (string, error) {
+	var currency string
+	err := tx.Raw(`SELECT currency FROM ledger_monetary_settings ORDER BY effective_at DESC LIMIT 1`).Row().Scan(&currency)
+	return currency, err
+}
+
+// accountPurposesMatching maps the words shown on the account list back to the
+// stored purpose. The page title "资产账户" is not one of those words.
+func accountPurposesMatching(query string) []string {
+	needle := strings.ToLower(strings.TrimSpace(query))
+	if needle == "" {
+		return nil
+	}
+	labels := map[string]string{
+		"客户 atg 权益": "customer:atg",
+		"客户 atg":    "customer:atg",
+		"现金余额":      "customer:money",
+		"可用佣金":      "commission:available",
+		"冻结佣金":      "commission:frozen",
+		"通道未结应收":    "control:provider_receivable",
+		"未分配收款":     "receipt:unallocated",
+		"外部现金往来":    "control:external_cash",
+		"经营方手续费":    "control:merchant_fees",
+		"接管权益对账":    "control:takeover",
+		"接管结清对账":    "control:takeover_settlement",
+	}
+	var purposes []string
+	seen := map[string]bool{}
+	for label, purpose := range labels {
+		if strings.Contains(label, needle) || strings.Contains(needle, label) {
+			if !seen[purpose] {
+				seen[purpose] = true
+				purposes = append(purposes, purpose)
+			}
+		}
+	}
+	return purposes
+}
+
 func (s *Service) ListJournals(ctx context.Context, tx *gorm.DB, operator, owner, cursor string, limit int) ([]Journal, error) {
 	if !validPortalScope(operator, owner) || limit < 1 || limit > 100 {
 		return nil, ErrScope

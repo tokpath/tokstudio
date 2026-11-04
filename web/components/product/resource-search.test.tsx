@@ -118,3 +118,9 @@ it("puts the invoice file on the same page as the issue result", async () => {
   render(<QueryClientProvider client={cache()}><ResourceCollection operatorID="operator-search" resource="invoices" customer page={page} /></QueryClientProvider>);
   expect(screen.getByRole("button", { name: "文件与下载", exact: true })).toBeTruthy();
 });
+
+it("tells the ledger search which visible fields it accepts", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => result([])));
+  show("ledger");
+  expect(await screen.findByPlaceholderText("搜索主体名称、邮箱、账户用途或单位")).toBeTruthy();
+});

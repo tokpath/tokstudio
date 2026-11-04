@@ -122,7 +122,7 @@ test("an unresolved financial modal switches language and retries the exact JSON
 
 test("operator server metadata translates while authored Chinese names and evidence remain verbatim", async ({ page }) => {
   await api(page, staff);
-  await page.route(`**/api/v1/operators/${operator.id}/invoices**`, route => route.fulfill({ json: { ...resource(), items: [{ id: "invoice-i18n", status: "completed", values: { name: "核实收款", record_kind: "case", evidence: "查看详情", amount_money: "1.000000000000000001" } }], columns: [{ key: "name", label: "显示名称", kind: "text" }, { key: "record_kind", label: "记录类型", kind: "text" }, { key: "evidence", label: "银行核实凭证", kind: "text" }, { key: "amount_money", label: "申请金额 结算币种", kind: "money" }] } }));
+  await page.route(`**/api/v1/operators/${operator.id}/invoices**`, route => route.fulfill({ json: { ...resource("待复核事项"), items: [{ id: "invoice-i18n", status: "completed", values: { name: "核实收款", record_kind: "case", evidence: "查看详情", amount_money: "1.000000000000000001" } }], columns: [{ key: "name", label: "显示名称", kind: "text" }, { key: "record_kind", label: "记录类型", kind: "text" }, { key: "evidence", label: "银行核实凭证", kind: "text" }, { key: "amount_money", label: "申请金额 结算币种", kind: "money" }] } }));
   await page.goto(`/manage/${operator.id}/invoices`); await page.getByTestId("language-selector").selectOption("en");
   await expect(page.getByRole("heading", { name: "Items awaiting review", exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: text("en", "名称与事项"), exact: true })).toBeVisible();

@@ -5,8 +5,9 @@ import { MarketingCard, ReferralPolicyCard } from "./marketing-cards";
 import { LanguageControl, useI18n } from "@/components/i18n";
 import { translate, type Locale } from "@/lib/i18n";
 
-import { createContext, useCallback, useContext, useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { pricingRefetchInterval } from "./pricing-refresh";
@@ -28,7 +29,7 @@ import { FinanceEvidenceLinks } from "./finance-evidence";
 import { ProcurementCards } from "./procurement-cards";
 import { ModelPricingCard, PackageCard, priceDraft } from "./pricing-cards";
 import { Card } from "@/components/ui/card";
-import { readResourceListState, updateResourceListURL, subjectURL, type ResourceFilter } from "./operator-list-state";
+import { arrivingListState, isForeignResourceList, resourceListPage, updateResourceListURL, subjectURL, type ResourceFilter } from "./operator-list-state";
 import { FieldHelp } from "./field-help";
 import { businessFieldHelp } from "./business-field-help";
 import { readableResourceValue, resourceColumnVisible } from "@/lib/resource-presentation";
@@ -88,12 +89,40 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   const { t } = useI18n();
   const cache = useQueryClient();
   const { session } = useProduct();
-  const [filters, setFilters] = useState(() => ({ ...readResourceListState(), ...(controlledView !== undefined ? { view: controlledView } : {}) }));
+  const owner = resourceListPage(operatorID, resource, customer);
+  const routerPath = usePathname();
+  // The first render can still see the previous page's address. Do not copy
+  // its search text onto this page, and do not write until the address matches.
+  const initialPath = typeof window === "undefined" ? "" : window.location.pathname;
+  const carried = useRef(isForeignResourceList(initialPath, owner));
+  const [loadedPath, setLoadedPath] = useState(initialPath);
+  const [filters, setFilters] = useState(() => arrivingListState(resource, controlledView, carried.current));
   const [query, setQuery] = useState(filters.q);
+  const [appliedPath, setAppliedPath] = useState("");
   const searchDescription = useId();
   const scope = operatorID ? `/api/v1/operators/${encodeURIComponent(operatorID)}` : "/api/v1/me";
   const resourceName = resource.split("/")[0];
-  useEffect(() => { updateResourceListURL(filters); }, [filters]);
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    const path = window.location.pathname;
+    if (isForeignResourceList(path, owner)) return;
+    if (path !== loadedPath || carried.current) {
+      const next = arrivingListState(resource, controlledView, carried.current);
+      carried.current = false;
+      if (path !== loadedPath) setLoadedPath(path);
+      setFilters(next);
+      setQuery(next.q);
+      return;
+    }
+    if (appliedPath !== path) setAppliedPath(path);
+  }, [appliedPath, controlledView, filters, loadedPath, owner, resource, routerPath]);
+  useLayoutEffect(() => {
+    // Write only after the address and filters belong to this page. Doing it
+    // in the same pass as a path correction would copy the previous search.
+    if (typeof window === "undefined" || carried.current) return;
+    if (window.location.pathname !== owner || loadedPath !== owner) return;
+    updateResourceListURL(filters);
+  }, [filters, loadedPath, owner]);
   const parameters = new URLSearchParams();
   if (filters.cursor) parameters.set("cursor", filters.cursor);
   if (filters.q) parameters.set("q", filters.q);
@@ -104,7 +133,7 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const canRead = customer ? session?.kind === "customer" : canReadResource(workspace, resourceName);
   const keyFor = (state: typeof filters) => ["resource", scope, resource, state.cursor, state.q, state.view, state.status, state.section, record || ""];
-  const data = useQuery({ queryKey: keyFor(filters), queryFn: ({ signal }) => request(`${scope}/${resource}${parameters.size ? `?${parameters}` : ""}`, ResourcePageSchema, { signal }), enabled: canRead, refetchInterval: query => resourceName === "pricing" ? pricingRefetchInterval(query.state.data) : false });
+  const data = useQuery({ queryKey: keyFor(filters), queryFn: ({ signal }) => request(`${scope}/${resource}${parameters.size ? `?${parameters}` : ""}`, ResourcePageSchema, { signal }), enabled: canRead && appliedPath !== "" && appliedPath === loadedPath, refetchInterval: query => resourceName === "pricing" ? pricingRefetchInterval(query.state.data) : false });
   if (!canRead) return <Empty title={t("没有查看权限")}>{t("此页面需要当前经营方明确授予相应权限。")}</Empty>;
   if (data.isPending) return <Loading />;
   if (data.isError) return <ErrorPanel error={data.error} retry={() => void data.refetch()} />;

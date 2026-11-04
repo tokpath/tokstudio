@@ -1,6 +1,36 @@
 export type ResourceFilter = { q: string; status: string; view: string; section?: string };
 export type ResourceListState = ResourceFilter & { cursor: string; history: string[] };
 
+export function withControlledView(state: ResourceListState, controlledView?: string): ResourceListState {
+  return controlledView === undefined ? state : { ...state, view: controlledView };
+}
+
+// withdrawals and pending receipts are shown inside another page, so the
+// address that owns their search is that page, not the data resource name.
+export function resourceListPage(operatorID: string | undefined, resource: string, customer: boolean): string {
+  const name = resource.split("/")[0];
+  if (customer) return `/workspace/${name}`;
+  const base = `/manage/${encodeURIComponent(operatorID || "")}`;
+  if (name === "withdrawals") return `${base}/commissions`;
+  if (name === "receipt-valuations") return `${base}/payments`;
+  return `${base}/${name}`;
+}
+
+export function isForeignResourceList(path: string, owner: string): boolean {
+  return path !== owner && /^\/(manage|workspace)\//.test(path);
+}
+
+const sectionPages = new Set(["procurement", "payments", "receipt-valuations", "commissions", "withdrawals"]);
+
+// A new page starts empty. section stays only for pages that use it, such as
+// 待核实收款. A search already on this page, including a refreshed link, stays.
+export function arrivingListState(resource: string, controlledView: string | undefined, fromAnotherPage: boolean): ResourceListState {
+  const read = readResourceListState();
+  if (!fromAnotherPage) return withControlledView(read, controlledView);
+  const name = resource.split("/")[0];
+  return withControlledView({ q: "", status: "", view: "", cursor: "", history: [], ...(sectionPages.has(name) && read.section ? { section: read.section } : {}) }, controlledView);
+}
+
 export function readResourceListState(): ResourceListState {
   let params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
   const returnTo = params.get("returnTo");

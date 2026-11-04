@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { useInsertionEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import type { Entity, ResourcePage, Session } from "@/lib/contracts";
 import { ResourceCollection, ResourceScreen } from "./operator-resources";
 import { OperatorOverview, OperatorWorkflowScreen } from "./operator-workflows";
-import { readResourceListState, subjectReturnURL, subjectURL } from "./operator-list-state";
+import { arrivingListState, readResourceListState, subjectReturnURL, subjectURL } from "./operator-list-state";
 
 let permissions = ["*"];
 let operatorKind: "platform" | "oem" | "channel" = "oem";
@@ -165,6 +166,40 @@ it("offers real domain statuses before any matching record has been loaded", asy
   expect(within(orderSelect).getByRole("option", { name: "足额待交付" }).getAttribute("value")).toBe("paid");
   fireEvent.change(orderSelect, { target: { value: "partial" } });
   await waitFor(() => expect(calls.at(-1)).toContain("status=partial"));
+});
+
+function MoveAddress({ href, children }: { href: string; children: ReactNode }) {
+  useInsertionEffect(() => { window.history.replaceState(null, "", href); });
+  return children;
+}
+
+it("does not copy one page's search onto the next page", async () => {
+  window.history.replaceState(null, "", "/manage/operator-one/gifts?q=kol%40tokenhub.local&view=requests&section=requests");
+  const fetch = vi.fn(async (input: RequestInfo | URL) => { expect(String(input)).not.toContain("q=kol"); return response(page([])); });
+  vi.stubGlobal("fetch", fetch);
+  show(<MoveAddress href="/manage/operator-one/orders?q=kol%40tokenhub.local&view=requests&section=requests"><ResourceScreen operatorID="operator-one" resource="orders" /></MoveAddress>);
+  expect((await screen.findByRole("textbox", { name: "搜索记录" }) as HTMLInputElement).value).toBe("");
+  const search = new URLSearchParams(window.location.search);
+  expect(search.get("q")).toBeNull();
+  expect(search.get("view")).toBeNull();
+  expect(search.get("section")).toBeNull();
+  expect(window.location.pathname).toBe("/manage/operator-one/orders");
+});
+
+it("keeps a search already present on the opened page", async () => {
+  window.history.replaceState(null, "", "/manage/operator-one/orders?q=kept");
+  vi.stubGlobal("fetch", vi.fn(async () => response(page([]))));
+  show(<ResourceScreen operatorID="operator-one" resource="orders" />);
+  expect((await screen.findByRole("textbox", { name: "搜索记录" }) as HTMLInputElement).value).toBe("kept");
+  expect(new URLSearchParams(window.location.search).get("q")).toBe("kept");
+});
+
+it("drops carried search text but keeps a section the new page uses", () => {
+  window.history.replaceState(null, "", "/manage/operator-one/payments?section=pending&q=kol%40tokenhub.local&view=requests");
+  expect(arrivingListState("payments", undefined, true)).toEqual({ q: "", status: "", view: "", cursor: "", history: [], section: "pending" });
+  expect(arrivingListState("gifts", undefined, true)).toEqual({ q: "", status: "", view: "", cursor: "", history: [] });
+  window.history.replaceState(null, "", "/manage/operator-one/orders?q=kept");
+  expect(arrivingListState("orders", undefined, false).q).toBe("kept");
 });
 
 it("restores deep-link filters and accepts only same-operator return destinations", () => {

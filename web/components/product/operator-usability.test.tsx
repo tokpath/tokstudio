@@ -202,6 +202,21 @@ it("drops carried search text but keeps a section the new page uses", () => {
   expect(arrivingListState("orders", undefined, false).q).toBe("kept");
 });
 
+it("explains that an empty reconciliation list means no abnormal data", async () => {
+  const description = "这里只列出对不上的差额，不列出正常的订单和收款。运行对账后如果列表仍是空的，表示没有差额，也没有异常数据。";
+  const fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => init?.method === "POST" ? response({ id: "run-1", status: "completed", message: "对账已完成，没有发现差额，也没有异常数据。回到列表后仍然是空的，这是正常结果。" }) : response(page([], { title: "reconciliation", description, operations: [{ name: "reconcile", label: "按领域事实运行对账", method: "POST", path: "/api/v1/operators/operator-one/reconciliation", description: "核对本经营方的账户余额、占用金额、每笔记账是否借贷平衡，以及采购额度是否与批次和账户一致。没有差额时不会新增记录。", fields: [] }] })));
+  vi.stubGlobal("fetch", fetch);
+  show(<ResourceScreen operatorID="operator-one" resource="reconciliation" />);
+  expect(await screen.findByRole("heading", { name: "没有差额" })).toBeTruthy();
+  expect(screen.getByText("对账后这里仍为空，表示账户余额、占用、记账借贷和采购额度都与原始事实一致，没有异常数据。只有对不上的差额才会出现在这里。")).toBeTruthy();
+  expect(screen.getByText(description)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "按领域事实运行对账" }));
+  const panel = await screen.findByRole("dialog");
+  fireEvent.click(within(panel).getByRole("button", { name: "按领域事实运行对账" }));
+  expect(await within(panel).findByRole("heading", { name: "对账已完成" })).toBeTruthy();
+  expect(within(panel).getByText("对账已完成，没有发现差额，也没有异常数据。回到列表后仍然是空的，这是正常结果。")).toBeTruthy();
+});
+
 it("restores deep-link filters and accepts only same-operator return destinations", () => {
   const original = "/manage/operator-one/customers?q=lin&cursor=page-two&previous=";
   window.history.replaceState(null, "", subjectURL("operator-one", "customers", "customer-a", original));

@@ -304,6 +304,16 @@
     "ja": "現在の条件に一致する記録はありません。",
     "ru": "Нет записей по текущему фильтру."
   },
+  "没有差额": {
+    "en": "No differences",
+    "ja": "差額はありません",
+    "ru": "Расхождений нет"
+  },
+  "对账后这里仍为空，表示账户余额、占用、记账借贷和采购额度都与原始事实一致，没有异常数据。只有对不上的差额才会出现在这里。": {
+    "en": "An empty list after reconciliation means account balances, holds, journal entries, and procurement quantities match the original facts. There is no abnormal data. Only mismatches appear here.",
+    "ja": "照合後もここが空なら、口座残高、確保額、仕訳の貸借、調達枠は元の事実と一致しており、異常データはありません。一致しない差額だけがここに出ます。",
+    "ru": "Пустой список после сверки значит, что остатки, удержания, проводки и закупочные объёмы совпадают с исходными фактами. Аномальных данных нет. Здесь появляются только расхождения."
+  },
   "当前筛选下没有记录。可查询其他编号或继续办理新事项。": {
     "en": "No records match the current filter. Search another ID or start a new operation.",
     "ja": "現在の条件に一致する記録はありません。他の番号を検索するか、新しい案件を処理してください。",

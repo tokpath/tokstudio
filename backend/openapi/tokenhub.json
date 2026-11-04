@@ -20094,7 +20094,7 @@
             }
           }
         },
-        "description": " Requires reports.view. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "核对本经营方的账户余额、占用金额、每笔记账是否借贷平衡，以及采购额度是否与批次和账户一致。没有差额时不会新增记录。 Requires reports.view. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "reports.view"
       }
     },

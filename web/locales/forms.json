@@ -1219,6 +1219,11 @@
     "ja": "受付済み",
     "ru": "Принято"
   },
+  "对账已完成": {
+    "en": "Reconciliation complete",
+    "ja": "照合が完了しました",
+    "ru": "Сверка завершена"
+  },
   "本次办理已保存。返回业务记录即可查看最新进展及后续可办理事项。": {
     "en": "This action has been saved. Return to the business record for the latest progress and available next steps.",
     "ja": "手続きを保存しました。業務レコードに戻ると最新の進捗と次の操作を確認できます。",

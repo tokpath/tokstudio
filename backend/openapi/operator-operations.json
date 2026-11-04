@@ -4676,7 +4676,7 @@
   {
     "resource": "reconciliation",
     "confirmation": "",
-    "description": "",
+    "description": "核对本经营方的账户余额、占用金额、每笔记账是否借贷平衡，以及采购额度是否与批次和账户一致。没有差额时不会新增记录。",
     "fields": [],
     "include_version": false,
     "label": "按领域事实运行对账",

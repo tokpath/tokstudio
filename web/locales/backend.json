@@ -5844,6 +5844,26 @@
     "ja": "領域の事実に基づいて照合を実行",
     "ru": "Запустить сверку по фактам предметных областей"
   },
+  "这里只列出对不上的差额，不列出正常的订单和收款。运行对账后如果列表仍是空的，表示没有差额，也没有异常数据。": {
+    "en": "This page lists only mismatches. It does not list normal orders or receipts. If the list stays empty after reconciliation, there is no difference and no abnormal data.",
+    "ja": "このページには不一致の差額だけを表示します。正常な注文や入金は表示しません。照合後も一覧が空なら、差額も異常データもありません。",
+    "ru": "Здесь показаны только расхождения. Обычные заказы и поступления не выводятся. Если после сверки список пуст, расхождений и аномальных данных нет."
+  },
+  "核对本经营方的账户余额、占用金额、每笔记账是否借贷平衡，以及采购额度是否与批次和账户一致。没有差额时不会新增记录。": {
+    "en": "Checks this operator's account balances, held amounts, whether each journal balances, and whether procurement quantity matches its lots and account. No row is added when there is no difference.",
+    "ja": "この事業者の口座残高、確保額、各仕訳の貸借が合うか、調達枠がロットと口座に一致するかを照合します。差額がなければ記録は増えません。",
+    "ru": "Проверяет остатки счетов, удержания, баланс каждой проводки и соответствие закупочного объёма партиям и счёту. Если расхождений нет, новая строка не создаётся."
+  },
+  "对账已完成，没有发现差额，也没有异常数据。回到列表后仍然是空的，这是正常结果。": {
+    "en": "Reconciliation is complete. No difference and no abnormal data were found. An empty list afterward is the expected result.",
+    "ja": "照合が完了しました。差額も異常データもありません。一覧が空のままなのは正常な結果です。",
+    "ru": "Сверка завершена. Расхождений и аномальных данных нет. Пустой список после этого — ожидаемый результат."
+  },
+  "对账已完成，已发现差额。请回到列表核对应有金额和实际金额。没有出现在列表里的部分没有异常。": {
+    "en": "Reconciliation is complete and found differences. Compare the expected and actual amounts in the list. Anything not listed has no abnormality.",
+    "ja": "照合が完了し、差額が見つかりました。一覧で本来の金額と実際の金額を確認してください。一覧にない部分に異常はありません。",
+    "ru": "Сверка завершена и нашла расхождения. Сравните ожидаемые и фактические суммы в списке. Всё, чего нет в списке, без аномалий."
+  },
   "只有可核实的领域修复记录才能解决差额；此操作不改余额。": {
     "en": "Only verifiable domain repair records can resolve differences. This operation does not change balances.",
     "ja": "確認可能な領域の修復記録のみで差額を解消できます。この操作で残高は変わりません。",

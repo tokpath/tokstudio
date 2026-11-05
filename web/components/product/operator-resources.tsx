@@ -1,4 +1,5 @@
 "use client";
+import { LedgerCollection } from "./ledger-workspace";
 import { BusinessSettings } from "./business-settings";
 import { useMonetary } from "./monetary";
 import { MarketingCard, ReferralPolicyCard } from "./marketing-cards";
@@ -124,6 +125,7 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
     updateResourceListURL(filters);
   }, [filters, loadedPath, owner]);
   const parameters = new URLSearchParams();
+  if (resourceName === "ledger" && filters.include_auxiliary === "true") parameters.set("include_auxiliary", "true");
   if (filters.cursor) parameters.set("cursor", filters.cursor);
   if (filters.q) parameters.set("q", filters.q);
   if (filters.view) parameters.set("view", filters.view);
@@ -132,7 +134,7 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   else if(resourceName === "procurement") parameters.set("section",filters.section || "orders");
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const canRead = customer ? session?.kind === "customer" : canReadResource(workspace, resourceName);
-  const keyFor = (state: typeof filters) => ["resource", scope, resource, state.cursor, state.q, state.view, state.status, state.section, record || ""];
+  const keyFor = (state: typeof filters) => ["resource", scope, resource, state.cursor, state.q, state.view, state.status, state.section, state.include_auxiliary || "", record || ""];
   const data = useQuery({ queryKey: keyFor(filters), queryFn: ({ signal }) => request(`${scope}/${resource}${parameters.size ? `?${parameters}` : ""}`, ResourcePageSchema, { signal }), enabled: canRead && appliedPath !== "" && appliedPath === loadedPath, refetchInterval: query => resourceName === "pricing" ? pricingRefetchInterval(query.state.data) : false });
   if (!canRead) return <Empty title={t("没有查看权限")}>{t("此页面需要当前经营方明确授予相应权限。")}</Empty>;
   if (data.isPending) return <Loading />;
@@ -153,6 +155,7 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
     {controlledView === undefined && page.views && <div aria-label={t("业务视图")} className="mb-5 flex flex-wrap gap-2">{page.views.map(item => <Button key={item.value} variant={(filters.view || page.views?.[0]?.value) === item.value ? "default" : "outline"} onClick={() => apply({ view: item.value, ...(resourceName==="procurement" ? {section:"orders",status:""} : {}) })}>{t(item.label)}</Button>)}</div>}
     <ResourceCollection page={page} operatorID={operatorID} resource={resource} customer={customer} embedded={embedded} layout={layout} onInspect={onInspect} inspectionLinks={inspectionLinks} businessView={filters.view || page.views?.[0]?.value} procurementSection={record ? (page.items[0]?.values.record_kind==="quote" ? "quotes" : ["authorization","replenishment_attempt"].includes(String(page.items[0]?.values.record_kind)) ? "automatic" : "orders") : filters.section || "orders"} onProcurementSection={section=>apply({section,status:""})} record={record} toolbar={serverSearch || statusFilter ? <div className="min-w-0 flex-1 basis-[32rem]"><form onSubmit={event => { event.preventDefault(); apply({ q: query.trim() }); }}>
       <div className="flex flex-wrap items-center gap-2">{serverSearch && <div className="relative min-w-48 flex-1"><Search size={15} aria-hidden className="absolute left-3 top-3.5 text-ink-mute" /><Input aria-label={t("搜索记录")} aria-describedby={searchDescription} placeholder={resourceName === "notifications" ? t("搜索通知标题、正文或关联事项") : resourceName === "customers" ? t("搜索客户名称或邮箱") : resourceName === "invoices" ? t("搜索发票编号、开票凭证或原始收款编号") : resourceName === "gifts" ? t("搜索赠送编号、客户邮箱、客户名称或赠送说明") : resourceName === "ledger" ? t("搜索主体名称、邮箱、账户用途或单位") : t("搜索业务编号、名称或关联记录")} value={query} onChange={event => setQuery(event.target.value)} className="pl-9" /></div>}
+      {resourceName === "ledger" && filters.view !== "journals" && <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={filters.include_auxiliary === "true"} onChange={event => apply({ include_auxiliary: event.target.checked ? "true" : "" })} />{t("包含记账辅助账户")}</label>}
       {statusFilter && <label className="flex items-center gap-2 text-xs text-ink-secondary"><span>{t("状态")}</span><select className="min-h-11 rounded-control border border-hairline bg-canvas-raised px-3 text-sm" aria-label={t("筛选状态")} value={filters.status} onChange={event => apply({ status: event.target.value })}><option value="">{t("全部状态")}</option>{statuses.map(status => <option key={status} value={status}>{t(resourceFilterStatusLabel(resourceName, status))}</option>)}</select></label>}
       {serverSearch && <Button variant="outline" type="submit" disabled={data.isPending} aria-busy={data.isFetching}>{t("查询")}</Button>}{(serverSearch && filters.q || statusFilter && filters.status) && <Button variant="ghost" type="button" onClick={() => { setQuery(""); apply({ q: "", status: "" }); }}>{t("清除")}</Button>}</div>
       {serverSearch && <p id={searchDescription} className="mt-2 text-xs leading-6 text-ink-mute">{t("在当前权限范围内检索记录，结果按当前列表规则分页。")}</p>}
@@ -245,6 +248,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const procurementTab=procurementSection || localProcurementTab;
   const setProcurementTab=(next:string)=>{setLocalProcurementTab(next);onProcurementSection?.(next);};
   const resourceName = resource.split("/")[0];
+  if (resourceName === "ledger") return <LedgerCollection page={page} view={businessView || "accounts"} toolbar={toolbar} />;
   const canOperate = (operation: Operation) => !operation.permission || !!workspace?.permissions.includes("*") || !!workspace?.permissions.includes(operation.permission);
   const balanceMinimum = resourceName === "balance-withdrawals" && businessView === "minimum" ? page.operations.find(operation => operation.name === "minimum" && canOperate(operation)) : undefined;
   const operations = page.operations.filter(operation => operation.name !== "minimum" && canOperate(operation) && (resourceName !== "procurement" || (operation.name === "quote" ? procurementTab === "quotes" : operation.name === "authorization" ? procurementTab === "automatic" : true)));

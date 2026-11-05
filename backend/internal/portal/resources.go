@@ -554,20 +554,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 			handleError(c, organization.ErrInvalidInput)
 			return
 		}
-		p["search_supported"], p["status_supported"] = true, true
-		rows, e := a.Ledger.ListOperatorAccounts(ctx, nil, op.ID, "", c.Query("cursor"), c.Query("q"), 51, c.Query("status"))
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		if len(rows) > 50 {
-			rows = rows[:50]
-			p["next_cursor"] = rows[49].ID
-		}
-		for _, row := range rows {
-			items = append(items, entity(row.ID, "open", row.Version, row))
-		}
-		p["columns"] = []gin.H{col("owner_id", "所属主体", "text"), col("purpose", "账户目的", "text"), col("unit", "单位", "text"), col("balance", "余额", "decimal"), col("held", "占用", "decimal")}
+		a.ledgerAccountsResource(c, op, p)
+		return
 	case "operators":
 		rows, e := a.Organization.Children(ctx, nil, op.ID)
 		if e != nil {

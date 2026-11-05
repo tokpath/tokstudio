@@ -1,4 +1,4 @@
-export type ResourceFilter = { q: string; status: string; view: string; section?: string };
+export type ResourceFilter = { q: string; status: string; view: string; section?: string; include_auxiliary?: string };
 export type ResourceListState = ResourceFilter & { cursor: string; history: string[] };
 
 export function withControlledView(state: ResourceListState, controlledView?: string): ResourceListState {
@@ -35,13 +35,13 @@ export function readResourceListState(): ResourceListState {
   let params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
   const returnTo = params.get("returnTo");
   if (typeof window !== "undefined" && params.has("record") && returnTo?.startsWith(window.location.pathname + "?")) params = new URLSearchParams(returnTo.slice(returnTo.indexOf("?") + 1));
-  return { ...(params.has("section") ? {section:params.get("section") || "orders"} : {}), q: params.get("q") || "", status: params.get("status") || "", view: params.get("view") || "", cursor: params.get("cursor") || "", history: params.getAll("previous") };
+  return { ...(params.get("include_auxiliary") === "true" ? {include_auxiliary:"true"} : {}), ...(params.has("section") ? {section:params.get("section") || "orders"} : {}), q: params.get("q") || "", status: params.get("status") || "", view: params.get("view") || "", cursor: params.get("cursor") || "", history: params.getAll("previous") };
 }
 
 export function updateResourceListURL(state: ResourceListState) {
   if (typeof window === "undefined" || !/^\/(manage|workspace)\//.test(window.location.pathname)) return;
   const url = new URL(window.location.href);
-  for (const key of ["q", "status", "view", "section", "cursor"] as const) {
+  for (const key of ["q", "status", "view", "section", "cursor", "include_auxiliary"] as const) {
     if (state[key]) url.searchParams.set(key, state[key]); else url.searchParams.delete(key);
   }
   url.searchParams.delete("previous");

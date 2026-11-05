@@ -2,10 +2,12 @@ package ledger
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 func TestPostgresLiveAssetSummaryUsesFulfillmentClock(t *testing.T) {
@@ -89,5 +91,75 @@ CREATE TABLE organization_operators (id uuid PRIMARY KEY, name text, legal_name 
 	}
 	if page := ids("资产账户"); len(page) != 0 {
 		t.Fatal("the page name is not an account field", page)
+	}
+}
+
+func TestPostgresLedgerWorkspaceFilterAndChronologicalCursor(t *testing.T) {
+	s := New(testDB(t))
+	ctx := context.Background()
+	op, other := uuid.NewString(), uuid.NewString()
+	var wallet, control Account
+	for _, scope := range []string{op, other} {
+		for _, purpose := range []string{"customer:money", "control:credits", "order:funds"} {
+			row, err := s.EnsureAccount(ctx, nil, Account{OperatorID: scope, OwnerID: uuid.NewString(), Purpose: purpose, Unit: MoneyUnit, AllowNegative: strings.HasPrefix(purpose, "control:")})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if scope == op && purpose == "customer:money" {
+				wallet = row
+			}
+			if scope == op && purpose == "control:credits" {
+				control = row
+			}
+		}
+	}
+	rows, err := s.ListAssetAccounts(ctx, op, "", "", 1, false)
+	if err != nil || len(rows) != 1 || rows[0].ID != wallet.ID {
+		t.Fatal("filter was applied after pagination", rows, err)
+	}
+	all, err := s.ListAssetAccounts(ctx, op, "", "", 100, true)
+	if err != nil || len(all) != 3 {
+		t.Fatal("scope or complete list incorrect", all, err)
+	}
+	at := time.Now().UTC().Truncate(time.Microsecond)
+	ids := []string{"ffffffff-0000-4000-8000-000000000001", "11111111-0000-4000-8000-000000000001", "22222222-0000-4000-8000-000000000001"}
+	for i, id := range ids {
+		created := at
+		if i == 0 {
+			created = at.Add(-time.Hour)
+		}
+		j := Journal{ID: id, OperatorID: op, BusinessKey: id, Kind: "test_fixture", SourceID: id, Fingerprint: id, ActorID: "test", Reason: "chronology fixture", CreatedAt: created}
+		if err := s.db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(&j).Error; err != nil {
+				return err
+			}
+			n := FromInt64(int64(i + 1))
+			for _, line := range []Entry{{ID: uuid.NewString(), JournalID: id, AccountID: wallet.ID, Unit: MoneyUnit, Amount: FromInt64(1), BalanceAfter: n, CreatedAt: created}, {ID: uuid.NewString(), JournalID: id, AccountID: control.ID, Unit: MoneyUnit, Amount: FromInt64(-1), BalanceAfter: n.Neg(), CreatedAt: created}} {
+				if err := tx.Create(&line).Error; err != nil {
+					return err
+				}
+			}
+			if err := tx.Model(&Account{}).Where("id=?", wallet.ID).Update("balance", n).Error; err != nil {
+				return err
+			}
+			return tx.Model(&Account{}).Where("id=?", control.ID).Update("balance", n.Neg()).Error
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	first, err := s.ListJournals(ctx, nil, op, "", "", 1)
+	if err != nil || len(first) != 1 || first[0].ID != ids[2] {
+		t.Fatal(first, err)
+	}
+	second, err := s.ListJournals(ctx, nil, op, "", first[0].ID, 1)
+	if err != nil || len(second) != 1 || second[0].ID != ids[1] {
+		t.Fatal(second, err)
+	}
+	third, err := s.ListJournals(ctx, nil, op, "", second[0].ID, 1)
+	if err != nil || len(third) != 1 || third[0].ID != ids[0] {
+		t.Fatal(third, err)
+	}
+	if _, err = s.ListJournals(ctx, nil, other, "", first[0].ID, 1); err == nil {
+		t.Fatal("foreign workspace cursor accepted")
 	}
 }

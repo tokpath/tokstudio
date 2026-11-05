@@ -285,6 +285,7 @@ func (a *Application) ledgerJournalsResource(c *gin.Context, op organization.Ope
 	}
 	type line struct {
 		JournalID    string
+		AccountID    string
 		Purpose      string
 		OwnerID      string
 		Unit         string
@@ -293,11 +294,30 @@ func (a *Application) ledgerJournalsResource(c *gin.Context, op organization.Ope
 	}
 	lines := []line{}
 	if len(ids) > 0 {
-		err = a.DB.WithContext(c.Request.Context()).Table("ledger_entries e").Select("e.journal_id,a.purpose,a.owner_id,e.unit,e.amount,e.balance_after").Joins("JOIN ledger_accounts a ON a.id=e.account_id AND a.operator_id=?", op.ID).Joins("JOIN ledger_journals j ON j.id=e.journal_id AND j.operator_id=?", op.ID).Where("e.journal_id IN ?", ids).Order("e.id").Scan(&lines).Error
+		err = a.DB.WithContext(c.Request.Context()).Table("ledger_entries e").Select("e.journal_id,e.account_id,a.purpose,a.owner_id,e.unit,e.amount,e.balance_after").Joins("JOIN ledger_accounts a ON a.id=e.account_id AND a.operator_id=?", op.ID).Joins("JOIN ledger_journals j ON j.id=e.journal_id AND j.operator_id=?", op.ID).Where("e.journal_id IN ?", ids).Order("e.id").Scan(&lines).Error
 		if err != nil {
 			handleError(c, err)
 			return
 		}
+	}
+	accountIDs, sourceIDs := []string{}, []string{}
+	for _, entry := range lines {
+		accountIDs = append(accountIDs, entry.AccountID)
+	}
+	for _, row := range rows {
+		sourceIDs = append(sourceIDs, row.SourceID)
+	}
+	accounts := []ledger.Account{}
+	if len(accountIDs) > 0 {
+		if err = a.DB.WithContext(c.Request.Context()).Where("operator_id=? AND id IN ?", op.ID, accountIDs).Find(&accounts).Error; err != nil {
+			handleError(c, err)
+			return
+		}
+	}
+	displays, sources, err := a.ledgerDisplays(c, op.ID, accounts, sourceIDs)
+	if err != nil {
+		handleError(c, err)
+		return
 	}
 	items := []any{}
 	for _, row := range rows {
@@ -305,10 +325,11 @@ func (a *Application) ledgerJournalsResource(c *gin.Context, op organization.Ope
 		entries := []gin.H{}
 		for _, entry := range lines {
 			if entry.JournalID == row.ID {
-				entries = append(entries, gin.H{"purpose": entry.Purpose, "owner_id": entry.OwnerID, "unit": entry.Unit, "amount": entry.Amount, "balance_after": entry.BalanceAfter})
+				entries = append(entries, gin.H{"account_id": entry.AccountID, "display": displays[entry.AccountID], "purpose": entry.Purpose, "owner_id": entry.OwnerID, "unit": entry.Unit, "amount": entry.Amount, "balance_after": entry.BalanceAfter})
 			}
 		}
 		v["entries"] = entries
+		v["source"] = sources[row.SourceID]
 		items = append(items, entity(row.ID, "recorded", 0, v))
 	}
 	p["items"] = items

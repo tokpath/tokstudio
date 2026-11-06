@@ -123,8 +123,9 @@ test("an unresolved financial modal switches language and retries the exact JSON
 test("operator server metadata translates while authored Chinese names and evidence remain verbatim", async ({ page }) => {
   await api(page, staff);
   await page.route(`**/api/v1/operators/${operator.id}/invoices**`, route => route.fulfill({ json: { ...resource("待复核事项"), items: [{ id: "invoice-i18n", status: "completed", values: { name: "核实收款", record_kind: "case", evidence: "查看详情", amount_money: "1.000000000000000001" } }], columns: [{ key: "name", label: "显示名称", kind: "text" }, { key: "record_kind", label: "记录类型", kind: "text" }, { key: "evidence", label: "银行核实凭证", kind: "text" }, { key: "amount_money", label: "申请金额 结算币种", kind: "money" }] } }));
+  await page.route(`**/api/v1/operators/${operator.id}/invoices/invoice-i18n/files`, route => route.fulfill({json:{items:[],files_available:false,orders:[],details:{title:"核实收款",tax_id:"TEST",email:"billing@example.test"}}}));
   await page.goto(`/manage/${operator.id}/invoices`); await page.getByTestId("language-selector").selectOption("en");
-  await expect(page.getByRole("heading", { name: "Items awaiting review", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: text("en", "票据办理"), exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: text("en", "名称与事项"), exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "核实收款", exact: true })).toBeVisible(); await expect(page.getByRole("cell", { name: "查看详情", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "View details", exact: true }).click(); const dialog = page.getByRole("dialog");
@@ -150,3 +151,34 @@ test("Russian public and customer mobile layouts stay within the viewport", asyn
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   await page.screenshot({ path: "test-results/i18n-russian-mobile.png", fullPage: true });
 });
+
+
+for (const locale of ["zh", "en", "ja", "ru"] as const) {
+  test(`invoice workspace and original purchase details render in ${locale}`, async ({ page }) => {
+    await api(page, staff);
+    await page.route(`**/api/v1/operators/${operator.id}/invoices**`, route => route.fulfill({json:route.request().url().endsWith("/files") ? {
+      items:[],files_available:false,details:{title:"Buyer Inc",tax_id:"TEST-1",email:"buyer@example.test"},orders:[{order_id:"purchase-one",name:"Package A",kind:"套餐购买",created_at:"2026-11-06T10:00:00Z",amount_money:"40"}]
+    } : {...resource("我方开票"),items:[{id:"invoice-one",status:"requested",values:{name:"Invoice application",applicant:"Buyer Inc",applicant_kind:"客户购买",amount_money:"40"}}],columns:[{key:"applicant",label:"申请人",kind:"text"},{key:"applicant_kind",label:"申请类型",kind:"text"},{key:"amount_money",label:"开票金额",kind:"money"}]} }));
+    await page.route(`**/api/v1/operators/${operator.id}/procurement-invoices**`, route => route.fulfill({json:{...resource("我方收票"),items:[{id:"received-one",status:"requested",values:{name:"Supplier invoice"}}],summary:[{label:"Supplier",value:"尚未开放采购开票申请，请联系供货方。"}]}}));
+    await page.goto(`/manage/${operator.id}/invoices`);
+    await page.getByTestId("language-selector").selectOption(locale);
+    await expect(page.getByRole("tab",{name:text(locale,"我方开票"),exact:true})).toBeVisible();
+    await expect(page.getByRole("tab",{name:text(locale,"我方收票"),exact:true})).toBeVisible();
+    await expect(page.getByRole("cell",{name:text(locale,"客户购买"),exact:true})).toBeVisible();
+    await page.getByRole("button",{name:text(locale,"查看详情"),exact:true}).click();
+    const dialog=page.getByRole("dialog");
+    await expect(dialog.getByRole("heading",{name:text(locale,"本次开票的购买订单")})).toBeVisible();
+    await expect(dialog.getByText(text(locale,"订单实付金额"),{exact:true})).toBeVisible();
+    await expect(dialog.getByText("buyer@example.test",{exact:true})).toBeVisible();
+    await expect(dialog.getByText(text(locale,"套餐购买")+" · Package A",{exact:true})).toBeVisible();
+    await page.screenshot({path:test.info().outputPath(`invoice-details-${locale}.png`),fullPage:true});
+    await dialog.getByRole("button",{name:text(locale,"关闭办理面板"),exact:true}).click();
+    await page.getByRole("tab",{name:text(locale,"我方收票"),exact:true}).click();
+    await expect(page.getByText("Supplier invoice",{exact:true})).toBeVisible();
+    await expect(page.getByText(text(locale,"尚未开放采购开票申请，请联系供货方。"),{exact:true})).toBeVisible();
+    await expect(page.getByRole("button",{name:text(locale,"文件与下载"),exact:true})).toHaveCount(0);
+    await page.setViewportSize({width:390,height:844});
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(1);
+    await page.screenshot({path:test.info().outputPath(`invoice-received-mobile-${locale}.png`),fullPage:true});
+  });
+}

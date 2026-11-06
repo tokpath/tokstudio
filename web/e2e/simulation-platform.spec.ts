@@ -337,23 +337,11 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     await expect(employee.getByRole("button", { name: "调整当前成员角色", exact: true })).toHaveCount(0);
     await expect(employee.getByRole("button", { name: "开通或邀请经营人员", exact: true })).toHaveCount(0);
 
-    await page.goto(`/manage/${p.operator_id}/alerts?view=rules`);
-    dialog = await panel(page, "新增预警规则");
-    const rule = `仿真请求积压提醒-${randomUUID()}`;
-    await expect(control(dialog, "规则编号", false)).toHaveCount(0);
-    await control(dialog, "规则名称", false).fill(rule);
-    await dialog.getByRole("combobox", { name: "真实指标", exact: false }).selectOption("pending_usage");
-    await control(dialog, "预警阈值", false).fill("1"); await control(dialog, "严重阈值", false).fill("3");
-    await dialog.getByRole("combobox", { name: "触发方向", exact: false }).selectOption("above");
-    await dialog.locator('[data-command-field="recipients"] label').filter({ hasText: fixture.owner_email }).getByRole("checkbox").check();
-    const createdRule = await (await submit(page, dialog, "新增预警规则", `${base}/alerts`)).json();
-    expect(createdRule.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-    await close(dialog);
-    dialog = await panel(page, "修订此预警规则", page.getByRole("row").filter({ hasText: rule }));
-    await expect(control(dialog, "预警阈值", false)).toHaveValue("1");
-    await control(dialog, "预警阈值", false).fill("2");
-    const revised = await submit(page, dialog, "修订此预警规则", `${base}/alerts`); await close(dialog);
-    expect((await replay(page, revised)).status()).toBe(200); expect((await replay(page, revised, true)).status()).toBe(409);
+    await page.goto(`/manage/${p.operator_id}/overview`);
+    await expect(page.getByRole("heading", { name: "经营总览与待办", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "风险预警", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "服务风险", exact: true })).toHaveCount(0);
+    expect((await page.request.get(`${base}/alerts`)).status()).toBe(404);
 
     await page.goto(`/manage/${p.operator_id}/notifications`);
     dialog = await panel(page, "发送业务通知");

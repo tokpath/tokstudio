@@ -59,7 +59,7 @@ func invoiceSearch(q *gorm.DB, search []string) *gorm.DB {
 	return q.Where(`(strpos(lower(CAST(operations_invoices.id AS text)), ?) > 0
 		OR strpos(lower(COALESCE(invoice_reference,'')), ?) > 0
 		OR strpos(lower(COALESCE(evidence_reference,'')), ?) > 0
-		OR EXISTS (SELECT 1 FROM operations_invoice_sources src WHERE src.invoice_id=operations_invoices.id AND strpos(lower(CAST(src.receipt_id AS text)), ?) > 0))`, term, term, term, term)
+		OR EXISTS (SELECT 1 FROM operations_invoice_orders src WHERE src.invoice_id=operations_invoices.id AND strpos(lower(CAST(src.order_id AS text)), ?) > 0))`, term, term, term, term)
 }
 
 // RequestHistoricalInvoice proves the original paid customer/issuer relationship
@@ -70,18 +70,9 @@ func (s *Service) RequestHistoricalInvoice(ctx context.Context, customer, issuer
 	if !validID(customer) || !validID(issuer) {
 		return Invoice{}, ErrInvalid
 	}
-	return s.requestInvoice(ctx, "customer", customer, issuer, key, lines, details, func(tx *gorm.DB) error {
-		for _, line := range lines {
-			basis, e := s.Invoices.InvoiceBasis(ctx, tx, issuer, customer, line.ReceiptID)
-			if e != nil {
-				return e
-			}
-			if basis.ReceiptID != line.ReceiptID || basis.EligibleMoney.Sign() <= 0 {
-				return ErrForbidden
-			}
-		}
-		return nil
-	})
+	// Ownership is established by the selected order inside requestInvoice.
+	// Replay is resolved before mutable order eligibility is checked.
+	return s.requestInvoice(ctx, "customer", customer, issuer, key, lines, details, func(*gorm.DB) error { return nil })
 }
 
 // Issuer and buyer queries retain their distinct authorities and relationships.

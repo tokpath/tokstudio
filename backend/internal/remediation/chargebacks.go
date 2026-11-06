@@ -210,11 +210,6 @@ func (s *Service) ResolveChargeback(ctx context.Context, actor, op, id, classifi
 				customers[*h.CustomerID] = true
 			}
 			if classification != "invalid_payment" {
-				if h.WalletReservationID != nil {
-					if e = s.Commerce.ReleaseWalletRefund(ctx, t, op, *h.CustomerID, *h.WalletReservationID); e != nil {
-						return e
-					}
-				}
 				if _, e = s.Ledger.Release(ctx, t, op, h.HoldID, "chargeback-release:"+id); e != nil {
 					return e
 				}
@@ -225,11 +220,6 @@ func (s *Service) ResolveChargeback(ctx context.Context, actor, op, id, classifi
 				}
 				h.State = "cancelled"
 			} else {
-				if h.WalletReservationID != nil {
-					if e = s.Commerce.CompleteWalletRefund(ctx, t, op, *h.CustomerID, *h.WalletReservationID); e != nil {
-						return e
-					}
-				}
 				loss, e := s.account(ctx, t, op, op, "control:collection_loss")
 				if e != nil {
 					return e

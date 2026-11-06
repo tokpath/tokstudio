@@ -34,7 +34,7 @@ func TestPostgresManualRefundRejectsPartialAmountAndThenPaysFullOnce(t *testing.
 	if _, err := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p); !errors.Is(err, ErrRefundFullPayment) {
 		t.Fatal("partial amount accepted", err)
 	}
-	if a := f.balance(t); a.Balance.String() != "100" || a.Held.String() != "10" {
+	if a := f.balance(t); a.Balance.String() != "100" || !a.Held.IsZero() {
 		t.Fatal("rejected input changed wallet", a)
 	}
 	var n int64
@@ -51,7 +51,7 @@ func TestPostgresManualRefundRejectsPartialAmountAndThenPaysFullOnce(t *testing.
 			t.Fatal(out, err)
 		}
 	}
-	if a := f.balance(t); a.Balance.String() != "90" || !a.Held.IsZero() {
+	if a := f.balance(t); a.Balance.String() != "100" || !a.Held.IsZero() {
 		t.Fatal(a)
 	}
 	if err := f.db.Table("remediation_payment_observations").Where("leg_id=?", leg.ID).Count(&n).Error; err != nil || n != 1 {
@@ -108,7 +108,7 @@ func TestPostgresManualRefundRejectsAmountAboveApprovedObligation(t *testing.T) 
 	if _, err := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p); !errors.Is(err, ErrRefundFullPayment) {
 		t.Fatal("excess amount accepted", err)
 	}
-	if a := f.balance(t); a.Balance.String() != "100" || a.Held.String() != "10" {
+	if a := f.balance(t); a.Balance.String() != "100" || !a.Held.IsZero() {
 		t.Fatal("rejected amount changed wallet", a)
 	}
 	cap, err := f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, leg.ReceiptID)

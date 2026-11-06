@@ -64,10 +64,14 @@ func (a *Application) ledgerSources(c *gin.Context, op string, ids []string) (ma
 	}
 	db := a.DB.WithContext(c.Request.Context())
 	permissions := map[string]bool{}
-	link := func(resource, id, permission string) string {
+	link := func(resource, id string) string {
+		permission := permissionFor(resource)
 		allowed, checked := permissions[permission]
 		if !checked {
 			allowed = a.Organization.RequirePermission(c.Request.Context(), nil, subject(c).Session.SubjectID, op, permission) == nil
+			if !allowed && resource == "orders" {
+				allowed = a.Organization.RequirePermission(c.Request.Context(), nil, subject(c).Session.SubjectID, op, "payments.manage") == nil
+			}
 			permissions[permission] = allowed
 		}
 		if !allowed {
@@ -93,7 +97,7 @@ func (a *Application) ledgerSources(c *gin.Context, op string, ids []string) (ma
 			kind = "订单"
 		}
 		at := o.CreatedAt
-		out[o.ID] = &ledgerSource{Kind: kind, Name: o.Name, CustomerID: o.CustomerID, Amount: o.Amount, Unit: "MONEY", At: &at, URL: link("orders", o.ID, "orders.read")}
+		out[o.ID] = &ledgerSource{Kind: kind, Name: o.Name, CustomerID: o.CustomerID, Amount: o.Amount, Unit: "MONEY", At: &at, URL: link("orders", o.ID)}
 	}
 	var purchases []struct {
 		ID, BuyerID, Name, Amount string
@@ -105,7 +109,7 @@ func (a *Application) ledgerSources(c *gin.Context, op string, ids []string) (ma
 	}
 	for _, o := range purchases {
 		at := o.CreatedAt
-		out[o.ID] = &ledgerSource{Kind: "采购订单", Name: o.Name, BuyerID: o.BuyerID, Amount: o.Amount, Unit: "MONEY", At: &at, URL: link("orders", o.ID, "orders.read")}
+		out[o.ID] = &ledgerSource{Kind: "采购订单", Name: o.Name, BuyerID: o.BuyerID, Amount: o.Amount, Unit: "MONEY", At: &at, URL: link("orders", o.ID)}
 	}
 	var receipts []struct {
 		ID, CustomerID, BuyerID, Amount, Currency string
@@ -121,7 +125,7 @@ func (a *Application) ledgerSources(c *gin.Context, op string, ids []string) (ma
 	// source uses amount/time; the original receipt page owns its safe details.
 	for _, r := range receipts {
 		at := r.CreatedAt
-		out[r.ID] = &ledgerSource{Kind: "收款", CustomerID: r.CustomerID, BuyerID: r.BuyerID, Amount: r.Amount, Unit: r.Currency, At: &at, URL: link("payments", r.ID, "payments.read")}
+		out[r.ID] = &ledgerSource{Kind: "收款", CustomerID: r.CustomerID, BuyerID: r.BuyerID, Amount: r.Amount, Unit: r.Currency, At: &at, URL: link("payments", r.ID)}
 	}
 	return out, nil
 }

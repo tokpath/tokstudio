@@ -101,9 +101,6 @@ func (s *Service) Fulfill(ctx context.Context, tx *gorm.DB, orderID, actorID str
 		}
 		d := deliveryRow{ID: uuid.NewString(), OrderID: o.ID, EffectiveAt: now, ExpiresAt: end, DeliveredAt: now}
 		if o.Kind == "topup" {
-			if err = s.createWalletLots(tx, o); err != nil {
-				return err
-			}
 			from, err := s.account(ctx, tx, o.OperatorID, o.ID, "order:funds")
 			if err != nil {
 				return err
@@ -118,9 +115,6 @@ func (s *Service) Fulfill(ctx context.Context, tx *gorm.DB, orderID, actorID str
 		} else {
 			if s.coverage == nil || o.CoverageStatus != "reserved" {
 				return ErrNotReady
-			}
-			if err = s.resolveOrderWalletFunding(tx, o, true); err != nil {
-				return err
 			}
 			sales, err := s.account(ctx, tx, o.OperatorID, o.OperatorID, "control:sales")
 			if err != nil {

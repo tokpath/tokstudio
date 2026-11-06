@@ -7,7 +7,7 @@ import (
 )
 
 // Replacements retain the original voided legal document and source facts.
-// The new request obtains fresh remaining source capacity under current policy.
+// The new request retains exactly the same completed orders under current policy.
 func (s *Service) RequestInvoiceReplacement(ctx context.Context, customer, operator, originalID, key string, lines []InvoiceLine, details InvoiceDetails) (Invoice, error) {
 	return s.invoiceReplacement(ctx, customer, operator, "", originalID, key, lines, details)
 }
@@ -35,18 +35,15 @@ func (s *Service) invoiceReplacement(ctx context.Context, actor, operator, buyer
 			return ErrForbidden
 		}
 		var previous []InvoiceLine
-		if e := tx.Table("operations_invoice_sources").Where("invoice_id=?", originalID).Find(&previous).Error; e != nil {
+		if e := tx.Table("operations_invoice_orders").Where("invoice_id=?", originalID).Find(&previous).Error; e != nil {
 			return e
 		}
-		allowed := map[string]bool{}
-		for _, line := range previous {
-			allowed[line.ReceiptID] = true
+		if len(previous) == 0 {
+			return ErrConflict
 		}
-		for _, line := range lines {
-			if !allowed[line.ReceiptID] {
-				return ErrInvalid
-			}
-		}
+		// The replacement keeps exactly the original orders; the client only
+		// updates invoice recipient details and never chooses a new amount.
+		lines = previous
 		copy := *s
 		copy.DB = tx
 		party := original.CustomerID

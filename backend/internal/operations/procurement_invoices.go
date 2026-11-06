@@ -2,10 +2,8 @@ package operations
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
-	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
 )
 
@@ -15,53 +13,23 @@ type ProcurementInvoiceSource interface {
 type DomainProcurementInvoiceSource struct {
 	Cooperation *cooperation.Service
 	Commerce    *commerce.Service
-	Adjustments ReceiptAdjustments
+	Adjustments OrderInvoiceAdjustments
 }
 
-func (d DomainProcurementInvoiceSource) ProcurementInvoiceBasis(ctx context.Context, tx *gorm.DB, supplier, buyer, receipt string) (InvoiceBasis, error) {
-	out := InvoiceBasis{ReceiptID: receipt}
-	if d.Cooperation == nil || d.Commerce == nil || d.Adjustments == nil {
+func (d DomainProcurementInvoiceSource) ProcurementInvoiceBasis(ctx context.Context, tx *gorm.DB, supplier, buyer, order string) (InvoiceBasis, error) {
+	out := InvoiceBasis{OrderID: order}
+	if d.Cooperation == nil || d.Adjustments == nil {
 		return out, ErrNotReady
 	}
-	b, e := d.Cooperation.InvoiceReceiptBasis(ctx, tx, supplier, buyer, receipt)
+	purchase, e := d.Cooperation.InvoicePurchase(ctx, tx, supplier, buyer, order)
 	if e != nil {
 		return out, e
 	}
-	r, e := d.Commerce.GetReceipt(ctx, tx, supplier, receipt)
-	if e != nil {
-		return out, e
-	}
-	adjustments, e := d.Adjustments.InvoiceReceiptAdjustments(ctx, tx, supplier, []string{receipt})
-	if e != nil {
-		return out, e
-	}
-	if len(adjustments) != 1 || adjustments[0].ReceiptID != receipt {
-		return out, ErrNotReady
-	}
-	a := adjustments[0]
-	global := r.GrossMoney.Sub(a.RemovedMoney)
-	if global.Sign() < 0 {
-		global = ledger.Zero()
-	}
-	out.GlobalEligibleMoney = &global
-	out.EligibleMoney = b.AllocatedMoney.Sub(b.RefundedMoney)
-	if out.EligibleMoney.Sign() < 0 {
-		out.EligibleMoney = ledger.Zero()
-	}
-	out.ReceiptMoney = &out.EligibleMoney
-	out.PurchaseMoney = b.PurchaseMoney.Sub(b.RefundedMoney)
-	if out.PurchaseMoney.Sign() < 0 {
-		out.PurchaseMoney = ledger.Zero()
-	}
-	out.ConsumptionMoney = b.ConsumptionMoney
-	if out.ConsumptionMoney.Cmp(out.EligibleMoney) > 0 {
-		out.ConsumptionMoney = out.EligibleMoney
-	}
-	out.ReviewRequired = a.ReviewRequired
-	out.AdjustmentReference = a.Reference
-	raw, _ := json.Marshal(map[string]any{"procurement": b, "adjustment": a})
-	out.Evidence = string(raw)
-	return out, nil
+	out.EligibleMoney = purchase.DueMoney
+	out.ReviewRequired = purchase.Status != "completed"
+	review, e := d.Adjustments.InvoiceOrderReview(ctx, tx, supplier, "procurement", order)
+	out.ReviewRequired = out.ReviewRequired || review
+	return out, e
 }
 func (s *Service) invoiceBasis(ctx context.Context, tx *gorm.DB, i Invoice, receipt string) (InvoiceBasis, error) {
 	if i.PartyKind == "procurement" {

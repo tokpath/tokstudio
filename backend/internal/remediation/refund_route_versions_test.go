@@ -13,7 +13,7 @@ func TestPostgresRefundRerouteRequiresTerminalProofAndOnlySettlesRemainingPrinci
 	f.topup(t, "source-for-versioned-refund", "100")
 	f.s.Payments = payments.NewService(f.db, "isolated-versioned-refund-key", f.s.Organization, payments.NewTransport(true), payments.CommerceSink{Commerce: f.s.Commerce})
 	f.s.Payments.RefundApproval, f.s.Payments.RefundSink = f.s, f.s
-	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "versioned-return", AmountMoney: d("10"), Reason: "original receiving bank unavailable"})
+	c, e := f.requestPurchaseRefund(t, "versioned-return", "10")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -133,7 +133,7 @@ func TestPostgresRefundRerouteRequiresTerminalProofAndOnlySettlesRemainingPrinci
 	if e != nil || cap.CompletedMoney.Cmp(d("10")) != 0 || !cap.ReservedMoney.IsZero() {
 		t.Fatal(cap, e)
 	}
-	if wallet := f.balance(t); wallet.Balance.Cmp(d("90")) != 0 || !wallet.Held.IsZero() {
+	if wallet := f.balance(t); wallet.Balance.Cmp(d("100")) != 0 || !wallet.Held.IsZero() {
 		t.Fatal("late real transfer touched settled customer principal", wallet)
 	}
 	cash, e := f.s.account(f.ctx, f.db, f.operator, f.operator, "control:external_cash")

@@ -6,7 +6,6 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"math/big"
 	"time"
 )
 
@@ -14,8 +13,8 @@ type InvoicePolicy struct {
 	OperatorID     string         `gorm:"primaryKey" json:"operator_id"`
 	PartyKind      string         `gorm:"primaryKey" json:"party_kind"`
 	Enabled        bool           `json:"enabled"`
-	Stage          string         `json:"stage"`
-	MaximumRatio   ledger.Decimal `json:"maximum_ratio"`
+	Stage          string         `json:"-"`
+	MaximumRatio   ledger.Decimal `json:"-"`
 	RulesReference string         `json:"rules_reference"`
 	Version        int64          `json:"version"`
 	UpdatedBy      string         `json:"updated_by"`
@@ -30,9 +29,11 @@ func (s *Service) SaveInvoicePolicy(ctx context.Context, actor string, p Invoice
 	if p.PartyKind != "customer" && p.PartyKind != "procurement" {
 		return p, ErrInvalid
 	}
-	if (p.Stage != "receipt" && p.Stage != "purchase" && p.Stage != "consumption") || p.RulesReference == "" || p.MaximumRatio.Sign() < 0 || p.MaximumRatio.Cmp(ledger.FromInt64(1)) > 0 || !p.MaximumRatio.Valid() {
+	if p.RulesReference == "" {
 		return p, ErrInvalid
 	}
+	p.Stage = "purchase"
+	p.MaximumRatio = ledger.FromInt64(1)
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
 		if e := s.require(ctx, t, actor, p.OperatorID, "invoices.manage"); e != nil {
 			return e
@@ -127,30 +128,4 @@ func (s *Service) GetIssuerInvoicePolicy(ctx context.Context, actor, issuer, par
 		return tx.Where("operator_id=? AND party_kind=?", issuer, partyKind).Limit(1).Find(&out).Error
 	})
 	return out, e
-}
-
-// EligibleInvoiceAmount is the stage cap for one receipt before invoices already issued.
-func EligibleInvoiceAmount(b InvoiceBasis, stage string, ratio ledger.Decimal) (ledger.Decimal, error) {
-	return eligibleInvoiceAmount(b, stage, ratio)
-}
-
-func eligibleInvoiceAmount(b InvoiceBasis, stage string, ratio ledger.Decimal) (ledger.Decimal, error) {
-	value := b.EligibleMoney
-	switch stage {
-	case "receipt":
-		if b.ReceiptMoney != nil {
-			value = *b.ReceiptMoney
-		}
-	case "purchase":
-		value = b.PurchaseMoney
-	case "consumption":
-		value = b.ConsumptionMoney
-	default:
-		return ledger.Zero(), ErrInvalid
-	}
-	if value.Sign() < 0 {
-		return ledger.Zero(), ErrInvalid
-	}
-	out, _ := ledger.Quantize(new(big.Rat).Mul(value.Rat(), ratio.Rat()))
-	return out, nil
 }

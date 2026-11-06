@@ -80,11 +80,7 @@ func (s *Service) TransferResponsibility(ctx context.Context, tx *gorm.DB, in Tr
 			if err := t.Model(&subscriptionRow{}).Where("operator_id=? AND customer_id=?", in.FromOperatorID, id).Updates(map[string]any{"operator_id": in.ToOperatorID, "status": gorm.Expr("CASE WHEN status='cancelled' THEN status ELSE 'needs_confirmation' END"), "version": gorm.Expr("version+1"), "notice_quote_id": nil, "notice_cycle_due_at": nil, "notice_delivered_at": nil, "notice_evidence": ""}).Error; err != nil {
 				return err
 			}
-			for _, table := range []string{"commerce_wallet_funding_lots", "commerce_wallet_funding_commands"} {
-				if err := t.Table(table).Where("operator_id=? AND customer_id=?", in.FromOperatorID, id).Update("operator_id", in.ToOperatorID).Error; err != nil {
-					return err
-				}
-			}
+
 			if err := t.Model(&ManualGift{}).Where("operator_id=? AND customer_id=?", in.FromOperatorID, id).Updates(map[string]any{"operator_id": in.ToOperatorID, "ownership_version": in.Customers[id] + 1}).Error; err != nil {
 				return err
 			}

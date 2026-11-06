@@ -26,7 +26,7 @@ func TestPostgresInvoiceSearchPrecedesLimitAndRetainsIssuerAndCustomerScope(t *t
 		t.Fatal(err)
 	}
 	receipt := uuid.NewString()
-	if err := s.DB.Table("operations_invoice_sources").Create(map[string]any{"invoice_id": target.ID, "receipt_id": receipt, "amount_money": "1"}).Error; err != nil {
+	if err := s.DB.Table("operations_invoice_orders").Create(map[string]any{"invoice_id": target.ID, "order_id": receipt, "amount_money": "1"}).Error; err != nil {
 		t.Fatal(err)
 	}
 	for _, search := range []string{target.ID, strings.ToUpper(target.ID), receipt, "DOC_100%"} {

@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/operations"
+	"gorm.io/gorm"
 )
 
 func TestCustomerInvoiceChoicesArePurchasesNotTopUps(t *testing.T) {
@@ -68,94 +70,119 @@ func TestCustomerInvoiceChoicesArePurchasesNotTopUps(t *testing.T) {
 	complete(packageOrder)
 	balancePackage := saveOrder("invoice-balance-package", "package", "completed")
 
-	status, choices, _ := f.call(t, "GET", "/v1/me/references/receipts?purpose=invoice", nil, "")
-	mustOK(t, status, choices)
-	values := map[string]string{}
-	for _, item := range choices["items"].([]any) {
-		row := item.(map[string]any)
-		values[row["value"].(string)] = row["label"].(string)
-	}
-	if _, ok := values[packageOrder]; !ok {
-		t.Fatal("completed package was not selectable", choices["items"])
-	}
-	if _, ok := values[balancePackage]; !ok {
-		t.Fatal("package paid from balance was not selectable", choices["items"])
-	}
-	if _, ok := values[topupOrder]; ok {
-		t.Fatal("top-up order was offered for invoicing", choices["items"])
-	}
-	if _, ok := values[topupReceipt]; ok {
-		t.Fatal("top-up receipt was offered for invoicing", choices["items"])
-	}
-	if label := values[packageOrder]; label == "" || len(label) < len("套餐购买") || label[:len("套餐购买")] != "套餐购买" {
-		t.Fatal("package choice was not labeled as a purchase", values[packageOrder])
-	}
-
-	status, page, _ := f.call(t, "GET", "/v1/me/invoices/workspace", nil, "")
-	mustOK(t, status, page)
-	operations := page["operations"].([]any)
-	fields := operations[0].(map[string]any)["fields"].([]any)
-	var purchase map[string]any
-	for _, field := range fields {
-		row := field.(map[string]any)
-		if row["name"] == "lines.0.receipt_id" {
-			purchase = row
-		}
-	}
-	if purchase == nil || purchase["label"] != "购买订单" || purchase["lookup_url"] != "/api/v1/me/references/receipts?purpose=invoice" {
-		t.Fatal("invoice form still asks for an original receipt", purchase)
-	}
-
-	details := map[string]string{"title": "测试抬头", "tax_id": "TEST-NOT-A-TAX-ID", "email": "invoice-purchase@example.test"}
-	status, denied, _ := f.call(t, "POST", "/v1/me/invoices", map[string]any{"issuer_id": op, "lines": []map[string]string{{"receipt_id": packageOrder, "amount_money": "40"}}, "details": details}, "")
-	if status != 409 {
-		t.Fatal("invoice request was accepted before the operator opened it", status, denied)
-	}
-
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
-	status, rules, _ := f.call(t, "GET", "/v1/operators/"+op+"/invoices", nil, "")
-	mustOK(t, status, rules)
-	for _, raw := range rules["operations"].([]any) {
-		operation := raw.(map[string]any)
-		for _, field := range operation["fields"].([]any) {
-			row := field.(map[string]any)
-			if row["name"] != "stage" {
-				continue
-			}
-			var values []string
-			for _, option := range row["options"].([]any) {
-				values = append(values, option.(map[string]any)["value"].(string))
-			}
-			if len(values) != 2 || values[0] != "purchase" || values[1] != "consumption" || row["default_value"] != "purchase" {
-				t.Fatal(operation["label"], values, row["default_value"])
+	status, policy, _ := f.call(t, "POST", "/v1/operators/"+op+"/invoices", map[string]any{"party_kind": "customer", "enabled": true, "rules_reference": "test invoice rules", "expected_version": 0}, "")
+	mustOK(t, status, policy)
+	status, page, _ := f.call(t, "GET", "/v1/operators/"+op+"/invoices", nil, "")
+	mustOK(t, status, page)
+	for _, raw := range page["operations"].([]any) {
+		for _, field := range raw.(map[string]any)["fields"].([]any) {
+			name := field.(map[string]any)["name"]
+			if name == "stage" || name == "maximum_ratio" {
+				t.Fatal("obsolete policy setting", name)
 			}
 		}
 	}
-	status, saved, _ := f.call(t, "POST", "/v1/operators/"+op+"/invoices", map[string]any{"party_kind": "customer", "enabled": true, "stage": "receipt", "maximum_ratio": "1", "rules_reference": "invoice contract", "expected_version": 0}, "")
-	mustOK(t, status, saved)
 	f.login(t, "customer", "invoice-purchase@example.test", "customer-password-test")
-
-	status, created, _ := f.call(t, "POST", "/v1/me/invoices", map[string]any{"issuer_id": op, "lines": []map[string]string{{"receipt_id": packageOrder, "amount_money": "40"}}, "details": details}, "")
+	status, choices, _ := f.call(t, "GET", "/v1/me/references/invoice-orders", nil, "")
+	mustOK(t, status, choices)
+	values := map[string]bool{}
+	for _, raw := range choices["items"].([]any) {
+		values[raw.(map[string]any)["value"].(string)] = true
+	}
+	if !values[packageOrder] || !values[balancePackage] || values[topupOrder] || values[topupReceipt] {
+		t.Fatal("incorrect invoice order choices", choices)
+	}
+	status, page, _ = f.call(t, "GET", "/v1/me/invoices/workspace", nil, "")
+	mustOK(t, status, page)
+	found := false
+	for _, raw := range page["operations"].([]any) {
+		for _, rawField := range raw.(map[string]any)["fields"].([]any) {
+			field := rawField.(map[string]any)
+			name := field["name"]
+			if name == "lines.0.amount_money" {
+				t.Fatal("customer still enters invoice amount")
+			}
+			if name == "lines.0.order_id" {
+				found = true
+				if field["lookup_url"] != "/api/v1/me/references/invoice-orders" {
+					t.Fatal(field)
+				}
+			}
+		}
+	}
+	if !found {
+		t.Fatal("order picker missing")
+	}
+	details := map[string]string{"title": "测试抬头", "tax_id": "TEST-TAX-ID", "email": "invoice-purchase@example.test"}
+	request := func(order, key, clientAmount string) (int, map[string]any) {
+		status, result, _ := f.call(t, "POST", "/v1/me/invoices", map[string]any{"issuer_id": op, "lines": []map[string]string{{"order_id": order, "amount_money": clientAmount}}, "details": details}, key)
+		return status, result
+	}
+	key := uuid.NewString()
+	status, created := request(packageOrder, key, "999")
 	mustOK(t, status, created)
-	var storedReceipt string
-	if err := f.a.DB.Raw("SELECT receipt_id::text FROM operations_invoice_sources WHERE invoice_id=?", created["id"]).Scan(&storedReceipt).Error; err != nil || storedReceipt != packageReceipt {
-		t.Fatal("purchase was not invoiced against its funding receipt", storedReceipt, err)
+	var amount, storedOrder string
+	if err := f.a.DB.Raw("SELECT amount_money::text FROM operations_invoices WHERE id=?", created["id"]).Scan(&amount).Error; err != nil || ledger.MustDecimal(amount).String() != "40" {
+		t.Fatal("client controlled amount", amount, err)
+	}
+	if err := f.a.DB.Raw("SELECT order_id::text FROM operations_invoice_orders WHERE invoice_id=?", created["id"]).Scan(&storedOrder).Error; err != nil || storedOrder != packageOrder {
+		t.Fatal(storedOrder, err)
+	}
+	status, replay := request(packageOrder, key, "1")
+	mustOK(t, status, replay)
+	if replay["id"] != created["id"] {
+		t.Fatal("retry created new invoice", replay)
+	}
+	status, duplicate := request(packageOrder, uuid.NewString(), "40")
+	if status != 409 {
+		t.Fatal("same order invoiced twice", status, duplicate)
+	}
+	status, second := request(balancePackage, uuid.NewString(), "1")
+	mustOK(t, status, second)
+	status, invalid := request(topupOrder, uuid.NewString(), "40")
+	if status == 200 {
+		t.Fatal("topup invoiced", invalid)
+	}
+	status, choices, _ = f.call(t, "GET", "/v1/me/references/invoice-orders", nil, "")
+	mustOK(t, status, choices)
+	if len(choices["items"].([]any)) != 0 {
+		t.Fatal("already requested orders still offered", choices)
+	}
+	// Backfill a legacy document without rewriting its amount, private details,
+	// receipt evidence, or file. Existing new order invoices are unaffected.
+	legacy := operations.Invoice{ID: uuid.NewString(), OperatorID: op, CustomerID: customerID, PartyKind: "customer", BusinessKey: "legacy-invoice", Fingerprint: "legacy-fingerprint", AmountMoney: ledger.MustDecimal("40"), State: "issued", DetailsCiphertext: "existing-private-details", CreatedAt: now.Add(time.Minute), InvoiceReference: "LEGACY-1", PolicyStage: "receipt", PolicyVersion: 1, PolicyRatio: ledger.FromInt64(1)}
+	if err := f.a.DB.Create(&legacy).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := f.a.DB.Table("operations_invoice_sources").Create(map[string]any{"invoice_id": legacy.ID, "receipt_id": packageReceipt, "amount_money": "40"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	oldFile := operations.InvoiceFile{ID: uuid.NewString(), InvoiceID: legacy.ID, OperatorID: op, BusinessKey: "legacy-file", Fingerprint: "legacy-content", ObjectKey: "legacy-object", Filename: "legacy.pdf", ContentType: "application/pdf", SHA256: "legacy-hash", SizeBytes: 123, State: "ready", CreatedBy: owner, CreatedAt: now}
+	if err := f.a.DB.Create(&oldFile).Error; err != nil {
+		t.Fatal(err)
+	}
+	sql, err := migrations.ReadFile("migrate/0005_invoice_order_links.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.a.DB.Transaction(func(tx *gorm.DB) error { return tx.Exec(string(sql)).Error }); err != nil {
+		t.Fatal(err)
+	}
+	var link operations.InvoiceLine
+	if err = f.a.DB.Table("operations_invoice_orders").Where("invoice_id=?", legacy.ID).Take(&link).Error; err != nil || link.OrderID != packageOrder || link.AmountMoney.Cmp(ledger.MustDecimal("40")) != 0 {
+		t.Fatal(link, err)
+	}
+	var retained operations.Invoice
+	if err = f.a.DB.First(&retained, "id=?", legacy.ID).Error; err != nil || retained.DetailsCiphertext != legacy.DetailsCiphertext || retained.InvoiceReference != "LEGACY-1" || retained.AmountMoney.Cmp(legacy.AmountMoney) != 0 {
+		t.Fatal(retained, err)
+	}
+	var retainedFile operations.InvoiceFile
+	if err = f.a.DB.First(&retainedFile, "id=?", oldFile.ID).Error; err != nil || retainedFile.ObjectKey != oldFile.ObjectKey || retainedFile.State != "ready" {
+		t.Fatal(retainedFile, err)
 	}
 
-	status, tooMuch, _ := f.call(t, "POST", "/v1/me/invoices", map[string]any{"issuer_id": op, "lines": []map[string]string{{"receipt_id": packageOrder, "amount_money": "80"}}, "details": details}, "")
-	if status != 400 || errorMessage(tooMuch) != errInvoiceAmount.Error() {
-		t.Fatal("over-amount purchase was not rejected", status, tooMuch)
-	}
-	status, topup, _ := f.call(t, "POST", "/v1/me/invoices", map[string]any{"issuer_id": op, "lines": []map[string]string{{"receipt_id": topupReceipt, "amount_money": "40"}}, "details": details}, "")
-	if status != 400 || errorMessage(topup) != errInvoiceTopUp.Error() {
-		t.Fatal("top-up receipt was invoiced", status, topup)
-	}
-	status, balance, _ := f.call(t, "POST", "/v1/me/invoices", map[string]any{"issuer_id": op, "lines": []map[string]string{{"receipt_id": balancePackage, "amount_money": "40"}}, "details": details}, "")
-	if status != 400 || errorMessage(balance) != errInvoiceStage.Error() {
-		t.Fatal("balance-only package was invoiced at the receipt stage", status, balance)
-	}
 }
-
 func errorMessage(out map[string]any) string {
 	body, _ := out["error"].(map[string]any)
 	message, _ := body["message"].(string)

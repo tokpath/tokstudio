@@ -73,9 +73,6 @@ func (s *Service) ReleaseUndeliveredPackage(ctx context.Context, tx *gorm.DB, cu
 					return err
 				}
 			}
-			if err = s.resolveOrderWalletFunding(tx, o, false); err != nil {
-				return err
-			}
 			if _, err = s.ledger.Release(ctx, tx, o.OperatorID, *o.HoldID, "undelivered-refund:"+o.ID); err != nil {
 				return err
 			}

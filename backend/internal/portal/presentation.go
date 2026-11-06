@@ -46,6 +46,15 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				ops[i].Permission = operationPermission(resource, ops[i].Name)
 			}
 			ops[i].Fields = businessFields(ops[i])
+			if (resource == "invoices" || resource == "procurement-invoices") && ops[i].Name == "replacement" {
+				details := []field{}
+				for _, f := range ops[i].Fields {
+					if strings.HasPrefix(f.Name, "details.") {
+						details = append(details, f)
+					}
+				}
+				ops[i].Fields = details
+			}
 			if resource == "payment-methods" && a.Config.TestLoopback {
 				ops[i].Fields = append(ops[i].Fields, optional("api_base_url", "独立协议测试地址（仅隔离测试）", "text"))
 			}
@@ -110,6 +119,8 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 					lookup = "scope-subjects"
 				case "customer_id":
 					lookup = "customers"
+				case "lines.0.order_id":
+					lookup = "invoice-orders"
 				case "order_id":
 					lookup = "orders"
 				case "receipt_id", "lines.0.receipt_id", "proof.receipt_id":
@@ -149,13 +160,7 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 						f.LookupURL += "?whole=true"
 					}
 					f.Label = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(f.Label, " ID", ""), "ID", ""), "编号", "")
-					// Customers invoice a completed purchase. The stored invoice line
-					// is still the receipt that funded that purchase.
-					if c.Param("operatorId") == "" && resource == "invoices" && f.Name == "lines.0.receipt_id" {
-						f.LookupURL += "?purpose=invoice"
-						f.Label = "购买订单"
-						f.Help = "选择已完成的套餐购买或续费。余额充值不能开票。"
-					}
+
 				}
 				if resource == "payment-methods" && strings.HasPrefix(f.Name, "credentials.") {
 					name := strings.TrimPrefix(f.Name, "credentials.")

@@ -522,7 +522,7 @@ it("lets a model form be closed when the submit result is unknown", async () => 
   fireEvent.click(screen.getByRole("checkbox", { name: "对话", exact: true }));
   fireEvent.click(screen.getByRole("button", { name: "添加公开模型", exact: true }));
   await screen.findByRole("button", { name: "放弃并关闭", exact: true });
-  expect(blocked).toHaveBeenLastCalledWith(false);
+  await waitFor(() => expect(blocked).toHaveBeenLastCalledWith(false));
   expect((screen.getByRole("button", { name: "关闭", exact: true }) as HTMLButtonElement).disabled).toBe(false);
   fireEvent.click(screen.getByRole("button", { name: "放弃并关闭", exact: true }));
   expect(close).toHaveBeenCalled();
@@ -563,4 +563,19 @@ it("switches brand email inheritance without requiring or submitting hidden SMTP
  fireEvent.click(screen.getByRole("button",{name:"保存邮件服务配置",exact:true}));
  await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({mode:"platform"});
+});
+
+it("selects an invoice order, carries its issuer and never sends a client amount", async () => {
+  const fetch=vi.fn(async(_input:RequestInfo|URL,init?:RequestInit)=>new Response(JSON.stringify(init?.method === "POST" ? {id:"invoice",status:"requested"} : {items:[{value:"purchase-b",label:"套餐购买 · Purchase B · 40 USD",defaults:{issuer_id:"original-seller",amount_money:"999",expected_version:99}}]}),{status:200}));
+  vi.stubGlobal("fetch",fetch);
+  show({name:"invoice",label:"申请发票",method:"POST",path:"/api/v1/me/invoices",fields:[{name:"issuer_id",label:"原始开票经营方",kind:"hidden"},{name:"lines.0.order_id",label:"购买订单",kind:"text",required:true,lookup_url:"/api/v1/me/references/invoice-orders"}]});
+  const picker=await screen.findByRole("combobox",{name:"购买订单"});
+  await waitFor(()=>expect((picker as HTMLInputElement).disabled).toBe(false));
+  fireEvent.focus(picker);
+  fireEvent.click(await screen.findByRole("option",{name:"套餐购买 · Purchase B · 40 USD"}));
+  expect(screen.queryByLabelText(/开票金额/)).toBeNull();
+  fireEvent.click(screen.getByRole("button",{name:"申请发票",exact:true}));
+  await waitFor(()=>expect(fetch.mock.calls.some(([,init])=>init?.method==="POST")).toBe(true));
+  const submitted=fetch.mock.calls.find(([,init])=>init?.method==="POST")?.[1];
+  expect(JSON.parse(String(submitted?.body))).toEqual({issuer_id:"original-seller",lines:[{order_id:"purchase-b"}]});
 });

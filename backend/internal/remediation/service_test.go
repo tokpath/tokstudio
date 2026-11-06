@@ -160,72 +160,43 @@ func (f fixture) pay(t *testing.T, leg RefundLeg) {
 		t.Fatal("replay", e)
 	}
 }
-func TestPostgresWalletRefundPreservesOriginsUnknownAndExactlyOnce(t *testing.T) {
-	f := setup(t)
-	f.topup(t, "first", "40")
-	f.topup(t, "second", "60")
-	in := WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "return-70", AmountMoney: d("70"), Reason: "return unused balance"}
-	c, e := f.s.RequestWalletRefund(f.ctx, in)
-	if e != nil {
-		t.Fatal(e)
+
+// A paid purchase is independently refundable before delivery. Its payment is
+// unrelated to any cash the customer has previously deposited into the wallet.
+func (f fixture) undeliveredOrder(t *testing.T, key, amount string) commerce.Order {
+	t.Helper()
+	q, err := f.s.Commerce.PublishPackage(f.ctx, nil, commerce.PublishPackageInput{ActorStaffID: f.owner, OperatorID: f.operator, Name: key, TermsReference: "test purchase", Timezone: "UTC", PriceMoney: d(amount), PaidATG: d(amount), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
+	if err != nil {
+		t.Fatal(err)
 	}
-	again, e := f.s.RequestWalletRefund(f.ctx, in)
-	if e != nil || again.ID != c.ID {
-		t.Fatal("idempotency", again, e)
+	o, err := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: q.ID, BusinessKey: key, ExpectedOwnershipVersion: 1})
+	if err != nil {
+		t.Fatal(err)
 	}
-	if a := f.balance(t); a.Balance.Cmp(d("100")) != 0 || a.Held.Cmp(d("70")) != 0 {
-		t.Fatal(a)
-	}
-	if _, e = f.s.ReviewRefund(f.ctx, f.owner, f.operator, c.ID, "approve", "verified original payer and unused balance"); e != nil {
-		t.Fatal(e)
-	}
-	legs, e := f.s.Legs(f.ctx, nil, f.operator, c.ID)
-	if e != nil || len(legs) != 2 {
-		t.Fatal(legs, e)
-	}
-	f.pay(t, legs[0])
-	if _, e = f.s.BeginManualRefund(f.ctx, f.owner, f.operator, legs[1].ID, "bank-pending", "actual bank execution"); e != nil {
-		t.Fatal(e)
-	}
-	if _, e = f.s.MarkRefundUnknown(f.ctx, f.owner, f.operator, legs[1].ID, "bank response lost"); e != nil {
-		t.Fatal(e)
-	}
-	if _, e = f.s.CancelRefund(f.ctx, f.owner, f.operator, c.ID, "cannot cancel paid case"); !errors.Is(e, ErrState) {
-		t.Fatal(e)
-	}
-	if a := f.balance(t); a.Available().Cmp(d("30")) != 0 {
-		t.Fatal(a)
-	}
-	p := ExecutionProof{BusinessKey: "verified-later", Reference: "bank-final", Evidence: "bank queried original payment", ActualMoney: legs[1].AmountMoney, Currency: "USD", Amount: legs[1].AmountMoney.String(), OccurredAt: time.Now()}
-	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, legs[1].ID, p); e != nil {
-		t.Fatal(e)
-	}
-	if a := f.balance(t); a.Balance.Cmp(d("30")) != 0 || !a.Held.IsZero() {
-		t.Fatal(a)
-	}
-	done, e := f.s.GetCase(f.ctx, nil, f.operator, c.ID)
-	if e != nil || done.State != "completed" {
-		t.Fatal(done, e)
-	}
-	for _, leg := range legs {
-		adj, e := f.s.InvoiceReceiptAdjustments(f.ctx, nil, f.operator, []string{leg.ReceiptID})
-		if e != nil || len(adj) != 1 || adj[0].RemovedMoney.Cmp(leg.AmountMoney) != 0 || adj[0].ReviewRequired {
-			t.Fatal(adj, e)
-		}
-	}
+	return o
 }
-func TestPostgresWalletRefundConcurrentReservationsAndCancel(t *testing.T) {
+func (f fixture) requestPurchaseRefund(t *testing.T, key, amount string) (Case, error) {
+	t.Helper()
+	o := f.undeliveredOrder(t, key, amount)
+	r := f.receipt(t, key, amount)
+	if _, err := f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: key, AmountMoney: d(amount)}); err != nil {
+		t.Fatal(err)
+	}
+	return f.s.RequestPackageException(f.ctx, PackageExceptionInput{ActorStaffID: f.owner, OperatorID: f.operator, CustomerID: f.customer, OrderID: o.ID, BusinessKey: "refund:" + key, Reason: "unable_to_fulfill", Evidence: "verified non-delivery"})
+}
+func TestPostgresUnallocatedRefundConcurrentReservationsAndCancel(t *testing.T) {
 	f := setup(t)
-	f.topup(t, "cash", "100")
+	f.topup(t, "independent-wallet", "100")
+	r := f.receipt(t, "unallocated", "100")
 	var wg sync.WaitGroup
 	var successes atomic.Int64
 	cases := make(chan Case, 8)
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: uuid.NewString(), AmountMoney: d("30"), Reason: "unused"})
-			if e == nil {
+			c, err := f.s.RequestUnallocatedRefund(f.ctx, f.owner, f.operator, r.ID, uuid.NewString(), "return unallocated", "verified payer", d("30"))
+			if err == nil {
 				successes.Add(1)
 				cases <- c
 			}
@@ -237,12 +208,16 @@ func TestPostgresWalletRefundConcurrentReservationsAndCancel(t *testing.T) {
 		t.Fatalf("successes=%d", successes.Load())
 	}
 	for c := range cases {
-		if _, e := f.s.CustomerCancelRefund(f.ctx, f.customer, f.operator, c.ID); e != nil {
-			t.Fatal(e)
+		if _, err := f.s.CancelRefund(f.ctx, f.owner, f.operator, c.ID, "not paid"); err != nil {
+			t.Fatal(err)
 		}
 	}
-	if a := f.balance(t); a.Available().Cmp(d("100")) != 0 {
-		t.Fatal(a)
+	if a := f.balance(t); a.Balance.Cmp(d("100")) != 0 || !a.Held.IsZero() {
+		t.Fatal("receipt refunds touched pooled wallet", a)
+	}
+	cap, err := f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, r.ID)
+	if err != nil || cap.AvailableMoney.Cmp(d("100")) != 0 {
+		t.Fatal(cap, err)
 	}
 }
 func TestPostgresUndeliveredPackageCanBeRefundedAndDeliveredPackageCannot(t *testing.T) {

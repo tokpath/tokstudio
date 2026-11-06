@@ -1803,8 +1803,8 @@
         "lookup_url": "/api/v1/operators/{operatorId}/references/suppliers",
         "name": "supplier_id",
         "label": "实际供货方编号",
-        "kind": "text",
-        "required": true
+        "kind": "hidden",
+        "required": false
       },
       {
         "name": "issuer_id",
@@ -1813,16 +1813,11 @@
       },
       {
         "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
-        "name": "lines.0.receipt_id",
-        "label": "原始收款编号",
+        "name": "lines.0.order_id",
+        "label": "购买订单",
         "kind": "text",
-        "required": true
-      },
-      {
-        "name": "lines.0.amount_money",
-        "label": "本次申请 清算币种",
-        "kind": "decimal",
-        "required": true
+        "required": true,
+        "help": "开票金额为订单实付金额，由系统确定，无需填写。"
       },
       {
         "name": "details.title",
@@ -1861,24 +1856,6 @@
     "description": "",
     "fields": [
       {
-        "name": "issuer_id",
-        "label": "原始开票经营方",
-        "kind": "hidden"
-      },
-      {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
-        "name": "lines.0.receipt_id",
-        "label": "原始收款编号",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "lines.0.amount_money",
-        "label": "本次申请 清算币种",
-        "kind": "decimal",
-        "required": true
-      },
-      {
         "name": "details.title",
         "label": "发票抬头",
         "kind": "text",
@@ -1903,7 +1880,7 @@
       }
     ],
     "include_version": false,
-    "label": "作废后按原来源申请重开",
+    "label": "按原订单申请重开",
     "method": "POST",
     "name": "replacement",
     "path": "/v1/operators/{operatorId}/procurement-invoices/{id}/replacement",
@@ -4518,28 +4495,6 @@
         "required": true
       },
       {
-        "kind": "select",
-        "label": "允许开票阶段",
-        "name": "stage",
-        "options": [
-          {
-            "label": "完成购买",
-            "value": "purchase"
-          },
-          {
-            "label": "实际消费",
-            "value": "consumption"
-          }
-        ],
-        "required": true
-      },
-      {
-        "kind": "decimal",
-        "label": "最高原收款比例（0到1）",
-        "name": "maximum_ratio",
-        "required": true
-      },
-      {
         "kind": "text",
         "label": "公开办理规则依据",
         "name": "rules_reference",
@@ -4577,28 +4532,6 @@
         "kind": "boolean",
         "label": "开放申请",
         "name": "enabled",
-        "required": true
-      },
-      {
-        "kind": "select",
-        "label": "允许开票阶段",
-        "name": "stage",
-        "options": [
-          {
-            "label": "完成购买",
-            "value": "purchase"
-          },
-          {
-            "label": "实际消费",
-            "value": "consumption"
-          }
-        ],
-        "required": true
-      },
-      {
-        "kind": "decimal",
-        "label": "最高原收款比例（0到1）",
-        "name": "maximum_ratio",
         "required": true
       },
       {

@@ -180,7 +180,7 @@ func (s *Service) lockChargeback(ctx context.Context, t *gorm.DB, op, id string)
 		}
 	}
 	for _, customer := range locked {
-		if e = s.Commerce.LockWalletFunding(ctx, t, op, customer); e != nil {
+		if e = s.Commerce.LockWallet(ctx, t, op, customer); e != nil {
 			return observed, e
 		}
 	}
@@ -273,7 +273,7 @@ func (s *Service) applyChargebackRestrictions(ctx context.Context, t *gorm.DB, a
 		if w.OperatorID != op {
 			continue
 		}
-		amount := fraction(w.AvailableMoney, cb.AmountMoney, basis)
+		amount := fraction(w.CreditedMoney, cb.AmountMoney, basis)
 		if amount.IsZero() {
 			continue
 		}
@@ -284,15 +284,10 @@ func (s *Service) applyChargebackRestrictions(ctx context.Context, t *gorm.DB, a
 		if e = s.noUnsettledSourceHold(t, account); e != nil {
 			return e
 		}
-		if account.Available().Cmp(amount) < 0 {
-			return ErrConflict
-		}
-		reservation := uuid.NewString()
-		if _, e = s.Commerce.ReserveWalletReceipt(ctx, t, op, w.CustomerID, reservation, cb.ReceiptID, amount); e != nil {
-			return e
-		}
 		customer := w.CustomerID
-		if e = freeze(account, &customer, nil, nil, &reservation, amount, "wallet"); e != nil {
+		// Freeze at most the disputed amount in the pooled wallet. A depleted
+		// wallet never causes later purchases or their commissions to be seized.
+		if e = freeze(account, &customer, nil, nil, nil, amount, "wallet"); e != nil {
 			return e
 		}
 	}

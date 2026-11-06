@@ -16,7 +16,7 @@ func (b scopedInvoiceSource) InvoiceBasis(_ context.Context, _ *gorm.DB, operato
 		return InvoiceBasis{}, ErrForbidden
 	}
 	value := ledger.FromInt64(10)
-	return InvoiceBasis{ReceiptID: receipt, EligibleMoney: value, GlobalEligibleMoney: &value, ReceiptMoney: &value}, nil
+	return InvoiceBasis{OrderID: receipt, EligibleMoney: value}, nil
 }
 func TestInvoiceHistoryAndPolicyVersionsSurviveCurrentRelationshipChange(t *testing.T) {
 	s, a, _, op, customer := opsFixture(t)
@@ -50,9 +50,16 @@ func TestInvoiceHistoryAndPolicyVersionsSurviveCurrentRelationshipChange(t *test
 	if e != nil || len(rows) != 1 || rows[0].ID != i.ID || rows[0].OperatorID != op {
 		t.Fatalf("historical original issuer hidden: %+v %v", rows, e)
 	}
-	if _, e = s.RequestHistoricalInvoice(ctx, customer, op, "after-transfer", []InvoiceLine{{receipt, ledger.FromInt64(4)}}, InvoiceDetails{Title: "Original customer"}); e != nil {
+	if _, e = s.RequestHistoricalInvoice(ctx, customer, op, "initial", []InvoiceLine{{receipt, ledger.FromInt64(6)}}, InvoiceDetails{Title: "Original customer"}); e != nil {
 		t.Fatal("original paid relationship lost on current reassignment", e)
 	}
+	// A different uninvoiced purchase from the former operator remains eligible.
+	secondOrder := uuid.NewString()
+	s.Invoices = scopedInvoiceSource{customer, op, secondOrder}
+	if _, err := s.RequestHistoricalInvoice(ctx, customer, op, "after-transfer", []InvoiceLine{{OrderID: secondOrder}}, InvoiceDetails{Title: "Original customer"}); err != nil {
+		t.Fatal("historical purchase unavailable", err)
+	}
+	s.Invoices = scopedInvoiceSource{customer, op, receipt}
 	other := uuid.NewString()
 	if rows, _, e = s.ListCustomerInvoices(ctx, other, "", 20); e != nil || len(rows) != 0 {
 		t.Fatal("another identity read original invoices", e)

@@ -230,7 +230,7 @@ type invoiceBasis struct {
 }
 
 func (b *invoiceBasis) InvoiceBasis(_ context.Context, _ *gorm.DB, _, _, receipt string) (InvoiceBasis, error) {
-	return InvoiceBasis{ReceiptID: receipt, EligibleMoney: b.value, ReviewRequired: b.review.Load()}, nil
+	return InvoiceBasis{OrderID: receipt, EligibleMoney: b.value, ReviewRequired: b.review.Load()}, nil
 }
 func TestInvoiceCapacityConcurrentAndRefundReview(t *testing.T) {
 	s, a, _, operator, customer := opsFixture(t)
@@ -249,7 +249,7 @@ func TestInvoiceCapacityConcurrentAndRefundReview(t *testing.T) {
 			_, e := s.RequestInvoice(context.Background(), customer, operator, uuid.NewString(), []InvoiceLine{{receipt, ledger.FromInt64(6)}}, InvoiceDetails{Title: "Synthetic Buyer"})
 			if e == nil {
 				successes.Add(1)
-			} else if !errors.Is(e, ErrConflict) {
+			} else if !errors.Is(e, ErrInvoiceOrderUsed) {
 				t.Error(e)
 			}
 		}()

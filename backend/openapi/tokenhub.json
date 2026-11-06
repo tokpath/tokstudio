@@ -7382,7 +7382,7 @@
     "/v1/me/invoices": {
       "post": {
         "operationId": "post__v1_me_invoices",
-        "summary": "Apply against real original receipts and immutable issuer, including history",
+        "summary": "Invoice completed purchases once at their full paid amounts",
         "tags": [
           "Customer browser API"
         ],
@@ -7506,7 +7506,7 @@
     "/v1/me/invoices/{id}/replacement": {
       "post": {
         "operationId": "post__v1_me_invoices_id_replacement",
-        "summary": "Request replacement of own voided original invoice",
+        "summary": "Request replacement for the same orders on the voided original invoice",
         "tags": [
           "Customer browser API"
         ],
@@ -7628,7 +7628,37 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InvoiceInput"
+                "type": "object",
+                "properties": {
+                  "details": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "tax_id": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string",
+                        "format": "email"
+                      },
+                      "address": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "tax_id",
+                      "email"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "details"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -27272,7 +27302,7 @@
     "/v1/operators/{operatorId}/procurement-invoices/{id}/replacement": {
       "post": {
         "operationId": "post__v1_operators_operatorId_procurement_invoices_id_replacement",
-        "summary": "作废后按原来源申请重开",
+        "summary": "按原订单申请重开",
         "tags": [
           "Operator browser API"
         ],
@@ -47707,13 +47737,13 @@
             "items": {
               "type": "object",
               "properties": {
-                "receipt_id": {
+                "order_id": {
                   "type": "string",
                   "format": "uuid"
                 }
               },
               "required": [
-                "receipt_id"
+                "order_id"
               ],
               "additionalProperties": false
             }
@@ -50052,18 +50082,13 @@
             "items": {
               "type": "object",
               "properties": {
-                "receipt_id": {
+                "order_id": {
                   "type": "string",
-                  "description": "原始收款编号"
-                },
-                "amount_money": {
-                  "$ref": "#/components/schemas/LedgerDecimal",
-                  "description": "本次申请 清算币种"
+                  "description": "购买订单 — 开票金额为订单实付金额，由系统确定，无需填写。"
                 }
               },
               "required": [
-                "receipt_id",
-                "amount_money"
+                "order_id"
               ],
               "additionalProperties": false
             },
@@ -50099,7 +50124,6 @@
           }
         },
         "required": [
-          "supplier_id",
           "lines",
           "details"
         ],
@@ -50108,32 +50132,6 @@
       "Operator_procurement_invoices_replacement": {
         "type": "object",
         "properties": {
-          "issuer_id": {
-            "type": "string",
-            "description": "原始开票经营方"
-          },
-          "lines": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "receipt_id": {
-                  "type": "string",
-                  "description": "原始收款编号"
-                },
-                "amount_money": {
-                  "$ref": "#/components/schemas/LedgerDecimal",
-                  "description": "本次申请 清算币种"
-                }
-              },
-              "required": [
-                "receipt_id",
-                "amount_money"
-              ],
-              "additionalProperties": false
-            },
-            "minItems": 1
-          },
           "details": {
             "type": "object",
             "properties": {
@@ -50164,7 +50162,6 @@
           }
         },
         "required": [
-          "lines",
           "details"
         ],
         "additionalProperties": false
@@ -52223,18 +52220,6 @@
             "type": "boolean",
             "description": "开放申请"
           },
-          "stage": {
-            "type": "string",
-            "enum": [
-              "purchase",
-              "consumption"
-            ],
-            "description": "允许开票阶段"
-          },
-          "maximum_ratio": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "最高原收款比例（0到1）"
-          },
           "rules_reference": {
             "type": "string",
             "description": "公开办理规则依据"
@@ -52248,8 +52233,6 @@
         "required": [
           "party_kind",
           "enabled",
-          "stage",
-          "maximum_ratio",
           "rules_reference",
           "expected_version"
         ],
@@ -52266,18 +52249,6 @@
             "type": "boolean",
             "description": "开放申请"
           },
-          "stage": {
-            "type": "string",
-            "enum": [
-              "purchase",
-              "consumption"
-            ],
-            "description": "允许开票阶段"
-          },
-          "maximum_ratio": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "最高原收款比例（0到1）"
-          },
           "rules_reference": {
             "type": "string",
             "description": "公开办理规则依据"
@@ -52291,8 +52262,6 @@
         "required": [
           "party_kind",
           "enabled",
-          "stage",
-          "maximum_ratio",
           "rules_reference",
           "expected_version"
         ],

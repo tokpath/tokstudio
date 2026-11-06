@@ -118,11 +118,39 @@ func (s *Service) CustomerClosureRequirements(ctx context.Context, tx *gorm.DB, 
 		if e = t.Model(&Case{}).Where("customer_id=? AND state NOT IN ('completed','cancelled','rejected')", customer).Count(&payouts).Error; e != nil {
 			return e
 		}
-		if e = t.Raw(`SELECT count(*) FROM remediation_chargebacks cb WHERE cb.state='disputed' AND (EXISTS(SELECT 1 FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id WHERE a.receipt_id=cb.receipt_id AND o.customer_id=?) OR EXISTS(SELECT 1 FROM commerce_wallet_funding_lots l WHERE l.receipt_id=cb.receipt_id AND l.customer_id=?))`, customer, customer).Row().Scan(&disputes); e != nil {
+		if e = t.Raw(`SELECT count(*) FROM remediation_chargebacks cb WHERE cb.state='disputed' AND (EXISTS(SELECT 1 FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id WHERE a.receipt_id=cb.receipt_id AND o.customer_id=?) OR EXISTS(SELECT 1 FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id WHERE a.receipt_id=cb.receipt_id AND o.kind='topup' AND o.customer_id=?))`, customer, customer).Row().Scan(&disputes); e != nil {
 			return e
 		}
 		out = []organization.Requirement{{Code: "payouts", Description: "refunds must be paid or explicitly cancelled before closure", Ready: payouts == 0}, {Code: "disputes", Description: "original payment disputes must be resolved before closure", Ready: disputes == 0}}
 		return nil
 	})
 	return out, e
+}
+
+// InvoiceOrderReview follows corrections to this sale only. A disputed top-up
+// does not reattribute or invalidate unrelated purchases from a pooled wallet.
+func (s *Service) InvoiceOrderReview(ctx context.Context, tx *gorm.DB, operator, partyKind, order string) (bool, error) {
+	review := false
+	e := s.within(ctx, tx, func(t *gorm.DB) error {
+		var cases int64
+		if e := t.Model(&Case{}).Where("order_id=? AND kind IN ('package_exception','procurement_nondelivery') AND state NOT IN ('rejected','cancelled')", order).Count(&cases).Error; e != nil {
+			return e
+		}
+		review = cases > 0
+		if partyKind == "customer" {
+			var claims int64
+			if e := t.Table("remediation_chargeback_order_claims").Where("order_id=? AND state IN ('active','invalid')", order).Count(&claims).Error; e != nil {
+				return e
+			}
+			review = review || claims > 0
+		} else {
+			var refunds int64
+			if e := t.Table("cooperation_procurement_exit_refunds r").Joins("JOIN cooperation_purchase_allocations a ON a.receipt_id=r.receipt_id").Where("a.order_id=? AND r.supplier_id=? AND r.settled_money>0", order, operator).Count(&refunds).Error; e != nil {
+				return e
+			}
+			review = review || refunds > 0
+		}
+		return nil
+	})
+	return review, e
 }

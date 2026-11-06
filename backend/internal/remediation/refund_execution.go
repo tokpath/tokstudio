@@ -368,7 +368,7 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 	// All provenance fences precede ledger rows, including the independent fee
 	// posting and a verified transfer whose amount requires reconciliation.
 	if c.Kind == "wallet" && c.CustomerID != nil {
-		if e = s.Commerce.LockWalletFunding(ctx, t, c.OperatorID, *c.CustomerID); e != nil {
+		if e = s.Commerce.LockWallet(ctx, t, c.OperatorID, *c.CustomerID); e != nil {
 			return false, e
 		}
 	}
@@ -445,40 +445,7 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 	if e != nil {
 		return false, e
 	}
-	if c.Kind == "wallet" {
-		var links []struct{ AllocationID string }
-		if e = t.Table("remediation_wallet_links").Where("leg_id=?", l.ID).Find(&links).Error; e != nil {
-			return false, e
-		}
-		if len(links) == 0 {
-			return false, ErrConflict
-		}
-		allocations, e := s.Commerce.WalletRefundAllocations(ctx, t, c.OperatorID, *c.CustomerID, c.ID)
-		if e != nil {
-			return false, e
-		}
-		byID := map[string]bool{}
-		for _, link := range links {
-			byID[link.AllocationID] = true
-		}
-		left := capacityObservation.SettledMoney
-		for _, a := range allocations {
-			if !byID[a.ID] || left.IsZero() {
-				continue
-			}
-			take := min(left, a.AmountMoney.Sub(a.RefundedMoney))
-			if take.Sign() <= 0 {
-				continue
-			}
-			if e = s.Commerce.ObserveWalletRefundAllocation(ctx, t, c.OperatorID, *c.CustomerID, c.ID, a.ID, observationID, take); e != nil {
-				return false, e
-			}
-			left = left.Sub(take)
-		}
-		if !left.IsZero() {
-			return false, ErrConflict
-		}
-	}
+
 	// Provenance is fenced before the receipt, and the receipt before cash rows;
 	// verified executions remain recordable even if a later dispute arrived.
 	if e = lock(t, l.SourceOperatorID+":receipt:"+l.ReceiptID); e != nil {

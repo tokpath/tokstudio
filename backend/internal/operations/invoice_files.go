@@ -82,7 +82,7 @@ func (s *Service) UploadInvoiceFile(ctx context.Context, actor, operator, invoic
 			return q.Error
 		}
 		if q.RowsAffected > 0 {
-			if out.Fingerprint != fp {
+			if out.Fingerprint != fp || out.State == "removed" {
 				return ErrConflict
 			}
 			return nil
@@ -109,10 +109,34 @@ func (s *Service) UploadInvoiceFile(ctx context.Context, actor, operator, invoic
 		if e := s.require(ctx, tx, actor, operator, "invoices.manage"); e != nil {
 			return e
 		}
-		return tx.Model(&InvoiceFile{}).Where("id=? AND fingerprint=?", out.ID, fp).Update("state", "ready").Error
+		var invoice Invoice
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&invoice, "id=? AND operator_id=?", invoiceID, operator).Error; err != nil {
+			return err
+		}
+		result := tx.Model(&InvoiceFile{}).Where("id=? AND fingerprint=? AND state='uploading'", out.ID, fp).Update("state", "ready")
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			var current InvoiceFile
+			if err := tx.First(&current, "id=?", out.ID).Error; err != nil {
+				return err
+			}
+			if current.State != "ready" {
+				return ErrConflict
+			}
+		}
+		return nil
 	})
 	if e == nil {
 		out.State = "ready"
+	} else {
+		// A delete may have won while storage I/O was in flight. Never restore
+		// its row, and remove the late object without touching a ready retry.
+		var current InvoiceFile
+		if s.DB.WithContext(ctx).First(&current, "id=?", out.ID).Error == nil && current.State == "removed" {
+			_ = s.InvoiceStore.Delete(ctx, out.ObjectKey)
+		}
 	}
 	return out, e
 }

@@ -22,6 +22,8 @@ var migrations embed.FS
 
 func Migrations() (string, fs.FS) { sub, _ := fs.Sub(migrations, "migrate"); return "operations", sub }
 
+var ErrInvoiceOrderUsed = errors.New("这笔订单已经申请或完成开票。请查看原申请。")
+
 var ErrForbidden = errors.New("operations permission denied")
 var ErrInvalid = errors.New("invalid operations command")
 var ErrConflict = errors.New("operations command conflicts with recorded facts")

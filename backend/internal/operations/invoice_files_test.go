@@ -112,7 +112,7 @@ func testPrivateInvoiceFiles(t *testing.T, realS3 bool) {
 	if e != nil || replacement.ReplacesInvoiceID == nil || *replacement.ReplacesInvoiceID != i.ID {
 		t.Fatal("replacement link missing", replacement, e)
 	}
-	if _, e = s.RequestInvoiceReplacement(ctx, customer, operator, i.ID, "second-replacement", lines, InvoiceDetails{Title: "Duplicate Buyer"}); !errors.Is(e, ErrConflict) {
+	if _, e = s.RequestInvoiceReplacement(ctx, customer, operator, i.ID, "second-replacement", lines, InvoiceDetails{Title: "Duplicate Buyer"}); !errors.Is(e, ErrInvoiceOrderUsed) {
 		t.Fatalf("voided source invoiced twice via replacement: %v", e)
 	}
 	if e = s.DB.Exec("UPDATE operations_invoice_transitions SET reason='rewrite'").Error; e == nil {
@@ -154,6 +154,10 @@ func TestInvoiceFileCanBeRemovedBeforeTheResultIsRegistered(t *testing.T) {
 	if _, e = s.InvoiceStore.Get(ctx, uploaded.ObjectKey); e == nil {
 		t.Fatal("removed file remained in private storage")
 	}
+	replayed, replayErr := s.UploadInvoiceFile(ctx, a.actor, operator, invoice.ID, "wrong-file", InvoiceUpload{Filename: "dot.png", ContentType: "image/png", Data: pngFixture()})
+	if !errors.Is(replayErr, ErrConflict) {
+		t.Fatal("removed file resurrected", replayed, replayErr)
+	}
 	kept, e := s.UploadInvoiceFile(ctx, a.actor, operator, invoice.ID, "kept-file", InvoiceUpload{Filename: "legal-invoice.pdf", ContentType: "application/pdf", Data: invoicePDFFixture()})
 	if e != nil {
 		t.Fatal(e)
@@ -168,4 +172,59 @@ func TestInvoiceFileCanBeRemovedBeforeTheResultIsRegistered(t *testing.T) {
 
 func pngFixture() []byte {
 	return []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82}
+}
+
+type delayedInvoiceBlobs struct {
+	operationBlobs
+	started chan struct{}
+	finish  chan struct{}
+}
+
+func (b *delayedInvoiceBlobs) Put(ctx context.Context, key string, data []byte, mime string, at time.Time) error {
+	close(b.started)
+	<-b.finish
+	return b.operationBlobs.Put(ctx, key, data, mime, at)
+}
+func TestInvoiceFileDeletedDuringUploadStaysRemoved(t *testing.T) {
+	s, a, _, operator, customer := opsFixture(t)
+	ctx := context.Background()
+	s.Invoices = &invoiceBasis{value: ledger.FromInt64(10)}
+	if _, err := s.SaveInvoicePolicy(ctx, a.actor, InvoicePolicy{OperatorID: operator, Enabled: true, RulesReference: "invoice rules"}, 0); err != nil {
+		t.Fatal(err)
+	}
+	inv, err := s.RequestInvoice(ctx, customer, operator, "invoice", []InvoiceLine{{OrderID: uuid.NewString()}}, InvoiceDetails{Title: "Buyer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	blobs := &delayedInvoiceBlobs{operationBlobs: operationBlobs{data: map[string][]byte{}}, started: make(chan struct{}), finish: make(chan struct{})}
+	s.InvoiceStore = blobs
+	done := make(chan error, 1)
+	go func() {
+		_, err := s.UploadInvoiceFile(ctx, a.actor, operator, inv.ID, "upload", InvoiceUpload{Filename: "invoice.pdf", Data: invoicePDFFixture()})
+		done <- err
+	}()
+	select {
+	case <-blobs.started:
+	case <-time.After(10 * time.Second):
+		t.Fatal("upload did not start")
+	}
+	var file InvoiceFile
+	if err := s.DB.Where("invoice_id=?", inv.ID).Take(&file).Error; err != nil {
+		close(blobs.finish)
+		t.Fatal(err)
+	}
+	if err := s.DeleteInvoiceFile(ctx, a.actor, operator, inv.ID, file.ID); err != nil {
+		close(blobs.finish)
+		t.Fatal(err)
+	}
+	close(blobs.finish)
+	if err := <-done; !errors.Is(err, ErrConflict) {
+		t.Fatal("late upload restored a removed file", err)
+	}
+	if err := s.DB.First(&file, "id=?", file.ID).Error; err != nil || file.State != "removed" {
+		t.Fatal(file, err)
+	}
+	if _, err := blobs.Get(ctx, file.ObjectKey); err == nil {
+		t.Fatal("late private object retained")
+	}
 }

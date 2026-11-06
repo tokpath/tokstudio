@@ -337,13 +337,20 @@ function ReferenceField({ field, value, disabled, invalid, change, choose, onLab
   const [search, setSearch] = useState(""); const deferred = useDeferredValue(search); const [cursor, setCursor] = useState(""); const [selectedLabel, setSelectedLabel] = useState(""); const path = field.lookup_url!; const separator = path.includes("?") ? "&" : "?";
   const data = useQuery({ queryKey: ["references", path, deferred, cursor], queryFn: ({ signal }) => request(`${path}${separator}q=${encodeURIComponent(deferred)}&cursor=${encodeURIComponent(cursor)}`, ReferenceSchema, { signal }) });
   const selected = useQuery({ queryKey: ["reference-label", path, value], queryFn: ({ signal }) => request(`${path}${separator}q=${encodeURIComponent(value)}`, ReferenceSchema, { signal }), enabled: !!value && !data.data?.items.some(item => item.value === value) });
-  const currentLabel = data.data?.items.find(item => item.value === value)?.label || selected.data?.items.find(item => item.value === value)?.label || selectedLabel;
+  // Invoice choices start with a system-owned order kind; everything after
+  // it (including the seller's package name) must stay literal.
+  const translateLabel = (label: string) => {
+    if (!/\/invoice-orders$/.test(path)) return label;
+    const [kind, ...details] = label.split(" · ");
+    return [t(kind), ...details].join(" · ");
+  };
+  const currentLabel = translateLabel(data.data?.items.find(item => item.value === value)?.label || selected.data?.items.find(item => item.value === value)?.label || selectedLabel);
   useEffect(() => { onLabel(currentLabel); }, [currentLabel, onLabel]);
   function select(next: string) {
     change(next);
     const option = data.data?.items.find(item => item.value === next);
     setSelectedLabel(option?.label || "");
-    onLabel(option?.label || "");
+    onLabel(translateLabel(option?.label || ""));
     const defaults = option?.defaults || {};
     if (primary) { choose({ expected_version: 0, ...defaults }); return; }
     // Linked records have their own identities and revisions. Carry only the
@@ -352,11 +359,12 @@ function ReferenceField({ field, value, disabled, invalid, change, choose, onLab
     if (field.name === "quote_id" && /\/purchase-quotes$/.test(path)) permitted.add("supplier_id");
     if (field.name === "order_id" && /\/orders$/.test(path)) permitted.add("customer_id");
     if (fieldName(field) === "receipt_id" && /\/receipts$/.test(path)) ["amount_money", "currency", "issuer_id"].forEach(key => permitted.add(key));
+    if (field.name === "lines.0.order_id" && /\/invoice-orders$/.test(path)) ["issuer_id", "supplier_id"].forEach(key => permitted.add(key));
     if (field.name === "scope_id" && /\/scope-subjects$/.test(path)) permitted.add("scope_kind");
     if (field.name === "asset_network_version_id" && /\/payment-assets$/.test(path)) permitted.add("driver");
     choose(Object.fromEntries(Object.entries(defaults).filter(([key]) => permitted.has(key) && !["id", "version", "expected_version"].includes(key))));
   }
-  const options: RecordChoice[] = (data.data?.items || []).map(item => ({ value: item.value, label: item.label, defaults: item.defaults }));
+  const options: RecordChoice[] = (data.data?.items || []).map(item => ({ value: item.value, label: translateLabel(item.label), defaults: item.defaults }));
   const shown = !value ? "" : currentLabel || t(selected.isPending ? "正在读取关联记录名称…" : "已选择关联记录");
   return <div className="min-w-0 text-sm"><div className="flex min-h-7 items-center max-sm:min-h-11"><span>{t(field.label)}</span>{field.required && <span className="ml-1 text-danger" aria-hidden="true">*</span>}{field.help && <FieldHelp title={t(field.label)}>{t(field.help)}</FieldHelp>}</div>
     <RecordPicker label={t(field.label)} required={field.required} invalid={invalid} disabled={disabled} value={value} displayLabel={shown} options={options} placeholder={t("按名称或编号搜索")} emptyLabel={field.required ? t("请选择实际业务记录") : primary ? t("新建 / 不选择现有记录") : t("不选择关联记录")} loading={data.isPending} error={data.isError ? data.error : undefined} onRetry={() => void data.refetch()} moreLabel={data.data?.next_cursor ? t("更多记录") : undefined} onMore={data.data?.next_cursor ? () => setCursor(data.data!.next_cursor!) : undefined} onQuery={next => { setSearch(next); setCursor(""); }} onChoose={choice => select(choice?.value || "")} />

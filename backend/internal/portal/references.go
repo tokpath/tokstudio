@@ -420,20 +420,14 @@ func (a *Application) references(c *gin.Context) {
 		for _, r := range rows {
 			add(r.ID, humanJoin(map[string]string{"topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费"}[r.Kind], r.DueMoney.String()+" "+monetary.Currency, r.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC")), gin.H{"order_id": r.ID, "customer_id": r.CustomerID})
 		}
-	case "receipts":
-		if customer && c.Query("purpose") == "invoice" {
-			rows, nextCursor, err := a.Commerce.CustomerInvoicePurchases(ctx, nil, actor, query, c.Query("cursor"), 50)
-			if err != nil {
-				handleError(c, err)
-				return
-			}
-			next = nextCursor
-			for _, r := range rows {
-				kind := map[string]string{"package": "套餐购买", "renewal": "套餐续费"}[r.Kind]
-				add(r.ID, humanJoin(kind, r.Name, r.DueMoney.String()+" "+monetary.Currency, r.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC")), gin.H{"issuer_id": r.OperatorID, "lines.0.amount_money": r.DueMoney.String()})
-			}
-			break
+	case "invoice-orders":
+		if !customer && !require("cooperation.manage") {
+			return
 		}
+		a.invoiceOrderChoices(c, customer, actor, operator, query, monetary.Currency)
+		return
+	case "receipts":
+
 		if customer {
 			rows, e := a.Commerce.CustomerHistoricalReceiptReferences(ctx, nil, actor, query, c.Query("cursor"), 50)
 			if e != nil {

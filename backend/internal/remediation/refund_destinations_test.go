@@ -34,7 +34,9 @@ type externalRefundFixture struct {
 // The RPC protocol fixture exercises the real read-only ERC20 driver. It is
 // synthetic chain state; it is not evidence of a live chain/account test.
 func externalRefundSetup(t *testing.T) externalRefundFixture {
-	return externalRefundSetupFor(t, setup(t), true)
+	f := setup(t)
+	f.topup(t, "independent-wallet", "100")
+	return externalRefundSetupFor(t, f, true)
 }
 func externalRefundSetupFor(t *testing.T, f fixture, request bool, registryAuthority ...fixture) externalRefundFixture {
 	t.Helper()
@@ -70,7 +72,7 @@ func externalRefundSetupFor(t *testing.T, f fixture, request bool, registryAutho
 			_ = json.Unmarshal(request.Params[0], &tx)
 			sender, recipient, amount := externalTestMerchant, externalTestDestination, int64(20000000)
 			if tx == "0x"+strings.Repeat("1", 64) {
-				sender, recipient, amount = externalTestOriginalSender, externalTestMerchant, 100000000
+				sender, recipient, amount = externalTestOriginalSender, externalTestMerchant, 20000000
 			}
 			if tx == "0x"+strings.Repeat("3", 64) {
 				recipient = externalTestOriginalSender
@@ -117,11 +119,8 @@ func externalRefundSetupFor(t *testing.T, f fixture, request bool, registryAutho
 	if _, e = pay.SaveMerchant(f.ctx, f.owner, m, 0); e != nil {
 		t.Fatal(e)
 	}
-	topup, e := f.s.Commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "verified-chain-topup", ExpectedOwnershipVersion: 1, AmountMoney: d("100")})
-	if e != nil {
-		t.Fatal(e)
-	}
-	o := payments.Order{ID: topup.ID, OperatorID: f.operator, MerchantID: m.ID, Money: payments.Money{Currency: "USDT", Amount: d("100")}, SettlementMoney: payments.Money{Currency: "USD", Amount: d("100")}, AcceptedAt: at, ExpiresAt: at.Add(time.Hour)}
+	purchase := f.undeliveredOrder(t, "verified-chain-purchase", "20")
+	o := payments.Order{ID: purchase.ID, OperatorID: f.operator, MerchantID: m.ID, Money: payments.Money{Currency: "USDT", Amount: d("20")}, SettlementMoney: payments.Money{Currency: "USD", Amount: d("20")}, AcceptedAt: at, ExpiresAt: at.Add(time.Hour)}
 	if _, e = pay.Create(f.ctx, f.operator, m.ID, o); e != nil {
 		t.Fatal(e)
 	}
@@ -133,24 +132,21 @@ func externalRefundSetupFor(t *testing.T, f fixture, request bool, registryAutho
 	if e = pay.RecordFact(f.ctx, m, o, fact); e != nil && !errors.Is(e, payments.ErrAwaitingSettlement) {
 		t.Fatal(e)
 	}
-	if _, e = pay.ConfirmReceiptValuation(f.ctx, f.owner, f.operator, fact.ID, payments.ReceiptValuationConfirmation{BusinessKey: "confirm-actual-receipt", SettlementAmount: d("100"), EvidenceReference: "verified source payment matched to this settlement obligation"}); e != nil {
+	if _, e = pay.ConfirmReceiptValuation(f.ctx, f.owner, f.operator, fact.ID, payments.ReceiptValuationConfirmation{BusinessKey: "confirm-actual-receipt", SettlementAmount: d("20"), EvidenceReference: "verified source payment matched to this settlement obligation"}); e != nil {
 		t.Fatal(e)
 	}
 	var link struct{ ReceiptID string }
 	if e = f.db.Table("payments_verified_facts").Select("receipt_id").Where("id=?", fact.ID).Take(&link).Error; e != nil {
 		t.Fatal(e)
 	}
-	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, ReceiptID: link.ReceiptID, OrderID: topup.ID, BusinessKey: "verified-chain-allocation", AmountMoney: d("100")}); e != nil {
-		t.Fatal(e)
-	}
-	if _, e = f.s.Commerce.Fulfill(f.ctx, nil, topup.ID, f.owner); e != nil {
+	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, ReceiptID: link.ReceiptID, OrderID: purchase.ID, BusinessKey: "verified-chain-allocation", AmountMoney: d("20")}); e != nil {
 		t.Fatal(e)
 	}
 	out := externalRefundFixture{fixture: f, merchant: m, order: o, receipt: link.ReceiptID, destination: RefundDestination{Network: "1", Asset: "USDT", TokenContract: externalTestContract, Address: externalTestDestination}, blockTime: blockAt}
 	if !request {
 		return out
 	}
-	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "stablecoin-refund-20", AmountMoney: d("20"), Reason: "unused deposit to verified original payer destination"})
+	c, e := f.s.RequestPackageException(f.ctx, PackageExceptionInput{ActorStaffID: f.owner, OperatorID: f.operator, CustomerID: f.customer, OrderID: purchase.ID, BusinessKey: "stablecoin-refund-20", Reason: "unable_to_fulfill", Evidence: "verified non-delivery"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -256,7 +252,7 @@ func TestPostgresStablecoinRefundRPCSettlesAuthorizedAddressDifferentFromOrigina
 	if e != nil || status.State != "succeeded" {
 		t.Fatal(status, e)
 	}
-	if balance := f.balance(t); balance.Balance.Cmp(d("80")) != 0 || !balance.Held.IsZero() {
+	if balance := f.balance(t); balance.Balance.Cmp(d("100")) != 0 || !balance.Held.IsZero() {
 		t.Fatal(balance)
 	}
 	rows, e := f.s.RefundAccounting(f.ctx, nil, f.owner, f.operator, f.leg.ID)
@@ -302,13 +298,18 @@ func TestPostgresStablecoinRefundWrongRecipientAndFXMismatchRetainActualFactsWit
 			if e = f.db.Table("payments_verified_facts").Where("kind='refund'").Count(&facts).Error; e != nil || facts != 1 {
 				t.Fatal("actual chain fact lost", facts, e)
 			}
-			wantBalance, wantHeld := "100", "20"
+			if balance := f.balance(t); balance.Balance.Cmp(d("100")) != 0 || !balance.Held.IsZero() {
+				t.Fatal("purchase refund changed pooled wallet", balance)
+			}
+			cap, err := f.s.ReceiptRefundCapacity(f.ctx, nil, f.operator, f.receipt)
+			remaining := "20"
 			if tc.tx == "4" {
-				wantBalance, wantHeld = "81", "1"
+				remaining = "1"
 			}
-			if balance := f.balance(t); balance.Balance.Cmp(d(wantBalance)) != 0 || balance.Held.Cmp(d(wantHeld)) != 0 {
-				t.Fatal("actual partial payment did not preserve only the remaining liability", balance)
+			if err != nil || cap.ReservedMoney.Cmp(d(remaining)) != 0 {
+				t.Fatal("remaining refund liability", cap, err)
 			}
+
 			c, e := f.s.GetCase(f.ctx, nil, f.operator, f.leg.CaseID)
 			if e != nil || c.State == "completed" {
 				t.Fatal(c, e)
@@ -348,7 +349,7 @@ func TestPostgresStablecoinMismatchKeepsActualFactWithoutSupplementalWorkflow(t 
 	if err := f.db.Table("payments_verified_facts").Where("kind='refund'").Count(&facts).Error; err != nil || facts != 1 {
 		t.Fatal("original verified fact lost", facts, err)
 	}
-	if a := f.balance(t); a.Balance.String() != "81" || a.Held.String() != "1" {
+	if a := f.balance(t); a.Balance.String() != "100" || !a.Held.IsZero() {
 		t.Fatal("actual external fact changed", a)
 	}
 }

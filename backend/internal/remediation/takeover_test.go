@@ -178,14 +178,24 @@ func TestPostgresTakeoverKeepsRightsAndSettlesContractValueOnce(t *testing.T) {
 	if _, e = brand.s.Cooperation.Position(brand.ctx, nil, brand.operator); !errors.Is(e, gorm.ErrRecordNotFound) {
 		t.Fatal("takeover fabricated upstream inventory", e)
 	}
-	// An outstanding brand/channel debt never blocks customer wallet refund.
-	refund, e := brand.s.RequestWalletRefund(brand.ctx, WalletRefundInput{OperatorID: brand.operator, CustomerID: channel.customer, BusinessKey: "refund-after-takeover", AmountMoney: d("5"), Reason: "unused deposit"})
+	// Customer withdrawals use the new responsible operator's pooled wallet.
+	policy, e := brand.s.Incentives.SetWithdrawalPolicy(brand.ctx, nil, brand.owner, brand.operator, incentives.WithdrawalPolicy{Wallet: "balance", MethodID: uuid.NewString(), MethodName: "Bank", PayoutKind: "bank_cn", Enabled: true, MinimumMoney: d("1")}, 0)
 	if e != nil {
 		t.Fatal(e)
 	}
-	legs, e := brand.s.Legs(brand.ctx, nil, brand.operator, refund.ID)
-	if e != nil || len(legs) != 1 || legs[0].SourceOperatorID != channel.operator {
-		t.Fatal(legs, e)
+	withdrawal, e := brand.s.Incentives.RequestWithdrawal(brand.ctx, nil, incentives.WithdrawalInput{OperatorID: brand.operator, CustomerID: channel.customer, BusinessKey: "withdraw-after-takeover", PolicyID: policy.ID, RecipientReference: "customer bank", AmountMoney: d("5")})
+	if e != nil || withdrawal.OperatorID != brand.operator {
+		t.Fatal(withdrawal, e)
+	}
+	if _, e = brand.s.Incentives.ApproveWithdrawal(brand.ctx, nil, brand.owner, brand.operator, withdrawal.ID); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = brand.s.Incentives.VerifyWithdrawalPaid(brand.ctx, nil, brand.owner, brand.operator, withdrawal.ID, incentives.WithdrawalPaymentProof{Currency: "USD", OriginalAmount: "5", PaidMoney: d("5"), PaidAt: time.Now().UTC(), Evidence: "actual payment"}); e != nil {
+		t.Fatal(e)
+	}
+	wallet, e = brand.s.account(brand.ctx, brand.db, brand.operator, channel.customer, "customer:money")
+	if e != nil || wallet.Balance.Cmp(d("20")) != 0 || !wallet.Held.IsZero() {
+		t.Fatal(wallet, e)
 	}
 	proof := ExecutionProof{BusinessKey: "settle-part-1", Reference: "bank-transfer-1", Evidence: "verified actual USD received", ActualMoney: d("2"), FeeMoney: d("0.1"), Currency: "USD", Amount: "2", OccurredAt: time.Now().UTC()}
 	paid, e := brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof)

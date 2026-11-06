@@ -4353,5 +4353,30 @@
     "en": "Targeted credit grant",
     "ja": "個別の利用枠付与",
     "ru": "Адресное начисление квоты"
+  },
+  "这笔订单已经申请或完成开票。请查看原申请。": {
+    "en": "This order already has an invoice request or an issued invoice. View the existing request.",
+    "ja": "この注文はすでに請求書の申請済み、または発行済みです。既存の申請をご確認ください。",
+    "ru": "По этому заказу уже подана заявка или выставлен счёт. Откройте существующую заявку."
+  },
+  "开票金额为订单实付金额，由系统确定，无需填写。": {
+    "en": "The invoice amount is the amount actually paid for the order. The system fills it in automatically.",
+    "ja": "請求書の金額は注文の実際の支払額です。システムが自動設定するため、入力は不要です。",
+    "ru": "Сумма счёта равна фактически оплаченной сумме заказа и определяется системой автоматически."
+  },
+  "选择已完成的采购订单，按订单实付金额全额申请，由实际供货方办理。同一订单不能重复开票。": {
+    "en": "Choose a completed procurement order to request an invoice for its full paid amount from the supplier. Each order can be invoiced only once.",
+    "ja": "完了した仕入注文を選び、実際の支払額全額の請求書を仕入先に申請します。同じ注文への重複発行はできません。",
+    "ru": "Выберите завершённый закупочный заказ и запросите у поставщика счёт на полную оплаченную сумму. Повторное выставление по тому же заказу недопустимо."
+  },
+  "按原订单申请重开": {
+    "en": "Request a replacement for the original order",
+    "ja": "元の注文の請求書を再発行申請",
+    "ru": "Запросить перевыставление по исходному заказу"
+  },
+  "当前经营方尚未开放新的开票申请。已申请的票据仍由原开票经营方办理。": {
+    "en": "The current operator is not accepting new invoice requests. Existing requests remain with the original issuer.",
+    "ja": "現在の事業者は新規の請求書申請を受け付けていません。申請済みの請求書は引き続き元の発行事業者が対応します。",
+    "ru": "Текущий оператор не принимает новые заявки на счета. Уже поданные заявки остаются у первоначального выставителя."
   }
 }

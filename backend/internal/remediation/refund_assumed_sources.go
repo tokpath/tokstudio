@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
-	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"gorm.io/gorm"
 )
@@ -42,26 +41,8 @@ func (s *Service) assumedRefundSource(ctx context.Context, t *gorm.DB, l RefundL
 		return r, e
 	}
 	switch c.Kind {
-	case "wallet":
-		allocations, e := s.Commerce.WalletRefundAllocations(ctx, t, l.OperatorID, *c.CustomerID, c.ID)
-		if e != nil {
-			return r, e
-		}
-		var links []struct{ AllocationID string }
-		if e = t.Table("remediation_wallet_links").Where("leg_id=?", l.ID).Find(&links).Error; e != nil {
-			return r, e
-		}
-		allowed := map[string]bool{}
-		for _, link := range links {
-			allowed[link.AllocationID] = true
-		}
-		total := ledger.Zero()
-		for _, a := range allocations {
-			if allowed[a.ID] && a.SourceOperatorID == l.SourceOperatorID && a.ReceiptID == l.ReceiptID {
-				total = total.Add(a.AmountMoney)
-			}
-		}
-		if total.Cmp(l.AmountMoney) != 0 {
+	case "unallocated":
+		if l.OperatorID != l.SourceOperatorID {
 			return r, ErrScope
 		}
 	case "package_exception":
@@ -75,30 +56,11 @@ func (s *Service) assumedRefundSource(ctx context.Context, t *gorm.DB, l RefundL
 		if o.OperatorID != l.OperatorID || o.OriginalOperatorID != l.SourceOperatorID {
 			return r, ErrScope
 		}
-		funding, e := s.Commerce.OrderWalletFunding(ctx, t, l.OperatorID, *c.CustomerID, o.ID)
-		if e != nil {
+		var count int64
+		if e = t.Table("commerce_receipt_allocations").Where("order_id=? AND receipt_id=? AND operator_id=?", o.ID, l.ReceiptID, l.SourceOperatorID).Count(&count).Error; e != nil {
 			return r, e
 		}
-		found := false
-		for _, a := range funding {
-			if a.ReceiptID == l.ReceiptID && a.SourceOperatorID == l.SourceOperatorID {
-				found = true
-			}
-		}
-		// Direct external funding is also included in the order's immutable
-		// allocations; use the public per-receipt exposure projection.
-		if !found {
-			exposure, e := s.Commerce.ReceiptExposure(ctx, t, l.SourceOperatorID, l.ReceiptID)
-			if e != nil {
-				return r, e
-			}
-			for _, p := range exposure.Orders {
-				if p.OrderID == o.ID && p.CustomerID == *c.CustomerID {
-					found = true
-				}
-			}
-		}
-		if !found {
+		if count == 0 {
 			return r, ErrScope
 		}
 	default:

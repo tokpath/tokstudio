@@ -187,11 +187,11 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	if _, e = invoiceService.SaveInvoicePolicy(ctx, owner, operations.InvoicePolicy{OperatorID: supplier, PartyKind: "procurement", Enabled: true, Stage: "purchase", MaximumRatio: ledger.FromInt64(1), RulesReference: "supplier-wholesale-invoice-terms"}, 0); e != nil {
 		t.Fatal(e)
 	}
-	invoice, e := invoiceService.RequestProcurementInvoice(ctx, owner, buyer, supplier, "purchase-invoice", []operations.InvoiceLine{{ReceiptID: receiptID, AmountMoney: ledger.FromInt64(10)}}, operations.InvoiceDetails{Title: "Actual Procurement Buyer"})
+	invoice, e := invoiceService.RequestProcurementInvoice(ctx, owner, buyer, supplier, "purchase-invoice", []operations.InvoiceLine{{OrderID: order.ID, AmountMoney: ledger.FromInt64(10)}}, operations.InvoiceDetails{Title: "Actual Procurement Buyer"})
 	if e != nil || invoice.PartyKind != "procurement" || invoice.CustomerID != "" || invoice.BuyerOperatorID == nil || *invoice.BuyerOperatorID != buyer {
 		t.Fatalf("purchase invoice impersonated customer or wrong buyer: %+v %v", invoice, e)
 	}
-	if _, e = invoiceService.RequestProcurementInvoice(ctx, owner, buyer, supplier, "duplicate-invoice", []operations.InvoiceLine{{ReceiptID: receiptID, AmountMoney: ledger.FromInt64(1)}}, operations.InvoiceDetails{Title: "Duplicate"}); !errors.Is(e, operations.ErrConflict) {
+	if _, e = invoiceService.RequestProcurementInvoice(ctx, owner, buyer, supplier, "duplicate-invoice", []operations.InvoiceLine{{OrderID: order.ID, AmountMoney: ledger.FromInt64(1)}}, operations.InvoiceDetails{Title: "Duplicate"}); !errors.Is(e, operations.ErrInvoiceOrderUsed) {
 		t.Fatalf("purchase source invoiced beyond actual payment: %v", e)
 	}
 	exit, e := coop.RequestProcurementExit(ctx, nil, owner, buyer, "exit-once", "voluntary_exit", "approved orderly exit", ledger.FromInt64(100), cooperation.CoverageRemovalGuard{Cooperation: coop, PaymentFacts: pay})

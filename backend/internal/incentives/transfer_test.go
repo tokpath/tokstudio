@@ -179,22 +179,8 @@ func TestPostgresTakeoverTransfersWalletQualificationsCommissionsAndPendingWithd
 	if e != nil || moved.OperatorID != brand.operator || moved.OriginalOperatorID != channel.operator || moved.OriginalOwnershipVersion != 1 || moved.OwnershipVersion != 2 {
 		t.Fatalf("order origin=%+v %v", moved, e)
 	}
-	sources, e := brand.commerce.OrderWalletFunding(brand.ctx, nil, brand.operator, b.Customer.ID, order.ID)
-	if e != nil || len(sources) != 1 || sources[0].SourceOperatorID != channel.operator {
-		t.Fatalf("wallet original receipt=%+v %v", sources, e)
-	}
-	e = brand.db.Transaction(func(tx *gorm.DB) error {
-		allocs, e := brand.commerce.ReserveWalletRefund(brand.ctx, tx, brand.operator, b.Customer.ID, uuid.NewString(), d("25"))
-		if e != nil {
-			return e
-		}
-		if len(allocs) != 1 || allocs[0].SourceOperatorID != channel.operator {
-			return errors.New("unspent original receipt lost")
-		}
-		return injected
-	})
-	if !errors.Is(e, injected) {
-		t.Fatal(e)
+	if account := brand.balance(t, b.Customer.ID, "customer:money"); account.Balance.Cmp(d("25")) != 0 {
+		t.Fatal("pooled wallet balance lost on transfer", account)
 	}
 	wMoved, e := brand.s.GetWithdrawal(brand.ctx, nil, a.Customer.ID, w.ID)
 	if e != nil || wMoved.OperatorID != brand.operator || wMoved.OriginalOperatorID != channel.operator || wMoved.HoldID == w.HoldID || wMoved.Status != "requested" {

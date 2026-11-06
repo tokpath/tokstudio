@@ -29,25 +29,16 @@ func (f fixture) chargeback(t *testing.T, r commerce.Receipt, key, amount string
 }
 func (f fixture) packageReceipts(t *testing.T) (commerce.Order, ledger.Grant, []commerce.Receipt) {
 	t.Helper()
-	var receipts []commerce.Receipt
-	for _, key := range []string{"source-a", "source-b"} {
-		topup, e := f.s.Commerce.CreateTopUpOrder(f.ctx, nil, commerce.CreateTopUpInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "topup:" + key, ExpectedOwnershipVersion: 1, AmountMoney: d("40")})
-		if e != nil {
-			t.Fatal(e)
-		}
-		r := f.receipt(t, key, "40")
-		receipts = append(receipts, r)
-		if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{OperatorID: f.operator, ReceiptID: r.ID, OrderID: topup.ID, BusinessKey: key, AmountMoney: d("40")}); e != nil {
-			t.Fatal(e)
-		}
-		if _, e = f.s.Commerce.Fulfill(f.ctx, nil, topup.ID, f.owner); e != nil {
-			t.Fatal(e)
-		}
-	}
-	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "source-package", ExpectedOwnershipVersion: 1, InternalMoney: d("80")})
+	o, e := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "source-package", ExpectedOwnershipVersion: 1})
 	if e != nil {
 		t.Fatal(e)
 	}
+	r := f.receipt(t, "direct-purchase", "80")
+	if _, e = f.s.Commerce.AllocateReceipt(f.ctx, nil, commerce.AllocateReceiptInput{ActorStaffID: f.owner, OperatorID: f.operator, ReceiptID: r.ID, OrderID: o.ID, BusinessKey: "direct-purchase", AmountMoney: d("80")}); e != nil {
+		t.Fatal(e)
+	}
+	// Two independently recorded partial disputes on one actual payment.
+	receipts := []commerce.Receipt{r, r}
 	delivery, e := f.s.Commerce.Fulfill(f.ctx, nil, o.ID, f.owner)
 	if e != nil {
 		t.Fatal(e)
@@ -134,7 +125,7 @@ func TestPostgresChargebackRepeatedPartialClaimsConserveWalletAndReleaseOnlyOwnS
 	}
 }
 
-func TestPostgresChargebackAcrossTwoReceiptsConservesGrantAndIndependentDisputeOwners(t *testing.T) {
+func TestPostgresChargebackPartialClaimsConservesGrantAndIndependentDisputeOwners(t *testing.T) {
 	f := setup(t)
 	order, g, receipts := f.packageReceipts(t)
 	events := f.consumeObserved(t, "25")
@@ -177,7 +168,7 @@ func TestPostgresChargebackAcrossTwoReceiptsConservesGrantAndIndependentDisputeO
 	}
 }
 
-func TestPostgresChargebackInvalidTwoSourcesCancelsOnlyRemainingRightsAndCorrectsPaidBase(t *testing.T) {
+func TestPostgresChargebackInvalidPartialClaimsCancelsOnlyRemainingRightsAndCorrectsPaidBase(t *testing.T) {
 	f := setup(t)
 	_, g, receipts := f.packageReceipts(t)
 	events := f.consumeObserved(t, "25")
@@ -270,9 +261,8 @@ func TestPostgresChargebackWaitsForInFlightUsageAndDoesNotPrematurelyMarkApplied
 
 func TestPostgresChargebackStopsApprovedNewPayoutButPreservesAlreadyVerifiedPayment(t *testing.T) {
 	f := setup(t)
-	f.topup(t, "refund-source", "100")
-	r := f.receiptNamed(t, "refund-source")
-	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: "prior-approved", AmountMoney: d("20"), Reason: "return unused balance"})
+	r := f.receipt(t, "refund-source", "100")
+	c, e := f.s.RequestUnallocatedRefund(f.ctx, f.owner, f.operator, r.ID, "prior-approved", "return unallocated", "verified receipt", d("20"))
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -290,7 +280,7 @@ func TestPostgresChargebackStopsApprovedNewPayoutButPreservesAlreadyVerifiedPaym
 	if e = f.s.RestrictChargeback(f.ctx, f.owner, f.operator, cb.ID, "refund hold must be reviewed first"); !errors.Is(e, ErrReview) {
 		t.Fatalf("refund source hold silently omitted: %v", e)
 	}
-	if _, e = f.s.CustomerCancelRefund(f.ctx, f.customer, f.operator, c.ID); e != nil {
+	if _, e = f.s.CancelRefund(f.ctx, f.owner, f.operator, c.ID, "not paid"); e != nil {
 		t.Fatal(e)
 	}
 	if e = f.s.RestrictChargeback(f.ctx, f.owner, f.operator, cb.ID, "refund explicitly cancelled before restriction"); e != nil {
@@ -329,5 +319,37 @@ func TestPostgresChargebackEventOnlyRestrictionReplayIsIdempotent(t *testing.T) 
 	}
 	if e = f.s.Incentives.ReleaseEventDispute(f.ctx, nil, f.owner, f.operator, events[0].ID, "manual:independent", "independent appeal completed"); e != nil {
 		t.Fatal(e)
+	}
+}
+
+func TestPostgresTopupDisputeDoesNotFollowLaterWalletPurchases(t *testing.T) {
+	f := setup(t)
+	f.topup(t, "pooled-topup", "100")
+	receipt := f.receiptNamed(t, "pooled-topup")
+	order, err := f.s.Commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: f.customer, QuoteID: f.quote.ID, BusinessKey: "wallet-purchase", ExpectedOwnershipVersion: 1, InternalMoney: d("80")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	delivery, err := f.s.Commerce.Fulfill(f.ctx, nil, order.ID, f.owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cb := f.chargeback(t, receipt, "topup-dispute", "100")
+	if err = f.s.RestrictChargeback(f.ctx, f.owner, f.operator, cb.ID, "verified disputed topup"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.s.ResolveChargeback(f.ctx, f.owner, f.operator, cb.ID, "invalid_payment", "confirmed invalid topup"); err != nil {
+		t.Fatal(err)
+	}
+	grant, err := f.s.Ledger.GetGrant(f.ctx, nil, *delivery.GrantID)
+	if err != nil || !grant.Cancelled.IsZero() || grant.Total.Cmp(d("100")) != 0 {
+		t.Fatal("later purchase was seized", grant, err)
+	}
+	var claims int64
+	if err = f.db.Table("remediation_chargeback_order_claims").Where("order_id=?", order.ID).Count(&claims).Error; err != nil || claims != 0 {
+		t.Fatal("topup linked to later purchase", claims, err)
+	}
+	if a := f.balance(t); !a.Balance.IsZero() || !a.Held.IsZero() {
+		t.Fatal("remaining disputed wallet cash", a)
 	}
 }

@@ -23,3 +23,10 @@ it("removes a mistaken invoice file after confirmation and labels the upload pla
   fireEvent.click(screen.getByRole("button", { name: "确认删除" }));
   await waitFor(() => expect(fetch.mock.calls.some(([input, init]) => String(input) === "/api/v1/operators/op/invoices/inv/files/file-1" && init?.method === "DELETE")).toBe(true));
 });
+
+it("shows recipient details inside the invoice result form", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ items: [], details: { title: "Buyer Ltd", tax_id: "TAX-123", email: "billing@example.test", address: "12 Test Road" } }), { status: 200 })));
+  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><InvoiceFiles embedded scope="/api/v1/operators/op/invoices" invoiceID="inv" upload /></QueryClientProvider>);
+  expect(await screen.findByText("Buyer Ltd")).toBeTruthy();
+  for (const text of ["TAX-123", "billing@example.test", "12 Test Road"]) expect(screen.getByText(text)).toBeTruthy();
+});

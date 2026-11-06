@@ -12,7 +12,7 @@ import (
 
 func (f fixture) approvedRefundLeg(t *testing.T, key, amount string) RefundLeg {
 	t.Helper()
-	c, e := f.s.RequestWalletRefund(f.ctx, WalletRefundInput{OperatorID: f.operator, CustomerID: f.customer, BusinessKey: key, AmountMoney: d(amount), Reason: "unused cash to original payer"})
+	c, e := f.requestPurchaseRefund(t, key, amount)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -37,7 +37,7 @@ func TestPostgresRefundPendingFeeSettlesCustomerAndConfirmsCostExactlyOnce(t *te
 	if e != nil || paid.State != "completed" {
 		t.Fatal(paid, e)
 	}
-	if a := f.balance(t); a.Balance.Cmp(d("80")) != 0 || !a.Held.IsZero() {
+	if a := f.balance(t); a.Balance.Cmp(d("100")) != 0 || !a.Held.IsZero() {
 		t.Fatalf("unknown fee blocked customer clearance %+v", a)
 	}
 	accounting, e := f.s.RefundAccounting(f.ctx, nil, f.owner, f.operator, leg.ID)
@@ -76,7 +76,7 @@ func TestPostgresRefundPendingFeeSettlesCustomerAndConfirmsCostExactlyOnce(t *te
 	if e != nil || fees.Balance.Cmp(d("-2")) != 0 {
 		t.Fatalf("late cost booked twice %+v %v", fees, e)
 	}
-	if a := f.balance(t); a.Balance.Cmp(d("80")) != 0 {
+	if a := f.balance(t); a.Balance.Cmp(d("100")) != 0 {
 		t.Fatal("merchant fee reduced customer refund", a)
 	}
 	accounting, e = f.s.RefundAccounting(f.ctx, nil, f.owner, f.operator, leg.ID)

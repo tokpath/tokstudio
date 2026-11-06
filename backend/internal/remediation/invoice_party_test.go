@@ -45,6 +45,8 @@ func TestPostgresSeparateReceiptsFromSamePayerKeepCustomerInvoiceRefundsIsolated
 		}
 	}
 	leg := f.approvedRefundLeg(t, "party-a-only-refund", "20")
+	r = f.receiptNamed(t, "party-a-only-refund")
+	receipts[f.customer] = r
 	p := ExecutionProof{BusinessKey: "actual-return-a", Reference: "bank-confirmed-a", Evidence: "original source returned only to party a", ActualMoney: d("20"), FeeStatus: "pending", Currency: "USD", Amount: "20", OccurredAt: time.Now().UTC()}
 	if _, e = f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, p); e != nil {
 		t.Fatal(e)

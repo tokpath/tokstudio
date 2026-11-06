@@ -155,17 +155,17 @@ func (a *Application) customerOperationsWorkspace(c *gin.Context, resource strin
 		p["title"] = "发票与凭证"
 		p["next_cursor"] = next
 		p["items"] = items
-		p["row_operations"] = []operation{{Name: "replacement", Label: "作废后按原来源申请重开", Method: "POST", Path: "/api/v1/me/invoices/{id}/replacement", Fields: businessFields(operation{Path: "/api/v1/me/invoices", Fields: []field{jsonField("")}})}}
-		p["columns"] = []gin.H{col("operator_id", "原始开票经营方", "text"), col("amount_money", "可开票责任", "money"), col("state", "状态", "status"), col("invoice_reference", "开票凭证", "text"), col("reason", "说明", "text"), col("created_at", "申请时间", "datetime")}
+		p["row_operations"] = []operation{{Name: "replacement", Label: "按原订单申请重开", Method: "POST", Path: "/api/v1/me/invoices/{id}/replacement", Fields: businessFields(operation{Path: "/api/v1/me/invoices", Fields: []field{jsonField("")}})}}
+		p["columns"] = []gin.H{col("operator_id", "原始开票经营方", "text"), col("amount_money", "开票金额", "money"), col("state", "状态", "status"), col("invoice_reference", "开票凭证", "text"), col("reason", "说明", "text"), col("created_at", "申请时间", "datetime")}
 		p["operations"] = []operation{{Name: "invoice", Label: "申请发票", Method: "POST", Path: "/api/v1/me/invoices", Fields: []field{jsonField("选择已完成的套餐购买或续费。余额充值不能开票。")}}}
 		policy, e := a.Operations.GetInvoicePolicy(ctx, customer, op, true)
 		if e != nil {
 			handleError(c, e)
 			return true
 		}
-		p["summary"] = []gin.H{{"label": "可申请阶段", "value": policy.Stage}, {"label": "最高原收款比例", "value": policy.MaximumRatio.String()}, {"label": "办理规则", "value": policy.RulesReference}}
+		p["summary"] = []gin.H{{"label": "办理规则", "value": policy.RulesReference}}
 		if !policy.Enabled {
-			p["availability"] = []gin.H{{"capability": "invoices", "enabled": false, "reason": "当前经营方尚未开放新的开票申请。历史原始收款仍按原开票方规则核实办理。"}}
+			p["availability"] = []gin.H{{"capability": "invoices", "enabled": false, "reason": "当前经营方尚未开放新的开票申请。已申请的票据仍由原开票经营方办理。"}}
 		}
 
 	default:
@@ -279,7 +279,7 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			handleError(c, e)
 			return true
 		}
-		p["summary"] = []gin.H{{"label": "当前规则版本", "value": fmt.Sprint(policy.Version)}, {"label": "开票阶段", "value": policy.Stage}, {"label": "最高原收款比例", "value": policy.MaximumRatio.String()}, {"label": "规则依据", "value": policy.RulesReference}}
+		p["summary"] = []gin.H{{"label": "当前规则版本", "value": fmt.Sprint(policy.Version)}, {"label": "规则依据", "value": policy.RulesReference}}
 		invoiceOps := []operation{}
 		for _, party := range []string{"customer", "procurement"} {
 			current, e := a.Operations.GetIssuerInvoicePolicy(ctx, actor, op.ID, party)
@@ -291,18 +291,8 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			if party == "procurement" {
 				label = "经营方采购"
 			}
-			stage := selectField("stage", "允许开票阶段", "purchase|完成购买", "consumption|实际消费")
-			stage.Default = current.Stage
-			ratio := current.MaximumRatio
-			// A new rule, or one still stored at the removed receipt stage, opens on
-			// completed purchase. Receipt is no longer a choice for either party.
-			if current.Version == 0 || current.Stage == "" || current.Stage == "receipt" {
-				stage.Default = "purchase"
-			}
-			if current.Version == 0 {
-				ratio = ledger.FromInt64(1)
-			}
-			invoiceOps = append(invoiceOps, operation{Name: "invoice_policy_" + party, Label: "设置" + label + "开票规则", Method: "POST", Path: base, Fields: []field{defaultField("party_kind", "办理对象", "hidden", party), defaultField("enabled", "开放申请", "boolean", current.Enabled), stage, defaultField("maximum_ratio", "最高原收款比例（0到1）", "decimal", ratio), defaultField("rules_reference", "公开办理规则依据", "text", current.RulesReference), defaultField("expected_version", "版本", "hidden", current.Version)}})
+
+			invoiceOps = append(invoiceOps, operation{Name: "invoice_policy_" + party, Label: "设置" + label + "开票规则", Method: "POST", Path: base, Fields: []field{defaultField("party_kind", "办理对象", "hidden", party), defaultField("enabled", "开放申请", "boolean", current.Enabled), defaultField("rules_reference", "公开办理规则依据", "text", current.RulesReference), defaultField("expected_version", "版本", "hidden", current.Version)}})
 		}
 		p["operations"] = invoiceOps
 		p["row_operations"] = []operation{{Name: "register", Label: "登记实际开票结果", Method: "POST", Path: base + "/{id}/register", Fields: []field{selectField("state", "实际办理状态", "issued|外部开具已完成", "rejected|不予办理并说明原因", "voided|原票据已依法作废"), f("invoice_reference", "发票凭证编号", "text"), f("evidence", "证据引用", "text"), f("reason", "说明", "textarea")}}}
@@ -318,17 +308,15 @@ func (a *Application) operatorOperationsCommand(c *gin.Context, op organization.
 	switch resource {
 	case "invoices":
 		var in struct {
-			PartyKind      string         `json:"party_kind"`
-			Enabled        bool           `json:"enabled"`
-			Stage          string         `json:"stage"`
-			MaximumRatio   ledger.Decimal `json:"maximum_ratio"`
-			RulesReference string         `json:"rules_reference"`
-			Expected       int64          `json:"expected_version"`
+			PartyKind      string `json:"party_kind"`
+			Enabled        bool   `json:"enabled"`
+			RulesReference string `json:"rules_reference"`
+			Expected       int64  `json:"expected_version"`
 		}
 		if !body(c, &in) {
 			return true
 		}
-		out, e := a.Operations.SaveInvoicePolicy(ctx, actor, operations.InvoicePolicy{OperatorID: op.ID, PartyKind: in.PartyKind, Enabled: in.Enabled, Stage: in.Stage, MaximumRatio: in.MaximumRatio, RulesReference: in.RulesReference}, in.Expected)
+		out, e := a.Operations.SaveInvoicePolicy(ctx, actor, operations.InvoicePolicy{OperatorID: op.ID, PartyKind: in.PartyKind, Enabled: in.Enabled, RulesReference: in.RulesReference}, in.Expected)
 		if e != nil {
 			handleError(c, e)
 			return true
@@ -500,12 +488,7 @@ func (a *Application) requestInvoice(c *gin.Context) {
 	if in.IssuerID == "" {
 		in.IssuerID = id.Customer.Ownership.OperatorID
 	}
-	var e error
-	in.Lines, e = a.customerInvoiceLines(c.Request.Context(), id.Customer.Customer.ID, in.IssuerID, in.Lines)
-	if e != nil {
-		handleError(c, e)
-		return
-	}
+
 	out, e := a.Operations.RequestHistoricalInvoice(c.Request.Context(), id.Customer.Customer.ID, in.IssuerID, key, in.Lines, in.Details)
 	if e != nil {
 		handleError(c, e)

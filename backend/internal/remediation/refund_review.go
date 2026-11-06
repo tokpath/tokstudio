@@ -226,11 +226,6 @@ func (s *Service) cancel(ctx context.Context, t *gorm.DB, c *Case, actor, eviden
 			return ErrState
 		}
 	}
-	if c.Kind == "wallet" {
-		if e = s.Commerce.ReleaseWalletRefund(ctx, t, c.OperatorID, *c.CustomerID, c.ID); e != nil {
-			return e
-		}
-	}
 	for _, leg := range legs {
 		if e = s.ReleaseReceiptRefund(ctx, t, leg.SourceOperatorID, leg.ReceiptID, leg.ID); e != nil {
 			return e
@@ -290,11 +285,7 @@ func (s *Service) completeCase(ctx context.Context, t *gorm.DB, c *Case) error {
 	if count > 0 {
 		return nil
 	}
-	if c.Kind == "wallet" {
-		if e := s.Commerce.CompleteWalletRefund(ctx, t, c.OperatorID, *c.CustomerID, c.ID); e != nil {
-			return e
-		}
-	}
+
 	at, e := instant(t)
 	if e != nil {
 		return e

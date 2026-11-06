@@ -211,15 +211,7 @@ func (s *Service) reserveInternal(ctx context.Context, tx *gorm.DB, o Order, res
 			return ledger.Hold{}, err
 		}
 	}
-	if o.InternalMoney.Sign() > 0 {
-		c, err := s.reserveWalletFunding(tx, o.OperatorID, o.CustomerID, "order", o.ID, o.InternalMoney, restored)
-		if err != nil {
-			return ledger.Hold{}, err
-		}
-		if c.Status != "reserved" {
-			return ledger.Hold{}, ErrOrderState
-		}
-	}
+
 	lines := []ledger.Line{}
 	for _, fund := range []struct {
 		purpose string
@@ -285,9 +277,6 @@ func (s *Service) CloseOrder(ctx context.Context, tx *gorm.DB, customerID, order
 				if err := s.commissionFunding.ReleaseCommissionFunding(ctx, tx, o.OperatorID, o.CustomerID, o.ID); err != nil {
 					return err
 				}
-			}
-			if err := s.resolveOrderWalletFunding(tx, o, false); err != nil {
-				return err
 			}
 			if _, err := s.ledger.Release(ctx, tx, o.OperatorID, *o.HoldID, "close-order:"+o.ID); err != nil {
 				return err

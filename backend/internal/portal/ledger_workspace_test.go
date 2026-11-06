@@ -37,6 +37,9 @@ func TestPostgresLedgerWorkspaceNamesSourcesAndSeparatesAuxiliaryAccounts(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := f.a.DB.Exec("UPDATE organization_staff_memberships SET role='finance' WHERE operator_id=? AND staff_id=?", op, owner).Error; err != nil {
+		t.Fatal(err)
+	}
 	status, out, _ = f.call(t, "GET", base, nil, "")
 	mustOK(t, status, out)
 	if out["status_supported"] != false {
@@ -74,7 +77,7 @@ func TestPostgresLedgerWorkspaceNamesSourcesAndSeparatesAuxiliaryAccounts(t *tes
 				t.Fatal("business account owner not resolved", d)
 			}
 			source := d["source"].(map[string]any)
-			if source["url"] == "" {
+			if u, ok := source["url"].(string); !ok || u == "" {
 				t.Fatal("original business link missing", source)
 			}
 			if _, ok := d["available"]; ok {

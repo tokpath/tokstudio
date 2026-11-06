@@ -666,7 +666,7 @@ func TestPostgresPublicContextAndManagementActions(t *testing.T) {
 			t.Fatal("ordinary package UI still asks for JSON")
 		}
 	}
-	status, out, _ = f.call(t, "POST", scope+"/invoices", map[string]any{"enabled": true, "stage": "receipt", "maximum_ratio": "1", "rules_reference": "invoice contract", "expected_version": 0}, "")
+	status, out, _ = f.call(t, "POST", scope+"/invoices", map[string]any{"enabled": true, "rules_reference": "invoice contract", "expected_version": 0}, "")
 	mustOK(t, status, out)
 	status, out, _ = f.call(t, "POST", scope+"/staff/"+uuid.NewString()+"/membership", map[string]any{"role": "owner", "status": "suspended"}, "")
 	if status == 200 {

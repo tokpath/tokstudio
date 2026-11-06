@@ -70,7 +70,7 @@ func businessFields(o operation) []field {
 		}
 		return fields
 	case "invoices":
-		return []field{optional("issuer_id", "原始开票经营方", "hidden"), f("lines.0.receipt_id", "原始收款编号", "text"), f("lines.0.amount_money", "本次申请 结算币种", "decimal"), f("details.title", "发票抬头", "text"), f("details.tax_id", "纳税识别号", "text"), f("details.email", "接收邮箱", "email"), optional("details.address", "发票地址", "text")}
+		return []field{optional("issuer_id", "原始开票经营方", "hidden"), field{Name: "lines.0.order_id", Label: "购买订单", Kind: "text", Required: true, Help: "开票金额为订单实付金额，由系统确定，无需填写。"}, f("details.title", "发票抬头", "text"), f("details.tax_id", "纳税识别号", "text"), f("details.email", "接收邮箱", "email"), optional("details.address", "发票地址", "text")}
 	case "refunds":
 		switch o.Name {
 		case "package_exception":

@@ -171,11 +171,7 @@ func (a *Application) replaceInvoice(c *gin.Context) {
 			handleError(c, err)
 			return
 		}
-		in.Lines, e = a.customerInvoiceLines(c.Request.Context(), id.Customer.Customer.ID, invoice.OperatorID, in.Lines)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
+
 		out, e = a.Operations.RequestInvoiceReplacement(c.Request.Context(), id.Customer.Customer.ID, invoice.OperatorID, c.Param("id"), key, in.Lines, in.Details)
 	} else {
 		op, actor, ok := a.staffScope(c, "procurement-invoices")
@@ -209,12 +205,12 @@ func (a *Application) procurementInvoicesResource(c *gin.Context, op organizatio
 		items = append(items, r)
 	}
 	p["title"] = "我方采购开票"
-	p["description"] = "采购发票按经营方作为独立买方申请，由实际供货方办理。原收款开票容量与客户票据共享去重，已作废票据可按原来源重开。"
+	p["description"] = "选择已完成的采购订单，按订单实付金额全额申请，由实际供货方办理。同一订单不能重复开票。"
 	p["items"] = items
-	p["columns"] = []gin.H{col("operator_id", "实际供货开票方", "text"), col("amount_money", "责任USD", "money"), col("invoice_reference", "发票凭证编号", "text"), col("reason", "说明", "text")}
+	p["columns"] = []gin.H{col("operator_id", "实际供货开票方", "text"), col("amount_money", "开票金额", "money"), col("invoice_reference", "发票凭证编号", "text"), col("reason", "说明", "text")}
 	fields := businessFields(operation{Path: "/api/v1/me/invoices", Fields: []field{jsonField("")}})
-	p["operations"] = []operation{{Name: "request", Label: "向实际供货方申请采购发票", Method: "POST", Path: base, Fields: append([]field{f("supplier_id", "实际供货方编号", "text")}, fields...)}}
-	p["row_operations"] = []operation{{Name: "replacement", Label: "作废后按原来源申请重开", Method: "POST", Path: base + "/{id}/replacement", Fields: fields}}
+	p["operations"] = []operation{{Name: "request", Label: "向实际供货方申请采购发票", Method: "POST", Path: base, Fields: append([]field{optional("supplier_id", "实际供货方", "hidden")}, fields...)}}
+	p["row_operations"] = []operation{{Name: "replacement", Label: "按原订单申请重开", Method: "POST", Path: base + "/{id}/replacement", Fields: fields}}
 	a.resourceResponse(c, p)
 }
 func (a *Application) procurementInvoicesCommand(c *gin.Context, op organization.Operator, actor string) {

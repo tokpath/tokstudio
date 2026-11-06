@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { canReadResource, customerSections, operatorNav, operatorLanding, operatorResourcePath, sectionForResource, staffNotificationPath, visibleOperatorSections } from "./navigation";
 
 describe("task navigation and organization boundaries", () => {
+  it("removes platform risk settings while keeping both buyer workspaces reachable",()=>{
+    expect(canReadResource({operator:{kind:"platform"},permissions:["*"]},"alerts")).toBe(false);
+    for(const kind of ["oem","channel"]) expect(canReadResource({operator:{kind},permissions:["*"]},"alerts")).toBe(true);
+  });
   it("keeps every established operator capability reachable once without duplicate risk or content storage settings", () => {
     const resources = operatorNav.flatMap(section => section.items.map(([resource]) => resource));
     expect(resources).toHaveLength(44);

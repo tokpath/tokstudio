@@ -98,6 +98,9 @@ func (a *Application) DiscoverWorkerTasks(ctx context.Context) error {
 	next := ""
 	for _, op := range operators {
 		for _, kind := range []string{"risks", "restriction_reviews", "invoice_review"} {
+			if kind == "risks" && op.Kind == organization.Platform {
+				continue
+			}
 			if e = a.schedule(ctx, kind, op.ID, workerPayload{OperatorID: op.ID}, time.Minute); e != nil {
 				return e
 			}

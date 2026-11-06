@@ -94,6 +94,10 @@ func (d operationRecipients) ResolveRecipient(_ context.Context, _ *gorm.DB, ope
 	return Recipient{ID: recipient, OperatorID: operator, Email: "customer@example.test", Brand: "Synthetic Brand", EmailVerified: true}, nil
 }
 
+func (d operationRecipients) RiskScope(_ context.Context, _ *gorm.DB, operator string) (RiskScope, error) {
+	return RiskScope{Eligible: operator == d.operator, Owners: []string{d.customer}, Staff: []string{d.customer}}, nil
+}
+
 type operationSender struct {
 	fail  atomic.Bool
 	calls atomic.Int32
@@ -181,47 +185,13 @@ func (m *metricSource) Reconcile(context.Context, *gorm.DB, string) ([]Finding, 
 	return m.findings, nil
 }
 func (m *metricSource) Metrics(context.Context, *gorm.DB, string, time.Time) (map[string]ledger.Decimal, error) {
-	return map[string]ledger.Decimal{"sales_space_atg": m.value}, nil
+	return map[string]ledger.Decimal{"sales_space_atg": m.value, "procurement_available_atg": ledger.FromInt64(200)}, nil
 }
 func (m *metricSource) Export(context.Context, *gorm.DB, string, ExportQuery) ([]json.RawMessage, error) {
 	return []json.RawMessage{json.RawMessage(`{"amount":"2.5"}`)}, nil
 }
 func (m *metricSource) HasAdjustment(context.Context, *gorm.DB, string, string) (bool, error) {
 	return true, nil
-}
-func TestRiskTransitionsReminderEscalationAndRecovery(t *testing.T) {
-	s, a, _, operator, customer := opsFixture(t)
-	source := &metricSource{value: ledger.FromInt64(9)}
-	s.Source = source
-	recipients, _ := json.Marshal([]string{customer})
-	r := RiskRule{OperatorID: operator, ID: "procurement-space", Metric: "sales_space_atg", Warning: ledger.FromInt64(10), Critical: ledger.FromInt64(2), Direction: "below", Recipients: recipients, EscalationRecipients: recipients, ReminderSeconds: 60, EscalateSeconds: 60, Enabled: true}
-	if _, e := s.SaveRiskRule(context.Background(), a.actor, r, 0); e != nil {
-		t.Fatal(e)
-	}
-	states, e := s.RunRisks(context.Background(), operator)
-	if e != nil || len(states) != 1 || states[0].Status != "warning" {
-		t.Fatalf("warning %+v %v", states, e)
-	}
-	_, _ = s.RunRisks(context.Background(), operator)
-	var count int64
-	_ = s.DB.Model(&Notification{}).Count(&count).Error
-	if count != 1 {
-		t.Fatal("interval did not suppress duplicate risk")
-	}
-	_ = s.DB.Model(&RiskState{}).Where("operator_id=?", operator).Update("opened_at", time.Now().Add(-2*time.Minute)).Error
-	states, e = s.RunRisks(context.Background(), operator)
-	if e != nil || states[0].Status != "critical" {
-		t.Fatal("unresolved warning not escalated")
-	}
-	source.value = ledger.FromInt64(20)
-	states, e = s.RunRisks(context.Background(), operator)
-	if e != nil || states[0].Status != "normal" {
-		t.Fatal("risk did not recover")
-	}
-	_ = s.DB.Model(&Notification{}).Count(&count).Error
-	if count != 3 {
-		t.Fatalf("risk lifecycle notifications=%d", count)
-	}
 }
 
 type invoiceBasis struct {

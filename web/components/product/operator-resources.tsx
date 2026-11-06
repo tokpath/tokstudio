@@ -1,4 +1,5 @@
 "use client";
+import { RiskSettings } from "./risk-settings";
 import { LedgerCollection } from "./ledger-workspace";
 import { BusinessSettings } from "./business-settings";
 import { useMonetary } from "./monetary";
@@ -160,7 +161,7 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
       {serverSearch && <Button variant="outline" type="submit" disabled={data.isPending} aria-busy={data.isFetching}>{t("查询")}</Button>}{(serverSearch && filters.q || statusFilter && filters.status) && <Button variant="ghost" type="button" onClick={() => { setQuery(""); apply({ q: "", status: "" }); }}>{t("清除")}</Button>}</div>
       {serverSearch && <p id={searchDescription} className="mt-2 text-xs leading-6 text-ink-mute">{t("在当前权限范围内检索记录，结果按当前列表规则分页。")}</p>}
     </form></div> : undefined} />
-    {resourceName !== "business-status" && !(resourceName === "balance-withdrawals" && (filters.view || page.views?.[0]?.value) === "minimum") && <div className="mt-5 flex items-center justify-between gap-3"><p className="text-xs text-ink-mute">{t("当前页 {count} 条", { count: resourceName === "refunds" && page.items.some(item => item.values.record_kind === "case") ? page.items.filter(item => item.values.record_kind === "case").length : page.items.length })}{page.next_cursor ? t(" · 还有后续记录") : ""}</p><div className="flex gap-2">{filters.history.length > 0 && <Button variant="outline" onClick={() => setFilters(current => { const history = [...current.history]; return { ...current, cursor: history.pop() || "", history }; })}>{t("上一页")}</Button>}{page.next_cursor && <Button variant="outline" onClick={() => setFilters(current => ({ ...current, history: [...current.history, current.cursor], cursor: page.next_cursor || "" }))}>{t("下一页")}</Button>}</div></div>}
+    {resourceName !== "alerts" && resourceName !== "business-status" && !(resourceName === "balance-withdrawals" && (filters.view || page.views?.[0]?.value) === "minimum") && <div className="mt-5 flex items-center justify-between gap-3"><p className="text-xs text-ink-mute">{t("当前页 {count} 条", { count: resourceName === "refunds" && page.items.some(item => item.values.record_kind === "case") ? page.items.filter(item => item.values.record_kind === "case").length : page.items.length })}{page.next_cursor ? t(" · 还有后续记录") : ""}</p><div className="flex gap-2">{filters.history.length > 0 && <Button variant="outline" onClick={() => setFilters(current => { const history = [...current.history]; return { ...current, cursor: history.pop() || "", history }; })}>{t("上一页")}</Button>}{page.next_cursor && <Button variant="outline" onClick={() => setFilters(current => ({ ...current, history: [...current.history, current.cursor], cursor: page.next_cursor || "" }))}>{t("下一页")}</Button>}</div></div>}
   </>;
 }
 
@@ -248,6 +249,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const procurementTab=procurementSection || localProcurementTab;
   const setProcurementTab=(next:string)=>{setLocalProcurementTab(next);onProcurementSection?.(next);};
   const resourceName = resource.split("/")[0];
+  if (resourceName === "alerts" && operatorID) return <RiskSettings operatorID={operatorID} page={page} />;
   if (resourceName === "ledger") return <LedgerCollection page={page} view={businessView || "accounts"} toolbar={toolbar} />;
   const canOperate = (operation: Operation) => !operation.permission || !!workspace?.permissions.includes("*") || !!workspace?.permissions.includes(operation.permission);
   const balanceMinimum = resourceName === "balance-withdrawals" && businessView === "minimum" ? page.operations.find(operation => operation.name === "minimum" && canOperate(operation)) : undefined;

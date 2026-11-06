@@ -4438,5 +4438,130 @@
     "en": "These metrics cover this platform only, without aggregating subordinate operators. In-flight and unsettled requests include admitted, running, submitted and usage-pending requests. Unverified upstream costs remind you to check supplier costs that have not yet been confirmed.",
     "ja": "集計対象はこのプラットフォームのみで、配下の事業者は合算しません。処理中・精算待ちリクエストには、受付済み、実行中、送信済み、使用量確認待ちを含みます。確認待ちの上流コスト件数は、未確定の供給者費用の確認を促す指標です。",
     "ru": "Показатели относятся только к текущей платформе, без суммирования подчинённых операторов. Запросы в обработке и ожидающие расчёта включают принятые, выполняемые, отправленные и ожидающие данных об использовании. Непроверенные затраты поставщиков напоминают о необходимости проверить ещё не подтверждённые расходы."
+  },
+  "剩余销售空间ATG": {
+    "en": "Remaining sales capacity (ATG)",
+    "ja": "残りの販売余力（ATG）",
+    "ru": "Оставшийся объём продаж (ATG)"
+  },
+  "剩余采购余额ATG": {
+    "en": "Remaining procurement balance (ATG)",
+    "ja": "残りの仕入残高（ATG）",
+    "ru": "Оставшийся закупочный баланс (ATG)"
+  },
+  "不足时，继续卖可能超出履约能力，需要补货或限制新增销售。": {
+    "en": "If low, further sales may exceed fulfilment capacity. Replenish stock or limit new sales.",
+    "ja": "不足時に販売を続けると履行能力を超えるおそれがあります。仕入れを補充するか、新規販売を制限してください。",
+    "ru": "При недостатке новые продажи могут превысить возможности исполнения. Пополните закупки или ограничьте новые продажи."
+  },
+  "不足时，实际调用可能停服，需要补货。": {
+    "en": "If low, model calls may stop. Replenish stock.",
+    "ja": "不足するとモデル呼び出しが停止するおそれがあります。仕入れを補充してください。",
+    "ru": "При недостатке вызовы моделей могут остановиться. Пополните закупки."
+  },
+  "两项补货预警默认已启用，可直接调整。仅提醒本经营方，不会自动补货或限制销售。": {
+    "en": "Both replenishment alerts are enabled by default and can be edited here. They notify this operator only and do not automatically purchase stock or restrict sales.",
+    "ja": "2つの補充アラートは初期状態で有効です。このページで変更できます。通知は自事業者のみが対象で、自動仕入れや販売制限は行いません。",
+    "ru": "Оба оповещения о пополнении включены по умолчанию и доступны для изменения здесь. Они уведомляют только текущего оператора, не выполняют закупки и не ограничивают продажи автоматически."
+  },
+  "保存预警设置": {
+    "en": "Save alert settings",
+    "ja": "アラート設定を保存",
+    "ru": "Сохранить настройки оповещения"
+  },
+  "启用预警": {
+    "en": "Enable alert",
+    "ja": "アラートを有効化",
+    "ru": "Включить оповещение"
+  },
+  "提醒阈值（ATG）": {
+    "en": "Alert threshold (ATG)",
+    "ja": "通知しきい値（ATG）",
+    "ru": "Порог оповещения (ATG)"
+  },
+  "提醒阈值必须大于 0 ATG。": {
+    "en": "The alert threshold must be greater than 0 ATG.",
+    "ja": "通知しきい値は0 ATGより大きい値にしてください。",
+    "ru": "Порог оповещения должен быть больше 0 ATG."
+  },
+  "提醒间隔须为 1 至 43200 分钟。": {
+    "en": "The reminder interval must be between 1 and 43,200 minutes.",
+    "ja": "再通知間隔は1〜43,200分で設定してください。",
+    "ru": "Интервал напоминаний должен составлять от 1 до 43 200 минут."
+  },
+  "达到或低于提醒阈值时通知，达到或低于 0 时显示严重。初始阈值为 100 ATG，请按采购规模和补货时间调整。": {
+    "en": "Notify at or below the threshold; show critical at or below 0. The initial threshold is 100 ATG. Adjust it to your purchasing scale and replenishment time.",
+    "ja": "しきい値以下になると通知し、0以下では重大と表示します。初期値は100 ATGです。仕入規模と補充にかかる時間に合わせて調整してください。",
+    "ru": "Уведомлять при значении на уровне порога или ниже; при 0 и ниже показывать критическое состояние. Начальный порог — 100 ATG. Настройте его с учётом объёма закупок и времени пополнения."
+  },
+  "通知设置": {
+    "en": "Notification settings",
+    "ja": "通知設定",
+    "ru": "Настройки уведомлений"
+  },
+  "通知人员": {
+    "en": "Notification recipients",
+    "ja": "通知先の担当者",
+    "ru": "Получатели уведомлений"
+  },
+  "跟随本经营方负责人": {
+    "en": "Use this operator’s current owners",
+    "ja": "自事業者の現在の責任者に通知",
+    "ru": "Текущие ответственные лица оператора"
+  },
+  "默认通知本经营方在岗负责人；也可指定通知人员。站内通知始终保留，邮箱已验证时同时发送邮件。": {
+    "en": "By default, notify this operator’s active owners. You can also choose specific staff. In-app notifications are always retained; verified email addresses also receive email.",
+    "ja": "初期設定では自事業者の在職中の責任者に通知します。担当者の指定も可能です。アプリ内通知は常に保存され、確認済みのメールアドレスにも送信されます。",
+    "ru": "По умолчанию уведомления получают действующие ответственные лица оператора. Можно выбрать конкретных сотрудников. Уведомления в приложении сохраняются всегда; на подтверждённые адреса также отправляются письма."
+  },
+  "尚未开通在岗负责人；配置已启用，负责人开通后自动接收通知。": {
+    "en": "No active owner has been added yet. Alerts are enabled; an owner will receive them automatically once added.",
+    "ja": "在職中の責任者がまだ登録されていません。設定は有効で、責任者の登録後に自動で通知されます。",
+    "ru": "Действующее ответственное лицо ещё не добавлено. Оповещения включены; после добавления ответственного лица оно начнёт получать их автоматически."
+  },
+  "默认每 60 分钟提醒一次；恢复正常时通知一次。": {
+    "en": "Remind every 60 minutes by default, and notify once when the value returns to normal.",
+    "ja": "初期設定では60分ごとに再通知し、正常に戻ったときに1回通知します。",
+    "ru": "По умолчанию напоминать каждые 60 минут и один раз уведомлять о восстановлении нормального значения."
+  },
+  "等待平台配置可用模型及供货价格，暂时无法核实当前值；预警设置仍可保存。": {
+    "en": "The current value cannot be verified until the platform configures available models and supply prices. Alert settings can still be saved.",
+    "ja": "プラットフォームによる利用可能なモデルと供給価格の設定待ちのため、現在値を確認できません。アラート設定は保存できます。",
+    "ru": "Текущее значение нельзя проверить, пока платформа не настроит доступные модели и цены поставки. Настройки оповещений можно сохранить."
+  },
+  "保存结果待核实，请重试原设置；核实前不能修改内容。": {
+    "en": "The save result is unconfirmed. Retry the original settings; editing is locked until the result is confirmed.",
+    "ja": "保存結果を確認できていません。同じ設定で再試行してください。確認が完了するまで内容は変更できません。",
+    "ru": "Результат сохранения не подтверждён. Повторите отправку исходных настроек; до подтверждения редактирование заблокировано."
+  },
+  "预警设置已保存。": {
+    "en": "Alert settings saved.",
+    "ja": "アラート設定を保存しました。",
+    "ru": "Настройки оповещения сохранены."
+  },
+  "重试原设置": {
+    "en": "Retry original settings",
+    "ja": "同じ設定で再試行",
+    "ru": "Повторить исходные настройки"
+  },
+  "放弃修改": {
+    "en": "Discard changes",
+    "ja": "変更を破棄",
+    "ru": "Отменить изменения"
+  },
+  "前往采购补货": {
+    "en": "Go to procurement",
+    "ja": "仕入れ・補充へ",
+    "ru": "Перейти к закупкам"
+  },
+  "尚未发送": {
+    "en": "Not sent yet",
+    "ja": "未送信",
+    "ru": "Ещё не отправлено"
+  },
+  "刷新": {
+    "en": "Refresh",
+    "ja": "更新",
+    "ru": "Обновить"
   }
 }

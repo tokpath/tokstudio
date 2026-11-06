@@ -315,6 +315,10 @@ func (a *Application) staffScope(c *gin.Context, resource string) (organization.
 		handleError(c, e)
 		return op, actor, false
 	}
+	if resource == "alerts" && op.Kind == organization.Platform {
+		fail(c, 404, "not_found", "经营资源不存在", false)
+		return op, actor, false
+	}
 	permission := permissionFor(resource)
 	if permission == "" {
 		fail(c, 404, "not_found", "经营资源不存在", false)

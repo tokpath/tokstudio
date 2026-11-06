@@ -7,10 +7,10 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 )
 
 type RiskRule struct {
@@ -46,7 +46,44 @@ type RiskState struct {
 
 func (RiskState) TableName() string { return "operations_risk_states" }
 
-var riskMetrics = map[string]bool{"sales_space_atg": true, "procurement_available_atg": true, "oversell_used_atg": true, "pending_usage": true, "unverified_costs": true}
+var RiskMetrics = []string{"sales_space_atg", "procurement_available_atg"}
+
+type RiskScope struct {
+	Eligible      bool
+	Owners, Staff []string
+}
+type RiskDirectory interface {
+	RiskScope(context.Context, *gorm.DB, string) (RiskScope, error)
+}
+
+func (s *Service) riskScope(ctx context.Context, tx *gorm.DB, operator string) (RiskScope, error) {
+	d, ok := s.Recipients.(RiskDirectory)
+	if !ok {
+		return RiskScope{}, ErrNotReady
+	}
+	return d.RiskScope(ctx, tx, operator)
+}
+
+// Empty recipients follows the current active owners; it does not freeze a
+// departed owner's identity into a new operator's default configuration.
+func (s *Service) EnsureRiskRules(ctx context.Context, tx *gorm.DB, operator string) error {
+	return s.within(ctx, tx, func(t *gorm.DB) error {
+		scope, err := s.riskScope(ctx, t, operator)
+		if err != nil {
+			return err
+		}
+		if !scope.Eligible {
+			return ErrForbidden
+		}
+		for _, metric := range RiskMetrics {
+			r := RiskRule{OperatorID: operator, ID: uuid.NewString(), Name: RiskMetricName(metric) + "预警", Metric: metric, Warning: ledger.FromInt64(100), Critical: ledger.Zero(), Direction: "below", Recipients: json.RawMessage(`[]`), EscalationRecipients: json.RawMessage(`[]`), ReminderSeconds: 3600, EscalateSeconds: 3600, Enabled: true, Version: 1, UpdatedBy: uuid.Nil.String(), UpdatedAt: time.Now().UTC()}
+			if err := t.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "operator_id"}, {Name: "metric"}}, DoNothing: true}).Create(&r).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
 
 // RiskMetricName keeps the default rule name and notifications understandable
 // without exposing the internal metric key to the person responding to it.
@@ -79,56 +116,63 @@ func (s *Service) SaveRiskRule(ctx context.Context, actor string, r RiskRule, ex
 }
 
 func (s *Service) SaveRiskRuleTx(ctx context.Context, tx *gorm.DB, actor string, r RiskRule, expected int64) (RiskRule, error) {
-	r.Name = strings.TrimSpace(r.Name)
-	if expected < 0 || (r.ID == "" && expected != 0) || len(r.ID) > 100 || utf8.RuneCountInString(r.Name) > 100 || !riskMetrics[r.Metric] || r.ReminderSeconds < 60 || r.ReminderSeconds > 86400*30 || r.EscalateSeconds < 60 || r.EscalateSeconds > 86400*30 || !r.Warning.Valid() || !r.Critical.Valid() {
+	if expected < 1 || !slices.Contains(RiskMetrics, r.Metric) || !r.Warning.Valid() || r.Warning.Sign() <= 0 || r.ReminderSeconds < 60 || r.ReminderSeconds > 86400*30 {
 		return r, ErrInvalid
 	}
-	if r.ID == "" {
-		r.ID = uuid.NewString()
+	var recipients []string
+	if len(r.Recipients) == 0 {
+		r.Recipients = json.RawMessage(`[]`)
 	}
-	if (r.Direction == "below" && r.Critical.Cmp(r.Warning) > 0) || (r.Direction == "above" && r.Critical.Cmp(r.Warning) < 0) || (r.Direction != "below" && r.Direction != "above") {
+	if json.Unmarshal(r.Recipients, &recipients) != nil || len(recipients) > 50 {
 		return r, ErrInvalid
 	}
-	recipients := []string{}
-	escalation := []string{}
-	if json.Unmarshal(r.Recipients, &recipients) != nil || json.Unmarshal(r.EscalationRecipients, &escalation) != nil || len(recipients) == 0 || len(recipients) > 50 || len(escalation) > 50 {
-		return r, ErrInvalid
-	}
+	r.Name, r.Direction, r.Critical = RiskMetricName(r.Metric)+"预警", "below", ledger.Zero()
+	r.EscalationRecipients, r.EscalateSeconds = json.RawMessage(`[]`), 3600
 	e := s.within(ctx, tx, func(t *gorm.DB) error {
 		if e := s.require(ctx, t, actor, r.OperatorID, "operations.manage"); e != nil {
 			return e
 		}
-		for _, id := range append(recipients, escalation...) {
-			if _, e := s.self(ctx, t, id, r.OperatorID); e != nil {
-				return e
+		scope, e := s.riskScope(ctx, t, r.OperatorID)
+		if e != nil {
+			return e
+		}
+		if !scope.Eligible {
+			return ErrForbidden
+		}
+		for _, id := range recipients {
+			if !slices.Contains(scope.Staff, id) {
+				return ErrInvalid
 			}
 		}
-		if e := lock(t, "risk:"+r.OperatorID+r.ID); e != nil {
+		if e = lock(t, "risks:"+r.OperatorID); e != nil {
+			return e
+		}
+		if e = s.EnsureRiskRules(ctx, t, r.OperatorID); e != nil {
 			return e
 		}
 		var old RiskRule
-		q := t.Where("operator_id=? AND id=?", r.OperatorID, r.ID).Limit(1).Find(&old)
-		if q.Error != nil {
-			return q.Error
+		if e = t.Where("operator_id=? AND metric=?", r.OperatorID, r.Metric).Take(&old).Error; e != nil {
+			return e
 		}
-		if (q.RowsAffected == 0 && expected != 0) || (q.RowsAffected > 0 && old.Version != expected) {
+		if old.Version != expected || r.ID != "" && r.ID != old.ID {
 			return ErrConflict
 		}
-		r.Name = r.DisplayName()
-		r.Version = expected + 1
-		r.UpdatedBy = actor
-		r.UpdatedAt = time.Now().UTC()
-		return t.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "operator_id"}, {Name: "id"}}, UpdateAll: true}).Create(&r).Error
+		r.ID, r.Version, r.UpdatedBy, r.UpdatedAt = old.ID, expected+1, actor, time.Now().UTC()
+		return t.Save(&r).Error
 	})
 	return r, e
 }
+
 func (s *Service) ListRiskRules(ctx context.Context, actor, operator string) ([]RiskRule, error) {
 	out := []RiskRule{}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
 		if e := s.require(ctx, t, actor, operator, "operations.manage"); e != nil {
 			return e
 		}
-		return t.Where("operator_id=?", operator).Order("name,id").Find(&out).Error
+		if e := s.EnsureRiskRules(ctx, t, operator); e != nil {
+			return e
+		}
+		return t.Where("operator_id=?", operator).Order("metric DESC").Find(&out).Error
 	})
 	return out, e
 }
@@ -144,7 +188,7 @@ func (s *Service) ListRisks(ctx context.Context, actor, operator string) ([]Risk
 	})
 	return out, e
 }
-func riskLevel(r RiskRule, v ledger.Decimal) string {
+func RiskLevel(r RiskRule, v ledger.Decimal) string {
 	if r.Direction == "below" {
 		if v.Cmp(r.Critical) <= 0 {
 			return "critical"
@@ -174,6 +218,16 @@ func (s *Service) RunRisks(ctx context.Context, operator string) ([]RiskState, e
 		if e := lock(t, "risks:"+operator); e != nil {
 			return e
 		}
+		scope, e := s.riskScope(ctx, t, operator)
+		if e != nil {
+			return e
+		}
+		if !scope.Eligible {
+			return nil
+		}
+		if e = s.EnsureRiskRules(ctx, t, operator); e != nil {
+			return e
+		}
 		now := time.Now().UTC()
 		metrics, e := s.Source.Metrics(ctx, t, operator, now)
 		if e != nil {
@@ -197,13 +251,10 @@ func (s *Service) RunRisks(ctx context.Context, operator string) ([]RiskState, e
 				state = RiskState{OperatorID: operator, RuleID: r.ID, Status: "normal"}
 			}
 			previous := state.Status
-			next := riskLevel(r, v)
+			next := RiskLevel(r, v)
 			if next != "normal" && previous == "normal" {
 				state.Incident++
 				state.OpenedAt = &now
-			}
-			if next == "warning" && state.OpenedAt != nil && now.Sub(*state.OpenedAt) >= time.Duration(r.EscalateSeconds)*time.Second {
-				next = "critical"
 			}
 			notify := next != previous || (next != "normal" && (state.LastNotifiedAt == nil || now.Sub(*state.LastNotifiedAt) >= time.Duration(r.ReminderSeconds)*time.Second))
 			state.Status = next
@@ -212,11 +263,14 @@ func (s *Service) RunRisks(ctx context.Context, operator string) ([]RiskState, e
 				state.Sequence++
 				recipients := []string{}
 				_ = json.Unmarshal(r.Recipients, &recipients)
-				if next == "critical" || previous == "critical" {
-					extra := []string{}
-					_ = json.Unmarshal(r.EscalationRecipients, &extra)
-					recipients = append(recipients, extra...)
+				recipients = slices.DeleteFunc(recipients, func(id string) bool { return !slices.Contains(scope.Staff, id) })
+				if len(recipients) == 0 {
+					recipients = scope.Owners
 				}
+				if len(recipients) == 0 {
+					continue
+				}
+
 				seen := map[string]bool{}
 				severity := next
 				if severity == "normal" {

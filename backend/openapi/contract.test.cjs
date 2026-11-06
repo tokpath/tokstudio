@@ -197,15 +197,14 @@ test('ledger inputs retain 18-place precision while price inputs and output read
   assert.ok(signed.test('-0.123456789012345678'));
 });
 
-test('risk rules use current rule CAS and operations permission while observations remain a separate read view', () => {
-  for (const resource of ['alerts']) {
-    assert.equal(operation(resource)['x-required-permission'], 'operations.manage');
-    const revise = document.components.schemas[`Operator_${resource}_revise_rule`];
-    assert.ok(revise.required.includes('id'));
-    assert.equal(revise.properties.expected_version.type, 'integer');
-    assert.equal(revise.properties.warning.$ref, '#/components/schemas/SignedLedgerDecimal');
-    assert.equal(revise.properties.recipients.type, 'array');
-  }
+test('fixed replenishment settings expose two metrics and revision checks without rule creation fields', () => {
+  assert.equal(operation('alerts')['x-required-permission'], 'operations.manage');
+  const settings=document.components.schemas.Operator_alerts_risk_settings;
+  assert.deepEqual(settings.properties.metric.enum,['sales_space_atg','procurement_available_atg']);
+  assert.equal(settings.properties.expected_version.type,'integer');
+  assert.equal(settings.properties.recipients.type,'array');
+  for(const field of ['id','name','critical','direction','escalation_recipients','escalate_minutes']) assert.equal(settings.properties[field],undefined);
+  assert.equal(metadata.filter(item=>item.resource==='alerts').length,1);
 });
 
 test('procurement revisions explicitly retain authorization identity and require fresh consent', () => {

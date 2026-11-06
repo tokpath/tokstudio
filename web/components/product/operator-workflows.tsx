@@ -62,7 +62,7 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
   const applicableMetrics = metricDefinitions.filter(metric => metricVisible(metric) && (!isPlatform || !upstreamMetricKeys.has(metric.key)));
   const outstanding = applicableMetrics.filter(metric => metric.task && metrics[metric.key] && !/^0(?:\.0+)?$/.test(metrics[metric.key]));
   const unknownTasks = overview.data && applicableMetrics.some(metric => metric.task && metrics[metric.key] === undefined);
-  const activeRisks = (risks.data?.items || []).filter(row => !["normal", "resolved", "cleared"].includes(row.status || "") && (!isPlatform || !upstreamMetricKeys.has(String(row.values.metric))));
+  const activeRisks = (risks.data?.items || []).filter(row => ["warning", "critical"].includes(row.status || "") && (!isPlatform || !upstreamMetricKeys.has(String(row.values.metric))));
   const businessRow = business.data?.items[0];
   const isOpening = businessRow && ["registration", "new_purchase", "model_usage"].every(key => businessRow.values[key] === false);
   const focusTitles: Record<string, string> = { owner: "经营总览与待办", finance: "今天需要核实的资金事项", technology: "今天需要处理的服务异常", support: "今天需要跟进的客户事项", operations: "今天需要处理的经营事项" };
@@ -78,7 +78,7 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
     {isOpening && <OpeningChecklist operatorID={operatorID} row={businessRow} />}
     {isPlatform && <details className="mb-5"><summary className="cursor-pointer text-sm text-brand-emphasis">{t("平台直接维护供应商与上游路由")}</summary><div className="mt-3"><Notice><p>{t("平台没有上级采购账户。模型履约依赖供应商接入、有效成本价和合格上游路由；平台继续承担客户服务与对下供货责任。")}</p><div className="mt-3 flex flex-wrap gap-4">{[["providers", t("维护模型供应商")], ["routes", t("配置路由")]].filter(([resource]) => canReadResource(workspace, resource)).map(([resource, label]) => <Link key={resource} className="text-brand-emphasis underline" href={destination(resource)}>{t(label)}</Link>)}</div></Notice></div></details>}
     <div className="mb-5 flex flex-wrap gap-2" aria-label={t("常用办理入口")}>{focusResources[focus].filter(resource => canReadResource(workspace, resource)).map(resource => <Button key={resource} variant="ghost" size="sm" asChild><Link href={destination(resource)}>{t(resourceLabel(resource))}<ArrowRight size={14} className="ml-2" /></Link></Button>)}</div>
-    <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_1fr]">
+    <div className={`grid items-start gap-6 ${isPlatform ? "" : "xl:grid-cols-[1.15fr_1fr]"}`}>
       <Card className="min-w-0">
         <div className="mb-5 flex items-center gap-3">
           <ClipboardCheck size={19} className="text-brand-emphasis" />
@@ -88,7 +88,7 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
         </p>}
         </div>{sources.slice(3).map((source, index) => source.isError && <div key={resources[index + 3]} className="mt-4"><ErrorPanel error={source.error} retry={() => void source.refetch()} compact /></div>)}
       </Card>
-      <Card className="min-w-0">
+      {!isPlatform && <Card className="min-w-0">
         <div className="mb-5 flex items-center gap-3">
           <ShieldCheck size={19} className="text-brand-emphasis" />
           <h2 className="text-lg font-semibold">{t("服务风险")}</h2>
@@ -102,8 +102,8 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
         </div>)}
           <Link className="inline-flex items-center gap-2 text-sm text-brand-emphasis" href={destination("alerts")}>{t("查看风险与处置")}<ArrowRight size={14} />
           </Link>
-        </div> : <p className="py-4 text-sm leading-7 text-ink-mute">{isPlatform ? t("已读取的适用风险规则暂无异常。平台继续核实供应商健康、路由容量和调用成本。") : t("已读取的风险规则暂无异常。模型调用仍须具备足额采购余额和合格路由。")}</p> : <p className="py-4 text-sm leading-7 text-ink-mute">{t("风险详情需要当前空间的运营权限。")}</p>}
-      </Card>
+        </div> : <p className="py-4 text-sm leading-7 text-ink-mute">{t("已读取的风险规则暂无异常。模型调用仍须具备足额采购余额和合格路由。")}</p> : <p className="py-4 text-sm leading-7 text-ink-mute">{t("风险详情需要当前空间的运营权限。")}</p>}
+      </Card>}
     </div>
     {overview.data && applicableMetrics.some(metric => metric.unit) && <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{applicableMetrics.filter(metric => metric.unit).map(metric => <div key={metric.key}><Stat label={t(metric.label)} value={metrics[metric.key] ?? t("尚未核实")} unit={metrics[metric.key] !== undefined ? metric.unit : undefined} detail={metrics[metric.key] !== undefined ? undefined : t("尚未取得可核实的指标，请到履约与超卖或采购页面查询原始责任。")} /><FieldHelp title={t(metric.label)}>{t(metric.detail)}</FieldHelp></div>)}
     </div>}

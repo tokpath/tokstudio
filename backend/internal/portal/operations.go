@@ -391,12 +391,14 @@ func (a *Application) operatorOperationsCommand(c *gin.Context, op organization.
 			return true
 		}
 		var in riskRuleInput
-		if json.Unmarshal(raw, &in) != nil {
+		decoder := json.NewDecoder(bytes.NewReader(raw))
+		decoder.DisallowUnknownFields()
+		if decoder.Decode(&in) != nil {
 			handleError(c, operations.ErrInvalid)
 			return true
 		}
 		rule, valid := in.rule(op.ID)
-		if !valid || !riskMetricAvailable(rule.Metric, op.Kind == organization.Platform) {
+		if !valid {
 			handleError(c, operations.ErrInvalid)
 			return true
 		}

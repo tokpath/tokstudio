@@ -342,21 +342,20 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     expect(Number(credits.customer_atg.available)).toBeGreaterThan(24);
     await customer.goto("/workspace/credit-sources"); await customer.screenshot({ path: info.outputPath("operator-customer-delivered-package.png"), fullPage: true });
     if (!journal.risk_rule) {
-      await channel.goto(`/manage/${f.channel_id}/alerts?view=rules`);
-      await channel.getByRole("button", { name: "新增预警规则", exact: true }).click();
-      const panel = channel.getByRole("dialog").last();
-      await expect(panel.getByLabel("规则编号", { exact: false })).toHaveCount(0);
-      for (const [name, value] of Object.entries({ name: "渠道采购余额补货提醒", metric: "procurement_available_atg", warning: "200", critical: "150", direction: "below", enabled: true })) await field(panel, name, value);
-      await panel.locator('[data-command-field="recipients"] label').filter({ hasText: f.channel_owner.email }).getByRole("checkbox").check();
-      const savedRule = await submit(channel, "新增预警规则", `${channelBase}/alerts`);
+      await channel.goto(`/manage/${f.channel_id}/alerts`);
+      const panel = channel.getByRole("region", {name:"剩余采购余额ATG"});
+      await panel.getByLabel("提醒阈值（ATG）").fill("200");
+      const saved = channel.waitForResponse(r => new URL(r.url()).pathname === `${channelBase}/alerts` && r.request().method() === "POST");
+      await panel.getByRole("button", {name:"保存预警设置"}).click();
+      const savedRule = await (await saved).json();
       expect(savedRule.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
       save("risk_rule", savedRule);
     }
     await expect.poll(async () => {
       const data = await (await channel.request.get(`${channelBase}/alerts`)).json();
       return data.items.find((item: any) => item.id === journal.risk_rule.id)?.status;
-    }, { timeout: 75_000, intervals: [1000, 3000] }).toBe("critical");
-    save("risk_observed", { rule: journal.risk_rule.id, measured_critical: true });
+    }, { timeout: 75_000, intervals: [1000, 3000] }).toBe("warning");
+    save("risk_observed", { rule: journal.risk_rule.id, measured_warning: true });
     await channel.goto(`/manage/${f.channel_id}/alerts`); await channel.screenshot({ path: info.outputPath("operator-risk-warning.png"), fullPage: true });
     // The brand cannot read the customer's current assets before an explicit
     // reviewed whole-channel takeover. The same account survives afterwards.

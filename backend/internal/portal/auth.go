@@ -81,6 +81,9 @@ func navigationPermissions(domain []string, kind organization.OperatorKind) []st
 	}
 	resources := []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "payment-quotes", "evidence", "valuations", "receipt-valuations", "pricing", "gifts", "marketing", "commissions", "ledger", "refunds", "balance-withdrawals", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "contracts", "procurement", "procurement-invoices", "coverage", "alerts", "takeovers", "exits", "branding", "domains", "channel-themes", "staff", "restrictions", "notifications", "business-status", "audit", "payment-assets", "providers", "catalog", "routes", "requests", "jobs", "mail", "bifrost", "supplier-costs"}
 	for _, resource := range resources {
+		if resource == "alerts" && kind == organization.Platform {
+			continue
+		}
 		if resource == "notifications" {
 			out = append(out, "notifications.read")
 			continue

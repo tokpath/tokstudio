@@ -37,6 +37,7 @@ export function staffNotificationPath(workspaces: readonly (Workspace & { operat
 export function canReadResource(workspace: Workspace | undefined, resource: string): boolean {
   if (!workspace) return false;
   const base = resource.split("/")[0];
+  if (base === "alerts" && workspace.operator.kind === "platform") return false;
   if (platformOnly.has(base) && workspace.operator.kind !== "platform") return false;
   if (parentOnly.has(base) && workspace.operator.kind === "channel") return false;
   return workspace.permissions.includes("*") || workspace.permissions.includes(`${base}.read`);

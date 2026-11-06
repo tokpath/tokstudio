@@ -2,221 +2,124 @@ package portal
 
 import (
 	"context"
-	"testing"
-
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"testing"
 )
 
-func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnly(t *testing.T) {
-	f := setupPortal(t)
-	op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
-	f.login(t, "staff", "owner@example.test", "owner-password-test")
-	base := "/v1/operators/" + op
-	input := map[string]any{"name": "请求数量预警", "metric": "pending_usage", "warning": "10.000000000000000001", "critical": "2.000000000000000001", "direction": "below", "recipients": []string{owner}, "escalation_recipients": []string{}, "reminder_minutes": "60", "escalate_minutes": "120", "enabled": true, "expected_version": 0}
-	creationKey := uuid.NewString()
-	var status int
-	var out map[string]any
-	createdID := ""
-	for i := 0; i < 2; i++ {
-		status, out, _ = f.call(t, "POST", base+"/alerts", input, creationKey)
-		mustOK(t, status, out)
-		id, _ := out["id"].(string)
-		if _, err := uuid.Parse(id); err != nil || out["version"] != float64(1) || (createdID != "" && id != createdID) {
-			t.Fatal("new rule did not generate and replay one stable identity", out)
-		}
-		createdID = id
-	}
-	input["id"] = createdID
-	var saved operations.RiskRule
-	if err := f.a.DB.Where("operator_id=? AND id=?", op, createdID).Take(&saved).Error; err != nil || saved.ReminderSeconds != 3600 || saved.EscalateSeconds != 7200 {
-		t.Fatal("minute inputs changed scheduler timing", saved, err)
-	}
-	read := func(resource string) map[string]any {
-		t.Helper()
-		status, out, _ := f.call(t, "GET", base+resource, nil, "")
-		mustOK(t, status, out)
-		return out
-	}
-	assertRule := func(page map[string]any, version float64, warning string) {
-		t.Helper()
-		if ops := page["operations"].([]any); len(ops) != 1 || ops[0].(map[string]any)["name"] != "risk_rule" {
-			t.Fatal("rule view lost its create action", page)
-		}
-		rows := page["items"].([]any)
-		if len(rows) != 1 {
-			t.Fatal("rule missing", page)
-		}
-		row := rows[0].(map[string]any)
-		value := row["values"].(map[string]any)
-		if _, exists := value["reminder_seconds"]; exists {
-			t.Fatal("workspace still exposes second inputs", value)
-		}
-		if row["id"] != input["id"] || row["version"] != version || value["warning"] != warning || value["reminder_minutes"] != "60" || value["escalate_minutes"] != "120" || value["recipients"].([]any)[0] != owner {
-			t.Fatal("saved rule fields/version were not projected", row)
-		}
-		if value["name"] != input["name"] || value["recipient_names"] != "Owner · owner@example.test" {
-			t.Fatal("rule name or responsible person was not readable", value)
-		}
-		if actions := row["allowed_actions"].([]any); len(actions) != 1 || actions[0] != "revise_rule" {
-			t.Fatal("rule not editable", row)
-		}
-		edit := page["row_operations"].([]any)[0].(map[string]any)
-		if edit["name"] != "revise_rule" || edit["permission"] != "operations.manage" {
-			t.Fatal("edit operation authority", edit)
-		}
-		for _, field := range edit["fields"].([]any) {
-			f := field.(map[string]any)
-			if f["name"] == "reminder_seconds" || f["name"] == "escalate_seconds" {
-				t.Fatal("edit form still uses seconds", f)
-			}
-			if (f["name"] == "id" || f["name"] == "expected_version") && f["kind"] != "hidden" {
-				t.Fatal("rule identity/version is not fixed to selected record", f)
-			}
-			if f["name"] == "recipients" {
-				options, ok := f["options"].([]any)
-				if !ok || len(options) != 1 || options[0].(map[string]any)["value"] != owner || options[0].(map[string]any)["label"] != "Owner · owner@example.test" {
-					t.Fatal("responsible people cannot be selected by name/email", f)
-				}
-			}
-		}
-	}
-	assertRule(read("/alerts?view=rules"), 1, input["warning"].(string))
-	if page := read("/alerts"); len(page["items"].([]any)) != 0 || len(page["operations"].([]any)) != 0 {
-		t.Fatal("an enabled rule was presented as an active risk")
-	}
-	state := operations.RiskState{OperatorID: op, RuleID: input["id"].(string), Status: "warning", Value: ledger.MustDecimal("5.000000000000000001"), Sequence: 7}
-	if err := f.a.DB.Create(&state).Error; err != nil {
-		t.Fatal(err)
-	}
-	for _, view := range []string{"/alerts", "/alerts?view=observations"} {
-		page := read(view)
-		if len(page["operations"].([]any)) != 0 {
-			t.Fatal("observation view still duplicates the create rule action", page)
-		}
-		rows := page["items"].([]any)
-		if len(rows) != 1 {
-			t.Fatal("observation missing", page)
-		}
-		row := rows[0].(map[string]any)
-		if row["values"].(map[string]any)["name"] != input["name"] {
-			t.Fatal("risk observation lost the readable rule name", row)
-		}
-		if row["version"] != float64(0) || row["status"] != "warning" || len(row["allowed_actions"].([]any)) != 0 || len(page["row_operations"].([]any)) != 0 {
-			t.Fatal("observation can masquerade as an editable rule", page)
-		}
-	}
-	assertRule(read("/alerts?view=rules"), 1, input["warning"].(string))
-	status, _, _ = f.call(t, "GET", base+"/alerts?view=unknown", nil, "")
-	if status != 400 {
-		t.Fatal("unrecognized view accepted", status)
-	}
-	input["expected_version"], input["warning"] = 1, "11.000000000000000001"
-	key := uuid.NewString()
-	for i := 0; i < 2; i++ {
-		status, out, _ = f.call(t, "POST", base+"/alerts", input, key)
-		mustOK(t, status, out)
-		if out["version"] != float64(2) {
-			t.Fatal("same original action did not replay the saved rule version", out)
-		}
-	}
-	status, out, _ = f.call(t, "POST", base+"/alerts", input, uuid.NewString())
-	if status != 409 || out["error"].(map[string]any)["code"] != "version_conflict" {
-		t.Fatal("stale rule did not require review", status, out)
-	}
-	assertRule(read("/alerts?view=rules"), 2, input["warning"].(string))
-	// A custom operator with only the exact rule-management permission must be
-	// able to use both views without inheriting financial report permissions.
-	var membership string
-	if err := f.a.DB.Table("organization_staff_memberships").Select("id").Where("staff_id=? AND operator_id=?", owner, op).Scan(&membership).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := f.a.DB.Exec("UPDATE organization_staff_memberships SET role='custom' WHERE id=?", membership).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := f.a.DB.Exec("INSERT INTO organization_staff_grants(membership_id,action) VALUES (?,?)", membership, "operations.manage").Error; err != nil {
-		t.Fatal(err)
-	}
-	assertRule(read("/alerts?view=rules"), 2, input["warning"].(string))
-	read("/alerts")
-	input["expected_version"], input["enabled"] = 2, false
-	status, out, _ = f.call(t, "POST", base+"/alerts", input, uuid.NewString())
-	mustOK(t, status, out)
-	if out["version"] != float64(3) {
-		t.Fatal("custom operations permission could not revise rule", out)
-	}
-	for _, path := range []string{"/v1/operators/" + uuid.NewString() + "/alerts", base + "/reports/financial?from=2026-10-01T00:00:00Z&to=2026-10-02T00:00:00Z"} {
-		status, _, _ = f.call(t, "GET", path, nil, "")
-		if status == 200 {
-			t.Fatal("rule management granted another scope or financial reports", path)
-		}
-	}
-	var retained operations.RiskState
-	if err := f.a.DB.Where("operator_id=? AND rule_id=?", op, state.RuleID).Take(&retained).Error; err != nil {
-		t.Fatal(err)
-	}
-	if retained.Status != state.Status || retained.Sequence != state.Sequence || retained.Value.String() != state.Value.String() {
-		t.Fatal("rule revision rewrote historical observation", retained)
-	}
-}
-
-func TestPostgresRiskMetricChoicesAndCommandsRespectOperatorKind(t *testing.T) {
-	f := setupPortal(t)
-	ctx := context.Background()
+func riskOperators(t *testing.T, f *testApp) map[organization.OperatorKind]string {
+	t.Helper()
 	owner := f.a.Installation.OwnerStaffID
 	operators := map[organization.OperatorKind]string{organization.Platform: f.a.Installation.OperatorID}
 	parent := f.a.Installation.OperatorID
 	for _, kind := range []organization.OperatorKind{organization.OEM, organization.Channel} {
-		child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: kind, Name: "Risk " + string(kind), BrandName: "Risk OEM"})
+		child, err := f.a.Organization.CreateOperator(context.Background(), nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: kind, Name: "Risk " + string(kind), BrandName: "Risk OEM"})
 		if err != nil {
 			t.Fatal(err)
 		}
-		inv, err := f.a.Organization.InviteStaff(ctx, nil, owner, child.Operator.ID, "owner@example.test", "owner")
+		inv, err := f.a.Organization.InviteStaff(context.Background(), nil, owner, child.Operator.ID, "owner@example.test", "owner")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err = f.a.Organization.AcceptStaffInvitation(ctx, nil, inv.Token, organization.VerifiedStaff{ID: owner, Email: "owner@example.test", EmailVerified: true}); err != nil {
+		_, err = f.a.Organization.AcceptStaffInvitation(context.Background(), nil, inv.Token, organization.VerifiedStaff{ID: owner, Email: "owner@example.test", EmailVerified: true})
+		if err != nil {
 			t.Fatal(err)
 		}
 		operators[kind], parent = child.Operator.ID, child.Operator.ID
 	}
+	return operators
+}
+func TestPostgresFixedRiskCardsScopeDefaultsAndSave(t *testing.T) {
+	f := setupPortal(t)
+	operators := riskOperators(t, f)
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	for kind, operator := range operators {
 		base := "/v1/operators/" + operator + "/alerts"
-		status, page, _ := f.call(t, "GET", base+"?view=rules", nil, "")
-		mustOK(t, status, page)
-		choices := map[string]string{}
-		for _, raw := range page["operations"].([]any)[0].(map[string]any)["fields"].([]any) {
-			field := raw.(map[string]any)
-			if field["name"] == "metric" {
-				for _, raw := range field["options"].([]any) {
-					option := raw.(map[string]any)
-					choices[option["value"].(string)] = option["label"].(string)
+		if kind == organization.Platform {
+			for _, method := range []string{"GET", "POST"} {
+				status, _, _ := f.call(t, method, base, map[string]any{}, uuid.NewString())
+				if status != 404 {
+					t.Fatal("platform alerts still available", method, status)
 				}
 			}
+			continue
 		}
-		for _, metric := range []string{"sales_space_atg", "procurement_available_atg", "oversell_used_atg", "pending_usage", "unverified_costs"} {
-			want := metric == "pending_usage" || (kind == organization.Platform && metric == "unverified_costs") || (kind != organization.Platform && metric != "unverified_costs")
-			if (choices[metric] != "") != want {
-				t.Fatalf("%s metric %s: choices=%v", kind, metric, choices)
-			}
-			if want && choices[metric] != operations.RiskMetricName(metric) {
-				t.Fatalf("inconsistent metric wording: %s", choices[metric])
-			}
-			input := map[string]any{"metric": metric, "warning": "10", "critical": "2", "direction": "below", "recipients": []string{owner}, "escalation_recipients": []string{}, "reminder_minutes": "60", "escalate_minutes": "120", "enabled": true, "expected_version": 0}
-			status, result, _ := f.call(t, "POST", base, input, uuid.NewString())
-			if want {
-				mustOK(t, status, result)
-			} else if status != 400 {
-				t.Fatalf("%s accepted unavailable metric %s: %d %v", kind, metric, status, result)
-			}
+		// The background evaluator initializes defaults even if nobody visits the page.
+		if _, err := f.a.Operations.RunRisks(t.Context(), operator); err != nil {
+			t.Fatal(err)
 		}
-		status, page, _ = f.call(t, "GET", base, nil, "")
+		var count int64
+		f.a.DB.Model(&operations.RiskRule{}).Where("operator_id=?", operator).Count(&count)
+		if count != 2 {
+			t.Fatal(count)
+		}
+		status, page, _ := f.call(t, "GET", base, nil, "")
 		mustOK(t, status, page)
-		if len(page["operations"].([]any)) != 0 {
-			t.Fatalf("%s observation view duplicates rule creation", kind)
+		if len(page["items"].([]any)) != 2 || len(page["operations"].([]any)) != 0 || page["views"] != nil || page["search_supported"] != false {
+			t.Fatal(page)
+		}
+		var originalID string
+		for _, raw := range page["items"].([]any) {
+			row := raw.(map[string]any)
+			v := row["values"].(map[string]any)
+			if v["warning"] != "100" || v["reminder_minutes"] != "60" || v["enabled"] != true || len(v["recipients"].([]any)) != 0 || len(v["default_owner_ids"].([]any)) != 1 {
+				t.Fatal(v)
+			}
+			if v["metric"] == "sales_space_atg" {
+				originalID = row["id"].(string)
+			}
+		}
+		input := map[string]any{"metric": "sales_space_atg", "warning": "12.000000000000000001", "recipients": []string{}, "reminder_minutes": "1.5", "enabled": true, "expected_version": 1}
+		key := uuid.NewString()
+		for i := 0; i < 2; i++ {
+			status, out, _ := f.call(t, "POST", base, input, key)
+			mustOK(t, status, out)
+			if out["id"] != originalID || out["version"] != float64(2) {
+				t.Fatal(out)
+			}
+		}
+		status, _, _ = f.call(t, "POST", base, input, uuid.NewString())
+		if status != 409 {
+			t.Fatal("stale settings accepted", status)
+		}
+		input["expected_version"] = 2
+		for _, metric := range []string{"pending_usage", "unverified_costs", "oversell_used_atg"} {
+			input["metric"] = metric
+			status, _, _ = f.call(t, "POST", base, input, uuid.NewString())
+			if status != 400 {
+				t.Fatal(metric, status)
+			}
+		}
+		input["metric"] = "sales_space_atg"
+		input["recipients"] = []string{uuid.NewString()}
+		status, _, _ = f.call(t, "POST", base, input, uuid.NewString())
+		if status != 400 {
+			t.Fatal("foreign recipient", status)
+		}
+		input["recipients"] = []string{}
+		input["warning"] = "0"
+		status, _, _ = f.call(t, "POST", base, input, uuid.NewString())
+		if status != 400 {
+			t.Fatal("zero threshold", status)
+		}
+		input["warning"] = "20"
+		input["enabled"] = false
+		delete(input, "recipients") // Omitting optional recipients follows the owners.
+		status, out, _ := f.call(t, "POST", base, input, uuid.NewString())
+		mustOK(t, status, out)
+		status, page, _ = f.call(t, "GET", base+"?view=rules", nil, "")
+		mustOK(t, status, page)
+		for _, raw := range page["items"].([]any) {
+			row := raw.(map[string]any)
+			if row["id"] == originalID && row["status"] != "disabled" {
+				t.Fatal(row)
+			}
+		}
+		f.a.DB.Model(&operations.RiskRule{}).Where("operator_id=?", operator).Count(&count)
+		if count != 2 {
+			t.Fatal("save duplicated fixed settings", count)
 		}
 	}
 }

@@ -45,7 +45,7 @@ func (s *Service) ListCustomerInvoices(ctx context.Context, customer, cursor str
 
 // Search runs inside the authenticated issuer/customer scope and before the
 // page limit. strpos treats a user's % and _ as literal text, never wildcards.
-func invoiceSearch(q *gorm.DB, search []string) *gorm.DB {
+func invoiceSearch(q *gorm.DB, search []string, parties ...string) *gorm.DB {
 	if len(search) > 1 && strings.TrimSpace(search[1]) != "" {
 		q = q.Where("state=?", strings.TrimSpace(search[1]))
 	}
@@ -56,14 +56,14 @@ func invoiceSearch(q *gorm.DB, search []string) *gorm.DB {
 	if term == "" {
 		return q
 	}
-	return q.Where(`(strpos(lower(CAST(operations_invoices.id AS text)), ?) > 0
+	return q.Where(`(customer_id::text IN ? OR buyer_operator_id::text IN ? OR operator_id::text IN ? OR strpos(lower(CAST(operations_invoices.id AS text)), ?) > 0
 		OR strpos(lower(COALESCE(invoice_reference,'')), ?) > 0
 		OR strpos(lower(COALESCE(evidence_reference,'')), ?) > 0
-		OR EXISTS (SELECT 1 FROM operations_invoice_orders src WHERE src.invoice_id=operations_invoices.id AND strpos(lower(CAST(src.order_id AS text)), ?) > 0))`, term, term, term, term)
+		OR EXISTS (SELECT 1 FROM operations_invoice_orders src WHERE src.invoice_id=operations_invoices.id AND strpos(lower(CAST(src.order_id AS text)), ?) > 0))`, parties, parties, parties, term, term, term, term)
 }
 
 // RequestHistoricalInvoice proves the original paid customer/issuer relationship
-// using immutable source allocations. It does not grant access through a new
+// using the original completed purchase orders. It does not grant access through a new
 // merchant's directory or expose another customer's original receipt details.
 // The customer identity must come from the authenticated session.
 func (s *Service) RequestHistoricalInvoice(ctx context.Context, customer, issuer, key string, lines []InvoiceLine, details InvoiceDetails) (Invoice, error) {
@@ -76,7 +76,7 @@ func (s *Service) RequestHistoricalInvoice(ctx context.Context, customer, issuer
 }
 
 // Issuer and buyer queries retain their distinct authorities and relationships.
-func (s *Service) ListOperatorInvoicesPage(ctx context.Context, actor, operator, cursor, query, status string, limit int) ([]Invoice, string, error) {
+func (s *Service) ListOperatorInvoicesPage(ctx context.Context, actor, operator, cursor, query, status string, limit int, parties ...string) ([]Invoice, string, error) {
 	var rows []Invoice
 	var next string
 	err := s.within(ctx, nil, func(tx *gorm.DB) error {
@@ -84,12 +84,12 @@ func (s *Service) ListOperatorInvoicesPage(ctx context.Context, actor, operator,
 			return err
 		}
 		var err error
-		rows, next, err = invoicePage(tx.Where("operator_id=?", operator), cursor, query, status, limit)
+		rows, next, err = invoicePage(tx.Where("operator_id=?", operator), cursor, query, status, limit, parties...)
 		return err
 	})
 	return rows, next, err
 }
-func (s *Service) ListProcurementInvoicesPage(ctx context.Context, actor, buyer, cursor, query, status string, limit int) ([]Invoice, string, error) {
+func (s *Service) ListProcurementInvoicesPage(ctx context.Context, actor, buyer, cursor, query, status string, limit int, parties ...string) ([]Invoice, string, error) {
 	var rows []Invoice
 	var next string
 	err := s.within(ctx, nil, func(tx *gorm.DB) error {
@@ -97,12 +97,12 @@ func (s *Service) ListProcurementInvoicesPage(ctx context.Context, actor, buyer,
 			return err
 		}
 		var err error
-		rows, next, err = invoicePage(tx.Where("party_kind='procurement' AND buyer_operator_id=?", buyer), cursor, query, status, limit)
+		rows, next, err = invoicePage(tx.Where("party_kind='procurement' AND buyer_operator_id=?", buyer), cursor, query, status, limit, parties...)
 		return err
 	})
 	return rows, next, err
 }
-func invoicePage(q *gorm.DB, cursor, query, status string, limit int) ([]Invoice, string, error) {
+func invoicePage(q *gorm.DB, cursor, query, status string, limit int, parties ...string) ([]Invoice, string, error) {
 	if limit < 1 || limit > 100 {
 		return nil, "", ErrInvalid
 	}
@@ -115,7 +115,7 @@ func invoicePage(q *gorm.DB, cursor, query, status string, limit int) ([]Invoice
 		q = q.Where("(created_at,id)<(?,?)", c.At, c.ID)
 	}
 	rows := []Invoice{}
-	if err := invoiceSearch(q, []string{query, status}).Order("created_at DESC,id DESC").Limit(limit + 1).Find(&rows).Error; err != nil {
+	if err := invoiceSearch(q, []string{query, status}, parties...).Order("created_at DESC,id DESC").Limit(limit + 1).Find(&rows).Error; err != nil {
 		return nil, "", err
 	}
 	next := ""

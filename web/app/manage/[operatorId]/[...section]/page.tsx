@@ -10,6 +10,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     query.delete("view");
     redirect(`/manage/${encodeURIComponent(operatorId)}/commissions?${query}`);
   }
+  if (section.length === 1 && section[0] === "procurement-invoices") redirect(`/manage/${encodeURIComponent(operatorId)}/invoices?section=received`);
   const record = typeof search.record === "string" ? search.record : undefined;
   return <ManagementPage operatorID={operatorId} resource={section.map(encodeURIComponent).join("/")} record={record} />;
 }

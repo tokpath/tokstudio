@@ -579,3 +579,12 @@ it("selects an invoice order, carries its issuer and never sends a client amount
   const submitted=fetch.mock.calls.find(([,init])=>init?.method==="POST")?.[1];
   expect(JSON.parse(String(submitted?.body))).toEqual({issuer_id:"original-seller",lines:[{order_id:"purchase-b"}]});
 });
+
+it("submits the chosen invoice action instead of copying the saved state",async()=>{
+ const attempts:unknown[]=[];
+ vi.stubGlobal("fetch",vi.fn(async(_input:RequestInfo|URL,init?:RequestInit)=>{attempts.push(JSON.parse(String(init?.body)));return new Response(JSON.stringify({id:"invoice-one",status:"rejected"}),{status:200});}));
+ show({name:"reject",label:"拒绝申请",method:"POST",path:"/api/v1/operators/operator-one/invoices/{id}/register",fields:[{name:"state",label:"状态",kind:"hidden",default_value:"rejected",required:true},{name:"reason",label:"拒绝原因",kind:"textarea",required:true}]},{id:"invoice-one",status:"requested",values:{state:"requested"}});
+ fireEvent.change(screen.getByLabelText("拒绝原因",{exact:true}),{target:{value:"请核对抬头"}});
+ fireEvent.click(screen.getByRole("button",{name:"拒绝申请",exact:true}));
+ await waitFor(()=>expect(attempts).toEqual([{state:"rejected",reason:"请核对抬头"}]));
+});

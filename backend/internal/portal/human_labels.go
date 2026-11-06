@@ -165,7 +165,7 @@ func (a *Application) projectResourceLabels(c *gin.Context, p gin.H, resource st
 				continue
 			}
 			switch key {
-			case "operator_id", "original_operator_id", "supplier_id", "buyer_id", "channel_id", "brand_operator_id", "issuer_id", "parent_operator_id":
+			case "operator_id", "original_operator_id", "supplier_id", "buyer_id", "buyer_operator_id", "channel_id", "brand_operator_id", "issuer_id", "parent_operator_id":
 				add("operator", text)
 			case "brand_id":
 				add("brand", text)
@@ -470,7 +470,10 @@ func (a *Application) projectResourceLabels(c *gin.Context, p gin.H, resource st
 			subtitle = ""
 		}
 		if subtitle == "" {
-			subtitle = humanJoin(names["customer_id"], names["supplier_id"], names["buyer_id"])
+			subtitle = humanJoin(names["customer_id"], names["supplier_id"], names["buyer_id"], humanString(v, "applicant"))
+		}
+		if resource == "procurement-invoices" {
+			subtitle = humanString(v, "issuer_name")
 		}
 		prefix := ""
 		if humanString(v, "name", "display_name", "title", "filename", "hostname", "operator_name", "model", "public_model_id", "model_id") == "" && readableIdentifier(humanString(v, "invoice_reference", "provider_receipt_id", "provider_case_id")) == "" {
@@ -511,6 +514,9 @@ func humanRecordTitle(v gin.H, resource string, labels map[string]string) string
 	}
 	if kind == "" {
 		kind = "业务记录"
+	}
+	if resource == "invoices" && humanString(v, "party_kind") == "procurement" {
+		kind = "采购发票"
 	}
 	if resource == "payment-methods" {
 		return humanJoin(kind, humanString(v, "driver"), humanString(v, "currency"))

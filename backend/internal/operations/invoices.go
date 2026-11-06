@@ -238,7 +238,9 @@ func (s *Service) RegisterInvoice(ctx context.Context, actor, operator, id, stat
 		out.Reason = reason
 		out.HandledBy = &actor
 		out.HandledAt = &now
-		if e := t.Save(&out).Error; e != nil {
+		// Only the handling result changes. Procurement invoices have no customer
+		// UUID; writing a zero string back would also corrupt the party shape.
+		if e := t.Model(&Invoice{}).Where("id=?", out.ID).Updates(map[string]any{"state": out.State, "invoice_reference": out.InvoiceReference, "evidence_reference": out.EvidenceReference, "reason": out.Reason, "handled_by": actor, "handled_at": now}).Error; e != nil {
 			return e
 		}
 		return t.Exec(`INSERT INTO operations_invoice_transitions(id,invoice_id,from_state,to_state,invoice_reference,evidence_reference,reason,actor_id,at) VALUES(?,?,?,?,?,?,?,?,?)`, uuid.NewString(), out.ID, previousState, state, invoiceRef, evidence, reason, actor, now).Error
@@ -307,4 +309,32 @@ func (s *Service) invoiceOrdersValid(ctx context.Context, tx *gorm.DB, i Invoice
 		}
 	}
 	return true, nil
+}
+
+// InvoiceApplication exposes only the authorized application's submitted details
+// and fixed order amounts. Unissued files remain private to the issuer.
+type InvoiceOrder struct {
+	OrderID     string         `json:"order_id"`
+	AmountMoney ledger.Decimal `json:"amount_money"`
+}
+type InvoiceApplication struct {
+	Invoice Invoice        `json:"invoice"`
+	Details InvoiceDetails `json:"details"`
+	Orders  []InvoiceOrder `json:"orders"`
+}
+
+func (s *Service) ReadInvoiceApplication(ctx context.Context, actor, operator, id string, customer bool, buyer string) (InvoiceApplication, error) {
+	out := InvoiceApplication{Orders: []InvoiceOrder{}}
+	err := s.within(ctx, nil, func(tx *gorm.DB) error {
+		row, err := s.invoiceReader(ctx, tx, actor, operator, id, customer, buyer, true)
+		if err != nil {
+			return err
+		}
+		out.Invoice = row
+		if err = s.open(row.DetailsCiphertext, &out.Details); err != nil {
+			return err
+		}
+		return tx.Table("operations_invoice_orders").Where("invoice_id=?", id).Order("order_id").Find(&out.Orders).Error
+	})
+	return out, err
 }

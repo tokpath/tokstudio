@@ -19,7 +19,7 @@ export const operatorNav: readonly NavigationSection[] = [
   { id: "products", group: "商品与定价", items: [["plans", "套餐与续费"], ["pricing", "模型与定价"]] },
   { id: "marketing", group: "营销与推广", items: [["marketing", "活动管理"], ["commissions", "邀请与分佣"], ["gifts", "赠送与补偿"]] },
   { id: "finance", group: "资金办理", items: [["orders", "订单与交付"], ["payments", "收款办理"], ["balance-withdrawals", "余额提现"], ["refunds", "退款与冲正"], ["disputes", "争议与扣回"], ["invoices", "票据办理"], ["reconciliation", "对账与差额"], ["ledger", "资产与账本"]] },
-  { id: "cooperation", group: "采购与合作", items: [["operators", "下属经营方"], ["procurement", "采购与供货"], ["contracts", "合作合同"], ["coverage", "履约与超卖"], ["alerts", "风险预警"], ["procurement-invoices", "采购开票"], ["takeovers", "渠道接管"], ["exits", "合作退出"], ["branding", "品牌外观"], ["domains", "品牌域名"], ["channel-themes", "渠道外观"]] },
+  { id: "cooperation", group: "采购与合作", items: [["operators", "下属经营方"], ["procurement", "采购与供货"], ["contracts", "合作合同"], ["coverage", "履约与超卖"], ["alerts", "风险预警"], ["takeovers", "渠道接管"], ["exits", "合作退出"], ["branding", "品牌外观"], ["domains", "品牌域名"], ["channel-themes", "渠道外观"]] },
   { id: "reports", group: "报表", items: [["reports", "经营报表"], ["exports", "数据导出"]] },
   { id: "settings", group: "设置", items: [["business-status", "营业设置"], ["payment-methods", "收款方式"], ["payment-quotes", "付款报价来源"], ["staff", "人员与权限"], ["restrictions", "业务限制"], ["notifications", "通知管理"], ["audit", "操作审计"], ["mail", "邮件服务"]] },
   { id: "technology", group: "平台技术", items: [["catalog", "公开模型"], ["providers", "模型供应商"], ["routes", "路由配置"], ["bifrost", "Bifrost 设置"], ["supplier-costs", "真实上游成本"], ["requests", "调用与成本核实"], ["jobs", "任务恢复"], ["payment-assets", "支付资产与网络"]] },
@@ -37,16 +37,19 @@ export function staffNotificationPath(workspaces: readonly (Workspace & { operat
 export function canReadResource(workspace: Workspace | undefined, resource: string): boolean {
   if (!workspace) return false;
   const base = resource.split("/")[0];
-  if (base === "alerts" && workspace.operator.kind === "platform") return false;
+  if (["alerts", "procurement-invoices"].includes(base) && workspace.operator.kind === "platform") return false;
   if (platformOnly.has(base) && workspace.operator.kind !== "platform") return false;
   if (parentOnly.has(base) && workspace.operator.kind === "channel") return false;
   return workspace.permissions.includes("*") || workspace.permissions.includes(`${base}.read`);
 }
+export function canUseInvoiceWorkspace(workspace: Workspace | undefined): boolean {
+ return canReadResource(workspace, "invoices") || canReadResource(workspace, "procurement-invoices");
+}
 export function visibleOperatorSections(workspace: Workspace): NavigationSection[] {
-  return operatorNav.map(section => ({ ...section, items: section.items.filter(([resource]) => canReadResource(workspace, resource) || resource === "commissions" && canReadResource(workspace, "withdrawals")) })).filter(section => section.items.length > 0);
+  return operatorNav.map(section => ({ ...section, items: section.items.filter(([resource]) => canReadResource(workspace, resource) || resource === "invoices" && canUseInvoiceWorkspace(workspace) || resource === "commissions" && canReadResource(workspace, "withdrawals")) })).filter(section => section.items.length > 0);
 }
 export function operatorResourcePath(operatorID: string, resource: string): string {
-  return `/manage/${encodeURIComponent(operatorID)}/${resource === "withdrawals" ? "commissions?section=requests" : resource}`;
+  return `/manage/${encodeURIComponent(operatorID)}/${resource === "withdrawals" ? "commissions?section=requests" : resource === "procurement-invoices" ? "invoices?section=received" : resource}`;
 }
 export function operatorLanding(workspace: Workspace & { operator: { id: string; kind: string } }): string {
   const first = visibleOperatorSections(workspace)[0]?.items[0]?.[0];
@@ -57,6 +60,7 @@ export function sectionForResource(sections: readonly NavigationSection[], resou
   return sections.find(section => section.items.some(([item]) => item === base));
 }
 export function resourceLabel(resource: string): string {
+  if (resource === "procurement-invoices") return "我方收票";
   const base = resource.split("/")[0];
   for (const section of operatorNav) for (const [key, label] of section.items) if (key === base) return label;
   for (const section of customerSections) for (const [key, label] of section.items) if (key === base) return label;

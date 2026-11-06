@@ -25,24 +25,36 @@ func (a *Application) invoiceFiles(c *gin.Context) {
 		}
 		operator = invoice.OperatorID
 	}
-	var rows []operations.InvoiceFile
-	var e error
-	if buyer {
-		if _, _, ok := a.staffScope(c, "procurement-invoices"); !ok {
+	if !customer {
+		resource := "invoices"
+		if buyer {
+			resource = "procurement-invoices"
+		}
+		if _, _, ok := a.staffScope(c, resource); !ok {
 			return
 		}
-		rows, e = a.Operations.ListProcurementInvoiceFiles(ctx, actor, operator, c.Param("id"))
-	} else {
-		if !customer {
-			if _, _, ok := a.staffScope(c, "invoices"); !ok {
-				return
-			}
-		}
-		rows, e = a.Operations.ListInvoiceFiles(ctx, actor, operator, c.Param("id"), customer)
 	}
+	buyerID := ""
+	if buyer {
+		buyerID = operator
+	}
+	application, e := a.Operations.ReadInvoiceApplication(ctx, actor, operator, c.Param("id"), customer, buyerID)
 	if e != nil {
 		handleError(c, e)
 		return
+	}
+	filesAvailable := !customer && !buyer || application.Invoice.State == "issued" || application.Invoice.State == "review_required" || application.Invoice.State == "voided"
+	var rows []operations.InvoiceFile
+	if filesAvailable {
+		if buyer {
+			rows, e = a.Operations.ListProcurementInvoiceFiles(ctx, actor, operator, c.Param("id"))
+		} else {
+			rows, e = a.Operations.ListInvoiceFiles(ctx, actor, operator, c.Param("id"), customer)
+		}
+		if e != nil {
+			handleError(c, e)
+			return
+		}
 	}
 	if rows == nil {
 		rows = []operations.InvoiceFile{}
@@ -58,15 +70,12 @@ func (a *Application) invoiceFiles(c *gin.Context) {
 	for _, r := range rows {
 		items = append(items, gin.H{"id": r.ID, "filename": r.Filename, "content_type": r.ContentType, "size_bytes": r.SizeBytes, "state": r.State, "created_at": r.CreatedAt, "download_url": base + "/" + c.Param("id") + "/files/" + r.ID})
 	}
-	result := gin.H{"items": items}
-	if !customer && !buyer {
-		details, e := a.Operations.InvoiceDetails(ctx, actor, operator, c.Param("id"))
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		result["details"] = details
+	orders, e := a.invoiceApplicationOrders(c, application)
+	if e != nil {
+		handleError(c, e)
+		return
 	}
+	result := gin.H{"items": items, "details": application.Details, "orders": orders, "files_available": filesAvailable}
 	c.JSON(200, result)
 }
 func (a *Application) downloadInvoiceFile(c *gin.Context) {
@@ -188,7 +197,12 @@ func (a *Application) replaceInvoice(c *gin.Context) {
 }
 func (a *Application) procurementInvoicesResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
 	ctx := c.Request.Context()
-	rows, next, e := a.Operations.ListProcurementInvoicesPage(ctx, actor, op.ID, c.Query("cursor"), c.Query("q"), c.Query("status"), 50)
+	matches, e := a.invoiceSearchParties(c, op.ID, true)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	rows, next, e := a.Operations.ListProcurementInvoicesPage(ctx, actor, op.ID, c.Query("cursor"), c.Query("q"), c.Query("status"), 50, matches...)
 	p["next_cursor"] = next
 	p["search_supported"], p["status_supported"] = true, true
 	if e != nil {
@@ -197,20 +211,35 @@ func (a *Application) procurementInvoicesResource(c *gin.Context, op organizatio
 	}
 	items := []any{}
 	for _, row := range rows {
-		r := entity(row.ID, row.State, 0, row)
+		r, err := a.invoiceEntity(c, row)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
 		r["allowed_actions"] = []string{}
 		if row.State == "voided" {
-			r["allowed_actions"] = []string{"replacement"}
+			policy, err := a.Operations.GetProcurementInvoicePolicy(ctx, actor, op.ID, row.OperatorID)
+			if err != nil {
+				handleError(c, err)
+				return
+			}
+			if policy.Enabled {
+				r["allowed_actions"] = []string{"replacement"}
+			}
 		}
 		items = append(items, r)
 	}
-	p["title"] = "我方采购开票"
+	p["title"] = "我方收票"
 	p["description"] = "选择已完成的采购订单，按订单实付金额全额申请，由实际供货方办理。同一订单不能重复开票。"
 	p["items"] = items
-	p["columns"] = []gin.H{col("operator_id", "实际供货开票方", "text"), col("amount_money", "开票金额", "money"), col("invoice_reference", "发票凭证编号", "text"), col("reason", "说明", "text")}
+	p["columns"] = []gin.H{col("issuer_name", "实际供货开票方", "text"), col("amount_money", "开票金额", "money"), col("invoice_reference", "发票凭证编号", "text"), col("reason", "说明", "text")}
 	fields := businessFields(operation{Path: "/api/v1/me/invoices", Fields: []field{jsonField("")}})
 	p["operations"] = []operation{{Name: "request", Label: "向实际供货方申请采购发票", Method: "POST", Path: base, Fields: append([]field{optional("supplier_id", "实际供货方", "hidden")}, fields...)}}
 	p["row_operations"] = []operation{{Name: "replacement", Label: "按原订单申请重开", Method: "POST", Path: base + "/{id}/replacement", Fields: fields}}
+	if err := a.procurementInvoiceAvailability(c, op, p); err != nil {
+		handleError(c, err)
+		return
+	}
 	a.resourceResponse(c, p)
 }
 func (a *Application) procurementInvoicesCommand(c *gin.Context, op organization.Operator, actor string) {

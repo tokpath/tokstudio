@@ -8,9 +8,10 @@ describe("task navigation and organization boundaries", () => {
   });
   it("keeps every established operator capability reachable once without duplicate risk or content storage settings", () => {
     const resources = operatorNav.flatMap(section => section.items.map(([resource]) => resource));
-    expect(resources).toHaveLength(44);
-    expect(new Set(resources).size).toBe(44);
+    expect(resources).toHaveLength(43);
+    expect(new Set(resources).size).toBe(43);
     expect(resources).not.toContain("withdrawals");
+    expect(resources).not.toContain("procurement-invoices");
     expect(resources).toContain("routes");
     expect(resources).toContain("payment-quotes");
     expect(resources).toContain("pricing");

@@ -4308,48 +4308,81 @@
     "description": "",
     "fields": [
       {
-        "kind": "select",
-        "label": "实际办理状态",
         "name": "state",
-        "options": [
-          {
-            "label": "外部开具已完成",
-            "value": "issued"
-          },
-          {
-            "label": "不予办理并说明原因",
-            "value": "rejected"
-          },
-          {
-            "label": "原票据已依法作废",
-            "value": "voided"
-          }
-        ],
+        "label": "实际办理状态",
+        "kind": "hidden",
+        "default_value": "issued",
         "required": true
       },
       {
-        "kind": "text",
-        "label": "发票凭证编号",
         "name": "invoice_reference",
-        "required": true
-      },
-      {
+        "label": "发票凭证编号",
         "kind": "text",
-        "label": "证据引用",
-        "name": "evidence",
         "required": true
       },
       {
-        "kind": "textarea",
-        "label": "说明",
         "name": "reason",
+        "label": "说明",
+        "kind": "textarea",
+        "required": false
+      }
+    ],
+    "include_version": false,
+    "label": "开具发票",
+    "method": "POST",
+    "name": "register",
+    "path": "/v1/operators/{operatorId}/invoices/{id}/register",
+    "permission": "invoices.manage"
+  },
+  {
+    "resource": "invoices",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "state",
+        "label": "实际办理状态",
+        "kind": "hidden",
+        "default_value": "rejected",
+        "required": true
+      },
+      {
+        "name": "reason",
+        "label": "拒绝原因",
+        "kind": "textarea",
         "required": true
       }
     ],
     "include_version": false,
-    "label": "登记实际开票结果",
+    "label": "拒绝申请",
     "method": "POST",
-    "name": "register",
+    "name": "reject",
+    "path": "/v1/operators/{operatorId}/invoices/{id}/register",
+    "permission": "invoices.manage"
+  },
+  {
+    "resource": "invoices",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "state",
+        "label": "实际办理状态",
+        "kind": "hidden",
+        "default_value": "voided",
+        "required": true
+      },
+      {
+        "name": "reason",
+        "label": "作废原因",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "登记作废",
+    "method": "POST",
+    "name": "void",
     "path": "/v1/operators/{operatorId}/invoices/{id}/register",
     "permission": "invoices.manage"
   },

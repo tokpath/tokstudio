@@ -52,6 +52,8 @@ function mergeValues(base: JSONValue, value: JSONValue): JSONValue {
 }
 function initial(field: CommandField, operation: Operation, row?: Entity, context?: Record<string, JSONValue>, operatorID?: string): string {
   if (secretField(field)) return "";
+  // A result action sets the next state, not the record's current state.
+  if (field.name === "state" && field.kind === "hidden" && /\/invoices\/\{id\}\/register$/.test(operation.path)) return fieldString(field, field.default_value);
   const supplied = context?.[field.name] ?? nested(context, field.name);
   if (supplied !== undefined) return fieldString(field, supplied);
   if (field.kind === "json") {

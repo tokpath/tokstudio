@@ -112,11 +112,11 @@ it("puts the invoice file on the same page as the issue result", async () => {
   expect(screen.queryByRole("button", { name: "文件与下载" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "登记实际开票结果", exact: true }));
   const dialog = await screen.findByRole("dialog");
-  expect(within(dialog).getByRole("heading", { name: "票据文件" })).toBeTruthy();
+  expect(within(dialog).getByRole("heading", { name: "申请资料与票据" })).toBeTruthy();
   expect(within(dialog).getByLabelText("票据文件（PDF/PNG/JPEG，不超过10MiB）")).toBeTruthy();
   unmount();
   render(<QueryClientProvider client={cache()}><ResourceCollection operatorID="operator-search" resource="invoices" customer page={page} /></QueryClientProvider>);
-  expect(screen.getByRole("button", { name: "文件与下载", exact: true })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "文件与下载", exact: true })).toBeNull();
 });
 
 it("tells the ledger search which visible fields it accepts", async () => {

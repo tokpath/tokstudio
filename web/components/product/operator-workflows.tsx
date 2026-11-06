@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { subjectURL, subjectReturnURL } from "./operator-list-state";
 import { FieldHelp } from "./field-help";
 import { ChannelInvitationCard } from "./channel-invitation";
+import { OperatorInvoicesScreen } from "./operator-invoices";
 import { OperatorCommissionsScreen } from "./operator-commissions";
 import { ReadinessAction, ReadinessSchema } from "./readiness";
 
@@ -28,6 +29,7 @@ export function OperatorWorkflowScreen({ operatorID, resource, record }: { opera
   const workflow = workflows[resource];
   useEffect(() => { setSubject(record && (resource === "customers" || resource === "orders") ? { resource, row: { id: record, values: {} } } : undefined); }, [record, resource]);
   useEffect(() => { const restore = () => { const id = new URLSearchParams(window.location.search).get("record"); setSubject(id && (resource === "customers" || resource === "orders") ? { resource, row: { id, values: {} } } : undefined); }; window.addEventListener("popstate", restore); return () => window.removeEventListener("popstate", restore); }, [resource]);
+  if (resource === "invoices" || resource === "procurement-invoices") return <OperatorInvoicesScreen operatorID={operatorID} received={resource === "procurement-invoices"} />;
   if (resource === "commissions") return <OperatorCommissionsScreen operatorID={operatorID} record={record} />;
   if (!canReadResource(workspace, resource)) return <Empty title={t("没有查看权限")}>{t("此页面需要当前经营方明确授予相应权限。")}</Empty>;
   const close = () => { const target = subjectReturnURL(operatorID, resource); if (target.split("?")[0] === window.location.pathname && !new URL(target, window.location.origin).searchParams.has("record")) { window.history.pushState(window.history.state, "", target); setSubject(undefined); } else { window.location.assign(target); } };

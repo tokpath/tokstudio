@@ -4563,5 +4563,150 @@
     "en": "Refresh",
     "ja": "更新",
     "ru": "Обновить"
+  },
+  "我方开票": {
+    "en": "Invoices we issue",
+    "ja": "発行する請求書",
+    "ru": "Выдаваемые счета-фактуры"
+  },
+  "我方收票": {
+    "en": "Invoices we receive",
+    "ja": "受領する請求書",
+    "ru": "Получаемые счета-фактуры"
+  },
+  "票据办理事项": {
+    "en": "Invoice activities",
+    "ja": "請求書の手続き",
+    "ru": "Операции со счетами-фактурами"
+  },
+  "我方开出的发票和向上级申请的发票在此办理。": {
+    "en": "Manage invoices you issue and request from your supplier.",
+    "ja": "自社が発行する請求書と上位供給者へ申請する請求書を管理します。",
+    "ru": "Здесь оформляются счета-фактуры, которые вы выдаёте и запрашиваете у поставщика."
+  },
+  "核对客户及下级经营方的申请，上传已开具的发票文件并登记结果。": {
+    "en": "Review applications from customers and downstream operators, upload issued invoices and record the result.",
+    "ja": "顧客と下位事業者の申請を確認し、発行済み請求書をアップロードして結果を登録します。",
+    "ru": "Проверяйте заявки клиентов и подчинённых операторов, загружайте выданные документы и регистрируйте результат."
+  },
+  "核对直属客户的申请，上传已开具的发票文件并登记结果。": {
+    "en": "Review applications from your direct customers, upload issued invoices and record the result.",
+    "ja": "直属顧客の申請を確認し、発行済み請求書をアップロードして結果を登録します。",
+    "ru": "Проверяйте заявки своих прямых клиентов, загружайте выданные документы и регистрируйте результат."
+  },
+  "按已完成采购订单的实付金额向实际供货方申请开票，查看办理进度并下载发票。": {
+    "en": "Request invoices from the actual supplier for the full amount paid on completed procurement orders, track progress and download issued documents.",
+    "ja": "完了済み仕入注文の実払額全額で実際の供給者に請求書を申請し、進捗の確認と発行済み書類のダウンロードができます。",
+    "ru": "Запрашивайте у фактического поставщика счета-фактуры на полную сумму оплаченных завершённых закупок, отслеживайте статус и скачивайте документы."
+  },
+  "核对申请人、购买订单和开票资料，实际开票后上传文件并登记；不予办理时说明原因。": {
+    "en": "Check the applicant, purchase orders and invoice details. Upload the issued document and register it, or explain why the application is rejected.",
+    "ja": "申請者、購入注文、請求書情報を確認し、発行後にファイルと結果を登録します。却下する場合は理由を記入してください。",
+    "ru": "Проверьте заявителя, заказы и реквизиты. После выдачи загрузите документ и зарегистрируйте результат; при отказе укажите причину."
+  },
+  "申请人": {
+    "en": "Applicant",
+    "ja": "申請者",
+    "ru": "Заявитель"
+  },
+  "申请类型": {
+    "en": "Application type",
+    "ja": "申請種別",
+    "ru": "Тип заявки"
+  },
+  "客户购买": {
+    "en": "Customer purchase",
+    "ja": "顧客の購入",
+    "ru": "Покупка клиента"
+  },
+  "开具发票": {
+    "en": "Issue invoice",
+    "ja": "請求書を発行",
+    "ru": "Выдать счёт-фактуру"
+  },
+  "登记作废": {
+    "en": "Record voiding",
+    "ja": "無効化を登録",
+    "ru": "Зарегистрировать аннулирование"
+  },
+  "作废原因": {
+    "en": "Reason for voiding",
+    "ja": "無効化の理由",
+    "ru": "Причина аннулирования"
+  },
+  "实际开票已完成": {
+    "en": "Invoice issued",
+    "ja": "請求書発行済み",
+    "ru": "Счёт-фактура выдан"
+  },
+  "已开放采购开票申请": {
+    "en": "Procurement invoice applications are open",
+    "ja": "仕入請求書の申請受付中",
+    "ru": "Заявки на счета-фактуры по закупкам принимаются"
+  },
+  "尚未开放采购开票申请，请联系供货方。": {
+    "en": "Procurement invoice applications are not open. Contact the supplier.",
+    "ja": "仕入請求書の申請はまだ受け付けていません。供給者にお問い合わせください。",
+    "ru": "Приём заявок на счета-фактуры по закупкам не открыт. Свяжитесь с поставщиком."
+  },
+  "上级尚未开放采购开票申请，请联系供货方。已有申请和票据仍可查看。": {
+    "en": "Your supplier has not opened procurement invoice applications. Contact the supplier. Existing applications and documents remain available.",
+    "ja": "上位供給者は仕入請求書の申請をまだ受け付けていません。供給者にお問い合わせください。既存の申請と書類は引き続き確認できます。",
+    "ru": "Поставщик ещё не открыл приём заявок на счета-фактуры по закупкам. Свяжитесь с ним. Существующие заявки и документы доступны для просмотра."
+  },
+  "搜索申请人、邮箱、发票编号或购买订单编号": {
+    "en": "Search applicant, email, invoice number or purchase order ID",
+    "ja": "申請者・メール・請求書番号・購入注文番号を検索",
+    "ru": "Поиск по заявителю, почте, номеру счёта-фактуры или заказа"
+  },
+  "本次开票的购买订单": {
+    "en": "Purchases covered by this invoice",
+    "ja": "今回の請求書の対象注文",
+    "ru": "Покупки в этом счёте-фактуре"
+  },
+  "购买内容": {
+    "en": "Purchase",
+    "ja": "購入内容",
+    "ru": "Содержание покупки"
+  },
+  "购买时间": {
+    "en": "Purchased at",
+    "ja": "購入日時",
+    "ru": "Дата покупки"
+  },
+  "订单实付金额": {
+    "en": "Amount paid for the order",
+    "ja": "注文の実払額",
+    "ru": "Оплаченная сумма заказа"
+  },
+  "申请资料与票据": {
+    "en": "Application details and documents",
+    "ja": "申請情報と書類",
+    "ru": "Данные заявки и документы"
+  },
+  "上传已开具的发票（PDF、PNG 或 JPEG，不超过 10MiB），再填写发票编号并登记。": {
+    "en": "Upload the issued invoice (PDF, PNG or JPEG, up to 10 MiB), then enter its number and register it.",
+    "ja": "発行済み請求書（PDF・PNG・JPEG、10MiB以内）をアップロードし、請求書番号を入力して登録してください。",
+    "ru": "Загрузите выданный счёт-фактуру (PDF, PNG или JPEG, до 10 МиБ), затем введите его номер и зарегистрируйте."
+  },
+  "搜索供货方、发票编号或采购订单编号": {
+    "en": "Search supplier, invoice number or procurement order ID",
+    "ja": "供給者・請求書番号・仕入注文番号を検索",
+    "ru": "Поиск по поставщику, номеру счёта-фактуры или закупки"
+  },
+  "搜索发票编号或购买订单编号": {
+    "en": "Search invoice number or purchase order ID",
+    "ja": "請求書番号・購入注文番号を検索",
+    "ru": "Поиск по номеру счёта-фактуры или заказа"
+  },
+  "采购经营方": {
+    "en": "Purchasing operator",
+    "ja": "仕入事業者",
+    "ru": "Оператор-покупатель"
+  },
+  "已开具": {
+    "en": "Issued",
+    "ja": "発行済み",
+    "ru": "Выдан"
   }
 }

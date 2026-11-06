@@ -175,7 +175,7 @@ func (s *Service) DeleteInvoiceFile(ctx context.Context, actor, operator, invoic
 	return nil
 }
 
-func (s *Service) invoiceReader(ctx context.Context, tx *gorm.DB, actor, operator, invoiceID string, customer bool, buyer string) (Invoice, error) {
+func (s *Service) invoiceReader(ctx context.Context, tx *gorm.DB, actor, operator, invoiceID string, customer bool, buyer string, application bool) (Invoice, error) {
 	var out Invoice
 	if e := tx.First(&out, "id=?", invoiceID).Error; e != nil {
 		return out, e
@@ -201,7 +201,7 @@ func (s *Service) invoiceReader(ctx context.Context, tx *gorm.DB, actor, operato
 			return out, e
 		}
 	}
-	if (customer || buyer != "") && (out.State != "issued" && out.State != "review_required" && out.State != "voided") {
+	if !application && (customer || buyer != "") && (out.State != "issued" && out.State != "review_required" && out.State != "voided") {
 		return out, ErrConflict
 	}
 	return out, nil
@@ -209,7 +209,7 @@ func (s *Service) invoiceReader(ctx context.Context, tx *gorm.DB, actor, operato
 func (s *Service) listInvoiceFiles(ctx context.Context, actor, operator, id string, customer bool, buyer string) ([]InvoiceFile, error) {
 	out := []InvoiceFile{}
 	e := s.within(ctx, nil, func(tx *gorm.DB) error {
-		if _, e := s.invoiceReader(ctx, tx, actor, operator, id, customer, buyer); e != nil {
+		if _, e := s.invoiceReader(ctx, tx, actor, operator, id, customer, buyer, false); e != nil {
 			return e
 		}
 		return tx.Where("invoice_id=? AND state='ready'", id).Order("created_at,id").Find(&out).Error
@@ -230,7 +230,7 @@ func (s *Service) downloadInvoiceFile(ctx context.Context, actor, operator, id, 
 	}
 	var f InvoiceFile
 	authorize := func(tx *gorm.DB) error {
-		if _, e := s.invoiceReader(ctx, tx, actor, operator, id, customer, buyer); e != nil {
+		if _, e := s.invoiceReader(ctx, tx, actor, operator, id, customer, buyer, false); e != nil {
 			return e
 		}
 		return tx.First(&f, "id=? AND invoice_id=? AND state='ready'", fileID, id).Error

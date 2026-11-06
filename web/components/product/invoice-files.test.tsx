@@ -30,3 +30,13 @@ it("shows recipient details inside the invoice result form", async () => {
   expect(await screen.findByText("Buyer Ltd")).toBeTruthy();
   for (const text of ["TAX-123", "billing@example.test", "12 Test Road"]) expect(screen.getByText(text)).toBeTruthy();
 });
+
+it("shows the submitted purchase without offering draft document downloads", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ items: [], files_available: false, details: { title: "Waiting buyer", tax_id: "TEST", email: "buyer@example.test" }, orders: [{ order_id: "purchase-one", name: "Standard package", kind: "套餐购买", created_at: "2026-11-06T10:00:00Z", amount_money: "40" }] }), { status: 200 })));
+  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><InvoiceFiles embedded scope="/api/v1/me/invoices" invoiceID="waiting" upload={false} /></QueryClientProvider>);
+  expect(await screen.findByText("Waiting buyer")).toBeTruthy();
+  expect(screen.getByText("套餐购买 · Standard package")).toBeTruthy();
+  expect(screen.getByLabelText("40 USD")).toBeTruthy();
+  expect(screen.queryByText("授权下载")).toBeNull();
+  expect(screen.queryByText("尚未上传实际票据文件。")).toBeNull();
+});

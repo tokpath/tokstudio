@@ -263,7 +263,12 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		a.riskWorkspace(c, op, actor, resource, base, p)
 		return true
 	case "invoices":
-		rows, next, e := a.Operations.ListOperatorInvoicesPage(ctx, actor, op.ID, c.Query("cursor"), c.Query("q"), c.Query("status"), 50)
+		matches, e := a.invoiceSearchParties(c, op.ID, false)
+		if e != nil {
+			handleError(c, e)
+			return true
+		}
+		rows, next, e := a.Operations.ListOperatorInvoicesPage(ctx, actor, op.ID, c.Query("cursor"), c.Query("q"), c.Query("status"), 50, matches...)
 		p["next_cursor"] = next
 		p["search_supported"], p["status_supported"] = true, true
 		if e != nil {
@@ -271,9 +276,23 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			return true
 		}
 		for _, row := range rows {
-			items = append(items, entity(row.ID, row.State, 1, row))
+			item, err := a.invoiceEntity(c, row)
+			if err != nil {
+				handleError(c, err)
+				return true
+			}
+			item["allowed_actions"] = []string{}
+			if row.State == "requested" {
+				item["allowed_actions"] = []string{"register", "reject"}
+			}
+			if row.State == "issued" || row.State == "review_required" {
+				item["allowed_actions"] = []string{"void"}
+			}
+			items = append(items, item)
 		}
-		p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("amount_money", "金额", "money"), col("state", "状态", "status"), col("invoice_reference", "开票凭证", "text"), col("reason", "原因", "text")}
+		p["title"] = "我方开票"
+		p["description"] = "核对申请人、购买订单和开票资料，实际开票后上传文件并登记；不予办理时说明原因。"
+		p["columns"] = []gin.H{col("applicant", "申请人", "text"), col("applicant_kind", "申请类型", "text"), col("amount_money", "开票金额", "money"), col("invoice_reference", "发票凭证编号", "text"), col("reason", "说明", "text")}
 		policy, e := a.Operations.GetInvoicePolicy(ctx, actor, op.ID, false)
 		if e != nil {
 			handleError(c, e)
@@ -282,6 +301,9 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		p["summary"] = []gin.H{{"label": "当前规则版本", "value": fmt.Sprint(policy.Version)}, {"label": "规则依据", "value": policy.RulesReference}}
 		invoiceOps := []operation{}
 		for _, party := range []string{"customer", "procurement"} {
+			if party == "procurement" && op.Kind == organization.Channel {
+				continue
+			}
 			current, e := a.Operations.GetIssuerInvoicePolicy(ctx, actor, op.ID, party)
 			if e != nil {
 				handleError(c, e)
@@ -295,7 +317,11 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			invoiceOps = append(invoiceOps, operation{Name: "invoice_policy_" + party, Label: "设置" + label + "开票规则", Method: "POST", Path: base, Fields: []field{defaultField("party_kind", "办理对象", "hidden", party), defaultField("enabled", "开放申请", "boolean", current.Enabled), defaultField("rules_reference", "公开办理规则依据", "text", current.RulesReference), defaultField("expected_version", "版本", "hidden", current.Version)}})
 		}
 		p["operations"] = invoiceOps
-		p["row_operations"] = []operation{{Name: "register", Label: "登记实际开票结果", Method: "POST", Path: base + "/{id}/register", Fields: []field{selectField("state", "实际办理状态", "issued|外部开具已完成", "rejected|不予办理并说明原因", "voided|原票据已依法作废"), f("invoice_reference", "发票凭证编号", "text"), f("evidence", "证据引用", "text"), f("reason", "说明", "textarea")}}}
+		p["row_operations"] = []operation{
+			{Name: "register", Label: "开具发票", Method: "POST", Path: base + "/{id}/register", Fields: []field{defaultField("state", "实际办理状态", "hidden", "issued"), f("invoice_reference", "发票凭证编号", "text"), optional("reason", "说明", "textarea")}},
+			{Name: "reject", Label: "拒绝申请", Method: "POST", Path: base + "/{id}/register", Fields: []field{defaultField("state", "实际办理状态", "hidden", "rejected"), f("reason", "拒绝原因", "textarea")}},
+			{Name: "void", Label: "登记作废", Method: "POST", Path: base + "/{id}/register", Fields: []field{defaultField("state", "实际办理状态", "hidden", "voided"), f("reason", "作废原因", "textarea")}},
+		}
 	default:
 		return false
 	}
@@ -314,6 +340,10 @@ func (a *Application) operatorOperationsCommand(c *gin.Context, op organization.
 			Expected       int64  `json:"expected_version"`
 		}
 		if !body(c, &in) {
+			return true
+		}
+		if in.PartyKind == "procurement" && op.Kind == organization.Channel {
+			handleError(c, operations.ErrInvalid)
 			return true
 		}
 		out, e := a.Operations.SaveInvoicePolicy(ctx, actor, operations.InvoicePolicy{OperatorID: op.ID, PartyKind: in.PartyKind, Enabled: in.Enabled, RulesReference: in.RulesReference}, in.Expected)
@@ -441,6 +471,21 @@ func (a *Application) operatorOperationsRowCommand(c *gin.Context, op organizati
 		}
 		if !body(c, &in) {
 			return true
+		}
+		// The uploaded private file is the evidence; staff do not invent another reference.
+		if in.State == "issued" {
+			in.Evidence = "invoice-files:" + c.Param("id")
+			if in.Reason == "" {
+				in.Reason = "实际开票已完成"
+			}
+		}
+		if in.State == "voided" {
+			application, err := a.Operations.ReadInvoiceApplication(ctx, actor, op.ID, c.Param("id"), false, "")
+			if err != nil {
+				handleError(c, err)
+				return true
+			}
+			in.Reference, in.Evidence = application.Invoice.InvoiceReference, application.Invoice.EvidenceReference
 		}
 		_, e = a.Operations.RegisterInvoice(ctx, actor, op.ID, c.Param("id"), in.State, in.Reference, in.Evidence, in.Reason)
 	default:

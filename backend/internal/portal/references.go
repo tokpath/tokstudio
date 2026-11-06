@@ -421,8 +421,10 @@ func (a *Application) references(c *gin.Context) {
 			add(r.ID, humanJoin(map[string]string{"topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费"}[r.Kind], r.DueMoney.String()+" "+monetary.Currency, r.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC")), gin.H{"order_id": r.ID, "customer_id": r.CustomerID})
 		}
 	case "invoice-orders":
-		if !customer && !require("cooperation.manage") {
-			return
+		if !customer {
+			if _, _, ok := a.staffScope(c, "procurement-invoices"); !ok {
+				return
+			}
 		}
 		a.invoiceOrderChoices(c, customer, actor, operator, query, monetary.Currency)
 		return

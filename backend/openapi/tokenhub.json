@@ -7668,7 +7668,7 @@
     "/v1/me/invoices/{id}/files": {
       "get": {
         "operationId": "get__v1_me_invoices_id_files",
-        "summary": "List own original issuer private invoice files",
+        "summary": "Read own application details, purchase orders and available private invoice files",
         "tags": [
           "Customer browser API"
         ],
@@ -7693,20 +7693,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": true
-                      }
-                    }
-                  },
-                  "required": [
-                    "items"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/InvoiceFiles"
                 }
               }
             }
@@ -33099,7 +33086,7 @@
     "/v1/operators/{operatorId}/invoices/{id}/register": {
       "post": {
         "operationId": "post__v1_operators_operatorId_invoices_id_register",
-        "summary": "登记实际开票结果",
+        "summary": "开具发票",
         "tags": [
           "Operator browser API"
         ],
@@ -33229,7 +33216,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Operator_invoices_register"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Operator_invoices_register"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Operator_invoices_reject"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Operator_invoices_void"
+                  }
+                ]
               }
             }
           }
@@ -34944,7 +34941,7 @@
       },
       "get": {
         "operationId": "get__v1_operators_operatorId_invoices_id_files",
-        "summary": "List original private invoice files",
+        "summary": "Read authorized application details, purchase orders and available private invoice files",
         "tags": [
           "Operator browser API"
         ],
@@ -34976,7 +34973,9 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceFiles"
+                }
               }
             }
           },
@@ -35335,7 +35334,7 @@
     "/v1/operators/{operatorId}/procurement-invoices/{id}/files": {
       "get": {
         "operationId": "get__v1_operators_operatorId_procurement_invoices_id_files",
-        "summary": "List original private invoice files",
+        "summary": "Read authorized application details, purchase orders and available private invoice files",
         "tags": [
           "Operator browser API"
         ],
@@ -35367,7 +35366,9 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceFiles"
+                }
               }
             }
           },
@@ -47456,6 +47457,111 @@
         ],
         "additionalProperties": true
       },
+      "InvoiceFiles": {
+        "type": "object",
+        "properties": {
+          "files_available": {
+            "type": "boolean"
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "order_id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "amount_money": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "order_id",
+                "name",
+                "kind",
+                "created_at",
+                "amount_money"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "filename": {
+                  "type": "string"
+                },
+                "content_type": {
+                  "type": "string"
+                },
+                "size_bytes": {
+                  "type": "integer"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "download_url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "filename",
+                "content_type",
+                "size_bytes",
+                "state",
+                "created_at",
+                "download_url"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "details": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "tax_id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "address": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "title",
+              "tax_id",
+              "email"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": true
+      },
       "LedgerDecimal": {
         "type": "string",
         "pattern": "^(0|[1-9][0-9]{0,19})(\\.[0-9]{1,18})?$",
@@ -52094,20 +52200,11 @@
         "properties": {
           "state": {
             "type": "string",
-            "enum": [
-              "issued",
-              "rejected",
-              "voided"
-            ],
-            "description": "实际办理状态"
+            "const": "issued"
           },
           "invoice_reference": {
             "type": "string",
             "description": "发票凭证编号"
-          },
-          "evidence": {
-            "type": "string",
-            "description": "证据引用"
           },
           "reason": {
             "type": "string",
@@ -52116,8 +52213,42 @@
         },
         "required": [
           "state",
-          "invoice_reference",
-          "evidence",
+          "invoice_reference"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_invoices_reject": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "const": "rejected"
+          },
+          "reason": {
+            "type": "string",
+            "description": "拒绝原因"
+          }
+        },
+        "required": [
+          "state",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_invoices_void": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "const": "voided"
+          },
+          "reason": {
+            "type": "string",
+            "description": "作废原因"
+          }
+        },
+        "required": [
+          "state",
           "reason"
         ],
         "additionalProperties": false

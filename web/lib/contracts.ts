@@ -133,3 +133,5 @@ export const FinancialReportSchema=z.object({operator_id:z.string(),from:z.strin
  refunds:z.object({pending_fees:z.number().int(),pending_executions:z.number().int(),outstanding_money:SignedDecimal,mismatch_count:z.number().int()}),
  takeover_flows:z.array(z.object({purpose:z.string(),kind:z.string(),unit:z.string(),increase:SignedDecimal,decrease:SignedDecimal,net:SignedDecimal})).nullable(),takeover_balances:z.array(z.object({purpose:z.string(),unit:z.string(),balance:SignedDecimal})).nullable(),notes:z.array(z.string()).nullable(),
 });
+
+export const InvoiceFilesSchema = z.object({files_available:z.boolean().optional(),orders:z.array(z.object({order_id:z.string(),name:z.string(),kind:z.string(),created_at:z.string(),amount_money:z.string()})).optional(),items:z.array(z.object({id:z.string(),filename:z.string(),content_type:z.string(),size_bytes:z.number().int(),state:z.string(),created_at:z.string(),download_url:z.string()})),details:z.object({title:z.string(),tax_id:z.string(),email:z.string(),address:z.string().optional()}).optional()});

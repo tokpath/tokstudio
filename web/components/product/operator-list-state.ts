@@ -13,6 +13,7 @@ export function resourceListPage(operatorID: string | undefined, resource: strin
   const base = `/manage/${encodeURIComponent(operatorID || "")}`;
   if (name === "withdrawals") return `${base}/commissions`;
   if (name === "receipt-valuations") return `${base}/payments`;
+  if (name === "procurement-invoices") return `${base}/invoices`;
   return `${base}/${name}`;
 }
 
@@ -20,7 +21,7 @@ export function isForeignResourceList(path: string, owner: string): boolean {
   return path !== owner && /^\/(manage|workspace)\//.test(path);
 }
 
-const sectionPages = new Set(["procurement", "payments", "receipt-valuations", "commissions", "withdrawals"]);
+const sectionPages = new Set(["procurement", "payments", "receipt-valuations", "commissions", "withdrawals", "invoices", "procurement-invoices"]);
 
 // A new page starts empty. section stays only for pages that use it, such as
 // 待核实收款. A search already on this page, including a refreshed link, stays.

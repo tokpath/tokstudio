@@ -342,7 +342,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     expect(Number(credits.customer_atg.available)).toBeGreaterThan(24);
     await customer.goto("/workspace/credit-sources"); await customer.screenshot({ path: info.outputPath("operator-customer-delivered-package.png"), fullPage: true });
     if (!journal.risk_rule) {
-      await channel.goto(`/manage/${f.channel_id}/alerts`);
+      await channel.goto(`/manage/${f.channel_id}/alerts?view=rules`);
       await channel.getByRole("button", { name: "新增预警规则", exact: true }).click();
       const panel = channel.getByRole("dialog").last();
       await expect(panel.getByLabel("规则编号", { exact: false })).toHaveCount(0);

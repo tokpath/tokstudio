@@ -2999,6 +2999,12 @@
     "読み込み済みのページのみを絞り込みます。他のページは未検索です。ページを移動して続けられます。",
     "Фильтруется только загруженная страница. Для остальных страниц перейдите дальше и повторите фильтр."
   ],
+  "仅统计当前平台，不汇总下属经营方。在途及待结算请求包含已受理、执行中、已提交及待补用量的请求；待核实上游成本数用于提醒核对尚未确定的供应商费用。": [
+    "仅统计当前平台，不汇总下属经营方。在途及待结算请求包含已受理、执行中、已提交及待补用量的请求；待核实上游成本数用于提醒核对尚未确定的供应商费用。",
+    "These metrics cover this platform only, without aggregating subordinate operators. In-flight and unsettled requests include admitted, running, submitted and usage-pending requests. Unverified upstream costs remind you to check supplier costs that have not yet been confirmed.",
+    "集計対象はこのプラットフォームのみで、配下の事業者は合算しません。処理中・精算待ちリクエストには、受付済み、実行中、送信済み、使用量確認待ちを含みます。確認待ちの上流コスト件数は、未確定の供給者費用の確認を促す指標です。",
+    "Показатели относятся только к текущей платформе, без суммирования подчинённых операторов. Запросы в обработке и ожидающие расчёта включают принятые, выполняемые, отправленные и ожидающие данных об использовании. Непроверенные затраты поставщиков напоминают о необходимости проверить ещё не подтверждённые расходы."
+  ],
   "仅统计本经营方，不汇总下属经营方。剩余销售空间按上级供货口径计算，不是直接可售出的客户ATG；计算方式为：采购可用余额＋获准超卖额度−已承诺责任−待交付责任。采购可用余额是向上级采购并已交付的ATG扣除调用预占后的余额，不含未付款采购和超卖额度；这两个指标及已用超卖额度不适用于没有上级采购关系的平台。在途及待结算请求包含已受理、执行中、已提交及待补用量的请求。": [
     "仅统计本经营方，不汇总下属经营方。剩余销售空间按上级供货口径计算，不是直接可售出的客户ATG；计算方式为：采购可用余额＋获准超卖额度−已承诺责任−待交付责任。采购可用余额是向上级采购并已交付的ATG扣除调用预占后的余额，不含未付款采购和超卖额度；这两个指标及已用超卖额度不适用于没有上级采购关系的平台。在途及待结算请求包含已受理、执行中、已提交及待补用量的请求。",
     "Sales capacity is calculated at upstream supply rates, not as customer ATG that can be sold directly. These metrics cover this operator only, without aggregating subordinate operators. Remaining sales capacity = available procurement balance + approved oversell allowance − committed obligations − pending delivery obligations. Available procurement balance is ATG already purchased and delivered by the upstream supplier, less call reservations; it excludes unpaid purchases and oversell allowance. These two metrics and used oversell allowance do not apply to the platform, which has no upstream procurement relationship. In-flight and unsettled requests include admitted, running, submitted and usage-pending requests.",
@@ -6257,6 +6263,12 @@
     "残りの付与 ATG は正式閉鎖と同じトランザクションで失効します。付与分のみの消去のために購入資産を放棄する必要はありません",
     "Остаток бонусных ATG истекает в той же транзакции, что и окончательное закрытие аккаунта. Для удаления только бонусов не требуется отказываться от купленных активов"
   ],
+  "剩余采购余额ATG（不足时，实际调用可能停服，需要补货）": [
+    "剩余采购余额ATG（不足时，实际调用可能停服，需要补货）",
+    "Remaining procurement balance in ATG (if low, model calls may stop; replenish stock)",
+    "残りの仕入残高ATG（不足するとモデル呼び出しが停止するおそれがあります。仕入れを補充してください）",
+    "Оставшийся закупочный баланс в ATG (при недостатке вызовы моделей могут остановиться; пополните закупки)"
+  ],
   "剩余采购余额不退": [
     "剩余采购余额不退",
     "Unused procurement balance is non-refundable",
@@ -6292,6 +6304,12 @@
     "Remaining sales capacity (ATG)",
     "残りの販売可能量 ATG",
     "Остаток ёмкости продаж, ATG"
+  ],
+  "剩余销售空间ATG（不足时，继续卖可能超出履约能力，需要补货或限制新增销售）": [
+    "剩余销售空间ATG（不足时，继续卖可能超出履约能力，需要补货或限制新增销售）",
+    "Remaining sales capacity in ATG (if low, further sales may exceed fulfilment capacity; replenish stock or limit new sales)",
+    "残りの販売余力ATG（不足時に販売を続けると履行能力を超えるおそれがあります。仕入れを補充するか、新規販売を制限してください）",
+    "Оставшийся объём продаж в ATG (при недостатке новые продажи могут превысить возможности исполнения; пополните закупки или ограничьте новые продажи)"
   ],
   "剩余销售空间＝可用采购余额＋销售超卖额度−已承诺责任−待交付责任。空间不足会限制新增销售，超卖不会增加真实采购余额。": [
     "剩余销售空间＝可用采购余额＋销售超卖额度−已承诺责任−待交付责任。空间不足会限制新增销售，超卖不会增加真实采购余额。",

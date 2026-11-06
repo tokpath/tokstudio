@@ -965,8 +965,8 @@ const enumLabelsByField: Record<string, Record<string, string>> = {
     "critical": "紧急"
   },
   "metric": {
-    "sales_space_atg": "本经营方剩余销售空间（采购 ATG）",
-    "procurement_available_atg": "本经营方向上级采购的可用余额（ATG）",
+    "sales_space_atg": "剩余销售空间ATG（不足时，继续卖可能超出履约能力，需要补货或限制新增销售）",
+    "procurement_available_atg": "剩余采购余额ATG（不足时，实际调用可能停服，需要补货）",
     "oversell_used_atg": "已用超卖ATG",
     "pending_usage": "待结请求数",
     "unverified_costs": "未知成本数"

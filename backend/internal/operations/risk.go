@@ -53,9 +53,9 @@ var riskMetrics = map[string]bool{"sales_space_atg": true, "procurement_availabl
 func RiskMetricName(metric string) string {
 	switch metric {
 	case "sales_space_atg":
-		return "本经营方剩余销售空间（采购 ATG）"
+		return "剩余销售空间ATG（不足时，继续卖可能超出履约能力，需要补货或限制新增销售）"
 	case "procurement_available_atg":
-		return "本经营方向上级采购的可用余额（ATG）"
+		return "剩余采购余额ATG（不足时，实际调用可能停服，需要补货）"
 	case "oversell_used_atg":
 		return "已用超卖额度 ATG"
 	case "pending_usage":

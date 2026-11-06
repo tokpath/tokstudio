@@ -396,7 +396,7 @@ func (a *Application) operatorOperationsCommand(c *gin.Context, op organization.
 			return true
 		}
 		rule, valid := in.rule(op.ID)
-		if !valid {
+		if !valid || !riskMetricAvailable(rule.Metric, op.Kind == organization.Platform) {
 			handleError(c, operations.ErrInvalid)
 			return true
 		}

@@ -47,10 +47,11 @@ func (a *Application) riskWorkspace(c *gin.Context, op organization.Operator, ac
 		return
 	}
 	create.Fields = riskRuleFields(businessFields(create), choices, op.Kind == organization.Platform)
-	p["operations"] = []operation{create}
+	p["operations"] = []operation{}
 	p["row_operations"] = []operation{}
 	items := []any{}
 	if view == "rules" {
+		p["operations"] = []operation{create}
 		for _, rule := range rules {
 			state := "disabled"
 			if rule.Enabled {
@@ -117,15 +118,17 @@ func riskRuleFields(fields []field, choices []gin.H, platform bool) []field {
 			fields[i].Help = "用于风险观察与通知，最多100字；留空时按所选指标自动命名。"
 		case "metric":
 			fields[i].Help = "仅统计本经营方，不汇总下属经营方。剩余销售空间按上级供货口径计算，不是直接可售出的客户ATG；计算方式为：采购可用余额＋获准超卖额度−已承诺责任−待交付责任。采购可用余额是向上级采购并已交付的ATG扣除调用预占后的余额，不含未付款采购和超卖额度；这两个指标及已用超卖额度不适用于没有上级采购关系的平台。在途及待结算请求包含已受理、执行中、已提交及待补用量的请求。"
-			if !platform {
-				options := []gin.H{}
-				for _, option := range fields[i].Options {
-					if option["value"] != "unverified_costs" {
-						options = append(options, option)
-					}
-				}
-				fields[i].Options = options
+			if platform {
+				fields[i].Help = "仅统计当前平台，不汇总下属经营方。在途及待结算请求包含已受理、执行中、已提交及待补用量的请求；待核实上游成本数用于提醒核对尚未确定的供应商费用。"
 			}
+			options := []gin.H{}
+			for _, option := range fields[i].Options {
+				metric, _ := option["value"].(string)
+				if riskMetricAvailable(metric, platform) {
+					options = append(options, option)
+				}
+			}
+			fields[i].Options = options
 		case "warning", "critical":
 			fields[i].Help = "达到阈值即触发。低于方向的严重阈值不能高于预警阈值；高于方向则相反。"
 		case "recipients", "escalation_recipients":
@@ -138,6 +141,19 @@ func riskRuleFields(fields []field, choices []gin.H, platform bool) []field {
 		}
 	}
 	return fields
+}
+
+func riskMetricAvailable(metric string, platform bool) bool {
+	switch metric {
+	case "sales_space_atg", "procurement_available_atg", "oversell_used_atg":
+		return !platform
+	case "unverified_costs":
+		return platform
+	case "pending_usage":
+		return true
+	default:
+		return false
+	}
 }
 
 // Keep the scheduler and existing saved durations in seconds. The portal uses

@@ -1,11 +1,13 @@
 package portal
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
+	"github.com/tokpath/tokstudio/backend/internal/organization"
 )
 
 func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnly(t *testing.T) {
@@ -13,7 +15,7 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	base := "/v1/operators/" + op
-	input := map[string]any{"name": "采购余额补货提醒", "metric": "procurement_available_atg", "warning": "10.000000000000000001", "critical": "2.000000000000000001", "direction": "below", "recipients": []string{owner}, "escalation_recipients": []string{}, "reminder_minutes": "60", "escalate_minutes": "120", "enabled": true, "expected_version": 0}
+	input := map[string]any{"name": "请求数量预警", "metric": "pending_usage", "warning": "10.000000000000000001", "critical": "2.000000000000000001", "direction": "below", "recipients": []string{owner}, "escalation_recipients": []string{}, "reminder_minutes": "60", "escalate_minutes": "120", "enabled": true, "expected_version": 0}
 	creationKey := uuid.NewString()
 	var status int
 	var out map[string]any
@@ -40,6 +42,9 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	}
 	assertRule := func(page map[string]any, version float64, warning string) {
 		t.Helper()
+		if ops := page["operations"].([]any); len(ops) != 1 || ops[0].(map[string]any)["name"] != "risk_rule" {
+			t.Fatal("rule view lost its create action", page)
+		}
 		rows := page["items"].([]any)
 		if len(rows) != 1 {
 			t.Fatal("rule missing", page)
@@ -79,7 +84,7 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 		}
 	}
 	assertRule(read("/alerts?view=rules"), 1, input["warning"].(string))
-	if len(read("/alerts")["items"].([]any)) != 0 {
+	if page := read("/alerts"); len(page["items"].([]any)) != 0 || len(page["operations"].([]any)) != 0 {
 		t.Fatal("an enabled rule was presented as an active risk")
 	}
 	state := operations.RiskState{OperatorID: op, RuleID: input["id"].(string), Status: "warning", Value: ledger.MustDecimal("5.000000000000000001"), Sequence: 7}
@@ -88,6 +93,9 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	}
 	for _, view := range []string{"/alerts", "/alerts?view=observations"} {
 		page := read(view)
+		if len(page["operations"].([]any)) != 0 {
+			t.Fatal("observation view still duplicates the create rule action", page)
+		}
 		rows := page["items"].([]any)
 		if len(rows) != 1 {
 			t.Fatal("observation missing", page)
@@ -151,6 +159,65 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	}
 	if retained.Status != state.Status || retained.Sequence != state.Sequence || retained.Value.String() != state.Value.String() {
 		t.Fatal("rule revision rewrote historical observation", retained)
+	}
+}
+
+func TestPostgresRiskMetricChoicesAndCommandsRespectOperatorKind(t *testing.T) {
+	f := setupPortal(t)
+	ctx := context.Background()
+	owner := f.a.Installation.OwnerStaffID
+	operators := map[organization.OperatorKind]string{organization.Platform: f.a.Installation.OperatorID}
+	parent := f.a.Installation.OperatorID
+	for _, kind := range []organization.OperatorKind{organization.OEM, organization.Channel} {
+		child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: kind, Name: "Risk " + string(kind), BrandName: "Risk OEM"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		inv, err := f.a.Organization.InviteStaff(ctx, nil, owner, child.Operator.ID, "owner@example.test", "owner")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = f.a.Organization.AcceptStaffInvitation(ctx, nil, inv.Token, organization.VerifiedStaff{ID: owner, Email: "owner@example.test", EmailVerified: true}); err != nil {
+			t.Fatal(err)
+		}
+		operators[kind], parent = child.Operator.ID, child.Operator.ID
+	}
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	for kind, operator := range operators {
+		base := "/v1/operators/" + operator + "/alerts"
+		status, page, _ := f.call(t, "GET", base+"?view=rules", nil, "")
+		mustOK(t, status, page)
+		choices := map[string]string{}
+		for _, raw := range page["operations"].([]any)[0].(map[string]any)["fields"].([]any) {
+			field := raw.(map[string]any)
+			if field["name"] == "metric" {
+				for _, raw := range field["options"].([]any) {
+					option := raw.(map[string]any)
+					choices[option["value"].(string)] = option["label"].(string)
+				}
+			}
+		}
+		for _, metric := range []string{"sales_space_atg", "procurement_available_atg", "oversell_used_atg", "pending_usage", "unverified_costs"} {
+			want := metric == "pending_usage" || (kind == organization.Platform && metric == "unverified_costs") || (kind != organization.Platform && metric != "unverified_costs")
+			if (choices[metric] != "") != want {
+				t.Fatalf("%s metric %s: choices=%v", kind, metric, choices)
+			}
+			if want && choices[metric] != operations.RiskMetricName(metric) {
+				t.Fatalf("inconsistent metric wording: %s", choices[metric])
+			}
+			input := map[string]any{"metric": metric, "warning": "10", "critical": "2", "direction": "below", "recipients": []string{owner}, "escalation_recipients": []string{}, "reminder_minutes": "60", "escalate_minutes": "120", "enabled": true, "expected_version": 0}
+			status, result, _ := f.call(t, "POST", base, input, uuid.NewString())
+			if want {
+				mustOK(t, status, result)
+			} else if status != 400 {
+				t.Fatalf("%s accepted unavailable metric %s: %d %v", kind, metric, status, result)
+			}
+		}
+		status, page, _ = f.call(t, "GET", base, nil, "")
+		mustOK(t, status, page)
+		if len(page["operations"].([]any)) != 0 {
+			t.Fatalf("%s observation view duplicates rule creation", kind)
+		}
 	}
 }
 

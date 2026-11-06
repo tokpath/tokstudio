@@ -584,7 +584,7 @@ func TestPostgresLifecycleKeepsStoppedAssetsAndRequiresExplicitATGWaiver(t *test
 	if e != nil {
 		t.Fatal(e)
 	}
-	status, out, _ := f.call(t, "POST", "/v1/me/account/lifecycle/stop", map[string]any{"version": 1, "evidence": "customer chooses to stop"}, "")
+	status, out, _ := f.call(t, "POST", "/v1/me/account/lifecycle/stop", map[string]any{"version": 1}, "")
 	mustOK(t, status, out)
 	if out["status"] != "stopped" {
 		t.Fatal(out)
@@ -593,9 +593,9 @@ func TestPostgresLifecycleKeepsStoppedAssetsAndRequiresExplicitATGWaiver(t *test
 	if e != nil || g.Cancelled.Sign() != 0 {
 		t.Fatal("stop destroyed assets", g, e)
 	}
-	status, out, _ = f.call(t, "POST", "/v1/me/account/lifecycle/begin-close", map[string]any{"version": 2, "evidence": "customer closing without waiver"}, "")
+	status, out, _ = f.call(t, "POST", "/v1/me/account/lifecycle/begin-close", map[string]any{"version": 2}, "")
 	mustOK(t, status, out)
-	status, out, _ = f.call(t, "POST", "/v1/me/account/lifecycle/complete-close", map[string]any{"version": 3, "evidence": "attempt while credits remain"}, "")
+	status, out, _ = f.call(t, "POST", "/v1/me/account/lifecycle/complete-close", map[string]any{"version": 3}, "")
 	if status == 200 {
 		t.Fatal("closure bypassed outstanding ATG", out)
 	}
@@ -666,7 +666,7 @@ func TestPostgresPublicContextAndManagementActions(t *testing.T) {
 			t.Fatal("ordinary package UI still asks for JSON")
 		}
 	}
-	status, out, _ = f.call(t, "POST", scope+"/invoices", map[string]any{"enabled": true, "rules_reference": "invoice contract", "expected_version": 0}, "")
+	status, out, _ = f.call(t, "POST", scope+"/invoices", map[string]any{"instructions": "Invoice processing within three working days", "expected_version": 0}, "")
 	mustOK(t, status, out)
 	status, out, _ = f.call(t, "POST", scope+"/staff/"+uuid.NewString()+"/membership", map[string]any{"role": "owner", "status": "suspended"}, "")
 	if status == 200 {

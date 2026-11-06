@@ -50,9 +50,7 @@ type Invoice struct {
 	HandledBy         *string        `json:"handled_by,omitempty"`
 	HandledAt         *time.Time     `json:"handled_at,omitempty"`
 	Reason            string         `json:"reason,omitempty"`
-	PolicyStage       string         `json:"policy_stage"`
-	PolicyVersion     int64          `json:"policy_version"`
-	PolicyRatio       ledger.Decimal `json:"policy_ratio"`
+	Instructions      string         `json:"instructions,omitempty"`
 }
 
 func (Invoice) TableName() string { return "operations_invoices" }
@@ -103,12 +101,9 @@ func (s *Service) requestInvoice(ctx context.Context, partyKind, party, operator
 			}
 			return nil
 		}
-		var policy InvoicePolicy
-		if e := t.First(&policy, "operator_id=? AND party_kind=?", operator, partyKind).Error; e != nil {
-			return ErrNotReady
-		}
-		if !policy.Enabled {
-			return ErrNotReady
+		var instructions InvoiceInstructions
+		if e := t.Where("operator_id=?", operator).Limit(1).Find(&instructions).Error; e != nil {
+			return e
 		}
 		amount := ledger.Zero()
 		for i, l := range lines {
@@ -139,7 +134,7 @@ func (s *Service) requestInvoice(ctx context.Context, partyKind, party, operator
 		if e != nil {
 			return e
 		}
-		out = Invoice{ID: uuid.NewString(), OperatorID: operator, PartyKind: partyKind, BusinessKey: key, Fingerprint: fp, AmountMoney: amount, State: "requested", PolicyStage: "purchase", PolicyVersion: policy.Version, PolicyRatio: ledger.FromInt64(1), DetailsCiphertext: cipher, CreatedAt: time.Now().UTC()}
+		out = Invoice{ID: uuid.NewString(), OperatorID: operator, PartyKind: partyKind, BusinessKey: key, Fingerprint: fp, AmountMoney: amount, State: "requested", Instructions: instructions.Instructions, DetailsCiphertext: cipher, CreatedAt: time.Now().UTC()}
 		if partyKind == "procurement" {
 			out.BuyerOperatorID = &party
 		} else {

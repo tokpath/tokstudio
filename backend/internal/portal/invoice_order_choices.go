@@ -28,7 +28,6 @@ func (a *Application) invoiceOrderChoices(c *gin.Context, customer bool, actor, 
 		party = operator
 		sql = `SELECT o.id::text,o.supplier_id::text AS issuer,o.name,'procurement' AS kind,o.due_money::text AS amount,o.created_at FROM cooperation_purchase_orders o
    WHERE o.buyer_id=? AND o.status='completed' AND o.due_money>0
-   AND EXISTS(SELECT 1 FROM operations_invoice_policies policy WHERE policy.operator_id=o.supplier_id AND policy.party_kind='procurement' AND policy.enabled)
    AND NOT EXISTS(SELECT 1 FROM operations_invoice_orders l JOIN operations_invoices i ON i.id=l.invoice_id WHERE l.order_id=o.id AND i.party_kind='procurement' AND i.state NOT IN ('rejected','voided'))`
 	}
 	cursor := c.Query("cursor")

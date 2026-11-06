@@ -6,7 +6,6 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
-	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"testing"
 	"time"
 )
@@ -58,9 +57,6 @@ func pooledInvoiceFixture(t *testing.T) (*testApp, string, []commerce.Order) {
 			t.Fatal(err)
 		}
 		orders = append(orders, o)
-	}
-	if _, err = f.a.Operations.SaveInvoicePolicy(ctx, owner, operations.InvoicePolicy{OperatorID: op, Enabled: true, RulesReference: "Completed purchases at the full paid amount"}, 0); err != nil {
-		t.Fatal(err)
 	}
 	return f, customer, orders
 }

@@ -75,7 +75,7 @@ func (a *Application) invoiceFiles(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	result := gin.H{"items": items, "details": application.Details, "orders": orders, "files_available": filesAvailable}
+	result := gin.H{"items": items, "details": application.Details, "orders": orders, "files_available": filesAvailable, "instructions": application.Invoice.Instructions}
 	c.JSON(200, result)
 }
 func (a *Application) downloadInvoiceFile(c *gin.Context) {
@@ -218,14 +218,7 @@ func (a *Application) procurementInvoicesResource(c *gin.Context, op organizatio
 		}
 		r["allowed_actions"] = []string{}
 		if row.State == "voided" {
-			policy, err := a.Operations.GetProcurementInvoicePolicy(ctx, actor, op.ID, row.OperatorID)
-			if err != nil {
-				handleError(c, err)
-				return
-			}
-			if policy.Enabled {
-				r["allowed_actions"] = []string{"replacement"}
-			}
+			r["allowed_actions"] = []string{"replacement"}
 		}
 		items = append(items, r)
 	}
@@ -233,10 +226,15 @@ func (a *Application) procurementInvoicesResource(c *gin.Context, op organizatio
 	p["description"] = "选择已完成的采购订单，按订单实付金额全额申请，由实际供货方办理。同一订单不能重复开票。"
 	p["items"] = items
 	p["columns"] = []gin.H{col("issuer_name", "实际供货开票方", "text"), col("amount_money", "开票金额", "money"), col("invoice_reference", "发票凭证编号", "text"), col("reason", "说明", "text")}
-	fields := businessFields(operation{Path: "/api/v1/me/invoices", Fields: []field{jsonField("")}})
+	fields := []field{}
+	for _, f := range businessFields(operation{Path: "/api/v1/me/invoices", Fields: []field{jsonField("")}}) {
+		if f.Name != "issuer_id" {
+			fields = append(fields, f)
+		}
+	}
 	p["operations"] = []operation{{Name: "request", Label: "向实际供货方申请采购发票", Method: "POST", Path: base, Fields: append([]field{optional("supplier_id", "实际供货方", "hidden")}, fields...)}}
 	p["row_operations"] = []operation{{Name: "replacement", Label: "按原订单申请重开", Method: "POST", Path: base + "/{id}/replacement", Fields: fields}}
-	if err := a.procurementInvoiceAvailability(c, op, p); err != nil {
+	if err := a.procurementInvoiceInstructions(c, op, p); err != nil {
 		handleError(c, err)
 		return
 	}

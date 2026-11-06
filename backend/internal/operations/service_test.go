@@ -204,9 +204,6 @@ func (b *invoiceBasis) InvoiceBasis(_ context.Context, _ *gorm.DB, _, _, receipt
 }
 func TestInvoiceCapacityConcurrentAndRefundReview(t *testing.T) {
 	s, a, _, operator, customer := opsFixture(t)
-	if _, e := s.SaveInvoicePolicy(context.Background(), a.actor, InvoicePolicy{OperatorID: operator, Enabled: true, Stage: "receipt", MaximumRatio: ledger.FromInt64(1), RulesReference: "operator-approved-invoice-rules"}, 0); e != nil {
-		t.Fatal(e)
-	}
 	basis := &invoiceBasis{value: ledger.FromInt64(10)}
 	s.Invoices = basis
 	receipt := uuid.NewString()

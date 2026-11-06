@@ -70,7 +70,7 @@ func (RefundExternalObservation) TableName() string {
 // original successful refund observation and its customer settlement stay intact.
 func (s *Service) ConfirmRefundFee(ctx context.Context, tx *gorm.DB, in RefundFeeInput) (RefundFeeConfirmation, error) {
 	var out RefundFeeConfirmation
-	if !validID(in.OperatorID) || !validID(in.LegID) || in.PaymentBusinessKey == "" || in.BusinessKey == "" || len(in.BusinessKey) > 180 || in.Reference == "" || in.Evidence == "" || !in.FeeMoney.Valid() || in.FeeMoney.Sign() < 0 || in.OccurredAt.IsZero() {
+	if !validID(in.OperatorID) || !validID(in.LegID) || in.PaymentBusinessKey == "" || in.BusinessKey == "" || len(in.BusinessKey) > 180 || in.Reference == "" || !in.FeeMoney.Valid() || in.FeeMoney.Sign() < 0 || in.OccurredAt.IsZero() {
 		return out, ErrInvalid
 	}
 	e := s.within(ctx, tx, func(t *gorm.DB) error {

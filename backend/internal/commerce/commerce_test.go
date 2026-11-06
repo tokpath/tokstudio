@@ -593,7 +593,7 @@ func TestPostgresPendingFeeAndObservedPaymentUpperBound(t *testing.T) {
 	}
 	settled := base.Add(time.Second)
 	base = settled
-	accounting := ReceiptAccounting{SettlementFeeConfirmed: true, ReceiptID: r.ID, NetMoney: d("77"), FeeMoney: d("3"), SettledAt: &settled, Evidence: "verified settlement statement", VerifiedBy: "provider:test"}
+	accounting := ReceiptAccounting{SettlementFeeConfirmed: true, ReceiptID: r.ID, NetMoney: d("77"), FeeMoney: d("3"), SettledAt: &settled, VerifiedBy: "staff:test"}
 	confirmed, err := f.s.RecordReceiptAccounting(f.ctx, nil, accounting)
 	if err != nil || confirmed.FeeStatus != "confirmed" || confirmed.FeeMoney == nil || confirmed.FeeMoney.Cmp(d("3")) != 0 {
 		t.Fatalf("late fees=%+v %v", confirmed, err)

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"time"
 
@@ -158,14 +157,13 @@ func (a *Application) customerOperationsWorkspace(c *gin.Context, resource strin
 		p["row_operations"] = []operation{{Name: "replacement", Label: "按原订单申请重开", Method: "POST", Path: "/api/v1/me/invoices/{id}/replacement", Fields: businessFields(operation{Path: "/api/v1/me/invoices", Fields: []field{jsonField("")}})}}
 		p["columns"] = []gin.H{col("operator_id", "原始开票经营方", "text"), col("amount_money", "开票金额", "money"), col("state", "状态", "status"), col("invoice_reference", "开票凭证", "text"), col("reason", "说明", "text"), col("created_at", "申请时间", "datetime")}
 		p["operations"] = []operation{{Name: "invoice", Label: "申请发票", Method: "POST", Path: "/api/v1/me/invoices", Fields: []field{jsonField("选择已完成的套餐购买或续费。余额充值不能开票。")}}}
-		policy, e := a.Operations.GetInvoicePolicy(ctx, customer, op, true)
+		policy, e := a.Operations.GetInvoiceInstructions(ctx, customer, op, true)
 		if e != nil {
 			handleError(c, e)
 			return true
 		}
-		p["summary"] = []gin.H{{"label": "办理规则", "value": policy.RulesReference}}
-		if !policy.Enabled {
-			p["availability"] = []gin.H{{"capability": "invoices", "enabled": false, "reason": "当前经营方尚未开放新的开票申请。已申请的票据仍由原开票经营方办理。"}}
+		if policy.Instructions != "" {
+			p["summary"] = []gin.H{{"label": "开票说明", "value": policy.Instructions}}
 		}
 
 	default:
@@ -293,30 +291,18 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		p["title"] = "我方开票"
 		p["description"] = "核对申请人、购买订单和开票资料，实际开票后上传文件并登记；不予办理时说明原因。"
 		p["columns"] = []gin.H{col("applicant", "申请人", "text"), col("applicant_kind", "申请类型", "text"), col("amount_money", "开票金额", "money"), col("invoice_reference", "发票凭证编号", "text"), col("reason", "说明", "text")}
-		policy, e := a.Operations.GetInvoicePolicy(ctx, actor, op.ID, false)
+		instructions, e := a.Operations.GetInvoiceInstructions(ctx, actor, op.ID, false)
 		if e != nil {
 			handleError(c, e)
 			return true
 		}
-		p["summary"] = []gin.H{{"label": "当前规则版本", "value": fmt.Sprint(policy.Version)}, {"label": "规则依据", "value": policy.RulesReference}}
-		invoiceOps := []operation{}
-		for _, party := range []string{"customer", "procurement"} {
-			if party == "procurement" && op.Kind == organization.Channel {
-				continue
-			}
-			current, e := a.Operations.GetIssuerInvoicePolicy(ctx, actor, op.ID, party)
-			if e != nil {
-				handleError(c, e)
-				return true
-			}
-			label := "零售客户"
-			if party == "procurement" {
-				label = "经营方采购"
-			}
-
-			invoiceOps = append(invoiceOps, operation{Name: "invoice_policy_" + party, Label: "设置" + label + "开票规则", Method: "POST", Path: base, Fields: []field{defaultField("party_kind", "办理对象", "hidden", party), defaultField("enabled", "开放申请", "boolean", current.Enabled), defaultField("rules_reference", "公开办理规则依据", "text", current.RulesReference), defaultField("expected_version", "版本", "hidden", current.Version)}})
+		if instructions.Instructions != "" {
+			p["summary"] = []gin.H{{"label": "开票说明", "value": instructions.Instructions}}
 		}
-		p["operations"] = invoiceOps
+		note := optional("instructions", "开票补充说明（可选）", "textarea")
+		note.Default = instructions.Instructions
+		note.Help = "可说明办理时间或联系办法，申请人可在申请页面查看。留空不影响申请，无需填写条款编号。"
+		p["operations"] = []operation{{Name: "instructions", Label: "编辑开票说明", Method: "POST", Path: base, Fields: []field{note, defaultField("expected_version", "版本", "hidden", instructions.Version)}}}
 		p["row_operations"] = []operation{
 			{Name: "register", Label: "开具发票", Method: "POST", Path: base + "/{id}/register", Fields: []field{defaultField("state", "实际办理状态", "hidden", "issued"), f("invoice_reference", "发票凭证编号", "text"), optional("reason", "说明", "textarea")}},
 			{Name: "reject", Label: "拒绝申请", Method: "POST", Path: base + "/{id}/register", Fields: []field{defaultField("state", "实际办理状态", "hidden", "rejected"), f("reason", "拒绝原因", "textarea")}},
@@ -334,19 +320,13 @@ func (a *Application) operatorOperationsCommand(c *gin.Context, op organization.
 	switch resource {
 	case "invoices":
 		var in struct {
-			PartyKind      string `json:"party_kind"`
-			Enabled        bool   `json:"enabled"`
-			RulesReference string `json:"rules_reference"`
-			Expected       int64  `json:"expected_version"`
+			Instructions string `json:"instructions"`
+			Expected     int64  `json:"expected_version"`
 		}
 		if !body(c, &in) {
 			return true
 		}
-		if in.PartyKind == "procurement" && op.Kind == organization.Channel {
-			handleError(c, operations.ErrInvalid)
-			return true
-		}
-		out, e := a.Operations.SaveInvoicePolicy(ctx, actor, operations.InvoicePolicy{OperatorID: op.ID, PartyKind: in.PartyKind, Enabled: in.Enabled, RulesReference: in.RulesReference}, in.Expected)
+		out, e := a.Operations.SaveInvoiceInstructions(ctx, actor, op.ID, in.Instructions, in.Expected)
 		if e != nil {
 			handleError(c, e)
 			return true

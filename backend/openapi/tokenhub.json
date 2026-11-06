@@ -8860,8 +8860,7 @@
                   }
                 },
                 "required": [
-                  "version",
-                  "evidence"
+                  "version"
                 ],
                 "additionalProperties": false
               }
@@ -19514,7 +19513,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_invoices",
-        "summary": "设置零售客户开票规则",
+        "summary": "编辑开票说明",
         "tags": [
           "Operator browser API"
         ],
@@ -19636,14 +19635,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/Operator_invoices_invoice_policy_customer"
-                  },
-                  {
-                    "$ref": "#/components/schemas/Operator_invoices_invoice_policy_procurement"
-                  }
-                ]
+                "$ref": "#/components/schemas/Operator_invoices_instructions"
               }
             }
           }
@@ -46450,7 +46442,7 @@
             "type": "string",
             "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
           },
-          "contract_reference": {
+          "terms_summary": {
             "type": "string"
           },
           "evidence": {
@@ -46651,7 +46643,6 @@
           "service_money_per_atg",
           "procurement_money_per_atg",
           "extra_money",
-          "contract_reference",
           "evidence",
           "requested_by",
           "snapshot",
@@ -46705,7 +46696,7 @@
                   "type": "string",
                   "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
                 },
-                "contract_reference": {
+                "terms_summary": {
                   "type": "string"
                 },
                 "evidence": {
@@ -46906,7 +46897,6 @@
                 "service_money_per_atg",
                 "procurement_money_per_atg",
                 "extra_money",
-                "contract_reference",
                 "evidence",
                 "requested_by",
                 "snapshot",
@@ -47460,6 +47450,9 @@
       "InvoiceFiles": {
         "type": "object",
         "properties": {
+          "instructions": {
+            "type": "string"
+          },
           "files_available": {
             "type": "boolean"
           },
@@ -50172,10 +50165,6 @@
             "type": "string",
             "description": "实际供货方编号"
           },
-          "issuer_id": {
-            "type": "string",
-            "description": "原始开票经营方"
-          },
           "lines": {
             "type": "array",
             "items": {
@@ -50342,12 +50331,10 @@
         "properties": {
           "evidence": {
             "type": "string",
-            "description": "线下付款计划与说明"
+            "description": "付款备注（可选）"
           }
         },
-        "required": [
-          "evidence"
-        ],
+        "required": [],
         "additionalProperties": false
       },
       "Operator_exits_verify_manual": {
@@ -51336,15 +51323,14 @@
           },
           "evidence": {
             "type": "string",
-            "description": "事实证据 — 只能退还已经付款、但还没有交付 ATG 的套餐或续费。已经交付的额度不能退。"
+            "description": "补充说明（可选） — 只能退还已经付款、但还没有交付 ATG 的套餐或续费。已经交付的额度不能退。"
           }
         },
         "required": [
           "action",
           "customer_id",
           "order_id",
-          "reason",
-          "evidence"
+          "reason"
         ],
         "additionalProperties": false
       },
@@ -51365,14 +51351,13 @@
           },
           "evidence": {
             "type": "string",
-            "description": "事实证据 — 只能退还已经付款、但供货方还没有交付 ATG 的采购订单。已经交付的采购库存不能在这里退。"
+            "description": "补充说明（可选） — 只能退还已经付款、但供货方还没有交付 ATG 的采购订单。已经交付的采购库存不能在这里退。"
           }
         },
         "required": [
           "action",
           "order_id",
-          "reason",
-          "evidence"
+          "reason"
         ],
         "additionalProperties": false
       },
@@ -51397,15 +51382,14 @@
           },
           "evidence": {
             "type": "string",
-            "description": "核实依据"
+            "description": "补充说明（可选）"
           }
         },
         "required": [
           "action",
           "receipt_id",
           "amount_money",
-          "reason",
-          "evidence"
+          "reason"
         ],
         "additionalProperties": false
       },
@@ -51422,21 +51406,51 @@
           },
           "evidence": {
             "type": "string",
-            "description": "审核依据"
+            "description": "拒绝原因",
+            "x-visible-when": {
+              "field": "decision",
+              "values": [
+                "reject"
+              ]
+            },
+            "x-required-when-visible": true
           }
         },
         "required": [
-          "decision",
-          "evidence"
+          "decision"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "decision": {
+                  "enum": [
+                    "reject"
+                  ]
+                }
+              },
+              "required": [
+                "decision"
+              ]
+            },
+            "then": {
+              "properties": {
+                "evidence": {}
+              },
+              "required": [
+                "evidence"
+              ]
+            }
+          }
+        ]
       },
       "Operator_refunds_cancel": {
         "type": "object",
         "properties": {
           "evidence": {
             "type": "string",
-            "description": "取消依据"
+            "description": "取消原因"
           }
         },
         "required": [
@@ -51470,14 +51484,13 @@
           },
           "evidence": {
             "type": "string",
-            "description": "本笔付款与清偿事实的核实说明"
+            "description": "付款说明（跨币付款时必填）"
           }
         },
         "required": [
           "currency",
           "fee_money",
-          "occurred_at",
-          "evidence"
+          "occurred_at"
         ],
         "additionalProperties": false
       },
@@ -52010,7 +52023,7 @@
           },
           "evidence": {
             "type": "string",
-            "description": "付款核实说明 — 写明如何核实这笔钱已经付给申请人。"
+            "description": "付款备注（可选） — 写明如何核实这笔钱已经付给申请人。"
           },
           "currency": {
             "type": "string",
@@ -52033,7 +52046,6 @@
           }
         },
         "required": [
-          "evidence",
           "currency",
           "paid_at"
         ],
@@ -52134,64 +52146,6 @@
         "required": [
           "amount_money",
           "evidence"
-        ],
-        "additionalProperties": false
-      },
-      "Operator_invoices_invoice_policy_customer": {
-        "type": "object",
-        "properties": {
-          "party_kind": {
-            "const": "customer",
-            "description": "办理对象"
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "开放申请"
-          },
-          "rules_reference": {
-            "type": "string",
-            "description": "公开办理规则依据"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "版本"
-          }
-        },
-        "required": [
-          "party_kind",
-          "enabled",
-          "rules_reference",
-          "expected_version"
-        ],
-        "additionalProperties": false
-      },
-      "Operator_invoices_invoice_policy_procurement": {
-        "type": "object",
-        "properties": {
-          "party_kind": {
-            "const": "procurement",
-            "description": "办理对象"
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "开放申请"
-          },
-          "rules_reference": {
-            "type": "string",
-            "description": "公开办理规则依据"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "版本"
-          }
-        },
-        "required": [
-          "party_kind",
-          "enabled",
-          "rules_reference",
-          "expected_version"
         ],
         "additionalProperties": false
       },
@@ -52819,12 +52773,10 @@
           },
           "evidence": {
             "type": "string",
-            "description": "手续费与到账核实依据"
+            "description": "费用说明（可选）"
           }
         },
-        "required": [
-          "evidence"
-        ],
+        "required": [],
         "additionalProperties": false
       },
       "Operator_withdrawals_edit_method": {
@@ -52990,14 +52942,13 @@
           },
           "evidence": {
             "type": "string",
-            "description": "费用核实说明"
+            "description": "费用说明（可选）"
           }
         },
         "required": [
           "leg_id",
           "fee_money",
-          "occurred_at",
-          "evidence"
+          "occurred_at"
         ],
         "additionalProperties": false
       },
@@ -53044,6 +52995,22 @@
           "enabled",
           "expected_version"
         ],
+        "additionalProperties": false
+      },
+      "Operator_invoices_instructions": {
+        "type": "object",
+        "properties": {
+          "instructions": {
+            "type": "string",
+            "description": "开票补充说明（可选）"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "版本"
+          }
+        },
+        "required": [],
         "additionalProperties": false
       },
       "ExecutionProof": {
@@ -53153,7 +53120,7 @@
           "extra_money": {
             "$ref": "#/components/schemas/SignedLedgerDecimal"
           },
-          "contract_reference": {
+          "terms_summary": {
             "type": "string"
           },
           "evidence": {
@@ -53166,7 +53133,6 @@
           "service_money_per_atg",
           "procurement_money_per_atg",
           "extra_money",
-          "contract_reference",
           "evidence"
         ],
         "additionalProperties": false

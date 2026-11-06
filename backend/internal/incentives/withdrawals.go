@@ -398,7 +398,7 @@ func (s *Service) ApproveWithdrawal(ctx context.Context, tx *gorm.DB, actor, ope
 }
 func completeWithdrawalProof(proof *WithdrawalPaymentProof, net ledger.Decimal, settlement string) error {
 	proof.Currency = strings.ToUpper(strings.TrimSpace(proof.Currency))
-	if proof.Evidence == "" || proof.Currency == "" || proof.PaidAt.IsZero() || !net.Valid() || net.Sign() <= 0 {
+	if proof.Currency == "" || proof.PaidAt.IsZero() || !net.Valid() || net.Sign() <= 0 {
 		return ErrInvalidInput
 	}
 	// The settlement amount was fixed when the customer applied. Recording
@@ -444,6 +444,9 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 		}
 		if strings.TrimSpace(proof.PaymentReference) == "" {
 			proof.PaymentReference = "manual:withdrawal:" + r.ID
+		}
+		if strings.TrimSpace(proof.Evidence) == "" {
+			proof.Evidence = "withdrawal-payment:" + r.ID
 		}
 		if r.Status == "paid" {
 			if r.PaymentReference == nil || *r.PaymentReference != proof.PaymentReference || r.NetMoney.Cmp(proof.PaidMoney) != 0 {

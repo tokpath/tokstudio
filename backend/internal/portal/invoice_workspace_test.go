@@ -57,7 +57,7 @@ func TestInvoiceWorkspaceRolesAndProcurementApplications(t *testing.T) {
 		code, page, _ := f.call(t, "GET", base+"/invoices", nil, "")
 		mustOK(t, code, page)
 		count := len(page["operations"].([]any))
-		if kind == organization.Channel && count != 1 || kind != organization.Channel && count != 2 {
+		if count != 1 || page["operations"].([]any)[0].(map[string]any)["name"] != "instructions" {
 			t.Fatal(kind, page)
 		}
 		code, _, _ = f.call(t, "GET", base+"/procurement-invoices", nil, "")
@@ -73,10 +73,6 @@ func TestInvoiceWorkspaceRolesAndProcurementApplications(t *testing.T) {
 			t.Fatal(code)
 		}
 	}
-	code, _, _ := f.call(t, "POST", "/v1/operators/"+channel+"/invoices", map[string]any{"party_kind": "procurement", "enabled": true, "rules_reference": "invalid channel policy"}, uuid.NewString())
-	if code != 400 {
-		t.Fatal("channel offered downstream procurement invoices", code)
-	}
 	first := invoiceProcurementOrder(t, f, platform, oem, 1000)
 	second := invoiceProcurementOrder(t, f, oem, channel, 40)
 	for _, order := range []cooperation.PurchaseOrder{first, second} {
@@ -84,20 +80,18 @@ func TestInvoiceWorkspaceRolesAndProcurementApplications(t *testing.T) {
 		issuerBase := "/v1/operators/" + order.SupplierID + "/invoices"
 		code, page, _ := f.call(t, "GET", buyerBase, nil, "")
 		mustOK(t, code, page)
-		if len(page["operations"].([]any)) != 0 || len(page["availability"].([]any)) != 1 {
-			t.Fatal("closed policy not explained", page)
+		if len(page["operations"].([]any)) != 1 {
+			t.Fatal("application requires setup", page)
+		}
+		for _, raw := range page["operations"].([]any)[0].(map[string]any)["fields"].([]any) {
+			if raw.(map[string]any)["name"] == "issuer_id" {
+				t.Fatal("procurement form submits an unsupported customer issuer field")
+			}
 		}
 		code, choices, _ := f.call(t, "GET", "/v1/operators/"+order.BuyerID+"/references/invoice-orders", nil, "")
 		mustOK(t, code, choices)
-		if len(choices["items"].([]any)) != 0 {
-			t.Fatal("closed supplier orders offered", choices)
-		}
-		code, result, _ := f.call(t, "POST", issuerBase, map[string]any{"party_kind": "procurement", "enabled": true, "rules_reference": "Full paid purchases", "expected_version": 0}, uuid.NewString())
-		mustOK(t, code, result)
-		code, choices, _ = f.call(t, "GET", "/v1/operators/"+order.BuyerID+"/references/invoice-orders", nil, "")
-		mustOK(t, code, choices)
 		if len(choices["items"].([]any)) != 1 {
-			t.Fatal(choices)
+			t.Fatal("eligible purchase missing without instructions", choices)
 		}
 		code, created, _ := f.call(t, "POST", buyerBase, map[string]any{"supplier_id": order.SupplierID, "lines": []map[string]string{{"order_id": order.ID}}, "details": map[string]string{"title": "Procurement buyer", "tax_id": "TEST-123", "email": "billing@example.test"}}, uuid.NewString())
 		mustOK(t, code, created)
@@ -124,8 +118,10 @@ func TestInvoiceWorkspaceRolesAndProcurementApplications(t *testing.T) {
 			t.Fatal(row)
 		}
 		// Rejection requires no made-up invoice number, file or proof.
-		code, result, _ = f.call(t, "POST", issuerBase+"/"+id+"/register", map[string]any{"state": "rejected", "reason": "Correct the title"}, uuid.NewString())
+		code, result, _ := f.call(t, "POST", issuerBase+"/"+id+"/register", map[string]any{"state": "rejected", "reason": "Correct the title"}, uuid.NewString())
 		mustOK(t, code, result)
+		code, note, _ := f.call(t, "POST", issuerBase, map[string]any{"instructions": "Within three working days", "expected_version": 0}, uuid.NewString())
+		mustOK(t, code, note)
 		// Rejected orders can be requested again and issued using an actual file.
 		code, created, _ = f.call(t, "POST", buyerBase, map[string]any{"supplier_id": order.SupplierID, "lines": []map[string]string{{"order_id": order.ID}}, "details": map[string]string{"title": "Corrected buyer", "tax_id": "TEST-123", "email": "billing@example.test"}}, uuid.NewString())
 		mustOK(t, code, created)
@@ -133,6 +129,9 @@ func TestInvoiceWorkspaceRolesAndProcurementApplications(t *testing.T) {
 		fileID := uploadWorkspaceInvoice(t, f, issuerBase+"/"+issuedID+"/files")
 		code, application, _ := f.call(t, "GET", buyerBase+"/"+issuedID+"/files", nil, "")
 		mustOK(t, code, application)
+		if application["instructions"] != "Within three working days" {
+			t.Fatal("missing instructions snapshot", application)
+		}
 		if len(application["items"].([]any)) != 0 {
 			t.Fatal("draft file visible", application)
 		}

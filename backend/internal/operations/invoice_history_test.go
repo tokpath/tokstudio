@@ -18,29 +18,24 @@ func (b scopedInvoiceSource) InvoiceBasis(_ context.Context, _ *gorm.DB, operato
 	value := ledger.FromInt64(10)
 	return InvoiceBasis{OrderID: receipt, EligibleMoney: value}, nil
 }
-func TestInvoiceHistoryAndPolicyVersionsSurviveCurrentRelationshipChange(t *testing.T) {
+func TestInvoiceHistoryAndInstructionsSurviveCurrentRelationshipChange(t *testing.T) {
 	s, a, _, op, customer := opsFixture(t)
 	ctx := context.Background()
 	receipt := uuid.NewString()
 	s.Invoices = scopedInvoiceSource{customer, op, receipt}
-	p := InvoicePolicy{OperatorID: op, Enabled: true, Stage: "receipt", MaximumRatio: ledger.FromInt64(1), RulesReference: "original-public-rules"}
-	if _, e := s.SaveInvoicePolicy(ctx, a.actor, p, 0); e != nil {
+	if _, e := s.SaveInvoiceInstructions(ctx, a.actor, op, "Original instructions", 0); e != nil {
 		t.Fatal(e)
 	}
 	i, e := s.RequestInvoice(ctx, customer, op, "initial", []InvoiceLine{{receipt, ledger.FromInt64(6)}}, InvoiceDetails{Title: "Original customer"})
 	if e != nil {
 		t.Fatal(e)
 	}
-	p.RulesReference = "new-public-rules"
-	if _, e = s.SaveInvoicePolicy(ctx, a.actor, p, 1); e != nil {
+	if _, e = s.SaveInvoiceInstructions(ctx, a.actor, op, "New instructions", 1); e != nil {
 		t.Fatal(e)
 	}
-	versions, e := s.ListInvoicePolicyVersions(ctx, a.actor, op, "customer")
-	if e != nil || len(versions) != 2 || versions[1].RulesReference != "original-public-rules" || versions[1].Version != i.PolicyVersion {
-		t.Fatalf("applied policy evidence overwritten: %+v %v", versions, e)
-	}
-	if e = s.DB.Table("operations_invoice_policy_versions").Where("operator_id=?", op).Delete(nil).Error; e == nil {
-		t.Fatal("immutable published invoice policy removed")
+	var saved Invoice
+	if e = s.DB.First(&saved, "id=?", i.ID).Error; e != nil || saved.Instructions != "Original instructions" {
+		t.Fatal("application instructions changed", saved, e)
 	}
 	s.Recipients = operationRecipients{operator: uuid.NewString(), customer: customer}
 	if _, e = s.ListInvoices(ctx, customer, op, true); !errors.Is(e, ErrForbidden) {

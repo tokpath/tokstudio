@@ -71,7 +71,7 @@ func TestCustomerInvoiceChoicesArePurchasesNotTopUps(t *testing.T) {
 	balancePackage := saveOrder("invoice-balance-package", "package", "completed")
 
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
-	status, policy, _ := f.call(t, "POST", "/v1/operators/"+op+"/invoices", map[string]any{"party_kind": "customer", "enabled": true, "rules_reference": "test invoice rules", "expected_version": 0}, "")
+	status, policy, _ := f.call(t, "POST", "/v1/operators/"+op+"/invoices", map[string]any{"instructions": "Within three working days", "expected_version": 0}, "")
 	mustOK(t, status, policy)
 	status, page, _ := f.call(t, "GET", "/v1/operators/"+op+"/invoices", nil, "")
 	mustOK(t, status, page)
@@ -151,7 +151,7 @@ func TestCustomerInvoiceChoicesArePurchasesNotTopUps(t *testing.T) {
 	}
 	// Backfill a legacy document without rewriting its amount, private details,
 	// receipt evidence, or file. Existing new order invoices are unaffected.
-	legacy := operations.Invoice{ID: uuid.NewString(), OperatorID: op, CustomerID: customerID, PartyKind: "customer", BusinessKey: "legacy-invoice", Fingerprint: "legacy-fingerprint", AmountMoney: ledger.MustDecimal("40"), State: "issued", DetailsCiphertext: "existing-private-details", CreatedAt: now.Add(time.Minute), InvoiceReference: "LEGACY-1", PolicyStage: "receipt", PolicyVersion: 1, PolicyRatio: ledger.FromInt64(1)}
+	legacy := operations.Invoice{ID: uuid.NewString(), OperatorID: op, CustomerID: customerID, PartyKind: "customer", BusinessKey: "legacy-invoice", Fingerprint: "legacy-fingerprint", AmountMoney: ledger.MustDecimal("40"), State: "issued", DetailsCiphertext: "existing-private-details", CreatedAt: now.Add(time.Minute), InvoiceReference: "LEGACY-1"}
 	if err := f.a.DB.Create(&legacy).Error; err != nil {
 		t.Fatal(err)
 	}

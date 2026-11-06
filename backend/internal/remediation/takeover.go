@@ -21,6 +21,7 @@ import (
 var ErrTakeoverBlocked = errors.New("channel takeover awaits outstanding operations or refreshed approval")
 
 type TakeoverInput struct {
+	TermsSummary           string         `json:"terms_summary"`
 	ActorID                string         `json:"actor_id"`
 	ChannelID              string         `json:"channel_id"`
 	BrandOperatorID        string         `json:"brand_operator_id"`
@@ -29,10 +30,11 @@ type TakeoverInput struct {
 	ServiceMoneyPerATG     ledger.Decimal `json:"service_money_per_atg"`
 	ProcurementMoneyPerATG ledger.Decimal `json:"procurement_money_per_atg"`
 	ExtraMoney             ledger.Decimal `json:"extra_money"`
-	ContractReference      string         `json:"contract_reference"`
+	ContractReference      string         `json:"-"`
 	Evidence               string         `json:"evidence"`
 }
 type Takeover struct {
+	TermsSummary                    string          `json:"terms_summary"`
 	ID                              string          `json:"id"`
 	ChannelID                       string          `json:"channel_id"`
 	BrandOperatorID                 string          `json:"brand_operator_id"`
@@ -43,7 +45,7 @@ type Takeover struct {
 	ServiceMoneyPerATG              ledger.Decimal  `json:"service_money_per_atg"`
 	ProcurementMoneyPerATG          ledger.Decimal  `json:"procurement_money_per_atg"`
 	ExtraMoney                      ledger.Decimal  `json:"extra_money"`
-	ContractReference               string          `json:"contract_reference"`
+	ContractReference               string          `json:"-"`
 	Evidence                        string          `json:"evidence"`
 	RequestedBy                     string          `json:"requested_by"`
 	ApprovedBy                      *string         `json:"approved_by,omitempty"`
@@ -94,6 +96,7 @@ type TakeoverSnapshot struct {
 // shortage into an automatic, unapproved seizure of a channel's business.
 func (s *Service) BeginTakeover(ctx context.Context, in TakeoverInput) (Takeover, error) {
 	var out Takeover
+	in.ContractReference = "takeover-plan:" + in.ChannelID + ":" + in.BusinessKey
 	if !validID(in.ChannelID) || !validID(in.BrandOperatorID) || in.BusinessKey == "" || len(in.BusinessKey) > 150 || in.ContractReference == "" || in.Evidence == "" || !validAmount(in.ServiceMoneyPerATG) || !validAmount(in.ProcurementMoneyPerATG) || !in.ExtraMoney.Valid() || (in.Method != "supply_coverage" && in.Method != "agreed_atg_value") {
 		return out, ErrInvalid
 	}
@@ -144,7 +147,7 @@ func (s *Service) BeginTakeover(ctx context.Context, in TakeoverInput) (Takeover
 		if e != nil {
 			return e
 		}
-		out = Takeover{ID: uuid.NewString(), ChannelID: in.ChannelID, BrandOperatorID: in.BrandOperatorID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), State: "preparing", Method: in.Method, ServiceMoneyPerATG: in.ServiceMoneyPerATG, ProcurementMoneyPerATG: in.ProcurementMoneyPerATG, ExtraMoney: in.ExtraMoney, ContractReference: in.ContractReference, Evidence: in.Evidence, RequestedBy: in.ActorID, PreviousStatus: previous, StatusVersion: status.Version + 1, CreatedAt: at}
+		out = Takeover{ID: uuid.NewString(), ChannelID: in.ChannelID, BrandOperatorID: in.BrandOperatorID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), State: "preparing", Method: in.Method, ServiceMoneyPerATG: in.ServiceMoneyPerATG, ProcurementMoneyPerATG: in.ProcurementMoneyPerATG, ExtraMoney: in.ExtraMoney, ContractReference: in.ContractReference, TermsSummary: in.TermsSummary, Evidence: in.Evidence, RequestedBy: in.ActorID, PreviousStatus: previous, StatusVersion: status.Version + 1, CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}

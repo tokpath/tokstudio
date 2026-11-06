@@ -163,6 +163,9 @@ func (a *Application) customerLifecycle(c *gin.Context) {
 		return
 	}
 	id := subject(c)
+	if in.Evidence == "" {
+		in.Evidence = "customer-action:" + c.Param("action")
+	}
 	input := organization.CustomerLifecycleInput{CustomerID: id.Customer.Customer.ID, OperatorID: id.Customer.Ownership.OperatorID, ActorID: id.Customer.Customer.ID, ExpectedVersion: in.Version, Evidence: in.Evidence, WaiverEvidence: in.Waiver}
 	raw, e := a.command(c, "customer-lifecycle:"+input.CustomerID+":"+c.Param("action"), in, func(tx *gorm.DB) (any, error) {
 		var out organization.Customer

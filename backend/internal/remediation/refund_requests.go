@@ -30,6 +30,9 @@ func (s *Service) existing(t *gorm.DB, op, key, fp string, out *Case) (bool, err
 // customer. The receipt's payer evidence remains the refund destination basis.
 func (s *Service) RequestUnallocatedRefund(ctx context.Context, actor, op, receipt, key, reason, evidence string, amount ledger.Decimal) (Case, error) {
 	var out Case
+	if evidence == "" {
+		evidence = reason
+	}
 	if !validID(op) || !validID(receipt) || key == "" || len(key) > 150 || reason == "" || evidence == "" || !validAmount(amount) {
 		return out, ErrInvalid
 	}
@@ -114,6 +117,9 @@ type PackageExceptionInput struct {
 // received ATG. A delivered grant cannot be turned back into money.
 func (s *Service) RequestPackageException(ctx context.Context, in PackageExceptionInput) (Case, error) {
 	var out Case
+	if in.Evidence == "" {
+		in.Evidence = in.Reason
+	}
 	if in.Reason != "transaction_error" && in.Reason != "unable_to_fulfill" {
 		return out, ErrInvalid
 	}
@@ -193,6 +199,9 @@ type ProcurementNonDeliveryInput struct {
 // received ATG. Delivered procurement inventory is not refunded here.
 func (s *Service) RequestProcurementNonDelivery(ctx context.Context, in ProcurementNonDeliveryInput) (Case, error) {
 	var out Case
+	if in.Evidence == "" {
+		in.Evidence = in.Reason
+	}
 	if in.Reason == "" || !validID(in.OrderID) || in.BusinessKey == "" || len(in.BusinessKey) > 150 || in.Evidence == "" {
 		return out, ErrInvalid
 	}

@@ -4,11 +4,6 @@
     "ja": "{title}について",
     "ru": "Подробнее: {title}"
   },
-  "填写已公示或已签署条款的编号或链接，例如 plan-2026-01。它用于追溯本次成交依据；请先准备真实条款，不要随意编造。": {
-    "en": "Enter the identifier or link of published or signed terms, for example plan-2026-01. It identifies the terms behind this transaction; prepare the actual terms first.",
-    "ja": "公開済みまたは締結済みの規約の番号かリンクを入力します（例：plan-2026-01）。取引の根拠を追跡するため、実際の規約を先に用意してください。",
-    "ru": "Укажите номер или ссылку на опубликованные либо подписанные условия, например plan-2026-01. Они служат основанием сделки; сначала подготовьте реальные условия."
-  },
   "填写能够核实本次操作的材料、文件编号或链接，并说明核实结果。系统保留此依据供复核；填写文字本身不代表付款、授权或验证成功。": {
     "en": "Enter verifiable material, a document ID or link, and the verification result. This is retained for review; text alone does not confirm payment, authorization or validation.",
     "ja": "操作を確認できる資料、文書番号やリンクと確認結果を入力します。監査のため保存されますが、記入だけで支払いや権限、検証が成立するわけではありません。",

@@ -106,7 +106,7 @@ func takeoverFixture(t *testing.T) (fixture, fixture, commerce.Order, usage.KeyS
 }
 func beginTakeover(t *testing.T, brand, channel fixture) Takeover {
 	t.Helper()
-	p, e := brand.s.BeginTakeover(brand.ctx, TakeoverInput{ActorID: brand.owner, ChannelID: channel.operator, BrandOperatorID: brand.operator, BusinessKey: "agreed-channel-exit", Method: "agreed_atg_value", ServiceMoneyPerATG: d("0.8"), ProcurementMoneyPerATG: d("0.8"), ContractReference: "signed-takeover-contract", Evidence: "brand approved complete obligations transfer"})
+	p, e := brand.s.BeginTakeover(brand.ctx, TakeoverInput{ActorID: brand.owner, ChannelID: channel.operator, BrandOperatorID: brand.operator, BusinessKey: "agreed-channel-exit", Method: "agreed_atg_value", ServiceMoneyPerATG: d("0.8"), ProcurementMoneyPerATG: d("0.8"), TermsSummary: "The brand assumes all remaining service and cash obligations", Evidence: "brand approved complete obligations transfer"})
 	if e != nil {
 		t.Fatal(e)
 	}

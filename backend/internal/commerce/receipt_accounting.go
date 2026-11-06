@@ -24,7 +24,10 @@ type ReceiptAccounting struct {
 }
 
 func (s *Service) RecordReceiptAccounting(ctx context.Context, tx *gorm.DB, in ReceiptAccounting) (out Receipt, err error) {
-	if !validID(in.ReceiptID) || in.Evidence == "" || in.VerifiedBy == "" || in.NetMoney.Sign() < 0 || in.FeeMoney.Sign() < 0 || !in.NetMoney.Valid() || !in.FeeMoney.Valid() {
+	if in.Evidence == "" {
+		in.Evidence = "receipt-accounting:" + in.ReceiptID
+	}
+	if !validID(in.ReceiptID) || in.VerifiedBy == "" || in.NetMoney.Sign() < 0 || in.FeeMoney.Sign() < 0 || !in.NetMoney.Valid() || !in.FeeMoney.Valid() {
 		return out, ErrInvalidInput
 	}
 	if in.SettledAt != nil {

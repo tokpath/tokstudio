@@ -1807,11 +1807,6 @@
         "required": false
       },
       {
-        "name": "issuer_id",
-        "label": "原始开票经营方",
-        "kind": "hidden"
-      },
-      {
         "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
         "name": "lines.0.order_id",
         "label": "购买订单",
@@ -1994,9 +1989,9 @@
     "fields": [
       {
         "name": "evidence",
-        "label": "线下付款计划与说明",
+        "label": "付款备注（可选）",
         "kind": "textarea",
-        "required": true
+        "required": false
       }
     ],
     "include_version": false,
@@ -3295,9 +3290,9 @@
       },
       {
         "kind": "textarea",
-        "label": "事实证据",
+        "label": "补充说明（可选）",
         "name": "evidence",
-        "required": true,
+        "required": false,
         "help": "只能退还已经付款、但还没有交付 ATG 的套餐或续费。已经交付的额度不能退。"
       }
     ],
@@ -3335,9 +3330,9 @@
       {
         "help": "只能退还已经付款、但供货方还没有交付 ATG 的采购订单。已经交付的采购库存不能在这里退。",
         "kind": "textarea",
-        "label": "事实证据",
+        "label": "补充说明（可选）",
         "name": "evidence",
-        "required": true
+        "required": false
       }
     ],
     "include_version": false,
@@ -3380,9 +3375,9 @@
       },
       {
         "kind": "textarea",
-        "label": "核实依据",
+        "label": "补充说明（可选）",
         "name": "evidence",
-        "required": true
+        "required": false
       }
     ],
     "include_version": false,
@@ -3415,9 +3410,15 @@
       },
       {
         "kind": "textarea",
-        "label": "审核依据",
+        "label": "拒绝原因",
         "name": "evidence",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "decision",
+          "values": [
+            "reject"
+          ]
+        }
       }
     ],
     "include_version": false,
@@ -3434,7 +3435,7 @@
     "fields": [
       {
         "kind": "textarea",
-        "label": "取消依据",
+        "label": "取消原因",
         "name": "evidence",
         "required": true
       }
@@ -3485,9 +3486,9 @@
       },
       {
         "kind": "textarea",
-        "label": "本笔付款与清偿事实的核实说明",
+        "label": "付款说明（跨币付款时必填）",
         "name": "evidence",
-        "required": true
+        "required": false
       }
     ],
     "include_version": false,
@@ -4038,10 +4039,10 @@
       },
       {
         "kind": "textarea",
-        "label": "付款核实说明",
+        "label": "付款备注（可选）",
         "name": "evidence",
         "help": "写明如何核实这笔钱已经付给申请人。",
-        "required": true
+        "required": false
       },
       {
         "kind": "text",
@@ -4221,86 +4222,6 @@
     "name": "recover",
     "path": "/v1/operators/{operatorId}/disputes/{id}/recover",
     "permission": "refunds.manage"
-  },
-  {
-    "resource": "invoices",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "default_value": "customer",
-        "kind": "hidden",
-        "label": "办理对象",
-        "name": "party_kind",
-        "required": true
-      },
-      {
-        "default_value": false,
-        "kind": "boolean",
-        "label": "开放申请",
-        "name": "enabled",
-        "required": true
-      },
-      {
-        "kind": "text",
-        "label": "公开办理规则依据",
-        "name": "rules_reference",
-        "required": true
-      },
-      {
-        "default_value": 0,
-        "kind": "hidden",
-        "label": "版本",
-        "name": "expected_version",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "设置零售客户开票规则",
-    "method": "POST",
-    "name": "invoice_policy_customer",
-    "path": "/v1/operators/{operatorId}/invoices",
-    "permission": "invoices.manage"
-  },
-  {
-    "resource": "invoices",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "default_value": "procurement",
-        "kind": "hidden",
-        "label": "办理对象",
-        "name": "party_kind",
-        "required": true
-      },
-      {
-        "default_value": false,
-        "kind": "boolean",
-        "label": "开放申请",
-        "name": "enabled",
-        "required": true
-      },
-      {
-        "kind": "text",
-        "label": "公开办理规则依据",
-        "name": "rules_reference",
-        "required": true
-      },
-      {
-        "default_value": 0,
-        "kind": "hidden",
-        "label": "版本",
-        "name": "expected_version",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "设置经营方采购开票规则",
-    "method": "POST",
-    "name": "invoice_policy_procurement",
-    "path": "/v1/operators/{operatorId}/invoices",
-    "permission": "invoices.manage"
   },
   {
     "resource": "invoices",
@@ -5065,9 +4986,9 @@
       },
       {
         "name": "evidence",
-        "label": "手续费与到账核实依据",
+        "label": "费用说明（可选）",
         "kind": "textarea",
-        "required": true
+        "required": false
       }
     ],
     "include_version": false,
@@ -5257,9 +5178,9 @@
       },
       {
         "name": "evidence",
-        "label": "费用核实说明",
+        "label": "费用说明（可选）",
         "kind": "textarea",
-        "required": true
+        "required": false
       }
     ],
     "permission": "refunds.manage"
@@ -5325,5 +5246,27 @@
     "name": "risk_settings",
     "path": "/v1/operators/{operatorId}/alerts",
     "permission": "operations.manage"
+  },
+  {
+    "name": "instructions",
+    "label": "编辑开票说明",
+    "method": "POST",
+    "path": "/v1/operators/{operatorId}/invoices",
+    "fields": [
+      {
+        "name": "instructions",
+        "label": "开票补充说明（可选）",
+        "kind": "textarea",
+        "required": false
+      },
+      {
+        "name": "expected_version",
+        "label": "版本",
+        "kind": "hidden",
+        "default_value": 0
+      }
+    ],
+    "resource": "invoices",
+    "permission": "invoices.manage"
   }
 ]

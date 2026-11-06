@@ -117,7 +117,7 @@ func TestPostgresTakeoverSingleWorkspaceDerivesMoneySettlementFromActualAmount(t
 	}
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	base := "/v1/operators/" + parent + "/takeovers"
-	status, out, _ := f.call(t, "POST", base, map[string]any{"channel_id": child.Operator.ID, "method": "agreed_atg_value", "service_money_per_atg": "1", "procurement_money_per_atg": "1", "extra_money": "5", "contract_reference": "synthetic agreed settlement", "evidence": "brand approved transfer and fixed USD settlement"}, uuid.NewString())
+	status, out, _ := f.call(t, "POST", base, map[string]any{"channel_id": child.Operator.ID, "method": "agreed_atg_value", "service_money_per_atg": "1", "procurement_money_per_atg": "1", "extra_money": "5", "terms_summary": "synthetic agreed settlement", "evidence": "brand approved transfer and fixed USD settlement"}, uuid.NewString())
 	mustOK(t, status, out)
 	id := out["id"].(string)
 	status, out, _ = f.call(t, "POST", base+"/"+id+"/refresh", map[string]any{}, uuid.NewString())

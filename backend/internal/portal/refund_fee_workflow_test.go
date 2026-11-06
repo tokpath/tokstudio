@@ -72,7 +72,7 @@ func TestPostgresRefundPendingFeeCanBeConfirmedFromItsPaymentRow(t *testing.T) {
 	}
 	key := uuid.NewString()
 	for range 2 {
-		status, out, _ := f.call(t, "POST", base+"/"+paymentID+"/confirm_fee", map[string]any{"leg_id": l.ID, "fee_money": "2", "occurred_at": now, "evidence": "verified final fee statement"}, key)
+		status, out, _ := f.call(t, "POST", base+"/"+paymentID+"/confirm_fee", map[string]any{"leg_id": l.ID, "fee_money": "2", "occurred_at": now}, key)
 		mustOK(t, status, out)
 	}
 	facts, err := f.a.Remediation.FinancialRefundFacts(ctx, nil, op, now.Add(-time.Hour), now.Add(time.Hour))

@@ -59,14 +59,3 @@ func (s *Service) ListProcurementInvoices(ctx context.Context, actor, buyer stri
 	})
 	return out, e
 }
-
-func (s *Service) GetProcurementInvoicePolicy(ctx context.Context, actor, buyer, supplier string) (InvoicePolicy, error) {
-	out := InvoicePolicy{OperatorID: supplier, PartyKind: "procurement"}
-	e := s.within(ctx, nil, func(tx *gorm.DB) error {
-		if e := s.require(ctx, tx, actor, buyer, "cooperation.manage"); e != nil {
-			return e
-		}
-		return tx.Where("operator_id=? AND party_kind='procurement'", supplier).Limit(1).Find(&out).Error
-	})
-	return out, e
-}

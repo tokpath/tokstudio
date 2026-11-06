@@ -257,7 +257,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const canOperate = (operation: Operation) => !operation.permission || !!workspace?.permissions.includes("*") || !!workspace?.permissions.includes(operation.permission);
   const balanceMinimum = resourceName === "balance-withdrawals" && businessView === "minimum" ? page.operations.find(operation => operation.name === "minimum" && canOperate(operation)) : undefined;
   const operations = page.operations.filter(operation => operation.name !== "minimum" && canOperate(operation) && (resourceName !== "procurement" || (operation.name === "quote" ? procurementTab === "quotes" : operation.name === "authorization" ? procurementTab === "automatic" : true)));
-  const settings = operations.filter(operation => ["refunds","withdrawals","invoices"].includes(resourceName) && (operation.name === "policy" || operation.name.startsWith("invoice_policy_")));
+  const settings = operations.filter(operation => ["refunds","withdrawals"].includes(resourceName) && operation.name === "policy");
   const primaryOperations = operations.filter(operation => !settings.includes(operation));
   const customerPayout = customer && (resourceName === "withdrawals" || resourceName === "refunds");
   const payoutWallet = resourceName === "refunds" ? "balance" as const : "commission" as const;
@@ -315,7 +315,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     {resourceName === "procurement" && <div className="mb-5"><div role="tablist" aria-label={t("采购办理事项")} className="flex flex-wrap gap-2">{[["orders", businessView === "supplier" ? "供货订单" : "采购订单"], ["quotes", businessView === "supplier" ? "供货报价" : "采购报价"], ["automatic", "自动补货"]].filter(([key]) => key !== "automatic" || businessView !== "supplier").map(([key, title]) => <Button key={key} role="tab" aria-selected={procurementTab === key} variant={procurementTab === key ? "default" : "outline"} onClick={() => setProcurementTab(key)}>{t(title)}</Button>)}</div><p className="mt-3 text-xs leading-6 text-ink-mute">{t(businessView === "supplier" ? "供货订单列出每一笔采购占用的库存。未付款订单不限时，直到付清或取消后才释放。" : procurementTab === "quotes" ? "选择已生效报价创建采购订单。创建后即占用供货库存，付款并交付后才增加采购余额。" : procurementTab === "automatic" ? "在此管理有限补货授权和原执行结果。结果未知时只查询原付款。" : "每一行显示这笔订单占用的供货库存。未付款不限时，直到付清或取消。需要新增采购时打开采购报价。")}</p></div>}
     {operatorID && ["procurement", "operators"].includes(resourceName) && workspace?.permissions.some(permission => ["*", "cooperation.manage"].includes(permission)) && <p className="mb-4 text-sm"><Link className="text-brand-emphasis underline" href={`/manage/${encodeURIComponent(operatorID)}/contracts`}>{t("上传或查看可选合作合同")}</Link></p>}
     {resourceName !== "providers" && (toolbar || operations.length > 0 || customerPayout) && <div className="th-toolbar">{customerPayout && <CustomerWithdrawalBar wallet={payoutWallet} minimum={page.summary?.find(item => item.label === "最低提现额度")} />}{toolbar}
-      <div className={`${customerPayout ? "ml-auto " : ""}flex flex-wrap items-center gap-2`}>{primaryOperations.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
+      <div className={`${customerPayout ? "ml-auto " : ""}flex flex-wrap items-center gap-2`}>{primaryOperations.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 && operation.name !== "instructions" ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
       </Button>)}
       {settings.length>0 && <details className="relative"><summary className="cursor-pointer rounded-control border border-hairline bg-canvas-raised px-4 py-3 text-sm">{t("办理设置")}</summary><div className="absolute right-0 z-20 mt-2 min-w-56 space-y-1 rounded-control border border-hairline bg-canvas-raised p-2 shadow-lg">{settings.map(operation => <Button key={operation.name} type="button" variant="ghost" className="w-full justify-start" onClick={() => selectOperation(operation)}>{t(operation.label)}</Button>)}</div></details>}
       </div>
@@ -574,7 +574,6 @@ const savedFactLabels: Record<string, string> = {
   "announced_at": "实际通知",
   "applied_at": "实际应用",
   "error_code": "待复核原因",
-  "rules_reference": "对客户公开的通知条款依据",
   "prices": "精确组件价格",
   "status": "状态",
   "procurement_available": "可用采购余额",
@@ -647,7 +646,6 @@ const savedFactLabels: Record<string, string> = {
   "gift_atg": "套餐赠送 ATG",
   "period": "有效期",
   "timezone": "经营时区",
-  "terms_reference": "对客户公示条款编号",
   "new_purchase_enabled": "允许新购",
   "renewal_enabled": "允许续费",
   "legal_name": "法定名称",
@@ -711,7 +709,6 @@ const savedFactLabels: Record<string, string> = {
   "flat_fee_money": "固定手续费 结算币种",
   "fee_rate": "手续费比例（0到1）",
   "requires_dual_approval": "必须双人审批付款",
-  "method_reference": "对客户公示付款方式规则",
   "issuer_id": "原始开票经营方",
   "lines.0.receipt_id": "原始收款编号",
   "lines.0.amount_money": "本次申请 结算币种",
@@ -758,7 +755,6 @@ const savedFactLabels: Record<string, string> = {
   "exit_terms.version": "退出条款版本",
   "exit_terms.voluntary_refund": "允许自愿退出退款",
   "exit_terms.method": "合同退款算法",
-  "exit_terms.terms_reference": "退出条款编号",
   "valid_until": "报价截止时间",
   "quote_id": "固定成交报价编号",
   "trigger_available_atg": "采购可用库存低于ATG时触发",
@@ -867,7 +863,6 @@ const savedFactLabels: Record<string, string> = {
   "legal_hold_until": "保护截至",
   "until": "保护截止时间",
   "configuration.minimum_money": "最低提现 结算币种",
-  "configuration.method_reference": "对客户公示付款方式规则",
   "configuration.flat_fee_money": "固定手续费 结算币种",
   "configuration.fee_rate": "手续费比例（0到1）",
   "configuration.requires_dual_approval": "必须双人审批付款",
@@ -919,7 +914,6 @@ const savedFactLabels: Record<string, string> = {
   "updated_by": "更新人编号",
   "updated_at": "更新时间",
   "deleted_at": "删除时间",
-  "contract_reference": "双方接管合同编号"
 };
 
 const enumLabelsByField: Record<string, Record<string, string>> = {

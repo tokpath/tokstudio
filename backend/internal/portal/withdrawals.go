@@ -428,8 +428,8 @@ func withdrawalPaymentFields() []field {
 	original.Help = "填写实际付出的原币金额。账上仍按申请时已经固定的实付净额入账。"
 	link := f("valuation_evidence", "本笔原币付款与实付净额的关联凭证", "textarea")
 	link.Help = "说明这笔原币付款对应申请里的实付净额。"
-	evidence := f("evidence", "付款核实说明", "textarea")
-	evidence.Help = "写明如何核实这笔钱已经付给申请人。"
+	evidence := optional("evidence", "付款备注（可选）", "textarea")
+	evidence.Help = "可补充付款情况或凭证。系统自动记录经办人、付款金额与时间。"
 	return []field{optional("payment_reference", "付款流水或收据号（可选）", "text"), evidence, currency, original, link, f("paid_at", "实际付款时刻", "datetime")}
 }
 

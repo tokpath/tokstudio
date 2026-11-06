@@ -5,7 +5,7 @@ const opaqueID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 const relationLabels: Record<string, string> = { requested_by:"申请人",created_by:"登记人",approved_by:"审核人",verified_by:"核实人",subject_id:"关联业务主体", customer_id: "关联客户", owner_id: "关联主体", supplier_id: "关联供货方", buyer_id: "关联采购方", operator_id: "关联经营方", brand_id: "关联品牌", order_id: "关联订单", receipt_id: "关联收款", package_id: "关联套餐", plan_id: "关联套餐", staff_id: "经营人员", credential_id: "已保存的供应商凭据", contract_attachment_id: "私有合作合同" };
 
 export function resourceColumnVisible(key: string, resource?: string): boolean {
-  return (key !== "action" || resource === "restrictions") && key !== "version" && key !== "expected_version" && !key.endsWith("_version") && key !== "staff_id";
+  return !["terms_reference", "rules_reference", "method_reference", "contract_reference", "policy_stage", "policy_ratio"].includes(key) && (key !== "action" || resource === "restrictions") && key !== "version" && key !== "expected_version" && !key.endsWith("_version") && key !== "staff_id";
 }
 
 /** Labels are display-only; never replace IDs in saved records or commands. */

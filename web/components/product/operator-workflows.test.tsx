@@ -325,7 +325,7 @@ it("retains unresolved financial facts and validates the selected calendar date 
 });
 
 const takeover = {
-  id: "takeover-one", channel_id: "channel-one", brand_operator_id: "operator-one", state: "completed", method: "agreed_atg_value", service_money_per_atg: "1", procurement_money_per_atg: "1", extra_money: "0", contract_reference: "contract-one", evidence: "双方已核实", requested_by: "staff-1", snapshot: null, snapshot_fingerprint: "snapshot-one", service_money: "3", cash_money: "4", procurement_offset_atg: "2", procurement_offset_money: "2", remaining_procurement_refund_money: "0", settlement_due_money: "5", settled_money: "0", created_at: "2026-10-16T00:00:00Z",
+  id: "takeover-one", channel_id: "channel-one", brand_operator_id: "operator-one", state: "completed", method: "agreed_atg_value", service_money_per_atg: "1", procurement_money_per_atg: "1", extra_money: "0", terms_summary: "contract-one", evidence: "双方已核实", requested_by: "staff-1", snapshot: null, snapshot_fingerprint: "snapshot-one", service_money: "3", cash_money: "4", procurement_offset_atg: "2", procurement_offset_money: "2", remaining_procurement_refund_money: "0", settlement_due_money: "5", settled_money: "0", created_at: "2026-10-16T00:00:00Z",
 };
 
 it("shows takeover facts without offering ungranted financial or preparation actions", async () => {

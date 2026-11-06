@@ -129,9 +129,8 @@ test("finance records one whole payment, links private evidence, reviews a refun
     expect(orderResponse.status(), JSON.stringify(purchased)).toBe(200);
     expect(purchased.status).toBe("completed");
     await finance.goto(`${manage}/invoices`);
-    await finance.getByText("办理设置",{exact:true}).click();
-    await finance.getByRole("button", { name: "设置零售客户开票规则", exact: true }).click();
-    await submit(finance, "设置零售客户开票规则", `${base}/invoices`, { enabled: true, rules_reference: "Synthetic purchase invoice policy" });
+    await finance.getByRole("button", { name: "编辑开票说明", exact: true }).click();
+    await submit(finance, "编辑开票说明", `${base}/invoices`, { instructions: "Synthetic invoice handling instructions" });
     await customer.goto("/workspace/invoices");
     await customer.getByRole("button", { name: "申请发票", exact: true }).click();
     await customer.getByRole("combobox", {name:"购买订单",exact:true}).fill(purchased.id);

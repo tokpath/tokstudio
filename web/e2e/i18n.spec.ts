@@ -159,7 +159,7 @@ for (const locale of ["zh", "en", "ja", "ru"] as const) {
     await page.route(`**/api/v1/operators/${operator.id}/invoices**`, route => route.fulfill({json:route.request().url().endsWith("/files") ? {
       items:[],files_available:false,details:{title:"Buyer Inc",tax_id:"TEST-1",email:"buyer@example.test"},orders:[{order_id:"purchase-one",name:"Package A",kind:"套餐购买",created_at:"2026-11-06T10:00:00Z",amount_money:"40"}]
     } : {...resource("我方开票"),items:[{id:"invoice-one",status:"requested",values:{name:"Invoice application",applicant:"Buyer Inc",applicant_kind:"客户购买",amount_money:"40"}}],columns:[{key:"applicant",label:"申请人",kind:"text"},{key:"applicant_kind",label:"申请类型",kind:"text"},{key:"amount_money",label:"开票金额",kind:"money"}]} }));
-    await page.route(`**/api/v1/operators/${operator.id}/procurement-invoices**`, route => route.fulfill({json:{...resource("我方收票"),items:[{id:"received-one",status:"requested",values:{name:"Supplier invoice"}}],summary:[{label:"Supplier",value:"尚未开放采购开票申请，请联系供货方。"}]}}));
+    await page.route(`**/api/v1/operators/${operator.id}/procurement-invoices**`, route => route.fulfill({json:{...resource("我方收票"),items:[{id:"received-one",status:"requested",values:{name:"Supplier invoice"}}],summary:[{label:"Supplier",value:"Three working days"}]}}));
     await page.goto(`/manage/${operator.id}/invoices`);
     await page.getByTestId("language-selector").selectOption(locale);
     await expect(page.getByRole("tab",{name:text(locale,"我方开票"),exact:true})).toBeVisible();
@@ -175,10 +175,46 @@ for (const locale of ["zh", "en", "ja", "ru"] as const) {
     await dialog.getByRole("button",{name:text(locale,"关闭办理面板"),exact:true}).click();
     await page.getByRole("tab",{name:text(locale,"我方收票"),exact:true}).click();
     await expect(page.getByText("Supplier invoice",{exact:true})).toBeVisible();
-    await expect(page.getByText(text(locale,"尚未开放采购开票申请，请联系供货方。"),{exact:true})).toBeVisible();
+    await expect(page.getByText("Three working days",{exact:true})).toBeVisible();
     await expect(page.getByRole("button",{name:text(locale,"文件与下载"),exact:true})).toHaveCount(0);
     await page.setViewportSize({width:390,height:844});
     await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(1);
     await page.screenshot({path:test.info().outputPath(`invoice-received-mobile-${locale}.png`),fullPage:true});
   });
+}
+
+for (const locale of ["zh","en","ja","ru"] as const) {
+ test(`optional invoice instructions can be saved and cleared in ${locale}`,async({page})=>{
+  await api(page,staff);
+  let note="",version=0;
+  const submissions:Record<string,unknown>[]=[];
+  await page.route(`**/api/v1/operators/${operator.id}/invoices**`,async route=>{
+   if(route.request().method()==="POST"){
+    const body=route.request().postDataJSON();submissions.push(body);note=body.instructions||"";version++;
+    await route.fulfill({json:{id:operator.id,status:"configured",version}});return;
+   }
+   await route.fulfill({json:{...resource("我方开票"),summary:note?[{label:"开票说明",value:note}]:[],operations:[{name:"instructions",label:"编辑开票说明",method:"POST",path:`/api/v1/operators/${operator.id}/invoices`,permission:"invoices.manage",fields:[{name:"instructions",label:"开票补充说明（可选）",kind:"textarea",required:false,default_value:note},{name:"expected_version",label:"版本",kind:"hidden",default_value:version}]}]}});
+  });
+  await page.goto(`/manage/${operator.id}/invoices`);
+  await page.getByTestId("language-selector").selectOption(locale);
+  await expect(page.getByText(text(locale,"办理设置"),{exact:true})).toHaveCount(0);
+  for(const value of ["Within three working days",""]){
+   await page.getByRole("button",{name:text(locale,"编辑开票说明"),exact:true}).click();
+   const panel=page.getByRole("dialog");
+   await expect(panel.getByRole("checkbox")).toHaveCount(0);
+   await expect(panel.getByRole("textbox")).toHaveCount(1);
+   await panel.getByRole("textbox").fill(value);
+   if(value) await page.screenshot({path:test.info().outputPath(`invoice-instructions-${locale}.png`),fullPage:true});
+   await panel.getByRole("button",{name:text(locale,"编辑开票说明"),exact:true}).click();
+   await expect(panel.getByRole("status")).toBeVisible();
+   await panel.getByRole("button",{name:text(locale,"关闭办理面板"),exact:true}).click();
+   await expect(panel).toHaveCount(0);
+   await expect.poll(()=>submissions.at(-1)?.instructions??"").toBe(value);
+  }
+  expect(submissions).toHaveLength(2);
+  expect(submissions.every(x=>!("rules_reference" in x)&&!("enabled" in x)&&!("party_kind" in x))).toBe(true);
+  await page.setViewportSize({width:390,height:844});
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(1);
+  await page.screenshot({path:test.info().outputPath(`invoice-simple-${locale}.png`),fullPage:true});
+ });
 }

@@ -13,7 +13,10 @@ import (
 // capacity. Automatic execution cannot take over this instruction.
 func (p *ProcurementRefunds) BeginManualRefund(ctx context.Context, actor, id, key, evidence string) (ProcurementExitRefund, error) {
 	var out ProcurementExitRefund
-	if !p.Ready() || key == "" || evidence == "" {
+	if evidence == "" {
+		evidence = "manual-procurement-refund-intent:" + id + ":" + key
+	}
+	if !p.Ready() || key == "" {
 		return out, ErrConflict
 	}
 	e := p.Cooperation.within(ctx, nil, func(tx *gorm.DB) error {

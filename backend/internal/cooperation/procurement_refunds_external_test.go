@@ -184,9 +184,6 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	}
 	capacity := remediation.New(db, remediation.Dependencies{Ledger: l, Organization: org, Commerce: collector, Cooperation: coop, Payments: pay, Incentives: incentives.New(db)})
 	invoiceService := &operations.Service{DB: db, EncryptionKey: "synthetic-invoice-key", Authorize: org, ProcurementInvoices: operations.DomainProcurementInvoiceSource{Cooperation: coop, Commerce: collector, Adjustments: capacity}}
-	if _, e = invoiceService.SaveInvoicePolicy(ctx, owner, operations.InvoicePolicy{OperatorID: supplier, PartyKind: "procurement", Enabled: true, Stage: "purchase", MaximumRatio: ledger.FromInt64(1), RulesReference: "supplier-wholesale-invoice-terms"}, 0); e != nil {
-		t.Fatal(e)
-	}
 	invoice, e := invoiceService.RequestProcurementInvoice(ctx, owner, buyer, supplier, "purchase-invoice", []operations.InvoiceLine{{OrderID: order.ID, AmountMoney: ledger.FromInt64(10)}}, operations.InvoiceDetails{Title: "Actual Procurement Buyer"})
 	if e != nil || invoice.PartyKind != "procurement" || invoice.CustomerID != "" || invoice.BuyerOperatorID == nil || *invoice.BuyerOperatorID != buyer {
 		t.Fatalf("purchase invoice impersonated customer or wrong buyer: %+v %v", invoice, e)

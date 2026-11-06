@@ -15,7 +15,7 @@ func TestPostgresInvoiceSearchPrecedesLimitAndRetainsIssuerAndCustomerScope(t *t
 	s, auth, _, operator, customer := opsFixture(t)
 	ctx := context.Background()
 	makeRow := func(op, owner, reference string, age time.Duration) Invoice {
-		return Invoice{ID: uuid.NewString(), OperatorID: op, CustomerID: owner, PartyKind: "customer", BusinessKey: uuid.NewString(), Fingerprint: "synthetic search fixture", AmountMoney: ledger.FromInt64(1), State: "issued", DetailsCiphertext: "synthetic encrypted details", CreatedAt: time.Now().Add(-age), InvoiceReference: reference, EvidenceReference: "verified-search-proof", PolicyStage: "receipt", PolicyVersion: 1, PolicyRatio: ledger.FromInt64(1)}
+		return Invoice{ID: uuid.NewString(), OperatorID: op, CustomerID: owner, PartyKind: "customer", BusinessKey: uuid.NewString(), Fingerprint: "synthetic search fixture", AmountMoney: ledger.FromInt64(1), State: "issued", DetailsCiphertext: "synthetic encrypted details", CreatedAt: time.Now().Add(-age), InvoiceReference: reference, EvidenceReference: "verified-search-proof"}
 	}
 	target := makeRow(operator, customer, "Doc_100%", 24*time.Hour)
 	rows := []Invoice{target, makeRow(uuid.NewString(), uuid.NewString(), "Doc_100%", 0), makeRow(operator, uuid.NewString(), "Doc_100%", 0)}

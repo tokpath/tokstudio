@@ -61,9 +61,6 @@ func testPrivateInvoiceFiles(t *testing.T, realS3 bool) {
 	}
 	basis := &invoiceBasis{value: ledger.FromInt64(10)}
 	s.Invoices = basis
-	if _, e := s.SaveInvoicePolicy(ctx, a.actor, InvoicePolicy{OperatorID: operator, Enabled: true, Stage: "receipt", MaximumRatio: ledger.FromInt64(1), RulesReference: "published-invoice-policy"}, 0); e != nil {
-		t.Fatal(e)
-	}
 	receipt := uuid.NewString()
 	lines := []InvoiceLine{{receipt, ledger.FromInt64(6)}}
 	i, e := s.RequestInvoice(ctx, customer, operator, "invoice-one", lines, InvoiceDetails{Title: "Verified Buyer"})
@@ -128,9 +125,6 @@ func TestInvoiceFileCanBeRemovedBeforeTheResultIsRegistered(t *testing.T) {
 	s, a, _, operator, customer := opsFixture(t)
 	ctx := context.Background()
 	s.Invoices = &invoiceBasis{value: ledger.FromInt64(10)}
-	if _, e := s.SaveInvoicePolicy(ctx, a.actor, InvoicePolicy{OperatorID: operator, Enabled: true, Stage: "receipt", MaximumRatio: ledger.FromInt64(1), RulesReference: "published-invoice-policy"}, 0); e != nil {
-		t.Fatal(e)
-	}
 	receipt := uuid.NewString()
 	lines := []InvoiceLine{{receipt, ledger.FromInt64(6)}}
 	invoice, e := s.RequestInvoice(ctx, customer, operator, "invoice-remove-file", lines, InvoiceDetails{Title: "Verified Buyer"})
@@ -189,9 +183,6 @@ func TestInvoiceFileDeletedDuringUploadStaysRemoved(t *testing.T) {
 	s, a, _, operator, customer := opsFixture(t)
 	ctx := context.Background()
 	s.Invoices = &invoiceBasis{value: ledger.FromInt64(10)}
-	if _, err := s.SaveInvoicePolicy(ctx, a.actor, InvoicePolicy{OperatorID: operator, Enabled: true, RulesReference: "invoice rules"}, 0); err != nil {
-		t.Fatal(err)
-	}
 	inv, err := s.RequestInvoice(ctx, customer, operator, "invoice", []InvoiceLine{{OrderID: uuid.NewString()}}, InvoiceDetails{Title: "Buyer"})
 	if err != nil {
 		t.Fatal(err)

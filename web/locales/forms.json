@@ -3157,5 +3157,95 @@
     "en": "Seconds to stop accepting requests after a failure. When the cooldown ends, wait for new requests to test recovery one at a time rather than restoring all traffic immediately. Entering 0 uses the system default of 60 seconds; it does not skip the cooldown.",
     "ja": "障害後に受付を停止する秒数です。時間経過後は新規リクエストで一件ずつ復旧を確認し、直ちに全トラフィックを戻すわけではありません。0 は既定の 60 秒を使用し、停止を省略しません。",
     "ru": "Время остановки приёма запросов после сбоя в секундах. После паузы восстановление проверяется новыми запросами по одному, а не немедленным возвратом всего потока. 0 означает системные 60 секунд, а не отсутствие паузы."
+  },
+  "开票说明": {
+    "en": "Invoice instructions",
+    "ja": "請求書の案内",
+    "ru": "Информация о счетах"
+  },
+  "编辑开票说明": {
+    "en": "Edit invoice instructions",
+    "ja": "請求書の案内を編集",
+    "ru": "Изменить информацию о счетах"
+  },
+  "开票补充说明（可选）": {
+    "en": "Additional invoice instructions (optional)",
+    "ja": "請求書の補足案内（任意）",
+    "ru": "Дополнительная информация о счетах (необязательно)"
+  },
+  "可说明办理时间或联系办法，申请人可在申请页面查看。留空不影响申请，无需填写条款编号。": {
+    "en": "You may describe processing times or contact details for applicants. Leaving this blank does not prevent applications. No terms identifier is needed.",
+    "ja": "処理時間や連絡先を申請者向けに記載できます。空欄でも申請でき、規約番号は不要です。",
+    "ru": "Можно указать сроки обработки или контакты для заявителей. Пустое поле не препятствует подаче заявки. Номер условий не нужен."
+  },
+  "申请时的开票说明": {
+    "en": "Invoice instructions at application",
+    "ja": "申請時の請求書案内",
+    "ru": "Информация о счетах на момент заявки"
+  },
+  "补充说明（可选）": {
+    "en": "Additional notes (optional)",
+    "ja": "補足説明（任意）",
+    "ru": "Дополнительное примечание (необязательно)"
+  },
+  "付款备注（可选）": {
+    "en": "Payment notes (optional)",
+    "ja": "支払いの備考（任意）",
+    "ru": "Примечание к платежу (необязательно)"
+  },
+  "费用说明（可选）": {
+    "en": "Fee notes (optional)",
+    "ja": "手数料の備考（任意）",
+    "ru": "Примечание к комиссии (необязательно)"
+  },
+  "付款说明（跨币付款时必填）": {
+    "en": "Payment notes (required for a different currency)",
+    "ja": "支払いの説明（異なる通貨の場合は必須）",
+    "ru": "Пояснение к платежу (обязательно для другой валюты)"
+  },
+  "取消原因": {
+    "en": "Cancellation reason",
+    "ja": "取消理由",
+    "ru": "Причина отмены"
+  },
+  "可补充付款情况或凭证。系统自动记录经办人、付款金额与时间。": {
+    "en": "You may add payment details or supporting documents. The system records the handler, amount and time automatically.",
+    "ja": "支払いの詳細や資料を任意で補足できます。担当者・金額・日時は自動記録されます。",
+    "ru": "При необходимости добавьте детали платежа или документы. Исполнитель, сумма и время записываются автоматически."
+  },
+  "补充接管约定（可选）": {
+    "en": "Additional takeover terms (optional)",
+    "ja": "引継ぎの補足合意（任意）",
+    "ru": "Дополнительные условия передачи (необязательно)"
+  },
+  "接管原因": {
+    "en": "Takeover reason",
+    "ja": "引継ぎ理由",
+    "ru": "Причина передачи"
+  },
+  "可补充双方约定的承接范围或结清安排。系统自动保存本次方案，无需编写合同编号。": {
+    "en": "You may add the agreed scope or settlement arrangements. The system saves this plan automatically; no contract number is needed.",
+    "ja": "合意した引継ぎ範囲や精算方法を補足できます。計画は自動保存され、契約番号は不要です。",
+    "ru": "Можно дополнить согласованный объем передачи или порядок расчета. План сохраняется автоматически; номер договора не нужен."
+  },
+  "核对本次接管方案与实际办理事项。": {
+    "en": "Check this takeover plan and the action being recorded.",
+    "ja": "今回の引継ぎ計画と実際の手続きを確認してください。",
+    "ru": "Проверьте план передачи и регистрируемое действие."
+  },
+  "办理说明": {
+    "en": "Processing notes",
+    "ja": "手続きの説明",
+    "ru": "Пояснения к обработке"
+  },
+  "仅填写与本次办理有关的原因或补充说明，无需编写依据编号。": {
+    "en": "Enter only the relevant reason or additional notes. No evidence identifier is needed.",
+    "ja": "今回の理由や補足説明のみを記入してください。根拠番号は不要です。",
+    "ru": "Укажите только причину или примечание по текущему действию. Номер основания не нужен."
+  },
+  "按实际情况填写说明；有相关资料时可补充。无需编写依据编号，系统自动记录经办人和时间。": {
+    "en": "Describe the actual circumstances and optionally add supporting material. No evidence identifier is needed; the handler and time are recorded automatically.",
+    "ja": "実際の状況を説明し、資料があれば補足してください。根拠番号は不要で、担当者と日時は自動記録されます。",
+    "ru": "Опишите фактические обстоятельства, при наличии добавьте материалы. Номер основания не нужен: исполнитель и время записываются автоматически."
   }
 }

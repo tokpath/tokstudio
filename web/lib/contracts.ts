@@ -115,7 +115,7 @@ export const TakeoverSnapshotSchema = z.object({
   service_atg:Decimal,service_money:Decimal,cash_money:Decimal,offset_atg:Decimal,offset_money:Decimal,residual_refund_money:Decimal,settlement_due_money:SignedDecimal,rounding_evidence:z.record(z.string(),z.string()),
 });
 export const TakeoverSchema=z.object({
- id:ID,channel_id:ID,brand_operator_id:ID,state:z.string(),method:z.string(),service_money_per_atg:Decimal,procurement_money_per_atg:Decimal,extra_money:SignedDecimal,contract_reference:z.string(),evidence:z.string(),requested_by:ID,approved_by:ID.nullable().optional(),
+ id:ID,channel_id:ID,brand_operator_id:ID,state:z.string(),method:z.string(),service_money_per_atg:Decimal,procurement_money_per_atg:Decimal,extra_money:SignedDecimal,terms_summary:z.string().optional(),evidence:z.string(),requested_by:ID,approved_by:ID.nullable().optional(),
  snapshot:TakeoverSnapshotSchema.nullable(),snapshot_fingerprint:z.string(),service_money:Decimal,cash_money:Decimal,procurement_offset_atg:Decimal,procurement_offset_money:Decimal,remaining_procurement_refund_money:Decimal,settlement_due_money:SignedDecimal,settled_money:SignedDecimal,created_at:z.string(),completed_at:z.string().nullable().optional(),
 });
 export type Takeover=z.infer<typeof TakeoverSchema>;
@@ -134,4 +134,4 @@ export const FinancialReportSchema=z.object({operator_id:z.string(),from:z.strin
  takeover_flows:z.array(z.object({purpose:z.string(),kind:z.string(),unit:z.string(),increase:SignedDecimal,decrease:SignedDecimal,net:SignedDecimal})).nullable(),takeover_balances:z.array(z.object({purpose:z.string(),unit:z.string(),balance:SignedDecimal})).nullable(),notes:z.array(z.string()).nullable(),
 });
 
-export const InvoiceFilesSchema = z.object({files_available:z.boolean().optional(),orders:z.array(z.object({order_id:z.string(),name:z.string(),kind:z.string(),created_at:z.string(),amount_money:z.string()})).optional(),items:z.array(z.object({id:z.string(),filename:z.string(),content_type:z.string(),size_bytes:z.number().int(),state:z.string(),created_at:z.string(),download_url:z.string()})),details:z.object({title:z.string(),tax_id:z.string(),email:z.string(),address:z.string().optional()}).optional()});
+export const InvoiceFilesSchema = z.object({instructions:z.string().optional(),files_available:z.boolean().optional(),orders:z.array(z.object({order_id:z.string(),name:z.string(),kind:z.string(),created_at:z.string(),amount_money:z.string()})).optional(),items:z.array(z.object({id:z.string(),filename:z.string(),content_type:z.string(),size_bytes:z.number().int(),state:z.string(),created_at:z.string(),download_url:z.string()})),details:z.object({title:z.string(),tax_id:z.string(),email:z.string(),address:z.string().optional()}).optional()});

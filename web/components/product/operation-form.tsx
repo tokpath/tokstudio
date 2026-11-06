@@ -52,6 +52,7 @@ function mergeValues(base: JSONValue, value: JSONValue): JSONValue {
 }
 function initial(field: CommandField, operation: Operation, row?: Entity, context?: Record<string, JSONValue>, operatorID?: string): string {
   if (secretField(field)) return "";
+  if (field.name === "evidence" && operation.name === "review" && /\/refunds\//.test(operation.path)) return "";
   // A result action sets the next state, not the record's current state.
   if (field.name === "state" && field.kind === "hidden" && /\/invoices\/\{id\}\/register$/.test(operation.path)) return fieldString(field, field.default_value);
   const supplied = context?.[field.name] ?? nested(context, field.name);
@@ -82,7 +83,7 @@ function matchesVisibility(field: CommandField, values: Record<string, string>, 
 function visible(field: CommandField, values: Record<string, string>, row?: Entity) { return field.kind !== "hidden" && matchesVisibility(field, values, row); }
 function group(field: CommandField): string {
   if (field.name.startsWith("credentials.") || field.name === "api_base_url") return "通道接入材料";
-  if (/evidence|reference|reason|explanation|terms/.test(field.name) && !field.lookup_url) return "依据与办理说明";
+  if (/evidence|reference|reason|explanation|terms/.test(field.name) && !field.lookup_url) return "办理说明";
   if (/(_at$|^from$|^to$|timezone|period|seconds|minutes|days)/.test(field.name)) return "时间与有效期";
   if (field.kind === "decimal" || /budget|limit|approval|confirmation/.test(field.name)) return "金额、额度与办理规则";
   return "办理信息";
@@ -91,7 +92,7 @@ const groupHelp: Record<string, string> = {
   "办理信息": "选择实际业务记录，并填写本次要办理的事项。",
   "金额、额度与办理规则": "按字段标示的 结算币种、ATG 或原币种填写。比例使用 0 到 1 的小数；精确值按原样提交。",
   "时间与有效期": "时间按当前设备时区显示，提交时保存为统一时刻。",
-  "依据与办理说明": "填写可追溯的原始凭证、规则或核实依据，便于后续复核。",
+  "办理说明": "仅填写与本次办理有关的原因或补充说明，无需编写依据编号。",
   "通道接入材料": "只展示所选通道需要的材料。启用前请确认材料与实际商户一致。",
 };
 function groupIntro(name: string, groupFields: CommandField[]) {
@@ -139,7 +140,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   const disabled = frozen || evidencePending;
   const scoped = operatorID ? path.startsWith(`/api/v1/operators/${encodeURIComponent(operatorID)}/`) : path.startsWith("/api/v1/me/");
   const fields = operation.fields.filter(field => visible(field, values, row));
-  const finance = /\/(payments|orders|refunds|withdrawals|disputes|invoices|reconciliation|receipt-valuations|valuations)(\/|$)/.test(operation.path);
+  const finance = /\/(payments|orders|refunds|withdrawals|disputes|invoices|procurement-invoices|reconciliation|receipt-valuations|valuations)(\/|$)/.test(operation.path);
   const evidenceField = finance && operatorID && workspace?.permissions.some(permission => ["*","payments.manage"].includes(permission)) ? fields.find(field => ["verification_evidence","evidence","evidence_reference","proof.evidence_reference"].includes(field.name)) : undefined;
   const simpleProduct = finance || /\/notifications\/read-all$/.test(operation.path) || /\/(pricing|plans|catalog|providers|routes|bifrost|business-status|staff|restrictions|notifications|marketing|commissions|gifts|activities|mail|operators|procurement|coverage|contracts|branding|channel-themes|domains)$/.test(operation.path);
   const fieldGroup = (field: CommandField) => (/\/staff(?:\/|$)/.test(operation.path) && field.name === "grants") ? "额外权限（可选）" : /\/notifications$/.test(operation.path) && ["severity","reference"].includes(field.name) ? "补充约定（可选）" : /\/commissions$/.test(operation.path) ? (["invitee_atg","inviter_atg","reward_validity_days"].includes(field.name) ? "注册赠送" : field.name === "threshold_money" ? "成为 KOL" : field.name === "minimum_money" ? "佣金提现" : "两级佣金") : /\/marketing$/.test(operation.path) && operation.name === "publish" ? (["starts_at","ends_at"].includes(field.name) ? "活动时间" : ["eligibility","per_customer_limit","total_use_limit"].includes(field.name) ? "参与范围与名额" : "优惠内容") : (/\/operators$/.test(operation.path) && ["supply_terms","contract_attachment_id"].includes(field.name) || /\/procurement$/.test(operation.path) && operation.name==="quote" && ["name","terms_summary","contract_attachment_id","valid_until"].includes(field.name)) ? "补充约定（可选）" : /\/plans$/.test(operation.path) ? (["new_purchase_enabled","renewal_enabled"].includes(field.name) ? "销售与续费" : field.name==="terms_summary" ? "补充说明" : "套餐内容") : group(field);

@@ -588,3 +588,16 @@ it("submits the chosen invoice action instead of copying the saved state",async(
  fireEvent.click(screen.getByRole("button",{name:"拒绝申请",exact:true}));
  await waitFor(()=>expect(attempts).toEqual([{state:"rejected",reason:"请核对抬头"}]));
 });
+
+it("approves refunds without repeating application evidence and requires a fresh rejection reason",async()=>{
+ const attempts:unknown[]=[];
+ vi.stubGlobal("fetch",vi.fn(async(_input:RequestInfo|URL,init?:RequestInit)=>{attempts.push(JSON.parse(String(init?.body)));return new Response(JSON.stringify({id:"case-one",status:"approved"}),{status:200});}));
+ show({name:"review",label:"审批",method:"POST",path:"/api/v1/operators/operator-one/refunds/{id}/review",fields:[{name:"decision",label:"审核决定",kind:"select",required:true,default_value:"approve",options:[{value:"approve",label:"批准"},{value:"reject",label:"拒绝"}]},{name:"evidence",label:"拒绝原因",kind:"textarea",required:true,visible_when:{field:"decision",values:["reject"]}}]}, {id:"case-one",values:{evidence:"original applicant note"}});
+ expect(screen.queryByLabelText("拒绝原因",{exact:true})).toBeNull();
+ fireEvent.change(screen.getByLabelText("审核决定",{exact:true}),{target:{value:"reject"}});
+ expect(screen.getByLabelText("拒绝原因",{exact:true})).toHaveProperty("value","");
+ expect(screen.getByLabelText("拒绝原因",{exact:true})).toHaveProperty("required",true);
+ fireEvent.change(screen.getByLabelText("审核决定",{exact:true}),{target:{value:"approve"}});
+ fireEvent.click(screen.getByRole("button",{name:"审批",exact:true}));
+ await waitFor(()=>expect(attempts).toEqual([{decision:"approve"}]));
+});

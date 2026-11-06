@@ -75,35 +75,18 @@ func (a *Application) invoiceApplicationOrders(c *gin.Context, application opera
 	return orders, nil
 }
 
-// Include the current upstream and historical suppliers with completed orders.
-// Disabled suppliers are named before opening the application form, and their
-// orders are excluded from the picker. The command still rechecks the policy.
-func (a *Application) procurementInvoiceAvailability(c *gin.Context, op organization.Operator, page gin.H) error {
-	var suppliers []struct {
-		Name           string
-		Enabled        bool
-		RulesReference string
-	}
-	err := a.DB.WithContext(c.Request.Context()).Raw(`SELECT o.name,COALESCE(p.enabled,false) AS enabled,COALESCE(p.rules_reference,'') AS rules_reference
- FROM organization_operators o LEFT JOIN operations_invoice_policies p ON p.operator_id=o.id AND p.party_kind='procurement'
- WHERE o.id=(SELECT parent_operator_id FROM organization_operators WHERE id=?) OR o.id IN (SELECT supplier_id FROM cooperation_purchase_orders WHERE buyer_id=? AND status='completed') ORDER BY o.name`, op.ID, op.ID).Scan(&suppliers).Error
+// Show only human-readable instructions, including historical suppliers.
+func (a *Application) procurementInvoiceInstructions(c *gin.Context, op organization.Operator, page gin.H) error {
+	var suppliers []struct{ Name, Instructions string }
+	err := a.DB.WithContext(c.Request.Context()).Raw(`SELECT o.name,p.instructions FROM organization_operators o JOIN operations_invoice_instructions p ON p.operator_id=o.id
+ WHERE p.instructions<>'' AND (o.id=(SELECT parent_operator_id FROM organization_operators WHERE id=?) OR o.id IN (SELECT supplier_id FROM cooperation_purchase_orders WHERE buyer_id=? AND status='completed')) ORDER BY o.name`, op.ID, op.ID).Scan(&suppliers).Error
 	if err != nil {
 		return err
 	}
 	notices := []gin.H{}
-	enabled := false
 	for _, supplier := range suppliers {
-		if supplier.Enabled {
-			enabled = true
-			notices = append(notices, gin.H{"label": supplier.Name, "value": "已开放采购开票申请", "detail": supplier.RulesReference})
-		} else {
-			notices = append(notices, gin.H{"label": supplier.Name, "value": "尚未开放采购开票申请，请联系供货方。"})
-		}
+		notices = append(notices, gin.H{"label": supplier.Name, "value": supplier.Instructions})
 	}
 	page["summary"] = notices
-	if !enabled {
-		page["operations"] = []operation{}
-		page["availability"] = []gin.H{{"capability": "procurement-invoices", "enabled": false, "reason": "上级尚未开放采购开票申请，请联系供货方。已有申请和票据仍可查看。"}}
-	}
 	return nil
 }

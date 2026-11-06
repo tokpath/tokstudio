@@ -43,10 +43,10 @@ func TestPostgresUndeliveredProcurementRefundHasOrderPickerAndBothCashSides(t *t
 	if !found {
 		t.Fatal("paid procurement missing from picker", choices)
 	}
-	status, out, _ = f.call(t, "POST", base, map[string]any{"action": "procurement_nondelivery", "order_id": orderID, "reason": "unable to deliver", "evidence": "paid order with no issued ATG"}, uuid.NewString())
+	status, out, _ = f.call(t, "POST", base, map[string]any{"action": "procurement_nondelivery", "order_id": orderID, "reason": "unable to deliver"}, uuid.NewString())
 	mustOK(t, status, out)
 	caseID := out["id"].(string)
-	status, out, _ = f.call(t, "POST", base+"/"+caseID+"/review", map[string]any{"decision": "approve", "evidence": "return full payment"}, uuid.NewString())
+	status, out, _ = f.call(t, "POST", base+"/"+caseID+"/review", map[string]any{"decision": "approve"}, uuid.NewString())
 	mustOK(t, status, out)
 	legs, err := f.a.Remediation.Legs(ctx, nil, s.oem, caseID)
 	if err != nil || len(legs) != 1 {
@@ -55,7 +55,7 @@ func TestPostgresUndeliveredProcurementRefundHasOrderPickerAndBothCashSides(t *t
 	leg := legs[0]
 	// Staff confirm full payment. The system supplies its already-approved amount.
 	key := uuid.NewString()
-	proof := map[string]any{"currency": "USD", "evidence": "1000 returned in cash", "occurred_at": time.Now().UTC(), "fee_money": "0"}
+	proof := map[string]any{"currency": "USD", "occurred_at": time.Now().UTC(), "fee_money": "0"}
 	for range 2 {
 		status, out, _ = f.call(t, "POST", base+"/"+leg.ID+"/verify_manual", proof, key)
 		mustOK(t, status, out)

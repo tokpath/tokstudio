@@ -74,19 +74,19 @@ func businessFields(o operation) []field {
 	case "refunds":
 		switch o.Name {
 		case "package_exception":
-			evidence := f("evidence", "事实证据", "textarea")
+			evidence := optional("evidence", "补充说明（可选）", "textarea")
 			evidence.Help = "只能退还已经付款、但还没有交付 ATG 的套餐或续费。已经交付的额度不能退。"
 			return []field{defaultField("action", "办理类型", "hidden", "package_exception"), f("customer_id", "客户编号", "text"), f("order_id", "原成交订单", "text"), selectField("reason", "真实异常原因", "transaction_error|交易错误", "unable_to_fulfill|无法交付"), evidence}
 		case "procurement_nondelivery":
-			evidence := f("evidence", "事实证据", "textarea")
+			evidence := optional("evidence", "补充说明（可选）", "textarea")
 			evidence.Help = "只能退还已经付款、但供货方还没有交付 ATG 的采购订单。已经交付的采购库存不能在这里退。"
 			return []field{defaultField("action", "办理类型", "hidden", "procurement_nondelivery"), f("order_id", "采购订单", "text"), f("reason", "退款原因", "text"), evidence}
 		case "unallocated":
-			return []field{defaultField("action", "办理类型", "hidden", "unallocated"), f("receipt_id", "原收款编号", "text"), f("amount_money", "退回 结算币种", "decimal"), f("reason", "退款原因", "text"), f("evidence", "核实依据", "textarea")}
+			return []field{defaultField("action", "办理类型", "hidden", "unallocated"), f("receipt_id", "原收款编号", "text"), f("amount_money", "退回 结算币种", "decimal"), f("reason", "退款原因", "text"), optional("evidence", "补充说明（可选）", "textarea")}
 		case "verify_manual":
 			fee := defaultField("fee_money", "本次退款手续费（结算币种，没有则填 0）", "decimal", "0")
 			fee.Help = "随本次付款一起入账。填 0 表示没有手续费，不再另核。"
-			return []field{optional("reference", "退款流水或收据号（可选）", "text"), f("currency", "实际付款币种", "text"), optional("amount", "实际币种金额（跨币付款时填写）", "decimal"), fee, f("occurred_at", "实际付款时间", "datetime"), f("evidence", "本笔付款与清偿金额的核实说明", "textarea")}
+			return []field{optional("reference", "退款流水或收据号（可选）", "text"), f("currency", "实际付款币种", "text"), optional("amount", "实际币种金额（跨币付款时填写）", "decimal"), fee, f("occurred_at", "实际付款时间", "datetime"), optional("evidence", "付款说明（跨币付款时必填）", "textarea")}
 		case "execute_api":
 			fields := []field{f("money.currency", "原付款币种", "text"), f("money.amount", "本次实际执行币种金额", "decimal")}
 			for _, v := range executionValuationFields("money.currency") {

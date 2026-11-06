@@ -17,6 +17,9 @@ type review struct {
 
 func (s *Service) ReviewRefund(ctx context.Context, actor, op, id, decision, evidence string) (Case, error) {
 	var out Case
+	if evidence == "" && decision == "approve" {
+		evidence = "refund-approval:" + id
+	}
 	if decision != "approve" && decision != "reject" || evidence == "" {
 		return out, ErrInvalid
 	}

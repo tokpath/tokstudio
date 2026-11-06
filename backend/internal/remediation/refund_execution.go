@@ -42,7 +42,10 @@ func (s *Service) lockLeg(ctx context.Context, t *gorm.DB, op, id string) (Case,
 }
 func (s *Service) BeginManualRefund(ctx context.Context, actor, op, legID, key, evidence string) (RefundLeg, error) {
 	var out RefundLeg
-	if key == "" || len(key) > 150 || evidence == "" {
+	if evidence == "" {
+		evidence = "manual-refund-intent:" + legID + ":" + key
+	}
+	if key == "" || len(key) > 150 {
 		return out, ErrInvalid
 	}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
@@ -126,6 +129,9 @@ func completeRefundProof(p *ExecutionProof, due ledger.Decimal, currency string)
 			}
 		}
 		p.Amount = due.String()
+		if strings.TrimSpace(p.Evidence) == "" {
+			p.Evidence = "manual-refund-payment:" + p.BusinessKey
+		}
 	} else {
 		amount, err := ledger.ParseDecimal(p.Amount)
 		if err != nil || amount.Sign() <= 0 {

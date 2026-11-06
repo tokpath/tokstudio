@@ -13,7 +13,7 @@ func TestPostgresCashRefundUsesInternalReferenceAndRemainsIdempotent(t *testing.
 	f := setup(t)
 	f.topup(t, "cash-return-source", "100")
 	leg := f.approvedRefundLeg(t, "cash-return", "10")
-	proof := ExecutionProof{BusinessKey: "cash-return-paid", Evidence: "Cash returned to the customer in person", ActualMoney: d("10"), Currency: "USD", Amount: "10", OccurredAt: time.Now().UTC()}
+	proof := ExecutionProof{BusinessKey: "cash-return-paid", ActualMoney: d("10"), Currency: "USD", Amount: "10", OccurredAt: time.Now().UTC()}
 	for range 2 {
 		out, err := f.s.RecordManualRefund(f.ctx, f.owner, f.operator, leg.ID, proof)
 		if err != nil || out.State != "completed" || out.SettledMoney.Cmp(d("10")) != 0 {

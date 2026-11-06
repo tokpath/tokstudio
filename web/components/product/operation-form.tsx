@@ -81,7 +81,7 @@ function visible(field: CommandField, values: Record<string, string>, row?: Enti
 function group(field: CommandField): string {
   if (field.name.startsWith("credentials.") || field.name === "api_base_url") return "通道接入材料";
   if (/evidence|reference|reason|explanation|terms/.test(field.name) && !field.lookup_url) return "依据与办理说明";
-  if (/(_at$|^from$|^to$|timezone|period|seconds|days)/.test(field.name)) return "时间与有效期";
+  if (/(_at$|^from$|^to$|timezone|period|seconds|minutes|days)/.test(field.name)) return "时间与有效期";
   if (field.kind === "decimal" || /budget|limit|approval|confirmation/.test(field.name)) return "金额、额度与办理规则";
   return "办理信息";
 }
@@ -94,6 +94,7 @@ const groupHelp: Record<string, string> = {
 };
 function groupIntro(name: string, groupFields: CommandField[]) {
   if (name === "办理信息" && groupFields.every(field => !field.lookup_url)) return "填写本次要保存的内容。";
+  if (name === "时间与有效期" && groupFields.every(field => field.name.endsWith("_minutes"))) return "时长以分钟填写，60分钟为1小时，1440分钟为1天。";
   if(name==="金额、额度与办理规则" && !groupFields.some(field=>["direct_rate","indirect_rate","concession_rate","fee_rate","maximum_ratio"].includes(fieldName(field)))) return "按字段标示的 结算币种、ATG 或原币种填写，精确值按原样提交。";
   return groupHelp[name];
 }

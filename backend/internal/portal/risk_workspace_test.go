@@ -13,7 +13,7 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	base := "/v1/operators/" + op
-	input := map[string]any{"name": "采购余额补货提醒", "metric": "procurement_available_atg", "warning": "10.000000000000000001", "critical": "2.000000000000000001", "direction": "below", "recipients": []string{owner}, "escalation_recipients": []string{}, "reminder_seconds": 3600, "escalate_seconds": 7200, "enabled": true, "expected_version": 0}
+	input := map[string]any{"name": "采购余额补货提醒", "metric": "procurement_available_atg", "warning": "10.000000000000000001", "critical": "2.000000000000000001", "direction": "below", "recipients": []string{owner}, "escalation_recipients": []string{}, "reminder_minutes": "60", "escalate_minutes": "120", "enabled": true, "expected_version": 0}
 	creationKey := uuid.NewString()
 	var status int
 	var out map[string]any
@@ -28,6 +28,10 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 		createdID = id
 	}
 	input["id"] = createdID
+	var saved operations.RiskRule
+	if err := f.a.DB.Where("operator_id=? AND id=?", op, createdID).Take(&saved).Error; err != nil || saved.ReminderSeconds != 3600 || saved.EscalateSeconds != 7200 {
+		t.Fatal("minute inputs changed scheduler timing", saved, err)
+	}
 	read := func(resource string) map[string]any {
 		t.Helper()
 		status, out, _ := f.call(t, "GET", base+resource, nil, "")
@@ -42,7 +46,10 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 		}
 		row := rows[0].(map[string]any)
 		value := row["values"].(map[string]any)
-		if row["id"] != input["id"] || row["version"] != version || value["warning"] != warning || value["reminder_seconds"] != float64(3600) || value["recipients"].([]any)[0] != owner {
+		if _, exists := value["reminder_seconds"]; exists {
+			t.Fatal("workspace still exposes second inputs", value)
+		}
+		if row["id"] != input["id"] || row["version"] != version || value["warning"] != warning || value["reminder_minutes"] != "60" || value["escalate_minutes"] != "120" || value["recipients"].([]any)[0] != owner {
 			t.Fatal("saved rule fields/version were not projected", row)
 		}
 		if value["name"] != input["name"] || value["recipient_names"] != "Owner · owner@example.test" {
@@ -57,6 +64,9 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 		}
 		for _, field := range edit["fields"].([]any) {
 			f := field.(map[string]any)
+			if f["name"] == "reminder_seconds" || f["name"] == "escalate_seconds" {
+				t.Fatal("edit form still uses seconds", f)
+			}
 			if (f["name"] == "id" || f["name"] == "expected_version") && f["kind"] != "hidden" {
 				t.Fatal("rule identity/version is not fixed to selected record", f)
 			}
@@ -141,5 +151,20 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	}
 	if retained.Status != state.Status || retained.Sequence != state.Sequence || retained.Value.String() != state.Value.String() {
 		t.Fatal("rule revision rewrote historical observation", retained)
+	}
+}
+
+func TestRiskMinutesPreserveSavedSecondsAndRejectOutOfRangeDurations(t *testing.T) {
+	for _, seconds := range []int64{60, 61, 90, 3599, 3600, 86400, 30 * 86400} {
+		minutes := ledger.MustDecimal(riskMinutes(seconds))
+		got, ok := riskSeconds(minutes)
+		if !ok || got != seconds {
+			t.Fatalf("duration changed during editing: %d seconds -> %s minutes -> %d seconds", seconds, minutes, got)
+		}
+	}
+	for _, minutes := range []string{"0", "-1", "0.999", "43200.001", "99999999999999999999"} {
+		if _, ok := riskSeconds(ledger.MustDecimal(minutes)); ok {
+			t.Fatal("invalid minute duration accepted", minutes)
+		}
 	}
 }

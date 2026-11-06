@@ -51,7 +51,7 @@ func businessFields(o operation) []field {
 	case "exports":
 		return []field{selectField("kind", "导出内容", "financial|经营报表", "orders|客户订单", "payments|收款记录", "requests|调用明细", "procurement|采购与供货", "ledger|账务明细"), f("from", "开始时间", "datetime"), f("to", "结束时间", "datetime")}
 	case "alerts":
-		return []field{optional("name", "规则名称（留空按指标命名）", "text"), optional("id", "规则编号", "hidden"), selectField("metric", "真实指标", "sales_space_atg|剩余销售空间ATG", "procurement_available_atg|采购可用余额 ATG", "oversell_used_atg|已用超卖额度 ATG", "pending_usage|在途及待结算请求数", "unverified_costs|待核实上游成本数"), f("warning", "预警阈值", "decimal"), f("critical", "严重阈值", "decimal"), selectField("direction", "触发方向", "below|达到或低于阈值", "above|达到或高于阈值"), f("recipients", "通知负责人", "csv"), optional("escalation_recipients", "升级负责人", "csv"), defaultField("reminder_seconds", "持续风险提醒间隔秒数", "integer", 3600), defaultField("escalate_seconds", "升级等待秒数", "integer", 86400), defaultField("enabled", "启用规则", "boolean", true), version}
+		return []field{optional("name", "规则名称（留空按指标命名）", "text"), optional("id", "规则编号", "hidden"), selectField("metric", "真实指标", "sales_space_atg|本经营方剩余销售空间（采购 ATG）", "procurement_available_atg|本经营方向上级采购的可用余额（ATG）", "oversell_used_atg|已用超卖额度 ATG", "pending_usage|在途及待结算请求数", "unverified_costs|待核实上游成本数"), f("warning", "预警阈值", "decimal"), f("critical", "严重阈值", "decimal"), selectField("direction", "触发方向", "below|达到或低于阈值", "above|达到或高于阈值"), f("recipients", "通知负责人", "csv"), optional("escalation_recipients", "升级负责人", "csv"), defaultField("reminder_minutes", "持续风险提醒间隔（分钟）", "decimal", "60"), defaultField("escalate_minutes", "升级等待时间（分钟）", "decimal", "1440"), defaultField("enabled", "启用规则", "boolean", true), version}
 	case "payments":
 		return manualReceiptFields()
 	case "payment-methods":

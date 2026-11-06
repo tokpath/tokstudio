@@ -4378,5 +4378,50 @@
     "en": "The current operator is not accepting new invoice requests. Existing requests remain with the original issuer.",
     "ja": "現在の事業者は新規の請求書申請を受け付けていません。申請済みの請求書は引き続き元の発行事業者が対応します。",
     "ru": "Текущий оператор не принимает новые заявки на счета. Уже поданные заявки остаются у первоначального выставителя."
+  },
+  "本经营方剩余销售空间（采购 ATG）": {
+    "en": "This operator’s remaining sales capacity (procurement ATG)",
+    "ja": "この運営事業者の残りの販売余力（仕入ATG）",
+    "ru": "Оставшийся объём продаж этого оператора (закупочные ATG)"
+  },
+  "本经营方向上级采购的可用余额（ATG）": {
+    "en": "This operator’s available balance purchased from its supplier (ATG)",
+    "ja": "この運営事業者が上位供給者から仕入れた利用可能残高（ATG）",
+    "ru": "Доступный остаток закупок этого оператора у вышестоящего поставщика (ATG)"
+  },
+  "持续风险提醒间隔（分钟）": {
+    "en": "Ongoing risk reminder interval (minutes)",
+    "ja": "継続中のリスクの再通知間隔（分）",
+    "ru": "Интервал повторных уведомлений о риске (минуты)"
+  },
+  "提醒间隔（分钟）": {
+    "en": "Reminder interval (minutes)",
+    "ja": "再通知間隔（分）",
+    "ru": "Интервал напоминаний (минуты)"
+  },
+  "升级等待时间（分钟）": {
+    "en": "Escalation delay (minutes)",
+    "ja": "重大リスクへの引き上げまでの時間（分）",
+    "ru": "Время до повышения уровня риска (минуты)"
+  },
+  "风险持续时重复提醒的间隔，按分钟填写；至少1分钟，最多43200分钟（30天）。60分钟为1小时。": {
+    "en": "Time between reminders while a risk persists, in minutes. Minimum 1 minute, maximum 43,200 minutes (30 days). 60 minutes is 1 hour.",
+    "ja": "リスク継続中の再通知間隔を分で入力します。最短1分、最長43,200分（30日）です。60分は1時間です。",
+    "ru": "Интервал повторных уведомлений, пока риск сохраняется, в минутах. От 1 до 43 200 минут (30 дней). 60 минут — 1 час."
+  },
+  "本次预警持续达到此时长后升为严重并通知升级负责人，按分钟填写；至少1分钟，最多43200分钟（30天）。1440分钟为1天；达到严重阈值时会直接通知。": {
+    "en": "When the current warning persists this long, it becomes critical and escalation contacts are notified. Enter minutes, from 1 to 43,200 (30 days). 1,440 minutes is 1 day. Reaching the critical threshold triggers notification immediately.",
+    "ja": "今回の警告がこの時間続くと重大リスクに引き上げられ、エスカレーション担当者に通知されます。1〜43,200分（30日）で入力してください。1,440分は1日です。重大しきい値に達した場合は直ちに通知されます。",
+    "ru": "Если текущее предупреждение сохраняется указанное время, риск становится критическим и уведомляются ответственные за эскалацию. Укажите от 1 до 43 200 минут (30 дней). 1 440 минут — 1 день. При достижении критического порога уведомление отправляется сразу."
+  },
+  "仅统计本经营方，不汇总下属经营方。剩余销售空间按上级供货口径计算，不是直接可售出的客户ATG；计算方式为：采购可用余额＋获准超卖额度−已承诺责任−待交付责任。采购可用余额是向上级采购并已交付的ATG扣除调用预占后的余额，不含未付款采购和超卖额度；这两个指标及已用超卖额度不适用于没有上级采购关系的平台。在途及待结算请求包含已受理、执行中、已提交及待补用量的请求。": {
+    "en": "Sales capacity is calculated at upstream supply rates, not as customer ATG that can be sold directly. These metrics cover this operator only, without aggregating subordinate operators. Remaining sales capacity = available procurement balance + approved oversell allowance − committed obligations − pending delivery obligations. Available procurement balance is ATG already purchased and delivered by the upstream supplier, less call reservations; it excludes unpaid purchases and oversell allowance. These two metrics and used oversell allowance do not apply to the platform, which has no upstream procurement relationship. In-flight and unsettled requests include admitted, running, submitted and usage-pending requests.",
+    "ja": "販売余力は上位供給者の供給価格に換算したもので、そのまま顧客に販売できるATG量ではありません。集計対象はこの運営事業者のみで、配下の事業者は合算しません。販売可能残高＝利用可能な仕入残高＋承認済み超過販売枠−既存の履行責任−提供待ちの履行責任です。利用可能な仕入残高は、上位供給者から購入・提供済みのATGから呼び出し予約分を差し引いた残高で、未払いの仕入れや超過販売枠は含みません。この2指標と使用済み超過販売枠は、上位供給者から仕入れないプラットフォームには適用されません。処理中・精算待ちリクエストには、受付済み、実行中、送信済み、使用量確認待ちを含みます。",
+    "ru": "Объём продаж рассчитывается по закупочным тарифам вышестоящего поставщика, а не как количество ATG для прямой продажи клиентам. Показатели относятся только к этому оператору, без суммирования подчинённых операторов. Доступный объём продаж = доступный закупочный остаток + разрешённый лимит продаж сверх обеспечения − принятые обязательства − обязательства, ожидающие исполнения. Доступный закупочный остаток — ATG, уже купленные и полученные от вышестоящего поставщика, за вычетом резервов под вызовы; неоплаченные закупки и лимит продаж сверх обеспечения не учитываются. Эти два показателя и использованный лимит продаж сверх обеспечения не применяются к платформе, у которой нет вышестоящего поставщика. Запросы в обработке и ожидающие расчёта включают принятые, выполняемые, отправленные и ожидающие данных об использовании."
+  },
+  "时长以分钟填写，60分钟为1小时，1440分钟为1天。": {
+    "en": "Enter durations in minutes: 60 minutes is 1 hour, and 1,440 minutes is 1 day.",
+    "ja": "時間は分で入力してください。60分は1時間、1,440分は1日です。",
+    "ru": "Указывайте длительность в минутах: 60 минут — 1 час, 1 440 минут — 1 день."
   }
 }

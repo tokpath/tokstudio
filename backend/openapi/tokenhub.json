@@ -50210,7 +50210,7 @@
               "pending_usage",
               "unverified_costs"
             ],
-            "description": "真实指标 — ATG指标使用ATG阈值；在途及待结算请求统计已受理、执行中、已提交及待补用量的请求。规则仅作用于当前经营方；待核实上游成本数仅供平台选择。"
+            "description": "真实指标 — 仅统计本经营方，不汇总下属经营方。剩余销售空间按上级供货口径计算，不是直接可售出的客户ATG；计算方式为：采购可用余额＋获准超卖额度−已承诺责任−待交付责任。采购可用余额是向上级采购并已交付的ATG扣除调用预占后的余额，不含未付款采购和超卖额度；这两个指标及已用超卖额度不适用于没有上级采购关系的平台。在途及待结算请求包含已受理、执行中、已提交及待补用量的请求。"
           },
           "warning": {
             "$ref": "#/components/schemas/SignedLedgerDecimal",
@@ -50242,15 +50242,13 @@
             },
             "description": "升级负责人 — 选择本经营方在岗人员，站内通知始终保留；邮箱已验证时同时发送邮件。"
           },
-          "reminder_seconds": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "持续风险提醒间隔秒数 — 风险持续时重复提醒的间隔，单位为秒；至少60秒，最多30天。"
+          "reminder_minutes": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "持续风险提醒间隔（分钟） — 风险持续时重复提醒的间隔，按分钟填写；至少1分钟，最多43200分钟（30天）。60分钟为1小时。"
           },
-          "escalate_seconds": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "升级等待秒数 — 预警从本次风险开始持续达到此时长后升为严重并通知升级负责人，单位为秒；至少60秒，最多30天。严重阈值可直接触发严重通知。"
+          "escalate_minutes": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "升级等待时间（分钟） — 本次预警持续达到此时长后升为严重并通知升级负责人，按分钟填写；至少1分钟，最多43200分钟（30天）。1440分钟为1天；达到严重阈值时会直接通知。"
           },
           "enabled": {
             "type": "boolean",
@@ -50268,8 +50266,8 @@
           "critical",
           "direction",
           "recipients",
-          "reminder_seconds",
-          "escalate_seconds",
+          "reminder_minutes",
+          "escalate_minutes",
           "enabled",
           "expected_version"
         ],
@@ -50295,7 +50293,7 @@
               "pending_usage",
               "unverified_costs"
             ],
-            "description": "真实指标 — ATG指标使用ATG阈值；在途及待结算请求统计已受理、执行中、已提交及待补用量的请求。规则仅作用于当前经营方；待核实上游成本数仅供平台选择。"
+            "description": "真实指标 — 仅统计本经营方，不汇总下属经营方。剩余销售空间按上级供货口径计算，不是直接可售出的客户ATG；计算方式为：采购可用余额＋获准超卖额度−已承诺责任−待交付责任。采购可用余额是向上级采购并已交付的ATG扣除调用预占后的余额，不含未付款采购和超卖额度；这两个指标及已用超卖额度不适用于没有上级采购关系的平台。在途及待结算请求包含已受理、执行中、已提交及待补用量的请求。"
           },
           "warning": {
             "$ref": "#/components/schemas/SignedLedgerDecimal",
@@ -50327,15 +50325,13 @@
             },
             "description": "升级负责人 — 选择本经营方在岗人员，站内通知始终保留；邮箱已验证时同时发送邮件。"
           },
-          "reminder_seconds": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "持续风险提醒间隔秒数 — 风险持续时重复提醒的间隔，单位为秒；至少60秒，最多30天。"
+          "reminder_minutes": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "持续风险提醒间隔（分钟） — 风险持续时重复提醒的间隔，按分钟填写；至少1分钟，最多43200分钟（30天）。60分钟为1小时。"
           },
-          "escalate_seconds": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "升级等待秒数 — 预警从本次风险开始持续达到此时长后升为严重并通知升级负责人，单位为秒；至少60秒，最多30天。严重阈值可直接触发严重通知。"
+          "escalate_minutes": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "升级等待时间（分钟） — 本次预警持续达到此时长后升为严重并通知升级负责人，按分钟填写；至少1分钟，最多43200分钟（30天）。1440分钟为1天；达到严重阈值时会直接通知。"
           },
           "enabled": {
             "type": "boolean",
@@ -50354,8 +50350,8 @@
           "critical",
           "direction",
           "recipients",
-          "reminder_seconds",
-          "escalate_seconds",
+          "reminder_minutes",
+          "escalate_minutes",
           "enabled",
           "expected_version"
         ],

@@ -390,17 +390,18 @@ func (a *Application) operatorOperationsCommand(c *gin.Context, op organization.
 		if !ok {
 			return true
 		}
-		var in struct {
-			operations.RiskRule
-			ExpectedVersion int64 `json:"expected_version"`
-		}
+		var in riskRuleInput
 		if json.Unmarshal(raw, &in) != nil {
 			handleError(c, operations.ErrInvalid)
 			return true
 		}
-		in.OperatorID = op.ID
+		rule, valid := in.rule(op.ID)
+		if !valid {
+			handleError(c, operations.ErrInvalid)
+			return true
+		}
 		result, e := a.command(c, "risk-rule:"+op.ID, in, func(tx *gorm.DB) (any, error) {
-			out, e := a.Operations.SaveRiskRuleTx(ctx, tx, actor, in.RiskRule, in.ExpectedVersion)
+			out, e := a.Operations.SaveRiskRuleTx(ctx, tx, actor, rule, in.ExpectedVersion)
 			return gin.H{"id": out.ID, "status": "saved", "version": out.Version}, e
 		})
 		jsonResponse(c, result, e)

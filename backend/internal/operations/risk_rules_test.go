@@ -20,7 +20,7 @@ func TestPostgresRiskRuleGeneratesNameAndIdentityAndKeepsRevisionBoundary(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = uuid.Parse(saved.ID); err != nil || saved.Name != "剩余销售空间 ATG预警" || saved.Version != 1 {
+	if _, err = uuid.Parse(saved.ID); err != nil || saved.Name != "本经营方剩余销售空间（采购 ATG）预警" || saved.Version != 1 {
 		t.Fatalf("rule was not generated with a useful name: %+v %v", saved, err)
 	}
 	saved.Name = "应用额度补货提醒"
@@ -30,7 +30,7 @@ func TestPostgresRiskRuleGeneratesNameAndIdentityAndKeepsRevisionBoundary(t *tes
 	}
 	revised.Name = ""
 	retained, err := s.SaveRiskRule(ctx, actor.actor, revised, 2)
-	if err != nil || retained.Name != "剩余销售空间 ATG预警" || retained.ID != saved.ID || retained.Version != 3 {
+	if err != nil || retained.Name != "本经营方剩余销售空间（采购 ATG）预警" || retained.ID != saved.ID || retained.Version != 3 {
 		t.Fatalf("blank name did not restore the documented metric default: %+v %v", retained, err)
 	}
 	if _, err = s.SaveRiskRule(ctx, actor.actor, saved, 1); !errors.Is(err, ErrConflict) {

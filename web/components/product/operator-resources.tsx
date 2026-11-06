@@ -680,8 +680,8 @@ const savedFactLabels: Record<string, string> = {
   "direction": "触发方向",
   "recipients": "通知收件人ID（逗号分隔）",
   "escalation_recipients": "升级收件人ID（逗号分隔）",
-  "reminder_seconds": "持续风险提醒间隔秒数",
-  "escalate_seconds": "升级等待秒数",
+  "reminder_minutes": "持续风险提醒间隔（分钟）",
+  "escalate_minutes": "升级等待时间（分钟）",
   "provider_receipt_id": "外部唯一收款流水",
   "gross_money": "收款总额（扣手续费前） 结算币种",
   "fee_status": "手续费证据",
@@ -965,8 +965,8 @@ const enumLabelsByField: Record<string, Record<string, string>> = {
     "critical": "紧急"
   },
   "metric": {
-    "sales_space_atg": "剩余销售空间ATG",
-    "procurement_available_atg": "采购可用ATG",
+    "sales_space_atg": "本经营方剩余销售空间（采购 ATG）",
+    "procurement_available_atg": "本经营方向上级采购的可用余额（ATG）",
     "oversell_used_atg": "已用超卖ATG",
     "pending_usage": "待结请求数",
     "unverified_costs": "未知成本数"

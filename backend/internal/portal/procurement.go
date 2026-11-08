@@ -536,6 +536,19 @@ func (a *Application) procurementAction(c *gin.Context, op organization.Operator
 			if e != nil {
 				return nil, e
 			}
+			// Receipt identity also deduplicates submissions with a new command
+			// key. Reuse its original checkout without rewriting accepted fees.
+			var existing procurementCheckout
+			if e = tx.Where("order_id=?", out.ID).Limit(1).Find(&existing).Error; e != nil {
+				return nil, e
+			}
+			if existing.OrderID != "" {
+				var saved payments.Order
+				if json.Unmarshal(existing.PaymentOrder, &saved) != nil || existing.MerchantID != m.ID || saved.FeeQuote == nil || saved.FeeQuote.Currency != fee.Currency || saved.FeeQuote.AmountMoney.Cmp(fee.AmountMoney) != 0 || saved.FeeQuote.FeeMoney.Cmp(fee.FeeMoney) != 0 {
+					return nil, payments.ErrConflict
+				}
+				return commandResult(out.ID, out.Status), nil
+			}
 			po := payments.Order{ID: out.ID, OperatorID: op.ID, MerchantID: m.ID, FeeQuote: fee, Money: payments.Money{Currency: settings.Currency, Amount: in.Amount}, SettlementMoney: payments.Money{Currency: settings.Currency, Amount: in.Amount}, AcceptedAt: out.CreatedAt, ExpiresAt: out.ExpiresAt}
 			encoded, _ := json.Marshal(po)
 			e = tx.Create(&procurementCheckout{OrderID: out.ID, BuyerID: out.BuyerID, ActorID: actor, MerchantID: m.ID, PaymentOrder: encoded, CreatedAt: time.Now().UTC()}).Error

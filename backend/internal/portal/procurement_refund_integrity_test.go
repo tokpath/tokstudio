@@ -136,4 +136,13 @@ func TestPostgresOfflinePurchaseExcludesSharedPaymentFeeFromInventory(t *testing
 	if replay["id"] != out["id"] {
 		t.Fatal(replay)
 	}
+	status, replay, _ = f.call(t, "POST", "/v1/operators/"+s.oem+"/procurement/"+s.quote.ID+"/offline_purchase", body, uuid.NewString())
+	mustOK(t, status, replay)
+	if replay["id"] != out["id"] {
+		t.Fatal("receipt replay created another purchase", replay)
+	}
+	var count int64
+	if e = f.a.DB.Model(&procurementCheckout{}).Where("order_id=?", out["id"]).Count(&count).Error; e != nil || count != 1 {
+		t.Fatal(count, e)
+	}
 }

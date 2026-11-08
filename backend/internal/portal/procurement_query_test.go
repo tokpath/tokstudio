@@ -9,6 +9,8 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
+	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"net/url"
 	"testing"
 	"time"
@@ -114,13 +116,22 @@ func TestPostgresProcurementOfflineReceiptCreatesAndDeliversOneOrder(t *testing.
 		t.Fatal(e)
 	}
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	m, e := f.a.Payments.SaveMerchant(ctx, owner, payments.Merchant{ID: uuid.NewString(), OperatorID: parent, Driver: "manual", Enabled: true, Credentials: map[string]string{"currency": "USD", "instructions": "cash"}}, 0)
+	if e != nil {
+		t.Fatal(e)
+	}
+	rule, e := paymentmethods.Current(ctx, f.a.DB, parent, m.ID)
+	if e != nil {
+		t.Fatal(e)
+	}
+	input := map[string]any{"receipt_id": receipt.ID, "amount_money": "2000", "external_method_id": m.ID, "fee_rule_id": rule.ID}
 	path := "/v1/operators/" + parent + "/procurement/" + q.ID + "/offline_purchase"
-	status, out, _ := f.call(t, "POST", path, map[string]any{"receipt_id": receipt.ID}, uuid.NewString())
+	status, out, _ := f.call(t, "POST", path, input, uuid.NewString())
 	mustOK(t, status, out)
 	if out["status"] != "completed" {
 		t.Fatal("offline flow still needs a separate delivery step", out)
 	}
-	status, again, _ := f.call(t, "POST", path, map[string]any{"receipt_id": receipt.ID}, uuid.NewString())
+	status, again, _ := f.call(t, "POST", path, input, uuid.NewString())
 	mustOK(t, status, again)
 	if out["id"] != again["id"] {
 		t.Fatal("one payment created multiple orders", out, again)

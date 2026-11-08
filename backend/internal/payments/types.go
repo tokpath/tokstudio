@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 )
 
 var (
@@ -112,25 +113,26 @@ type Merchant struct {
 	APIBaseURL string `json:"api_base_url,omitempty"`
 }
 type Order struct {
-	ProviderPriceMoney    *Money        `json:"provider_price_money,omitempty"`
-	PaymentQuote          *PaymentQuote `json:"payment_quote,omitempty"`
-	ID                    string        `json:"id"`
-	ContextKind           string        `json:"context_kind,omitempty"`
-	OperatorID            string        `json:"operator_id"`
-	MerchantID            string        `json:"merchant_id"`
-	Money                 Money         `json:"money"`
-	SettlementMoney       Money         `json:"settlement_money"`
-	Valuation             Valuation     `json:"settlement_confirmation,omitempty"`
-	AcceptedAt            time.Time     `json:"accepted_at"`
-	ExpiresAt             time.Time     `json:"expires_at"`
-	NotifyURL             string        `json:"notify_url"`
-	Description           string        `json:"description"`
-	ProviderID            string        `json:"provider_id,omitempty"`
-	PaymentDriver         string        `json:"payment_driver,omitempty"`
-	AssetNetworkVersionID string        `json:"asset_network_version_id,omitempty"`
-	Network               string        `json:"network,omitempty"`
-	TokenContract         string        `json:"token_contract,omitempty"`
-	MinimumConfirmations  string        `json:"minimum_confirmations,omitempty"`
+	FeeQuote              *paymentmethods.Quote `json:"fee_quote,omitempty"`
+	ProviderPriceMoney    *Money                `json:"provider_price_money,omitempty"`
+	PaymentQuote          *PaymentQuote         `json:"payment_quote,omitempty"`
+	ID                    string                `json:"id"`
+	ContextKind           string                `json:"context_kind,omitempty"`
+	OperatorID            string                `json:"operator_id"`
+	MerchantID            string                `json:"merchant_id"`
+	Money                 Money                 `json:"money"`
+	SettlementMoney       Money                 `json:"settlement_money"`
+	Valuation             Valuation             `json:"settlement_confirmation,omitempty"`
+	AcceptedAt            time.Time             `json:"accepted_at"`
+	ExpiresAt             time.Time             `json:"expires_at"`
+	NotifyURL             string                `json:"notify_url"`
+	Description           string                `json:"description"`
+	ProviderID            string                `json:"provider_id,omitempty"`
+	PaymentDriver         string                `json:"payment_driver,omitempty"`
+	AssetNetworkVersionID string                `json:"asset_network_version_id,omitempty"`
+	Network               string                `json:"network,omitempty"`
+	TokenContract         string                `json:"token_contract,omitempty"`
+	MinimumConfirmations  string                `json:"minimum_confirmations,omitempty"`
 	// Stripe off-session execution additionally requires a separately saved
 	// business authorization reference. It is never implied by a saved method.
 	PaymentMethod   string `json:"-"`
@@ -154,17 +156,18 @@ func (o Order) Validate(m Merchant) error {
 }
 
 type Checkout struct {
-	PaymentQuote    *PaymentQuote     `json:"payment_quote,omitempty"`
-	ProviderID      string            `json:"provider_id"`
-	State           string            `json:"state"` // pending | requires_action | processing
-	URL             string            `json:"url,omitempty"`
-	ClientSecret    string            `json:"client_secret,omitempty"`
-	PublishableKey  string            `json:"publishable_key,omitempty"`
-	PaymentAddress  string            `json:"payment_address,omitempty"`
-	Instructions    string            `json:"instructions,omitempty"`
-	PayMoney        *Money            `json:"pay_money,omitempty"`
-	SettlementMoney *Money            `json:"settlement_money,omitempty"`
-	FormFields      map[string]string `json:"form_fields,omitempty"`
+	FeeQuote        *paymentmethods.Quote `json:"fee_quote,omitempty"`
+	PaymentQuote    *PaymentQuote         `json:"payment_quote,omitempty"`
+	ProviderID      string                `json:"provider_id"`
+	State           string                `json:"state"` // pending | requires_action | processing
+	URL             string                `json:"url,omitempty"`
+	ClientSecret    string                `json:"client_secret,omitempty"`
+	PublishableKey  string                `json:"publishable_key,omitempty"`
+	PaymentAddress  string                `json:"payment_address,omitempty"`
+	Instructions    string                `json:"instructions,omitempty"`
+	PayMoney        *Money                `json:"pay_money,omitempty"`
+	SettlementMoney *Money                `json:"settlement_money,omitempty"`
+	FormFields      map[string]string     `json:"form_fields,omitempty"`
 }
 type Refund struct {
 	ID                   string         `json:"id"`
@@ -215,6 +218,7 @@ type Hint struct {
 // Public fields are persisted evidence; construct facts only in a real driver or
 // the explicitly authorized manual verification service.
 type Fact struct {
+	MerchantFee    *Money                   `json:"merchant_fee,omitempty"`
 	ID             string                   `json:"id"`
 	Kind           string                   `json:"kind"` // receipt | refund | chargeback
 	OperatorID     string                   `json:"operator_id"`

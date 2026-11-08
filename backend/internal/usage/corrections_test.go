@@ -11,12 +11,16 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"gorm.io/gorm"
 )
 
 func correctionFixture(t *testing.T) (fixture, *incentives.Service, Request) {
 	t.Helper()
 	f := setup(t, "0.01", nil)
+	if err := f.db.Exec(paymentmethods.Schema()).Error; err != nil {
+		t.Fatal(err)
+	}
 	_, migrations := incentives.Migrations()
 	entries, e := fs.ReadDir(migrations, ".")
 	if e != nil {

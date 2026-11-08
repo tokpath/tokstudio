@@ -167,6 +167,9 @@ func (a *Application) operatorCommand(c *gin.Context) {
 				businessKey, _ := key(c)
 				fact.ProviderReceiptID = payments.ManualReference("receipt", op.ID, businessKey)
 			}
+			if e = applyManualCollectionFee(ctx, tx, op.ID, in.OrderID, &fact); e != nil {
+				return nil, e
+			}
 			out, e := a.Commerce.RecordManualReceipt(ctx, tx, actor, fact)
 			if e == nil && in.OrderID != "" {
 				businessKey, _ := key(c)
@@ -185,6 +188,13 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			}
 			return commandResult(out.ID, "recorded"), e
 		case "payment-methods":
+			var action struct {
+				Action string `json:"action"`
+			}
+			_ = json.Unmarshal(config, &action)
+			if action.Action == "fee_rule" {
+				return a.savePaymentMethodRule(c, op, actor, "", config, tx)
+			}
 			var in payments.MerchantInput
 			if e := json.Unmarshal(config, &in); e != nil {
 				return nil, payments.ErrInvalid
@@ -379,6 +389,15 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	action := c.Param("action")
+	if resource == "payment-methods" && action == "fee_rule" {
+		var input json.RawMessage
+		if !body(c, &input) {
+			return
+		}
+		raw, err := a.command(c, "payment-method-rule:"+op.ID+":"+c.Param("id"), input, func(tx *gorm.DB) (any, error) { return a.savePaymentMethodRule(c, op, actor, c.Param("id"), input, tx) })
+		jsonResponse(c, raw, err)
+		return
+	}
 	if resource == "receipt-valuations" && action == "confirm" {
 		a.confirmReceiptValuation(c, op, actor)
 		return
@@ -492,7 +511,7 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 		})
 		jsonResponse(c, raw, e)
 	case resource == "payments" && action == "accounting":
-		a.receiptAccountingCommand(c, op, actor)
+		fail(c, 404, "not_found", "操作不存在", false)
 	default:
 		fail(c, 404, "not_found", "经营命令不存在", false)
 	}

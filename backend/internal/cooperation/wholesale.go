@@ -431,11 +431,11 @@ func (s *Service) PurchaseFromReceipt(ctx context.Context, tx *gorm.DB, collecto
 		}
 		// Receipt identity is part of the command, so a changed receipt cannot replay
 		// an earlier purchase even if it has the same amount.
-		out, e = s.createPurchaseOrder(ctx, t, actor, q.BuyerID, q.ID, "receipt:"+receiptID, receipt.GrossMoney, true)
+		out, e = s.createPurchaseOrder(ctx, t, actor, q.BuyerID, q.ID, "receipt:"+receiptID, receipt.GrossMoney.Sub(receipt.PaymentFeeMoney), true)
 		if e != nil {
 			return e
 		}
-		out, e = s.FundPurchase(ctx, t, collector, actor, out.ID, receiptID, key, receipt.GrossMoney)
+		out, e = s.FundPurchase(ctx, t, collector, actor, out.ID, receiptID, key, receipt.GrossMoney.Sub(receipt.PaymentFeeMoney))
 		if e != nil {
 			return e
 		}

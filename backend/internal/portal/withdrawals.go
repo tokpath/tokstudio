@@ -60,14 +60,14 @@ func (a *Application) applyWalletWithdrawal(c *gin.Context, wallet string) {
 		if err != nil {
 			return nil, err
 		}
-		quote, err := a.Incentives.QuoteWithdrawal(c.Request.Context(), tx, operatorID, in.Amount, method.MethodID)
+		quote, err := a.Incentives.QuoteWithdrawal(c.Request.Context(), tx, operatorID, in.Amount, method.MethodID, wallet)
 		if err != nil {
 			return nil, err
 		}
 		if quote.Policy.ID != in.PolicyID {
 			return nil, incentives.ErrWithdrawalTermsChanged
 		}
-		out, err := a.Incentives.RequestWithdrawal(c.Request.Context(), tx, incentives.WithdrawalInput{OperatorID: operatorID, CustomerID: id.Customer.Customer.ID, BusinessKey: idem, RecipientReference: reference, PolicyID: in.PolicyID, AmountMoney: quote.AmountMoney})
+		out, err := a.Incentives.RequestWithdrawal(c.Request.Context(), tx, incentives.WithdrawalInput{Wallet: wallet, OperatorID: operatorID, CustomerID: id.Customer.Customer.ID, BusinessKey: idem, RecipientReference: reference, PolicyID: in.PolicyID, AmountMoney: quote.AmountMoney})
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +144,7 @@ func (a *Application) customerWithdrawalWorkspace(c *gin.Context, p gin.H, opera
 	a.resourceResponse(c, p)
 }
 func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base, wallet string) {
-	views := []gin.H{{"value": "requests", "label": "提现申请"}, {"value": "methods", "label": "提现方式"}}
+	views := []gin.H{{"value": "requests", "label": "提现申请"}}
 	if wallet == "balance" {
 		views = append(views, gin.H{"value": "minimum", "label": "最低提现额度"})
 	}
@@ -160,49 +160,7 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 		a.resourceResponse(c, p)
 		return
 	}
-	if c.Query("view") == "methods" {
-		methods, err := a.Incentives.WithdrawalMethods(c.Request.Context(), nil, op.ID, false, wallet)
-		if err != nil {
-			handleError(c, err)
-			return
-		}
-		items := []any{}
-		for _, m := range methods {
-			v := values(m)
-			v["fee_mode"] = "fixed"
-			if m.FeeRate.Sign() > 0 {
-				v["fee_mode"] = "percent"
-			}
-			v["fee_percent"] = ratePercentage(m.FeeRate)
-			status := "disabled"
-			if m.Enabled {
-				status = "enabled"
-			}
-			if profile, ok := incentives.FindPayoutProfile(m.PayoutKind); ok {
-				v["payout_kind_label"] = profile.Label
-			} else {
-				v["payout_kind_label"] = "尚未选择收款材料"
-			}
-			row := entity(m.MethodID, status, m.Version, v)
-			row["allowed_actions"] = []string{"edit_method"}
-			items = append(items, row)
-		}
-		p["title"] = "提现方式"
-		fields := withdrawalMethodFields()
-		if wallet == "balance" {
-			p["title"] = "余额提现方式"
-			p["description"] = "设置支付余额可用的提现方式及手续费。手续费在申请时固定，由客户承担。最低提现额度在单独的页面设置。"
-			p["operations"] = []operation{{Name: "method", Label: "新增提现方式", Method: "POST", Path: base, Fields: fields}}
-		} else {
-			p["description"] = "设置可用提现方式及固定手续费或手续费率。申请时固定本次费用和实付金额，线下按实付金额付款，无需逐笔登记实际手续费。"
-			p["operations"] = []operation{{Name: "method", Label: "新增提现方式", Method: "POST", Path: base, Fields: fields}}
-		}
-		p["items"] = items
-		p["columns"] = []gin.H{col("method_name", "提现方式", "text"), col("payout_kind_label", "收款材料", "text"), col("flat_fee_money", "固定手续费", "money"), col("fee_percent", "手续费率 %", "decimal"), col("enabled", "开放申请", "boolean")}
-		p["row_operations"] = []operation{{Name: "edit_method", Label: "修改提现方式", Method: "POST", Path: base + "/{id}/edit_method", Fields: fields}}
-		a.resourceResponse(c, p)
-		return
-	}
+
 	p["search_supported"], p["status_supported"] = true, true
 	rows, next, e := a.Incentives.WithdrawalsForOperator(c.Request.Context(), nil, actor, op.ID, c.Query("cursor"), 50, c.Query("q"), c.Query("status"), wallet)
 	if e != nil {
@@ -217,10 +175,10 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 		items = append(items, row)
 	}
 	p["title"] = "佣金提现申请"
-	p["description"] = "在邀请与分佣中审批并登记线下付款。最低提现金额在分佣规则中设置，手续费在提现方式中设置。"
+	p["description"] = "在邀请与分佣中审批并登记线下付款。最低提现金额在分佣规则中设置，手续费统一在设置中的支付方式与手续费页面配置。"
 	if wallet == "balance" {
 		p["title"] = "余额提现申请"
-		p["description"] = "审批支付余额提现，并按申请时固定的实付金额登记一次付款。最低额度在最低提现额度页设置，手续费在提现方式中设置，由客户承担。"
+		p["description"] = "审批支付余额提现，并按申请时固定的实付金额登记一次付款。最低额度在最低提现额度页设置，手续费统一在设置中的支付方式与手续费页面配置，由客户承担。"
 		p["operations"] = []operation{}
 	}
 	p["items"] = items
@@ -253,26 +211,6 @@ func balanceMinimumOperation(base string, minimum ledger.Decimal) operation {
 	amount.Help = "单笔支付余额提现不能低于这个额度，且不能小于 1 结算币种。已经提交的申请仍按申请时的额度办理。"
 	return operation{Name: "minimum", Label: "设置最低提现额度", Method: "POST", Path: base, Fields: []field{amount}}
 }
-func withdrawalMethodFields() []field {
-	mode := f("fee_mode", "手续费方式", "select")
-	mode.Options = []gin.H{{"value": "fixed", "label": "固定金额"}, {"value": "percent", "label": "按比例"}}
-	mode.Default = "fixed"
-	fixed := f("flat_fee_money", "固定手续费 结算币种", "decimal")
-	fixed.Default = "0"
-	fixed.VisibleWhen = &fieldVisibility{Field: "fee_mode", Values: []string{"fixed"}}
-	rate := f("fee_percent", "手续费率 %", "decimal")
-	rate.Default = "0"
-	rate.VisibleWhen = &fieldVisibility{Field: "fee_mode", Values: []string{"percent"}}
-	rate.Help = "填写 2 表示按提现总额收取 2%。手续费按清算币种最小支付单位四舍五入，提交后固定。"
-	enabled := f("enabled", "开放申请", "boolean")
-	enabled.Default = true
-	kind := f("payout_kind", "支付方式", "select")
-	kind.Help = "选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。"
-	for _, profile := range incentives.PayoutProfiles() {
-		kind.Options = append(kind.Options, gin.H{"value": profile.Kind, "label": profile.OptionLabel})
-	}
-	return []field{kind, f("method_name", "提现方式名称", "text"), mode, fixed, rate, enabled, defaultField("expected_version", "当前版本", "hidden", 0)}
-}
 func (a *Application) saveBalanceWithdrawalMinimum(c *gin.Context, op organization.Operator, actor string, minimum ledger.Decimal) {
 	raw, err := a.command(c, "balance-withdrawal-minimum:"+op.ID, gin.H{"minimum_money": minimum}, func(tx *gorm.DB) (any, error) {
 		saved, err := a.Incentives.SetBalanceWithdrawalMinimum(c.Request.Context(), tx, actor, op.ID, minimum)
@@ -288,55 +226,9 @@ func (a *Application) saveWithdrawalMethod(c *gin.Context, op organization.Opera
 	a.saveWithdrawalMethodBody(c, op, actor, methodID, raw)
 }
 func (a *Application) saveWithdrawalMethodBody(c *gin.Context, op organization.Operator, actor, methodID string, raw json.RawMessage) {
-	var in struct {
-		Kind     string         `json:"payout_kind"`
-		Name     string         `json:"method_name"`
-		Mode     string         `json:"fee_mode"`
-		Fixed    ledger.Decimal `json:"flat_fee_money"`
-		Percent  ledger.Decimal `json:"fee_percent"`
-		Enabled  bool           `json:"enabled"`
-		Expected int64          `json:"expected_version"`
-	}
-	if json.Unmarshal(raw, &in) != nil {
-		fail(c, 400, "invalid_input", "请求内容格式错误", false)
-		return
-	}
-	if _, ok := incentives.FindPayoutProfile(in.Kind); !ok {
-		fail(c, 400, "invalid_input", "请选择支付方式，客户将按该方式需要的收款材料填写。", false)
-		return
-	}
-	wallet := "commission"
-	if c.Param("resource") == "balance-withdrawals" {
-		wallet = "balance"
-	}
-	p := incentives.WithdrawalPolicy{Wallet: wallet, MethodID: methodID, MethodName: in.Name, PayoutKind: in.Kind, Enabled: in.Enabled, MinimumMoney: ledger.FromInt64(1)}
-	if in.Name == "" {
-		handleError(c, incentives.ErrInvalidInput)
-		return
-	}
-	if p.MethodID == "" {
-		p.MethodID = uuid.NewString()
-	}
-	switch in.Mode {
-	case "fixed":
-		p.FlatFeeMoney = in.Fixed
-	case "percent":
-		var err error
-		p.FeeRate, err = percentageRate(in.Percent)
-		if err != nil {
-			handleError(c, err)
-			return
-		}
-	default:
-		handleError(c, incentives.ErrInvalidInput)
-		return
-	}
-	raw, err := a.command(c, "withdrawal-method:"+methodID, in, func(tx *gorm.DB) (any, error) {
-		saved, err := a.Incentives.SetWithdrawalPolicy(c.Request.Context(), tx, actor, op.ID, p, in.Expected)
-		return commandResult(saved.MethodID, "saved"), err
-	})
-	jsonResponse(c, raw, err)
+	fail(c, 409, "payment_method_settings_moved", "请到设置中的支付方式与手续费统一配置。", false)
 }
+
 func (a *Application) withdrawalStaffCommand(c *gin.Context, op organization.Operator, actor string) {
 	var raw map[string]json.RawMessage
 	if !body(c, &raw) {

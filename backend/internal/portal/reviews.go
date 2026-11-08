@@ -30,6 +30,7 @@ func (a *Application) auditResource(c *gin.Context, op organization.Operator, ac
 	}
 	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "ledger.read") == nil {
 		addView("commerce", "订单与交付")
+		addView("payment-methods", "支付方式与手续费")
 		addView("incentives", "推广与佣金")
 		addView("remediation", "退款、纠错与接管")
 	}
@@ -47,7 +48,22 @@ func (a *Application) auditResource(c *gin.Context, op organization.Operator, ac
 	var e error
 	type query func(context.Context, *gorm.DB, string, string, string, int) ([]organization.AuditEvent, string, error)
 	queries := map[string]query{"organization": a.Organization.ListAuditEvents, "branding": a.Branding.ListAuditEvents, "commerce": a.Commerce.ListAuditEvents, "incentives": a.Incentives.ListAuditEvents}
-	if view == "remediation" {
+	if view == "payment-methods" {
+		at, id, err := organization.ParseAuditCursor(c.Query("cursor"))
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		q := a.DB.WithContext(ctx).Table("payment_method_versions r").Select("r.id,r.operator_id,r.method_id AS subject_id,'payment_method.rule_changed' AS action,r.created_by AS actor_id,to_jsonb(r) AS after,r.created_at,(SELECT to_jsonb(previous) FROM payment_method_versions previous WHERE previous.method_id=r.method_id AND previous.operator_id=r.operator_id AND previous.version<r.version ORDER BY previous.version DESC LIMIT 1) AS before").Where("r.operator_id=?", op.ID)
+		if at != nil {
+			q = q.Where("(r.created_at,r.id)<(?,?::uuid)", *at, id)
+		}
+		e = q.Order("r.created_at DESC,r.id DESC").Limit(51).Scan(&rows).Error
+		if len(rows) > 50 {
+			rows = rows[:50]
+			next = organization.NextAuditCursor(rows, 50)
+		}
+	} else if view == "remediation" {
 		at, id, err := organization.ParseAuditCursor(c.Query("cursor"))
 		if err != nil {
 			handleError(c, err)

@@ -175,6 +175,7 @@ type ReceiptAllocationGuard interface {
 // Provider callbacks must be authenticated and queried before constructing it.
 // Manual facts must use RecordManualReceipt, which checks finance permission.
 type VerifiedReceipt struct {
+	PaymentFeeMoney      ledger.Decimal  `json:"payment_fee_money"`
 	OriginalFeeAmount    *ledger.Decimal `json:"original_fee_amount,omitempty"`
 	OriginalNetAmount    *ledger.Decimal `json:"original_net_amount,omitempty"`
 	OperatorID           string          `json:"operator_id"`
@@ -197,6 +198,7 @@ type VerifiedReceipt struct {
 	SettledAt            *time.Time      `json:"settled_at"`
 }
 type Receipt struct {
+	PaymentFeeMoney      ledger.Decimal  `json:"payment_fee_money"`
 	OriginalFeeAmount    *ledger.Decimal `json:"original_fee_amount,omitempty"`
 	OriginalNetAmount    *ledger.Decimal `json:"original_net_amount,omitempty"`
 	ID                   string          `json:"id"`

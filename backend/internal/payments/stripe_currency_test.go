@@ -73,3 +73,37 @@ func TestStripeNativeCurrenciesPreserveAmountsAcrossChargeAndRefund(t *testing.T
 		})
 	}
 }
+
+func TestStripeVerifiedMerchantFeeUsesOriginalBalanceFacts(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		fee    int
+		amount int
+		net    int
+		want   string
+	}{{"known", 250, 10200, 9950, "2.5"}, {"free", 0, 10200, 10200, "0"}, {"wrong payment", 250, 10000, 9750, ""}, {"inconsistent", 250, 10200, 9999, ""}} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Query().Get("expand[]") != "latest_charge.balance_transaction" {
+					t.Error("fee expansion missing")
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{"id": "pi_fee", "status": "succeeded", "currency": "usd", "amount_received": 10200, "metadata": map[string]string{"order_id": "order", "operator_id": "operator"}, "latest_charge": map[string]any{"id": "ch_fee", "balance_transaction": map[string]any{"id": "txn_fee", "source": "ch_fee", "currency": "usd", "amount": tc.amount, "fee": tc.fee, "net": tc.net}}})
+			}))
+			defer server.Close()
+			transport := NewTransport(true)
+			defer transport.Client.CloseIdleConnections()
+			merchant := Merchant{ID: "merchant", OperatorID: "operator", Driver: "stripe", Enabled: true, APIBaseURL: server.URL, Credentials: map[string]string{"secret_key": "synthetic", "publishable_key": "synthetic", "webhook_secret": "synthetic", "currency": "USD"}}
+			fact, e := (Stripe{HTTP: transport}).Lookup(t.Context(), merchant, Order{AcceptedAt: time.Now().UTC(), ExpiresAt: time.Now().UTC().Add(time.Hour), ID: "order", ProviderID: "pi_fee", OperatorID: "operator", MerchantID: "merchant", Money: Money{Currency: "USD", Amount: ledger.FromInt64(102)}})
+			if e != nil {
+				t.Fatal(e)
+			}
+			if tc.want == "" {
+				if fact.MerchantFee != nil {
+					t.Fatal("invented fee", fact.MerchantFee)
+				}
+			} else if fact.MerchantFee == nil || fact.MerchantFee.Currency != "USD" || fact.MerchantFee.Amount.String() != tc.want {
+				t.Fatal(fact.MerchantFee)
+			}
+		})
+	}
+}

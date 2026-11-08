@@ -128,7 +128,7 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		}
 		options := []gin.H{}
 		for _, m := range methods {
-			options = append(options, gin.H{"value": m.ID, "label": m.Driver + " · " + m.Currency})
+			options = append(options, gin.H{"value": m.ID, "label": m.Name + " · " + m.Currency, "fee_rule": gin.H{"driver": m.Driver, "fee_rule_id": m.FeeRuleID, "flat_fee_money": m.FlatFeeMoney, "fee_rate": m.FeeRate}})
 		}
 		if len(options) > 0 {
 			method := f("external_method_id", "收款方式", "select")
@@ -511,6 +511,12 @@ func (a *Application) operatorResource(c *gin.Context) {
 		a.paymentQuoteSettingsResource(c, op, p, base)
 		return
 	case "payment-methods":
+		p["views"] = []gin.H{{"value": "fees", "label": "方式与手续费"}, {"value": "connections", "label": "收款连接"}}
+		if c.Query("view") != "connections" {
+			a.paymentMethodRules(c, op, p, base)
+			return
+		}
+		p["description"] = "配置实际收款通道和账号。保存后在方式与手续费中统一设置名称、费用及提现用途。"
 		rows, e := a.Payments.ListMerchantConfigs(ctx, actor, op.ID)
 		if e != nil {
 			handleError(c, e)
@@ -545,15 +551,12 @@ func (a *Application) operatorResource(c *gin.Context) {
 			if row.AllocatedMoney.IsZero() {
 				actions = append(actions, "allocate")
 			}
-			if row.FeeStatus == "pending" || row.SettledAt == nil {
-				actions = append(actions, "accounting")
-			}
 			item["allowed_actions"] = actions
 			items = append(items, item)
 		}
-		p["columns"] = []gin.H{col("id", "收款", "text"), col("provider", "通道", "text"), col("gross_money", "收款总额（扣手续费前）", "money"), col("fee_money", "己方收款手续费", "money"), col("net_money", "净到账金额", "money"), col("allocated_money", "已分配", "money"), col("fee_status", "收款手续费核实状态", "status"), col("paid_at", "实际付款时间", "datetime")}
+		p["columns"] = []gin.H{col("id", "收款", "text"), col("provider", "通道", "text"), col("gross_money", "收款总额（含支付手续费）", "money"), col("payment_fee_money", "已收支付手续费", "money"), col("fee_money", "己方收款手续费", "money"), col("net_money", "净到账金额", "money"), col("allocated_money", "已分配", "money"), col("paid_at", "实际付款时间", "datetime")}
 		p["operations"] = []operation{{Name: "receipt", Label: "登记人工核实收款", Method: "POST", Path: base, Fields: []field{jsonField("provider、provider_receipt_id、gross_money、currency、original_amount、recipient_reference、payer_reference、verification_evidence、paid_at 等原始事实。")}}}
-		p["row_operations"] = []operation{{Name: "allocate", Label: "关联原订单", Method: "POST", Path: base + "/{id}/allocate", Fields: []field{f("order_id", "原订单", "text")}, Description: "整笔收款关联一个金额一致的订单，足额后自动交付。"}, {Name: "accounting", Label: "核实手续费与结算", Method: "POST", Path: base + "/{id}/accounting", Fields: []field{receiptFeeField(), optional("settled_at", "通道结算到账时间（可选）", "datetime"), optional("evidence", "费用说明（可选）", "textarea")}}}
+		p["row_operations"] = []operation{{Name: "allocate", Label: "关联原订单", Method: "POST", Path: base + "/{id}/allocate", Fields: []field{f("order_id", "原订单", "text")}, Description: "整笔收款关联一个金额一致的订单，足额后自动交付。"}}
 	case "valuations":
 		fail(c, 404, "not_found", "汇率配置已移除", false)
 		return

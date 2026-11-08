@@ -91,7 +91,7 @@ func (s *Service) ReserveReceiptFunds(ctx context.Context, tx *gorm.DB, in Recei
 			}
 			proof = "observed_before_expiry"
 		}
-		if !r.AllocatedMoney.IsZero() || r.GrossMoney.Cmp(in.AmountMoney) != 0 {
+		if !r.AllocatedMoney.IsZero() || r.GrossMoney.Sub(r.PaymentFeeMoney).Cmp(in.AmountMoney) != 0 {
 			return ErrExcessAllocation
 		}
 		if r.GrossMoney.Sub(r.AllocatedMoney).Cmp(in.AmountMoney) < 0 {
@@ -109,7 +109,11 @@ func (s *Service) ReserveReceiptFunds(ctx context.Context, tx *gorm.DB, in Recei
 		if err != nil {
 			return err
 		}
-		if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: in.OperatorID, BusinessKey: "external-allocation:" + out.ID, Kind: "receipt_allocation", SourceID: out.ID, ActorID: in.ActorID, Reason: "verified receipt assigned to trusted external order", Lines: []ledger.Line{{AccountID: from.ID, Amount: in.AmountMoney.Neg()}, {AccountID: to.ID, Amount: in.AmountMoney}}}); err != nil {
+		lines, err := s.receiptAllocationLines(ctx, tx, in.OperatorID, from.ID, to.ID, in.AmountMoney, r.PaymentFeeMoney)
+		if err != nil {
+			return err
+		}
+		if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: in.OperatorID, BusinessKey: "external-allocation:" + out.ID, Kind: "receipt_allocation", SourceID: out.ID, ActorID: in.ActorID, Reason: "verified receipt assigned to trusted external order", Lines: lines}); err != nil {
 			return err
 		}
 		return s.event(tx, in.OperatorID, in.DestinationID, "receipt.external_order_allocated", out)

@@ -11,11 +11,11 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 	f := setupPortal(t)
 	op := f.a.Installation.OperatorID
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
-	base := "/v1/operators/" + op + "/withdrawals"
-	status, page, _ := f.call(t, "GET", base+"?view=methods", nil, "")
+	base := "/v1/operators/" + op + "/payment-methods"
+	status, page, _ := f.call(t, "GET", base, nil, "")
 	mustOK(t, status, page)
-	fields := operationFields(t, page, "method")
-	for _, name := range []string{"payout_kind", "method_name", "fee_mode", "flat_fee_money", "fee_percent", "enabled", "expected_version"} {
+	fields := operationFields(t, page, "fee_rule")
+	for _, name := range []string{"payout_kind", "name", "fee_mode", "flat_fee_money", "fee_percent", "payout_enabled", "expected_version"} {
 		if fields[name] == nil {
 			t.Fatal("missing method field", name)
 		}
@@ -26,8 +26,8 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 		}
 	}
 	for _, method := range []map[string]any{
-		{"payout_kind": "bank_cn", "method_name": "Bank transfer", "fee_mode": "fixed", "flat_fee_money": "1", "enabled": true},
-		{"payout_kind": "alipay", "method_name": "Wallet payout", "fee_mode": "percent", "fee_percent": "2", "enabled": true},
+		{"action": "fee_rule", "payout_kind": "bank_cn", "name": "Bank transfer", "fee_mode": "fixed", "flat_fee_money": "1", "payout_enabled": true},
+		{"action": "fee_rule", "payout_kind": "alipay", "name": "Wallet payout", "fee_mode": "percent", "fee_percent": "2", "payout_enabled": true},
 	} {
 		key := uuid.NewString()
 		status, out, _ := f.call(t, "POST", base, method, key)
@@ -38,11 +38,11 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 			t.Fatal("retry created another withdrawal method")
 		}
 	}
-	status, page, _ = f.call(t, "GET", base+"?view=methods", nil, "")
+	status, page, _ = f.call(t, "GET", base, nil, "")
 	mustOK(t, status, page)
 	row := page["items"].([]any)[0].(map[string]any)
 	method := row["values"].(map[string]any)
-	status, out, _ := f.call(t, "POST", base+"/"+row["id"].(string)+"/edit_method", map[string]any{"payout_kind": "bank_cn", "method_name": method["method_name"], "fee_mode": "fixed", "flat_fee_money": "1.5", "enabled": true, "expected_version": row["version"]}, uuid.NewString())
+	status, out, _ := f.call(t, "POST", base+"/"+row["id"].(string)+"/fee_rule", map[string]any{"payout_kind": "bank_cn", "name": method["name"], "fee_mode": "fixed", "flat_fee_money": "1.5", "payout_enabled": true, "expected_version": row["version"]}, uuid.NewString())
 	mustOK(t, status, out)
 	f.openRegistration(t)
 	f.registered(t, "method-choice@example.test")

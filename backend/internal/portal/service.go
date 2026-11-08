@@ -24,6 +24,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/outbox"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
 	"github.com/tokpath/tokstudio/backend/internal/platform/mail"
@@ -51,6 +52,7 @@ func AllMigrations() []db.ModuleMigrations {
 	add(modelpricing.Migrations())
 	add(cooperation.Migrations())
 	add(commerce.Migrations())
+	add(paymentmethods.Migrations())
 	add(incentives.Migrations())
 	add(payments.Migrations())
 	add(usage.Migrations())

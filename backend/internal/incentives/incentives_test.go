@@ -18,6 +18,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -88,8 +89,9 @@ func integrationDBBefore(t *testing.T, before string) *gorm.DB {
 	_, o := organization.Migrations()
 	_, l := ledger.Migrations()
 	_, c := commerce.Migrations()
+	_, methods := paymentmethods.Migrations()
 	_, i := Migrations()
-	for moduleIndex, m := range []fs.FS{o, l, c, i} {
+	for moduleIndex, m := range []fs.FS{o, l, c, methods, i} {
 		entries, err := fs.ReadDir(m, ".")
 		if err != nil {
 			t.Fatal(err)
@@ -102,7 +104,7 @@ func integrationDBBefore(t *testing.T, before string) *gorm.DB {
 		}
 		sort.Strings(names)
 		for _, name := range names {
-			if moduleIndex == 3 && before != "" && name >= before {
+			if moduleIndex == 4 && before != "" && name >= before {
 				continue
 			}
 			body, err := fs.ReadFile(m, name)

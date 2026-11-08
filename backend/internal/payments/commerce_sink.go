@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
 )
 
 // CommerceSink records the verified gross value only. Unknown merchant fees
-// remain explicitly pending; later settlement facts use commerce accounting.
+// remain unknown; reliable provider settlement facts use commerce accounting.
 // Allocation and fulfillment are separate commands owned by commerce.
 type CommerceSink struct{ Commerce *commerce.Service }
 
@@ -42,6 +43,45 @@ func (s CommerceSink) RecordVerifiedReceipt(ctx context.Context, tx *gorm.DB, m 
 		payer = e["payer_reference"]
 		verifiedBy = e["verified_by"]
 	}
-	receipt, e := s.Commerce.RecordReceipt(ctx, tx, commerce.VerifiedReceipt{OperatorID: f.OperatorID, Provider: f.Driver + ":" + m.ID, ProviderReceiptID: f.ProviderID, GrossMoney: value.Amount, FeeStatus: "pending", Currency: f.Money.Currency, OriginalAmount: f.Money.Amount.String(), RecipientReference: reference, PayerReference: payer, ValuationEvidence: string(valuation), VerificationEvidence: string(f.Evidence), VerifiedBy: verifiedBy, PaidAt: f.OccurredAt, ObservedAt: f.ObservedAt})
-	return receipt.ID, e
+	fee := ledger.Zero()
+	if o.FeeQuote != nil && value.Amount.Cmp(o.FeeQuote.TotalMoney) == 0 {
+		fee = o.FeeQuote.FeeMoney
+	}
+	receipt, e := s.Commerce.RecordReceipt(ctx, tx, commerce.VerifiedReceipt{PaymentFeeMoney: fee, OperatorID: f.OperatorID, Provider: f.Driver + ":" + m.ID, ProviderReceiptID: f.ProviderID, GrossMoney: value.Amount, FeeStatus: "pending", Currency: f.Money.Currency, OriginalAmount: f.Money.Amount.String(), RecipientReference: reference, PayerReference: payer, ValuationEvidence: string(valuation), VerificationEvidence: string(f.Evidence), VerifiedBy: verifiedBy, PaidAt: f.OccurredAt, ObservedAt: f.ObservedAt})
+	if e != nil {
+		return "", e
+	}
+	if e = s.ConfirmVerifiedReceiptFee(ctx, tx, receipt.ID, f); e != nil {
+		return "", e
+	}
+	return receipt.ID, nil
+}
+
+// A provider fee is an independent fact, never the configured customer charge.
+func (s CommerceSink) ConfirmVerifiedReceiptFee(ctx context.Context, tx *gorm.DB, id string, f Fact) error {
+	if f.MerchantFee == nil || !f.Verified() {
+		return nil
+	}
+	r, e := s.Commerce.GetReceipt(ctx, tx, f.OperatorID, id)
+	if e != nil {
+		return e
+	}
+	if f.MerchantFee.Currency != r.Currency {
+		return nil
+	}
+	if f.MerchantFee.Amount.Sign() < 0 || !f.MerchantFee.Amount.Valid() {
+		return ErrInvalid
+	}
+	original, e := ledger.ParseDecimal(r.OriginalAmount)
+	if e != nil {
+		return e
+	}
+	// Some providers settle an additional charge separately when costs exceed
+	// this receipt. Preserve the provider fact without blocking the real receipt
+	// or pretending that its net settlement can be represented by this model.
+	if f.MerchantFee.Amount.Cmp(original) > 0 {
+		return nil
+	}
+	_, e = s.Commerce.RecordReceiptAccounting(ctx, tx, commerce.ReceiptAccounting{ReceiptID: id, OriginalFeeAmount: &f.MerchantFee.Amount, Evidence: string(f.Evidence), VerifiedBy: "adapter:" + f.Driver})
+	return e
 }

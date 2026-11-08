@@ -198,7 +198,7 @@ func TestPostgresCommissionPageSetsWithdrawalMinimumOnly(t *testing.T) {
 		t.Fatal(page["items"])
 	}
 	status, out, _ = f.call(t, "POST", base+"/withdrawals", map[string]any{"minimum_money": "9"}, "")
-	if status != 400 {
+	if status != 409 {
 		t.Fatal(status, out)
 	}
 	version := page["items"].([]any)[0].(map[string]any)["version"]
@@ -221,7 +221,7 @@ func TestPostgresBalanceWithdrawalMinimumIsSetOnItsOwnPage(t *testing.T) {
 	base := "/v1/operators/" + f.a.Installation.OperatorID
 	status, page, _ := f.call(t, "GET", base+"/balance-withdrawals?view=methods", nil, "")
 	mustOK(t, status, page)
-	if labels := viewLabels(page); len(labels) != 3 || labels[0] != "提现申请" || labels[1] != "提现方式" || labels[2] != "最低提现额度" {
+	if labels := viewLabels(page); len(labels) != 2 || labels[0] != "提现申请" || labels[1] != "最低提现额度" {
 		t.Fatal(page["views"])
 	}
 	for _, raw := range page["operations"].([]any) {
@@ -234,7 +234,7 @@ func TestPostgresBalanceWithdrawalMinimumIsSetOnItsOwnPage(t *testing.T) {
 	}
 	status, commission, _ := f.call(t, "GET", base+"/withdrawals", nil, "")
 	mustOK(t, status, commission)
-	if labels := viewLabels(commission); len(labels) != 2 {
+	if labels := viewLabels(commission); len(labels) != 1 {
 		t.Fatal("commission withdrawals gained the balance minimum page", commission["views"])
 	}
 	status, page, _ = f.call(t, "GET", base+"/balance-withdrawals?view=minimum", nil, "")

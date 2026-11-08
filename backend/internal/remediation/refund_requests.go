@@ -48,8 +48,12 @@ func (s *Service) RequestUnallocatedRefund(ctx context.Context, actor, op, recei
 		if e != nil || found {
 			return e
 		}
-		if _, e = s.Commerce.GetReceipt(ctx, t, op, receipt); e != nil {
+		receiptFact, e := s.Commerce.GetReceipt(ctx, t, op, receipt)
+		if e != nil {
 			return e
+		}
+		if receiptFact.PaymentFeeMoney.Sign() > 0 && (receiptFact.AllocatedMoney.Sign() > 0 || amount.Cmp(receiptFact.GrossMoney) != 0) {
+			return ErrInvalid
 		}
 		a, e := s.account(ctx, t, op, receipt, "receipt:unallocated")
 		if e != nil {
@@ -175,11 +179,19 @@ func (s *Service) RequestPackageException(ctx context.Context, in PackageExcepti
 		group := map[string]ledger.Decimal{}
 		external := ledger.Zero()
 		for _, a := range allocs {
-			group[a.ReceiptID] = a.AmountMoney
+			receipt, e := s.Commerce.GetReceipt(ctx, t, in.OperatorID, a.ReceiptID)
+			if e != nil {
+				return e
+			}
+			group[a.ReceiptID] = a.AmountMoney.Add(receipt.PaymentFeeMoney)
+			out.AmountMoney = out.AmountMoney.Add(receipt.PaymentFeeMoney)
 			external = external.Add(a.AmountMoney)
 		}
 		if external.Cmp(o.DueMoney.Sub(o.InternalMoney).Sub(o.CommissionMoney)) != 0 {
 			return ErrConflict
+		}
+		if e = t.Model(&out).Update("amount_money", out.AmountMoney).Error; e != nil {
+			return e
 		}
 		return s.createLegs(ctx, t, out, group, nil, in.Evidence)
 	})
@@ -221,11 +233,15 @@ func (s *Service) RequestProcurementNonDelivery(ctx context.Context, in Procurem
 		if e != nil {
 			return e
 		}
-		out = Case{ID: uuid.NewString(), OperatorID: in.SupplierID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "procurement_nondelivery", OrderID: &o.ID, AmountMoney: o.DueMoney, State: "pending_review", Reason: in.Reason, Evidence: in.Evidence, RequestedBy: in.ActorStaffID, CreatedAt: at}
+		receipt, e := s.Commerce.GetReceipt(ctx, t, in.SupplierID, allocation.ReceiptID)
+		if e != nil {
+			return e
+		}
+		out = Case{ID: uuid.NewString(), OperatorID: in.SupplierID, BusinessKey: in.BusinessKey, Fingerprint: fingerprint(in), Kind: "procurement_nondelivery", OrderID: &o.ID, AmountMoney: o.DueMoney.Add(receipt.PaymentFeeMoney), State: "pending_review", Reason: in.Reason, Evidence: in.Evidence, RequestedBy: in.ActorStaffID, CreatedAt: at}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
-		return s.createLegs(ctx, t, out, map[string]ledger.Decimal{allocation.ReceiptID: allocation.AmountMoney}, nil, in.Evidence)
+		return s.createLegs(ctx, t, out, map[string]ledger.Decimal{allocation.ReceiptID: allocation.AmountMoney.Add(receipt.PaymentFeeMoney)}, nil, in.Evidence)
 	})
 	return out, e
 }

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	platformcrypto "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -22,7 +23,7 @@ import (
 //go:embed schema.sql
 var schema string
 
-//go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql zzzzzz_payment_quotes.sql
+//go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql zzzzzz_payment_quotes.sql zzzzzzz_shared_payment_methods.sql
 var migrationFS embed.FS
 
 //go:embed zz_refund_executions.sql
@@ -49,10 +50,13 @@ var nativeSettlementSchema string
 //go:embed zzzzzz_payment_quotes.sql
 var paymentQuoteSchema string
 
+//go:embed zzzzzzz_shared_payment_methods.sql
+var sharedMethodsSchema string
+
 func Migrations() (string, fs.FS) { return "payments", migrationFS }
 
 func Schema() string {
-	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema
+	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema + "\n" + sharedMethodsSchema
 }
 
 type Authorizer interface {
@@ -60,6 +64,9 @@ type Authorizer interface {
 }
 type ReceiptSink interface {
 	RecordVerifiedReceipt(context.Context, *gorm.DB, Merchant, Order, Fact, MoneyValue) (string, error)
+}
+type ReceiptFeeSink interface {
+	ConfirmVerifiedReceiptFee(context.Context, *gorm.DB, string, Fact) error
 }
 type ReceiptCorrectionSink interface {
 	ConfirmVerifiedPaymentTime(context.Context, *gorm.DB, string, Fact) error
@@ -126,6 +133,13 @@ func (s *Service) SaveMerchant(ctx context.Context, actor string, m Merchant, ex
 		sort.Strings(view.FieldsSet)
 		if m.Enabled && len(view.MissingFields) > 0 {
 			return ErrNotConfigured
+		}
+		if _, e := paymentmethods.Current(ctx, tx, m.OperatorID, m.ID); errors.Is(e, gorm.ErrRecordNotFound) {
+			if _, e = paymentmethods.Save(ctx, tx, paymentmethods.Rule{CreatedBy: actor, MethodID: m.ID, OperatorID: m.OperatorID, Name: m.Driver, Collection: true}, 0); e != nil {
+				return e
+			}
+		} else if e != nil {
+			return e
 		}
 		m.Version = expected + 1
 		view.Version = m.Version
@@ -292,7 +306,10 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	var quoteErr error
 	if exists == 0 {
 		var quoted Order
-		quoted, quoteErr = s.preparePaymentQuote(ctx, m, o)
+		quoted, quoteErr = s.addCollectionFee(ctx, m, o)
+		if quoteErr == nil {
+			quoted, quoteErr = s.preparePaymentQuote(ctx, m, quoted)
+		}
 		if quoteErr == nil {
 			o = quoted
 		}
@@ -376,6 +393,7 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 		callErr = ErrConflict
 	}
 	checkout.PaymentQuote = o.PaymentQuote
+	checkout.FeeQuote = o.FeeQuote
 	if checkout.PayMoney == nil && o.Money.Amount.Sign() > 0 {
 		payment := o.Money
 		checkout.PayMoney = &payment
@@ -628,6 +646,24 @@ func (s *Service) RecordFact(ctx context.Context, m Merchant, o Order, incoming 
 				if row.ReceiptID != "" {
 					if corrector, ok := s.Sink.(ReceiptCorrectionSink); ok {
 						if e := corrector.ConfirmVerifiedPaymentTime(ctx, tx, row.ReceiptID, f); e != nil {
+							return e
+						}
+					}
+				}
+			}
+			if incoming.MerchantFee != nil {
+				if f.MerchantFee != nil && (f.MerchantFee.Currency != incoming.MerchantFee.Currency || f.MerchantFee.Amount.Cmp(incoming.MerchantFee.Amount) != 0) {
+					return ErrConflict
+				}
+				f.MerchantFee = incoming.MerchantFee
+				f.Evidence = incoming.Evidence
+				raw, _ := json.Marshal(f)
+				if e := tx.Table("payments_verified_facts").Where("id=?", f.ID).Update("fact", string(raw)).Error; e != nil {
+					return e
+				}
+				if row.ReceiptID != "" {
+					if sink, ok := s.Sink.(ReceiptFeeSink); ok {
+						if e := sink.ConfirmVerifiedReceiptFee(ctx, tx, row.ReceiptID, f); e != nil {
 							return e
 						}
 					}

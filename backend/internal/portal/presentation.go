@@ -57,7 +57,7 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				}
 				ops[i].Fields = details
 			}
-			if resource == "payment-methods" && a.Config.TestLoopback {
+			if resource == "payment-methods" && ops[i].Name == "configure" && a.Config.TestLoopback {
 				ops[i].Fields = append(ops[i].Fields, optional("api_base_url", "独立协议测试地址（仅隔离测试）", "text"))
 			}
 			for j := range ops[i].Fields {

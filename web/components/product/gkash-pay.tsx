@@ -1,4 +1,5 @@
 "use client";
+import { CollectionFeeSummary } from "./collection-fee";
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useI18n } from "@/components/i18n";
@@ -32,9 +33,9 @@ export function GkashPay({ action, order, onChangeMethod, onOpened }: { action: 
     </form>
     {(customerCanSwitch || order.method_change_allowed === true && onChangeMethod) && <div className="space-y-3 border-t border-hairline pt-4">
       {!choosing && <Button type="button" variant="outline" onClick={() => onChangeMethod ? onChangeMethod() : setChoosing(true)}>{t("改用其它付款方式")}</Button>}
-      {choosing && customerCanSwitch && <form className="space-y-3" onSubmit={async event => { event.preventDefault(); if (!nextMethod || replace.busy) return; await replace.run({ external_method_id: nextMethod }); setChoosing(false); }}>
-        <label className="block text-sm">{t("选择其它付款方式")}<select required value={nextMethod} onChange={event => setNextMethod(event.target.value)} className="mt-2 h-11 w-full rounded-control border border-hairline bg-canvas-raised px-3"><option value="">{t("选择已就绪的支付方式")}</option>{others.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <div className="flex flex-wrap gap-3"><Button type="submit" disabled={replace.busy || !nextMethod}>{replace.busy ? t("正在更换付款方式…") : t("确认更换付款方式")}</Button><Button type="button" variant="ghost" onClick={() => setChoosing(false)}>{t("留下当前付款方式")}</Button></div>
+      {choosing && customerCanSwitch && <form className="space-y-3" onSubmit={async event => { event.preventDefault(); if (!nextMethod || replace.busy) return; await replace.run({ external_method_id: nextMethod,fee_rule_id:others.find(item=>item.id===nextMethod)?.fee_rule_id }); setChoosing(false); }}>
+        <label className="block text-sm">{t("选择其它付款方式")}<select required value={nextMethod} onChange={event => setNextMethod(event.target.value)} className="mt-2 h-11 w-full rounded-control border border-hairline bg-canvas-raised px-3"><option value="">{t("选择已就绪的支付方式")}</option>{others.map(item => <option key={item.id} value={item.id}>{item.display_name || item.name}</option>)}</select></label>
+        <CollectionFeeSummary amount={action.fee_quote?.amount_money || order.amount_money} rule={others.find(item=>item.id===nextMethod)}/><div className="flex flex-wrap gap-3"><Button type="submit" disabled={replace.busy || !nextMethod}>{replace.busy ? t("正在更换付款方式…") : t("确认更换付款方式")}</Button><Button type="button" variant="ghost" onClick={() => setChoosing(false)}>{t("留下当前付款方式")}</Button></div>
       </form>}
     </div>}
     {replace.error ? <ErrorPanel error={replace.error} /> : null}

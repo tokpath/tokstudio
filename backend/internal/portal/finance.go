@@ -36,52 +36,6 @@ type manualReceiptInput struct {
 	SettledAt            *time.Time      `json:"settled_at"`
 }
 
-func (a *Application) receiptAccountingCommand(c *gin.Context, op organization.Operator, actor string) {
-	var in struct {
-		FeeMoney          *ledger.Decimal `json:"fee_money"`
-		OriginalFeeAmount *ledger.Decimal `json:"original_fee_amount"`
-		SettledAt         *time.Time      `json:"settled_at"`
-		Evidence          string          `json:"evidence"`
-	}
-	if !body(c, &in) {
-		return
-	}
-	ctx := c.Request.Context()
-	raw, err := a.command(c, "receipt-accounting:"+op.ID+":"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
-		receipt, err := a.Commerce.GetReceipt(ctx, tx, op.ID, c.Param("id"))
-		if err != nil {
-			return nil, err
-		}
-		settings, err := ledger.GetMonetary(ctx, tx)
-		if err != nil {
-			return nil, err
-		}
-		fee := in.FeeMoney
-		originalFee := in.OriginalFeeAmount
-		if receipt.Currency == settings.Currency {
-			if fee != nil && originalFee != nil && fee.Cmp(*originalFee) != 0 {
-				return nil, commerce.ErrInvalidInput
-			}
-			if fee == nil {
-				fee = originalFee
-			}
-			if originalFee == nil {
-				originalFee = fee
-			}
-		}
-		accounting := commerce.ReceiptAccounting{ReceiptID: receipt.ID, OriginalFeeAmount: originalFee, Evidence: in.Evidence, VerifiedBy: "staff:" + actor}
-		if fee != nil {
-			accounting.SettlementFeeConfirmed = true
-			accounting.FeeMoney = *fee
-			accounting.NetMoney = receipt.GrossMoney.Sub(*fee)
-			accounting.SettledAt = in.SettledAt
-		}
-		out, err := a.Commerce.RecordReceiptAccounting(ctx, tx, accounting)
-		return commandResult(out.ID, "confirmed"), err
-	})
-	jsonResponse(c, raw, err)
-}
-
 func (in manualReceiptInput) verified(operator, settlementCurrency string) (commerce.VerifiedReceipt, error) {
 	currency := strings.ToUpper(strings.TrimSpace(in.Currency))
 	gross := in.GrossMoney
@@ -148,21 +102,11 @@ func (in manualReceiptInput) verified(operator, settlementCurrency string) (comm
 }
 
 func manualReceiptFields() []field {
-	gross := f("settlement_amount", "已核实订单入账金额（结算币种，扣己方手续费前）", "decimal")
-	gross.Help = "仅登记这笔真实原币收款对应的订单清算金额。收款方承担的手续费不减少订单交付额度。"
-	original := f("original_amount", "实际原币收款总额（扣己方手续费前）", "decimal")
-	original.Help = "保留真实收款币种与金额；付款人另付的发送费或链上手续费不计入。"
-	fee := optional("original_fee_amount", "己方收款手续费（原币，可稍后核实）", "decimal")
-	fee.Help = "只记录收款方承担的真实原币费用。未核实时留空，确实没有时填0。"
-	settlementFee := receiptFeeField()
-	settlementFee.Required = false
-	return []field{optional("order_id", "关联订单（可选）", "text"), optional("provider_receipt_id", "收款流水或收据号（可选）", "text"), f("currency", "真实收款币种", "text"), original, gross, f("settlement_evidence", "本笔交易与订单清算金额的核实依据", "textarea"), optional("recipient_reference", "收款方资料（可选）", "text"), optional("payer_reference", "付款方资料（可选）", "text"), f("paid_at", "真实付款时刻", "datetime"), optional("verification_evidence", "收款说明或凭证（可选）", "textarea"), fee, settlementFee, optional("settled_at", "通道结算到账时间（清算手续费已核实时填写）", "datetime"), optional("network", "原网络（链上收款时填写）", "text")}
-}
-
-func receiptFeeField() field {
-	fee := f("fee_money", "已核实清算手续费（结算币种）", "decimal")
-	fee.Help = "仅在通道真实提供或人工明确核实结算币种费用时登记。同币费用可直接记录；不能按原币费用自动折算。该费用由收款方承担，不减少订单交付金额。"
-	return fee
+	gross := f("settlement_amount", "已核实收款总额（结算币种，含支付手续费）", "decimal")
+	gross.Help = "填写付款人本次实际支付的总额。关联订单后，系统按付款时固定的规则区分订单本金和支付手续费，套餐、采购或充值权益只按本金交付。"
+	original := f("original_amount", "实际原币收款总额", "decimal")
+	original.Help = "记录真实收款币种与金额；付款人在外部自行支付的发送费或链上手续费不计入。"
+	return []field{optional("order_id", "关联订单（可选）", "text"), optional("provider_receipt_id", "收款流水或收据号（可选）", "text"), f("currency", "真实收款币种", "text"), original, gross, f("settlement_evidence", "本笔交易与订单清算金额的核实依据", "textarea"), optional("recipient_reference", "收款方资料（可选）", "text"), optional("payer_reference", "付款方资料（可选）", "text"), f("paid_at", "真实付款时刻", "datetime"), optional("verification_evidence", "收款说明或凭证（可选）", "textarea"), optional("network", "原网络（链上收款时填写）", "text")}
 }
 
 func (a *Application) allocateWholeRetailReceipt(ctx context.Context, tx *gorm.DB, actor, operator, receiptID, orderID, businessKey string) (commerce.Allocation, error) {
@@ -172,6 +116,9 @@ func (a *Application) allocateWholeRetailReceipt(ctx context.Context, tx *gorm.D
 	}
 	receipt, err := a.Commerce.GetReceipt(ctx, tx, operator, receiptID)
 	if err != nil {
+		return commerce.Allocation{}, err
+	}
+	if err = a.validateCollectionReceipt(ctx, tx, operator, orderID, &receipt); err != nil {
 		return commerce.Allocation{}, err
 	}
 	if receipt.Provider == "manual" {
@@ -253,7 +200,10 @@ func (a *Application) allocateWholeSalesReceipt(ctx context.Context, tx *gorm.DB
 	if err != nil {
 		return salesReceiptAllocation{}, err
 	}
-	if _, err = a.Cooperation.FundPurchase(ctx, tx, a.Commerce, actor, orderID, receiptID, businessKey, receipt.GrossMoney); err != nil {
+	if err = a.validateCollectionReceipt(ctx, tx, operator, orderID, &receipt); err != nil {
+		return salesReceiptAllocation{}, err
+	}
+	if _, err = a.Cooperation.FundPurchase(ctx, tx, a.Commerce, actor, orderID, receiptID, businessKey, receipt.GrossMoney.Sub(receipt.PaymentFeeMoney)); err != nil {
 		return salesReceiptAllocation{}, err
 	}
 	// The payment remains allocated even if stock cannot be delivered now.

@@ -28,6 +28,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	pc "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
@@ -79,6 +80,10 @@ func handleError(c *gin.Context, err error) {
 	}
 	status, code, msg, retry := 500, "internal_error", "处理失败，请沿用本次操作编号重试", true
 	switch {
+	case errors.Is(err, paymentmethods.ErrChanged):
+		status, code, msg, retry = 409, "payment_fee_changed", "支付方式或手续费已变化，请刷新后重新核对金额。", false
+	case errors.Is(err, paymentmethods.ErrInvalid):
+		status, code, msg, retry = 400, "invalid_payment_fee", "请检查支付方式和手续费规则。", false
 	case errors.Is(err, payments.ErrQuoteUnavailable):
 		status, code, msg, retry = 409, "payment_quote_unavailable", "暂时无法取得有效付款报价，请稍后重试或选择其他付款方式；报价来源由平台配置。", true
 	case errors.Is(err, mail.ErrSettings):

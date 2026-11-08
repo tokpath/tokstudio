@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -84,13 +85,14 @@ func (d Stripe) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 	if o.Validate(m) != nil || o.ProviderID == "" {
 		return Fact{}, ErrInvalid
 	}
-	raw, e := d.call(ctx, m, http.MethodGet, "/v1/payment_intents/"+url.PathEscape(o.ProviderID), nil, "")
+	raw, e := d.call(ctx, m, http.MethodGet, "/v1/payment_intents/"+url.PathEscape(o.ProviderID)+"?expand[]=latest_charge.balance_transaction", nil, "")
 	if e != nil {
 		return Fact{}, e
 	}
 	var pi struct {
 		ID, Status, Currency string
-		AmountReceived       int64 `json:"amount_received"`
+		AmountReceived       int64           `json:"amount_received"`
+		LatestCharge         json.RawMessage `json:"latest_charge"`
 		Metadata             struct {
 			OrderID    string `json:"order_id"`
 			OperatorID string `json:"operator_id"`
@@ -110,7 +112,35 @@ func (d Stripe) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 	if e != nil {
 		return Fact{}, e
 	}
-	return receiptFact(m, o, pi.ID, money, nil, map[string]any{"payment_intent": pi.ID, "status": pi.Status, "amount_received": pi.AmountReceived, "currency": pi.Currency})
+	evidence := map[string]any{"payment_intent": pi.ID, "status": pi.Status, "amount_received": pi.AmountReceived, "currency": pi.Currency}
+	var charge struct {
+		ID      string
+		Balance json.RawMessage `json:"balance_transaction"`
+	}
+	var balance struct {
+		ID, Currency, Source string
+		Amount, Fee, Net     *int64
+	}
+	var merchantFee *Money
+	if json.Unmarshal(pi.LatestCharge, &charge) == nil && json.Unmarshal(charge.Balance, &balance) == nil && charge.ID != "" && balance.ID != "" && balance.Source == charge.ID && balance.Amount != nil && balance.Fee != nil && balance.Net != nil && *balance.Fee >= 0 && *balance.Amount-*balance.Fee == *balance.Net && (!strings.EqualFold(balance.Currency, pi.Currency) || *balance.Amount == pi.AmountReceived) {
+		if precision, ok := stripeMinorDigits(strings.ToUpper(balance.Currency)); ok {
+			fee := Money{Currency: strings.ToUpper(balance.Currency), Amount: ledger.Zero()}
+			valid := *balance.Fee == 0
+			if *balance.Fee > 0 {
+				var err error
+				fee, err = fromMinor(balance.Currency, *balance.Fee, precision)
+				valid = err == nil
+			}
+			if valid {
+				merchantFee = &fee
+				evidence["merchant_fee"] = fee
+				evidence["balance_transaction"] = balance.ID
+			}
+		}
+	}
+	fact, e := receiptFact(m, o, pi.ID, money, nil, evidence)
+	fact.MerchantFee = merchantFee
+	return fact, e
 }
 func (d Stripe) Refund(ctx context.Context, m Merchant, r Refund) (RefundStatus, error) {
 	if e := ready(m, d); e != nil {

@@ -16,6 +16,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db/dbtest"
 	"gorm.io/gorm"
@@ -62,6 +63,7 @@ func setup(t *testing.T) fixture {
 	}
 	apply(commerce.Migrations())
 	apply(cooperation.Migrations())
+	apply(paymentmethods.Migrations())
 	apply(incentives.Migrations())
 	apply(Migrations())
 	apply(payments.Migrations())

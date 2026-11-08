@@ -16,6 +16,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/modelpricing"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db/dbtest"
 	"github.com/tokpath/tokstudio/backend/internal/remediation"
@@ -44,6 +45,7 @@ func TestFinancialReportRecordedFactsScopeAndTakeover(t *testing.T) {
 	apply(organization.Migrations())
 	apply(ledger.Migrations())
 	apply(commerce.Migrations())
+	apply(paymentmethods.Migrations())
 	apply(incentives.Migrations())
 	apply(cooperation.Migrations())
 	apply(usage.Migrations())

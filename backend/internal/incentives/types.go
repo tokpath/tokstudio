@@ -227,6 +227,7 @@ type WithdrawalPolicy struct {
 	EffectiveAt          time.Time      `json:"effective_at"`
 }
 type WithdrawalInput struct {
+	Wallet             string         `json:"wallet"`
 	OperatorID         string         `json:"operator_id"`
 	CustomerID         string         `json:"customer_id"`
 	BusinessKey        string         `json:"business_key"`

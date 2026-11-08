@@ -5191,6 +5191,10 @@
                   "external_method_id": {
                     "type": "string",
                     "format": "uuid"
+                  },
+                  "fee_rule_id": {
+                    "type": "string",
+                    "format": "uuid"
                   }
                 },
                 "required": [
@@ -12475,7 +12479,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Operator_payment_methods_configure"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Operator_payment_methods_configure"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Operator_payment_methods_fee_rule"
+                  }
+                ]
               }
             }
           }
@@ -18922,138 +18933,6 @@
           }
         },
         "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
-      },
-      "post": {
-        "operationId": "post__v1_operators_operatorId_withdrawals",
-        "summary": "新增提现方式",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Operator_withdrawals_method"
-              }
-            }
-          }
-        },
-        "description": "Configure one payout method. The operator selects a payment profile, which fixes the recipient materials, and either a fixed fee or a percentage. The customer submits one application. The fee and recipient materials are fixed at submission. No actual payout fee is entered. Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "withdrawals.manage"
       }
     },
     "/v1/operators/{operatorId}/disputes": {
@@ -31661,292 +31540,8 @@
             }
           }
         },
-        "description": "选择一笔尚未分配的收款，系统按该笔 清算币种 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。 Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "Select the actual manual collection method and the procurement principal. Principal plus the accepted payment fee must equal the actual receipt total; only principal delivers ATG. Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "payments.manage"
-      }
-    },
-    "/v1/operators/{operatorId}/payments/{id}/accounting": {
-      "post": {
-        "operationId": "post__v1_operators_operatorId_payments_id_accounting",
-        "summary": "核实手续费与结算",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Operator_payments_accounting"
-              }
-            }
-          }
-        },
-        "description": " Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "payments.manage"
-      }
-    },
-    "/v1/operators/{operatorId}/withdrawals/{id}/edit_method": {
-      "post": {
-        "operationId": "post__v1_operators_operatorId_withdrawals_id_edit_method",
-        "summary": "修改提现方式",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Operator_withdrawals_edit_method"
-              }
-            }
-          }
-        },
-        "description": "Configure one payout method. The operator selects a payment profile, which fixes the recipient materials, and either a fixed fee or a percentage. The customer submits one application. The fee and recipient materials are fixed at submission. No actual payout fee is entered. Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "withdrawals.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/confirm_fee": {
@@ -32089,6 +31684,148 @@
         },
         "description": " Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "refunds.manage"
+      }
+    },
+    "/v1/operators/{operatorId}/payment-methods/{id}/fee_rule": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_payment_methods_id_fee_rule",
+        "summary": "设置方式与费用",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_payment_methods_fee_rule"
+              }
+            }
+          }
+        },
+        "description": "One immutable fee version shared by collections and both withdrawal wallets. Editing payout availability additionally requires withdrawals.manage. Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
       }
     },
     "/v1/operators/{operatorId}/takeovers/{id}/refresh": {
@@ -34065,9 +33802,48 @@
         ],
         "additionalProperties": true
       },
+      "FeeRule": {
+        "type": "object",
+        "properties": {
+          "driver": {
+            "type": "string"
+          },
+          "fee_rule_id": {
+            "type": "string"
+          },
+          "flat_fee_money": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+          },
+          "fee_rate": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+          }
+        },
+        "required": [
+          "fee_rule_id",
+          "flat_fee_money",
+          "fee_rate"
+        ],
+        "additionalProperties": true
+      },
       "PaymentMethod": {
         "type": "object",
         "properties": {
+          "fee_rule_id": {
+            "type": "string"
+          },
+          "flat_fee_money": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+          },
+          "fee_rate": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+          },
+          "display_name": {
+            "type": "string"
+          },
           "settlement_currency": {
             "type": "string"
           },
@@ -34607,6 +34383,20 @@
             "items": {
               "type": "object",
               "properties": {
+                "fee_rule_id": {
+                  "type": "string"
+                },
+                "flat_fee_money": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                },
+                "fee_rate": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                },
+                "display_name": {
+                  "type": "string"
+                },
                 "settlement_currency": {
                   "type": "string"
                 },
@@ -35706,6 +35496,52 @@
           "order": {
             "type": "object",
             "properties": {
+              "fee_quote": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "rule_id": {
+                        "type": "string"
+                      },
+                      "method_id": {
+                        "type": "string"
+                      },
+                      "method_name": {
+                        "type": "string"
+                      },
+                      "currency": {
+                        "type": "string"
+                      },
+                      "amount_money": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                      },
+                      "fee_money": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                      },
+                      "total_money": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                      }
+                    },
+                    "required": [
+                      "rule_id",
+                      "method_id",
+                      "method_name",
+                      "currency",
+                      "amount_money",
+                      "fee_money",
+                      "total_money"
+                    ],
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "payment_state": {
                 "type": "string"
               },
@@ -35799,6 +35635,52 @@
                   {
                     "type": "object",
                     "properties": {
+                      "fee_quote": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "rule_id": {
+                                "type": "string"
+                              },
+                              "method_id": {
+                                "type": "string"
+                              },
+                              "method_name": {
+                                "type": "string"
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "amount_money": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                              },
+                              "fee_money": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                              },
+                              "total_money": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                              }
+                            },
+                            "required": [
+                              "rule_id",
+                              "method_id",
+                              "method_name",
+                              "currency",
+                              "amount_money",
+                              "fee_money",
+                              "total_money"
+                            ],
+                            "additionalProperties": true
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "payment_quote": {
                         "anyOf": [
                           {
@@ -36445,9 +36327,94 @@
         ],
         "additionalProperties": true
       },
+      "CollectionFeeQuote": {
+        "type": "object",
+        "properties": {
+          "rule_id": {
+            "type": "string"
+          },
+          "method_id": {
+            "type": "string"
+          },
+          "method_name": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "amount_money": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+          },
+          "fee_money": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+          },
+          "total_money": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+          }
+        },
+        "required": [
+          "rule_id",
+          "method_id",
+          "method_name",
+          "currency",
+          "amount_money",
+          "fee_money",
+          "total_money"
+        ],
+        "additionalProperties": true
+      },
       "Order": {
         "type": "object",
         "properties": {
+          "fee_quote": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "rule_id": {
+                    "type": "string"
+                  },
+                  "method_id": {
+                    "type": "string"
+                  },
+                  "method_name": {
+                    "type": "string"
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "amount_money": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                  },
+                  "fee_money": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                  },
+                  "total_money": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                  }
+                },
+                "required": [
+                  "rule_id",
+                  "method_id",
+                  "method_name",
+                  "currency",
+                  "amount_money",
+                  "fee_money",
+                  "total_money"
+                ],
+                "additionalProperties": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "payment_state": {
             "type": "string"
           },
@@ -36541,6 +36508,52 @@
               {
                 "type": "object",
                 "properties": {
+                  "fee_quote": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "rule_id": {
+                            "type": "string"
+                          },
+                          "method_id": {
+                            "type": "string"
+                          },
+                          "method_name": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "amount_money": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                          },
+                          "fee_money": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                          },
+                          "total_money": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                          }
+                        },
+                        "required": [
+                          "rule_id",
+                          "method_id",
+                          "method_name",
+                          "currency",
+                          "amount_money",
+                          "fee_money",
+                          "total_money"
+                        ],
+                        "additionalProperties": true
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "payment_quote": {
                     "anyOf": [
                       {
@@ -40300,6 +40313,31 @@
                 },
                 "label": {
                   "type": "string"
+                },
+                "fee_rule": {
+                  "type": "object",
+                  "properties": {
+                    "driver": {
+                      "type": "string"
+                    },
+                    "fee_rule_id": {
+                      "type": "string"
+                    },
+                    "flat_fee_money": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                    },
+                    "fee_rate": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                    }
+                  },
+                  "required": [
+                    "fee_rule_id",
+                    "flat_fee_money",
+                    "fee_rate"
+                  ],
+                  "additionalProperties": true
                 }
               },
               "required": [
@@ -41421,6 +41459,31 @@
                       },
                       "label": {
                         "type": "string"
+                      },
+                      "fee_rule": {
+                        "type": "object",
+                        "properties": {
+                          "driver": {
+                            "type": "string"
+                          },
+                          "fee_rule_id": {
+                            "type": "string"
+                          },
+                          "flat_fee_money": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                          },
+                          "fee_rate": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                          }
+                        },
+                        "required": [
+                          "fee_rule_id",
+                          "flat_fee_money",
+                          "fee_rate"
+                        ],
+                        "additionalProperties": true
                       }
                     },
                     "required": [
@@ -43114,6 +43177,31 @@
                             },
                             "label": {
                               "type": "string"
+                            },
+                            "fee_rule": {
+                              "type": "object",
+                              "properties": {
+                                "driver": {
+                                  "type": "string"
+                                },
+                                "fee_rule_id": {
+                                  "type": "string"
+                                },
+                                "flat_fee_money": {
+                                  "type": "string",
+                                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                                },
+                                "fee_rate": {
+                                  "type": "string",
+                                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                                }
+                              },
+                              "required": [
+                                "fee_rule_id",
+                                "flat_fee_money",
+                                "fee_rate"
+                              ],
+                              "additionalProperties": true
                             }
                           },
                           "required": [
@@ -43599,6 +43687,31 @@
                             },
                             "label": {
                               "type": "string"
+                            },
+                            "fee_rule": {
+                              "type": "object",
+                              "properties": {
+                                "driver": {
+                                  "type": "string"
+                                },
+                                "fee_rule_id": {
+                                  "type": "string"
+                                },
+                                "flat_fee_money": {
+                                  "type": "string",
+                                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                                },
+                                "fee_rate": {
+                                  "type": "string",
+                                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                                }
+                              },
+                              "required": [
+                                "fee_rule_id",
+                                "flat_fee_money",
+                                "fee_rate"
+                              ],
+                              "additionalProperties": true
                             }
                           },
                           "required": [
@@ -45198,6 +45311,10 @@
           "revenue": {
             "type": "object",
             "properties": {
+              "collection_fees_money": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
               "paid_invocation_money": {
                 "type": "string",
                 "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
@@ -45809,6 +45926,10 @@
               "external_method_id": {
                 "type": "string",
                 "format": "uuid"
+              },
+              "fee_rule_id": {
+                "type": "string",
+                "format": "uuid"
               }
             },
             "required": [
@@ -45861,6 +45982,10 @@
             "$ref": "#/components/schemas/LedgerDecimal"
           },
           "external_method_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fee_rule_id": {
             "type": "string",
             "format": "uuid"
           }
@@ -47141,12 +47266,12 @@
           },
           "original_amount": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "实际原币收款总额（扣己方手续费前） — 保留真实收款币种与金额。原币等于全局清算币种时可从清算金额推导；付款人另付的发送费或链上手续费不计入。",
+            "description": "实际原币收款总额 — 不包含付款人在外部另付的发送费。",
             "x-required-when-currency-differs-from-settlement": true
           },
           "settlement_amount": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "已核实订单入账金额（结算币种，扣己方手续费前） — 仅登记本笔真实收款对应的订单清算金额。收款方承担的手续费不减少订单交付额度。",
+            "description": "已核实收款总额（结算币种，含支付手续费） — 填写实际收款总额。订单本金和已收支付手续费按订单快照区分。",
             "x-required-when-currency-differs-from-settlement": true
           },
           "settlement_evidence": {
@@ -47170,19 +47295,6 @@
           "verification_evidence": {
             "type": "string",
             "description": "收款说明或凭证（可选）"
-          },
-          "original_fee_amount": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "己方收款手续费（原币，可稍后核实） — 只记录收款方承担的真实原币费用。未核实时留空，确实没有时填0。"
-          },
-          "fee_money": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "已核实清算手续费（结算币种） — 仅在通道真实提供或人工明确核实结算币种费用时登记；不能按原币费用自动折算。该费用由收款方承担，不减少订单交付金额。付款人另付的费用不计入。"
-          },
-          "settled_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "通道结算到账时间（清算手续费已核实时填写）"
           },
           "network": {
             "type": "string",
@@ -47946,7 +48058,7 @@
           },
           "period_limit_money": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "周期最高清算币种"
+            "description": "周期付款上限（含支付手续费）"
           },
           "period": {
             "type": "string",
@@ -48019,6 +48131,10 @@
           "consent_confirmed": {
             "type": "boolean",
             "description": "确认本次补货授权"
+          },
+          "fee_rule_id": {
+            "type": "string",
+            "description": "Accepted payment fee version"
           }
         },
         "required": [
@@ -48064,7 +48180,7 @@
           },
           "period_limit_money": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "周期最高清算币种"
+            "description": "周期付款上限（含支付手续费）"
           },
           "period": {
             "type": "string",
@@ -48137,6 +48253,10 @@
           "consent_confirmed": {
             "type": "boolean",
             "description": "确认本次补货授权"
+          },
+          "fee_rule_id": {
+            "type": "string",
+            "description": "Accepted payment fee version"
           }
         },
         "required": [
@@ -48173,6 +48293,10 @@
           "merchant_id": {
             "type": "string",
             "description": "付款方式"
+          },
+          "fee_rule_id": {
+            "type": "string",
+            "description": "Accepted payment fee version"
           }
         },
         "required": [
@@ -49475,120 +49599,6 @@
         ],
         "additionalProperties": false
       },
-      "Operator_withdrawals_method": {
-        "type": "object",
-        "properties": {
-          "payout_kind": {
-            "type": "string",
-            "enum": [
-              "bank_cn",
-              "alipay",
-              "wechat",
-              "paypal",
-              "wire",
-              "usdt"
-            ],
-            "description": "支付方式 — 选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。"
-          },
-          "method_name": {
-            "type": "string",
-            "description": "提现方式名称"
-          },
-          "fee_mode": {
-            "type": "string",
-            "enum": [
-              "fixed",
-              "percent"
-            ],
-            "description": "手续费方式"
-          },
-          "flat_fee_money": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "固定手续费 结算币种",
-            "x-visible-when": {
-              "field": "fee_mode",
-              "values": [
-                "fixed"
-              ]
-            },
-            "x-required-when-visible": true
-          },
-          "fee_percent": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "手续费率 %",
-            "x-visible-when": {
-              "field": "fee_mode",
-              "values": [
-                "percent"
-              ]
-            },
-            "x-required-when-visible": true
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "开放申请"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "当前版本"
-          }
-        },
-        "required": [
-          "payout_kind",
-          "method_name",
-          "fee_mode",
-          "enabled",
-          "expected_version"
-        ],
-        "additionalProperties": false,
-        "allOf": [
-          {
-            "if": {
-              "properties": {
-                "fee_mode": {
-                  "enum": [
-                    "fixed"
-                  ]
-                }
-              },
-              "required": [
-                "fee_mode"
-              ]
-            },
-            "then": {
-              "properties": {
-                "flat_fee_money": {}
-              },
-              "required": [
-                "flat_fee_money"
-              ]
-            }
-          },
-          {
-            "if": {
-              "properties": {
-                "fee_mode": {
-                  "enum": [
-                    "percent"
-                  ]
-                }
-              },
-              "required": [
-                "fee_mode"
-              ]
-            },
-            "then": {
-              "properties": {
-                "fee_percent": {}
-              },
-              "required": [
-                "fee_percent"
-              ]
-            }
-          }
-        ]
-      },
       "Operator_withdrawals_approve": {
         "type": "object",
         "properties": {},
@@ -50329,150 +50339,26 @@
           "receipt_id": {
             "type": "string",
             "description": "本方已核实的整笔收款"
+          },
+          "amount_money": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "采购本金 结算币种"
+          },
+          "external_method_id": {
+            "type": "string",
+            "description": "本次线下收款方式"
+          },
+          "fee_rule_id": {
+            "type": "string",
+            "description": "Accepted payment fee version"
           }
         },
         "required": [
-          "receipt_id"
+          "receipt_id",
+          "amount_money",
+          "external_method_id"
         ],
         "additionalProperties": false
-      },
-      "Operator_payments_accounting": {
-        "type": "object",
-        "properties": {
-          "original_fee_amount": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "己方收款手续费（原币） — 只记录真实原币费用；未知时留空，已核实为零时填0。"
-          },
-          "fee_money": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "已核实清算手续费（结算币种） — 只登记己方承担的已核实清算币种费用，不按原币自动折算。同币两项同时提供必须一致。"
-          },
-          "settled_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "真实通道结算时刻"
-          },
-          "evidence": {
-            "type": "string",
-            "description": "费用说明（可选）"
-          }
-        },
-        "required": [],
-        "additionalProperties": false
-      },
-      "Operator_withdrawals_edit_method": {
-        "type": "object",
-        "properties": {
-          "payout_kind": {
-            "type": "string",
-            "enum": [
-              "bank_cn",
-              "alipay",
-              "wechat",
-              "paypal",
-              "wire",
-              "usdt"
-            ],
-            "description": "支付方式 — 选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。"
-          },
-          "method_name": {
-            "type": "string",
-            "description": "提现方式名称"
-          },
-          "fee_mode": {
-            "type": "string",
-            "enum": [
-              "fixed",
-              "percent"
-            ],
-            "description": "手续费方式"
-          },
-          "flat_fee_money": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "固定手续费 结算币种",
-            "x-visible-when": {
-              "field": "fee_mode",
-              "values": [
-                "fixed"
-              ]
-            },
-            "x-required-when-visible": true
-          },
-          "fee_percent": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "手续费率 %",
-            "x-visible-when": {
-              "field": "fee_mode",
-              "values": [
-                "percent"
-              ]
-            },
-            "x-required-when-visible": true
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "开放申请"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "当前版本"
-          }
-        },
-        "required": [
-          "payout_kind",
-          "method_name",
-          "fee_mode",
-          "enabled",
-          "expected_version"
-        ],
-        "additionalProperties": false,
-        "allOf": [
-          {
-            "if": {
-              "properties": {
-                "fee_mode": {
-                  "enum": [
-                    "fixed"
-                  ]
-                }
-              },
-              "required": [
-                "fee_mode"
-              ]
-            },
-            "then": {
-              "properties": {
-                "flat_fee_money": {}
-              },
-              "required": [
-                "flat_fee_money"
-              ]
-            }
-          },
-          {
-            "if": {
-              "properties": {
-                "fee_mode": {
-                  "enum": [
-                    "percent"
-                  ]
-                }
-              },
-              "required": [
-                "fee_mode"
-              ]
-            },
-            "then": {
-              "properties": {
-                "fee_percent": {}
-              },
-              "required": [
-                "fee_percent"
-              ]
-            }
-          }
-        ]
       },
       "Operator_payment_quotes_configure": {
         "type": "object",
@@ -50603,6 +50489,84 @@
           }
         },
         "required": [],
+        "additionalProperties": false
+      },
+      "Operator_payment_methods_fee_rule": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "fee_rule",
+            "description": "操作"
+          },
+          "name": {
+            "type": "string",
+            "description": "支付方式名称"
+          },
+          "fee_mode": {
+            "type": "string",
+            "enum": [
+              "none",
+              "fixed",
+              "percent"
+            ],
+            "description": "手续费规则"
+          },
+          "flat_fee_money": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "固定手续费 结算币种",
+            "x-visible-when": {
+              "field": "fee_mode",
+              "values": [
+                "fixed"
+              ]
+            },
+            "x-required-when-visible": false
+          },
+          "fee_percent": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "手续费率 %",
+            "x-visible-when": {
+              "field": "fee_mode",
+              "values": [
+                "percent"
+              ]
+            },
+            "x-required-when-visible": false
+          },
+          "payout_enabled": {
+            "type": "boolean",
+            "description": "用于余额和佣金提现"
+          },
+          "payout_kind": {
+            "type": "string",
+            "enum": [
+              "bank_cn",
+              "alipay",
+              "wechat",
+              "paypal",
+              "wire",
+              "usdt"
+            ],
+            "description": "提现收款材料",
+            "x-visible-when": {
+              "field": "payout_enabled",
+              "values": [
+                "true"
+              ]
+            },
+            "x-required-when-visible": false
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "当前版本"
+          }
+        },
+        "required": [
+          "name",
+          "fee_mode",
+          "expected_version"
+        ],
         "additionalProperties": false
       },
       "ExecutionProof": {

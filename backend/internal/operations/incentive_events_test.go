@@ -11,6 +11,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"gorm.io/gorm"
 )
 
@@ -36,6 +37,7 @@ func TestIncentiveRelayUsesDurableFactsAndSafeAudience(t *testing.T) {
 	apply(organization.Migrations())
 	apply(ledger.Migrations())
 	apply(commerce.Migrations())
+	apply(paymentmethods.Migrations())
 	apply(incentives.Migrations())
 	org := organization.New(s.DB)
 	platform, e := org.BootstrapPlatform(ctx, nil, organization.BootstrapInput{BrandName: "Notice Test", OperatorName: "Notice Operator", OwnerStaffID: a.actor})

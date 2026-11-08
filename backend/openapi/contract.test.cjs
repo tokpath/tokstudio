@@ -48,17 +48,13 @@ test('channel invitations require exact channel customer access and expose a typ
  for(const field of ['invite_code','invite_url','brand_name','enabled','registration_open']) assert.ok(schema.required.includes(field));
 });
 
-test('receipt inputs distinguish gross value and merchant fee while net is derived',()=>{
+test('receipt inputs record gross cash without routine merchant-fee entry',()=>{
  const receipt=body('payments');
  assert.equal(receipt.properties.net_money,undefined);
- assert.match(receipt.properties.settlement_amount.description,/扣己方手续费前/);
- assert.match(receipt.properties.original_fee_amount.description,/原币/);
- assert.match(receipt.properties.fee_money.description,/收款方承担/);
- assert.match(receipt.properties.fee_money.description,/付款人另付/);
- const accounting=resolve(document.paths['/v1/operators/{operatorId}/payments/{id}/accounting'].post.requestBody.content['application/json'].schema);
- assert.match(accounting.properties.fee_money.description,/己方承担/);
- assert.ok(accounting.properties.original_fee_amount);
- assert.equal(accounting.required.includes('fee_money'),false);
+ assert.match(receipt.properties.settlement_amount.description,/含支付手续费/);
+ assert.equal(receipt.properties.original_fee_amount,undefined);
+ assert.equal(receipt.properties.fee_money,undefined);
+ assert.equal(document.paths['/v1/operators/{operatorId}/payments/{id}/accounting'],undefined);
 });
 
 test('reports export only content and dates and download a private CSV', () => {
@@ -225,12 +221,14 @@ test('procurement revisions explicitly retain authorization identity and require
 
 test('payout methods retain their actual concurrency fields', () => {
   assert.equal(document.components.schemas.Operator_refunds_policy, undefined);
-  for (const name of ['Operator_withdrawals_method', 'Operator_withdrawals_edit_method']) {
+  for (const name of ['Operator_payment_methods_fee_rule']) {
     const method = document.components.schemas[name];
     assert.equal(method.properties.expected_version.type, 'integer');
     assert.deepEqual(method.properties.payout_kind.enum, ['bank_cn', 'alipay', 'wechat', 'paypal', 'wire', 'usdt']);
-    assert.equal(method.required.includes('payout_kind'), true);
-    assert.deepEqual(method.properties.fee_mode.enum, ['fixed', 'percent']);
+    assert.ok(method.properties.payout_enabled);
+    assert.equal(document.components.schemas.Operator_withdrawals_method, undefined);
+    assert.equal(document.components.schemas.Operator_withdrawals_edit_method, undefined);
+    assert.deepEqual(method.properties.fee_mode.enum, ['none', 'fixed', 'percent']);
     assert.equal(method.properties.fee_percent.$ref, '#/components/schemas/LedgerDecimal');
     assert.equal(method.properties.configuration, undefined);
     assert.equal(method.properties.requires_dual_approval, undefined);
@@ -287,7 +285,7 @@ test('procurement uses progressive bonus bands and one whole external payment pe
   assert.equal(quote.properties.gift_tiers.items.properties.gift_percent.$ref, '#/components/schemas/LedgerDecimal');
   assert.ok(schemas.Operator_procurement_purchase.required.includes('amount_money'));
   assert.deepEqual(Object.keys(schemas.Operator_procurement_fund.properties), ['receipt_id']);
-  assert.deepEqual(Object.keys(schemas.Operator_procurement_offline_purchase.properties), ['receipt_id']);
+  assert.deepEqual(Object.keys(schemas.Operator_procurement_offline_purchase.properties), ['receipt_id','amount_money','external_method_id','fee_rule_id']);
   assert.ok(schemas.Operator_procurement_authorization.required.includes('amount_money'));
 });
 
@@ -299,7 +297,7 @@ test('finance commands derive same-settlement-currency values and retain indepen
  assert.equal(receipt.required.includes('valuation_evidence'),false);
  assert.equal(receipt.properties.valuation_evidence,undefined);
  assert.equal(receipt.properties.original_amount['x-required-when-currency-differs-from-settlement'],true);
- assert.equal(receipt.properties.original_fee_amount.$ref,'#/components/schemas/LedgerDecimal');
+ assert.equal(receipt.properties.original_fee_amount,undefined);
  assert.equal(receipt.required.includes('original_fee_amount'),false);
  assert.equal(receipt.required.includes('fee_money'),false);
  assert.ok(receipt.anyOf.some(rule=>rule.required.includes('settlement_amount')));
@@ -322,7 +320,7 @@ test('finance exposes one account workspace and allocates full order amounts ser
  assert.equal(document.paths['/v1/operators/{operatorId}/assets'],undefined);
  assert.equal(document.paths['/v1/operators/{operatorId}/evidence']?.get,undefined);
  assert.ok(document.paths['/v1/operators/{operatorId}/evidence']?.post);
- assert.ok(document.paths['/v1/operators/{operatorId}/payments/{id}/accounting']);
+ assert.equal(document.paths['/v1/operators/{operatorId}/payments/{id}/accounting'],undefined);
  const allocate=document.components.schemas.Operator_payments_allocate;
  assert.equal(allocate.properties.amount_money,undefined);
  const context=document.paths['/v1/operators/{operatorId}/order-context/{id}/allocate'].post.requestBody.content['application/json'].schema;

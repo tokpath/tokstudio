@@ -21,6 +21,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/modelpricing"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"gorm.io/gorm"
 )
 
@@ -40,6 +41,9 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 	f := setup(t, "0.01", nil)
 	if f.s.ResultStore == nil {
 		t.Fatal("private S3 integration required")
+	}
+	if err := f.db.Exec(paymentmethods.Schema()).Error; err != nil {
+		t.Fatal(err)
 	}
 	_, migrations := incentives.Migrations()
 	files, e := fs.ReadDir(migrations, ".")

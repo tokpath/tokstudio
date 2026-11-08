@@ -50,14 +50,12 @@ func TestPostgresFinanceReceiptLinksOneOrderAndDerivesOnlyKnownValues(t *testing
 		t.Fatal(paid, err)
 	}
 	status, out, _ = f.call(t, "POST", base+"/payments/"+id+"/accounting", map[string]any{"fee_money": "1", "evidence": "verified fee statement"}, uuid.NewString())
-	mustOK(t, status, out)
-	receipt, err = f.a.Commerce.GetReceipt(ctx, nil, operator, id)
-	if err != nil || receipt.FeeStatus != "confirmed" || receipt.NetMoney.String() != "9" || receipt.GrossMoney.String() != "10" || receipt.AllocatedMoney.String() != "10" || receipt.OriginalFeeAmount == nil || receipt.OriginalFeeAmount.String() != "1" || receipt.OriginalNetAmount == nil || receipt.OriginalNetAmount.String() != "9" {
-		t.Fatal("fee changed customer value", receipt, err)
+	if status != 404 {
+		t.Fatal("routine fee entry remains", status, out)
 	}
-	status, _, _ = f.call(t, "POST", base+"/payments/"+id+"/accounting", map[string]any{"fee_money": "1", "original_fee_amount": "2", "evidence": "contradictory same-currency fee"}, uuid.NewString())
-	if status != 400 {
-		t.Fatal("same-currency fee conflict was accepted", status)
+	receipt, err = f.a.Commerce.GetReceipt(ctx, nil, operator, id)
+	if err != nil || receipt.FeeMoney != nil || receipt.NetMoney != nil || receipt.AllocatedMoney.String() != "10" {
+		t.Fatal(receipt, err)
 	}
 	status, out, _ = f.call(t, "GET", base+"/ledger?view=journals", nil, "")
 	mustOK(t, status, out)

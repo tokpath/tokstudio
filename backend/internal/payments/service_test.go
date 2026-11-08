@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -92,7 +93,7 @@ func paymentDB(t *testing.T, currencies ...string) *gorm.DB {
 		t.Fatal(e)
 	}
 	t.Cleanup(func() { sqlDB, _ := db.DB(); _ = sqlDB.Close() })
-	if e = db.Exec(Schema()).Error; e != nil {
+	if e = db.Exec(paymentmethods.Schema() + Schema()).Error; e != nil {
 		t.Fatal(e)
 	}
 	if e = db.Exec("CREATE TABLE payment_test_receipts(id text PRIMARY KEY,operator_id text NOT NULL,amount numeric(38,18) NOT NULL)").Error; e != nil {

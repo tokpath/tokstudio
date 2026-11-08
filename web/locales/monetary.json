@@ -563,5 +563,285 @@
     "en": "Takeover payments retain separate details and original-currency transfers. Procurement outflows are attributed only when the full receipt belongs to one buyer.",
     "ja": "引継ぎ代金は個別明細と原通貨収支を保持します。調達支払は入金全額の帰属先が一つの購入者と確認できる場合にのみ計上します。",
     "ru": "Платежи при передаче сохраняются в отдельных деталях и движении исходной валюты. Закупочные платежи относятся к покупателю только при однозначной принадлежности всей суммы."
+  },
+  "不收费": {
+    "en": "No fee",
+    "ja": "手数料なし",
+    "ru": "Без комиссии"
+  },
+  "付款金额明细": {
+    "en": "Payment breakdown",
+    "ja": "支払額の内訳",
+    "ru": "Состав платежа"
+  },
+  "余额和佣金提现共用同一规则。申请 100、手续费 2 时，账户扣除 100，实际付款 98。": {
+    "en": "Balance and commission withdrawals share this rule. For a request of 100 with a fee of 2, the account is debited 100 and the recipient receives 98.",
+    "ja": "残高とコミッションの出金には同じ規則を適用します。申請額 100、手数料 2 の場合、口座から 100 を差し引き、実際に 98 を支払います。",
+    "ru": "Для вывода баланса и комиссионных действует одно правило. При заявке на 100 и комиссии 2 со счёта списывается 100, получателю выплачивается 98."
+  },
+  "余额提现、佣金提现": {
+    "en": "Balance and commission withdrawals",
+    "ja": "残高出金・コミッション出金",
+    "ru": "Вывод баланса и комиссионных"
+  },
+  "保存后影响哪些交易": {
+    "en": "Transactions affected by saving",
+    "ja": "保存後の適用範囲",
+    "ru": "Какие операции затронет сохранение"
+  },
+  "充值、直接购买套餐、下级采购": {
+    "en": "Top-ups, direct plan purchases, downstream procurement",
+    "ja": "チャージ・プランの直接購入・下位事業者の仕入れ",
+    "ru": "Пополнение, прямая покупка пакетов, закупки нижестоящих операторов"
+  },
+  "充值、直接购买套餐、下级采购、余额提现、佣金提现": {
+    "en": "Top-ups, direct plan purchases, downstream procurement, balance and commission withdrawals",
+    "ja": "チャージ・プランの直接購入・下位事業者の仕入れ・残高出金・コミッション出金",
+    "ru": "Пополнение, прямая покупка пакетов, закупки нижестоящих операторов, вывод баланса и комиссионных"
+  },
+  "充值、直接购买套餐和下级采购，共用所选方式的规则。支付 100 本金、手续费 2 时，合计付款 102，权益按 100 交付。": {
+    "en": "Top-ups, direct plan purchases and downstream procurement share the selected method’s rule. A principal of 100 plus a fee of 2 means paying 102; entitlements are delivered for 100.",
+    "ja": "チャージ、プランの直接購入、下位事業者の仕入れには選択した方法の規則を共通適用します。本体額 100、手数料 2 の場合、合計 102 を支払い、100 相当の権利を受け取ります。",
+    "ru": "Пополнение, прямая покупка пакетов и закупки нижестоящих операторов используют правило выбранного способа. При основной сумме 100 и комиссии 2 платёж составляет 102, права предоставляются на 100."
+  },
+  "只影响新确认的付款和提现。已确认的金额保持不变；内部余额和佣金抵扣不收费。异常退款会退回本金及已收支付手续费。": {
+    "en": "Only newly confirmed payments and withdrawals are affected. Confirmed amounts stay unchanged; internal balance and commission offsets incur no fee. Exception refunds return both principal and the payment fee charged.",
+    "ja": "新たに確定する支払いと出金のみに適用します。確定済み金額は変更せず、内部残高やコミッションの充当には課金しません。例外返金では本体額と徴収済み決済手数料を返します。",
+    "ru": "Изменения касаются только новых подтверждённых платежей и выводов. Подтверждённые суммы сохраняются; внутреннее списание баланса и комиссионных бесплатно. При исключительном возврате возвращаются основная сумма и удержанная комиссия за платёж."
+  },
+  "可用于提现": {
+    "en": "Available for withdrawals",
+    "ja": "出金に利用可能",
+    "ru": "Доступен для вывода"
+  },
+  "合计应付": {
+    "en": "Total payable",
+    "ja": "支払合計",
+    "ru": "Всего к оплате"
+  },
+  "同时开放两类提现，使用上面的同一套手续费。经营方线下付款后登记完成，系统不会自动转账。": {
+    "en": "Enable both withdrawal types with the fee above. The operator pays offline and records completion; the system does not transfer funds automatically.",
+    "ja": "両方の出金を有効にし、上記の手数料を共通適用します。事業者が外部で支払った後に完了を記録します。システムは自動送金しません。",
+    "ru": "Включает оба вида вывода с указанной выше комиссией. Оператор платит вне системы и отмечает завершение; система не переводит средства автоматически."
+  },
+  "在邀请与分佣中审批并登记线下付款。最低提现金额在分佣规则中设置，手续费统一在设置中的支付方式与手续费页面配置。": {
+    "en": "Approve requests and record offline payments under Invitations and commissions. Set the minimum withdrawal in commission rules and fees under Settings → Payment methods and fees.",
+    "ja": "「招待とコミッション」で承認し、外部での支払いを記録します。最低出金額はコミッション規則で、手数料は設定の「支払方法と手数料」で設定します。",
+    "ru": "Одобряйте заявки и отмечайте внешние выплаты в разделе приглашений и комиссионных. Минимальную сумму задавайте в правилах комиссионных, а комиссии — в настройках способов оплаты и комиссий."
+  },
+  "填写 2 表示收取 2%。收款按外部付款本金计算，提现按申请总额计算，均按清算币种最小支付单位四舍五入。": {
+    "en": "Enter 2 for 2%. Collection fees use the external principal; withdrawal fees use the requested total. Both round to the settlement currency’s smallest payment unit.",
+    "ja": "2 と入力すると 2% です。入金は外部支払いの本体額、出金は申請総額を基準に計算し、決済通貨の最小支払単位に四捨五入します。",
+    "ru": "Введите 2 для 2%. Комиссия за приём платежа считается от внешней основной суммы, за вывод — от суммы заявки. Результат округляется до минимальной платёжной единицы валюты расчётов."
+  },
+  "填写付款人本次实际支付的总额。关联订单后，系统按付款时固定的规则区分订单本金和支付手续费，套餐、采购或充值权益只按本金交付。": {
+    "en": "Enter the total actually paid. When linked to an order, the system separates principal and payment fee using the confirmed rule. Plan, procurement and top-up entitlements use principal only.",
+    "ja": "支払者が実際に支払った総額を入力します。注文に関連付けると、確定済み規則に従い本体額と決済手数料を区分します。プラン、仕入れ、チャージの権利は本体額のみに基づき付与します。",
+    "ru": "Укажите фактически уплаченную сумму. После привязки к заказу система разделит основную сумму и комиссию по зафиксированному правилу. Пакет, закупка или пополнение предоставляются только на основную сумму."
+  },
+  "实际原币收款总额": {
+    "en": "Actual gross receipt in original currency",
+    "ja": "元通貨での実際の入金総額",
+    "ru": "Фактическое валовое поступление в исходной валюте"
+  },
+  "审批支付余额提现，并按申请时固定的实付金额登记一次付款。最低额度在最低提现额度页设置，手续费统一在设置中的支付方式与手续费页面配置，由客户承担。": {
+    "en": "Approve balance withdrawals and record one payment of the net amount fixed at application. Set the minimum under Minimum withdrawal; customer-paid fees are configured under Settings → Payment methods and fees.",
+    "ja": "支払残高の出金を承認し、申請時に確定した実払額で一度の支払いを記録します。最低額は最低出金額ページ、顧客負担の手数料は設定の「支払方法と手数料」で設定します。",
+    "ru": "Одобряйте вывод платёжного баланса и регистрируйте одну выплату чистой суммы, зафиксированной при заявке. Минимум задаётся на странице минимальной суммы вывода, комиссии клиента — в настройках способов оплаты и комиссий."
+  },
+  "尚未启用": {
+    "en": "Not enabled",
+    "ja": "未有効",
+    "ru": "Не включён"
+  },
+  "已收支付手续费": {
+    "en": "Payment fees charged",
+    "ja": "徴収済み決済手数料",
+    "ru": "Полученные комиссии за платежи"
+  },
+  "已核实收款总额（结算币种，含支付手续费）": {
+    "en": "Verified gross receipt (settlement currency, including payment fee)",
+    "ja": "確認済み入金総額（決済通貨、決済手数料込み）",
+    "ru": "Подтверждённое валовое поступление (валюта расчётов, включая комиссию за платёж)"
+  },
+  "已核实结算金额": {
+    "en": "Verified settlement amount",
+    "ja": "確認済み決済額",
+    "ru": "Подтверждённая сумма расчёта"
+  },
+  "待确认退款手续费": {
+    "en": "Refund fees awaiting confirmation",
+    "ja": "確認待ちの返金手数料",
+    "ru": "Комиссии возвратов, ожидающие подтверждения"
+  },
+  "手续费不进入余额或 ATG，不计入分佣；余额和佣金抵扣部分不收取支付手续费。": {
+    "en": "Fees do not credit balance or ATG and do not earn commissions. Internal balance and commission offsets incur no payment fee.",
+    "ja": "手数料は残高や ATG に加算されず、コミッションの対象外です。残高とコミッションの充当分には決済手数料を課しません。",
+    "ru": "Комиссии не зачисляются в баланс или ATG и не участвуют в распределении комиссионных. За внутреннее списание баланса и комиссионных платёжная комиссия не взимается."
+  },
+  "手续费规则": {
+    "en": "Fee rule",
+    "ja": "手数料規則",
+    "ru": "Правило комиссии"
+  },
+  "提现收款材料": {
+    "en": "Withdrawal recipient details",
+    "ja": "出金先の受取情報",
+    "ru": "Данные получателя вывода"
+  },
+  "提现：申请总额内扣": {
+    "en": "Withdrawals: deducted from the request",
+    "ja": "出金：申請総額から控除",
+    "ru": "Вывод: комиссия внутри суммы заявки"
+  },
+  "支付手续费": {
+    "en": "Payment fee",
+    "ja": "決済手数料",
+    "ru": "Комиссия за платёж"
+  },
+  "支付方式与手续费": {
+    "en": "Payment methods and fees",
+    "ja": "支払方法と手数料",
+    "ru": "Способы оплаты и комиссии"
+  },
+  "支付方式名称": {
+    "en": "Payment method name",
+    "ja": "支払方法名",
+    "ru": "Название способа оплаты"
+  },
+  "支付方式或手续费已变化，请刷新后重新核对金额。": {
+    "en": "The payment method or fee has changed. Refresh and review the amounts.",
+    "ja": "支払方法または手数料が変更されました。更新して金額を再確認してください。",
+    "ru": "Способ оплаты или комиссия изменились. Обновите страницу и проверьте суммы."
+  },
+  "收款总额（含支付手续费）": {
+    "en": "Gross receipt including payment fee",
+    "ja": "入金総額（決済手数料込み）",
+    "ru": "Валовое поступление с комиссией за платёж"
+  },
+  "收款总额（含支付手续费） 结算币种": {
+    "en": "Gross receipt including payment fee · settlement currency",
+    "ja": "入金総額（決済手数料込み）・決済通貨",
+    "ru": "Валовое поступление с комиссией за платёж · валюта расчётов"
+  },
+  "收款连接": {
+    "en": "Collection connections",
+    "ja": "入金接続設定",
+    "ru": "Подключения для приёма платежей"
+  },
+  "收款：本金之外另加": {
+    "en": "Collections: added to principal",
+    "ja": "入金：本体額に加算",
+    "ru": "Приём платежа: сверх основной суммы"
+  },
+  "整笔收款关联一个金额一致的订单，足额后自动交付。": {
+    "en": "Link the whole receipt to one order with the matching total. Delivery follows full payment.",
+    "ja": "入金全額を金額が一致する一つの注文に関連付けます。全額確認後に自動で付与します。",
+    "ru": "Привяжите всё поступление к одному заказу с соответствующей суммой. После полной оплаты права предоставляются автоматически."
+  },
+  "新增的方式用于线下提现。收款方式请先在收款连接中配置，系统会自动在此建立同一套费用规则。": {
+    "en": "New methods here support offline withdrawals. Configure collection methods under Collection connections; their shared fee rules appear here automatically.",
+    "ja": "ここで追加する方法は外部での出金に使用します。入金方法は「入金接続設定」で設定すると、共通の手数料規則がここに自動作成されます。",
+    "ru": "Добавленные здесь способы используются для внешних выплат. Способы приёма настройте в подключениях: их общие правила комиссий автоматически появятся здесь."
+  },
+  "方式与手续费": {
+    "en": "Methods and fees",
+    "ja": "方法と手数料",
+    "ru": "Способы и комиссии"
+  },
+  "每种支付方式只设置一套手续费，统一用于它支持的收款、余额提现和佣金提现。": {
+    "en": "Set one fee rule per payment method, shared across its supported collections, balance withdrawals and commission withdrawals.",
+    "ja": "各支払方法に一つの手数料規則を設定し、対応する入金・残高出金・コミッション出金で共用します。",
+    "ru": "Для каждого способа задаётся одно правило комиссии, общее для поддерживаемых поступлений, вывода баланса и комиссионных."
+  },
+  "每种支付方式只设置一套手续费，适用于它支持的收款和提现。收款额外加收，提现从申请总额中扣除；余额和佣金内部抵扣不收费。修改只影响新确认的交易。": {
+    "en": "Each method has one fee rule for its supported collections and withdrawals. Collection fees are added; withdrawal fees are deducted from the request. Internal balance and commission offsets are free. Edits affect newly confirmed transactions only.",
+    "ja": "各方法に一つの規則を設定し、対応する入出金で共用します。入金では加算、出金では申請総額から控除し、内部残高とコミッションの充当は無料です。変更は新たに確定する取引のみに適用します。",
+    "ru": "Для каждого способа действует одно правило приёма и вывода средств. При приёме комиссия добавляется, при выводе вычитается из заявки. Внутреннее списание баланса и комиссионных бесплатно. Изменения касаются только новых подтверждённых операций."
+  },
+  "清算币种业务事实": {
+    "en": "Business facts in settlement currency",
+    "ja": "決済通貨による業務記録",
+    "ru": "Факты операций в валюте расчётов"
+  },
+  "用于余额和佣金提现": {
+    "en": "Enable balance and commission withdrawals",
+    "ja": "残高とコミッションの出金に使用",
+    "ru": "Использовать для вывода баланса и комиссионных"
+  },
+  "订单或充值本金": {
+    "en": "Order or top-up principal",
+    "ja": "注文またはチャージの本体額",
+    "ru": "Основная сумма заказа или пополнения"
+  },
+  "订单本金": {
+    "en": "Order principal",
+    "ja": "注文本体額",
+    "ru": "Основная сумма заказа"
+  },
+  "记录真实收款币种与金额；付款人在外部自行支付的发送费或链上手续费不计入。": {
+    "en": "Record the actual receipt currency and amount. Exclude transfer or blockchain fees paid separately outside the system.",
+    "ja": "実際の入金通貨と金額を記録します。支払者が外部で別途負担した送金手数料やチェーン手数料は含めません。",
+    "ru": "Укажите фактическую валюту и сумму поступления. Отдельно оплаченные внешние комиссии перевода или блокчейна не включаются."
+  },
+  "设置方式与费用": {
+    "en": "Edit method and fees",
+    "ja": "方法と手数料を設定",
+    "ru": "Настроить способ и комиссию"
+  },
+  "请到设置中的支付方式与手续费统一配置。": {
+    "en": "Configure this under Settings → Payment methods and fees.",
+    "ja": "設定の「支払方法と手数料」で一元設定してください。",
+    "ru": "Настройте это в разделе «Настройки → Способы оплаты и комиссии»."
+  },
+  "请检查支付方式和手续费规则。": {
+    "en": "Check the payment method and fee rule.",
+    "ja": "支払方法と手数料規則を確認してください。",
+    "ru": "Проверьте способ оплаты и правило комиссии."
+  },
+  "适用业务": {
+    "en": "Applies to",
+    "ja": "適用業務",
+    "ru": "Применяется к"
+  },
+  "配置实际收款通道和账号。保存后在方式与手续费中统一设置名称、费用及提现用途。": {
+    "en": "Configure the payment connection and account. After saving, set its name, fees and withdrawal use under Methods and fees.",
+    "ja": "実際の入金接続とアカウントを設定します。保存後、「方法と手数料」で名称・手数料・出金用途をまとめて設定します。",
+    "ru": "Настройте платёжное подключение и счёт. После сохранения задайте название, комиссию и использование для вывода в разделе способов и комиссий."
+  },
+  "周期付款上限（含支付手续费）": {
+    "en": "Period payment limit (including payment fees)",
+    "ja": "期間内の支払上限（決済手数料込み）",
+    "ru": "Лимит платежей за период (с учётом комиссий)"
+  },
+  "采购本金 结算币种": {
+    "en": "Procurement principal · settlement currency",
+    "ja": "仕入本体額・決済通貨",
+    "ru": "Основная сумма закупки · валюта расчётов"
+  },
+  "本次线下收款方式": {
+    "en": "Method used for this offline receipt",
+    "ja": "今回の外部入金方法",
+    "ru": "Способ этого внешнего поступления"
+  },
+  "选择实际收款方式并填写采购本金。本金加支付手续费必须等于这笔实际收款总额，仅本金计算购买和赠送 ATG。": {
+    "en": "Select the actual collection method and enter procurement principal. Principal plus payment fee must equal the actual gross receipt. Purchased and bonus ATG use principal only.",
+    "ja": "実際の入金方法と仕入本体額を指定します。本体額と決済手数料の合計は実際の入金総額と一致する必要があります。購入・付与 ATG は本体額のみから計算します。",
+    "ru": "Выберите фактический способ приёма и укажите основную сумму закупки. Она вместе с комиссией должна равняться фактическому поступлению. Купленные и бонусные ATG рассчитываются только от основной суммы."
+  },
+  "收款总额（含支付手续费） 清算币种": {
+    "en": "Gross receipt including payment fee · settlement currency",
+    "ja": "入金総額（決済手数料込み）・決済通貨",
+    "ru": "Валовое поступление с комиссией за платёж · валюта расчётов"
+  },
+  "已收支付手续费 清算币种": {
+    "en": "Payment fee charged · settlement currency",
+    "ja": "徴収済み決済手数料・決済通貨",
+    "ru": "Полученная комиссия за платёж · валюта расчётов"
+  },
+  "已核实本金": {
+    "en": "Verified principal",
+    "ja": "確認済み本体額",
+    "ru": "Подтверждённая основная сумма"
   }
 }

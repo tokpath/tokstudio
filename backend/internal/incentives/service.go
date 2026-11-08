@@ -162,10 +162,6 @@ type commissionRow CommissionEntry
 
 func (commissionRow) TableName() string { return "incentives_commission_entries" }
 
-type withdrawalPolicyRow WithdrawalPolicy
-
-func (withdrawalPolicyRow) TableName() string { return "incentives_withdrawal_policies" }
-
 type withdrawalRow Withdrawal
 
 func (withdrawalRow) TableName() string { return "incentives_withdrawals" }

@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"gorm.io/gorm"
 	"io"
@@ -32,7 +33,7 @@ func replenishmentFixture(t *testing.T, base string) (fixture, *Replenisher, pay
 	if _, e = f.org.AcceptStaffInvitation(f.ctx, nil, inv.Token, organization.VerifiedStaff{ID: f.owner, Email: "buyer-owner@example.test", EmailVerified: true}); e != nil {
 		t.Fatal(e)
 	}
-	if e = f.db.Exec(payments.Schema()).Error; e != nil {
+	if e = f.db.Exec(paymentmethods.Schema() + payments.Schema()).Error; e != nil {
 		t.Fatal(e)
 	}
 	if e = f.db.Exec(`CREATE TABLE test_replenishment_notices(id text PRIMARY KEY,kind text NOT NULL)`).Error; e != nil {

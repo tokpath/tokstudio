@@ -94,10 +94,10 @@ it("starts with a collapsed exact allocation and keeps commission an explicit ch
   const details = screen.getByText("精确调整抵扣金额").closest("details")!;
   expect(details.open).toBe(false);
   expect((screen.getByLabelText(/使用可用佣金补足/) as HTMLInputElement).checked).toBe(false);
-  expect(screen.getByLabelText("6.999999999999999999 USD")).toBeTruthy();
+  expect(screen.getAllByLabelText("6.999999999999999999 USD")[0]).toBeTruthy();
   fireEvent.click(screen.getByText("精确调整抵扣金额")); expect(details.open).toBe(true);
   fireEvent.change(screen.getByLabelText("本次使用 结算币种 支付余额"), { target: { value: "1.000000000000000001" } });
-  expect(screen.getByLabelText("8.999999999999999999 USD")).toBeTruthy();
+  expect(screen.getAllByLabelText("8.999999999999999999 USD")[0]).toBeTruthy();
 });
 
 it("creates a model-scoped Key in place, displays its Base URL and locks the secret until close", async () => {

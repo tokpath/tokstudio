@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"time"
 )
 
@@ -20,20 +21,24 @@ func (in MerchantInput) Configuration() Merchant {
 }
 
 type PublicMethod struct {
-	ID                             string   `json:"id"`
-	SettlementCurrency             string   `json:"settlement_currency"`
-	SettlementSupported            bool     `json:"settlement_supported"`
-	UnsupportedReason              string   `json:"unsupported_reason,omitempty"`
-	RequiresSettlementConfirmation bool     `json:"requires_settlement_confirmation"`
-	Driver                         string   `json:"driver"`
-	Currency                       string   `json:"currency"`
-	Network                        string   `json:"network,omitempty"`
-	TokenContract                  string   `json:"token_contract,omitempty"`
-	Instructions                   string   `json:"instructions,omitempty"`
-	Configured                     bool     `json:"configured"`
-	RefundAPI                      bool     `json:"refund_api"`
-	AutoCharge                     bool     `json:"auto_charge"`
-	RefundChannels                 []string `json:"refund_channels,omitempty"`
+	FeeRuleID                      string         `json:"fee_rule_id"`
+	Name                           string         `json:"name"`
+	FlatFeeMoney                   ledger.Decimal `json:"flat_fee_money"`
+	FeeRate                        ledger.Decimal `json:"fee_rate"`
+	ID                             string         `json:"id"`
+	SettlementCurrency             string         `json:"settlement_currency"`
+	SettlementSupported            bool           `json:"settlement_supported"`
+	UnsupportedReason              string         `json:"unsupported_reason,omitempty"`
+	RequiresSettlementConfirmation bool           `json:"requires_settlement_confirmation"`
+	Driver                         string         `json:"driver"`
+	Currency                       string         `json:"currency"`
+	Network                        string         `json:"network,omitempty"`
+	TokenContract                  string         `json:"token_contract,omitempty"`
+	Instructions                   string         `json:"instructions,omitempty"`
+	Configured                     bool           `json:"configured"`
+	RefundAPI                      bool           `json:"refund_api"`
+	AutoCharge                     bool           `json:"auto_charge"`
+	RefundChannels                 []string       `json:"refund_channels,omitempty"`
 }
 
 func (s *Service) ListMerchantConfigs(ctx context.Context, actor, operator string) ([]MerchantView, error) {
@@ -124,6 +129,14 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 		if m.Driver == "kvoucher" {
 			view.RefundChannels = normalizeRefundChannels(m.Credentials["refund_channels"])
 		}
+		rule, err := paymentmethods.Current(ctx, s.DB, operator, m.ID)
+		if err != nil {
+			return nil, err
+		}
+		view.FeeRuleID = rule.ID
+		view.Name = rule.Name
+		view.FlatFeeMoney = rule.FlatFeeMoney
+		view.FeeRate = rule.FeeRate
 		out = append(out, view)
 	}
 	return out, nil

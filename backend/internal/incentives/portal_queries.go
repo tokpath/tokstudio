@@ -93,21 +93,14 @@ func (s *Service) CurrentWithdrawalPolicy(ctx context.Context, tx *gorm.DB, oper
 	if !validID(operator) {
 		return WithdrawalPolicy{}, ErrInvalidInput
 	}
-	var r withdrawalPolicyRow
-	q := s.dbFor(ctx, tx).Where("operator_id=? AND wallet=?", operator, "commission").Order("version DESC").Limit(1).Find(&r)
-	if q.Error != nil {
-		return WithdrawalPolicy{}, q.Error
+	rows, e := s.WithdrawalMethods(ctx, tx, operator, false, "commission")
+	if e != nil {
+		return WithdrawalPolicy{}, e
 	}
-	var setting struct{ MinimumMoney ledger.Decimal }
-	if err := s.dbFor(ctx, tx).Table("incentives_withdrawal_settings").Where("operator_id=? AND wallet=?", operator, "commission").Limit(1).Find(&setting).Error; err != nil {
-		return WithdrawalPolicy{}, err
+	if len(rows) == 0 {
+		return WithdrawalPolicy{OperatorID: operator, MinimumMoney: s.WithdrawalMinimum(ctx, tx, operator, "commission")}, nil
 	}
-	if setting.MinimumMoney.Sign() > 0 {
-		r.MinimumMoney = setting.MinimumMoney
-	} else if q.RowsAffected == 0 {
-		return WithdrawalPolicy{}, ErrNotReady
-	}
-	return WithdrawalPolicy(r), nil
+	return rows[0], nil
 }
 
 func (s *Service) WithdrawalsForOperator(ctx context.Context, tx *gorm.DB, actor, operator, cursor string, limit int, filters ...string) (out []Withdrawal, next string, err error) {

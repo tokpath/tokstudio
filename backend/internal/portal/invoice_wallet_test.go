@@ -91,7 +91,7 @@ func TestPooledWalletInvoicesAndWithdrawalAreIndependent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	withdrawal, err := f.a.Incentives.RequestWithdrawal(ctx, nil, incentives.WithdrawalInput{OperatorID: op, CustomerID: customer, BusinessKey: "remaining-cash", PolicyID: policy.ID, RecipientReference: "test recipient", AmountMoney: ledger.MustDecimal("20")})
+	withdrawal, err := f.a.Incentives.RequestWithdrawal(ctx, nil, incentives.WithdrawalInput{Wallet: "balance", OperatorID: op, CustomerID: customer, BusinessKey: "remaining-cash", PolicyID: policy.ID, RecipientReference: "test recipient", AmountMoney: ledger.MustDecimal("20")})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -417,16 +417,16 @@
       },
       {
         "name": "original_amount",
-        "label": "实际原币收款总额（扣己方手续费前）",
+        "label": "实际原币收款总额",
         "kind": "decimal",
-        "help": "保留真实收款币种与金额。原币等于全局清算币种时可从清算金额推导；付款人另付的发送费或链上手续费不计入。"
+        "help": "不包含付款人在外部另付的发送费。"
       },
       {
         "name": "settlement_amount",
-        "label": "已核实订单入账金额（结算币种，扣己方手续费前）",
+        "label": "已核实收款总额（结算币种，含支付手续费）",
         "kind": "decimal",
         "required": true,
-        "help": "仅登记本笔真实收款对应的订单清算金额。收款方承担的手续费不减少订单交付额度。"
+        "help": "填写实际收款总额。订单本金和已收支付手续费按订单快照区分。"
       },
       {
         "name": "settlement_evidence",
@@ -453,23 +453,6 @@
         "name": "verification_evidence",
         "label": "收款说明或凭证（可选）",
         "kind": "textarea"
-      },
-      {
-        "name": "original_fee_amount",
-        "label": "己方收款手续费（原币，可稍后核实）",
-        "kind": "decimal",
-        "help": "只记录收款方承担的真实原币费用。未核实时留空，确实没有时填0。"
-      },
-      {
-        "name": "fee_money",
-        "label": "已核实清算手续费（结算币种）",
-        "kind": "decimal",
-        "help": "仅在通道真实提供或人工明确核实结算币种费用时登记；不能按原币费用自动折算。该费用由收款方承担，不减少订单交付金额。付款人另付的费用不计入。"
-      },
-      {
-        "name": "settled_at",
-        "label": "通道结算到账时间（清算手续费已核实时填写）",
-        "kind": "datetime"
       },
       {
         "name": "network",
@@ -1396,7 +1379,7 @@
       },
       {
         "name": "period_limit_money",
-        "label": "周期最高清算币种",
+        "label": "周期付款上限（含支付手续费）",
         "kind": "decimal",
         "required": true
       },
@@ -1491,6 +1474,12 @@
         "kind": "hidden",
         "required": true,
         "default_value": true
+      },
+      {
+        "name": "fee_rule_id",
+        "label": "Accepted payment fee version",
+        "kind": "hidden",
+        "required": false
       }
     ],
     "include_version": false,
@@ -1545,7 +1534,7 @@
       },
       {
         "name": "period_limit_money",
-        "label": "周期最高清算币种",
+        "label": "周期付款上限（含支付手续费）",
         "kind": "decimal",
         "required": true
       },
@@ -1642,6 +1631,12 @@
         "kind": "hidden",
         "required": true,
         "default_value": true
+      },
+      {
+        "name": "fee_rule_id",
+        "label": "Accepted payment fee version",
+        "kind": "hidden",
+        "required": false
       }
     ],
     "include_version": false,
@@ -1682,6 +1677,12 @@
         "label": "付款方式",
         "kind": "text",
         "required": true
+      },
+      {
+        "name": "fee_rule_id",
+        "label": "Accepted payment fee version",
+        "kind": "hidden",
+        "required": false
       }
     ],
     "include_version": false,
@@ -3338,115 +3339,6 @@
   },
   {
     "resource": "withdrawals",
-    "confirmation": "",
-    "description": "Configure one payout method. The operator selects a payment profile, which fixes the recipient materials, and either a fixed fee or a percentage. The customer submits one application. The fee and recipient materials are fixed at submission. No actual payout fee is entered.",
-    "fields": [
-      {
-        "name": "payout_kind",
-        "label": "支付方式",
-        "kind": "select",
-        "required": true,
-        "help": "选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。",
-        "options": [
-          {
-            "value": "bank_cn",
-            "label": "境内银行卡 · 户名、开户银行、卡号、支行"
-          },
-          {
-            "value": "alipay",
-            "label": "支付宝 · 实名、登录账号"
-          },
-          {
-            "value": "wechat",
-            "label": "微信支付 · 实名、微信号或手机号"
-          },
-          {
-            "value": "paypal",
-            "label": "PayPal · 邮箱、账户姓名"
-          },
-          {
-            "value": "wire",
-            "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"
-          },
-          {
-            "value": "usdt",
-            "label": "USDT · 网络、钱包地址"
-          }
-        ]
-      },
-      {
-        "name": "method_name",
-        "label": "提现方式名称",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "fee_mode",
-        "label": "手续费方式",
-        "kind": "select",
-        "required": true,
-        "default_value": "fixed",
-        "options": [
-          {
-            "value": "fixed",
-            "label": "固定金额"
-          },
-          {
-            "value": "percent",
-            "label": "按比例"
-          }
-        ]
-      },
-      {
-        "name": "flat_fee_money",
-        "label": "固定手续费 结算币种",
-        "kind": "decimal",
-        "required": true,
-        "default_value": "0",
-        "visible_when": {
-          "field": "fee_mode",
-          "values": [
-            "fixed"
-          ]
-        }
-      },
-      {
-        "name": "fee_percent",
-        "label": "手续费率 %",
-        "kind": "decimal",
-        "required": true,
-        "default_value": "0",
-        "visible_when": {
-          "field": "fee_mode",
-          "values": [
-            "percent"
-          ]
-        }
-      },
-      {
-        "name": "enabled",
-        "label": "开放申请",
-        "kind": "boolean",
-        "required": true,
-        "default_value": true
-      },
-      {
-        "name": "expected_version",
-        "label": "当前版本",
-        "kind": "hidden",
-        "default_value": 0,
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "新增提现方式",
-    "method": "POST",
-    "name": "method",
-    "path": "/v1/operators/{operatorId}/withdrawals",
-    "permission": "withdrawals.manage"
-  },
-  {
-    "resource": "withdrawals",
     "confirmation": "确认通过这笔提现申请？通过后可以登记付款。",
     "description": "",
     "fields": [],
@@ -4376,7 +4268,7 @@
   {
     "resource": "procurement",
     "confirmation": "",
-    "description": "选择一笔尚未分配的收款，系统按该笔 清算币种 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。",
+    "description": "Select the actual manual collection method and the procurement principal. Principal plus the accepted payment fee must equal the actual receipt total; only principal delivers ATG.",
     "fields": [
       {
         "name": "receipt_id",
@@ -4384,6 +4276,23 @@
         "kind": "text",
         "required": true,
         "lookup_url": "/api/v1/operators/{operatorId}/references/receipts?whole=true"
+      },
+      {
+        "name": "amount_money",
+        "label": "采购本金 结算币种",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "external_method_id",
+        "label": "本次线下收款方式",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "fee_rule_id",
+        "label": "Accepted payment fee version",
+        "kind": "hidden"
       }
     ],
     "include_version": false,
@@ -4392,151 +4301,6 @@
     "name": "offline_purchase",
     "path": "/v1/operators/{operatorId}/procurement/{id}/offline_purchase",
     "permission": "payments.manage"
-  },
-  {
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "name": "original_fee_amount",
-        "label": "己方收款手续费（原币）",
-        "kind": "decimal",
-        "help": "只记录真实原币费用；未知时留空，已核实为零时填0。"
-      },
-      {
-        "name": "fee_money",
-        "label": "已核实清算手续费（结算币种）",
-        "kind": "decimal",
-        "help": "只登记己方承担的已核实清算币种费用，不按原币自动折算。同币两项同时提供必须一致。"
-      },
-      {
-        "name": "settled_at",
-        "label": "真实通道结算时刻",
-        "kind": "datetime"
-      },
-      {
-        "name": "evidence",
-        "label": "费用说明（可选）",
-        "kind": "textarea",
-        "required": false
-      }
-    ],
-    "include_version": false,
-    "label": "核实手续费与结算",
-    "method": "POST",
-    "name": "accounting",
-    "path": "/v1/operators/{operatorId}/payments/{id}/accounting",
-    "permission": "payments.manage",
-    "resource": "payments"
-  },
-  {
-    "resource": "withdrawals",
-    "confirmation": "",
-    "description": "Configure one payout method. The operator selects a payment profile, which fixes the recipient materials, and either a fixed fee or a percentage. The customer submits one application. The fee and recipient materials are fixed at submission. No actual payout fee is entered.",
-    "fields": [
-      {
-        "name": "payout_kind",
-        "label": "支付方式",
-        "kind": "select",
-        "required": true,
-        "help": "选定支付方式后，客户必须按该方式配套的收款材料填写。已提交的申请保留当时的资料，不会因后来修改方式而改变。",
-        "options": [
-          {
-            "value": "bank_cn",
-            "label": "境内银行卡 · 户名、开户银行、卡号、支行"
-          },
-          {
-            "value": "alipay",
-            "label": "支付宝 · 实名、登录账号"
-          },
-          {
-            "value": "wechat",
-            "label": "微信支付 · 实名、微信号或手机号"
-          },
-          {
-            "value": "paypal",
-            "label": "PayPal · 邮箱、账户姓名"
-          },
-          {
-            "value": "wire",
-            "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"
-          },
-          {
-            "value": "usdt",
-            "label": "USDT · 网络、钱包地址"
-          }
-        ]
-      },
-      {
-        "name": "method_name",
-        "label": "提现方式名称",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "fee_mode",
-        "label": "手续费方式",
-        "kind": "select",
-        "required": true,
-        "default_value": "fixed",
-        "options": [
-          {
-            "value": "fixed",
-            "label": "固定金额"
-          },
-          {
-            "value": "percent",
-            "label": "按比例"
-          }
-        ]
-      },
-      {
-        "name": "flat_fee_money",
-        "label": "固定手续费 结算币种",
-        "kind": "decimal",
-        "required": true,
-        "default_value": "0",
-        "visible_when": {
-          "field": "fee_mode",
-          "values": [
-            "fixed"
-          ]
-        }
-      },
-      {
-        "name": "fee_percent",
-        "label": "手续费率 %",
-        "kind": "decimal",
-        "required": true,
-        "default_value": "0",
-        "visible_when": {
-          "field": "fee_mode",
-          "values": [
-            "percent"
-          ]
-        }
-      },
-      {
-        "name": "enabled",
-        "label": "开放申请",
-        "kind": "boolean",
-        "required": true,
-        "default_value": true
-      },
-      {
-        "name": "expected_version",
-        "label": "当前版本",
-        "kind": "hidden",
-        "default_value": 0,
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "修改提现方式",
-    "method": "POST",
-    "name": "edit_method",
-    "path": "/v1/operators/{operatorId}/withdrawals/{id}/edit_method",
-    "permission": "withdrawals.manage"
   },
   {
     "resource": "payment-quotes",
@@ -4712,6 +4476,238 @@
         "name": "note",
         "label": "补充说明（可选）",
         "kind": "textarea"
+      }
+    ]
+  },
+  {
+    "resource": "payment-methods",
+    "name": "fee_rule",
+    "method": "POST",
+    "path": "/v1/operators/{operatorId}/payment-methods",
+    "permission": "payments.manage",
+    "label": "新增提现方式",
+    "description": "One immutable fee version shared by collections and both withdrawal wallets. Editing payout availability additionally requires withdrawals.manage.",
+    "confirmation": "",
+    "include_version": false,
+    "fields": [
+      {
+        "name": "action",
+        "label": "操作",
+        "kind": "hidden",
+        "default_value": "fee_rule"
+      },
+      {
+        "name": "name",
+        "label": "支付方式名称",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "fee_mode",
+        "label": "手续费规则",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "value": "none",
+            "label": "不收费"
+          },
+          {
+            "value": "fixed",
+            "label": "固定金额"
+          },
+          {
+            "value": "percent",
+            "label": "按比例"
+          }
+        ]
+      },
+      {
+        "name": "flat_fee_money",
+        "label": "固定手续费 结算币种",
+        "kind": "decimal",
+        "visible_when": {
+          "field": "fee_mode",
+          "values": [
+            "fixed"
+          ]
+        }
+      },
+      {
+        "name": "fee_percent",
+        "label": "手续费率 %",
+        "kind": "decimal",
+        "visible_when": {
+          "field": "fee_mode",
+          "values": [
+            "percent"
+          ]
+        }
+      },
+      {
+        "name": "payout_enabled",
+        "label": "用于余额和佣金提现",
+        "kind": "boolean"
+      },
+      {
+        "name": "payout_kind",
+        "label": "提现收款材料",
+        "kind": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "bank_cn",
+            "label": "境内银行卡 · 户名、开户银行、卡号、支行"
+          },
+          {
+            "value": "alipay",
+            "label": "支付宝 · 实名、登录账号"
+          },
+          {
+            "value": "wechat",
+            "label": "微信支付 · 实名、微信号或手机号"
+          },
+          {
+            "value": "paypal",
+            "label": "PayPal · 邮箱、账户姓名"
+          },
+          {
+            "value": "wire",
+            "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"
+          },
+          {
+            "value": "usdt",
+            "label": "USDT · 网络、钱包地址"
+          }
+        ],
+        "visible_when": {
+          "field": "payout_enabled",
+          "values": [
+            "true"
+          ]
+        }
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本",
+        "kind": "hidden",
+        "required": true
+      }
+    ]
+  },
+  {
+    "resource": "payment-methods",
+    "name": "fee_rule",
+    "method": "POST",
+    "path": "/v1/operators/{operatorId}/payment-methods/{id}/fee_rule",
+    "permission": "payments.manage",
+    "label": "设置方式与费用",
+    "description": "One immutable fee version shared by collections and both withdrawal wallets. Editing payout availability additionally requires withdrawals.manage.",
+    "confirmation": "",
+    "include_version": false,
+    "fields": [
+      {
+        "name": "action",
+        "label": "操作",
+        "kind": "hidden",
+        "default_value": "fee_rule"
+      },
+      {
+        "name": "name",
+        "label": "支付方式名称",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "fee_mode",
+        "label": "手续费规则",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "value": "none",
+            "label": "不收费"
+          },
+          {
+            "value": "fixed",
+            "label": "固定金额"
+          },
+          {
+            "value": "percent",
+            "label": "按比例"
+          }
+        ]
+      },
+      {
+        "name": "flat_fee_money",
+        "label": "固定手续费 结算币种",
+        "kind": "decimal",
+        "visible_when": {
+          "field": "fee_mode",
+          "values": [
+            "fixed"
+          ]
+        }
+      },
+      {
+        "name": "fee_percent",
+        "label": "手续费率 %",
+        "kind": "decimal",
+        "visible_when": {
+          "field": "fee_mode",
+          "values": [
+            "percent"
+          ]
+        }
+      },
+      {
+        "name": "payout_enabled",
+        "label": "用于余额和佣金提现",
+        "kind": "boolean"
+      },
+      {
+        "name": "payout_kind",
+        "label": "提现收款材料",
+        "kind": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "bank_cn",
+            "label": "境内银行卡 · 户名、开户银行、卡号、支行"
+          },
+          {
+            "value": "alipay",
+            "label": "支付宝 · 实名、登录账号"
+          },
+          {
+            "value": "wechat",
+            "label": "微信支付 · 实名、微信号或手机号"
+          },
+          {
+            "value": "paypal",
+            "label": "PayPal · 邮箱、账户姓名"
+          },
+          {
+            "value": "wire",
+            "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"
+          },
+          {
+            "value": "usdt",
+            "label": "USDT · 网络、钱包地址"
+          }
+        ],
+        "visible_when": {
+          "field": "payout_enabled",
+          "values": [
+            "true"
+          ]
+        }
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本",
+        "kind": "hidden",
+        "required": true
       }
     ]
   }

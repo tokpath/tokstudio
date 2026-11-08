@@ -287,7 +287,7 @@ func (a *Application) orderContext(c *gin.Context) {
 			if err != nil {
 				return err
 			}
-			p := contextPage("关联收款", rows, []gin.H{col("provider", "通道", "text"), col("gross_money", "收款总额（扣手续费前）", "money"), col("fee_money", "己方收款手续费", "money"), col("net_money", "净到账金额", "money"), col("order_allocated_money", "分配至此单", "money"), col("original_amount", "原币收款总额（扣手续费前）", "text"), col("currency", "币种", "text"), col("verification_evidence", "核实证据", "text"), col("paid_at", "实际付款时间", "datetime")}, func(r linkedReceipt) gin.H {
+			p := contextPage("关联收款", rows, []gin.H{col("provider", "通道", "text"), col("gross_money", "收款总额（含支付手续费）", "money"), col("payment_fee_money", "已收支付手续费", "money"), col("fee_money", "己方收款手续费", "money"), col("net_money", "净到账金额", "money"), col("order_allocated_money", "分配至此单", "money"), col("original_amount", "原币收款总额（扣手续费前）", "text"), col("currency", "币种", "text"), col("verification_evidence", "核实证据", "text"), col("paid_at", "实际付款时间", "datetime")}, func(r linkedReceipt) gin.H {
 				v := values(r)
 				v["order_id"] = orderID
 				return entity(r.ID, r.FeeStatus, 1, v)

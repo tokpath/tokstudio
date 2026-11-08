@@ -74,6 +74,7 @@ type FinancialReport struct {
 	Notes                  []string                      `json:"notes"`
 }
 type FinancialRevenue struct {
+	CollectionFeesMoney         ledger.Decimal `json:"collection_fees_money"`
 	PaidInvocationMoney         ledger.Decimal `json:"paid_invocation_money"`
 	ExpiredUnusedPaidMoney      ledger.Decimal `json:"expired_unused_paid_money"`
 	WholesaleConsumedMoney      ledger.Decimal `json:"wholesale_consumed_money"`
@@ -253,6 +254,8 @@ func composeFinancial(op string, l ledger.FinancialSnapshot, c commerce.Financia
 			out.Costs.PaymentFeesMoney = out.Costs.PaymentFeesMoney.Sub(f.Net)
 		case "control:collection_loss", "control:refund_overpayment", "control:refund_misdirected":
 			out.Costs.ExceptionLossMoney = out.Costs.ExceptionLossMoney.Sub(f.Net)
+		case "control:payment_fees":
+			out.Revenue.CollectionFeesMoney = out.Revenue.CollectionFeesMoney.Add(f.Net)
 		case "control:withdrawal_fees":
 			out.Revenue.WithdrawalFeesRetainedMoney = out.Revenue.WithdrawalFeesRetainedMoney.Add(f.Net)
 		}
@@ -287,7 +290,7 @@ func composeFinancial(op string, l ledger.FinancialSnapshot, c commerce.Financia
 	}
 	out.Liabilities.OutstandingGrantPaidMoney = l.OutstandingGrantPaidMoney
 	out.Liabilities.OutstandingGrantATG = l.OutstandingGrantATG
-	out.Revenue.TotalMoney = out.Revenue.PaidInvocationMoney.Add(out.Revenue.ExpiredUnusedPaidMoney).Add(out.Revenue.WholesaleConsumedMoney).Add(out.Revenue.WithdrawalFeesRetainedMoney)
+	out.Revenue.TotalMoney = out.Revenue.PaidInvocationMoney.Add(out.Revenue.ExpiredUnusedPaidMoney).Add(out.Revenue.WholesaleConsumedMoney).Add(out.Revenue.WithdrawalFeesRetainedMoney).Add(out.Revenue.CollectionFeesMoney)
 	out.Costs.TotalMoney = out.Costs.FulfillmentMoney.Add(out.Costs.CommissionMoney).Add(out.Costs.PaymentFeesMoney).Add(out.Costs.ExceptionLossMoney)
 	if out.Costs.PendingFees > 0 || out.Costs.PendingSupplierCosts > 0 {
 		out.Status = "pending_costs"

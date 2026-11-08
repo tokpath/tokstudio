@@ -24,12 +24,20 @@ func TestPostgresBalanceWithdrawalPaysTheWalletOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	found := false
 	for _, method := range commissionMethods {
 		if method.MethodID == policy.MethodID {
-			t.Fatal("balance payout method appeared on the commission page")
+			found = true
+			if method.ID != policy.ID || method.FeeRate.Cmp(policy.FeeRate) != 0 || method.FlatFeeMoney.Cmp(policy.FlatFeeMoney) != 0 {
+				t.Fatal("wallets diverged", method, policy)
+			}
 		}
 	}
-	requested, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: customer.Customer.ID, BusinessKey: "balance-once", RecipientReference: "payee bank", PolicyID: policy.ID, AmountMoney: d("40")})
+	if !found {
+		t.Fatal("shared payout method missing from commission wallet")
+	}
+
+	requested, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{Wallet: "balance", OperatorID: f.operator, CustomerID: customer.Customer.ID, BusinessKey: "balance-once", RecipientReference: "payee bank", PolicyID: policy.ID, AmountMoney: d("40")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +73,7 @@ func TestPostgresBalanceWithdrawalRespectsAccountFreezeAfterApplication(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{OperatorID: f.operator, CustomerID: c.Customer.ID, BusinessKey: "frozen-balance", RecipientReference: "test payee", PolicyID: p.ID, AmountMoney: d("50")})
+	w, err := f.s.RequestWithdrawal(f.ctx, nil, WithdrawalInput{Wallet: "balance", OperatorID: f.operator, CustomerID: c.Customer.ID, BusinessKey: "frozen-balance", RecipientReference: "test payee", PolicyID: p.ID, AmountMoney: d("50")})
 	if err != nil {
 		t.Fatal(err)
 	}

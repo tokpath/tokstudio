@@ -554,7 +554,9 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		for _, r := range rows {
-			add(r.ID, r.Driver+" · "+r.Currency, nil)
+			if r.SettlementSupported {
+				add(r.ID, r.Name+" · "+r.Currency, gin.H{"method_id": r.ID, "fee_rule": gin.H{"driver": r.Driver, "fee_rule_id": r.FeeRuleID, "flat_fee_money": r.FlatFeeMoney, "fee_rate": r.FeeRate}})
+			}
 		}
 	case "buyers", "suppliers":
 		if customer {

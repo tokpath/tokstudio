@@ -16,6 +16,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/jobs"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 	"gorm.io/gorm"
@@ -30,6 +31,7 @@ type quoteRow struct {
 func (quoteRow) TableName() string { return "portal_order_quotes" }
 
 type checkoutRow struct {
+	FeeQuote                   json.RawMessage `gorm:"type:jsonb"`
 	OrderID, CustomerID        string
 	MerchantID                 *string
 	AutoRenew, AllowCommission bool
@@ -110,6 +112,7 @@ func (a *Application) createOrder(c *gin.Context) {
 			MoneyBalance     ledger.Decimal `json:"money_balance"`
 			CommissionMoney  ledger.Decimal `json:"commission_money"`
 			ExternalMethodID string         `json:"external_method_id"`
+			FeeRuleID        string         `json:"fee_rule_id"`
 		} `json:"funding"`
 		AutoRenew       bool `json:"auto_renew"`
 		AllowCommission bool `json:"allow_commission"`
@@ -152,6 +155,7 @@ func (a *Application) createOrder(c *gin.Context) {
 		}
 		ext := order.DueMoney.Sub(order.InternalMoney).Sub(order.CommissionMoney)
 		var merchant *string
+		var feeQuote json.RawMessage
 		if ext.Sign() > 0 {
 			if in.Funding.ExternalMethodID == "" {
 				return nil, commerce.ErrNotPaid
@@ -170,9 +174,14 @@ func (a *Application) createOrder(c *gin.Context) {
 			if supported, _ := payments.SettlementSupport(m, settings.Currency); !supported {
 				return nil, payments.ErrUnsupported
 			}
+			fee, e := payments.CollectionFee(ctx, tx, order.OperatorID, m.ID, in.Funding.FeeRuleID, ext, settings.Currency)
+			if e != nil {
+				return nil, e
+			}
+			feeQuote, _ = json.Marshal(fee)
 			merchant = &m.ID
 		}
-		cr := checkoutRow{OrderID: order.ID, CustomerID: order.CustomerID, MerchantID: merchant, AutoRenew: in.AutoRenew, AllowCommission: in.AllowCommission, CreatedAt: time.Now()}
+		cr := checkoutRow{FeeQuote: feeQuote, OrderID: order.ID, CustomerID: order.CustomerID, MerchantID: merchant, AutoRenew: in.AutoRenew, AllowCommission: in.AllowCommission, CreatedAt: time.Now()}
 		if e = tx.Create(&cr).Error; e != nil {
 			return nil, e
 		}
@@ -265,6 +274,11 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 			return e
 		}
 		paymentOrder = payments.Order{ID: o.ID, OperatorID: o.OperatorID, MerchantID: *cr.MerchantID, Money: money, SettlementMoney: payments.Money{Currency: value.Currency, Amount: due}, AcceptedAt: o.CreatedAt, ExpiresAt: o.ExpiresAt, NotifyURL: a.Config.PublicBaseURL + "/v1/payments/webhooks/" + *cr.MerchantID, Description: "TokenHub order " + o.ID}
+		if len(cr.FeeQuote) > 0 {
+			if e = json.Unmarshal(cr.FeeQuote, &paymentOrder.FeeQuote); e != nil {
+				return e
+			}
+		}
 		raw, e := json.Marshal(paymentOrder)
 		if e != nil {
 			return e
@@ -310,6 +324,13 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 	if err != nil {
 		return nil, err
 	}
+	if len(cr.FeeQuote) > 0 {
+		var q paymentmethods.Quote
+		if err = json.Unmarshal(cr.FeeQuote, &q); err != nil {
+			return nil, err
+		}
+		dto["fee_quote"] = q
+	}
 	dto["cancel_allowed"] = allowed
 	if e == nil && cr.MerchantID != nil && o.Status != "completed" {
 		intent, e := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
@@ -346,6 +367,7 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 				action["currency"] = ch.PayMoney.Currency
 			}
 			action["settlement_money"] = ch.SettlementMoney
+			action["fee_quote"] = ch.FeeQuote
 			action["payment_quote"] = ch.PaymentQuote
 			if ch.Instructions != "" {
 				action["instructions"] = ch.Instructions
@@ -396,7 +418,8 @@ func (a *Application) order(c *gin.Context) {
 }
 func (a *Application) replacePaymentMethod(c *gin.Context) {
 	var in struct {
-		Method string `json:"external_method_id"`
+		Method    string `json:"external_method_id"`
+		FeeRuleID string `json:"fee_rule_id"`
 	}
 	if !body(c, &in) {
 		return
@@ -449,7 +472,12 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		if cr.MerchantID != nil && *cr.MerchantID == m.ID {
 			return gin.H{"id": o.ID}, nil
 		}
-		if e = tx.Exec("UPDATE portal_order_checkout SET merchant_id=?, payment_order=NULL WHERE order_id=? AND customer_id=?", m.ID, o.ID, o.CustomerID).Error; e != nil {
+		fee, e := payments.CollectionFee(ctx, tx, o.OperatorID, m.ID, in.FeeRuleID, due, settings.Currency)
+		if e != nil {
+			return nil, e
+		}
+		encodedFee, _ := json.Marshal(fee)
+		if e = tx.Exec("UPDATE portal_order_checkout SET merchant_id=?, payment_order=NULL, fee_quote=? WHERE order_id=? AND customer_id=?", m.ID, string(encodedFee), o.ID, o.CustomerID).Error; e != nil {
 			return nil, e
 		}
 		return gin.H{"id": o.ID}, nil
@@ -674,8 +702,9 @@ func (a *Application) reconcileOrder(c *gin.Context) {
 }
 func (a *Application) topup(c *gin.Context) {
 	var in struct {
-		Amount ledger.Decimal `json:"amount_money"`
-		Method string         `json:"external_method_id"`
+		Amount    ledger.Decimal `json:"amount_money"`
+		Method    string         `json:"external_method_id"`
+		FeeRuleID string         `json:"fee_rule_id"`
 	}
 	if !body(c, &in) {
 		return
@@ -702,7 +731,12 @@ func (a *Application) topup(c *gin.Context) {
 		if supported, _ := payments.SettlementSupport(m, settings.Currency); !supported {
 			return nil, payments.ErrUnsupported
 		}
-		e = tx.Create(&checkoutRow{OrderID: o.ID, CustomerID: o.CustomerID, MerchantID: &m.ID, CreatedAt: time.Now()}).Error
+		fee, e := payments.CollectionFee(ctx, tx, o.OperatorID, m.ID, in.FeeRuleID, o.DueMoney, settings.Currency)
+		if e != nil {
+			return nil, e
+		}
+		encodedFee, _ := json.Marshal(fee)
+		e = tx.Create(&checkoutRow{FeeQuote: encodedFee, OrderID: o.ID, CustomerID: o.CustomerID, MerchantID: &m.ID, CreatedAt: time.Now()}).Error
 		return gin.H{"id": o.ID}, e
 	})
 	if e != nil {
@@ -1079,7 +1113,13 @@ func (a *Application) deliverReceipt(ctx context.Context, op, receiptID, orderID
 		if e != nil {
 			return e
 		}
+		if e = a.validateCollectionReceipt(ctx, tx, op, orderID, &r); e != nil {
+			return e
+		}
 		amount := r.GrossMoney.Sub(r.AllocatedMoney)
+		if r.AllocatedMoney.IsZero() {
+			amount = amount.Sub(r.PaymentFeeMoney)
+		}
 		due := o.DueMoney.Sub(o.InternalMoney).Sub(o.CommissionMoney).Sub(o.ExternalAllocatedMoney)
 		if amount.Sign() > 0 && due.Sign() <= 0 {
 			return commerce.ErrWholePayment

@@ -208,7 +208,7 @@ func TestPostgresTakeoverKeepsRightsWithoutCashSettlement(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	withdrawal, e := brand.s.Incentives.RequestWithdrawal(brand.ctx, nil, incentives.WithdrawalInput{OperatorID: brand.operator, CustomerID: channel.customer, BusinessKey: "withdraw-after-takeover", PolicyID: policy.ID, RecipientReference: "customer bank", AmountMoney: d("5")})
+	withdrawal, e := brand.s.Incentives.RequestWithdrawal(brand.ctx, nil, incentives.WithdrawalInput{Wallet: "balance", OperatorID: brand.operator, CustomerID: channel.customer, BusinessKey: "withdraw-after-takeover", PolicyID: policy.ID, RecipientReference: "customer bank", AmountMoney: d("5")})
 	if e != nil || withdrawal.OperatorID != brand.operator {
 		t.Fatal(withdrawal, e)
 	}

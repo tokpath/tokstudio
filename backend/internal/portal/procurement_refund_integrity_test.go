@@ -7,6 +7,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
+	"github.com/tokpath/tokstudio/backend/internal/payments"
+	"gorm.io/gorm"
 )
 
 func TestPostgresUndeliveredProcurementRefundHasOrderPickerAndBothCashSides(t *testing.T) {
@@ -17,7 +20,7 @@ func TestPostgresUndeliveredProcurementRefundHasOrderPickerAndBothCashSides(t *t
 	mustOK(t, status, out)
 	orderID := out["id"].(string)
 	now := time.Now().UTC()
-	receipt, err := f.a.Commerce.RecordManualReceipt(ctx, nil, owner, commerce.VerifiedReceipt{OperatorID: s.oem, ProviderReceiptID: uuid.NewString(), GrossMoney: ledger.FromInt64(1000), FeeStatus: "pending", Currency: "USD", OriginalAmount: "1000", ValuationEvidence: "same-currency USD cash", VerificationEvidence: "verified test cash receipt", PaidAt: &now})
+	receipt, err := f.a.Commerce.RecordManualReceipt(ctx, nil, owner, commerce.VerifiedReceipt{OperatorID: s.oem, ProviderReceiptID: uuid.NewString(), GrossMoney: ledger.FromInt64(1020), PaymentFeeMoney: ledger.FromInt64(20), FeeStatus: "pending", Currency: "USD", OriginalAmount: "1020", ValuationEvidence: "same-currency USD cash", VerificationEvidence: "verified test cash receipt", PaidAt: &now})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,6 +56,9 @@ func TestPostgresUndeliveredProcurementRefundHasOrderPickerAndBothCashSides(t *t
 		t.Fatal(legs, err)
 	}
 	leg := legs[0]
+	if leg.AmountMoney.String() != "1020" {
+		t.Fatal("payment fee omitted from refund", leg)
+	}
 	// Staff confirm full payment. The system supplies its already-approved amount.
 	key := uuid.NewString()
 	proof := map[string]any{"currency": "USD", "occurred_at": time.Now().UTC(), "fee_money": "0"}
@@ -69,7 +75,7 @@ func TestPostgresUndeliveredProcurementRefundHasOrderPickerAndBothCashSides(t *t
 		for _, total := range report.OriginalCurrencyTotals {
 			if total.Currency == "USD" {
 				found = true
-				if total.Income.String() != "1000" || total.Expense.String() != "1000" {
+				if total.Income.String() != "1020" || total.Expense.String() != "1020" {
 					t.Fatal("refund missing or duplicated on one side", operator, total)
 				}
 			}
@@ -85,5 +91,49 @@ func TestPostgresUndeliveredProcurementRefundHasOrderPickerAndBothCashSides(t *t
 		if name == "close_execution" || name == "verify_manual_failure" {
 			t.Fatal("manual error recovery branch is still exposed", name)
 		}
+	}
+}
+
+func TestPostgresOfflinePurchaseExcludesSharedPaymentFeeFromInventory(t *testing.T) {
+	s := stockSetup(t)
+	f, ctx := s.f, t.Context()
+	owner := f.a.Installation.OwnerStaffID
+	m, e := f.a.Payments.SaveMerchant(ctx, owner, payments.Merchant{ID: uuid.NewString(), OperatorID: s.oem, Driver: "manual", Enabled: true, Credentials: map[string]string{"currency": "USD", "instructions": "cash"}}, 0)
+	if e != nil {
+		t.Fatal(e)
+	}
+	rule, e := paymentmethods.Current(ctx, f.a.DB, s.oem, m.ID)
+	if e != nil {
+		t.Fatal(e)
+	}
+	rule.FlatFeeMoney = ledger.FromInt64(20)
+	if e = f.a.DB.Transaction(func(tx *gorm.DB) error {
+		var err error
+		rule, err = paymentmethods.Save(ctx, tx, rule, rule.Version)
+		return err
+	}); e != nil {
+		t.Fatal(e)
+	}
+	now := time.Now().UTC()
+	r, e := f.a.Commerce.RecordManualReceipt(ctx, nil, owner, commerce.VerifiedReceipt{OperatorID: s.oem, ProviderReceiptID: uuid.NewString(), GrossMoney: ledger.FromInt64(1020), FeeStatus: "pending", Currency: "USD", OriginalAmount: "1020", ValuationEvidence: "same currency", PaidAt: &now})
+	if e != nil {
+		t.Fatal(e)
+	}
+	body := map[string]any{"receipt_id": r.ID, "amount_money": "1000", "external_method_id": m.ID, "fee_rule_id": rule.ID}
+	key := uuid.NewString()
+	status, out, _ := f.call(t, "POST", "/v1/operators/"+s.oem+"/procurement/"+s.quote.ID+"/offline_purchase", body, key)
+	mustOK(t, status, out)
+	order, e := f.a.Cooperation.GetPurchase(ctx, nil, owner, s.oem, out["id"].(string))
+	if e != nil || order.DueMoney.String() != "1000" || order.Status != "completed" {
+		t.Fatal(order, e)
+	}
+	receipt, e := f.a.Commerce.GetReceipt(ctx, nil, s.oem, r.ID)
+	if e != nil || receipt.PaymentFeeMoney.String() != "20" || receipt.AllocatedMoney.String() != "1020" {
+		t.Fatal(receipt, e)
+	}
+	status, replay, _ := f.call(t, "POST", "/v1/operators/"+s.oem+"/procurement/"+s.quote.ID+"/offline_purchase", body, key)
+	mustOK(t, status, replay)
+	if replay["id"] != out["id"] {
+		t.Fatal(replay)
 	}
 }

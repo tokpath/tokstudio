@@ -115,7 +115,15 @@ func (s *Service) approveUndeliveredPackage(ctx context.Context, t *gorm.DB, c C
 		lines = append(lines, ledger.Line{AccountID: payable.ID, Amount: legs[i].AmountMoney})
 		sum = sum.Add(legs[i].AmountMoney)
 	}
-	if sum.Cmp(external) != 0 {
+	fee := sum.Sub(external)
+	if fee.Sign() > 0 {
+		fees, e := s.account(ctx, t, c.OperatorID, c.OperatorID, "control:payment_fees")
+		if e != nil {
+			return e
+		}
+		lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: fee.Neg()})
+	}
+	if sum.Cmp(c.AmountMoney.Sub(c.InternalMoney).Sub(c.CommissionMoney)) != 0 {
 		return ErrConflict
 	}
 	if _, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: c.OperatorID, BusinessKey: "undelivered-package:" + c.ID, Kind: "package_nondelivery_refund", SourceID: o.ID, ActorID: actor, Reason: c.Evidence, Lines: lines}); e != nil {
@@ -141,7 +149,11 @@ func (s *Service) approveUndeliveredPurchase(ctx context.Context, t *gorm.DB, c 
 	if e != nil {
 		return e
 	}
-	if o.DueMoney.Cmp(c.AmountMoney) != 0 || allocation.AmountMoney.Cmp(c.AmountMoney) != 0 {
+	receipt, e := s.Commerce.GetReceipt(ctx, t, c.OperatorID, allocation.ReceiptID)
+	if e != nil {
+		return e
+	}
+	if o.DueMoney.Add(receipt.PaymentFeeMoney).Cmp(c.AmountMoney) != 0 || allocation.AmountMoney.Cmp(o.DueMoney) != 0 {
 		return ErrConflict
 	}
 	at, e := instant(t)
@@ -156,14 +168,22 @@ func (s *Service) approveUndeliveredPurchase(ctx context.Context, t *gorm.DB, c 
 	if e != nil {
 		return e
 	}
-	if len(legs) != 1 || legs[0].ReceiptID != allocation.ReceiptID || legs[0].AmountMoney.Cmp(o.DueMoney) != 0 {
+	if len(legs) != 1 || legs[0].ReceiptID != allocation.ReceiptID || legs[0].AmountMoney.Cmp(c.AmountMoney) != 0 {
 		return ErrConflict
 	}
 	payable, e := s.account(ctx, t, c.OperatorID, legs[0].ID, "refund:payable")
 	if e != nil {
 		return e
 	}
-	if _, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: c.OperatorID, BusinessKey: "undelivered-purchase:" + c.ID, Kind: "procurement_nondelivery_refund", SourceID: o.ID, ActorID: actor, Reason: c.Evidence, Lines: []ledger.Line{{AccountID: funds.ID, Amount: o.DueMoney.Neg()}, {AccountID: payable.ID, Amount: o.DueMoney}}}); e != nil {
+	lines := []ledger.Line{{AccountID: funds.ID, Amount: o.DueMoney.Neg()}, {AccountID: payable.ID, Amount: c.AmountMoney}}
+	if receipt.PaymentFeeMoney.Sign() > 0 {
+		fees, e := s.account(ctx, t, c.OperatorID, c.OperatorID, "control:payment_fees")
+		if e != nil {
+			return e
+		}
+		lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: receipt.PaymentFeeMoney.Neg()})
+	}
+	if _, e = s.Ledger.Post(ctx, t, ledger.Posting{OperatorID: c.OperatorID, BusinessKey: "undelivered-purchase:" + c.ID, Kind: "procurement_nondelivery_refund", SourceID: o.ID, ActorID: actor, Reason: c.Evidence, Lines: lines}); e != nil {
 		return e
 	}
 	h, e := s.Ledger.Reserve(ctx, t, ledger.Reservation{OperatorID: c.OperatorID, BusinessKey: "refund:" + legs[0].ID, Purpose: "refund", ExpiresAt: holdExpiry(at), Amounts: []ledger.Line{{AccountID: payable.ID, Amount: legs[0].AmountMoney}}})

@@ -33,12 +33,12 @@ it("translates metadata while preserving names and evidence matching system copy
  fireEvent.click(screen.getByRole("button", { name: "Customer workspace" })); expect(screen.getByRole("dialog")).toBeTruthy(); expect(screen.getByRole("heading", { name: "客户" })).toBeTruthy();
 });
 it("shows simplified takeover copy in all supported languages", async()=>{
- vi.stubGlobal("fetch",vi.fn(async()=>response({items:[],channels:[]})));
+ vi.stubGlobal("fetch",vi.fn(async()=>response({items:[],channels:[{id:"channel",name:"Channel",legal_name:"",lifecycle:"active"}]})));
  show(<TakeoversScreen operatorID="operator-one"/>);
  await screen.findByRole("button",{name:"Take over channel"});
  for(const locale of ["zh","en","ja","ru"] as const){
   fireEvent.change(screen.getByTestId("language-selector"),{target:{value:locale}});
-  expect(screen.getByText(translate(locale,"完整承接客户权益和渠道套餐。双方资金交接在线下处理，不影响接管。"))).toBeTruthy();
+  expect(screen.getByText(translate(locale,"查看停业告知、渠道接管进度和结果。采购余额不退，双方资金交接在线下处理。"))).toBeTruthy();
  }
 });
 it("localizes the accounting explanation without treating pending costs as zero", () => {

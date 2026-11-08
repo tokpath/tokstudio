@@ -356,3 +356,26 @@ it("retries uncertain takeover preparation with the same channel and key",async(
  expect(submissions).toHaveLength(2);expect(submissions[0]).toEqual(submissions[1]);
  expect(submissions[0].body).toEqual({channel_id:"channel-one",evidence:"商定接管客户"});
 });
+
+it("shows a direct completed takeover and its late exit notice as one channel matter",async()=>{
+ staff(["*"],"channel");
+ const item={id:"takeover",channel_id:"operator-one",channel_name:"原渠道",brand_operator_id:"brand-owner",state:"completed",requested_by:"owner",evidence:"",snapshot:null,snapshot_fingerprint:"snapshot",cash_money:"0",created_at:"2026-11-08T00:00:00Z",completed_at:"2026-11-08T01:00:00Z"};
+ vi.stubGlobal("fetch",vi.fn(async()=>response({items:[item],channels:[],can_notify:false,notices:[{id:"notice",operator_id:"operator-one",operator_name:"原渠道",kind:"channel",note:"旧页面留下的通知",created_at:"2026-11-08T02:00:00Z"}]})));
+ show(<TakeoversScreen operatorID="operator-one"/>);
+ await screen.findByRole("heading",{name:"停业与接管"});
+ expect(screen.getAllByRole("heading",{name:"原渠道"})).toHaveLength(1);
+ expect(screen.getByText("旧页面留下的通知")).toBeTruthy();
+ expect(screen.queryByRole("button",{name:"通知品牌办理退出"})).toBeNull();
+ expect(screen.queryByRole("button",{name:"接管渠道"})).toBeNull();
+});
+
+it("hides stale business actions in a taken-over workspace while retaining historical invoice actions",()=>{
+ staff(["*"],"channel");
+ if(currentSession.kind!=="staff")throw new Error("staff fixture");
+ currentSession.workspaces[0].transition={state:"completed",brand_name:"品牌",takeover_id:"takeover"};
+ const create={name:"create",label:"新增套餐",method:"POST" as const,path:"/api/v1/operators/operator-one/plans",fields:[]};
+ const invoice={name:"register",label:"登记实际开票结果",method:"POST" as const,path:"/api/v1/operators/operator-one/invoices/{id}/register",fields:[]};
+ show(<><ResourceCollection operatorID="operator-one" resource="plans" page={page([],{operations:[create]})}/><ResourceCollection operatorID="operator-one" resource="invoices" page={page([{id:"invoice",values:{}}],{row_operations:[invoice]})}/></>);
+ expect(screen.queryByRole("button",{name:"新增套餐"})).toBeNull();
+ expect(screen.getByRole("button",{name:"登记实际开票结果"})).toBeTruthy();
+});

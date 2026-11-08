@@ -13,7 +13,7 @@ export function ChannelInvitationCard({ operatorID }: { operatorID: string }) {
   const { t } = useI18n();
   const { session } = useProduct();
   const workspace = session?.kind === "staff" ? session.workspaces.find(w => w.operator.id === operatorID) : undefined;
-  const allowed = workspace?.operator.kind === "channel" && canReadResource(workspace, "customers");
+  const allowed = workspace?.operator.kind === "channel" && !workspace.transition && canReadResource(workspace, "customers");
   const data = useQuery({ queryKey: ["channel-invitation", operatorID], queryFn: ({ signal }) => request(`/api/v1/operators/${encodeURIComponent(operatorID)}/customer-invitation`, ChannelInvitationSchema, { signal }), enabled: allowed });
   if (!allowed) return null;
   return <Card className="mb-6" id="channel-invitation">

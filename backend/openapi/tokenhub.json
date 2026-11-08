@@ -33931,6 +33931,9 @@
             "type": "string",
             "minLength": 1
           },
+          "lifecycle": {
+            "type": "string"
+          },
           "contact_email": {
             "type": "string"
           },
@@ -34013,6 +34016,30 @@
           "name",
           "kind",
           "brand_id"
+        ],
+        "additionalProperties": true
+      },
+      "OperatorTransition": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "brand_name": {
+            "type": "string"
+          },
+          "takeover_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "completed_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "brand_name",
+          "takeover_id"
         ],
         "additionalProperties": true
       },
@@ -34247,6 +34274,9 @@
                 "type": "string",
                 "minLength": 1
               },
+              "lifecycle": {
+                "type": "string"
+              },
               "contact_email": {
                 "type": "string"
               },
@@ -34445,6 +34475,9 @@
                   "brand_id": {
                     "type": "string",
                     "minLength": 1
+                  },
+                  "lifecycle": {
+                    "type": "string"
                   },
                   "contact_email": {
                     "type": "string"
@@ -34798,6 +34831,9 @@
                     "type": "string",
                     "minLength": 1
                   },
+                  "lifecycle": {
+                    "type": "string"
+                  },
                   "contact_email": {
                     "type": "string"
                   },
@@ -34953,6 +34989,9 @@
                           "type": "string",
                           "minLength": 1
                         },
+                        "lifecycle": {
+                          "type": "string"
+                        },
                         "contact_email": {
                           "type": "string"
                         },
@@ -35037,6 +35076,37 @@
                         "brand_id"
                       ],
                       "additionalProperties": true
+                    },
+                    "transition": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "state": {
+                              "type": "string"
+                            },
+                            "brand_name": {
+                              "type": "string"
+                            },
+                            "takeover_id": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "completed_at": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "state",
+                            "brand_name",
+                            "takeover_id"
+                          ],
+                          "additionalProperties": true
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "permissions": {
                       "type": "array",
@@ -35233,6 +35303,9 @@
                         "type": "string",
                         "minLength": 1
                       },
+                      "lifecycle": {
+                        "type": "string"
+                      },
                       "contact_email": {
                         "type": "string"
                       },
@@ -35388,6 +35461,9 @@
                               "type": "string",
                               "minLength": 1
                             },
+                            "lifecycle": {
+                              "type": "string"
+                            },
                             "contact_email": {
                               "type": "string"
                             },
@@ -35472,6 +35548,37 @@
                             "brand_id"
                           ],
                           "additionalProperties": true
+                        },
+                        "transition": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "state": {
+                                  "type": "string"
+                                },
+                                "brand_name": {
+                                  "type": "string"
+                                },
+                                "takeover_id": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "completed_at": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "state",
+                                "brand_name",
+                                "takeover_id"
+                              ],
+                              "additionalProperties": true
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         },
                         "permissions": {
                           "type": "array",
@@ -35899,6 +36006,9 @@
               "brand_id": {
                 "type": "string",
                 "minLength": 1
+              },
+              "lifecycle": {
+                "type": "string"
               },
               "contact_email": {
                 "type": "string"
@@ -44552,9 +44662,91 @@
         ],
         "additionalProperties": true
       },
+      "ExitNotice": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operator_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operator_name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "oem",
+              "channel"
+            ]
+          },
+          "note": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "operator_id",
+          "operator_name",
+          "kind",
+          "note",
+          "created_at"
+        ],
+        "additionalProperties": true
+      },
       "Takeovers": {
         "type": "object",
         "properties": {
+          "notices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "operator_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "operator_name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "oem",
+                    "channel"
+                  ]
+                },
+                "note": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "operator_id",
+                "operator_name",
+                "kind",
+                "note",
+                "created_at"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "can_notify": {
+            "type": "boolean"
+          },
           "items": {
             "type": "array",
             "items": {

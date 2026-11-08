@@ -1,4 +1,5 @@
 "use client";
+import { canRunOperatorAction } from "@/lib/operator-transition";
 import { useI18n } from "@/components/i18n";
 import { useProduct } from "./context";
 import { useMonetary } from "./monetary";
@@ -236,6 +237,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
       else closePaymentWindow(payWindow);
     } catch (error) { const configPath = error instanceof ConfigurationError ? error.fieldPath : undefined; setValidationError(error instanceof ConfigurationError ? error : error instanceof Error ? error.message : "请检查输入"); setInvalidField(currentField); setInvalidConfigPath(configPath); focusField(currentField, configPath); }
   }
+  if (!canRunOperatorAction(workspace,path) && !command.unresolved && !command.busy && !command.result) return <Notice>{t("当前渠道已进入接管流程，此操作不可继续。请查看停业与接管状态。")}</Notice>;
   const content = <><div className="mb-6 flex items-start justify-between gap-4"><div className="min-w-0">{!embedded && <><p className="th-eyebrow mb-2 text-brand-emphasis">{t("业务办理")}</p><h2 className="text-xl font-semibold">{t(operation.label)}</h2></>}{operation.description && <p className="mt-2 text-sm leading-7 text-ink-secondary">{t(operation.description)}</p>}{objectName && !embedded && <p className="mt-3 text-sm text-ink-secondary">{t("办理对象：")}<span className="font-medium text-ink">{String(objectName)}</span></p>}</div>{onClose && <Button type="button" variant="ghost" size="sm" disabled={dismissLocked} onClick={onClose}>{command.result ? t("返回记录") : t("关闭")}</Button>}</div>
     {!simpleProduct && <ol aria-label={t("办理步骤")} className="th-stepper"><li className="flex items-center gap-2 text-brand-emphasis"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-soft">{command.result ? <Check className="size-3" /> : "1"}</span>{t("填写事项")}</li><li className="flex items-center gap-2 text-ink-secondary"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-canvas">2</span>{t("核对影响")}</li><li className={`flex items-center gap-2 ${command.result ? "text-success" : "text-ink-mute"}`}><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-canvas">{command.result ? <Check className="size-3" /> : "3"}</span>{command.result ? t("已完成") : t("提交办理")}</li></ol>}
     {procurementPayment && (command.unresolved || command.result) && row ? <ProcurementPayment path={path} orderID={row.id} initialOrder={command.result?.order} error={command.error} onClose={onClose || onAbandon} /> : <><form ref={formRef} onSubmit={submit} noValidate className="space-y-7">

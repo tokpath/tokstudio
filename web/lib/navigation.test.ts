@@ -8,8 +8,8 @@ describe("task navigation and organization boundaries", () => {
   });
   it("keeps every established operator capability reachable once without duplicate risk or content storage settings", () => {
     const resources = operatorNav.flatMap(section => section.items.map(([resource]) => resource));
-    expect(resources).toHaveLength(43);
-    expect(new Set(resources).size).toBe(43);
+    expect(resources).toHaveLength(42);
+    expect(new Set(resources).size).toBe(42);
     expect(resources).not.toContain("withdrawals");
     expect(resources).not.toContain("procurement-invoices");
     expect(resources).toContain("routes");
@@ -22,6 +22,8 @@ describe("task navigation and organization boundaries", () => {
     expect(resources).not.toContain("routing");
     expect(resources).not.toContain("catalog-changes");
     expect(resources).not.toContain("takeover-settlements");
+    expect(resources).not.toContain("exits");
+    expect(operatorResourcePath("channel","exits")).toBe("/manage/channel/takeovers");
     expect(customerSections).toHaveLength(7);
     for(const route of ["topups","credit-sources","refunds","invoices","activities","notifications","orders"]) expect(sectionForResource(customerSections, route)).toBeDefined();
   });

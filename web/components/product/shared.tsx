@@ -58,7 +58,7 @@ export function useCommand<T extends z.ZodTypeAny>(path: string, schema: T, meth
     const current = attempt.current;
     setBusy(true); setError(undefined);
     try { const value = await request(path, schema, { method, body: current.body, actionKey: current.key, onUploadProgress: hooks?.onUploadProgress }); setResult(value); attempt.current = undefined; await cache.invalidateQueries(); return value; }
-    catch (e) { setError(e); return undefined; }
+    catch (e) { setError(e); if(e instanceof APIError && e.code==="channel_takeover_restricted") await cache.invalidateQueries(); return undefined; }
     finally { setBusy(false); }
   }
   function reset() { attempt.current = undefined; setResult(undefined); setError(undefined); }

@@ -41,7 +41,7 @@ func (a *Application) exitsResource(c *gin.Context, op organization.Operator, ac
 	p["description"] = "采购余额不退。OEM 自行处理停业及存量责任；渠道由所属品牌办理客户接管。"
 	p["columns"] = []gin.H{col("operator_name", "经营方", "text"), col("kind_label", "事项", "text"), col("note", "说明", "text"), col("created_at", "通知时间", "datetime"), col("takeover_url", "查看渠道接管", "link")}
 	p["operations"] = []operation{}
-	if op.Kind != organization.Platform && !ownNotice {
+	if op.Kind != organization.Platform && op.Lifecycle != "terminated" && !ownNotice && a.Organization.RequireNoTakeover(c.Request.Context(), nil, op.ID) == nil {
 		label, confirmation := "通知品牌办理退出", "通知所属品牌办理客户接管。采购余额不退；接管前继续由本渠道负责客户业务。"
 		if op.Kind == organization.OEM {
 			label = "告知平台停止经营"
@@ -63,7 +63,7 @@ func (a *Application) exitsCommand(c *gin.Context, op organization.Operator, act
 		if e != nil {
 			return nil, e
 		}
-		title, body := "渠道申请退出", "请在渠道接管页面查看并办理客户权益承接。双方资金交接在线下处理。"
+		title, body := "渠道申请退出", "请在停业与接管页面查看并办理客户权益承接。双方资金交接在线下处理。"
 		if op.Kind == organization.OEM {
 			title = "OEM 已告知停止经营"
 			body = "OEM 自行负责客户和下属渠道的存量事项，平台无需审批、退款或接管。"

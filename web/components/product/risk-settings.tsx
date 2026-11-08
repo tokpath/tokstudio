@@ -1,4 +1,5 @@
 "use client";
+import { useProduct } from "./context";
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18,6 +19,9 @@ const descriptions: Record<string, [string, string]> = {
 export function RiskSettings({ operatorID, page }: { operatorID: string; page: ResourcePage }) {
   const { t } = useI18n();
   const cache = useQueryClient();
+  const {session}=useProduct();
+  const stopped=session?.kind==="staff"&&!!session.workspaces.find(w=>w.operator.id===operatorID)?.transition;
+  if(stopped)return <><Heading title={t("风险预警")} description={t("渠道已进入接管流程，预警配置仅供查询。")} /><div className="space-y-4">{page.items.map(row=><Card key={row.id}><h2 className="font-semibold">{t(String(row.values.metric)==="sales_space_atg"?"剩余销售空间ATG":"剩余采购余额ATG")}</h2><p className="mt-3">{t("提醒阈值（ATG）")}：{typeof row.values.warning==="string"?<Money value={row.values.warning} unit="ATG"/>:t("尚未核实")}</p></Card>)}</div></>;
   return <><Heading title={t("风险预警")} description={t("两项补货预警默认已启用，可直接调整。仅提醒本经营方，不会自动补货或限制销售。")} actions={<Button variant="outline" onClick={() => void cache.invalidateQueries({ queryKey: ["resource"] })}>{t("刷新")}</Button>} />
     <div className="grid items-start gap-6 min-[1200px]:grid-cols-2">{page.items.filter(row => descriptions[String(row.values.metric)]).map(row => <RiskCard key={row.id} operatorID={operatorID} row={row} />)}</div>
   </>;

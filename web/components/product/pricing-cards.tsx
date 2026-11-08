@@ -20,14 +20,14 @@ export function PriceRates({ components }: { components: JSONValue | undefined }
   return <ul className="space-y-2 text-sm">{items.map((item, index) => <li key={index} className="flex flex-wrap justify-between gap-x-4 gap-y-1"><span className="text-ink-secondary">{billingLabel(String(item.label || item.component || item.key), t)}</span><span><Money value={String(item.rate ?? item.amount_atg ?? "0")} /> / {String(item.per || "1")} {t(units[String(item.unit)] || String(item.unit))}</span></li>)}</ul>;
 }
 
-export function ModelPricingCard({ row, canPrice, canTemplate, onPrice, onTemplate }: { row: Entity; canPrice: boolean; canTemplate: boolean; onPrice: (price?: Record<string, JSONValue>) => void; onTemplate: () => void }) {
+export function ModelPricingCard({ row, canPrice, canTemplate, onPrice, onTemplate, suspended=false }: { row: Entity; suspended?:boolean; canPrice: boolean; canTemplate: boolean; onPrice: (price?: Record<string, JSONValue>) => void; onTemplate: () => void }) {
   const { t } = useI18n();
   const books = Array.isArray(row.values.price_books) ? row.values.price_books.map(object) : [];
   const pending = Array.isArray(row.values.pending_changes) ? row.values.pending_changes.map(object) : [];
   const meterLabels = new Map([...(Array.isArray(row.values.current_pricing_components) ? row.values.current_pricing_components.map(object) : []), ...(Array.isArray(row.values.pricing_components) ? row.values.pricing_components.map(object) : [])].map(meter => [meter.key, meter.label]));
   const isListed = !["not_listed", "disabled"].includes(row.status || "");
   const listing = pending.find(change => change.kind === "listing");
-  const label = row.status === "disabled" ? "平台已停用" : listing ? listing.needs_attention ? "上架变更待处理" : listing.enabled ? "上架待生效" : "下架待生效" : !isListed ? "尚未上架，可先准备计费与价格" : row.status === "pricing_unavailable" ? "价格未配齐，暂不可调用" : "已上架";
+  const label = suspended ? "已暂停" : row.status === "disabled" ? "平台已停用" : listing ? listing.needs_attention ? "上架变更待处理" : listing.enabled ? "上架待生效" : "下架待生效" : !isListed ? "尚未上架，可先准备计费与价格" : row.status === "pricing_unavailable" ? "价格未配齐，暂不可调用" : "已上架";
   return <Card className="min-w-0"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-semibold">{String(row.values.name || row.id)}</h3><p className="mt-1 text-xs text-ink-mute">{t(label)}</p></div><div className="flex flex-wrap gap-2">{canTemplate && <Button size="sm" variant="outline" onClick={onTemplate}>{t("计费模板")}</Button>}{canPrice && <Button size="sm" onClick={() => onPrice()}>{t("设置价格")}</Button>}</div></div>
     {listing && listing.needs_attention !== true && <p className="mt-3 text-xs leading-6 text-ink-secondary">{t("预计生效时间")} <When value={String(listing.effective_at)} /> · {t("生效后列表自动更新")}</p>}
     {row.values.billing_pending === true && <p className="mt-4 text-xs leading-6 text-hold">{t("计费模板正在更新，请按新模板配齐价格；已有请求继续使用原快照。")}</p>}
@@ -40,10 +40,10 @@ export function ModelPricingCard({ row, canPrice, canTemplate, onPrice, onTempla
   </Card>;
 }
 
-export function PackageCard({ row, children }: { row: Entity; children: ReactNode }) {
+export function PackageCard({ row, children, suspended=false }: { row: Entity; children: ReactNode; suspended?:boolean }) {
   const { t } = useI18n();
   const v = row.values, total = totalCredits(String(v.paid_atg || "0"), String(v.gift_atg || "0"));
-  return <Card className="min-w-0"><div className="flex flex-wrap items-start justify-between gap-3"><h3 className="text-lg font-semibold">{String(v.name)}</h3><span className="rounded-full bg-canvas px-3 py-1 text-xs">{t(v.new_purchase_enabled ? "在售" : "已停止新购")}</span></div>{v.source_operator_name && <p className="mt-2 text-sm text-ink-mute">{t("来自渠道：{name}", {name:String(v.source_operator_name)})}</p>}<div className="my-5 flex flex-wrap items-end justify-between gap-3"><div><p className="mb-1 text-xs text-ink-mute">{t("合计服务额度")}</p><p className="text-2xl font-semibold"><Money value={total} /></p></div><p className="text-lg font-medium"><Money value={String(v.price_money)} unit="MONEY" /></p></div><p className="text-sm text-ink-secondary">{t("购买额度")} <Money value={String(v.paid_atg)} /> · {t("赠送额度")} <Money value={String(v.gift_atg || "0")} /></p><div className="my-4 flex flex-wrap gap-3 border-y border-hairline py-3 text-sm"><span>{t(planPeriods[String(v.period) === "lifetime" ? "unlimited" : String(v.period)] || String(v.period))}</span><span className="text-ink-mute">{t(v.period === "lifetime" ? "无需续费" : v.renewal_enabled ? "可由客户授权续费" : "已停止续费")}</span></div>{children}</Card>;
+  return <Card className="min-w-0"><div className="flex flex-wrap items-start justify-between gap-3"><h3 className="text-lg font-semibold">{String(v.name)}</h3><span className="rounded-full bg-canvas px-3 py-1 text-xs">{t(!suspended && v.new_purchase_enabled ? "在售" : "已停止新购")}</span></div>{v.source_operator_name && <p className="mt-2 text-sm text-ink-mute">{t("来自渠道：{name}", {name:String(v.source_operator_name)})}</p>}<div className="my-5 flex flex-wrap items-end justify-between gap-3"><div><p className="mb-1 text-xs text-ink-mute">{t("合计服务额度")}</p><p className="text-2xl font-semibold"><Money value={total} /></p></div><p className="text-lg font-medium"><Money value={String(v.price_money)} unit="MONEY" /></p></div><p className="text-sm text-ink-secondary">{t("购买额度")} <Money value={String(v.paid_atg)} /> · {t("赠送额度")} <Money value={String(v.gift_atg || "0")} /></p><div className="my-4 flex flex-wrap gap-3 border-y border-hairline py-3 text-sm"><span>{t(planPeriods[String(v.period) === "lifetime" ? "unlimited" : String(v.period)] || String(v.period))}</span><span className="text-ink-mute">{t(v.period === "lifetime" ? "无需续费" : !suspended && v.renewal_enabled ? "可由客户授权续费" : "已停止续费")}</span></div>{children}</Card>;
 }
 
 export function priceDraft(row: Entity, saved?: Record<string, JSONValue>): JSONValue {

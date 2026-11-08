@@ -21,7 +21,8 @@ export const defaultMonetary: Monetary = { currency: "USD", atg_per_unit: "1", s
 export const MonetarySnapshotSchema = z.object({ currency: z.string(), atg_per_unit: Decimal, version: z.number().int() });
 export const BrandSchema = z.object({ id: ID, name: z.string(), api_base_url: z.string(), theme: ThemeSchema });
 export type Brand = z.infer<typeof BrandSchema>;
-export const OperatorSchema = z.object({ id: ID, name: z.string(), kind: z.enum(["platform", "oem", "channel"]), brand_id: ID, contact_email: z.string().optional(), legal_name: z.string().optional(), theme: ThemeSchema.optional() });
+export const OperatorSchema = z.object({ id: ID, name: z.string(), kind: z.enum(["platform", "oem", "channel"]), brand_id: ID, lifecycle:z.string().optional(), contact_email: z.string().optional(), legal_name: z.string().optional(), theme: ThemeSchema.optional() });
+export const OperatorTransitionSchema=z.object({state:z.string(),brand_name:z.string(),takeover_id:ID,completed_at:z.string().optional()});
 export type Operator = z.infer<typeof OperatorSchema>;
 export const AvailabilitySchema = z.object({ capability: z.string(), enabled: z.boolean(), reason: z.string().optional(), next_action: z.string().optional() });
 export const PaymentMethodSchema = z.object({ settlement_currency: z.string().optional(), settlement_supported: z.boolean().optional(), unsupported_reason: z.string().optional(), requires_settlement_confirmation: z.boolean().optional(), id: ID, name: z.string(), kind: z.enum(["online", "offline", "stablecoin"]), status: z.enum(["ready", "pending_configuration", "disabled"]), instructions: z.string().optional(), currency: z.string().optional(), network: z.string().optional() });
@@ -37,7 +38,7 @@ const PersonSchema = z.object({ id: ID, email: z.string(), display_name: z.strin
 export const SessionSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("anonymous") }),
   z.object({ kind: z.literal("customer"), customer: PersonSchema, brand: BrandSchema, operator: OperatorSchema, csrf_token: z.string().optional() }),
-  z.object({ kind: z.literal("staff"), requires_password_change:z.boolean().optional(), staff: PersonSchema, workspaces: z.array(z.object({ operator: OperatorSchema, permissions: z.array(z.string()), can_manage_monetary: z.boolean().default(false) })), active_operator_id: z.string().optional(), csrf_token: z.string().optional() }),
+  z.object({ kind: z.literal("staff"), requires_password_change:z.boolean().optional(), staff: PersonSchema, workspaces: z.array(z.object({ operator: OperatorSchema, transition:OperatorTransitionSchema.nullish(), permissions: z.array(z.string()), can_manage_monetary: z.boolean().default(false) })), active_operator_id: z.string().optional(), csrf_token: z.string().optional() }),
 ]);
 export const LoginResultSchema = z.union([SessionSchema, z.object({kind:z.literal("workspace_choice"),choices:z.array(z.enum(["customer","staff"]))})]);
 export type Session = z.infer<typeof SessionSchema>;
@@ -121,7 +122,9 @@ export const TakeoverSchema=z.object({
  blockers:z.array(z.object({resource:z.string(),label:z.string(),count:z.number()})).nullish(),
 });
 export type Takeover=z.infer<typeof TakeoverSchema>;
-export const TakeoversSchema=z.object({items:z.array(TakeoverSchema),channels:z.array(z.object({id:ID,name:z.string(),legal_name:z.string(),lifecycle:z.string()}))});
+export const ExitNoticeSchema=z.object({id:ID,operator_id:ID,operator_name:z.string(),kind:z.enum(["oem","channel"]),note:z.string(),created_at:z.string()});
+export type ExitNotice=z.infer<typeof ExitNoticeSchema>;
+export const TakeoversSchema=z.object({notices:z.array(ExitNoticeSchema).default([]),can_notify:z.boolean().default(false),items:z.array(TakeoverSchema),channels:z.array(z.object({id:ID,name:z.string(),legal_name:z.string(),lifecycle:z.string()}))});
 export const FinancialReportSchema=z.object({operator_id:z.string(),from:z.string(),to:z.string(),captured_at:z.string(),status:z.string(),settlement_currency:z.string(),
  original_currency_totals:z.array(z.object({currency:z.string(),income:SignedDecimal,expense:SignedDecimal,receipt_fees:SignedDecimal,net_receipts:SignedDecimal,pending_receipt_fees:z.number().int(),supplier_reported_cost:SignedDecimal,supplier_reference_cost:SignedDecimal,supplier_actual_cost:SignedDecimal})).default([]),
  sales:z.object({completed_sales:z.number().int(),sales_money:SignedDecimal,wallet_top_ups:z.number().int(),wallet_top_up_money:SignedDecimal,pending_deliveries:z.number().int()}),

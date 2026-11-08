@@ -66,12 +66,12 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
   const unknownTasks = overview.data && applicableMetrics.some(metric => metric.task && metrics[metric.key] === undefined);
   const activeRisks = (risks.data?.items || []).filter(row => ["warning", "critical"].includes(row.status || "") && (!isPlatform || !upstreamMetricKeys.has(String(row.values.metric))));
   const businessRow = business.data?.items[0];
-  const isOpening = businessRow && ["registration", "new_purchase", "model_usage"].every(key => businessRow.values[key] === false);
+  const isOpening = !workspace?.transition && businessRow && ["registration", "new_purchase", "model_usage"].every(key => businessRow.values[key] === false);
   const focusTitles: Record<string, string> = { owner: "经营总览与待办", finance: "今天需要核实的资金事项", technology: "今天需要处理的服务异常", support: "今天需要跟进的客户事项", operations: "今天需要处理的经营事项" };
   const focusResources: Record<string, string[]> = { owner: ["customers", "plans", "payments", isPlatform ? "providers" : "procurement"], finance: ["payments", "refunds", "reconciliation", "withdrawals", "invoices"], technology: ["requests", "providers", "routes", "jobs"], support: ["customers", "orders", "refunds", "restrictions"], operations: ["customers", "plans", "marketing", "coverage", "alerts", isPlatform ? "providers" : "procurement"] };
   const destination = (resource: string) => operatorResourcePath(operatorID, resource === "receipt-valuations" ? "payments?section=pending" : resource);
   return <>
-    <Heading eyebrow={t("经营工作台")} title={t(focusTitles[focus])} description={t("{operator}的待办、营业项目和服务责任。所有数据均来自当前空间已授权的经营范围。", { operator: workspace?.operator.name || t("当前经营方") })} actions={<span className="rounded-full border border-hairline bg-canvas-raised px-3 py-2 text-xs text-ink-mute">{workspace?.operator.kind === "platform" ? t("平台经营") : workspace?.operator.kind === "oem" ? t("OEM 独立经营") : t("渠道独立经营")}
+    <Heading eyebrow={t("经营工作台")} title={t(focusTitles[focus])} description={t("{operator}的待办、营业项目和服务责任。所有数据均来自当前空间已授权的经营范围。", { operator: workspace?.operator.name || t("当前经营方") })} actions={<span className="rounded-full border border-hairline bg-canvas-raised px-3 py-2 text-xs text-ink-mute">{workspace?.transition ? t(workspace.transition.state === "completed" ? "经营已结束" : "接管中") : workspace?.operator.kind === "platform" ? t("平台经营") : workspace?.operator.kind === "oem" ? t("OEM 独立经营") : t("渠道独立经营")}
     </span>} />
     <ChannelInvitationCard operatorID={operatorID} />
     {overview.isLoading && <Loading />}{overview.isError && <div className="mb-5">

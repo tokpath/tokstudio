@@ -41,6 +41,8 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 		if !ok {
 			continue
 		}
+		ops = filterTransitionOperations(c, ops)
+		p[key] = ops
 		for i := range ops {
 			if c.Param("operatorId") != "" && ops[i].Permission == "" {
 				ops[i].Permission = operationPermission(resource, ops[i].Name)

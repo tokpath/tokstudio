@@ -105,4 +105,4 @@ cd web && npm run build && npx playwright test
 
 公开模型 `demo-chat` 显式标注固定合成回复，独立上游需分别验证同步和流式能力。真实模型、支付商户及邮件资料仍由经营方配置。测试种子不放宽正常注册密码要求，也不开放无验证邮件能力的公众注册。
 
-渠道接管专项页面验收：在隔离 PostgreSQL 环境中设置 `TOKENHUB_EXIT_ACCEPTANCE_FILE` 运行 `TestExternalExitAcceptanceServer`，API 监听本机 18081；生产前端代理到该端口并监听 13003。浏览器设置 `TOKENHUB_WEB_ORIGIN=http://127.0.0.1:13003`、相同 ready 文件，运行 `web/e2e/exit-takeover-live.spec.ts`。该夹具固定模型价格和就绪检查，其余注册、收款、额度、接管与页面使用真实应用和数据库；OEM 客户通过 `exit.localhost` 隔离品牌。删除 ready 文件即结束夹具并清理隔离 schema。不要对测试站或真实商户运行该夹具。
+停业与接管专项页面验收（含品牌直接接管、原渠道各页状态和操作限制、四语言及移动端）：在隔离 PostgreSQL 环境中设置 `TOKENHUB_EXIT_ACCEPTANCE_FILE` 运行 `TestExternalExitAcceptanceServer`，API 监听本机 18081；生产前端代理到该端口并监听 13003。浏览器设置 `TOKENHUB_WEB_ORIGIN=http://127.0.0.1:13003`、相同 ready 文件，运行 `web/e2e/exit-takeover-live.spec.ts`。该夹具固定模型价格和就绪检查，其余注册、收款、额度、接管与页面使用真实应用和数据库；OEM 客户通过 `exit.localhost` 隔离品牌。删除 ready 文件即结束夹具并清理隔离 schema。不要对测试站或真实商户运行该夹具。

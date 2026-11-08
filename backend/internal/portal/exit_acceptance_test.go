@@ -198,6 +198,10 @@ func TestPostgresTakeoverCopiedPlansAndRenewalConsentHTTP(t *testing.T) {
 	f := s.f
 	ctx := context.Background()
 	owner := f.a.Installation.OwnerStaffID
+	f.login(t, "customer", s.email, "customer-password-test")
+	invoiceStatus, invoice, _ := f.call(t, "POST", "/v1/me/invoices", map[string]any{"issuer_id": s.channel, "lines": []map[string]string{{"order_id": s.order}}, "details": map[string]string{"title": "Original channel buyer", "tax_id": "TEST-123", "email": "billing@example.test"}}, "")
+	mustOK(t, invoiceStatus, invoice)
+	invoiceID := invoice["id"].(string)
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	base := "/v1/operators/" + s.oem + "/takeovers"
 	status, p, _ := f.call(t, "POST", base, map[string]any{"channel_id": s.channel}, "")
@@ -209,8 +213,12 @@ func TestPostgresTakeoverCopiedPlansAndRenewalConsentHTTP(t *testing.T) {
 	if snap["cash_money"] != "25" || snap["service_atg"] != "140" || len(snap["packages"].([]any)) != 2 {
 		t.Fatal("rights summary", snap)
 	}
+	assertTakeoverWorkspaceState(t, f, s.channel, "awaiting_approval")
 	status, p, _ = f.call(t, "POST", path+"/execute", map[string]any{"expected_snapshot": p["snapshot_fingerprint"]}, "")
 	mustOK(t, status, p)
+	assertTakeoverWorkspaceState(t, f, s.channel, "completed")
+	status, invoice, _ = f.call(t, "POST", "/v1/operators/"+s.channel+"/invoices/"+invoiceID+"/register", map[string]any{"state": "rejected", "reason": "Buyer requested a corrected invoice title"}, "")
+	mustOK(t, status, invoice)
 
 	finance := uuid.NewString()
 	passwordHash, err := organization.HashPassword("finance-password-test")

@@ -31,7 +31,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     if (previousMonetaryStatus.current === "scheduled" && monetaryStatus === "locked") void cache.invalidateQueries({ predicate: query => !["public-context", "session"].includes(String(query.queryKey[0])) });
     previousMonetaryStatus.current = monetaryStatus;
   }, [cache, monetaryStatus]);
-  const session = useQuery({ queryKey: ["session"], queryFn: async () => { const value = await request("/api/v1/auth/me", SessionSchema); setCSRFToken(value.kind !== "anonymous" ? value.csrf_token : undefined); return value; } });
+  const session = useQuery({ queryKey: ["session"], refetchInterval:q=>q.state.data?.kind==="staff"?30_000:false, queryFn: async () => { const value = await request("/api/v1/auth/me", SessionSchema); setCSRFToken(value.kind !== "anonymous" ? value.csrf_token : undefined); return value; } });
   useEffect(() => {
     let hiddenAt = 0;
     const onChange = () => {
@@ -42,6 +42,10 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", onChange);
     return () => document.removeEventListener("visibilitychange", onChange);
   }, []);
+  useEffect(() => { if (pathname.startsWith("/manage/")) void cache.invalidateQueries({queryKey:["session"]}); },[cache,pathname]);
+  const transitions=session.data?.kind==="staff"?JSON.stringify(session.data.workspaces.map(w=>[w.operator.id,w.transition?.state])):"";
+  const previousTransitions=useRef(transitions);
+  useEffect(()=>{if(previousTransitions.current&&previousTransitions.current!==transitions) void cache.invalidateQueries({predicate:q=>!["session","public-context"].includes(String(q.queryKey[0]))});previousTransitions.current=transitions;},[cache,transitions]);
   const current = session.data;
   const presentationOperator = current?.kind === "customer" ? current.operator : context.data?.operator;
   const theme = ThemeSchema.parse(resolveTheme(resolveTheme(context.data?.brand.theme, presentationOperator?.theme), current?.kind === "customer" ? current.operator.theme : context.data?.theme));

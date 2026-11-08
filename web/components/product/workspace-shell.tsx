@@ -1,4 +1,5 @@
 "use client";
+import { OperatorTransitionNotice } from "./operator-transition";
 import { useI18n } from "@/components/i18n";
 import Link from "next/link";
 import { allowNavigation } from "@/lib/navigation-guard";
@@ -60,7 +61,7 @@ export function WorkspaceShell({ children, operatorID }: { children: ReactNode; 
     </aside>
     <div className="min-w-0">
       <div className="flex min-h-12 items-center justify-between gap-3 px-5 pt-2 lg:px-8"><p className="flex items-center gap-2 text-xs text-ink-mute"><span>{workspace ? t("经营管理") : t("我的服务")}</span><ChevronRight size={12} aria-hidden="true" /><span className="font-medium text-ink-secondary">{onStaffNotifications ? t("通知管理") : activeSection ? t(activeSection.group) : t("业务详情")}</span></p></div>
-      <main id="workspace-content" className="min-w-0 px-5 pb-10 pt-4 lg:px-8 lg:pb-12 lg:pt-5" key={`${base}/${resource.split("/")[0]}`}>{children}</main>
+      <main id="workspace-content" className="min-w-0 px-5 pb-10 pt-4 lg:px-8 lg:pb-12 lg:pt-5" key={`${base}/${resource.split("/")[0]}`}>{operatorID&&<OperatorTransitionNotice operatorID={operatorID}/>}{children}</main>
     </div>
   </div>;
 }

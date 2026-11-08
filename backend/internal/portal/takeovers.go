@@ -20,15 +20,43 @@ func (a *Application) takeoverResource(c *gin.Context, op organization.Operator,
 		return
 	}
 	channels := []gin.H{}
+	active := map[string]bool{}
+	for _, row := range rows {
+		if row.State != "cancelled" {
+			active[row.ChannelID] = true
+		}
+	}
 	for _, child := range children {
-		if child.Kind == organization.Channel && child.Lifecycle != "terminated" {
+		if child.Kind == organization.Channel && child.Lifecycle != "terminated" && !active[child.ID] {
 			channels = append(channels, gin.H{"id": child.ID, "name": child.Name, "legal_name": child.LegalName, "lifecycle": child.Lifecycle})
 		}
 	}
 	if rows == nil {
 		rows = []remediation.Takeover{}
 	}
-	c.JSON(200, gin.H{"items": rows, "channels": channels})
+	notices := []gin.H{}
+	canNotify := false
+	if a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, "cooperation.manage") == nil {
+		found, e := a.Organization.ExitNotices(c.Request.Context(), actor, op.ID)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		ownNotice := false
+		for _, n := range found {
+			operator, e := a.Organization.GetOperator(c.Request.Context(), nil, n.OperatorID)
+			if e != nil {
+				handleError(c, e)
+				return
+			}
+			notices = append(notices, gin.H{"id": n.ID, "operator_id": n.OperatorID, "operator_name": operator.Name, "kind": n.Kind, "note": n.Note, "created_at": n.CreatedAt})
+			if n.OperatorID == op.ID {
+				ownNotice = true
+			}
+		}
+		canNotify = op.Kind != organization.Platform && op.Lifecycle != "terminated" && !ownNotice && !active[op.ID]
+	}
+	c.JSON(200, gin.H{"items": rows, "channels": channels, "notices": notices, "can_notify": canNotify})
 }
 func (a *Application) takeoverCommand(c *gin.Context, op organization.Operator, actor string) {
 	var in remediation.TakeoverInput

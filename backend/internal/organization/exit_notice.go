@@ -32,6 +32,12 @@ func (s *Service) ReportExit(ctx context.Context, tx *gorm.DB, actor, operator, 
 		if op.Kind == Platform || op.ParentOperatorID == nil {
 			return ErrInvalidRelationship
 		}
+		if op.Lifecycle == "terminated" {
+			return ErrBusinessClosed
+		}
+		if e := s.RequireNoTakeover(ctx, t, operator); e != nil {
+			return e
+		}
 		if len(note) > 2000 {
 			return ErrInvalidInput
 		}

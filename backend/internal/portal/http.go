@@ -295,7 +295,7 @@ func (a *Application) Router() *gin.Engine {
 	v.POST("/auth/logout", a.loadIdentity(true), a.requireCSRF, a.logout)
 	me := v.Group("/me", a.loadIdentity(true), a.requireCustomer, a.requireCSRF, a.monetaryTransactionGuard)
 	a.customerRoutes(me)
-	staff := v.Group("/operators/:operatorId", a.loadIdentity(true), a.requireStaff, a.requireCSRF, a.monetaryTransactionGuard)
+	staff := v.Group("/operators/:operatorId", a.loadIdentity(true), a.requireStaff, a.requireCSRF, a.operatorTransitionGuard, a.monetaryTransactionGuard)
 	a.operatorRoutes(staff)
 	a.modelRoutes(v)
 	v.POST("/payments/webhooks/kvoucher/:operatorId", a.kvoucherWebhook)

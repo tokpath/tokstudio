@@ -26,7 +26,7 @@ func (a *Application) brandDTO(ctx context.Context, b organization.Brand) gin.H 
 	return gin.H{"id": b.ID, "name": b.Name, "api_base_url": a.brandAPIEndpoint(ctx, b.ID), "theme": theme.Theme}
 }
 func (a *Application) operatorDTO(ctx context.Context, op organization.Operator) gin.H {
-	result := gin.H{"id": op.ID, "name": op.Name, "kind": op.Kind, "brand_id": op.BrandID, "legal_name": op.LegalName}
+	result := gin.H{"id": op.ID, "name": op.Name, "kind": op.Kind, "brand_id": op.BrandID, "legal_name": op.LegalName, "lifecycle": op.Lifecycle}
 	theme, e := a.Branding.ResolveTheme(ctx, nil, op.BrandID, channelThemeID(op))
 	if e == nil {
 		result["theme"] = theme.Theme
@@ -66,7 +66,12 @@ func (a *Application) sessionResponse(c *gin.Context) {
 	}
 	items := []any{}
 	for _, ws := range workspaces {
-		items = append(items, gin.H{"operator": a.operatorDTO(ctx, ws.Operator), "permissions": navigationPermissions(ws.Permissions, ws.Operator.Kind), "can_manage_monetary": ws.Operator.ID == a.Installation.OperatorID && ws.Membership.Role == "owner"})
+		transition, err := a.operatorTransition(ctx, ws.Operator)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		items = append(items, gin.H{"operator": a.operatorDTO(ctx, ws.Operator), "transition": transition, "permissions": navigationPermissions(ws.Permissions, ws.Operator.Kind), "can_manage_monetary": ws.Operator.ID == a.Installation.OperatorID && ws.Membership.Role == "owner"})
 	}
 	c.JSON(200, gin.H{"kind": "staff", "staff": gin.H{"id": id.Staff.ID, "email": id.Staff.Email, "display_name": id.Staff.DisplayName}, "workspaces": items, "requires_password_change": id.Staff.MustChangePassword, "csrf_token": a.csrf(id.Token, id.Session.BrandID)})
 }

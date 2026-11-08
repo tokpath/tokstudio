@@ -4711,8 +4711,8 @@
   },
   "OEM 停业告知": {
     "en": "OEM closure notice",
-    "ja": "OEM営業終了通知",
-    "ru": "Уведомление о закрытии OEM"
+    "ja": "OEM の営業終了通知",
+    "ru": "Уведомление OEM о прекращении работы"
   },
   "OEM 和渠道的剩余采购余额均不退。": {
     "en": "Unused procurement balances are nonrefundable for both OEMs and channels.",
@@ -4946,7 +4946,7 @@
   },
   "渠道退出通知": {
     "en": "Channel exit notice",
-    "ja": "チャネル退出通知",
+    "ja": "チャネルの退出通知",
     "ru": "Уведомление о выходе канала"
   },
   "现金责任合计": {
@@ -5068,5 +5068,100 @@
     "en": "This former channel plan is no longer available for purchase. Your existing credits remain valid without expiry.",
     "ja": "旧チャネルのこのプランは再購入できません。保有中の無期限クレジットは引き続き有効です。",
     "ru": "Повторная покупка тарифа прежнего канала отключена. Ваши бессрочные лимиты продолжают действовать."
+  },
+  "停业与接管": {
+    "en": "Closure and takeover",
+    "ja": "営業終了と引継ぎ",
+    "ru": "Прекращение работы и передача"
+  },
+  "查看停业与接管": {
+    "en": "View closure and takeover",
+    "ja": "営業終了と引継ぎを確認",
+    "ru": "Открыть прекращение работы и передачу"
+  },
+  "查看停业告知、渠道接管进度和结果。采购余额不退，双方资金交接在线下处理。": {
+    "en": "Review closure notices and channel takeover progress and results. Procurement balances are nonrefundable; funds are handed over offline.",
+    "ja": "営業終了の通知とチャネル引継ぎの進捗・結果を確認します。仕入残高は返金されず、当事者間の資金引渡しはシステム外で行います。",
+    "ru": "Просматривайте уведомления о прекращении работы, ход и результаты передачи каналов. Закупочный остаток не возвращается; стороны передают средства вне системы."
+  },
+  "暂无停业或接管事项。": {
+    "en": "No closure or takeover matters.",
+    "ja": "営業終了・引継ぎの案件はありません。",
+    "ru": "Нет уведомлений о прекращении работы или передач."
+  },
+  "仅作停业告知，无需平台审批。客户及下属渠道的存量责任仍由本 OEM 处理。": {
+    "en": "This notice requires no platform approval. The OEM remains responsible for its customers and subordinate channels.",
+    "ja": "営業終了の通知のみで、プラットフォームの承認は不要です。顧客および下位チャネルへの既存責任は引き続き当該 OEM が負います。",
+    "ru": "Уведомление не требует одобрения платформы. OEM сохраняет ответственность перед клиентами и подчинёнными каналами."
+  },
+  "采购余额不退。停业告知不代替客户及存量责任的处理。": {
+    "en": "Procurement balances are nonrefundable. A closure notice does not discharge customer or outstanding obligations.",
+    "ja": "仕入残高は返金されません。営業終了の通知だけで顧客への責任や未処理の義務が解消されることはありません。",
+    "ru": "Закупочный остаток не возвращается. Уведомление о прекращении работы не снимает обязательств перед клиентами и по незавершённым делам."
+  },
+  "接管完成时间": {
+    "en": "Takeover completed at",
+    "ja": "引継ぎ完了日時",
+    "ru": "Время завершения передачи"
+  },
+  "已由{brand}接管，渠道经营已结束": {
+    "en": "Taken over by {brand}; channel operations have ended",
+    "ja": "{brand} への引継ぎが完了し、チャネルの営業は終了しました",
+    "ru": "Передано {brand}; работа канала завершена"
+  },
+  "正在由{brand}接管，新增经营已暂停": {
+    "en": "Takeover by {brand} is in progress; new business is paused",
+    "ja": "{brand} への引継ぎ中です。新規業務は停止しています",
+    "ru": "Идёт передача {brand}; новые операции приостановлены"
+  },
+  "客户服务由承接品牌办理。历史记录、账本和报表仍可查询；历史票据及未结资金事项按原责任继续办理。": {
+    "en": "The receiving brand handles customer service. Historical records, ledgers and reports remain available; historical invoices and outstanding financial matters follow their original responsibilities.",
+    "ja": "顧客対応は引継ぎ先ブランドが行います。過去の記録・台帳・レポートは引き続き閲覧でき、過去の請求書と未決済の資金事項は元の責任範囲に従って処理します。",
+    "ru": "Клиентов обслуживает принявший бренд. История, реестры и отчёты доступны; прежние счета и незавершённые финансовые дела обрабатываются в рамках исходной ответственности."
+  },
+  "请继续处理已受理的存量事项。新增套餐、采购、营销和恢复营业已暂停，接管进度由所属品牌办理。": {
+    "en": "Continue handling accepted matters. New plans, procurement, marketing and reopening are paused; the owning brand manages the takeover.",
+    "ja": "受付済みの事項は引き続き処理してください。新規プラン・仕入・販促と営業再開は停止中です。引継ぎは所属ブランドが進めます。",
+    "ru": "Продолжайте обработку принятых дел. Новые пакеты, закупки, маркетинг и возобновление работы приостановлены; передачу проводит бренд."
+  },
+  "客户权益和套餐已由所属品牌承接，原渠道经营已结束。": {
+    "en": "The owning brand has assumed customer entitlements and plans; the original channel has ceased operating.",
+    "ja": "顧客の権益とプランは所属ブランドに引き継がれ、元のチャネルの営業は終了しました。",
+    "ru": "Бренд принял права клиентов и пакеты; исходный канал прекратил работу."
+  },
+  "当前渠道已进入接管流程，此操作不可继续。请查看停业与接管状态。": {
+    "en": "This channel is in takeover; this action is unavailable. Check closure and takeover status.",
+    "ja": "このチャネルは引継ぎ手続き中のため、この操作は続行できません。営業終了と引継ぎの状況を確認してください。",
+    "ru": "Канал находится в процессе передачи; действие недоступно. Проверьте статус прекращения работы и передачи."
+  },
+  "渠道已进入接管流程，预警配置仅供查询。": {
+    "en": "The channel is in takeover; alert settings are read-only.",
+    "ja": "チャネルは引継ぎ手続き中のため、アラート設定は閲覧のみ可能です。",
+    "ru": "Канал находится в процессе передачи; настройки предупреждений доступны только для просмотра."
+  },
+  "请在停业与接管页面查看并办理客户权益承接。双方资金交接在线下处理。": {
+    "en": "Review and handle customer entitlements on the Closure and takeover page. Funds are handed over offline.",
+    "ja": "営業終了と引継ぎのページで顧客の権益引継ぎを確認・処理してください。当事者間の資金引渡しはシステム外で行います。",
+    "ru": "Откройте страницу прекращения работы и передачи для приёма прав клиентов. Стороны передают средства вне системы."
+  },
+  "渠道正在接管，新增经营操作已暂停。请在停业与接管页面查看进度；存量事项仍在原业务页面办理。": {
+    "en": "Channel takeover is in progress and new business is paused. Check the Closure and takeover page; handle outstanding matters on their original pages.",
+    "ja": "チャネルの引継ぎ中のため、新規業務は停止しています。営業終了と引継ぎで進捗を確認してください。未処理の事項は元の業務ページで処理できます。",
+    "ru": "Идёт передача канала; новые операции приостановлены. Проверяйте ход передачи на странице прекращения работы; текущие дела остаются на исходных страницах."
+  },
+  "渠道已被接管并结束经营，不能继续新增经营或申请退出。客户服务由承接品牌办理；历史记录仍可查询。": {
+    "en": "The channel has been taken over and ceased operating. New business and exit requests are unavailable. The receiving brand handles customer service; historical records remain available.",
+    "ja": "チャネルの引継ぎと営業終了は完了しています。新規業務や退出申請はできません。顧客対応は引継ぎ先ブランドが行い、過去の記録は引き続き閲覧できます。",
+    "ru": "Канал передан и прекратил работу. Новые операции и заявления о выходе недоступны. Клиентов обслуживает принявший бренд; история остаётся доступной."
+  },
+  "经营已结束": {
+    "en": "Operations ended",
+    "ja": "営業終了",
+    "ru": "Работа завершена"
+  },
+  "接管中": {
+    "en": "Takeover in progress",
+    "ja": "引継ぎ中",
+    "ru": "Передача выполняется"
   }
 }

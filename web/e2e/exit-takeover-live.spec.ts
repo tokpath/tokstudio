@@ -20,7 +20,7 @@ test("platform OEM channel and customer complete simplified takeover in the live
   try{
     await login(page,f.owner_email,f.owner_password);
     await page.goto(`/manage/${f.platform}/exits`);
-    await expect(page.getByRole("heading",{name:"停业与退出",exact:true})).toBeVisible();
+    await expect(page.getByRole("heading",{name:"停业与接管",exact:true})).toBeVisible();
     await expect(page.getByRole("button",{name:"告知平台停止经营",exact:true})).toHaveCount(0);
     await page.screenshot({path:info.outputPath("platform-exits.png"),fullPage:true});
     await page.goto(`/manage/${f.oem}/exits`);
@@ -30,14 +30,9 @@ test("platform OEM channel and customer complete simplified takeover in the live
     await panel.getByRole("textbox").fill("测试停业告知：客户责任由本品牌处理");
     if(await panel.getByRole("checkbox").count()) await panel.getByRole("checkbox").check();
     await panel.getByRole("button",{name:"告知平台停止经营",exact:true}).click();
-    await expect(panel.getByText("告知平台停止经营已受理",{exact:true})).toBeVisible();
-    await page.goto(`/manage/${f.channel}/exits`);
-    await page.getByRole("button",{name:"通知品牌办理退出",exact:true}).click();
-    panel=page.getByRole("dialog");
-    await panel.getByRole("textbox").fill("测试渠道退出，完整承接客户权益");
-    if(await panel.getByRole("checkbox").count()) await panel.getByRole("checkbox").check();
-    await panel.getByRole("button",{name:"通知品牌办理退出",exact:true}).click();
-    await expect(panel.getByText("通知品牌办理退出已受理",{exact:true})).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByText("OEM 停业告知",{exact:false})).toBeVisible();
+    // The brand initiates takeover directly: the channel has never submitted an exit notice.
     await page.goto(`/manage/${f.oem}/takeovers`);
     await page.getByRole("button",{name:"接管渠道",exact:true}).click();
     panel=page.getByRole("dialog");
@@ -59,6 +54,11 @@ test("platform OEM channel and customer complete simplified takeover in the live
     await page.screenshot({path:info.outputPath("takeover-mobile.png"),fullPage:true});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     await page.setViewportSize({width:1440,height:1000});
+    await page.goto(`/manage/${f.channel}/exits`);
+    await expect(page).toHaveURL(new RegExp(`/manage/${f.channel}/takeovers$`));
+    await expect(page.getByText("正在由星河品牌接管，新增经营已暂停",{exact:true})).toBeVisible();
+    await expect(page.getByRole("button",{name:"通知品牌办理退出",exact:true})).toHaveCount(0);
+    await page.goto(`/manage/${f.oem}/takeovers`);
     await page.getByRole("button",{name:"确认接管",exact:true}).click();
     panel=page.getByRole("dialog");await expect(panel.getByRole("textbox")).toHaveCount(0);
     await panel.getByRole("checkbox").check();await panel.getByRole("button",{name:"确认提交",exact:true}).click();
@@ -71,6 +71,32 @@ test("platform OEM channel and customer complete simplified takeover in the live
     await page.goto(`/manage/${f.channel}/takeovers`);
     await expect(page.getByText("接管完成",{exact:true})).toBeVisible();
     await expect(page.getByRole("button",{name:"接管渠道",exact:true})).toHaveCount(0);
+    await expect(page.getByText("已由星河品牌接管，渠道经营已结束",{exact:true})).toBeVisible();
+    await expect(page.getByRole("button",{name:"通知品牌办理退出",exact:true})).toHaveCount(0);
+    for(const locale of ["zh","en","ja","ru"]){
+      await page.getByTestId("language-selector").selectOption(locale);
+      await page.screenshot({path:info.outputPath(`channel-completed-${locale}.png`),fullPage:true});
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    }
+    await page.getByTestId("language-selector").selectOption("zh");
+    for(const resource of ["plans","procurement","marketing","pricing","gifts","business-status","alerts","commissions","customers","ledger","invoices","reports","payments"]){
+      const response=page.waitForResponse(r=>r.url().includes(`/api/v1/operators/${f.channel}/${resource}`)&&r.request().method()==="GET");
+      await page.goto(`/manage/${f.channel}/${resource}`);
+      expect((await response).status(),resource).toBe(200);
+      await expect(page.getByText("已由星河品牌接管，渠道经营已结束",{exact:true})).toBeVisible();
+      await expect(page.getByRole("heading",{level:1}).first()).toBeVisible();
+      await expect(page.getByRole("button",{name:/^(新增套餐|建立套餐|发布套餐|申请采购|创建采购订单|通知品牌办理退出|保存预警设置|开启 新客户注册|开启 套餐新购)$/})).toHaveCount(0);
+      if(resource==="plans"){await expect(page.getByText("在售",{exact:true})).toHaveCount(0);await expect(page.getByText("可由客户授权续费",{exact:true})).toHaveCount(0);await expect(page.getByText("已停止新购",{exact:true})).toHaveCount(2)}
+      if(["plans","business-status","invoices"].includes(resource))await page.screenshot({path:info.outputPath(`channel-${resource}.png`),fullPage:true});
+    }
+    const stale=await page.evaluate(async(channel)=>{const me=await(await fetch("/api/v1/auth/me")).json();const r=await fetch(`/api/v1/operators/${channel}/exits`,{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":crypto.randomUUID(),"X-CSRF-Token":me.csrf_token},body:"{}"});return {status:r.status,body:await r.json()};},f.channel);
+    expect(stale.status).toBe(409);expect(stale.body.error.code).toBe("channel_takeover_restricted");
+    await page.setViewportSize({width:390,height:844});
+    await page.goto(`/manage/${f.channel}/takeovers`);
+    await expect(page.getByRole("heading",{name:"停业与接管",exact:true})).toBeVisible();
+    await expect(page.getByText("接管完成",{exact:true})).toBeVisible();
+    await page.screenshot({path:info.outputPath("channel-completed-mobile.png"),fullPage:true});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     await login(customer,f.customer_email,"customer-password-test",false);
     await customer.goto("/workspace/plans");
     await expect(customer.getByText("渠道月套餐",{exact:true})).toBeVisible();

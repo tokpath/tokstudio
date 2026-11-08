@@ -325,42 +325,34 @@ it("retains unresolved financial facts and validates the selected calendar date 
 });
 
 const takeover = {
-  id: "takeover-one", channel_id: "channel-one", brand_operator_id: "operator-one", state: "completed", method: "agreed_atg_value", service_money_per_atg: "1", procurement_money_per_atg: "1", extra_money: "0", terms_summary: "contract-one", evidence: "双方已核实", requested_by: "staff-1", snapshot: null, snapshot_fingerprint: "snapshot-one", service_money: "3", cash_money: "4", procurement_offset_atg: "2", procurement_offset_money: "2", remaining_procurement_refund_money: "0", settlement_due_money: "5", settled_money: "0", created_at: "2026-10-16T00:00:00Z",
+ id:"takeover-one",channel_id:"channel-one",channel_name:"示例渠道",brand_operator_id:"operator-one",state:"completed",terms_summary:"",evidence:"双方已核实",requested_by:"staff-1",snapshot:null,snapshot_fingerprint:"snapshot-one",cash_money:"4",created_at:"2026-10-16T00:00:00Z",
 };
 
 it("shows takeover facts without offering ungranted financial or preparation actions", async () => {
-  staff(["takeovers.read", "takeovers.read"]);
+  staff(["takeovers.read"]);
   vi.stubGlobal("fetch", vi.fn(async () => response({ items: [takeover], channels: [] })));
   show(<TakeoversScreen operatorID="operator-one" />);
-  await screen.findByRole("heading", { name: "channel-one" });
+  await screen.findByRole("heading", { name: "示例渠道" });
   expect(screen.queryByRole("button", { name: "登记实际收付款" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "发起接管准备" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "接管渠道" })).toBeNull();
 });
 
-it("retries an uncertain takeover settlement with the original proof and action key", async () => {
-  staff(["takeovers.read", "cooperation.manage", "refunds.manage"]);
-  const submissions: { body: unknown; key: string | null }[] = [];
-  vi.stubGlobal("fetch", vi.fn(async (_input, init) => {
-    if (init?.method === "POST") {
-      submissions.push({ body: JSON.parse(String(init.body)), key: new Headers(init.headers).get("Idempotency-Key") });
-      if (submissions.length === 1) throw new TypeError("connection reset");
-      return response({ ...takeover, settled_money: "5" });
-    }
-    return response({ items: [takeover], channels: [] });
-  }));
-  show(<TakeoversScreen operatorID="operator-one" />);
-  fireEvent.click(await screen.findByRole("button", { name: "登记实际收付款" }));
-  for (const [label, value] of [["实际币种金额", "5.000000000000000001"], ["收付款流水或收据号（可选）", "bank-one"], ["收付款核实依据", "bank-proof-one"], ["实际收付款时间", "2026-10-18T12:34"]]) fireEvent.change(screen.getByLabelText(label, { exact: true }), { target: { value } });
-  fireEvent.click(screen.getByRole("checkbox"));
-  fireEvent.click(screen.getByRole("button", { name: "确认提交" }));
-  await screen.findByRole("button", { name: "重试原操作" });
-  expect((screen.getByRole("button", { name: "关闭办理面板" }) as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.keyDown(document, { key: "Escape" });
-  expect(screen.getByRole("dialog")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "重试原操作" }));
-  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(submissions).toHaveLength(2);
-  expect(submissions[0]).toEqual(submissions[1]);
-  expect(submissions[0].body).toMatchObject({ actual_money: "5.000000000000000001", amount: "5.000000000000000001", fee_money: "0", reference: "bank-one" });
-  expect(submissions[0].key).toMatch(/^[0-9a-f-]{36}$/);
+it("retries uncertain takeover preparation with the same channel and key",async()=>{
+ staff(["takeovers.read","cooperation.manage"]);
+ const submissions:{body:unknown;key:string|null}[]=[];
+ vi.stubGlobal("fetch",vi.fn(async(_input,init)=>{
+  if(init?.method==="POST"){submissions.push({body:JSON.parse(String(init.body)),key:new Headers(init.headers).get("Idempotency-Key")});if(submissions.length===1)throw new TypeError("connection reset");return response({...takeover,state:"cancelled"})}
+  return response({items:[],channels:[{id:"channel-one",name:"示例渠道",legal_name:"渠道",lifecycle:"active"}]})
+ }));
+ show(<TakeoversScreen operatorID="operator-one"/>);
+ fireEvent.click(await screen.findByRole("button",{name:"接管渠道"}));
+ fireEvent.change(screen.getByLabelText("直属渠道"),{target:{value:"channel-one"}});
+ fireEvent.change(screen.getByLabelText("补充说明（可选）"),{target:{value:"商定接管客户"}});
+ fireEvent.click(screen.getByRole("checkbox"));fireEvent.click(screen.getByRole("button",{name:"开始准备"}));
+ await screen.findByRole("button",{name:"重试原操作"});
+ expect((screen.getByRole("button",{name:"关闭办理面板"}) as HTMLButtonElement).disabled).toBe(true);
+ fireEvent.click(screen.getByRole("button",{name:"重试原操作"}));
+ await waitFor(()=>expect(screen.queryByRole("dialog")).toBeNull());
+ expect(submissions).toHaveLength(2);expect(submissions[0]).toEqual(submissions[1]);
+ expect(submissions[0].body).toEqual({channel_id:"channel-one",evidence:"商定接管客户"});
 });

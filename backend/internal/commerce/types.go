@@ -30,6 +30,9 @@ var (
 )
 
 type Package struct {
+	SourceOperatorID   *string   `json:"source_operator_id,omitempty"`
+	SourcePackageID    *string   `json:"source_package_id,omitempty"`
+	TakeoverID         *string   `json:"takeover_id,omitempty"`
 	ID                 string    `json:"id"`
 	OperatorID         string    `json:"operator_id"`
 	Name               string    `json:"name"`

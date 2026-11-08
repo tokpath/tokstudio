@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/remediation"
@@ -13,6 +14,9 @@ import (
 func (a *Application) publishRemediationEvent(ctx context.Context, tx *gorm.DB, e remediation.Event) error {
 	// Events are durable facts. Messages deliberately contain no raw evidence,
 	// provider payload, identity document, bank details or request content.
+	if strings.HasPrefix(e.Action, "takeover.") {
+		return a.publishTakeoverEvent(ctx, tx, e)
+	}
 	severity := "info"
 	title, body := "资金处理状态已更新", "请在本经营空间的资金处理记录核对最新状态与责任。"
 	switch e.Action {
@@ -75,4 +79,45 @@ func (a *Application) publishRemediationEvent(ctx context.Context, tx *gorm.DB, 
 	}
 	_, e2 = a.Operations.Emit(ctx, tx, operations.Notification{OperatorID: own.OperatorID, RecipientID: *record.CustomerID, BusinessKey: "remediation:" + e.ID, Category: "mandatory", Severity: severity, Title: title, Body: body, Reference: record.ID})
 	return e2
+}
+
+func (a *Application) publishTakeoverEvent(ctx context.Context, tx *gorm.DB, event remediation.Event) error {
+	var record remediation.Takeover
+	if e := tx.First(&record, "id=?", event.SubjectID).Error; e != nil {
+		return e
+	}
+	title, body := "渠道正在准备接管", "渠道已暂停新增业务。请查看接管页面的在途事项和客户权益汇总。"
+	if event.Action == "takeover.completed" {
+		title = "渠道客户权益已承接"
+		body = "所属品牌已承接客户权益，账号和 API Key 继续使用。原套餐有效权益保留；停止续费的套餐到期后请选择其他套餐。"
+	}
+	if event.Action == "takeover.cancelled" {
+		title = "渠道接管已取消"
+		body = "渠道负责人可在核对业务条件后恢复营业。"
+	}
+	for _, op := range []string{record.BrandOperatorID, record.ChannelID} {
+		recipients, e := a.Organization.OperatorNotificationStaff(ctx, tx, op)
+		if e != nil {
+			return e
+		}
+		for _, id := range recipients {
+			if _, e = a.Operations.Emit(ctx, tx, operations.Notification{OperatorID: op, RecipientID: id, BusinessKey: "remediation:" + event.ID, Category: "mandatory", Severity: "info", Title: title, Body: body, Reference: record.ID}); e != nil {
+				return e
+			}
+		}
+	}
+	if event.Action == "takeover.completed" {
+		var data struct {
+			Customers []string `json:"customers"`
+		}
+		if e := json.Unmarshal(event.Data, &data); e != nil {
+			return e
+		}
+		for _, id := range data.Customers {
+			if _, e := a.Operations.Emit(ctx, tx, operations.Notification{OperatorID: record.BrandOperatorID, RecipientID: id, BusinessKey: "remediation:" + event.ID, Category: "mandatory", Severity: "info", Title: title, Body: body, Reference: record.ID}); e != nil {
+				return e
+			}
+		}
+	}
+	return nil
 }

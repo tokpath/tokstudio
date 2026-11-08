@@ -56,6 +56,10 @@ func TestPostgresTakeoverTransfersWalletQualificationsCommissionsAndPendingWithd
 	a := channel.register(t, "kol-channel@example.test", code)
 	b := channel.register(t, "customer-channel@example.test", a.InviteCode)
 	channel.qualify(t, a.Customer.ID, "qualification")
+	campaign, err := channel.s.PublishCampaign(channel.ctx, nil, CampaignInput{ActorStaffID: channel.owner, OperatorID: channel.operator, PackageID: channel.quote.PackageID, Kind: "merchant", Name: "Channel promotion", Eligibility: "any", StartsAt: time.Now().Add(-time.Hour), EndsAt: time.Now().Add(time.Hour), GiftATG: d("1"), PerCustomerLimit: 1, Enabled: true})
+	if err != nil {
+		t.Fatal(err)
+	}
 	order := channel.buy(t, b.Customer.ID, "customer-package", "100", ActivitySelection{})
 	first := channel.consume(t, b.Customer.ID, "20")
 	if _, e := channel.s.SetPolicy(channel.ctx, nil, channel.owner, channel.operator, PolicyInput{ExpectedVersion: 1, ThresholdMoney: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 3600, RewardValiditySeconds: 3600}); e != nil {
@@ -167,6 +171,15 @@ func TestPostgresTakeoverTransfersWalletQualificationsCommissionsAndPendingWithd
 	if e = channel.db.Transaction(move); e != nil {
 		t.Fatal(e)
 	}
+	var current campaignVersionRow
+	if err := channel.db.Table("incentives_campaign_versions v").Select("v.*").Joins("JOIN incentives_campaigns c ON c.id=v.campaign_id AND c.current_version=v.version").Where("c.id=? AND c.operator_id=?", campaign.CampaignID, brand.operator).Take(&current).Error; err != nil || current.Enabled || current.PackageID == channel.quote.PackageID {
+		t.Fatal("old promotion continued under brand", current, err)
+	}
+	var historical campaignVersionRow
+	if err := channel.db.First(&historical, "id=?", campaign.ID).Error; err != nil || !historical.Enabled {
+		t.Fatal("historical campaign changed", historical, err)
+	}
+
 	if e = channel.db.Transaction(func(tx *gorm.DB) error {
 		if e := channel.commerce.TransferResponsibility(channel.ctx, tx, in); e != nil {
 			return e
@@ -236,10 +249,10 @@ func TestPostgresTakeoverTransfersWalletQualificationsCommissionsAndPendingWithd
 		t.Fatalf("historical event replay after takeover=%v", e)
 	}
 	subMoved, e := brand.commerce.GetSubscription(brand.ctx, nil, b.Customer.ID, sub.ID)
-	if e != nil || subMoved.OperatorID != brand.operator || subMoved.Status != "needs_confirmation" {
+	if e != nil || subMoved.OperatorID != brand.operator || subMoved.Status != "cancelled" {
 		t.Fatalf("subscription promise=%+v %v", subMoved, e)
 	}
-	if result, e := brand.commerce.RenewSubscription(brand.ctx, nil, sub.ID); e != nil || result.Status != "needs_confirmation" {
+	if result, e := brand.commerce.RenewSubscription(brand.ctx, nil, sub.ID); e != nil || result.Status != "cancelled" {
 		t.Fatalf("renewal auto-accepted new terms=%+v %v", result, e)
 	}
 	replacement, e := brand.commerce.PublishPackage(brand.ctx, nil, commerce.PublishPackageInput{ActorStaffID: brand.owner, OperatorID: brand.operator, PackageID: brand.quote.PackageID, ExpectedVersion: brand.quote.Version, Name: "Brand monthly renewal", PriceMoney: brand.quote.PriceMoney, PaidATG: brand.quote.PaidATG, GiftATG: brand.quote.GiftATG, Period: brand.quote.Period, Timezone: brand.quote.Timezone, TermsSummary: brand.quote.TermsSummary, NewPurchaseEnabled: true, RenewalEnabled: true})

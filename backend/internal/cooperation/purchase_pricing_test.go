@@ -174,7 +174,7 @@ func TestPostgresNonUnitProcurementRatioPreservesFundingAndMovingCost(t *testing
 
 func TestPostgresUndeliveredPurchaseCanBeRefundedAndDeliveredPurchaseCannot(t *testing.T) {
 	f, _, _, _ := replenishmentFixture(t, "")
-	q, e := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: tierFixture(), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"exit-v1"}`), Enabled: true})
+	q, e := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: tierFixture(), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"exit-v1"}`), Enabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -204,7 +204,5 @@ func TestPostgresUndeliveredPurchaseCanBeRefundedAndDeliveredPurchaseCannot(t *t
 	if e = f.db.First(&closed, "id=?", order.ID).Error; e != nil || closed.Status != "closed" {
 		t.Fatal(closed, e)
 	}
-	if _, e = f.s.RequestProcurementExit(f.ctx, nil, f.owner, f.channel, "no-failure-refund", "supply_failure", "supplier later could not cover delivered stock", amount("1"), CoverageRemovalGuard{Cooperation: f.s}); !errors.Is(e, ErrExitTerms) {
-		t.Fatal("delivered stock was refunded as a supply failure", e)
-	}
+
 }

@@ -9,7 +9,7 @@ func TestPostgresSettlementFormsUseOneTransferAmountAndEvidence(t *testing.T) {
 	f := setupPortal(t)
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	parent := f.a.Installation.OperatorID
-	count := 0
+	counts := map[string]int{}
 	for _, resource := range []string{"receipt-valuations", "exits", "refunds"} {
 		status, out, _ := f.call(t, "GET", "/v1/operators/"+parent+"/"+resource, nil, "")
 		mustOK(t, status, out)
@@ -28,7 +28,7 @@ func TestPostgresSettlementFormsUseOneTransferAmountAndEvidence(t *testing.T) {
 			if !ok {
 				continue
 			}
-			count++
+			counts[resource]++
 			evidenceName := "settlement_evidence"
 			if resource == "receipt-valuations" {
 				evidenceName = "evidence_reference"
@@ -41,7 +41,7 @@ func TestPostgresSettlementFormsUseOneTransferAmountAndEvidence(t *testing.T) {
 			}
 		}
 	}
-	if count < 10 {
-		t.Fatal("settlement workflows were not exercised", count)
+	if counts["receipt-valuations"] == 0 || counts["refunds"] == 0 || counts["exits"] != 0 {
+		t.Fatal("receipt/refund settlement or removed exit settlement forms", counts)
 	}
 }

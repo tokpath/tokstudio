@@ -14,8 +14,8 @@ import (
 func TestQuoteExitPolicyRejectsContradictoryInstructions(t *testing.T) {
 	for _, test := range []struct{ policy, raw, want string }{
 		{"", "", "non_refundable"},
-		{"remaining_paid_proportional", "", "remaining_paid_proportional"},
-		{"", `{"method":"remaining_paid_proportional","voluntary_refund":true}`, "remaining_paid_proportional"},
+		{"remaining_paid_proportional", "", ""},
+		{"", `{"method":"remaining_paid_proportional","voluntary_refund":true}`, ""},
 		{"non_refundable", `{"method":"remaining_paid_proportional","voluntary_refund":true}`, ""},
 		{"automatic_refund", "", ""},
 		{"", `{"method":"non_refundable","voluntary_refund":true}`, ""},
@@ -48,12 +48,12 @@ func TestPostgresReadableQuoteGeneratesReferencesAndFreezesAcceptedRules(t *test
 		}
 		return q
 	}
-	q := publish("remaining_paid_proportional")
+	q := publish("non_refundable")
 	if q.Version != 1 || !strings.Contains(q.TermsReference, q.ID) || q.TermsReference == "client-controlled-reference" {
 		t.Fatal("internal references were not generated", q)
 	}
 	terms, err := ParseProcurementExitTerms(q.ExitTerms)
-	if err != nil || !terms.VoluntaryRefund || terms.Method != "remaining_paid_proportional" || !strings.Contains(terms.TermsReference, q.ID) {
+	if err != nil || terms.VoluntaryRefund || terms.Method != "non_refundable" || !strings.Contains(terms.TermsReference, q.ID) {
 		t.Fatal(terms, err)
 	}
 	order, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, q.ID, "accepted-readable-rule", amount("10"))

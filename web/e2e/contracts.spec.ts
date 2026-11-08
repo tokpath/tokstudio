@@ -109,12 +109,25 @@ test("mobile workspace exposes all customer flows without horizontal overflow", 
   await page.screenshot({ path: "test-results/customer-mobile.png", fullPage: true });
 });
 
-test("takeover requires complete snapshot review and separates actual cash settlement",async({page})=>{
+test("takeover reviews readable rights without cash settlement",async({page})=>{
  await api(page,{kind:"staff",staff:{id:"reviewer",email:"owner@example.test",display_name:"负责人"},workspaces:[{operator:{...operator,kind:"oem"},permissions:["*"]}],active_operator_id:operator.id});
- const snapshot={customers:{"customer-one":4},assets:[{account_id:"account-one",customer_id:"customer-one",purpose:"customer:money",unit:"USD",balance:"25.000000000000000001",held:"0",version:8}],coverage:{required:"100",space:"0"},procurement:{quantity:"200",cost:"80"},lots:[{ID:"lot-one",PaidMoney:"80",ExitTerms:{version:1,voluntary_refund:true,method:"remaining_paid_proportional",terms_reference:"original accepted exit"}}],service_atg:"100",service_money:"100",cash_money:"25.000000000000000001",offset_atg:"200",offset_money:"80",residual_refund_money:"0",settlement_due_money:"45.000000000000000001",rounding_evidence:{rule:"exact accepted contract"}};
- const item={id:"takeover-one",channel_id:operator.id,brand_operator_id:"brand-operator",state:"awaiting_approval",method:"supply_coverage",service_money_per_atg:"1",procurement_money_per_atg:"0.4",extra_money:"0",terms_summary:"signed-contract",evidence:"verified",requested_by:"another-owner",snapshot,snapshot_fingerprint:"snapshot-review-fingerprint",service_money:"100",cash_money:"25.000000000000000001",procurement_offset_atg:"200",procurement_offset_money:"80",remaining_procurement_refund_money:"0",settlement_due_money:"45.000000000000000001",settled_money:"0",created_at:"2026-10-16T00:00:00Z"};
+ const snapshot={customers:{"customer-one":4},assets:[],procurement:{quantity:"200"},packages:[{id:"old-plan",quote_id:"old-quote",name:"渠道月套餐",price_money:"80",paid_atg:"80",gift_atg:"20",period:"month"}],service_atg:"100",cash_money:"25",wallet_money:"20",commission_money:"5"};
+ const item={id:"takeover-one",channel_id:"old-channel",channel_name:"星河渠道",brand_operator_id:operator.id,state:"awaiting_approval",requested_by:"reviewer",terms_summary:"",evidence:"",snapshot,snapshot_fingerprint:"snapshot-review-fingerprint",cash_money:"25",created_at:"2026-10-16T00:00:00Z"};
  const submitted:unknown[]=[];
- await page.route("**/api/v1/operators/channel-1/takeovers**",async route=>{if(route.request().method()==="GET")return route.fulfill({json:{items:[item],channels:[{id:operator.id,name:operator.name,legal_name:operator.legal_name,lifecycle:"active"}]}});submitted.push(route.request().postDataJSON());item.state="completed";return route.fulfill({json:item})});
- await page.goto("/manage/channel-1/takeovers");await expect(page.getByRole("heading",{name:"渠道接管",exact:true})).toBeVisible();await page.getByRole("button",{name:"复核并执行接管"}).click();await expect(page.getByText("customer-one",{exact:false}).first()).toBeVisible();await expect(page.getByRole("dialog").getByText("original accepted exit",{exact:true})).toBeVisible();await expect(page.getByRole("textbox")).toHaveCount(0);await expect(page.getByRole("button",{name:"确认提交"})).toBeEnabled();await page.getByRole("checkbox").check();await page.getByRole("button",{name:"确认提交"}).click();expect(submitted).toEqual([{expected_snapshot:"snapshot-review-fingerprint"}]);
- await page.goto("/manage/channel-1/takeovers");await expect(page.getByRole("heading",{name:"渠道接管",exact:true})).toBeVisible();await page.getByRole("button",{name:"登记实际收付款"}).click();await expect(page.getByRole("textbox", { name: "收付款流水或收据号（可选）", exact: true })).toBeVisible();await expect(page.getByRole("textbox", { name: "本次实际结清 结算币种", exact: true })).toHaveCount(0);await page.screenshot({path:"test-results/takeover-cash-settlement.png",fullPage:true});
+ await page.route("**/api/v1/operators/channel-1/takeovers**",async route=>{
+  if(route.request().method()==="GET")return route.fulfill({json:{items:[item],channels:[]}});
+  if(route.request().url().endsWith("/refresh"))return route.fulfill({json:item});
+  submitted.push(route.request().postDataJSON());item.state="completed";return route.fulfill({json:item});
+ });
+ await page.goto("/manage/channel-1/takeovers");
+ await expect(page.getByRole("heading",{name:"星河渠道",exact:true})).toBeVisible();
+ await expect(page.getByText("customer-one",{exact:false})).toHaveCount(0);
+ await page.getByRole("button",{name:"确认接管",exact:true}).click();
+ const panel=page.getByRole("dialog");await expect(panel.getByText("渠道月套餐",{exact:true})).toBeVisible();
+ await expect(panel.getByRole("textbox")).toHaveCount(0);
+ await panel.getByRole("checkbox").check();await panel.getByRole("button",{name:"确认提交"}).click();
+ await expect(page.getByText("接管完成",{exact:true})).toBeVisible();
+ expect(submitted).toEqual([{expected_snapshot:"snapshot-review-fingerprint"}]);
+ await expect(page.getByRole("button",{name:"登记实际收付款"})).toHaveCount(0);
+ await page.screenshot({path:"test-results/takeover-rights-preserved.png",fullPage:true});
 });

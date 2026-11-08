@@ -83,8 +83,8 @@ func TestPostgresClosedOrderPendingOriginalMoneyBlocksTakeoverAndFormalExitUntil
 	if !errors.Is(result.err, payments.ErrAwaitingValuation) || result.fact.ID == "" {
 		t.Fatal(result)
 	}
-	if _, e = brand.s.RefreshTakeover(brand.ctx, brand.owner, brand.operator, p.ID); !errors.Is(e, ErrTakeoverBlocked) {
-		t.Fatal("pending original currency was treated as settled at refresh", e)
+	if blocked, e := brand.s.RefreshTakeover(brand.ctx, brand.owner, brand.operator, p.ID); e != nil || len(blocked.Blockers) == 0 {
+		t.Fatal("pending original currency not shown as blocker", blocked, e)
 	}
 	if _, e = brand.s.ExecuteTakeover(brand.ctx, brand.owner, brand.operator, p.ID, p.SnapshotFingerprint); !errors.Is(e, ErrTakeoverBlocked) {
 		t.Fatal("stale prepared snapshot ignored a new real payment", e)
@@ -118,8 +118,8 @@ func TestPostgresClosedOrderPendingOriginalMoneyBlocksTakeoverAndFormalExitUntil
 	if e != nil || confirmed.ReceiptID == "" || confirmed.Value == nil || confirmed.Value.Amount.Cmp(d("20")) != 0 {
 		t.Fatal(confirmed, e)
 	}
-	if _, e = brand.s.RefreshTakeover(brand.ctx, brand.owner, brand.operator, p.ID); !errors.Is(e, ErrTakeoverBlocked) {
-		t.Fatal("valued but unallocated customer money was treated as settled", e)
+	if blocked, err := brand.s.RefreshTakeover(brand.ctx, brand.owner, brand.operator, p.ID); err != nil || len(blocked.Blockers) == 0 {
+		t.Fatal("valued but unallocated customer money was treated as settled", blocked, err)
 	}
 	if e = brand.s.Organization.SetSupplyStatus(brand.ctx, nil, brand.owner, channel.operator, "exited", "attempt exit before refund actual principal"); !errors.Is(e, organization.ErrReadiness) {
 		t.Fatal("valuation alone released the formal exit gate", e)

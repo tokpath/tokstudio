@@ -348,6 +348,6 @@ test('offline cash registration does not require bank details or external transa
  assert.ok(receipt.anyOf.some(rule=>rule.required.includes('settlement_amount')));
  assert.equal(schemas.Operator_withdrawals_verify_paid.required.includes('payment_reference'),false);
  assert.equal(schemas.Operator_refunds_verify_manual.required.includes('reference'),false);
- assert.equal(schemas.Operator_exits_verify_manual.properties.proof.required.includes('external_reference'),false);
- assert.equal(schemas.TakeoverSettlement.required.includes('reference'),false);
+ assert.equal(schemas.Operator_exits_verify_manual,undefined);
+ assert.equal(schemas.TakeoverSettlement,undefined);
 });

@@ -452,9 +452,6 @@ func (a *Application) RunWorker(ctx context.Context, concurrency int, onError fu
 				if _, e := a.AutoReplenishments.Run(ctx, 1); e != nil {
 					report("replenishment", e)
 				}
-				if _, e := a.ProcurementRefunds.Run(ctx, 1); e != nil {
-					report("procurement_refunds", e)
-				}
 				select {
 				case <-ctx.Done():
 					return

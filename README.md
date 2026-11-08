@@ -10,7 +10,9 @@ TokenHub 为平台、OEM 和渠道提供独立经营系统，为终端客户提�
 
 建立 OEM / 渠道后，可以直接开通负责人账号并手动交付邮箱、初始密码和登录入口，不依赖邮件服务。初始密码至少 10 字节、最多 72 字节，首次登录必须修改。若该邮箱已有经营人员账号，系统生成 72 小时邀请链接，由本人使用原密码接受，不能覆盖原密码。配置邮件服务后也可发送邀请及找回密码邮件。已有演示账号仍使用种子约定的测试密码。
 
-品牌 API 地址由官方配置或已验证并启用的 OEM 域名自动生成，以 `/v1` 结尾；渠道继承品牌入口。OEM 未配置有效域名时明确显示待接入，不显示占位地址。合作和供货报价填写实际名称、金额、额度及主动退出的余额处理方式，可另行上传私有合同；内部编号和版本由系统维护。合同仅供上传经营方及有关采购方按权限读取，并纳入加密对象备份。
+品牌 API 地址由官方配置或已验证并启用的 OEM 域名自动生成，以 `/v1` 结尾；渠道继承品牌入口。OEM 未配置有效域名时明确显示待接入，不显示占位地址。合作和供货报价填写实际名称、金额及额度，OEM 和渠道采购余额统一不退，可另行上传私有合同；内部编号和版本由系统维护。合同仅供上传经营方及有关采购方按权限读取，并纳入加密对象备份。
+
+OEM 停业只告知平台，自行处理客户与下属渠道。渠道退出由所属品牌完整承接客户权益和套餐，复制的套餐标明来源、默认停售停续；已有订单额度和期限继续有效。系统汇总现金责任，双方资金交接在线下处理，不设接管作价、抵扣和付款登记。渠道剩余采购余额核销留痕，不退款。
 
 ## 运行结构
 
@@ -102,3 +104,5 @@ cd web && npm run build && npx playwright test
 新增客户账号为 `new@tokenhub.local`（新客户）、`customer@tokenhub.local`（已购客户，直属 KOL 邀请）、`kol@tokenhub.local`（已有资格的测试 KOL）、`channel-customer@tokenhub.local`（官方渠道客户）。新增经营账号为 `operations@tokenhub.local`、`finance@tokenhub.local`、`support@tokenhub.local`、`readonly@tokenhub.local`、`tech@tokenhub.local`、`oem@tokenhub.local`、`channel@tokenhub.local`、`oem-channel@tokenhub.local`、`channel-finance@tokenhub.local`。这些新增账号密码统一为 `password1`，仅供测试环境。
 
 公开模型 `demo-chat` 显式标注固定合成回复，独立上游需分别验证同步和流式能力。真实模型、支付商户及邮件资料仍由经营方配置。测试种子不放宽正常注册密码要求，也不开放无验证邮件能力的公众注册。
+
+渠道接管专项页面验收：在隔离 PostgreSQL 环境中设置 `TOKENHUB_EXIT_ACCEPTANCE_FILE` 运行 `TestExternalExitAcceptanceServer`，API 监听本机 18081；生产前端代理到该端口并监听 13003。浏览器设置 `TOKENHUB_WEB_ORIGIN=http://127.0.0.1:13003`、相同 ready 文件，运行 `web/e2e/exit-takeover-live.spec.ts`。该夹具固定模型价格和就绪检查，其余注册、收款、额度、接管与页面使用真实应用和数据库；OEM 客户通过 `exit.localhost` 隔离品牌。删除 ready 文件即结束夹具并清理隔离 schema。不要对测试站或真实商户运行该夹具。

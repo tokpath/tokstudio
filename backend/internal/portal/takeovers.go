@@ -2,13 +2,12 @@ package portal
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/remediation"
 )
 
-// Takeover cases and their settlement remain separate from customer entitlements.
-// The complete reviewed snapshot is returned only to the brand's precise scope.
+// The owning brand and original channel can review the takeover. Only the
+// owning brand may prepare or execute it; cash handover happens offline.
 func (a *Application) takeoverResource(c *gin.Context, op organization.Operator, actor string) {
 	rows, e := a.Remediation.Takeovers(c.Request.Context(), actor, op.ID)
 	if e != nil {
@@ -22,7 +21,7 @@ func (a *Application) takeoverResource(c *gin.Context, op organization.Operator,
 	}
 	channels := []gin.H{}
 	for _, child := range children {
-		if child.Kind == organization.Channel {
+		if child.Kind == organization.Channel && child.Lifecycle != "terminated" {
 			channels = append(channels, gin.H{"id": child.ID, "name": child.Name, "legal_name": child.LegalName, "lifecycle": child.Lifecycle})
 		}
 	}
@@ -35,6 +34,9 @@ func (a *Application) takeoverCommand(c *gin.Context, op organization.Operator, 
 	var in remediation.TakeoverInput
 	if !body(c, &in) {
 		return
+	}
+	if in.Evidence == "" {
+		in.Evidence = "品牌确认承接渠道客户"
 	}
 	in.ActorID = actor
 	in.BrandOperatorID = op.ID
@@ -73,24 +75,10 @@ func (a *Application) takeoverAction(c *gin.Context, op organization.Operator, a
 		if !body(c, &in) {
 			return
 		}
+		if in.Evidence == "" {
+			in.Evidence = "经营方取消接管准备"
+		}
 		out, e = a.Remediation.CancelTakeover(ctx, actor, op.ID, id, in.Evidence)
-	case "settle":
-		var in remediation.ExecutionProof
-		if !body(c, &in) {
-			return
-		}
-		in.BusinessKey, _ = key(c)
-		settings, err := ledger.GetMonetary(ctx, a.DB)
-		if err != nil {
-			handleError(c, err)
-			return
-		}
-		in, e = normalizeExecutionProof(in, settings.Currency)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		out, e = a.Remediation.RecordTakeoverSettlement(ctx, actor, op.ID, id, in)
 	default:
 		fail(c, 404, "not_found", "接管操作不存在", false)
 		return

@@ -8,7 +8,6 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"math/big"
 	"time"
 )
 
@@ -25,7 +24,7 @@ type ProcurementExitTerms struct {
 
 func ParseProcurementExitTerms(raw json.RawMessage) (ProcurementExitTerms, error) {
 	var t ProcurementExitTerms
-	if json.Unmarshal(raw, &t) != nil || t.Version != 1 || t.TermsReference == "" || (t.Method != "remaining_paid_proportional" && t.Method != "non_refundable") || (t.VoluntaryRefund && t.Method != "remaining_paid_proportional") {
+	if json.Unmarshal(raw, &t) != nil || t.Version != 1 || t.TermsReference == "" || t.Method != "non_refundable" || t.VoluntaryRefund {
 		return t, ErrExitTerms
 	}
 	return t, nil
@@ -67,7 +66,7 @@ func (ProcurementRemoval) TableName() string { return "cooperation_procurement_r
 // consumption, customer entitlements and previous cost settlements are unchanged.
 func (s *Service) RemoveProcurement(ctx context.Context, tx *gorm.DB, in RemovalInput) (ProcurementRemoval, error) {
 	out := ProcurementRemoval{}
-	if tx == nil || in.Guard == nil || in.Quantity.Sign() <= 0 || !in.Quantity.Valid() || in.BusinessKey == "" || in.ActorID == "" || in.Reason == "" || in.Evidence == "" || in.At.IsZero() || (in.Mode != "voluntary_exit" && in.Mode != "supply_failure" && in.Mode != "takeover") {
+	if tx == nil || in.Guard == nil || in.Quantity.Sign() <= 0 || !in.Quantity.Valid() || in.BusinessKey == "" || in.ActorID == "" || in.Reason == "" || in.Evidence == "" || in.At.IsZero() || in.Mode != "takeover" {
 		return out, ErrConflict
 	}
 	fp := hash([]string{in.BuyerID, in.BusinessKey, in.ActorID, in.Mode, in.Reason, in.Evidence, in.Quantity.String()})
@@ -177,156 +176,4 @@ func (g CoverageRemovalGuard) RequireProcurementRemoval(ctx context.Context, tx 
 		return ErrLiability
 	}
 	return nil
-}
-
-type ProcurementExit struct {
-	ID                           string         `json:"id"`
-	BuyerID                      string         `json:"buyer_id"`
-	SupplierID                   string         `json:"supplier_id"`
-	BusinessKey                  string         `json:"business_key"`
-	Fingerprint                  string         `json:"-"`
-	Mode                         string         `json:"mode"`
-	RemovalID                    string         `json:"removal_id"`
-	ContractMoney                ledger.Decimal `json:"contract_money"`
-	BookCostMoney                ledger.Decimal `json:"book_cost_money"`
-	CostDifferenceMoney          ledger.Decimal `json:"cost_difference_money"`
-	RefundedMoney                ledger.Decimal `json:"refunded_money"`
-	ContractRemainderNumerator   string         `json:"contract_remainder_numerator"`
-	ContractRemainderDenominator string         `json:"contract_remainder_denominator"`
-	State                        string         `json:"state"`
-	Evidence                     string         `json:"evidence"`
-	CreatedBy                    string         `json:"created_by"`
-	CreatedAt                    time.Time      `json:"created_at"`
-}
-
-func (ProcurementExit) TableName() string { return "cooperation_procurement_exits" }
-func (s *Service) RequestProcurementExit(ctx context.Context, tx *gorm.DB, actor, buyer, key, mode, evidence string, quantity ledger.Decimal, guard RemovalGuard) (ProcurementExit, error) {
-	out := ProcurementExit{}
-	// Delivered procurement inventory is not refunded for a later supply failure.
-	// A pre-agreed voluntary exit can still return unused purchased balance.
-	// Money paid for an order that never received ATG is refunded separately.
-	if mode != "voluntary_exit" {
-		return out, ErrExitTerms
-	}
-	if key == "" || evidence == "" {
-		return out, ErrConflict
-	}
-	e := s.within(ctx, tx, func(t *gorm.DB) error {
-		if e := s.Organization.RequirePermission(ctx, t, actor, buyer, "cooperation.manage"); e != nil {
-			return e
-		}
-		if e := s.Lock(ctx, t, buyer); e != nil {
-			return e
-		}
-		fp := hash([]string{buyer, key, mode, evidence, quantity.String()})
-		q := t.Where("buyer_id=? AND business_key=?", buyer, key).Limit(1).Find(&out)
-		if q.Error != nil {
-			return q.Error
-		}
-		if q.RowsAffected > 0 {
-			if out.Fingerprint != fp {
-				return ErrConflict
-			}
-			return nil
-		}
-		agreement, e := s.Organization.GetSupplyAgreement(ctx, t, buyer)
-		if e != nil {
-			return e
-		}
-		now, e := businessTime(ctx, t)
-		if e != nil {
-			return e
-		}
-
-		removal, e := s.RemoveProcurement(ctx, t, RemovalInput{BuyerID: buyer, BusinessKey: "exit:" + key, ActorID: actor, Mode: mode, Reason: "procurement exit settlement", Evidence: evidence, Quantity: quantity, At: now, Guard: guard})
-		if e != nil {
-			return e
-		}
-		var sources []RemovedSource
-		if json.Unmarshal(removal.Sources, &sources) != nil {
-			return ErrConflict
-		}
-		exact := new(big.Rat)
-		for _, src := range sources {
-			if mode == "voluntary_exit" {
-				terms, e := ParseProcurementExitTerms(src.ExitTerms)
-				if e != nil || !terms.VoluntaryRefund {
-					return ErrExitTerms
-				}
-			}
-			if src.PaidATG.Sign() > 0 && src.OriginalPaidATG.Sign() > 0 {
-				exact.Add(exact, new(big.Rat).Mul(src.OriginalPaidMoney.Rat(), new(big.Rat).Quo(src.PaidATG.Rat(), src.OriginalPaidATG.Rat())))
-			}
-		}
-		cash, tail := ledger.Quantize(exact)
-		if !cash.Valid() {
-			return ledger.ErrAmount
-		}
-		out = ProcurementExit{ID: uuid.NewString(), BuyerID: buyer, SupplierID: agreement.SupplierID, BusinessKey: key, Fingerprint: fp, Mode: mode, RemovalID: removal.ID, ContractMoney: cash, BookCostMoney: removal.BookCostMoney, CostDifferenceMoney: cash.Sub(removal.BookCostMoney), ContractRemainderNumerator: tail.Num().String(), ContractRemainderDenominator: tail.Denom().String(), State: "awaiting_refund", Evidence: evidence, CreatedBy: actor, CreatedAt: now}
-		if cash.IsZero() {
-			out.State = "settled_no_cash"
-		}
-		if e := t.Create(&out).Error; e != nil {
-			return e
-		}
-		return s.bookExitObligation(ctx, t, out)
-	})
-	return out, e
-}
-
-type SupplyFailureApproval struct {
-	ID         string    `json:"id"`
-	BuyerID    string    `json:"buyer_id"`
-	SupplierID string    `json:"supplier_id"`
-	Evidence   string    `json:"evidence"`
-	ApprovedBy string    `json:"approved_by"`
-	ApprovedAt time.Time `json:"approved_at"`
-}
-
-func (SupplyFailureApproval) TableName() string { return "cooperation_supply_failure_approvals" }
-func (s *Service) ApproveSupplyFailure(ctx context.Context, tx *gorm.DB, actor, buyer, evidence string) (SupplyFailureApproval, error) {
-	out := SupplyFailureApproval{}
-	if evidence == "" {
-		return out, ErrConflict
-	}
-	e := s.within(ctx, tx, func(t *gorm.DB) error {
-		a, e := s.Organization.GetSupplyAgreement(ctx, t, buyer)
-		if e != nil {
-			return e
-		}
-		if e = s.Organization.RequirePermission(ctx, t, actor, a.SupplierID, "refunds.manage"); e != nil {
-			return e
-		}
-		now, e := businessTime(ctx, t)
-		if e != nil {
-			return e
-		}
-		out = SupplyFailureApproval{ID: uuid.NewString(), BuyerID: buyer, SupplierID: a.SupplierID, Evidence: evidence, ApprovedBy: actor, ApprovedAt: now}
-		return t.Create(&out).Error
-	})
-	return out, e
-}
-
-type ApprovedSupplyFailureGuard struct {
-	Cooperation  *Service
-	ApprovalID   string
-	PaymentFacts PaymentObligationReader
-}
-
-func (g ApprovedSupplyFailureGuard) RequireProcurementRemoval(ctx context.Context, tx *gorm.DB, buyer string, q ledger.Decimal, mode, evidence string) error {
-	if mode != "supply_failure" || g.Cooperation == nil {
-		return ErrExitTerms
-	}
-	var a SupplyFailureApproval
-	if e := tx.First(&a, "id=? AND buyer_id=?", g.ApprovalID, buyer).Error; e != nil {
-		return e
-	}
-	agreement, e := g.Cooperation.Organization.GetSupplyAgreement(ctx, tx, buyer)
-	if e != nil {
-		return e
-	}
-	if a.SupplierID != agreement.SupplierID {
-		return ErrConflict
-	}
-	return (CoverageRemovalGuard{Cooperation: g.Cooperation, PaymentFacts: g.PaymentFacts}).RequireProcurementRemoval(ctx, tx, buyer, q, "voluntary_exit", evidence)
 }

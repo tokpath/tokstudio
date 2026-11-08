@@ -392,7 +392,7 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 		return
 	}
 	if resource == "exits" {
-		a.exitsAction(c, op, actor, action)
+		fail(c, 404, "not_found", "操作不存在", false)
 		return
 	}
 	if resource == "disputes" {

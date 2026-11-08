@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
-	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
@@ -105,18 +104,6 @@ func (a *Application) references(c *gin.Context) {
 			if target.Kind != organization.Channel && a.Organization.RequireBrandBranding(ctx, nil, actor, target.BrandID) == nil {
 				add(target.ID, target.Name, nil)
 			}
-		}
-	case "supply-failure-approvals":
-		if customer || !require("cooperation.manage") {
-			return
-		}
-		rows := []cooperation.SupplyFailureApproval{}
-		if e := a.DB.WithContext(ctx).Where("buyer_id=?", operator).Order("approved_at DESC,id DESC").Find(&rows).Error; e != nil {
-			handleError(c, e)
-			return
-		}
-		for _, r := range rows {
-			add(r.ID, humanJoin("已批准供货失约", r.ApprovedAt.UTC().Format("2006-01-02 15:04:05 UTC"), r.Evidence), nil)
 		}
 	case "recipients":
 		if customer || !require("operations.manage") {

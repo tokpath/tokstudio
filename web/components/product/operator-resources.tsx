@@ -883,12 +883,7 @@ const savedFactLabels: Record<string, string> = {
   "has_upstream": "存在上级供货方",
   "version": "版本",
   "service_atg": "承接服务 ATG",
-  "service_money": "承接服务作价",
   "cash_money": "承接现金与佣金责任",
-  "offset_atg": "采购库存抵扣 ATG",
-  "offset_money": "采购库存抵扣 结算币种",
-  "residual_refund_money": "剩余合同可退采购款 结算币种",
-  "settlement_due_money": "合同结清额 结算币种",
   "receipt_reference": "收款凭证引用",
   "remaining": "剩余采购库存 ATG",
   "paid_consumed": "已消费购买库存 ATG",
@@ -897,7 +892,6 @@ const savedFactLabels: Record<string, string> = {
   "gift_removed": "已移除赠送库存 ATG",
   "fingerprint": "记录指纹",
   "delivered_at": "交付时间",
-  "lot_refund_money": "采购批次退款 结算币种",
   "rounding_evidence": "舍入依据",
   "lots": "采购批次",
   "coverage": "覆盖与责任计算",
@@ -1014,8 +1008,7 @@ const enumLabelsByField: Record<string, Record<string, string>> = {
     "voided": "已作废"
   },
   "exit_terms.method": {
-    "remaining_paid_proportional": "剩余购买库存原价比例",
-    "non_refundable": "合同不退款"
+    "non_refundable": "剩余采购余额不退"
   },
   "result": {
     "failed": "实际失败",

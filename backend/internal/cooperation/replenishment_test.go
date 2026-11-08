@@ -44,7 +44,7 @@ func replenishmentFixture(t *testing.T, base string) (fixture, *Replenisher, pay
 	if _, e = pay.SaveMerchant(f.ctx, f.owner, m, 0); e != nil {
 		t.Fatal(e)
 	}
-	quote, e := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: []PurchaseGiftTier{{FromMoney: amount("0"), GiftPercent: amount("900")}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"accepted-exit-v1"}`), TermsReference: "quote-v1", Enabled: true})
+	quote, e := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: []PurchaseGiftTier{{FromMoney: amount("0"), GiftPercent: amount("900")}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"accepted-exit-v1"}`), TermsReference: "quote-v1", Enabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}

@@ -15,9 +15,9 @@ func TestActionAuthorityMatchesThePermissionThatActuallyPerformsIt(t *testing.T)
 		}
 		return false
 	}
-	finance := navigationPermissions([]string{"payments.manage", "refunds.manage"}, organization.OEM)
-	if !contains(finance, "exits.read") || !contains(finance, "refunds.read") {
-		t.Fatal("finance cannot reach the exit or refund workspaces where payment actions live", finance)
+	finance := navigationPermissions([]string{"payments.manage", "refunds.manage", "ledger.read"}, organization.OEM)
+	if contains(finance, "exits.read") || !contains(finance, "refunds.read") || !contains(finance, "takeovers.read") {
+		t.Fatal("finance must review takeover liabilities and handle refunds, without managing exit notices", finance)
 	}
 	cooperation := navigationPermissions([]string{"cooperation.manage"}, organization.OEM)
 	if !contains(cooperation, "exits.read") || contains(cooperation, "refunds.read") {

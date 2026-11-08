@@ -195,6 +195,11 @@ func (s *Service) GetBusinessStatus(ctx context.Context, tx *gorm.DB, operatorID
 	return BusinessStatus(r), classify(err)
 }
 func (s *Service) RequireBusiness(ctx context.Context, tx *gorm.DB, operatorID string, feature BusinessFeature) error {
+	if feature != Settlement {
+		if e := s.RequireNoTakeover(ctx, tx, operatorID); e != nil {
+			return e
+		}
+	}
 	if s.monetaryReady != nil {
 		if e := s.monetaryReady(ctx, s.dbFor(ctx, tx)); e != nil {
 			return e
@@ -268,6 +273,9 @@ func (s *Service) SetBusinessStatus(ctx context.Context, tx *gorm.DB, in SetBusi
 			return err
 		}
 		if in.Enabled && in.Feature != Settlement {
+			if e := s.RequireNoTakeover(ctx, tx, in.OperatorID); e != nil {
+				return e
+			}
 			b, err := s.GetBrand(ctx, tx, o.BrandID)
 			if err != nil {
 				return err

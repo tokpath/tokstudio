@@ -81,7 +81,7 @@ func takeoverFixture(t *testing.T) (fixture, fixture, commerce.Order, usage.KeyS
 		t.Fatal(e)
 	}
 	// Verified wholesale fact: paid 60 USD for 100 purchased + 100 gift ATG.
-	if _, e = brand.s.Cooperation.DeliverPurchase(brand.ctx, nil, cooperation.PurchaseInput{BuyerID: created.Operator.ID, SupplierID: brand.operator, OrderID: uuid.NewString(), ReceiptReference: "verified-wholesale-bank-fact", ActorID: brand.owner, PaidMoney: d("60"), PaidATG: d("100"), GiftATG: d("100"), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"signed-wholesale-v1"}`), At: time.Now().UTC()}); e != nil {
+	if _, e = brand.s.Cooperation.DeliverPurchase(brand.ctx, nil, cooperation.PurchaseInput{BuyerID: created.Operator.ID, SupplierID: brand.operator, OrderID: uuid.NewString(), ReceiptReference: "verified-wholesale-bank-fact", ActorID: brand.owner, PaidMoney: d("60"), PaidATG: d("100"), GiftATG: d("100"), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"signed-wholesale-v1"}`), At: time.Now().UTC()}); e != nil {
 		t.Fatal(e)
 	}
 	quote, e := brand.s.Commerce.PublishPackage(brand.ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: created.Operator.ID, Name: "Channel monthly", TermsReference: "channel-terms", Timezone: "UTC", PriceMoney: d("80"), PaidATG: d("80"), GiftATG: d("20"), Period: ledger.Month, NewPurchaseEnabled: true, RenewalEnabled: true})
@@ -106,13 +106,13 @@ func takeoverFixture(t *testing.T) (fixture, fixture, commerce.Order, usage.KeyS
 }
 func beginTakeover(t *testing.T, brand, channel fixture) Takeover {
 	t.Helper()
-	p, e := brand.s.BeginTakeover(brand.ctx, TakeoverInput{ActorID: brand.owner, ChannelID: channel.operator, BrandOperatorID: brand.operator, BusinessKey: "agreed-channel-exit", Method: "agreed_atg_value", ServiceMoneyPerATG: d("0.8"), ProcurementMoneyPerATG: d("0.8"), TermsSummary: "The brand assumes all remaining service and cash obligations", Evidence: "brand approved complete obligations transfer"})
+	p, e := brand.s.BeginTakeover(brand.ctx, TakeoverInput{ActorID: brand.owner, ChannelID: channel.operator, BrandOperatorID: brand.operator, BusinessKey: "agreed-channel-exit", TermsSummary: "The brand assumes all remaining service and cash obligations", Evidence: "brand approved complete obligations transfer"})
 	if e != nil {
 		t.Fatal(e)
 	}
 	return p
 }
-func TestPostgresTakeoverKeepsRightsAndSettlesContractValueOnce(t *testing.T) {
+func TestPostgresTakeoverKeepsRightsWithoutCashSettlement(t *testing.T) {
 	brand, channel, order, key := takeoverFixture(t)
 	org := brand.s.Organization
 	customerBefore, e := org.GetCustomer(brand.ctx, nil, channel.customer)
@@ -126,13 +126,20 @@ func TestPostgresTakeoverKeepsRightsAndSettlesContractValueOnce(t *testing.T) {
 	if e != nil || status.NewPurchase || status.Registration || status.ModelUsage {
 		t.Fatal(status, e)
 	}
+	if _, err := org.SetBusinessStatus(brand.ctx, nil, organization.SetBusinessStatusInput{OperatorID: channel.operator, ActorStaffID: channel.owner, Feature: organization.Registration, Enabled: true, ExpectedVersion: status.Version, EvidenceReference: "reopen during takeover"}, nil); !errors.Is(err, organization.ErrBusinessClosed) {
+		t.Fatal("takeover reopened", err)
+	}
+	if rows, err := brand.s.Takeovers(brand.ctx, channel.owner, channel.operator); err != nil || len(rows) != 1 {
+		t.Fatal("channel cannot read its takeover", rows, err)
+	}
 	p, e = brand.s.RefreshTakeover(brand.ctx, brand.owner, brand.operator, p.ID)
 	if e != nil {
 		t.Fatal(e)
 	}
-	if p.ServiceMoney.Cmp(d("80")) != 0 || p.CashMoney.Cmp(d("25")) != 0 || p.ProcurementOffsetATG.Cmp(d("100")) != 0 || p.RemainingProcurementRefundMoney.Cmp(d("30")) != 0 || p.SettlementDueMoney.Cmp(d("-5")) != 0 {
-		t.Fatalf("closing valuation %+v", p)
+	if p.CashMoney.Cmp(d("25")) != 0 {
+		t.Fatal("cash responsibility", p)
 	}
+
 	done, e := brand.s.ExecuteTakeover(brand.ctx, brand.owner, brand.operator, p.ID, p.SnapshotFingerprint)
 	if e != nil {
 		t.Fatal(e)
@@ -140,6 +147,24 @@ func TestPostgresTakeoverKeepsRightsAndSettlesContractValueOnce(t *testing.T) {
 	replay, e := brand.s.ExecuteTakeover(brand.ctx, brand.owner, brand.operator, p.ID, p.SnapshotFingerprint)
 	if e != nil || replay.ID != done.ID || done.State != "completed" {
 		t.Fatal(done, replay, e)
+	}
+	var imported []commerce.Package
+	if err := brand.db.Table("commerce_packages").Where("operator_id=? AND takeover_id=?", brand.operator, p.ID).Find(&imported).Error; err != nil || len(imported) != 1 {
+		t.Fatal("package copy", imported, err)
+	}
+	if imported[0].NewPurchaseEnabled || imported[0].RenewalEnabled || imported[0].SourcePackageID == nil || *imported[0].SourcePackageID != channel.quote.PackageID || imported[0].SourceOperatorID == nil || *imported[0].SourceOperatorID != channel.operator {
+		t.Fatal("unsafe imported product", imported)
+	}
+	copied, err := brand.s.Commerce.GetQuote(brand.ctx, nil, *imported[0].CurrentQuoteID)
+	if err != nil || copied.PaidATG.Cmp(channel.quote.PaidATG) != 0 || copied.GiftATG.Cmp(channel.quote.GiftATG) != 0 || copied.Period != channel.quote.Period {
+		t.Fatal("copied benefits changed", copied, err)
+	}
+	if _, err = brand.s.Commerce.CreateOrder(brand.ctx, nil, commerce.CreateOrderInput{OperatorID: brand.operator, CustomerID: channel.customer, QuoteID: copied.ID, BusinessKey: "stopped-copy", ExpectedOwnershipVersion: 2}); !errors.Is(err, organization.ErrBusinessClosed) {
+		t.Fatal("stopped imported product sold", err)
+	}
+	op, err := org.GetOperator(brand.ctx, nil, channel.operator)
+	if err != nil || op.Lifecycle != "terminated" {
+		t.Fatal("channel not closed", op, err)
 	}
 	own, e := org.CurrentOwnership(brand.ctx, nil, channel.customer)
 	if e != nil || own.OperatorID != brand.operator || own.Version != 2 {
@@ -197,35 +222,11 @@ func TestPostgresTakeoverKeepsRightsAndSettlesContractValueOnce(t *testing.T) {
 	if e != nil || wallet.Balance.Cmp(d("20")) != 0 || !wallet.Held.IsZero() {
 		t.Fatal(wallet, e)
 	}
-	proof := ExecutionProof{BusinessKey: "settle-part-1", Reference: "bank-transfer-1", Evidence: "verified actual USD received", ActualMoney: d("2"), FeeMoney: d("0.1"), Currency: "USD", Amount: "2", OccurredAt: time.Now().UTC()}
-	paid, e := brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof)
-	if e != nil || paid.SettledMoney.Cmp(d("2")) != 0 {
-		t.Fatal(paid, e)
+	var receivables int64
+	if e = brand.db.Table("ledger_accounts").Where("owner_id=? AND purpose LIKE 'counterparty:takeover_%'", p.ID).Count(&receivables).Error; e != nil || receivables != 0 {
+		t.Fatal("created offline settlement liability", receivables, e)
 	}
-	if _, e = brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof); e != nil {
-		t.Fatal(e)
-	}
-	proof.BusinessKey = "same-bank-fact-new-command"
-	if _, e = brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof); e == nil {
-		t.Fatal("same bank fact settled twice")
-	}
-	proof.BusinessKey = "settle-part-2"
-	proof.Reference = ""
-	proof.Evidence = "Cash received in person without an external reference"
-	proof.ActualMoney = d("3")
-	proof.Amount = "3"
-	proof.FeeMoney = d("0")
-	paid, e = brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof)
-	if e != nil || paid.SettledMoney.Cmp(d("5")) != 0 {
-		t.Fatal(paid, e)
-	}
-	if repeated, err := brand.s.RecordTakeoverSettlement(brand.ctx, brand.owner, brand.operator, p.ID, proof); err != nil || repeated.SettledMoney.Cmp(d("5")) != 0 {
-		t.Fatal("cash settlement replay", repeated, err)
-	}
-	payable, e := brand.s.account(brand.ctx, brand.db, brand.operator, p.ID, "counterparty:takeover_payable")
-	if e != nil || !payable.Balance.IsZero() {
-		t.Fatal(payable, e)
-	}
+
 }
 
 func TestPostgresTakeoverRefreshRequiredAndFailureRollsBackEveryAsset(t *testing.T) {

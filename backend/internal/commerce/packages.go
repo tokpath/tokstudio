@@ -23,6 +23,12 @@ func (s *Service) PublishPackage(ctx context.Context, tx *gorm.DB, in PublishPac
 		if err := s.org.RequirePermission(ctx, tx, in.ActorStaffID, in.OperatorID, "sales.manage"); err != nil {
 			return err
 		}
+		if e := s.org.LockOperatorResponsibility(ctx, tx, in.OperatorID); e != nil {
+			return e
+		}
+		if e := s.org.RequireNoTakeover(ctx, tx, in.OperatorID); e != nil {
+			return e
+		}
 		var p packageRow
 		var before any
 		version := int64(1)

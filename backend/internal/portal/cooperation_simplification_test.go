@@ -107,33 +107,11 @@ func TestPostgresProcurementCancellationKeepsUncertainOnlinePaymentReserved(t *t
 	}
 }
 
-func TestPostgresTakeoverSingleWorkspaceDerivesMoneySettlementFromActualAmount(t *testing.T) {
+func TestPostgresTakeoverHasNoCashSettlementEndpoint(t *testing.T) {
 	f := setupPortal(t)
-	ctx := context.Background()
-	parent, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
-	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: organization.Channel, Name: "takeover settlement channel"})
-	if err != nil {
-		t.Fatal(err)
-	}
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
-	base := "/v1/operators/" + parent + "/takeovers"
-	status, out, _ := f.call(t, "POST", base, map[string]any{"channel_id": child.Operator.ID, "method": "agreed_atg_value", "service_money_per_atg": "1", "procurement_money_per_atg": "1", "extra_money": "5", "terms_summary": "synthetic agreed settlement", "evidence": "brand approved transfer and fixed USD settlement"}, uuid.NewString())
-	mustOK(t, status, out)
-	id := out["id"].(string)
-	status, out, _ = f.call(t, "POST", base+"/"+id+"/refresh", map[string]any{}, uuid.NewString())
-	mustOK(t, status, out)
-	status, out, _ = f.call(t, "POST", base+"/"+id+"/execute", map[string]any{"expected_snapshot": out["snapshot_fingerprint"]}, uuid.NewString())
-	mustOK(t, status, out)
-	key := uuid.NewString()
-	proof := map[string]any{"currency": "USD", "amount": "5", "fee_money": "0", "reference": "bank-confirmed-single-usd", "evidence": "synthetic bank statement confirms USD 5 to the brand", "occurred_at": time.Now().UTC()}
-	status, out, _ = f.call(t, "POST", base+"/"+id+"/settle", proof, key)
-	mustOK(t, status, out)
-	if out["settled_money"] != "5" {
-		t.Fatal("USD amount required duplicate valuation", out)
-	}
-	status, out, _ = f.call(t, "POST", base+"/"+id+"/settle", proof, key)
-	mustOK(t, status, out)
-	if out["settled_money"] != "5" {
-		t.Fatal("retry duplicated settlement", out)
+	status, _, _ := f.call(t, "POST", "/v1/operators/"+f.a.Installation.OperatorID+"/takeovers/"+uuid.NewString()+"/settle", map[string]any{}, uuid.NewString())
+	if status != 404 {
+		t.Fatal("removed settlement route", status)
 	}
 }

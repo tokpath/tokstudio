@@ -181,7 +181,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     if (!journal.quote) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
       await oem.getByRole("tab", { name: "供货报价", exact: true }).click();
-      save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.channel_id, gift_tiers: "50", name: "UI 星河供货报价", terms_summary: "先实际收款再交付采购库存；退出前清算存量服务责任", exit_policy: "remaining_paid_proportional" }, `${oemBase}/procurement`));
+      save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.channel_id, gift_tiers: "50", name: "UI 星河供货报价", terms_summary: "先实际收款再交付采购库存；退出前清算存量服务责任", exit_policy: "non_refundable" }, `${oemBase}/procurement`));
     }
     if (!journal.purchase) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
@@ -232,7 +232,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     await channel.screenshot({ path: info.outputPath("operator-procurement-replenishment.png"), fullPage: true });
     if (!journal.exit) {
       await channel.goto(`/manage/${f.channel_id}/exits`);
-      save("exit", await operation(channel, "按合同申请退出库存", { mode: "voluntary_exit", quantity: "12", evidence: "synthetic original proportional exit terms; no customer service grant yet" }, `${channelBase}/exits`));
+      save("exit", await operation(channel, "通知品牌办理退出", { note: "synthetic channel exit notice; whole-customer takeover to follow" }, `${channelBase}/exits`));
     }
     if (!journal.oversell) {
       await oem.goto(`/manage/${f.oem_id}/coverage`);
@@ -360,25 +360,22 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     // The brand cannot read the customer's current assets before an explicit
     // reviewed whole-channel takeover. The same account survives afterwards.
     if (!journal.takeover) {
-      await oem.goto(`/manage/${f.oem_id}/takeovers`); await oem.getByRole("button", { name: "发起接管准备", exact: true }).click();
+      await oem.goto(`/manage/${f.oem_id}/takeovers`); await oem.getByRole("button", { name: "接管渠道", exact: true }).click();
       const panel = oem.getByRole("dialog").last();
       await panel.getByRole("combobox", { name: /^直属渠道/ }).selectOption(f.channel_id);
-      for (const [label, value] of [["承接服务每ATG合同作价 结算币种（大于0）", "0.5"], ["采购库存每ATG合同抵扣 结算币种（大于0）", "0.5"], ["双方接管合同编号", "operator-ui-takeover-v1"], ["发起依据与证据引用", "explicit synthetic whole-channel takeover decision"]]) await control(panel, label, true).fill(value);
+      await panel.getByRole("textbox", { name: "补充说明（可选）" }).fill("explicit synthetic whole-channel takeover decision");
       await panel.getByRole("checkbox").check();
       const pending = oem.waitForResponse(r => new URL(r.url()).pathname === `${oemBase}/takeovers` && r.request().method() === "POST");
-      await panel.getByRole("button", { name: "建立准备事项", exact: true }).click();
+      await panel.getByRole("button", { name: "开始准备", exact: true }).click();
       const response = await pending, data = await response.json(); expect(response.status(), JSON.stringify(data)).toBe(200); save("takeover", data);
     }
     if (!journal.takeover_executed) {
       await oem.goto(`/manage/${f.oem_id}/takeovers`);
-      await oem.getByRole("button", { name: "排空检查并刷新快照", exact: true }).click();
-      await expect(oem.getByRole("button", { name: "复核并执行接管", exact: true })).toBeVisible();
-      await oem.getByRole("button", { name: "审阅完整快照", exact: true }).click();
-      await expect(oem.getByRole("columnheader", { name: "完整客户范围", exact: true })).toBeVisible();
+      await expect(oem.getByRole("button", { name: "确认接管", exact: true })).toBeVisible();
       const reviewed = await (await oem.request.get(`${oemBase}/takeovers`)).json();
       expect(reviewed.items.find((item: any) => item.id === journal.takeover.id)?.snapshot.customers[f.customer.id]).toBeGreaterThan(0);
       await oem.screenshot({ path: info.outputPath("operator-takeover-full-snapshot.png"), fullPage: true });
-      await oem.getByRole("button", { name: "复核并执行接管", exact: true }).click();
+      await oem.getByRole("button", { name: "确认接管", exact: true }).click();
       const panel = oem.getByRole("dialog").last(); await panel.getByRole("checkbox").check();
       const pending = oem.waitForResponse(r => new URL(r.url()).pathname === `${oemBase}/takeovers/${journal.takeover.id}/execute` && r.request().method() === "POST");
       await panel.getByRole("button", { name: "确认提交", exact: true }).click();
@@ -398,49 +395,12 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       expect(Number(after.customer_atg.available) - Number(current.customer_atg.available)).toBeCloseTo(0.034, 12);
       save("post_takeover_key_call", { original_key_id: journal.customer_key.id, actual_charged_atg: "0.034", current_brand_retail_price: "0.002" });
     }
-    if (!journal.takeover_settled) {
-      const amount = journal.takeover_executed.settlement_due_money.replace(/^-/, "");
-      expect(journal.takeover_executed.settlement_due_money.startsWith("-")).toBe(true);
-      await oem.getByRole("button", { name: "登记实际收付款", exact: true }).click();
-      const panel = oem.getByRole("dialog").last();
-      for (const [label, value] of [["实际币种", "USD"], ["实际币种金额", amount], ["收付款流水或收据号（可选）", "synthetic-takeover-payment-" + randomUUID()], ["收付款核实依据", "synthetic USD bank payment independently verified"], ["实际收付款时间", localTime()]]) await control(panel, label, true).fill(value);
-      await panel.getByRole("checkbox").check();
-      const pending = oem.waitForResponse(r => new URL(r.url()).pathname === `${oemBase}/takeovers/${journal.takeover.id}/settle` && r.request().method() === "POST");
-      await panel.getByRole("button", { name: "确认提交", exact: true }).click();
-      const response = await pending, data = await response.json(); expect(response.status(), JSON.stringify(data)).toBe(200); save("takeover_settled", data);
-      await expect(oem.getByRole("button", { name: "登记实际收付款", exact: true })).toHaveCount(0);
-      await expect(oem.getByRole("list", { name: "接管办理进度" }).getByText("实际资金结清已完成", { exact: false })).toBeVisible();
-      await oem.screenshot({ path: info.outputPath("operator-negative-takeover-settled.png"), fullPage: true });
-    }
-    if (!journal.exit_refund) {
-      await oem.goto(`/manage/${f.oem_id}/exits`);
-      await oem.getByRole("button", { name: "按原来源预留本次退款", exact: true }).click();
-      const panel = oem.getByRole("dialog").last(); await field(panel, "receipt_id", journal.receipt.id); await field(panel, "amount_money", "8");
-      save("exit_refund", await submit(oem, "按原来源预留本次退款", `${oemBase}/exits/${journal.exit.id}/prepare_refund`));
-    }
-    if (!journal.exit_intent) {
-      await oem.goto(`/manage/${f.oem_id}/exits`);
-      await oem.getByRole("button", { name: "记录线下退款意图", exact: true }).click();
-      await field(oem.getByRole("dialog").last(), "evidence", "synthetic original USD bank route planned for original channel payer");
-      save("exit_intent", await submit(oem, "记录线下退款意图", `${oemBase}/exits/${journal.exit_refund.id}/begin_manual`));
-    }
-    if (!journal.exit_paid) {
-      await oem.goto(`/manage/${f.oem_id}/exits`);
-      await oem.getByRole("button", { name: "核实原付款人实际退款", exact: true }).click();
-      const panel = oem.getByRole("dialog").last();
-      for (const [name, value] of Object.entries({ "proof.external_reference": "synthetic-exit-refund-" + randomUUID(), "proof.money.currency": "USD", "proof.money.amount": "8", "proof.executed_at": localTime(), "proof.evidence_reference": "synthetic verified original bank refund" })) await field(panel, name, String(value));
-      await expect(panel.locator('[data-command-field="valuation.id"]')).toHaveCount(0);
-      await expect(panel.locator('[data-command-field="valuation.usd_per_unit"]')).toHaveCount(0);
-      await expect(panel.locator('[data-command-field="fx_execution_reference"]')).toHaveCount(0);
-      save("exit_paid", await submit(oem, "核实原付款人实际退款", `${oemBase}/exits/${journal.exit_refund.id}/verify_manual`));
-    }
+    await expect(oem.getByRole("button", { name: "登记实际收付款", exact: true })).toHaveCount(0);
+    await oem.goto(`/manage/${f.oem_id}/exits`);
     const exitRecords = await (await oem.request.get(`${oemBase}/exits`)).json();
-    const finishedExit = exitRecords.items.find((item: any) => item.id === journal.exit.id);
-    const finishedLeg = exitRecords.items.find((item: any) => item.id === journal.exit_refund.id);
-    expect(finishedExit.values.contract_money).toBe("8"); expect(finishedExit.values.refunded_money).toBe("8");
-    expect(finishedLeg.status).toBe("completed"); expect(finishedLeg.values.remaining_money).toBe("0");
-    save("exit_verified", { contract_money: "8", refunded_money: "8", remaining_money: "0", original_receipt_id: journal.receipt.id });
-    await oem.screenshot({ path: info.outputPath("operator-original-source-procurement-exit-refunded.png"), fullPage: true });
+    expect(exitRecords.items.some((item: any) => item.id === journal.exit.id)).toBe(true);
+    await expect(oem.getByRole("button", { name: "按原来源预留本次退款", exact: true })).toHaveCount(0);
+    save("exit_verified", { notice_id: journal.exit.id, takeover_complete: true, procurement_refund: false });
     expect(failures).toEqual([]);
     await info.attach("actual-operator-business-facts", { body: JSON.stringify(journal, null, 2), contentType: "application/json" });
   } catch (error) {

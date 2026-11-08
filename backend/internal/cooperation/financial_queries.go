@@ -19,14 +19,9 @@ type FinancialSnapshot struct {
 	WholesaleEarnedMoney             ledger.Decimal `json:"wholesale_earned_money"`
 	WholesaleCorrectionMoney         ledger.Decimal `json:"wholesale_correction_money"`
 	ClosingInventoryCostMoney        ledger.Decimal `json:"closing_inventory_cost_money"`
-	PendingRefundFees                int64          `json:"pending_refund_fees"`
-	PendingRefundExecutions          int64          `json:"pending_refund_executions"`
-	RefundMismatchCount              int64          `json:"refund_mismatch_count"`
-	OutstandingRefundMoney           ledger.Decimal `json:"outstanding_refund_money"`
 	VerifiedProcurementPaymentsMoney ledger.Decimal `json:"verified_procurement_payments_money"`
 	ClosingProcurementPaymentsMoney  ledger.Decimal `json:"closing_procurement_payments_money"`
 	ClosingWholesalePrepaymentMoney  ledger.Decimal `json:"closing_wholesale_prepayment_money"`
-	ProcurementExitAdjustmentMoney   ledger.Decimal `json:"procurement_exit_adjustment_money"`
 }
 
 // FinancialFacts reads real lots, consumption and reversals. Cash purchases
@@ -77,19 +72,7 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 		if e := t.Raw(`SELECT (COALESCE((SELECT sum(l.paid_money) FROM cooperation_procurement_lots l JOIN cooperation_procurement_positions p ON p.buyer_id=l.buyer_id WHERE p.supplier_id=? AND l.delivered_at<?),0)-COALESCE((SELECT sum(c.cost_money) FROM cooperation_procurement_settlements c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0)+COALESCE((SELECT sum(c.cost_money) FROM cooperation_procurement_reversals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0)-COALESCE((SELECT sum(c.book_cost_money) FROM cooperation_procurement_removals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0))::text`, operator, to, operator, to, operator, to, operator, to).Row().Scan(&out.ClosingWholesalePrepaymentMoney); e != nil {
 			return e
 		}
-		if e := t.Model(&ProcurementExit{}).Where("buyer_id=? AND created_at>=? AND created_at<?", operator, from, to).Select("COALESCE(sum(cost_difference_money),0)::text").Row().Scan(&out.ProcurementExitAdjustmentMoney); e != nil {
-			return e
-		}
-		if e := t.Model(&ProcurementExitRefund{}).Where("supplier_id=? AND actual_money>0 AND fee_status='pending'", operator).Count(&out.PendingRefundFees).Error; e != nil {
-			return e
-		}
-		if e := t.Model(&ProcurementExitRefund{}).Where("supplier_id=? AND state IN ('executing','unknown','manual_executing')", operator).Count(&out.PendingRefundExecutions).Error; e != nil {
-			return e
-		}
-		if e := t.Model(&ProcurementExitRefund{}).Where("supplier_id=? AND state='exception'", operator).Count(&out.RefundMismatchCount).Error; e != nil {
-			return e
-		}
-		return t.Model(&ProcurementExit{}).Where("supplier_id=? AND state IN ('awaiting_refund','refund_exception')", operator).Select("COALESCE(sum(contract_money-refunded_money),0)::text").Row().Scan(&out.OutstandingRefundMoney)
+		return nil
 	})
 	return out, e
 }

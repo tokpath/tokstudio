@@ -24,7 +24,7 @@ import (
 func invoiceProcurementOrder(t *testing.T, f *testApp, supplier, buyer string, amount int64) cooperation.PurchaseOrder {
 	t.Helper()
 	ctx, owner := context.Background(), f.a.Installation.OwnerStaffID
-	quote, err := f.a.Cooperation.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: supplier, BuyerID: buyer, Name: "Invoice procurement", GiftTiers: []cooperation.PurchaseGiftTier{{FromMoney: ledger.Zero(), GiftPercent: ledger.Zero()}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"test terms"}`), TermsReference: "test terms", Enabled: true})
+	quote, err := f.a.Cooperation.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: supplier, BuyerID: buyer, Name: "Invoice procurement", GiftTiers: []cooperation.PurchaseGiftTier{{FromMoney: ledger.Zero(), GiftPercent: ledger.Zero()}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"test terms"}`), TermsReference: "test terms", Enabled: true})
 	if err != nil {
 		t.Fatal(err)
 	}

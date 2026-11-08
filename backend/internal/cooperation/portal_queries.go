@@ -88,13 +88,3 @@ func (s *Service) ListProcurementLots(ctx context.Context, tx *gorm.DB, actor, b
 	})
 	return out, e
 }
-func (s *Service) ListProcurementExits(ctx context.Context, tx *gorm.DB, actor, operator string) ([]ProcurementExit, error) {
-	out := []ProcurementExit{}
-	e := s.within(ctx, tx, func(t *gorm.DB) error {
-		if e := s.permitAny(ctx, t, actor, operator, "cooperation.manage", "payments.manage", "refunds.manage"); e != nil {
-			return e
-		}
-		return t.Where("buyer_id=? OR supplier_id=?", operator, operator).Order("created_at DESC,id").Limit(100).Find(&out).Error
-	})
-	return out, e
-}

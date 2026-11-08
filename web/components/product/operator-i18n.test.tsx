@@ -32,14 +32,14 @@ it("translates metadata while preserving names and evidence matching system copy
  expect(screen.getByRole("heading", { name: "客户" })).toBeTruthy(); expect(screen.getByText("Buyer ID")).toBeTruthy(); expect(screen.getByText("Original sale value settlement currency")).toBeTruthy(); expect(screen.getByText("1.000000000000000001")).toBeTruthy(); expect(screen.getByText("查看详情")).toBeTruthy();
  fireEvent.click(screen.getByRole("button", { name: "Customer workspace" })); expect(screen.getByRole("dialog")).toBeTruthy(); expect(screen.getByRole("heading", { name: "客户" })).toBeTruthy();
 });
-it("switches an unresolved settlement without changing input or idempotency key", async () => {
- const takeover = { id: "takeover-one", channel_id: "channel-one", brand_operator_id: "operator-one", state: "completed", method: "agreed_atg_value", service_money_per_atg: "1", procurement_money_per_atg: "1", extra_money: "0", terms_summary: "contract-one", evidence: "双方已核实", requested_by: "staff-1", snapshot: null, snapshot_fingerprint: "snapshot-one", service_money: "3", cash_money: "4", procurement_offset_atg: "2", procurement_offset_money: "2", remaining_procurement_refund_money: "0", settlement_due_money: "5", settled_money: "0", created_at: "2026-10-16T00:00:00Z" };
- const submissions: { body: unknown; key: string | null }[] = []; vi.stubGlobal("fetch", vi.fn(async (_input, init) => { if (init?.method === "POST") { submissions.push({ body: JSON.parse(String(init.body)), key: new Headers(init.headers).get("Idempotency-Key") }); if (submissions.length === 1) throw new TypeError("connection reset"); return response({ ...takeover, settled_money: "5" }); } return response({ items: [takeover], channels: [] }); }));
- show(<TakeoversScreen operatorID="operator-one" />); fireEvent.click(await screen.findByRole("button", { name: "Record actual payment or receipt" }));
- for (const [name, value] of [["amount", "5.000000000000000001"], ["reference", "bank-one"], ["evidence", "查看详情"], ["occurred_at", "2026-10-18T12:34"]]) fireEvent.change(document.querySelector(`[name="${name}"]`)!, { target: { value } });
- fireEvent.click(screen.getByRole("checkbox")); fireEvent.click(screen.getByRole("button", { name: "Confirm and submit" })); await screen.findByRole("button", { name: "Retry original operation" });
- fireEvent.change(within(screen.getByRole("dialog")).getByTestId("language-selector"), { target: { value: "ja" } }); expect((document.querySelector('[name="evidence"]') as HTMLInputElement).value).toBe("查看详情"); expect((screen.getByRole("button", { name: translate("ja", "关闭办理面板") }) as HTMLButtonElement).disabled).toBe(true);
- fireEvent.click(screen.getByRole("button", { name: translate("ja", "重试原操作") })); await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull()); expect(submissions).toHaveLength(2); expect(submissions[1]).toEqual(submissions[0]); expect(submissions[0].key).toMatch(/^[0-9a-f-]{36}$/); expect(submissions[0].body).toMatchObject({ amount: "5.000000000000000001", evidence: "查看详情" });
+it("shows simplified takeover copy in all supported languages", async()=>{
+ vi.stubGlobal("fetch",vi.fn(async()=>response({items:[],channels:[]})));
+ show(<TakeoversScreen operatorID="operator-one"/>);
+ await screen.findByRole("button",{name:"Take over channel"});
+ for(const locale of ["zh","en","ja","ru"] as const){
+  fireEvent.change(screen.getByTestId("language-selector"),{target:{value:locale}});
+  expect(screen.getByText(translate(locale,"完整承接客户权益和渠道套餐。双方资金交接在线下处理，不影响接管。"))).toBeTruthy();
+ }
 });
 it("localizes the accounting explanation without treating pending costs as zero", () => {
  const note = "Fulfillment cost is consumed weighted procurement cost, or verified supplier cost for the platform. Gift cost is a subset and is not deducted twice. Pending costs are unknown, not zero."; for (const locale of ["zh", "ja", "ru"] as const) expect(translate(locale, note)).not.toBe(note); expect(translate("zh", note)).toContain("未决成本为未知，并非零");

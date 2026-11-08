@@ -115,9 +115,7 @@ func campaignFields(kol bool, version field) []field {
 	return append(fields, audience, f("starts_at", "开始时间", "datetime"), f("ends_at", "结束时间", "datetime"), defaultField("per_customer_limit", "每位客户限次", "integer", 1), total, defaultField("enabled", "启用活动", "boolean", true), version)
 }
 func supplyExitPolicyField() field {
-	v := selectField("exit_policy", "主动退出时的余额处理", "non_refundable|剩余采购余额不退", "remaining_paid_proportional|清算存量责任后，剩余购买额度按原实付比例退；赠送不退")
-	v.Default = "non_refundable"
-	v.Help = "报价和订单会固定本次退出规则。选择可退不自动退出或打款；仍须清算存量责任，再办理退出及实际退款。"
+	v := defaultField("exit_policy", "剩余采购余额不退", "hidden", "non_refundable")
 	return v
 }
 

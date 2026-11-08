@@ -303,7 +303,9 @@ func permissionFor(resource string) string {
 		return "security.manage"
 	case "withdrawals", "balance-withdrawals":
 		return "withdrawals.manage"
-	case "refunds", "disputes", "takeovers":
+	case "takeovers":
+		return "cooperation.manage"
+	case "refunds", "disputes":
 		return "refunds.manage"
 	}
 	return ""
@@ -344,8 +346,8 @@ func (a *Application) staffScope(c *gin.Context, resource string) (organization.
 	// Exit inventory stays with cooperation. Approving a supply failure needs
 	// refund authority, and paying that refund needs payment authority. Retail
 	// channel execution is likewise a payment action inside the refund workspace.
-	if e != nil && resource == "exits" {
-		e = a.permitAny(c, actor, op.ID, "payments.manage", "refunds.manage")
+	if resource == "takeovers" && c.Request.Method == "GET" {
+		e = a.Organization.RequireTakeoverRead(c.Request.Context(), nil, actor, op.ID)
 	}
 	if e != nil && resource == "audit" {
 		e = a.permitAny(c, actor, op.ID, "ledger.read", "branding.manage")
@@ -464,6 +466,14 @@ func (a *Application) operatorResource(c *gin.Context) {
 		}
 		for _, row := range rows {
 			v := values(row)
+			if row.SourceOperatorID != nil {
+				source, e := a.Organization.GetOperator(ctx, nil, *row.SourceOperatorID)
+				if e != nil {
+					handleError(c, e)
+					return
+				}
+				v["source_operator_name"] = source.Name
+			}
 			ver := int64(0)
 			if row.CurrentQuoteID != nil {
 				q, e := a.Commerce.GetQuote(ctx, nil, *row.CurrentQuoteID)

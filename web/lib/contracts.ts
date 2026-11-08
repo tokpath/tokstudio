@@ -109,14 +109,16 @@ export const PlaygroundResultSchema = z.object({ request_id: ID, status: z.strin
 export const NotificationPreferencesSchema = z.object({ marketing: z.boolean(), usage_email: z.boolean() });
 
 export const TakeoverSnapshotSchema = z.object({
-  customers: z.record(z.string(), z.number().int()),
-  assets: z.array(z.object({account_id: ID, customer_id: ID, purpose:z.string(), unit:z.string(), balance:SignedDecimal,held:Decimal,version:z.number().int()})),
-  coverage:z.record(z.string(),z.unknown()), procurement:z.record(z.string(),z.unknown()),lots:z.array(z.record(z.string(),z.unknown())),
-  service_atg:Decimal,service_money:Decimal,cash_money:Decimal,offset_atg:Decimal,offset_money:Decimal,residual_refund_money:Decimal,settlement_due_money:SignedDecimal,rounding_evidence:z.record(z.string(),z.string()),
+ customers:z.record(z.string(),z.number().int()),
+ assets:z.array(z.object({account_id:ID,customer_id:ID,purpose:z.string(),unit:z.string(),balance:SignedDecimal,held:Decimal,version:z.number().int()})),
+ procurement:z.object({quantity:Decimal}).passthrough(),
+ packages:z.array(z.object({id:ID,quote_id:ID,name:z.string(),price_money:Decimal,paid_atg:Decimal,gift_atg:Decimal,period:z.string()})),
+ service_atg:Decimal,cash_money:Decimal,wallet_money:Decimal,commission_money:Decimal,
 });
 export const TakeoverSchema=z.object({
- id:ID,channel_id:ID,brand_operator_id:ID,state:z.string(),method:z.string(),service_money_per_atg:Decimal,procurement_money_per_atg:Decimal,extra_money:SignedDecimal,terms_summary:z.string().optional(),evidence:z.string(),requested_by:ID,approved_by:ID.nullable().optional(),
- snapshot:TakeoverSnapshotSchema.nullable(),snapshot_fingerprint:z.string(),service_money:Decimal,cash_money:Decimal,procurement_offset_atg:Decimal,procurement_offset_money:Decimal,remaining_procurement_refund_money:Decimal,settlement_due_money:SignedDecimal,settled_money:SignedDecimal,created_at:z.string(),completed_at:z.string().nullable().optional(),
+ id:ID,channel_id:ID,channel_name:z.string().optional(),brand_operator_id:ID,state:z.string(),terms_summary:z.string().optional(),evidence:z.string(),requested_by:ID,approved_by:ID.nullable().optional(),
+ snapshot:TakeoverSnapshotSchema.nullable(),snapshot_fingerprint:z.string(),cash_money:Decimal,created_at:z.string(),completed_at:z.string().nullable().optional(),
+ blockers:z.array(z.object({resource:z.string(),label:z.string(),count:z.number()})).nullish(),
 });
 export type Takeover=z.infer<typeof TakeoverSchema>;
 export const TakeoversSchema=z.object({items:z.array(TakeoverSchema),channels:z.array(z.object({id:ID,name:z.string(),legal_name:z.string(),lifecycle:z.string()}))});

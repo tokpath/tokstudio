@@ -143,12 +143,6 @@ func (s *Service) InvoiceOrderReview(ctx context.Context, tx *gorm.DB, operator,
 				return e
 			}
 			review = review || claims > 0
-		} else {
-			var refunds int64
-			if e := t.Table("cooperation_procurement_exit_refunds r").Joins("JOIN cooperation_purchase_allocations a ON a.receipt_id=r.receipt_id").Where("a.order_id=? AND r.supplier_id=? AND r.settled_money>0", order, operator).Count(&refunds).Error; e != nil {
-				return e
-			}
-			review = review || refunds > 0
 		}
 		return nil
 	})

@@ -216,7 +216,7 @@ func composeFinancial(op string, l ledger.FinancialSnapshot, c commerce.Financia
 		out.Costs.FulfillmentMoney = ledger.Zero()
 	}
 	out.Costs.RetailGiftSubsetMoney = u.OwnRetailGiftCostMoney
-	out.Costs.PendingFees = c.PendingReceiptFees + p.PendingRefundFees + r.PendingFees
+	out.Costs.PendingFees = c.PendingReceiptFees + r.PendingFees
 	out.Costs.PendingSupplierCosts = u.PendingSupplierCosts
 	out.Cash.ProcurementPaymentsMoney = p.VerifiedProcurementPaymentsMoney
 	out.Cash.ClosingRecordedNetMoney = p.ClosingProcurementPaymentsMoney.Neg()
@@ -292,9 +292,9 @@ func composeFinancial(op string, l ledger.FinancialSnapshot, c commerce.Financia
 	if out.Costs.PendingFees > 0 || out.Costs.PendingSupplierCosts > 0 {
 		out.Status = "pending_costs"
 	}
-	if r.PendingExecutions+p.PendingRefundExecutions+r.MismatchCount+p.RefundMismatchCount > 0 {
+	if r.PendingExecutions+r.MismatchCount > 0 {
 		out.Status = "review_required"
 	}
-	out.Notes = []string{"按原币分别汇总收支和成本，不做汇率换算或利润计算。", "参考成本、供应商报告成本与登记账单分别展示，不应相加为一个总成本。", "收支按所选期间统计，期末余额截至结束时刻，待处理项反映查询时状态。", "实际账单按登记时间汇总并保留原服务期间；来源不明的费用保持待核实。", "接管款同时保留独立明细和原币收支，采购付款仅在整笔收款可明确归属采购方时纳入该方原币支出。"}
+	out.Notes = []string{"按原币分别汇总收支和成本，不做汇率换算或利润计算。", "参考成本、供应商报告成本与登记账单分别展示，不应相加为一个总成本。", "收支按所选期间统计，期末余额截至结束时刻，待处理项反映查询时状态。", "实际账单按登记时间汇总并保留原服务期间；来源不明的费用保持待核实。", "接管只展示权益与责任转移，双方资金在线下交接。采购付款仅在整笔收款可明确归属采购方时纳入该方原币支出。"}
 	return out
 }

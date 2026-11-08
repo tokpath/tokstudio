@@ -130,8 +130,8 @@
     "ru": "Остаток баланса при добровольном выходе"
   },
   "剩余采购余额不退": {
-    "en": "Unused procurement balance is non-refundable",
-    "ja": "未使用仕入残高は返金不可",
+    "en": "Remaining procurement balance is nonrefundable",
+    "ja": "残りの仕入れ残高は返金されません",
     "ru": "Остаток закупочного баланса не возвращается"
   },
   "清算存量责任后，剩余购买额度按原实付比例退；赠送不退": {
@@ -4708,5 +4708,365 @@
     "en": "Issued",
     "ja": "発行済み",
     "ru": "Выдан"
+  },
+  "OEM 停业告知": {
+    "en": "OEM closure notice",
+    "ja": "OEM営業終了通知",
+    "ru": "Уведомление о закрытии OEM"
+  },
+  "OEM 和渠道的剩余采购余额均不退。": {
+    "en": "Unused procurement balances are nonrefundable for both OEMs and channels.",
+    "ja": "OEM・チャネルともに仕入残高は返金されません。",
+    "ru": "Неиспользованный закупочный баланс OEM и каналов не возвращается."
+  },
+  "OEM 已告知停止经营": {
+    "en": "OEM has reported closure",
+    "ja": "OEMから営業終了の通知が届きました",
+    "ru": "OEM сообщил о прекращении деятельности"
+  },
+  "OEM 自行负责客户和下属渠道的存量事项，平台无需审批、退款或接管。": {
+    "en": "The OEM remains responsible for its customers and channels. No platform approval, refund or takeover is required.",
+    "ja": "顧客と傘下チャネルの残存業務はOEMが対応します。プラットフォームの承認・返金・引継ぎは不要です。",
+    "ru": "OEM самостоятельно отвечает за клиентов и подчинённые каналы. Одобрение, возврат средств или принятие клиентов платформой не требуется."
+  },
+  "仅告知平台，不申请退款或接管。营业设置和客户、下属渠道的存量责任由本 OEM 自行处理。": {
+    "en": "This only notifies the platform. The OEM handles its business settings, customers and channels; it does not request a refund or takeover.",
+    "ja": "プラットフォームへの通知のみです。返金・引継ぎは申請せず、営業設定と顧客・傘下チャネルへの責任はOEMが処理します。",
+    "ru": "Это только уведомление платформы. OEM самостоятельно управляет настройками и обязательствами перед клиентами и каналами, без запроса возврата или передачи клиентов."
+  },
+  "以下事项完成后可以接管；正常在途业务会自动重新检查。": {
+    "en": "Takeover can proceed once these items are resolved. Work in progress is checked again automatically.",
+    "ja": "以下の事項が完了すると引継ぎできます。処理中の業務は自動で再確認されます。",
+    "ru": "Передача возможна после завершения этих операций. Текущие операции проверяются повторно автоматически."
+  },
+  "停业与退出": {
+    "en": "Closure and exit",
+    "ja": "営業終了・退出",
+    "ru": "Закрытие и выход"
+  },
+  "剩余采购余额不退。停止经营时自行承担经营责任；渠道客户由所属品牌承接。": {
+    "en": "Unused procurement balances are nonrefundable. Operators remain responsible when closing; channel customers transfer to their brand.",
+    "ja": "仕入残高は返金されません。営業終了時の責任は各事業者が負い、チャネルの顧客は所属ブランドが引き継ぎます。",
+    "ru": "Закупочный остаток не возвращается. Оператор отвечает за прекращение деятельности; клиентов канала принимает его бренд."
+  },
+  "原渠道套餐已停止续费和复购，已有权益继续有效；到期后请选择其他套餐。": {
+    "en": "The original channel plan is closed to renewals and repurchases. Existing benefits remain valid; choose another plan after expiry.",
+    "ja": "元のチャネルのプランは更新・再購入できません。購入済みの権利は有効です。期限後は別のプランを選択してください。",
+    "ru": "Продление и повторная покупка исходного тарифа канала закрыты. Купленные права сохраняются; после окончания срока выберите другой тариф."
+  },
+  "取消接管": {
+    "en": "Cancel takeover",
+    "ja": "引継ぎを取り消す",
+    "ru": "Отменить передачу"
+  },
+  "含可用和冻结佣金；已有占用不重复计入。双方在线下交接资金。": {
+    "en": "Includes available and frozen commissions; holds are not counted twice. The parties handle funds outside the system.",
+    "ja": "利用可能・凍結中の報酬を含み、確保済み金額は二重計上しません。資金の引渡しは当事者間で行います。",
+    "ru": "Включает доступные и замороженные комиссии; резервы не учитываются дважды. Стороны передают средства вне системы."
+  },
+  "告知平台停止经营": {
+    "en": "Notify platform of closure",
+    "ja": "営業終了をプラットフォームに通知",
+    "ru": "Сообщить платформе о закрытии"
+  },
+  "品牌确认承接渠道客户": {
+    "en": "Brand confirmed customer takeover",
+    "ja": "ブランドがチャネル顧客の引継ぎを確認",
+    "ru": "Бренд подтвердил принятие клиентов канала"
+  },
+  "售价": {
+    "en": "Sale price",
+    "ja": "販売価格",
+    "ru": "Цена продажи"
+  },
+  "完整承接客户权益和渠道套餐。双方资金交接在线下处理，不影响接管。": {
+    "en": "Transfer all customer rights and copy channel plans. The parties handle funds outside the system without delaying takeover.",
+    "ja": "顧客の権利をすべて引き継ぎ、チャネルのプランを複製します。資金の引渡しは当事者間で行い、引継ぎの条件にはしません。",
+    "ru": "Передаются все права клиентов и копируются тарифы канала. Стороны решают денежные вопросы вне системы, не задерживая передачу."
+  },
+  "客户佣金": {
+    "en": "Customer commissions",
+    "ja": "顧客の紹介報酬",
+    "ru": "Комиссии клиентов"
+  },
+  "客户剩余额度": {
+    "en": "Remaining customer credits",
+    "ja": "顧客の残り利用枠",
+    "ru": "Оставшиеся лимиты клиентов"
+  },
+  "客户支付余额": {
+    "en": "Customer wallet balances",
+    "ja": "顧客の支払残高",
+    "ru": "Платёжные балансы клиентов"
+  },
+  "客户权益已承接，原渠道已结束经营。复制的套餐默认停止新购和续费，可在套餐页面决定是否开放。": {
+    "en": "Customer rights have transferred and the channel has closed. Copied plans start with sales and renewals disabled; manage availability on the plans page.",
+    "ja": "顧客の権利を引き継ぎ、元のチャネルは営業を終了しました。複製プランは新規購入・更新を停止した状態です。プラン画面で公開を設定できます。",
+    "ru": "Права клиентов переданы, канал закрыт. Продажи и продление скопированных тарифов отключены; доступность можно изменить на странице тарифов."
+  },
+  "开始准备": {
+    "en": "Start preparation",
+    "ja": "準備を開始",
+    "ru": "Начать подготовку"
+  },
+  "待处理的付款争议": {
+    "en": "Unresolved payment disputes",
+    "ja": "未処理の支払紛争",
+    "ru": "Неразрешённые платёжные споры"
+  },
+  "待处理的退款事项": {
+    "en": "Unresolved refunds",
+    "ja": "未処理の返金",
+    "ru": "Незавершённые возвраты"
+  },
+  "待完成或关闭的客户订单": {
+    "en": "Customer orders to complete or close",
+    "ja": "完了または終了が必要な顧客注文",
+    "ru": "Заказы клиентов, требующие завершения или закрытия"
+  },
+  "待完成或关闭的采购订单": {
+    "en": "Procurement orders to complete or close",
+    "ja": "完了または終了が必要な仕入注文",
+    "ru": "Закупочные заказы, требующие завершения или закрытия"
+  },
+  "待核实的实际收付款": {
+    "en": "Actual payments awaiting verification",
+    "ja": "確認待ちの実際の入出金",
+    "ru": "Фактические платежи, ожидающие проверки"
+  },
+  "待确认接管": {
+    "en": "Awaiting takeover confirmation",
+    "ja": "引継ぎ確認待ち",
+    "ru": "Ожидает подтверждения передачи"
+  },
+  "所属品牌已承接客户权益，账号和 API Key 继续使用。原套餐有效权益保留；停止续费的套餐到期后请选择其他套餐。": {
+    "en": "Your brand has assumed your customer rights. Your account and API keys continue working. Existing plan benefits remain valid; choose another plan when a nonrenewable plan expires.",
+    "ja": "所属ブランドが顧客の権利を引き継ぎました。アカウントとAPIキーは引き続き使えます。元のプランの有効な権利は維持されます。更新停止プランの期限後は別のプランを選択してください。",
+    "ru": "Ваш бренд принял обязательства перед вами. Аккаунт и API-ключи продолжают работать. Действующие права сохраняются; после истечения непродлеваемого тарифа выберите другой."
+  },
+  "承接客户": {
+    "en": "Customers transferred",
+    "ja": "引継ぎ対象顧客",
+    "ru": "Передаваемые клиенты"
+  },
+  "接管完成": {
+    "en": "Takeover completed",
+    "ja": "引継ぎ完了",
+    "ru": "Передача завершена"
+  },
+  "接管渠道": {
+    "en": "Take over channel",
+    "ja": "チャネルを引き継ぐ",
+    "ru": "Принять канал"
+  },
+  "操作不存在": {
+    "en": "Action not found",
+    "ja": "操作が見つかりません",
+    "ru": "Действие не найдено"
+  },
+  "暂停新增业务，等待已受理事项完成后，核对并承接客户权益。": {
+    "en": "Pause new business, wait for accepted work to finish, then review and transfer customer rights.",
+    "ja": "新規業務を停止し、受付済みの処理が完了した後に顧客の権利を確認して引き継ぎます。",
+    "ru": "Приостановите новые операции, дождитесь завершения принятых, затем проверьте и передайте права клиентов."
+  },
+  "暂无渠道接管记录。": {
+    "en": "No channel takeover records.",
+    "ja": "チャネルの引継ぎ記録はありません。",
+    "ru": "Записей о передаче каналов нет."
+  },
+  "来自渠道：{name}": {
+    "en": "From channel: {name}",
+    "ja": "引継ぎ元チャネル：{name}",
+    "ru": "Исходный канал: {name}"
+  },
+  "查看渠道接管": {
+    "en": "View channel takeover",
+    "ja": "チャネル引継ぎを表示",
+    "ru": "Посмотреть передачу канала"
+  },
+  "标明来源渠道，默认停止新购和续费。已有订单的额度、赠送和期限继续有效；不限时额度仍不限时。": {
+    "en": "The source channel is shown. Sales and renewals start disabled. Existing order credits, gifts and expiry dates are preserved; lifetime credits remain without expiry.",
+    "ja": "元のチャネルを明記し、新規購入・更新は初期状態で停止します。既存注文の購入枠・特典・期限は維持され、無期限枠は無期限のままです。",
+    "ru": "Указывается исходный канал. Новые продажи и продление отключены. Лимиты, бонусы и сроки старых заказов сохраняются; бессрочные лимиты остаются бессрочными."
+  },
+  "核对本次办理结果。": {
+    "en": "Review this action.",
+    "ja": "今回の操作を確認してください。",
+    "ru": "Проверьте это действие."
+  },
+  "正在准备": {
+    "en": "Preparing",
+    "ja": "準備中",
+    "ru": "Подготовка"
+  },
+  "正在检查在途业务…": {
+    "en": "Checking work in progress…",
+    "ja": "処理中の業務を確認しています…",
+    "ru": "Проверка текущих операций…"
+  },
+  "渠道": {
+    "en": "Channel",
+    "ja": "チャネル",
+    "ru": "Канал"
+  },
+  "渠道剩余采购余额": {
+    "en": "Channel procurement balance",
+    "ja": "チャネルの仕入残高",
+    "ru": "Закупочный остаток канала"
+  },
+  "渠道客户权益已承接": {
+    "en": "Channel customer rights transferred",
+    "ja": "チャネル顧客の権利を引き継ぎました",
+    "ru": "Права клиентов канала переданы"
+  },
+  "渠道已暂停新增业务。请查看接管页面的在途事项和客户权益汇总。": {
+    "en": "New channel business is paused. Check pending items and customer rights on the takeover page.",
+    "ja": "チャネルの新規業務を停止しました。引継ぎ画面で処理中の事項と顧客の権利を確認してください。",
+    "ru": "Новые операции канала приостановлены. Проверьте текущие операции и права клиентов на странице передачи."
+  },
+  "渠道接管已取消": {
+    "en": "Channel takeover cancelled",
+    "ja": "チャネル引継ぎを取り消しました",
+    "ru": "Передача канала отменена"
+  },
+  "渠道正在准备接管": {
+    "en": "Channel takeover preparation started",
+    "ja": "チャネルの引継ぎ準備を開始しました",
+    "ru": "Началась подготовка передачи канала"
+  },
+  "渠道申请退出": {
+    "en": "Channel requested exit",
+    "ja": "チャネルから退出の申出",
+    "ru": "Канал запросил выход"
+  },
+  "渠道负责人可在核对业务条件后恢复营业。": {
+    "en": "The channel owner may resume business after checking operating conditions.",
+    "ja": "チャネル責任者は営業条件を確認した後に営業を再開できます。",
+    "ru": "Владелец канала может возобновить работу после проверки условий."
+  },
+  "渠道退出通知": {
+    "en": "Channel exit notice",
+    "ja": "チャネル退出通知",
+    "ru": "Уведомление о выходе канала"
+  },
+  "现金责任合计": {
+    "en": "Total cash obligations",
+    "ja": "現金債務合計",
+    "ru": "Всего денежных обязательств"
+  },
+  "由原渠道在对应业务页面处理。": {
+    "en": "The original channel handles this on the relevant business page.",
+    "ja": "元のチャネルが該当の業務画面で処理します。",
+    "ru": "Исходный канал обрабатывает это на соответствующей странице."
+  },
+  "确认取消接管；渠道营业由负责人检查后恢复。": {
+    "en": "Confirm cancellation. The channel owner can resume business after review.",
+    "ja": "引継ぎを取り消します。責任者による確認後に営業を再開できます。",
+    "ru": "Подтвердите отмену. Владелец канала может возобновить работу после проверки."
+  },
+  "确认完整承接客户权益，复制套餐并结束原渠道经营。双方资金交接在线下处理。": {
+    "en": "Confirm transfer of all customer rights, copy the plans and close the original channel. Funds are handled outside the system.",
+    "ja": "すべての顧客の権利を引き継ぎ、プランを複製して元のチャネルの営業を終了します。資金の引渡しは当事者間で行います。",
+    "ru": "Подтвердите передачу всех прав клиентов, копирование тарифов и закрытие исходного канала. Средства передаются вне системы."
+  },
+  "确认接管": {
+    "en": "Confirm takeover",
+    "ja": "引継ぎを確認",
+    "ru": "Подтвердить передачу"
+  },
+  "确认暂停渠道新增注册、销售、续费、调用和补货。取消接管后，由渠道负责人检查并恢复营业。": {
+    "en": "Pause new channel registrations, sales, renewals, API calls and replenishment. After cancellation, the channel owner reviews and resumes business.",
+    "ja": "チャネルの新規登録・販売・更新・API呼出し・補充を停止します。引継ぎを取り消した後は、責任者が確認して営業を再開します。",
+    "ru": "Приостановить регистрацию, продажи, продление, вызовы API и пополнение канала. После отмены владелец проверяет условия и возобновляет работу."
+  },
+  "等待在途业务完成后重新检查": {
+    "en": "Waiting for current work to finish before checking again",
+    "ja": "処理中の業務の完了後に再確認します",
+    "ru": "Повторная проверка после завершения текущих операций"
+  },
+  "等待已受理注册完成": {
+    "en": "Waiting for accepted registrations to finish",
+    "ja": "受付済み登録の完了待ち",
+    "ru": "Ожидание завершения принятых регистраций"
+  },
+  "等待已受理调用完成": {
+    "en": "Waiting for accepted API calls to finish",
+    "ja": "受付済み呼出しの完了待ち",
+    "ru": "Ожидание завершения принятых вызовов API"
+  },
+  "经营方取消接管准备": {
+    "en": "Operator cancelled takeover preparation",
+    "ja": "事業者が引継ぎ準備を取り消しました",
+    "ru": "Оператор отменил подготовку передачи"
+  },
+  "请在渠道接管页面查看并办理客户权益承接。双方资金交接在线下处理。": {
+    "en": "Review and transfer customer rights on the channel takeover page. Funds are handled outside the system.",
+    "ja": "チャネル引継ぎ画面で顧客の権利を確認し、引継ぎを行ってください。資金の引渡しは当事者間で行います。",
+    "ru": "Проверьте и передайте права клиентов на странице передачи канала. Денежные вопросы решаются вне системы."
+  },
+  "退出时核销并保留记录，不退款。": {
+    "en": "Written off on exit with records retained; no refund.",
+    "ja": "退出時に記録を残して残高を消し込みます。返金はありません。",
+    "ru": "При выходе списывается с сохранением записей, без возврата средств."
+  },
+  "通知品牌办理退出": {
+    "en": "Notify brand of exit",
+    "ja": "退出をブランドに通知",
+    "ru": "Уведомить бренд о выходе"
+  },
+  "通知所属品牌办理客户接管。采购余额不退；接管前继续由本渠道负责客户业务。": {
+    "en": "Notify the brand to take over customers. Procurement balances are nonrefundable; this channel remains responsible until takeover.",
+    "ja": "顧客引継ぎを所属ブランドに通知します。仕入残高は返金されず、引継ぎまでは本チャネルが顧客業務を担当します。",
+    "ru": "Уведомить бренд о передаче клиентов. Закупочный остаток не возвращается; до передачи канал отвечает за клиентов."
+  },
+  "通知时间": {
+    "en": "Notification time",
+    "ja": "通知日時",
+    "ru": "Время уведомления"
+  },
+  "采购余额不退。OEM 自行处理停业及存量责任；渠道由所属品牌办理客户接管。": {
+    "en": "Procurement balances are nonrefundable. OEMs manage closure and outstanding obligations; brands take over their channel customers.",
+    "ja": "仕入残高は返金されません。OEMは営業終了と残存責任を自ら処理し、チャネルの顧客は所属ブランドが引き継ぎます。",
+    "ru": "Закупочный остаток не возвращается. OEM самостоятельно закрывается и отвечает по обязательствам; клиентов канала принимает его бренд."
+  },
+  "随接管复制的套餐": {
+    "en": "Plans copied with takeover",
+    "ja": "引継ぎ時に複製するプラン",
+    "ru": "Тарифы, копируемые при передаче"
+  },
+  "已告知": {
+    "en": "Notified",
+    "ja": "通知済み",
+    "ru": "Уведомление отправлено"
+  },
+  "周期": {
+    "en": "Period",
+    "ja": "期間",
+    "ru": "Период"
+  },
+  "接管权益变动": {
+    "en": "Rights transferred in a takeover",
+    "ja": "引き継ぎによる権益の変動",
+    "ru": "Передача прав и обязательств"
+  },
+  "账面增加": {
+    "en": "Book increase",
+    "ja": "帳簿上の増加",
+    "ru": "Увеличение по учёту"
+  },
+  "账面减少": {
+    "en": "Book decrease",
+    "ja": "帳簿上の減少",
+    "ru": "Уменьшение по учёту"
+  },
+  "接管只展示权益与责任转移，双方资金在线下交接。采购付款仅在整笔收款可明确归属采购方时纳入该方原币支出。": {
+    "en": "Takeovers show transferred rights and obligations only; the parties hand over funds offline. Procurement payments count toward a buyer's original-currency expenses only when the entire receipt can be attributed to that buyer.",
+    "ja": "引き継ぎでは権益と責任の移転のみを表示し、当事者間の資金引き渡しはシステム外で行います。仕入れ代金は、入金全額を購入者に帰属できる場合に限り、その購入者の原通貨支出に計上します。",
+    "ru": "При передаче клиентов отображаются переданные права и обязательства; стороны передают средства вне системы. Закупочный платёж учитывается в расходах покупателя в исходной валюте, только если всё поступление относится к этому покупателю."
+  },
+  "原渠道套餐已停止复购，已有不限时额度继续有效。": {
+    "en": "This former channel plan is no longer available for purchase. Your existing credits remain valid without expiry.",
+    "ja": "旧チャネルのこのプランは再購入できません。保有中の無期限クレジットは引き続き有効です。",
+    "ru": "Повторная покупка тарифа прежнего канала отключена. Ваши бессрочные лимиты продолжают действовать."
   }
 }

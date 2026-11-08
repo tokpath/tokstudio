@@ -485,7 +485,6 @@ func (s *Service) SuspendReplenishment(ctx context.Context, tx *gorm.DB, buyer, 
 type PendingProcurement struct {
 	AutomaticAttempts int64    `json:"automatic_attempts"`
 	PurchaseOrders    int64    `json:"purchase_orders"`
-	Refunds           int64    `json:"refunds"`
 	AttemptIDs        []string `json:"attempt_ids"`
 	OrderIDs          []string `json:"order_ids"`
 }
@@ -501,7 +500,7 @@ func (s *Service) PendingProcurement(ctx context.Context, tx *gorm.DB, buyer str
 		}
 		out.AutomaticAttempts = int64(len(out.AttemptIDs))
 		out.PurchaseOrders = int64(len(out.OrderIDs))
-		return t.Model(&ProcurementExitRefund{}).Where("buyer_id=? AND state NOT IN ('completed','released_unpaid')", buyer).Count(&out.Refunds).Error
+		return nil
 	})
 	return out, e
 }

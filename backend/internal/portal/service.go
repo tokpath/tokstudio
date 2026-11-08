@@ -100,7 +100,6 @@ type Application struct {
 	Runtime            *modelruntime.Bifrost
 	Remediation        *remediation.Service
 	AutoReplenishments *cooperation.Replenisher
-	ProcurementRefunds *cooperation.ProcurementRefunds
 	Installation       Installation
 	Operations         *operations.Service
 	GoogleExchanger    GoogleExchanger
@@ -182,12 +181,8 @@ func newApplication(ctx context.Context, c Config, gdb *gorm.DB) (*Application, 
 		facts, e := a.Remediation.FinancialRefundFacts(ctx, tx, op, from, to)
 		return operations.RefundFinancialFacts{PendingFees: facts.PendingFees, PendingExecutions: facts.PendingExecutions, OutstandingMoney: facts.OutstandingMoney, MismatchCount: facts.MismatchCount}, e
 	})}
-	a.ProcurementRefunds = &cooperation.ProcurementRefunds{Cooperation: a.Cooperation, Payments: a.Payments, Collector: a.Commerce, Capacity: a.Remediation, ObserveReceiptRefund: func(ctx context.Context, tx *gorm.DB, op, receipt, reference, factID string, amount ledger.Decimal) error {
-		_, e := a.Remediation.ObserveReceiptRefund(ctx, tx, op, receipt, reference, factID, amount)
-		return e
-	}}
-	a.Payments.RefundApproval = cooperation.CombinedRefundApproval{Procurement: a.ProcurementRefunds, Other: a.Remediation}
-	a.Payments.RefundSink = cooperation.CombinedRefundSink{Procurement: a.ProcurementRefunds, Other: a.Remediation}
+	a.Payments.RefundApproval = a.Remediation
+	a.Payments.RefundSink = a.Remediation
 	a.Operations.Invoices = operations.CommerceInvoiceSource{Commerce: a.Commerce, Adjustments: a.Remediation}
 	a.Operations.ProcurementInvoices = operations.DomainProcurementInvoiceSource{Cooperation: a.Cooperation, Commerce: a.Commerce, Adjustments: a.Remediation}
 	a.AutoReplenishments = &cooperation.Replenisher{Cooperation: a.Cooperation, Payments: a.Payments, Collector: a.Commerce, EncryptionKey: c.AppKey, Observer: a.Operations}

@@ -62,6 +62,9 @@ func (s *Service) TransferResponsibility(ctx context.Context, tx *gorm.DB, in Tr
 		if err := s.PreflightTransferResponsibility(ctx, t, in); err != nil {
 			return err
 		}
+		if e := s.copyTakeoverPackages(ctx, t, in); e != nil {
+			return e
+		}
 		ids := make([]string, 0, len(in.Customers))
 		for id := range in.Customers {
 			ids = append(ids, id)
@@ -77,7 +80,7 @@ func (s *Service) TransferResponsibility(ctx context.Context, tx *gorm.DB, in Tr
 			if err := t.Model(&orderRow{}).Where("operator_id=? AND customer_id=?", in.FromOperatorID, id).Updates(map[string]any{"operator_id": in.ToOperatorID, "ownership_version": in.Customers[id] + 1}).Error; err != nil {
 				return err
 			}
-			if err := t.Model(&subscriptionRow{}).Where("operator_id=? AND customer_id=?", in.FromOperatorID, id).Updates(map[string]any{"operator_id": in.ToOperatorID, "status": gorm.Expr("CASE WHEN status='cancelled' THEN status ELSE 'needs_confirmation' END"), "version": gorm.Expr("version+1"), "notice_quote_id": nil, "notice_cycle_due_at": nil, "notice_delivered_at": nil, "notice_evidence": ""}).Error; err != nil {
+			if err := t.Model(&subscriptionRow{}).Where("operator_id=? AND customer_id=?", in.FromOperatorID, id).Updates(map[string]any{"operator_id": in.ToOperatorID, "status": "cancelled", "version": gorm.Expr("version+1"), "notice_quote_id": nil, "notice_cycle_due_at": nil, "notice_delivered_at": nil, "notice_evidence": ""}).Error; err != nil {
 				return err
 			}
 

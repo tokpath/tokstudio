@@ -1,324 +1,87 @@
 package portal
 
 import (
-	"context"
-	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"github.com/tokpath/tokstudio/backend/internal/cooperation"
-	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
-	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"gorm.io/gorm"
-	"time"
 )
 
 func (a *Application) exitsResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
-	ctx := c.Request.Context()
-	rows, e := a.Cooperation.ListProcurementExits(ctx, nil, actor, op.ID)
+	rows, e := a.Organization.ExitNotices(c.Request.Context(), actor, op.ID)
 	if e != nil {
 		handleError(c, e)
 		return
 	}
-	canPay := a.Organization.RequirePermission(ctx, nil, actor, op.ID, "payments.manage") == nil
-	canCooperate := a.Organization.RequirePermission(ctx, nil, actor, op.ID, "cooperation.manage") == nil
 	items := []any{}
+	ownNotice := false
 	for _, r := range rows {
-		v := values(r)
-		v["record_kind"] = "exit"
-		row := entity(r.ID, r.State, 0, v)
-		row["allowed_actions"] = []string{}
-		if canPay && r.SupplierID == op.ID {
-			row["allowed_actions"] = []string{"prepare_refund"}
-		}
-		items = append(items, row)
-	}
-
-	seen := map[string]bool{}
-	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "payments.manage") == nil {
-		_, legs, e := a.ProcurementRefunds.ListForOperator(ctx, actor, op.ID)
+		operator, e := a.Organization.GetOperator(c.Request.Context(), nil, r.OperatorID)
 		if e != nil {
 			handleError(c, e)
 			return
 		}
-		for _, leg := range legs {
-			if leg.SupplierID != op.ID {
-				continue
+		state := "notified"
+		kind := "OEM 停业告知"
+		path := ""
+		if r.Kind == organization.Channel {
+			kind = "渠道退出通知"
+			state = "pending"
+			if operator.Lifecycle == "terminated" {
+				state = "completed"
 			}
-			v := values(leg)
-			v["record_kind"] = "refund_leg"
-			v["contract_money"] = leg.AmountMoney
-			remaining := leg.AmountMoney.Sub(leg.SettledMoney)
-			if remaining.Sign() < 0 {
-				remaining = ledger.Zero()
-			}
-			v["remaining_money"] = remaining
-			v["expected_execution_key"] = leg.ExecutionKey
-			sourceDriver := "manual"
-			manualOffline := true
-			if leg.SourceKind == "manual_receipt" {
-				receipt, err := a.Commerce.GetReceipt(ctx, nil, op.ID, leg.ReceiptID)
-				if err != nil {
-					handleError(c, err)
-					return
-				}
-				manualOffline = receipt.Network == "" || receipt.Network == "bank" || receipt.Network == "cash"
-				v["proof"] = gin.H{"receipt_id": receipt.ID, "recipient_reference": receipt.PayerReference, "money": gin.H{"currency": receipt.Currency}}
-			} else {
-				source, err := a.Payments.PaymentSourceForReceipt(ctx, op.ID, leg.ReceiptID)
-				if err != nil {
-					handleError(c, err)
-					return
-				}
-				sourceDriver = source.Driver
-			}
-			actions := []string{}
-			external := sourceDriver == "evm_wallet" || sourceDriver == "nowpayments"
-			authorized := false
-			if external {
-				authorized, e = a.procurementDestinationFacts(c, actor, op.ID, leg.ID, v)
-				if e != nil {
-					handleError(c, e)
-					return
-				}
-			}
-			if !external {
-				_, e = a.procurementDestinationFacts(c, actor, op.ID, leg.ID, v)
-				if e != nil {
-					handleError(c, e)
-					return
-				}
-			}
-			version, _ := v["route_version"].(int64)
-			if version > 1 {
-				external = true
-				authorized = v["authorization_id"] != nil
-			}
-			switch leg.State {
-			case "prepared":
-				actions = []string{"execute_refund", "begin_manual", "release_refund"}
-				if sourceDriver == "manual" {
-					actions = []string{"release_refund"}
-					if manualOffline {
-						actions = append(actions, "begin_manual")
-					}
-				}
-				if external {
-					actions = []string{"release_refund"}
-					if authorized {
-						actions = append(actions, "begin_manual")
-					} else if v["proposal_id"] != nil {
-						actions = append(actions, "verify_destination")
-					}
-				}
-			case "manual_executing", "executing":
-				if sourceDriver == "evm_wallet" {
-					actions = []string{"verify_evm"}
-				} else if sourceDriver == "nowpayments" {
-					actions = []string{"verify_external"}
-				} else {
-					actions = []string{"verify_manual"}
-				}
-			case "exception":
-				if leg.SettledMoney.Cmp(leg.AmountMoney) < 0 {
-					actions = []string{"begin_manual"}
-				}
-			}
-			if version > 1 && leg.State == "prepared" {
-				actions = []string{"release_refund"}
-				if authorized {
-					actions = append(actions, "begin_manual")
-				} else if v["proposal_id"] != nil {
-					actions = append(actions, "verify_replacement_destination")
-				}
-			}
-			if version > 1 && (leg.State == "manual_executing" || leg.State == "executing") {
-				actions = []string{"verify_replacement"}
-			}
-			if remaining.Sign() > 0 {
-				if leg.State == "prepared" || leg.State == "exception" {
-					actions = append(actions, "close_route")
-				}
-				if leg.ExecutionMode == "manual" && leg.State == "manual_executing" {
-					actions = append(actions, "verify_manual_failure")
-				}
-			}
-			row := entity(leg.ID, leg.State, 0, v)
-			if leg.State == "completed" && leg.FeeStatus == "pending" {
-				actions = append(actions, "confirm_fee")
-			}
-			row["allowed_actions"] = actions
-			items = append(items, row)
-			seen[leg.ID] = true
+			path = "/manage/" + op.ID + "/takeovers"
+		}
+		items = append(items, entity(r.ID, state, 0, gin.H{"operator_name": operator.Name, "kind_label": kind, "note": r.Note, "created_at": r.CreatedAt, "takeover_url": path}))
+		if r.OperatorID == op.ID {
+			ownNotice = true
 		}
 	}
-	buyerLegs := []cooperation.BuyerRefundLegView{}
-	if canCooperate {
-		buyerLegs, e = a.ProcurementRefunds.BuyerRefundLegs(ctx, actor, op.ID)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-	}
-	for _, leg := range buyerLegs {
-		if seen[leg.ID] {
-			continue
-		}
-		v := values(leg)
-		v["record_kind"] = "buyer_refund_leg"
-		v["contract_money"] = leg.AmountMoney
-		remaining := leg.AmountMoney.Sub(leg.SettledMoney)
-		if remaining.Sign() < 0 {
-			remaining = ledger.Zero()
-		}
-		v["remaining_money"] = remaining
-		actions := []string{}
-		{
-			v["destination"] = gin.H{"network": leg.Network, "asset": leg.Currency, "token_contract": leg.TokenContract}
-			authorized, e := a.procurementDestinationFacts(c, actor, op.ID, leg.ID, v)
-			if e != nil {
-				handleError(c, e)
-				return
-			}
-			version, _ := v["route_version"].(int64)
-			if leg.State == "prepared" && !authorized && (leg.Driver == "evm_wallet" || leg.Driver == "nowpayments" || version > 1) {
-				actions = []string{"propose_destination"}
-			}
-		}
-		row := entity(leg.ID, leg.State, 0, v)
-		row["allowed_actions"] = actions
-		items = append(items, row)
-	}
-	p["title"] = "合作退出与采购退款"
-	p["description"] = "这里只办理合同里事先约定的自愿退出：移除尚未占用的采购库存，并按原购买比例退款。已经付款但还没交付 ATG 的采购，改在退款页办理。已经交付的库存不能因为后来供货失约再退。"
 	p["items"] = items
-	p["columns"] = []gin.H{col("record_kind", "记录类型", "text"), col("buyer_id", "采购方", "text"), col("supplier_id", "供货方", "text"), col("contract_money", "合同退款责任", "money"), col("book_cost_money", "退出账面成本", "money"), col("cost_difference_money", "合同与成本差额", "money"), col("refunded_money", "已核实退回", "money"), col("receipt_id", "原收款", "text")}
-	p["operations"] = []operation{{Name: "request", Label: "按合同申请退出库存", Permission: "cooperation.manage", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "text", "request"), selectField("mode", "退出原因", "voluntary_exit|按合同自愿退出"), f("quantity", "拟移除采购库存ATG", "decimal"), optional("evidence", "申请说明（可选）", "textarea")}, Confirmation: "只按成交时约定的自愿退出条款，移除尚未占用的购买库存并计算退款。已经交付的库存不能因为供货失约再退。"}}
-	p["row_operations"] = []operation{{Name: "prepare_refund", Label: "按原来源预留本次退款", Method: "POST", Path: base + "/{id}/prepare_refund", Fields: []field{f("receipt_id", "原采购收款编号", "text"), f("amount_money", "本次合同退款结算币种", "decimal")}}, {Name: "begin_manual", Label: "记录线下退款意图", Method: "POST", Path: base + "/{id}/begin_manual", Fields: []field{optional("evidence", "付款备注（可选）", "textarea")}, Confirmation: "仅保存唯一付款意图，实际付款后再核实退款结果。"}, {Name: "verify_manual", Label: "核实原付款人实际退款", Method: "POST", Path: base + "/{id}/verify_manual", Fields: append([]field{optional("proof.external_reference", "退款流水或收据号（可选）", "text"), f("proof.money.currency", "本次付款币种", "text"), f("proof.money.amount", "本次实际付款金额", "decimal"), f("proof.executed_at", "实际退款时间", "datetime"), f("proof.evidence_reference", "付款核实说明", "textarea")}, executionValuationFields("proof.money.currency")...)}, {Name: "execute_refund", Label: "通过原通道执行退款", Method: "POST", Path: base + "/{id}/execute_refund", Fields: append([]field{f("money.currency", "本次付款币种", "text"), f("money.amount", "本次实际执行金额", "decimal")}, executionValuationFields("money.currency")...), Confirmation: "核实本次原币付款与清偿金额，退款ID固定为原leg；未知时只查询原交易。"}, {Name: "release_refund", Label: "取消尚未执行的预留", Method: "POST", Path: base + "/{id}/release_refund", Fields: []field{f("evidence", "取消原因", "textarea")}}}
-	p["row_operations"] = append(p["row_operations"].([]operation), procurementDestinationOperations(base)...)
-	p["row_operations"] = tagOperationPermissions(p["row_operations"].([]operation), "payments.manage", "prepare_refund", "begin_manual", "verify_manual", "execute_refund", "release_refund", "confirm_fee", "close_route", "verify_manual_failure", "verify_replacement_destination", "verify_replacement", "verify_destination", "verify_evm", "verify_external")
-	p["row_operations"] = tagOperationPermissions(p["row_operations"].([]operation), "cooperation.manage", "propose_destination")
-	p["columns"] = append(p["columns"].([]gin.H), col("actual_money", "实际累计退付结算币种", "money"), col("settled_money", "清偿责任结算币种", "money"), col("remaining_money", "待付余量结算币种", "money"), col("excess_money", "多付异常结算币种", "money"), col("network", "准确网络", "text"), col("asset", "准确资产", "text"), col("token_contract", "代币合约", "text"), col("address", "明确授权地址", "text"), col("authorization_id", "独立核实授权", "text"), col("route_version", "剩余款路线版本", "text"), col("route_history", "已封存历史", "details"))
-	a.resourceResponse(c, p)
-}
-func executionValuationFields(_ ...string) []field {
-	amount := optional("settlement_amount", "本次已核实清偿金额（结算币种，跨币必填）", "decimal")
-	amount.Help = "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
-	return []field{amount, optional("settlement_evidence", "本笔付款与清偿金额关联凭证（跨币必填）", "textarea")}
-}
-func (a *Application) refundSettlementConfirmation(ctx context.Context, scope string, amount ledger.Decimal, evidence string) (payments.Valuation, error) {
-	settings, e := ledger.GetMonetary(ctx, a.DB)
-	if e != nil {
-		return payments.Valuation{}, e
+	p["description"] = "采购余额不退。OEM 自行处理停业及存量责任；渠道由所属品牌办理客户接管。"
+	p["columns"] = []gin.H{col("operator_name", "经营方", "text"), col("kind_label", "事项", "text"), col("note", "说明", "text"), col("created_at", "通知时间", "datetime"), col("takeover_url", "查看渠道接管", "link")}
+	p["operations"] = []operation{}
+	if op.Kind != organization.Platform && !ownNotice {
+		label, confirmation := "通知品牌办理退出", "通知所属品牌办理客户接管。采购余额不退；接管前继续由本渠道负责客户业务。"
+		if op.Kind == organization.OEM {
+			label = "告知平台停止经营"
+			confirmation = "仅告知平台，不申请退款或接管。营业设置和客户、下属渠道的存量责任由本 OEM 自行处理。"
+		}
+		p["operations"] = []operation{{Name: "notify", Label: label, Method: "POST", Path: base, Permission: "cooperation.manage", Fields: []field{optional("note", "补充说明（可选）", "textarea")}, Confirmation: confirmation}}
 	}
-	return payments.EnsureValuationIdentity(payments.Valuation{Currency: settings.Currency, Amount: amount, Source: evidence}, scope, settings.Currency), nil
+	a.resourceResponse(c, p)
 }
 func (a *Application) exitsCommand(c *gin.Context, op organization.Operator, actor string) {
 	var in struct {
-		Action     string         `json:"action"`
-		Mode       string         `json:"mode"`
-		Quantity   ledger.Decimal `json:"quantity"`
-		ApprovalID string         `json:"approval_id"`
-		BuyerID    string         `json:"buyer_id"`
-		Evidence   string         `json:"evidence"`
+		Note string `json:"note"`
 	}
 	if !body(c, &in) {
 		return
 	}
-	ctx := c.Request.Context()
-	key, _ := key(c)
-	if in.Action == "request" && in.Evidence == "" {
-		in.Evidence = "采购方确认按原成交约定申请退出"
-	}
-	raw, e := a.command(c, "exit:"+op.ID, in, func(tx *gorm.DB) (any, error) {
-		if in.Action == "approve_failure" || in.Mode == "supply_failure" {
-			return nil, cooperation.ErrExitTerms
+	raw, e := a.command(c, "exit-notice:"+op.ID, in, func(tx *gorm.DB) (any, error) {
+		notice, e := a.Organization.ReportExit(c.Request.Context(), tx, actor, op.ID, in.Note)
+		if e != nil {
+			return nil, e
 		}
-		if in.Action != "request" {
-			return nil, cooperation.ErrConflict
+		title, body := "渠道申请退出", "请在渠道接管页面查看并办理客户权益承接。双方资金交接在线下处理。"
+		if op.Kind == organization.OEM {
+			title = "OEM 已告知停止经营"
+			body = "OEM 自行负责客户和下属渠道的存量事项，平台无需审批、退款或接管。"
 		}
-		guard := cooperation.RemovalGuard(cooperation.CoverageRemovalGuard{Cooperation: a.Cooperation, PaymentFacts: a.Payments})
-		out, e := a.Cooperation.RequestProcurementExit(ctx, tx, actor, op.ID, key, in.Mode, in.Evidence, in.Quantity, guard)
-		return commandResult(out.ID, out.State), e
+		recipients, e := a.Organization.OperatorNotificationStaff(c.Request.Context(), tx, notice.ParentID)
+		if e != nil {
+			return nil, e
+		}
+		for _, id := range recipients {
+			if _, e = a.Operations.Emit(c.Request.Context(), tx, operations.Notification{OperatorID: notice.ParentID, RecipientID: id, BusinessKey: "remediation:exit-notice:" + notice.ID, Category: "mandatory", Severity: "info", Title: title, Body: body, Reference: notice.ID}); e != nil {
+				return nil, e
+			}
+		}
+		return commandResult(notice.ID, "notified"), nil
 	})
-	jsonResponse(c, raw, e)
-}
-func (a *Application) exitsAction(c *gin.Context, op organization.Operator, actor, action string) {
-	if a.procurementDestinationAction(c, actor, op.ID, action) {
-		return
-	}
-	var in struct {
-		ReceiptID          string                            `json:"receipt_id"`
-		Amount             ledger.Decimal                    `json:"amount_money"`
-		Evidence           string                            `json:"evidence"`
-		Money              payments.Money                    `json:"money"`
-		Valuation          payments.Valuation                `json:"-"`
-		SettlementAmount   ledger.Decimal                    `json:"settlement_amount"`
-		SettlementEvidence string                            `json:"settlement_evidence"`
-		Proof              payments.ManualRefundVerification `json:"proof"`
-	}
-	if !body(c, &in) {
-		return
-	}
-	ctx := c.Request.Context()
-	id := c.Param("id")
-	key, _ := key(c)
-	var result any
-	var e error
-	// The domain requires the exact supplier's finance authority for each leg.
-	switch action {
-	case "prepare_refund":
-		out, err := a.ProcurementRefunds.PrepareRefund(ctx, actor, id, in.ReceiptID, key, in.Amount)
-		e = err
-		result = commandResult(out.ID, out.State)
-	case "execute_refund":
-		in.Valuation, e = a.refundSettlementConfirmation(ctx, "procurement-api:"+op.ID+":"+id, in.SettlementAmount, in.SettlementEvidence)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		out, err := a.ProcurementRefunds.Execute(ctx, actor, id, in.Money, in.Valuation, time.Time{}, "")
-		e = err
-		result = commandResult(id, out.State)
-	case "begin_manual":
-		out, err := a.ProcurementRefunds.BeginManualRefund(ctx, actor, id, key, in.Evidence)
-		e = err
-		result = commandResult(id, out.State)
-	case "verify_manual":
-		if err := a.Organization.RequirePermission(ctx, nil, actor, op.ID, "payments.manage"); err != nil {
-			handleError(c, err)
-			return
-		}
-		var leg cooperation.ProcurementExitRefund
-		if err := a.DB.WithContext(ctx).Where("id=? AND supplier_id=?", id, op.ID).Take(&leg).Error; err != nil {
-			handleError(c, err)
-			return
-		}
-		receipt, err := a.Commerce.GetReceipt(ctx, nil, op.ID, leg.ReceiptID)
-		if err != nil {
-			handleError(c, err)
-			return
-		}
-		in.Proof.ReceiptID = leg.ReceiptID
-		in.Proof.RecipientReference = receipt.PayerReference
-		in.Valuation, e = a.refundSettlementConfirmation(ctx, "procurement-offline:"+op.ID+":"+id+":"+in.Proof.ExternalReference, in.SettlementAmount, in.SettlementEvidence)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		out, err := a.ProcurementRefunds.RecordManualRefund(ctx, actor, id, in.Proof, in.Valuation, time.Time{}, "")
-		e = err
-		result = commandResult(id, out.State)
-	case "release_refund":
-		e = a.ProcurementRefunds.ReleasePrepared(ctx, actor, id, in.Evidence)
-		result = commandResult(id, "released_unpaid")
-	default:
-		e = cooperation.ErrConflict
-	}
 	if e != nil {
 		handleError(c, e)
 		return
 	}
-	c.JSON(200, result)
+	c.Data(200, "application/json", raw)
 }
-
-var _ json.RawMessage

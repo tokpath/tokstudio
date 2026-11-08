@@ -121,7 +121,7 @@ func TestExternalTakenOverCustomerKeepsKeyAndFutureCostBelongsToBrand(t *testing
 		t.Fatal(err)
 	}
 	var after Takeover
-	if err = brand.db.First(&after, "id=?", p.ID).Error; err != nil || after.SettlementDueMoney.Cmp(p.SettlementDueMoney) != 0 {
+	if err = brand.db.First(&after, "id=?", p.ID).Error; err != nil || after.CashMoney.Cmp(p.CashMoney) != 0 {
 		t.Fatal("future use changed closed channel valuation", err)
 	}
 	accounts, err := brand.s.Ledger.ListAccounts(brand.ctx, nil, brand.operator, brand.operator)

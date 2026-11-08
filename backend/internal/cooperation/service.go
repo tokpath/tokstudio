@@ -125,6 +125,10 @@ func (s *Service) Position(ctx context.Context, tx *gorm.DB, buyer string) (Proc
 // DeliverPurchase consumes an already verified full payment fact. The application
 // validates its allocation to the immutable wholesale quote in the same transaction.
 func (s *Service) DeliverPurchase(ctx context.Context, tx *gorm.DB, in PurchaseInput) (ProcurementLot, error) {
+	var terms ProcurementExitTerms
+	if json.Unmarshal(in.ExitTerms, &terms) != nil || terms.VoluntaryRefund || terms.Method != "" && terms.Method != "non_refundable" {
+		return ProcurementLot{}, ErrExitTerms
+	}
 	if in.OrderID == "" || in.ReceiptReference == "" || in.ActorID == "" || in.At.IsZero() || !json.Valid(in.ExitTerms) || in.PaidMoney.Sign() < 0 || in.PaidATG.Sign() < 0 || in.GiftATG.Sign() < 0 || in.PaidATG.Add(in.GiftATG).Sign() <= 0 || (in.PaidMoney.Sign() > 0 && in.PaidATG.Sign() <= 0) {
 		return ProcurementLot{}, ledger.ErrAmount
 	}

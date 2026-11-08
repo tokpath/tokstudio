@@ -89,7 +89,7 @@ func navigationPermissions(domain []string, kind organization.OperatorKind) []st
 			continue
 		}
 
-		if resource == "audit" && (allowed["ledger.read"] || allowed["branding.manage"]) || allowed[permissionFor(resource)] || resource == "orders" && allowed["payments.manage"] || resource == "refunds" && allowed["payments.manage"] || resource == "exits" && (allowed["payments.manage"] || allowed["refunds.manage"]) {
+		if resource == "audit" && (allowed["ledger.read"] || allowed["branding.manage"]) || allowed[permissionFor(resource)] || resource == "orders" && allowed["payments.manage"] || resource == "refunds" && allowed["payments.manage"] || resource == "takeovers" && allowed["ledger.read"] {
 			out = append(out, resource+".read")
 		}
 	}

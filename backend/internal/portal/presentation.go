@@ -102,11 +102,6 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				switch f.Name {
 				case "recipient_id":
 					lookup = "recipients"
-				case "approval_id":
-					if resource == "exits" {
-						lookup = "supply-failure-approvals"
-						f.VisibleWhen = &fieldVisibility{Field: "mode", Values: []string{"supply_failure"}}
-					}
 				case "contract_attachment_id":
 					lookup = "contracts"
 				case "target_operator_id":

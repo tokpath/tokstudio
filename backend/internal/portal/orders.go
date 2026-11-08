@@ -793,6 +793,9 @@ func (a *Application) subscriptions(c *gin.Context) {
 			out["version"] = s.Version
 			out["next_renewal_at"] = s.NextDueAt
 			out["status"] = s.Status
+			if s.Status == "cancelled" {
+				out["status"] = status
+			}
 			accepted, err := a.Commerce.GetQuote(c.Request.Context(), nil, s.AuthorizedQuoteID)
 			needsPlan := err == nil && accepted.OperatorID != s.OperatorID
 			out["requires_current_plan"] = needsPlan
@@ -814,6 +817,40 @@ func (a *Application) subscriptions(c *gin.Context) {
 						}
 					}
 				}
+			}
+		}
+		// A copied channel product has its own sale/renewal switches. Changes
+		// apply only to future orders, never to the transferred delivery.
+		if row.Order.OriginalOperatorID != "" && row.Order.OriginalOperatorID != row.Order.OperatorID && row.Order.QuoteID != nil {
+			original, err := a.Commerce.GetQuote(c.Request.Context(), nil, *row.Order.QuoteID)
+			if err != nil {
+				handleError(c, err)
+				return
+			}
+			var imported commerce.Package
+			q := a.DB.WithContext(c.Request.Context()).Table("commerce_packages").Where("operator_id=? AND source_package_id=?", row.Order.OperatorID, original.PackageID).Limit(1).Find(&imported)
+			if q.Error != nil {
+				handleError(c, q.Error)
+				return
+			}
+			out["auto_renew_available"], out["requires_current_plan"], out["requires_confirmation"] = false, false, false
+			out["renewal_unavailable_reason"] = "原渠道套餐已停止续费和复购，已有权益继续有效；到期后请选择其他套餐。"
+			if row.Delivery.ExpiresAt == nil {
+				out["renewal_unavailable_reason"] = "原渠道套餐已停止复购，已有不限时额度继续有效。"
+			}
+			if q.RowsAffected > 0 && imported.CurrentQuoteID != nil && imported.RenewalEnabled && row.Delivery.ExpiresAt != nil && status != "expired" {
+				current, err := a.Commerce.GetQuote(c.Request.Context(), nil, *imported.CurrentQuoteID)
+				if err != nil {
+					handleError(c, err)
+					return
+				}
+				out["auto_renew_available"], out["requires_confirmation"] = true, true
+				out["renewal_quote"] = renewalQuoteView(imported, current)
+				if subscription := row.Subscription; subscription != nil && subscription.AuthorizedQuoteID == current.ID {
+					out["requires_confirmation"] = subscription.Status == "needs_confirmation"
+					delete(out, "changed_terms")
+				}
+
 			}
 		}
 		if row.RenewalManagedElsewhere {

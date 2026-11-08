@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
 )
@@ -88,6 +89,31 @@ func (s *Service) TransferResponsibility(ctx context.Context, tx *gorm.DB, in Tr
 			newHold, ok := in.HoldIDs[w.HoldID]
 			if !ok || !validID(newHold) {
 				return fmt.Errorf("%w: missing mapped withdrawal hold %s", ErrTransferBlocked, w.HoldID)
+			}
+		}
+		// Preserve the versions promised to existing orders, while stopping
+		// former channel promotions for new purchases under the brand.
+		var campaigns []campaignRow
+		if err := t.Where("operator_id=?", in.FromOperatorID).Find(&campaigns).Error; err != nil {
+			return err
+		}
+		for _, campaign := range campaigns {
+			var version campaignVersionRow
+			if err := t.First(&version, "campaign_id=? AND version=?", campaign.ID, campaign.CurrentVersion).Error; err != nil {
+				return err
+			}
+			version.ID, version.Version, version.Enabled, version.CreatedAt = uuid.NewString(), campaign.CurrentVersion+1, false, time.Now().UTC()
+			// The commerce transfer has copied the package before this step.
+			var copied struct{ ID string }
+			if err := t.Table("commerce_packages").Where("takeover_id=? AND source_package_id=?", in.TakeoverID, version.PackageID).Take(&copied).Error; err != nil {
+				return err
+			}
+			version.PackageID = copied.ID
+			if err := t.Create(&version).Error; err != nil {
+				return err
+			}
+			if err := t.Model(&campaign).Update("current_version", version.Version).Error; err != nil {
+				return err
 			}
 		}
 		// Every customer in the channel is transferred together, so fixed two-hop

@@ -110,8 +110,13 @@ func TestPostgresSettingsAuditAndReviewRespectActualPermissions(t *testing.T) {
 	}
 	status, page, _ := f.call(t, "GET", base+"/audit", nil, "")
 	mustOK(t, status, page)
-	if len(page["views"].([]any)) != 3 {
+	if len(page["views"].([]any)) != 4 {
 		t.Fatal("unreadable audit tabs", page)
+	}
+	status, page, _ = f.call(t, "GET", base+"/audit?view=payment-methods", nil, "")
+	mustOK(t, status, page)
+	if len(page["operations"].([]any)) != 0 || len(page["row_operations"].([]any)) != 0 {
+		t.Fatal("read-only fee audit exposed mutations", page)
 	}
 	status, out, _ := f.call(t, "GET", base+"/audit?view=organization", nil, "")
 	if status != 403 {

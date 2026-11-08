@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PaymentAction } from "./customer-plans";
+import { ProcurementPayment } from "./procurement-payment";
 import { closePaymentWindow, reservePaymentWindow, submitPaymentForm } from "@/lib/payment-window";
 import { ErrorPanel, Notice, useScrollIntoView, useCommand } from "./shared";
 import { configDefaults, configurationSchema, ConfigurationError, prepareConfiguration, presentSupplierConfiguration, retainKnownFields, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
@@ -132,9 +133,10 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   const formRef = useRef<HTMLFormElement>(null);
   const command = useCommand(path, CommandResultSchema, operation.method);
   const feedbackRef = useScrollIntoView<HTMLDivElement>(validationError || command.error || (command.unresolved ? "pending" : "") || (command.result ? "done" : ""), "end");
-  // Money movements stay on the panel until the same attempt is verified.
-  // Model setup can be abandoned when the result is unknown.
-  const canLeave = /\/(catalog|providers|routes)$/.test(operation.path);
+  // Procurement payment retries refer to an existing durable order. Keep it
+  // queryable without trapping the user in an ambiguous checkout response.
+  const procurementPayment = /\/procurement\/[^/]+\/(checkout|query_payment)$/.test(path);
+  const canLeave = procurementPayment || /\/(catalog|providers|routes)$/.test(operation.path);
   const frozen = command.busy || command.unresolved || !!command.result;
   const dismissLocked = command.busy || evidencePending || (command.unresolved && !canLeave);
   const disabled = frozen || evidencePending;
@@ -154,11 +156,11 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
 
   useEffect(() => { onBlockedChange?.(dismissLocked); }, [dismissLocked, onBlockedChange]);
   useEffect(() => {
-    if (!command.busy && !command.unresolved) return;
+    if (!command.busy && (!command.unresolved || procurementPayment)) return;
     const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
     window.addEventListener("beforeunload", guard);
     return () => window.removeEventListener("beforeunload", guard);
-  }, [command.busy, command.unresolved]);
+  }, [command.busy, command.unresolved, procurementPayment]);
   function leaveUnresolved() { command.reset(); (onAbandon || onClose)?.(); }
   function focusField(name?: string, configPath?: string) {
     const configTarget = configPath && Array.from(formRef.current?.querySelectorAll<HTMLElement>("[data-config-path]") || []).find(element => element.dataset.configPath === configPath);
@@ -236,7 +238,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   }
   const content = <><div className="mb-6 flex items-start justify-between gap-4"><div className="min-w-0">{!embedded && <><p className="th-eyebrow mb-2 text-brand-emphasis">{t("业务办理")}</p><h2 className="text-xl font-semibold">{t(operation.label)}</h2></>}{operation.description && <p className="mt-2 text-sm leading-7 text-ink-secondary">{t(operation.description)}</p>}{objectName && !embedded && <p className="mt-3 text-sm text-ink-secondary">{t("办理对象：")}<span className="font-medium text-ink">{String(objectName)}</span></p>}</div>{onClose && <Button type="button" variant="ghost" size="sm" disabled={dismissLocked} onClick={onClose}>{command.result ? t("返回记录") : t("关闭")}</Button>}</div>
     {!simpleProduct && <ol aria-label={t("办理步骤")} className="th-stepper"><li className="flex items-center gap-2 text-brand-emphasis"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-soft">{command.result ? <Check className="size-3" /> : "1"}</span>{t("填写事项")}</li><li className="flex items-center gap-2 text-ink-secondary"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-canvas">2</span>{t("核对影响")}</li><li className={`flex items-center gap-2 ${command.result ? "text-success" : "text-ink-mute"}`}><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-canvas">{command.result ? <Check className="size-3" /> : "3"}</span>{command.result ? t("已完成") : t("提交办理")}</li></ol>}
-    <form ref={formRef} onSubmit={submit} noValidate className="space-y-7">
+    {procurementPayment && (command.unresolved || command.result) && row ? <ProcurementPayment path={path} orderID={row.id} initialOrder={command.result?.order} error={command.error} onClose={onClose || onAbandon} /> : <><form ref={formRef} onSubmit={submit} noValidate className="space-y-7">
       {!command.result && /\/exits\/[^/]+\/verify_manual$/.test(operation.path) && !!nested(row?.values,"proof.recipient_reference") && <Notice><p>{t("已核实的原付款方资料：{account}", {account:String(nested(row?.values,"proof.recipient_reference"))})}</p></Notice>}
       {!command.result && groups.map(name => { const collapsible = ["补充约定（可选）","额外权限（可选）"].includes(name); const Container = collapsible ? "details" : "section"; return <Container key={name} className="space-y-4">{collapsible && <summary className="cursor-pointer text-sm font-medium">{t(name)}</summary>}{!collapsible && !(fields.length === 1 && fields[0].kind === "json") && <div><h3 className="text-sm font-semibold">{t(name)}</h3>{!simpleProduct && <p className="mt-1 text-xs leading-6 text-ink-mute">{t(groupIntro(name, fields.filter(field => fieldGroup(field) === name)))}</p>}</div>}<div className="grid gap-5 sm:grid-cols-2">{fields.filter(field => fieldGroup(field) === name).map(field => <div key={field.name} data-command-field={field.name} className={field.kind === "json" || field.kind === "textarea" || field.name === "metric" && /\/alerts(?:\/|$)/.test(operation.path) || (field.kind === "csv" || field.name === "grants") && field.options ? "min-w-0 sm:col-span-2" : "min-w-0"}>
         {field.name === "gift_tiers" ? <PurchaseTiersEditor value={values[field.name] || ""} disabled={disabled} change={value => change(field.name,value)} /> : field.kind === "json" && schema ? <ConfigurationEditor onPendingChange={setConfigurationPending} schema={schema} allowFollow={workspace?.operator.kind !== "platform"} allowDownstream={workspace?.operator.kind !== "channel"} modelProfiles={row?.values.billing} operatorID={operatorID} value={values[field.name] || ""} disabled={disabled || configurationPending || lockedFields.includes(field.name)} change={value => change(field.name, value)} /> : <Field field={{ ...field, lookup_url: field.name === "supplier_model_id" && field.lookup_url && /\/supplier-costs$/.test(operation.path) ? `${field.lookup_url}?provider_id=${encodeURIComponent(values.provider_id || "")}` : field.name === "kol_campaign_id" && field.lookup_url && row?.values.package_id ? `${field.lookup_url}&package_id=${encodeURIComponent(String(row.values.package_id))}` : field.lookup_url, help: businessFieldHelp(field.name === "warning" && /\/coverage(?:[?]|$)/.test(operation.path) ? "coverage.warning" : field.name, field.help, field.lookup_url) }} onLabel={label => setReferenceLabels(previous => previous[field.name] === label ? previous : { ...previous, [field.name]: label })} primaryReference={primaryReference(operation, field)} value={values[field.name] || ""} disabled={disabled || lockedFields.includes(field.name)} invalid={invalidField === field.name} change={value => change(field.name, value)} onChoice={defaults => { if (disabled) return; setConfirmed(false); setValues(previous => { const next = { ...previous }; for (const [name, value] of Object.entries(defaults)) { const target = operation.fields.find(item => item.name === name); if (target && !secretField(target) && value !== undefined && value !== null && !lockedFields.includes(name)) next[name] = fieldString(target, value); } return next; }); }} onFile={file => { if (disabled) return; setConfirmed(false); setFiles(previous => ({ ...previous, [field.name]: file })); }} />}
@@ -255,7 +257,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
       {command.result && <div role="status" className="rounded-control border border-success/30 bg-success/5 p-5"><CheckCircle2 className="mb-3 size-6 text-success" aria-hidden="true" /><h3 className="font-semibold">{operation.name === "reconcile" ? t("对账已完成") : t("{operation}已受理", { operation: t(operation.label) })}</h3><p className="mt-2 text-sm leading-7 text-ink-secondary">{t(command.result.message || "本次办理已保存。返回业务记录即可查看最新进展及后续可办理事项。")}</p>{command.result.access_url && <AccessHandoff url={command.result.access_url} email={command.result.email} password={values.initial_password} requiresPasswordChange={command.result.requires_password_change} />}</div>}
       <div className="th-form-actions"><Button type="submit" disabled={command.busy || configurationPending || evidencePending || !scoped || !!command.result}>{command.busy ? t("正在提交，请稍候…") : command.unresolved ? t("重试本次操作") : command.result ? t("本次操作已完成，关闭后查看最新记录") : t(operation.label)}</Button>{!command.result && <p className="text-xs leading-6 text-ink-mute">{command.busy ? t("正在保存，请保持页面。") : command.unresolved ? (canLeave ? t("可以放弃并关闭，回到列表后重新填写。") : t("原提交内容已锁定，等待核实。")) : t(/\/(pricing|plans)$/.test(operation.path) ? "保存后系统会自动处理版本与通知，已购权益不重算。" : finance ? "保存后可查看最新办理结果。" : simpleProduct ? "保存后配置生效。" : "请先核对填写内容与实际凭证。")}</p>}</div>
       </div>
-    </form>{command.result?.order && <PaymentAction order={command.result.order} onChangeMethod={operation.name === "checkout" && !/\/procurement\//.test(operation.path) ? () => command.reset() : undefined} />}</>;
+    </form>{command.result?.order && <PaymentAction order={command.result.order} onChangeMethod={operation.name === "checkout" && !/\/procurement\//.test(operation.path) ? () => command.reset() : undefined} />}</>}</>;
   return embedded ? <section className="min-w-0">{content}</section> : <Card className="my-5">{content}</Card>;
 }
 

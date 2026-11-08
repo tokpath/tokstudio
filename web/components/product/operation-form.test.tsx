@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import {render,fireEvent,screen,waitFor,cleanup,within} from "@testing-library/react";
+import {act,render,fireEvent,screen,waitFor,cleanup,within} from "@testing-library/react";
 import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
 import {afterEach,expect,it,vi} from "vitest";
 import {OperationForm} from "./operation-form";
 import { MonetaryProvider } from "./monetary";
 import type {Operation,Entity,JSONValue} from "@/lib/contracts";
-afterEach(()=>{cleanup();vi.unstubAllGlobals()});
+afterEach(()=>{cleanup();vi.unstubAllGlobals();vi.restoreAllMocks();vi.useRealTimers()});
 function show(operation:Operation,row?:Entity){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><MonetaryProvider value={{currency:"USD",atg_per_unit:"1",status:"locked",version:1}}><OperationForm operatorID={operation.path.startsWith("/api/v1/me/")?undefined:"operator-one"} operation={operation} row={row}/></MonetaryProvider></QueryClientProvider>)}
 
 const receiptOperation: Operation = {name:"receipt",label:"登记人工核实收款",method:"POST",path:"/api/v1/operators/operator-one/payments",fields:[
@@ -246,6 +246,77 @@ it("prevents dismissal of an unknown result and retries the exact original comma
   expect(fetch.mock.calls[1][1].body).toBe(fetch.mock.calls[0][1].body);
   expect(fetch.mock.calls[1][1].headers.get("Idempotency-Key")).toBe(fetch.mock.calls[0][1].headers.get("Idempotency-Key"));
   await screen.findByRole("button",{name:"返回记录",exact:true});expect(blocked).toHaveBeenLastCalledWith(false);
+});
+
+const procurementCheckout: Operation = { name: "checkout", label: "发起真实付款", method: "POST", path: "/api/v1/operators/operator-one/procurement/{id}/checkout", fields: [{ name: "merchant_id", label: "付款方式", kind: "select", default_value: "kvoucher-one", options: [{ value: "kvoucher-one", label: "kvoucher · MYR" }] }] };
+function purchasePage(status: string) {
+  return { title: "采购与供货", description: "原订单", columns: [], operations: [], row_operations: [], items: [{ id: "purchase-one", status, values: {} }] };
+}
+function paymentUnknown() {
+  return new Response(JSON.stringify({ error: { code: "payment_outcome_unknown", message: "原支付结果尚待核实，请查询原交易，重试将沿用原业务编号", request_id: "request-one", retryable: true } }), { status: 409 });
+}
+
+it("recovers a completed procurement after an ambiguous checkout without posting another payment", async () => {
+  const close = vi.fn(), blocked = vi.fn(), popupClose = vi.fn();
+  vi.spyOn(window, "open").mockReturnValue({ closed: false, close: popupClose } as unknown as Window);
+  const fetch = vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => init?.method === "POST" ? paymentUnknown() : new Response(JSON.stringify(purchasePage("completed"))));
+  vi.stubGlobal("fetch", fetch);
+  mount(procurementCheckout, { row: { id: "purchase-one", values: {} }, onClose: close, onBlockedChange: blocked });
+  fireEvent.click(screen.getByRole("button", { name: "发起真实付款", exact: true }));
+  await screen.findByText("采购付款与库存交付已完成，无须再次付款。");
+  expect(popupClose).toHaveBeenCalledTimes(1);
+  expect(fetch.mock.calls.filter(call => call[1]?.method === "POST")).toHaveLength(1);
+  expect(fetch.mock.calls.some(call => String(call[0]) === "/api/v1/operators/operator-one/procurement?view=buyer&section=orders&record=purchase-one")).toBe(true);
+  expect(screen.queryByRole("button", { name: "重试本次操作" })).toBeNull();
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(blocked).toHaveBeenLastCalledWith(false);
+  const unload = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(unload);
+  expect(unload.defaultPrevented).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "返回采购订单", exact: true }));
+  expect(close).toHaveBeenCalledTimes(1);
+});
+
+it("queries only the original procurement payment and allows leaving while it is still unknown", async () => {
+  const close = vi.fn(), blocked = vi.fn();
+  vi.spyOn(window, "open").mockReturnValue(null);
+  const fetch = vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "POST") return String(path).endsWith("/checkout") ? paymentUnknown() : new Response(JSON.stringify({ id: "purchase-one", status: "verified_pending_delivery" }));
+    return new Response(JSON.stringify(purchasePage("awaiting_payment")));
+  });
+  vi.stubGlobal("fetch", fetch);
+  mount(procurementCheckout, { row: { id: "purchase-one", values: {} }, onAbandon: close, onBlockedChange: blocked, embedded: true });
+  fireEvent.click(screen.getByRole("button", { name: "发起真实付款", exact: true }));
+  const query = await screen.findByRole("button", { name: "查询原付款与交付", exact: true });
+  expect(blocked).toHaveBeenLastCalledWith(false);
+  const unload = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(unload);
+  expect(unload.defaultPrevented).toBe(false);
+  fireEvent.click(query);
+  await waitFor(() => expect(fetch.mock.calls.filter(call => call[1]?.method === "POST")).toHaveLength(2));
+  const posts = fetch.mock.calls.filter(call => call[1]?.method === "POST");
+  expect(String(posts[1][0])).toBe("/api/v1/operators/operator-one/procurement/purchase-one/query_payment");
+  expect(posts[1][1]?.body).toBe("{}");
+  fireEvent.click(screen.getByRole("button", { name: "返回采购订单", exact: true }));
+  expect(close).toHaveBeenCalledTimes(1);
+});
+
+it("automatically updates a successful procurement checkout when background delivery completes", async () => {
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+  vi.spyOn(window, "open").mockReturnValue(null);
+  let status = "awaiting_payment";
+  const fetch = vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => new Response(JSON.stringify(init?.method === "POST" ? { id: "purchase-one", status: "pending" } : purchasePage(status))));
+  vi.stubGlobal("fetch", fetch);
+  mount(procurementCheckout, { row: { id: "purchase-one", values: {} } });
+  fireEvent.click(screen.getByRole("button", { name: "发起真实付款", exact: true }));
+  await screen.findByText("待付款");
+  status = "completed";
+  await act(async () => { vi.advanceTimersByTime(5000); });
+  await screen.findByText("采购付款与库存交付已完成，无须再次付款。");
+  expect(fetch.mock.calls.filter(call => call[1]?.method === "POST")).toHaveLength(1);
+  const reads = fetch.mock.calls.length;
+  await act(async () => { vi.advanceTimersByTime(15000); });
+  expect(fetch.mock.calls).toHaveLength(reads);
 });
 
 it("keeps the route strategy version when another supplier model is selected",async()=>{

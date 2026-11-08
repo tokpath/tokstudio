@@ -3247,5 +3247,45 @@
     "en": "Describe the actual circumstances and optionally add supporting material. No evidence identifier is needed; the handler and time are recorded automatically.",
     "ja": "実際の状況を説明し、資料があれば補足してください。根拠番号は不要で、担当者と日時は自動記録されます。",
     "ru": "Опишите фактические обстоятельства, при наличии добавьте материалы. Номер основания не нужен: исполнитель и время записываются автоматически."
+  },
+  "原采购订单状态": {
+    "en": "Original purchase order status",
+    "ja": "元の仕入注文の状態",
+    "ru": "Статус исходного заказа на закупку"
+  },
+  "正在读取原订单…": {
+    "en": "Reading the original order…",
+    "ja": "元の注文を読み込み中…",
+    "ru": "Загрузка исходного заказа…"
+  },
+  "采购付款与库存交付已完成，无须再次付款。": {
+    "en": "Purchase payment and inventory delivery are complete. No further payment is needed.",
+    "ja": "仕入代金の支払いと在庫の引き渡しが完了しました。再度の支払いは不要です。",
+    "ru": "Оплата закупки и передача запасов завершены. Повторная оплата не требуется."
+  },
+  "已足额核实收款，正在处理库存交付，无须再次付款。": {
+    "en": "Full payment is verified. Inventory delivery is being processed; no further payment is needed.",
+    "ja": "全額の入金を確認しました。在庫を引き渡し中です。再度の支払いは不要です。",
+    "ru": "Полная оплата подтверждена. Передача запасов выполняется; повторная оплата не требуется."
+  },
+  "请返回采购订单查看最新记录及后续办理事项。": {
+    "en": "Return to the purchase order to see the latest records and next steps.",
+    "ja": "仕入注文に戻って最新の記録と次の手続きを確認してください。",
+    "ru": "Вернитесь к заказу на закупку, чтобы увидеть актуальные записи и дальнейшие действия."
+  },
+  "系统会自动更新原订单状态。可以关闭面板或刷新页面，稍后从原订单继续核实；请勿另付一笔。": {
+    "en": "The original order status updates automatically. You may close this panel or refresh the page and check the same order later. Do not make another payment.",
+    "ja": "元の注文の状態は自動更新されます。パネルを閉じるかページを更新し、後で同じ注文から確認を続けられます。別の支払いは行わないでください。",
+    "ru": "Статус исходного заказа обновляется автоматически. Можно закрыть панель или обновить страницу и проверить тот же заказ позже. Не выполняйте повторную оплату."
+  },
+  "查询只核实原付款，不会发起新的扣款。": {
+    "en": "Checking only verifies the original payment; it does not create another charge.",
+    "ja": "照会は元の支払いの確認のみを行い、新たな引き落としは発生しません。",
+    "ru": "Проверка только уточняет исходный платёж и не создаёт нового списания."
+  },
+  "返回采购订单": {
+    "en": "Return to purchase orders",
+    "ja": "仕入注文に戻る",
+    "ru": "Вернуться к заказам на закупку"
   }
 }

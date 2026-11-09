@@ -29,24 +29,12 @@ func (a *Application) paymentMethodRules(c *gin.Context, op organization.Operato
 		reasons[m.ID] = m.UnsupportedReason
 	}
 	items := []any{}
-	hasOffline := false
-	for _, r := range rows {
-		if r.Kind == "offline" {
-			hasOffline = true
-		}
-	}
-	if !hasOffline {
-		row := entity("offline", "disabled", 0, gin.H{"method_kind": "offline", "method_label": "线下支付", "name": "线下支付", "enabled": false, "collection": true, "payout_enabled": false, "builtin": true, "scope_label": "系统内置，启用即可人工办理", "flat_fee_money": "0", "fee_percent": "0", "fee_mode": "none", "collection_status": "未启用", "payout_status": "未启用"})
-		row["allowed_actions"] = []string{"open_method"}
-		items = append(items, row)
-	}
 	for _, r := range rows {
 		if r.Kind == "" && r.Paused || r.Kind == "cash" || r.Kind == "bank_card" {
 			continue
 		}
 		v := values(r)
 		v["enabled"] = !r.Paused
-		v["builtin"] = r.Kind == "offline"
 		v["driver"] = ""
 		v["credentials"] = gin.H{}
 		state := "awaiting_connection"

@@ -11,9 +11,15 @@ test('one method configures collections and both withdrawals across four languag
  try{
  await login(p,f.owner_email,f.owner_password);await p.goto(`/manage/${f.operator}/payment-methods`);
  await expect(p.getByRole('heading',{name:'支付方式与手续费',exact:true})).toBeVisible();
- const offline=p.locator('section.th-card').filter({has:p.getByRole('heading',{name:'线下支付',exact:true})});
- await offline.getByRole('button',{name:'管理支付方式',exact:true}).click();
- const native=p.getByRole('dialog');await expect(native.getByLabel('支付方式',{exact:true})).toHaveCount(0);await expect(native.getByLabel('收款办理方式',{exact:true})).toHaveCount(0);await expect(native.getByLabel('收款信息（可选）')).toHaveCount(0);await expect(native.getByLabel('付款说明（可选）')).toHaveCount(0);await native.getByLabel('启用支付方式',{exact:true}).check();await native.getByRole('button',{name:'保存支付方式',exact:true}).click();await expect(native.getByRole('status')).toBeVisible();await native.getByRole('button',{name:'关闭办理面板',exact:true}).click();
+ await expect(p.locator('section.th-card')).toHaveCount(0);
+ await p.screenshot({path:info.outputPath('empty-payment-methods.png'),fullPage:true});
+ await p.getByRole('button',{name:'添加支付方式',exact:true}).click();
+ const native=p.getByRole('dialog');await native.getByLabel('支付方式',{exact:true}).selectOption('offline');
+ await expect(native.getByLabel('支付方式',{exact:true})).toHaveValue('offline');await expect(native.getByLabel('用于收款',{exact:true})).toBeChecked();
+ await expect(native.getByLabel('收款办理方式',{exact:true})).toHaveCount(0);await expect(native.getByLabel('收款信息（可选）')).toHaveCount(0);await expect(native.getByLabel('付款说明（可选）')).toHaveCount(0);
+ for(const lang of ['zh','en','ja','ru']){await native.getByTestId('language-selector').selectOption(lang);await p.screenshot({path:info.outputPath(`add-offline-${lang}.png`),fullPage:true})}
+ await native.getByTestId('language-selector').selectOption('zh');await native.getByRole('button',{name:'保存支付方式',exact:true}).click();await expect(native.getByRole('status')).toBeVisible();await native.getByRole('button',{name:'关闭办理面板',exact:true}).click();
+ await expect(p.getByRole('heading',{name:'线下支付',exact:true})).toBeVisible();
  await p.getByRole('button',{name:'添加支付方式',exact:true}).click();
  const pendingPanel=p.getByRole('dialog');await pendingPanel.getByLabel('支付方式',{exact:true}).selectOption('kvoucher');await expect(pendingPanel.getByLabel(/线下退款方式/)).toHaveCount(0);await pendingPanel.getByRole('button',{name:'保存支付方式',exact:true}).click();await expect(pendingPanel.getByRole('status')).toBeVisible();await pendingPanel.getByRole('button',{name:'关闭办理面板',exact:true}).click();await expect(p.getByText('待配置',{exact:true}).last()).toBeVisible();
  await p.getByRole('button',{name:'添加支付方式',exact:true}).click();
@@ -64,7 +70,7 @@ test('one method configures collections and both withdrawals across four languag
  for(const role of f.roles){
    const context=await browser.newContext({baseURL:process.env.TOKENHUB_WEB_ORIGIN,viewport:{width:1365,height:1000}});const r=await context.newPage();
    await login(r,role.email,role.password);await r.goto(`/manage/${role.operator}/payment-methods`);
-   await expect(r.getByRole('heading',{name:'线下支付',exact:true})).toBeVisible();await expect(r.getByRole('heading',{name:'银行转账',exact:true})).toHaveCount(0);
+   await expect(r.getByRole('heading',{name:'线下支付',exact:true})).toHaveCount(0);await expect(r.locator('section.th-card')).toHaveCount(0);await expect(r.getByRole('heading',{name:'银行转账',exact:true})).toHaveCount(0);
    await r.getByRole('button',{name:'添加支付方式',exact:true}).click();const form=r.getByRole('dialog');await form.getByLabel('支付方式',{exact:true}).selectOption('bank_transfer');await form.getByLabel('用于余额和佣金提现').check();await expect(form.getByText('客户填写的收款资料',{exact:true})).toHaveCount(0);await expect(form.getByLabel('付款说明（可选）')).toHaveCount(0);
    await form.getByRole('button',{name:'保存支付方式',exact:true}).click();await expect(form.getByRole('status')).toBeVisible();await form.getByRole('button',{name:'关闭办理面板',exact:true}).click();await r.screenshot({path:info.outputPath(`${role.kind}-manual-payout.png`),fullPage:true});await context.close();
  }

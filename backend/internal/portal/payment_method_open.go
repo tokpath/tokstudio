@@ -38,7 +38,6 @@ func methodOpenFields() []field {
 	return []field{defaultField("action", "操作", "hidden", "open_method"), kind, defaultField("enabled", "启用支付方式", "boolean", true), defaultField("collection", "用于收款", "boolean", true), defaultField("payout_enabled", "用于余额和佣金提现", "boolean", false), optional("driver", "收款办理方式", "text"), optional("credentials", "接入资料", "json"), optional("asset_network_version_id", "收款资产与网络", "text"), selectField("fee_mode", "手续费规则", "none|不收费", "fixed|固定金额", "percent|按比例"), defaultField("flat_fee_money", "固定手续费 结算币种", "decimal", "0"), defaultField("fee_percent", "手续费率 %", "decimal", "0"), defaultField("expected_version", "当前版本", "hidden", 0)}
 }
 func (a *Application) openPaymentMethod(c *gin.Context, op organization.Operator, actor, id string, raw json.RawMessage, tx *gorm.DB) (any, error) {
-	builtin := id == "offline"
 	var in struct {
 		AssetNetworkVersionID string            `json:"asset_network_version_id"`
 		Kind                  string            `json:"method_kind"`
@@ -54,12 +53,6 @@ func (a *Application) openPaymentMethod(c *gin.Context, op organization.Operator
 	}
 	if json.Unmarshal(raw, &in) != nil {
 		return nil, paymentmethods.ErrInvalid
-	}
-	if builtin {
-		if in.Kind != "offline" {
-			return nil, paymentmethods.ErrInvalid
-		}
-		id = ""
 	}
 	method, ok := paymentmethods.Find(in.Kind)
 	if in.Enabled && !in.Collection && !in.Payout {

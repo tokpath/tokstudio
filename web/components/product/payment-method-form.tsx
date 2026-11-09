@@ -39,7 +39,7 @@ export function PaymentMethodForm({ operation, row, operatorID, catalog, onBlock
   const assets = useQuery({ queryKey: ["method-assets", operatorID, effectiveDriver, kind], enabled: collection && needsAsset, queryFn: ({ signal }) => request(`/api/v1/operators/${encodeURIComponent(operatorID)}/references/payment-assets?driver=${encodeURIComponent(effectiveDriver)}&method_kind=${encodeURIComponent(kind)}`, z.object({ items: z.array(z.object({ value: z.string(), label: z.string() })) }), { signal }) });
   function choose(value: string) {
     const next = catalog.find(item => item.kind === value);
-    setKind(value); setDriver(next?.drivers.find(item => item.value !== "manual")?.value || next?.drivers[0]?.value || ""); setCollection(!next?.payout); setPayout(false);
+    setKind(value); setDriver(next?.drivers.find(item => item.value !== "manual")?.value || next?.drivers[0]?.value || ""); setCollection(value === "offline" || !next?.payout); setPayout(false);
     setCredentials({ currency: monetary.currency }); setAsset(""); setValidation("");
   }
   async function submit(event: React.FormEvent) {
@@ -53,7 +53,7 @@ export function PaymentMethodForm({ operation, row, operatorID, catalog, onBlock
   return <form onSubmit={submit} className="space-y-6">
     <p className="text-sm leading-7 text-ink-secondary">{t(kind === "offline" ? "线下支付是系统内置能力。启用所需业务并设置费用，双方实际收付款后登记完成。" : "先选择要办理的业务。人工提现无需接入接口；线上收款按通道要求配置。")}</p>
     <fieldset disabled={locked} className="space-y-5">
-      {kind === "offline" ? <h3 className="font-medium">{t("线下支付")}</h3> : <label className="block text-sm">{t("支付方式")}<select aria-label={t("支付方式")} required value={kind} disabled={!!row} onChange={e => choose(e.target.value)} className={fieldClass}><option value="">{t("请选择")}</option>{catalog.filter(item => item.kind !== "offline").map(item => <option disabled={!!item.existing_id && !row} key={item.kind} value={item.kind}>{t(item.label)}</option>)}</select></label>}
+      <label className="block text-sm">{t("支付方式")}<select aria-label={t("支付方式")} required value={kind} disabled={!!row} onChange={e => choose(e.target.value)} className={fieldClass}><option value="">{t("请选择")}</option>{catalog.map(item => <option disabled={!!item.existing_id && !row} key={item.kind} value={item.kind}>{t(item.label)}</option>)}</select></label>
       {selected && <>
         <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />{t("启用支付方式")}</label>
         <div className="space-y-3 rounded-control border border-hairline p-4"><p className="font-medium text-sm">{t("适用业务")}</p>

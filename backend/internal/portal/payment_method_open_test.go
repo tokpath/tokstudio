@@ -164,7 +164,10 @@ func TestPostgresManualPaymentCapabilitiesAcrossOperatorRoles(t *testing.T) {
 		base := "/v1/operators/" + op + "/payment-methods"
 		status, page, _ := f.call(t, "GET", base, nil, "")
 		mustOK(t, status, page)
-		status, out, _ := f.call(t, "POST", base+"/offline/open_method", map[string]any{"action": "open_method", "method_kind": "offline", "enabled": true, "collection": true, "payout_enabled": true, "fee_mode": "none"}, uuid.NewString())
+		if len(page["items"].([]any)) != 0 {
+			t.Fatal("unconfigured operator must have no payment cards", page["items"])
+		}
+		status, out, _ := f.call(t, "POST", base, map[string]any{"action": "open_method", "method_kind": "offline", "enabled": true, "collection": true, "payout_enabled": true, "fee_mode": "none"}, uuid.NewString())
 		mustOK(t, status, out)
 		methods, e := f.a.Payments.PublicMethods(ctx, op)
 		if e != nil || len(methods) != 1 || methods[0].Name != "线下支付" {

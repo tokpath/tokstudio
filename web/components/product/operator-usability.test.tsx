@@ -4,7 +4,7 @@ import { useInsertionEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import type { Entity, ResourcePage, Session } from "@/lib/contracts";
-import { ResourceCollection, ResourceScreen } from "./operator-resources";
+import { ResourceCollection, ResourceScreen, recordTitle } from "./operator-resources";
 import { OperatorOverview, OperatorWorkflowScreen } from "./operator-workflows";
 import { arrivingListState, readResourceListState, subjectReturnURL, subjectURL } from "./operator-list-state";
 
@@ -308,4 +308,11 @@ it("names the platform when an OEM task requires platform-only tooling", async (
  show(<OperatorOverview operatorID="operator-one" />);
  await screen.findByText("请联系平台处理此事项。");
  expect(screen.queryByRole("link", { name: "排查未决模型请求" })).toBeNull();
+});
+
+it("translates built-in payment identities without translating authored business names",()=>{
+ const method:Entity={id:"one",values:{name:"银行转账",method_label:"银行转账"},presentation:{title:"银行转账",labels:{}}};
+ expect(recordTitle(method,"payment-methods","en")).toBe("Bank transfer");
+ expect(recordTitle(method,"payment-methods","ja")).toBe("銀行振込");
+ expect(recordTitle({id:"two",values:{name:"银行转账"}},"plans","en")).toBe("银行转账");
 });

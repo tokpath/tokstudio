@@ -357,6 +357,7 @@ function ReferenceField({ field, value, disabled, invalid, change, choose, onLab
   // Invoice choices start with a system-owned order kind; everything after
   // it (including the seller's package name) must stay literal.
   const translateLabel = (label: string) => {
+    if (/\/supplier-methods$/.test(path)) return t(label);
     if (!/\/invoice-orders$/.test(path)) return label;
     const [kind, ...details] = label.split(" · ");
     return [t(kind), ...details].join(" · ");

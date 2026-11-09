@@ -169,7 +169,7 @@ func (a *Application) publicContext(c *gin.Context) {
 		if m.Driver == "nowpayments" || m.Driver == "evm_wallet" {
 			kind = "stablecoin"
 		}
-		pm = append(pm, gin.H{"id": m.ID, "name": m.Driver, "display_name": m.Name, "fee_rule_id": m.FeeRuleID, "flat_fee_money": m.FlatFeeMoney, "fee_rate": m.FeeRate, "settlement_supported": m.SettlementSupported, "unsupported_reason": m.UnsupportedReason, "kind": kind, "status": "ready", "currency": m.Currency, "instructions": m.Instructions})
+		pm = append(pm, gin.H{"id": m.ID, "name": m.Driver, "display_name": paymentMethodName(c, m), "fee_rule_id": m.FeeRuleID, "flat_fee_money": m.FlatFeeMoney, "fee_rate": m.FeeRate, "settlement_supported": m.SettlementSupported, "unsupported_reason": m.UnsupportedReason, "kind": kind, "status": "ready", "currency": m.Currency, "instructions": m.Instructions})
 	}
 	_, googleErr := a.Organization.OpenGoogleCredential(ctx, nil, b.ID, a.googleRedirectURI(c), a.Config.AppKey, false)
 	// 官方品牌没有单独的开关，登录页和注册页始终提供 Google 登录。OEM 仍要配置并验证后才显示。

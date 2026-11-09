@@ -90,7 +90,8 @@ export const FieldSchema = z.object({ name: z.string(), label: z.string(), kind:
 export type CommandField = z.infer<typeof FieldSchema>;
 export const OperationSchema = z.object({ name: z.string(), label: z.string(), method: z.enum(["POST", "PATCH", "DELETE"]), path: z.string(), description: z.string().optional(), confirmation: z.string().optional(), fields: z.array(FieldSchema), permission: z.string().optional(), include_version: z.boolean().optional() });
 export type Operation = z.infer<typeof OperationSchema>;
-export const ResourcePageSchema = z.object({ views:z.array(z.object({value:z.string(),label:z.string()})).optional(),
+export const PaymentMethodCatalogSchema = z.array(z.object({kind:z.string(),label:z.string(),payout:z.boolean(),existing_id:z.string().optional(),drivers:z.array(z.object({value:z.string(),label:z.string(),fields:z.array(z.object({name:z.string(),label:z.string(),secret:z.boolean()}))}))}));
+export const ResourcePageSchema = z.object({ payment_method_catalog:PaymentMethodCatalogSchema.optional(), views:z.array(z.object({value:z.string(),label:z.string()})).optional(),
   title: z.string(), description: z.string(), items: z.array(EntitySchema), search_supported: z.boolean().optional(), status_supported: z.boolean().optional(),
   columns: z.array(z.object({ key: z.string(), label: z.string(), help: z.string().optional(), kind: z.enum(["text", "money", "atg", "decimal", "datetime", "status", "boolean", "link", "details"]) })),
   operations: z.array(OperationSchema), row_operations: z.array(OperationSchema),

@@ -21,12 +21,18 @@ import (
 var migrations embed.FS
 
 func Migrations() (string, fs.FS) { f, _ := fs.Sub(migrations, "migrate"); return "paymentmethods", f }
-func Schema() string              { b, _ := migrations.ReadFile("migrate/0001_methods.sql"); return string(b) }
+func Schema() string {
+	a, _ := migrations.ReadFile("migrate/0001_methods.sql")
+	b, _ := migrations.ReadFile("migrate/0002_method_catalog.sql")
+	return string(a) + "\n" + string(b)
+}
 
 var ErrInvalid = errors.New("invalid payment method fee rule")
 var ErrChanged = errors.New("payment method fees changed; review the updated amounts")
 
 type Rule struct {
+	Kind          string         `json:"method_kind" gorm:"column:method_kind"`
+	Paused        bool           `json:"paused"`
 	ID            string         `json:"id"`
 	MethodID      string         `json:"method_id"`
 	OperatorID    string         `json:"operator_id"`
@@ -73,6 +79,25 @@ func Save(ctx context.Context, tx *gorm.DB, r Rule, expected int64) (Rule, error
 	old, e := Current(ctx, tx, r.OperatorID, r.MethodID)
 	if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
 		return r, e
+	}
+	if r.Kind != "" {
+		m, ok := Find(r.Kind)
+		if !ok || old.Kind != "" && old.Kind != r.Kind {
+			return r, ErrInvalid
+		}
+		r.Name = m.Label
+		r.PayoutKind = m.PayoutKind
+		identity := Identity{OperatorID: r.OperatorID, Kind: r.Kind, MethodID: r.MethodID}
+		if e := tx.WithContext(ctx).Exec("INSERT INTO payment_method_identities(operator_id,kind,method_id) VALUES(?,?,?) ON CONFLICT DO NOTHING", identity.OperatorID, identity.Kind, identity.MethodID).Error; e != nil {
+			return r, e
+		}
+		var existing Identity
+		if e := tx.Where("operator_id=? AND kind=?", r.OperatorID, r.Kind).First(&existing).Error; e != nil {
+			return r, e
+		}
+		if existing.MethodID != r.MethodID {
+			return r, ErrChanged
+		}
 	}
 	if old.Version != expected {
 		return r, ErrChanged

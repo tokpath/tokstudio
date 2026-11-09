@@ -23,7 +23,7 @@ import (
 //go:embed schema.sql
 var schema string
 
-//go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql zzzzzz_payment_quotes.sql zzzzzzz_shared_payment_methods.sql
+//go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql zzzzzz_payment_quotes.sql zzzzzzz_shared_payment_methods.sql zzzzzzzz_method_catalog.sql
 var migrationFS embed.FS
 
 //go:embed zz_refund_executions.sql
@@ -53,10 +53,13 @@ var paymentQuoteSchema string
 //go:embed zzzzzzz_shared_payment_methods.sql
 var sharedMethodsSchema string
 
+//go:embed zzzzzzzz_method_catalog.sql
+var methodCatalogSchema string
+
 func Migrations() (string, fs.FS) { return "payments", migrationFS }
 
 func Schema() string {
-	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema + "\n" + sharedMethodsSchema
+	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema + "\n" + sharedMethodsSchema + "\n" + methodCatalogSchema
 }
 
 type Authorizer interface {
@@ -110,6 +113,9 @@ func (s *Service) SaveMerchant(ctx context.Context, actor string, m Merchant, ex
 	if s.Authorize == nil || s.EncryptionKey == "" || m.ID == "" || m.OperatorID == "" {
 		return MerchantView{}, ErrForbidden
 	}
+	if m.PaymentMethodID == "" {
+		m.PaymentMethodID = m.ID
+	}
 	d, ok := s.Drivers[m.Driver]
 	if !ok {
 		return MerchantView{}, ErrUnsupported
@@ -134,8 +140,8 @@ func (s *Service) SaveMerchant(ctx context.Context, actor string, m Merchant, ex
 		if m.Enabled && len(view.MissingFields) > 0 {
 			return ErrNotConfigured
 		}
-		if _, e := paymentmethods.Current(ctx, tx, m.OperatorID, m.ID); errors.Is(e, gorm.ErrRecordNotFound) {
-			if _, e = paymentmethods.Save(ctx, tx, paymentmethods.Rule{CreatedBy: actor, MethodID: m.ID, OperatorID: m.OperatorID, Name: m.Driver, Collection: true}, 0); e != nil {
+		if _, e := paymentmethods.Current(ctx, tx, m.OperatorID, m.PaymentMethodID); errors.Is(e, gorm.ErrRecordNotFound) {
+			if _, e = paymentmethods.Save(ctx, tx, paymentmethods.Rule{CreatedBy: actor, MethodID: m.PaymentMethodID, OperatorID: m.OperatorID, Name: m.Driver, Collection: true}, 0); e != nil {
 				return e
 			}
 		} else if e != nil {
@@ -155,7 +161,7 @@ func (s *Service) SaveMerchant(ctx context.Context, actor string, m Merchant, ex
 		if e != nil {
 			return e
 		}
-		fields := map[string]any{"id": m.ID, "operator_id": m.OperatorID, "driver": m.Driver, "definition": string(raw), "credentials_ciphertext": cipher, "enabled": m.Enabled, "version": m.Version}
+		fields := map[string]any{"id": m.ID, "operator_id": m.OperatorID, "payment_method_id": m.PaymentMethodID, "driver": m.Driver, "definition": string(raw), "credentials_ciphertext": cipher, "enabled": m.Enabled, "version": m.Version}
 		if expected > 0 {
 			var previous merchantRow
 			if e := tx.Table("payments_merchants").Where("id=? AND operator_id=?", m.ID, m.OperatorID).Take(&previous).Error; e != nil {
@@ -164,6 +170,9 @@ func (s *Service) SaveMerchant(ctx context.Context, actor string, m Merchant, ex
 			old, e := s.openMerchant(previous)
 			if e != nil {
 				return e
+			}
+			if methodIdentity(old) != m.PaymentMethodID {
+				return ErrForbidden
 			}
 			for _, key := range []string{"app_id", "seller_id", "mch_id", "account_id", "recipient_reference", "wallet_address", "chain_id", "token_contract", "asset", "pay_currency"} {
 				if old.Credentials[key] != m.Credentials[key] {

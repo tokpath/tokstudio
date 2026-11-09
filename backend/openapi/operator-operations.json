@@ -488,310 +488,6 @@
     "permission": "payments.manage"
   },
   {
-    "resource": "payment-methods",
-    "confirmation": "",
-    "description": "材料齐全后启用实际驱动。协议测试证据不能代替真实商户验收。",
-    "fields": [
-      {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/merchants",
-        "name": "id",
-        "label": "现有商户配置ID（首次留空）",
-        "kind": "text"
-      },
-      {
-        "name": "driver",
-        "label": "真实通道协议",
-        "kind": "select",
-        "required": true,
-        "options": [
-          {
-            "label": "Stripe",
-            "value": "stripe"
-          },
-          {
-            "label": "支付宝",
-            "value": "alipay"
-          },
-          {
-            "label": "微信支付",
-            "value": "wechat"
-          },
-          {
-            "label": "NOWPayments",
-            "value": "nowpayments"
-          },
-          {
-            "label": "自有EVM钱包只读验证",
-            "value": "evm_wallet"
-          },
-          {
-            "label": "银行人工核实",
-            "value": "manual"
-          }
-        ]
-      },
-      {
-        "name": "enabled",
-        "label": "材料齐全后启用",
-        "kind": "boolean",
-        "required": true,
-        "default_value": false
-      },
-      {
-        "name": "expected_version",
-        "label": "当前版本（首次填写0）",
-        "kind": "hidden",
-        "required": true
-      },
-      {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/payment-assets",
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "evm_wallet",
-            "nowpayments"
-          ]
-        },
-        "name": "asset_network_version_id",
-        "label": "平台已发布的准确资产与网络",
-        "kind": "text"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "stripe",
-            "manual"
-          ]
-        },
-        "name": "credentials.currency",
-        "label": "收款币种（大写，例如清算币种/CNY）",
-        "kind": "text"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "manual"
-          ]
-        },
-        "name": "credentials.recipient_reference",
-        "label": "线下收款信息（可选）",
-        "kind": "text"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "manual"
-          ]
-        },
-        "name": "credentials.instructions",
-        "label": "对付款人展示的付款说明",
-        "kind": "text"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "stripe"
-          ]
-        },
-        "name": "credentials.secret_key",
-        "label": "Stripe服务端密钥",
-        "kind": "password"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "stripe"
-          ]
-        },
-        "name": "credentials.publishable_key",
-        "label": "Stripe可发布密钥",
-        "kind": "text"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "stripe"
-          ]
-        },
-        "name": "credentials.webhook_secret",
-        "label": "Stripe回调签名密钥",
-        "kind": "password"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "alipay",
-            "wechat"
-          ]
-        },
-        "name": "credentials.app_id",
-        "label": "商户应用App ID",
-        "kind": "text"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "wechat"
-          ]
-        },
-        "name": "credentials.mch_id",
-        "label": "微信支付商户号",
-        "kind": "text"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "wechat"
-          ]
-        },
-        "name": "credentials.merchant_api_private_key",
-        "label": "微信商户API私钥PEM",
-        "kind": "textarea"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "wechat"
-          ]
-        },
-        "name": "credentials.cert_serial",
-        "label": "微信商户证书序列号",
-        "kind": "text"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "wechat"
-          ]
-        },
-        "name": "credentials.api_v3_key",
-        "label": "微信API v3加密密钥",
-        "kind": "password"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "wechat"
-          ]
-        },
-        "name": "credentials.wechat_public_key",
-        "label": "微信平台验签公钥PEM",
-        "kind": "textarea"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "wechat"
-          ]
-        },
-        "name": "credentials.public_key_id",
-        "label": "微信平台公钥ID",
-        "kind": "textarea"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "alipay"
-          ]
-        },
-        "name": "credentials.app_private_key",
-        "label": "支付宝应用RSA2私钥PEM",
-        "kind": "textarea"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "alipay"
-          ]
-        },
-        "name": "credentials.alipay_public_key",
-        "label": "支付宝验签公钥PEM",
-        "kind": "textarea"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "alipay"
-          ]
-        },
-        "name": "credentials.seller_id",
-        "label": "支付宝签约卖家ID",
-        "kind": "text"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "nowpayments"
-          ]
-        },
-        "name": "credentials.api_key",
-        "label": "NOWPayments API密钥",
-        "kind": "password"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "nowpayments"
-          ]
-        },
-        "name": "credentials.ipn_secret",
-        "label": "NOWPayments IPN签名密钥",
-        "kind": "password"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "evm_wallet"
-          ]
-        },
-        "name": "credentials.rpc_url",
-        "label": "EVM只读节点RPC URL",
-        "kind": "text"
-      },
-      {
-        "visible_when": {
-          "field": "driver",
-          "values": [
-            "evm_wallet"
-          ]
-        },
-        "name": "credentials.wallet_address",
-        "label": "本商户收款钱包地址",
-        "kind": "text"
-      },
-      {
-        "name": "api_base_url",
-        "label": "独立协议测试地址（仅隔离测试）",
-        "kind": "text"
-      }
-    ],
-    "include_version": false,
-    "label": "保存真实商户配置",
-    "method": "POST",
-    "name": "configure",
-    "path": "/v1/operators/{operatorId}/payment-methods",
-    "permission": "payments.manage"
-  },
-  {
     "resource": "evidence",
     "confirmation": "",
     "description": "",
@@ -4481,32 +4177,104 @@
   },
   {
     "resource": "payment-methods",
-    "name": "fee_rule",
+    "name": "open_method",
     "method": "POST",
     "path": "/v1/operators/{operatorId}/payment-methods",
     "permission": "payments.manage",
-    "label": "新增提现方式",
-    "description": "One immutable fee version shared by collections and both withdrawal wallets. Editing payout availability additionally requires withdrawals.manage.",
-    "confirmation": "",
-    "include_version": false,
+    "label": "开通支付方式",
+    "description": "Choose one built-in payment identity and save its connection, uses and immutable fee rule atomically. Missing connection details stay pending. Payout changes additionally require withdrawals.manage.",
     "fields": [
       {
         "name": "action",
         "label": "操作",
         "kind": "hidden",
-        "default_value": "fee_rule"
+        "default_value": "open_method"
       },
       {
-        "name": "name",
-        "label": "支付方式名称",
-        "kind": "text",
-        "required": true
+        "name": "method_kind",
+        "label": "支付方式",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "value": "offline",
+            "label": "线下支付"
+          },
+          {
+            "value": "cash",
+            "label": "现金"
+          },
+          {
+            "value": "bank_transfer",
+            "label": "银行转账"
+          },
+          {
+            "value": "bank_card",
+            "label": "银行卡"
+          },
+          {
+            "value": "alipay",
+            "label": "支付宝"
+          },
+          {
+            "value": "wechat",
+            "label": "微信支付"
+          },
+          {
+            "value": "paypal",
+            "label": "PayPal"
+          },
+          {
+            "value": "wire",
+            "label": "国际电汇"
+          },
+          {
+            "value": "usdt",
+            "label": "USDT"
+          },
+          {
+            "value": "kvoucher",
+            "label": "KVoucher"
+          }
+        ]
+      },
+      {
+        "name": "enabled",
+        "label": "启用支付方式",
+        "kind": "boolean",
+        "default_value": true
+      },
+      {
+        "name": "collection",
+        "label": "用于收款",
+        "kind": "boolean",
+        "default_value": true
+      },
+      {
+        "name": "payout_enabled",
+        "label": "用于余额和佣金提现",
+        "kind": "boolean",
+        "default_value": true
+      },
+      {
+        "name": "driver",
+        "label": "收款办理方式",
+        "kind": "text"
+      },
+      {
+        "name": "credentials",
+        "label": "接入资料",
+        "kind": "json"
+      },
+      {
+        "name": "asset_network_version_id",
+        "label": "收款资产与网络",
+        "kind": "text"
       },
       {
         "name": "fee_mode",
         "label": "手续费规则",
         "kind": "select",
-        "required": true,
         "options": [
           {
             "value": "none",
@@ -4520,109 +4288,131 @@
             "value": "percent",
             "label": "按比例"
           }
-        ]
+        ],
+        "required": true
       },
       {
         "name": "flat_fee_money",
         "label": "固定手续费 结算币种",
         "kind": "decimal",
-        "visible_when": {
-          "field": "fee_mode",
-          "values": [
-            "fixed"
-          ]
-        }
+        "default_value": "0"
       },
       {
         "name": "fee_percent",
         "label": "手续费率 %",
         "kind": "decimal",
-        "visible_when": {
-          "field": "fee_mode",
-          "values": [
-            "percent"
-          ]
-        }
-      },
-      {
-        "name": "payout_enabled",
-        "label": "用于余额和佣金提现",
-        "kind": "boolean"
-      },
-      {
-        "name": "payout_kind",
-        "label": "提现收款材料",
-        "kind": "select",
-        "required": false,
-        "options": [
-          {
-            "value": "bank_cn",
-            "label": "境内银行卡 · 户名、开户银行、卡号、支行"
-          },
-          {
-            "value": "alipay",
-            "label": "支付宝 · 实名、登录账号"
-          },
-          {
-            "value": "wechat",
-            "label": "微信支付 · 实名、微信号或手机号"
-          },
-          {
-            "value": "paypal",
-            "label": "PayPal · 邮箱、账户姓名"
-          },
-          {
-            "value": "wire",
-            "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"
-          },
-          {
-            "value": "usdt",
-            "label": "USDT · 网络、钱包地址"
-          }
-        ],
-        "visible_when": {
-          "field": "payout_enabled",
-          "values": [
-            "true"
-          ]
-        }
+        "default_value": "0"
       },
       {
         "name": "expected_version",
         "label": "当前版本",
         "kind": "hidden",
-        "required": true
+        "default_value": 0
       }
-    ]
+    ],
+    "confirmation": "",
+    "include_version": false
   },
   {
     "resource": "payment-methods",
-    "name": "fee_rule",
+    "name": "open_method",
     "method": "POST",
-    "path": "/v1/operators/{operatorId}/payment-methods/{id}/fee_rule",
+    "path": "/v1/operators/{operatorId}/payment-methods/{id}/open_method",
     "permission": "payments.manage",
-    "label": "设置方式与费用",
-    "description": "One immutable fee version shared by collections and both withdrawal wallets. Editing payout availability additionally requires withdrawals.manage.",
-    "confirmation": "",
-    "include_version": false,
+    "label": "管理支付方式",
+    "description": "Choose one built-in payment identity and save its connection, uses and immutable fee rule atomically. Missing connection details stay pending. Payout changes additionally require withdrawals.manage.",
     "fields": [
       {
         "name": "action",
         "label": "操作",
         "kind": "hidden",
-        "default_value": "fee_rule"
+        "default_value": "open_method"
       },
       {
-        "name": "name",
-        "label": "支付方式名称",
-        "kind": "text",
-        "required": true
+        "name": "method_kind",
+        "label": "支付方式",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "value": "offline",
+            "label": "线下支付"
+          },
+          {
+            "value": "cash",
+            "label": "现金"
+          },
+          {
+            "value": "bank_transfer",
+            "label": "银行转账"
+          },
+          {
+            "value": "bank_card",
+            "label": "银行卡"
+          },
+          {
+            "value": "alipay",
+            "label": "支付宝"
+          },
+          {
+            "value": "wechat",
+            "label": "微信支付"
+          },
+          {
+            "value": "paypal",
+            "label": "PayPal"
+          },
+          {
+            "value": "wire",
+            "label": "国际电汇"
+          },
+          {
+            "value": "usdt",
+            "label": "USDT"
+          },
+          {
+            "value": "kvoucher",
+            "label": "KVoucher"
+          }
+        ]
+      },
+      {
+        "name": "enabled",
+        "label": "启用支付方式",
+        "kind": "boolean",
+        "default_value": true
+      },
+      {
+        "name": "collection",
+        "label": "用于收款",
+        "kind": "boolean",
+        "default_value": true
+      },
+      {
+        "name": "payout_enabled",
+        "label": "用于余额和佣金提现",
+        "kind": "boolean",
+        "default_value": true
+      },
+      {
+        "name": "driver",
+        "label": "收款办理方式",
+        "kind": "text"
+      },
+      {
+        "name": "credentials",
+        "label": "接入资料",
+        "kind": "json"
+      },
+      {
+        "name": "asset_network_version_id",
+        "label": "收款资产与网络",
+        "kind": "text"
       },
       {
         "name": "fee_mode",
         "label": "手续费规则",
         "kind": "select",
-        "required": true,
         "options": [
           {
             "value": "none",
@@ -4636,79 +4426,29 @@
             "value": "percent",
             "label": "按比例"
           }
-        ]
+        ],
+        "required": true
       },
       {
         "name": "flat_fee_money",
         "label": "固定手续费 结算币种",
         "kind": "decimal",
-        "visible_when": {
-          "field": "fee_mode",
-          "values": [
-            "fixed"
-          ]
-        }
+        "default_value": "0"
       },
       {
         "name": "fee_percent",
         "label": "手续费率 %",
         "kind": "decimal",
-        "visible_when": {
-          "field": "fee_mode",
-          "values": [
-            "percent"
-          ]
-        }
-      },
-      {
-        "name": "payout_enabled",
-        "label": "用于余额和佣金提现",
-        "kind": "boolean"
-      },
-      {
-        "name": "payout_kind",
-        "label": "提现收款材料",
-        "kind": "select",
-        "required": false,
-        "options": [
-          {
-            "value": "bank_cn",
-            "label": "境内银行卡 · 户名、开户银行、卡号、支行"
-          },
-          {
-            "value": "alipay",
-            "label": "支付宝 · 实名、登录账号"
-          },
-          {
-            "value": "wechat",
-            "label": "微信支付 · 实名、微信号或手机号"
-          },
-          {
-            "value": "paypal",
-            "label": "PayPal · 邮箱、账户姓名"
-          },
-          {
-            "value": "wire",
-            "label": "国际电汇 · 英文姓名、银行、账号或 IBAN、SWIFT、国家、地址"
-          },
-          {
-            "value": "usdt",
-            "label": "USDT · 网络、钱包地址"
-          }
-        ],
-        "visible_when": {
-          "field": "payout_enabled",
-          "values": [
-            "true"
-          ]
-        }
+        "default_value": "0"
       },
       {
         "name": "expected_version",
         "label": "当前版本",
         "kind": "hidden",
-        "required": true
+        "default_value": 0
       }
-    ]
+    ],
+    "confirmation": "",
+    "include_version": false
   }
 ]

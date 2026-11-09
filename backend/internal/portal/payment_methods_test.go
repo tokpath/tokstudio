@@ -30,8 +30,8 @@ func TestPostgresUnifiedFeeRuleFreezesTopupAndBothWithdrawalWallets(t *testing.T
 	if e != nil {
 		t.Fatal(e)
 	}
-	input := map[string]any{"name": "Bank and cash", "fee_mode": "percent", "fee_percent": "2", "payout_enabled": true, "payout_kind": "bank_cn", "expected_version": rule.Version}
-	status, result, _ := f.call(t, "POST", "/v1/operators/"+op+"/payment-methods/"+m.ID+"/fee_rule", input, uuid.NewString())
+	input := map[string]any{"method_kind": "bank_transfer", "enabled": true, "collection": true, "driver": "manual", "fee_mode": "percent", "fee_percent": "2", "payout_enabled": true, "payout_kind": "bank_cn", "expected_version": rule.Version}
+	status, result, _ := f.call(t, "POST", "/v1/operators/"+op+"/payment-methods/"+m.ID+"/open_method", input, uuid.NewString())
 	mustOK(t, status, result)
 	rule, e = paymentmethods.Current(ctx, f.a.DB, op, m.ID)
 	if e != nil {
@@ -65,7 +65,7 @@ func TestPostgresUnifiedFeeRuleFreezesTopupAndBothWithdrawalWallets(t *testing.T
 	}
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	input["expected_version"], input["fee_percent"] = rule.Version, "3"
-	status, result, _ = f.call(t, "POST", "/v1/operators/"+op+"/payment-methods/"+m.ID+"/fee_rule", input, uuid.NewString())
+	status, result, _ = f.call(t, "POST", "/v1/operators/"+op+"/payment-methods/"+m.ID+"/open_method", input, uuid.NewString())
 	mustOK(t, status, result)
 	f.login(t, "customer", "unified-fees@example.test", "customer-password-test")
 	status, replayed, _ := f.call(t, "POST", "/v1/me/topups", body, key)

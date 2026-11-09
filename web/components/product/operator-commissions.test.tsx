@@ -17,23 +17,16 @@ function mount(record?:string) {
   return (value?:string) => view.rerender(content(value));
 }
 
-it("puts rules, payout methods and applications in one entry and resets filters between tabs",async()=>{
-  window.history.replaceState(null,"","/manage/operator-one/commissions?q=old&cursor=old-page");
-  const calls:string[]=[];
-  vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL)=>{
-    const url=String(input);calls.push(url);
-    return response(page(url.includes("withdrawals")?(url.includes("view=methods")?"Bank transfer":"Payout application"):"Referral rule",{views:url.includes("withdrawals")?[{value:"requests",label:"提现申请"},{value:"methods",label:"提现方式"}]:undefined}));
-  }));
-  mount();await screen.findByText("Referral rule");
-  expect(screen.getAllByRole("tab")).toHaveLength(3);
-  expect(calls).toHaveLength(1);
-  fireEvent.click(screen.getByRole("tab",{name:"提现方式"}));await screen.findByText("Bank transfer");
-  expect(calls.at(-1)).toBe("/api/v1/operators/operator-one/withdrawals?view=methods");
-  expect(screen.getAllByText("提现方式")).toHaveLength(1);
-  expect(window.location.search).toContain("section=methods");
-  expect(window.location.search).not.toContain("cursor=");
-  fireEvent.click(screen.getByRole("tab",{name:"提现申请"}));await screen.findByText("Payout application");
-  expect(calls.at(-1)).toBe("/api/v1/operators/operator-one/withdrawals?view=requests");
+it("shows only referral rules and payout applications and clears old filters",async()=>{
+ window.history.replaceState(null,"","/manage/operator-one/commissions?q=old&cursor=old-page");
+ const calls:string[]=[];
+ vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL)=>{const url=String(input);calls.push(url);return response(page(url.includes("withdrawals")?"Payout application":"Referral rule"))}));
+ mount();await screen.findByText("Referral rule");
+ expect(screen.getAllByRole("tab")).toHaveLength(2);
+ expect(screen.queryByRole("tab",{name:"提现方式"})).toBeNull();
+ fireEvent.click(screen.getByRole("tab",{name:"提现申请"}));await screen.findByText("Payout application");
+ expect(calls.at(-1)).toBe("/api/v1/operators/operator-one/withdrawals?view=requests");
+ expect(window.location.search).not.toContain("cursor=");
 });
 
 it("lets payout staff enter applications directly without reading marketing rules",async()=>{
@@ -69,7 +62,7 @@ it("leaves linked application context when returning to all applications on the 
 });
 
 it("keeps an uncertain payout action mounted when switching tabs and retries the original action",async()=>{
-  permissions=["withdrawals.read","withdrawals.manage"];
+  permissions=["*"];
   window.history.replaceState(null,"","/manage/operator-one/commissions?section=requests");
   const attempts:{key:string|null;body:string}[]=[];
   vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
@@ -84,7 +77,7 @@ it("keeps an uncertain payout action mounted when switching tabs and retries the
   mount();fireEvent.click(await screen.findByRole("button",{name:"审核申请"}));
   fireEvent.click(screen.getByRole("button",{name:"审核申请",exact:true}));
   await screen.findByRole("button",{name:"重试本次操作"});
-  fireEvent.click(screen.getByRole("tab",{name:"提现方式",hidden:true}));
+  fireEvent.click(screen.getByRole("tab",{name:"分佣规则",hidden:true}));
   expect(window.location.search).toContain("section=requests");
   expect(screen.getByRole("dialog")).toBeTruthy();
   fireEvent.click(screen.getByRole("button",{name:"重试本次操作"}));

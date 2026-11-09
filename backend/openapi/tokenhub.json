@@ -12357,7 +12357,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_payment_methods",
-        "summary": "保存真实商户配置",
+        "summary": "开通支付方式",
         "tags": [
           "Operator browser API"
         ],
@@ -12479,19 +12479,12 @@
           "content": {
             "application/json": {
               "schema": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/Operator_payment_methods_configure"
-                  },
-                  {
-                    "$ref": "#/components/schemas/Operator_payment_methods_fee_rule"
-                  }
-                ]
+                "$ref": "#/components/schemas/Operator_payment_methods_open_method"
               }
             }
           }
         },
-        "description": "材料齐全后启用实际驱动。协议测试证据不能代替真实商户验收。 Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "Choose one built-in payment identity and save its connection, uses and immutable fee rule atomically. Missing connection details stay pending. Payout changes additionally require withdrawals.manage. Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "payments.manage"
       }
     },
@@ -31686,10 +31679,10 @@
         "x-required-permission": "refunds.manage"
       }
     },
-    "/v1/operators/{operatorId}/payment-methods/{id}/fee_rule": {
+    "/v1/operators/{operatorId}/payment-methods/{id}/open_method": {
       "post": {
-        "operationId": "post__v1_operators_operatorId_payment_methods_id_fee_rule",
-        "summary": "设置方式与费用",
+        "operationId": "post__v1_operators_operatorId_payment_methods_id_open_method",
+        "summary": "管理支付方式",
         "tags": [
           "Operator browser API"
         ],
@@ -31819,12 +31812,12 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Operator_payment_methods_fee_rule"
+                "$ref": "#/components/schemas/Operator_payment_methods_open_method"
               }
             }
           }
         },
-        "description": "One immutable fee version shared by collections and both withdrawal wallets. Editing payout availability additionally requires withdrawals.manage. Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "Choose one built-in payment identity and save its connection, uses and immutable fee rule atomically. Missing connection details stay pending. Payout changes additionally require withdrawals.manage. Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "payments.manage"
       }
     },
@@ -42232,9 +42225,149 @@
         ],
         "additionalProperties": true
       },
+      "PaymentMethodCatalog": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "payout": {
+              "type": "boolean"
+            },
+            "existing_id": {
+              "type": "string"
+            },
+            "drivers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "secret": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "label",
+                        "secret"
+                      ],
+                      "additionalProperties": true
+                    }
+                  }
+                },
+                "required": [
+                  "value",
+                  "label",
+                  "fields"
+                ],
+                "additionalProperties": true
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "label",
+            "payout",
+            "drivers"
+          ],
+          "additionalProperties": true
+        }
+      },
       "ResourcePage": {
         "type": "object",
         "properties": {
+          "payment_method_catalog": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "payout": {
+                  "type": "boolean"
+                },
+                "existing_id": {
+                  "type": "string"
+                },
+                "drivers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "fields": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "secret": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "label",
+                            "secret"
+                          ],
+                          "additionalProperties": true
+                        }
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "label",
+                      "fields"
+                    ],
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "label",
+                "payout",
+                "drivers"
+              ],
+              "additionalProperties": true
+            }
+          },
           "views": {
             "type": "array",
             "items": {
@@ -47337,294 +47470,6 @@
         ],
         "additionalProperties": false
       },
-      "Operator_payment_methods_configure": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "现有商户配置ID（首次留空）"
-          },
-          "driver": {
-            "type": "string",
-            "enum": [
-              "stripe",
-              "alipay",
-              "wechat",
-              "nowpayments",
-              "evm_wallet",
-              "manual"
-            ],
-            "description": "真实通道协议"
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "材料齐全后启用"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "当前版本（首次填写0）"
-          },
-          "asset_network_version_id": {
-            "type": "string",
-            "description": "平台已发布的准确资产与网络",
-            "x-visible-when": {
-              "field": "driver",
-              "values": [
-                "evm_wallet",
-                "nowpayments"
-              ]
-            },
-            "x-required-when-visible": false
-          },
-          "credentials": {
-            "type": "object",
-            "properties": {
-              "currency": {
-                "type": "string",
-                "description": "收款币种（大写，例如清算币种/CNY）",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "stripe",
-                    "manual"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "recipient_reference": {
-                "type": "string",
-                "description": "线下收款信息（可选）",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "manual"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "instructions": {
-                "type": "string",
-                "description": "对付款人展示的付款说明",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "manual"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "secret_key": {
-                "type": "string",
-                "description": "Stripe服务端密钥",
-                "writeOnly": true,
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "stripe"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "publishable_key": {
-                "type": "string",
-                "description": "Stripe可发布密钥",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "stripe"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "webhook_secret": {
-                "type": "string",
-                "description": "Stripe回调签名密钥",
-                "writeOnly": true,
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "stripe"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "app_id": {
-                "type": "string",
-                "description": "商户应用App ID",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "alipay",
-                    "wechat"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "mch_id": {
-                "type": "string",
-                "description": "微信支付商户号",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "wechat"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "merchant_api_private_key": {
-                "type": "string",
-                "description": "微信商户API私钥PEM",
-                "writeOnly": true,
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "wechat"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "cert_serial": {
-                "type": "string",
-                "description": "微信商户证书序列号",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "wechat"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "api_v3_key": {
-                "type": "string",
-                "description": "微信API v3加密密钥",
-                "writeOnly": true,
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "wechat"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "wechat_public_key": {
-                "type": "string",
-                "description": "微信平台验签公钥PEM",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "wechat"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "public_key_id": {
-                "type": "string",
-                "description": "微信平台公钥ID",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "wechat"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "app_private_key": {
-                "type": "string",
-                "description": "支付宝应用RSA2私钥PEM",
-                "writeOnly": true,
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "alipay"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "alipay_public_key": {
-                "type": "string",
-                "description": "支付宝验签公钥PEM",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "alipay"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "seller_id": {
-                "type": "string",
-                "description": "支付宝签约卖家ID",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "alipay"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "api_key": {
-                "type": "string",
-                "description": "NOWPayments API密钥",
-                "writeOnly": true,
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "nowpayments"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "ipn_secret": {
-                "type": "string",
-                "description": "NOWPayments IPN签名密钥",
-                "writeOnly": true,
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "nowpayments"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "rpc_url": {
-                "type": "string",
-                "description": "EVM只读节点RPC URL",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "evm_wallet"
-                  ]
-                },
-                "x-required-when-visible": false
-              },
-              "wallet_address": {
-                "type": "string",
-                "description": "本商户收款钱包地址",
-                "x-visible-when": {
-                  "field": "driver",
-                  "values": [
-                    "evm_wallet"
-                  ]
-                },
-                "x-required-when-visible": false
-              }
-            },
-            "required": [],
-            "additionalProperties": false
-          },
-          "api_base_url": {
-            "type": "string",
-            "description": "独立协议测试地址（仅隔离测试）"
-          }
-        },
-        "required": [
-          "driver",
-          "enabled",
-          "expected_version"
-        ],
-        "additionalProperties": false
-      },
       "Operator_evidence_upload": {
         "type": "object",
         "properties": {
@@ -50491,16 +50336,56 @@
         "required": [],
         "additionalProperties": false
       },
-      "Operator_payment_methods_fee_rule": {
+      "Operator_payment_methods_open_method": {
         "type": "object",
         "properties": {
           "action": {
-            "const": "fee_rule",
+            "const": "open_method",
             "description": "操作"
           },
-          "name": {
+          "method_kind": {
             "type": "string",
-            "description": "支付方式名称"
+            "enum": [
+              "offline",
+              "cash",
+              "bank_transfer",
+              "bank_card",
+              "alipay",
+              "wechat",
+              "paypal",
+              "wire",
+              "usdt",
+              "kvoucher"
+            ],
+            "description": "支付方式"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "启用支付方式"
+          },
+          "collection": {
+            "type": "boolean",
+            "description": "用于收款"
+          },
+          "payout_enabled": {
+            "type": "boolean",
+            "description": "用于余额和佣金提现"
+          },
+          "driver": {
+            "type": "string",
+            "description": "收款办理方式"
+          },
+          "credentials": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "writeOnly": true,
+            "description": "接入资料"
+          },
+          "asset_network_version_id": {
+            "type": "string",
+            "description": "收款资产与网络"
           },
           "fee_mode": {
             "type": "string",
@@ -50513,48 +50398,11 @@
           },
           "flat_fee_money": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "固定手续费 结算币种",
-            "x-visible-when": {
-              "field": "fee_mode",
-              "values": [
-                "fixed"
-              ]
-            },
-            "x-required-when-visible": false
+            "description": "固定手续费 结算币种"
           },
           "fee_percent": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "手续费率 %",
-            "x-visible-when": {
-              "field": "fee_mode",
-              "values": [
-                "percent"
-              ]
-            },
-            "x-required-when-visible": false
-          },
-          "payout_enabled": {
-            "type": "boolean",
-            "description": "用于余额和佣金提现"
-          },
-          "payout_kind": {
-            "type": "string",
-            "enum": [
-              "bank_cn",
-              "alipay",
-              "wechat",
-              "paypal",
-              "wire",
-              "usdt"
-            ],
-            "description": "提现收款材料",
-            "x-visible-when": {
-              "field": "payout_enabled",
-              "values": [
-                "true"
-              ]
-            },
-            "x-required-when-visible": false
+            "description": "手续费率 %"
           },
           "expected_version": {
             "type": "integer",
@@ -50563,9 +50411,8 @@
           }
         },
         "required": [
-          "name",
-          "fee_mode",
-          "expected_version"
+          "method_kind",
+          "fee_mode"
         ],
         "additionalProperties": false
       },

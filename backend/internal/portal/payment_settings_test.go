@@ -14,8 +14,8 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 	base := "/v1/operators/" + op + "/payment-methods"
 	status, page, _ := f.call(t, "GET", base, nil, "")
 	mustOK(t, status, page)
-	fields := operationFields(t, page, "fee_rule")
-	for _, name := range []string{"payout_kind", "name", "fee_mode", "flat_fee_money", "fee_percent", "payout_enabled", "expected_version"} {
+	fields := operationFields(t, page, "open_method")
+	for _, name := range []string{"method_kind", "enabled", "collection", "fee_mode", "flat_fee_money", "fee_percent", "payout_enabled", "expected_version"} {
 		if fields[name] == nil {
 			t.Fatal("missing method field", name)
 		}
@@ -26,8 +26,8 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 		}
 	}
 	for _, method := range []map[string]any{
-		{"action": "fee_rule", "payout_kind": "bank_cn", "name": "Bank transfer", "fee_mode": "fixed", "flat_fee_money": "1", "payout_enabled": true},
-		{"action": "fee_rule", "payout_kind": "alipay", "name": "Wallet payout", "fee_mode": "percent", "fee_percent": "2", "payout_enabled": true},
+		{"action": "open_method", "method_kind": "bank_transfer", "enabled": true, "collection": false, "fee_mode": "fixed", "flat_fee_money": "1", "payout_enabled": true},
+		{"action": "open_method", "method_kind": "alipay", "enabled": true, "collection": false, "fee_mode": "percent", "fee_percent": "2", "payout_enabled": true},
 	} {
 		key := uuid.NewString()
 		status, out, _ := f.call(t, "POST", base, method, key)
@@ -42,7 +42,7 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 	mustOK(t, status, page)
 	row := page["items"].([]any)[0].(map[string]any)
 	method := row["values"].(map[string]any)
-	status, out, _ := f.call(t, "POST", base+"/"+row["id"].(string)+"/fee_rule", map[string]any{"payout_kind": "bank_cn", "name": method["name"], "fee_mode": "fixed", "flat_fee_money": "1.5", "payout_enabled": true, "expected_version": row["version"]}, uuid.NewString())
+	status, out, _ := f.call(t, "POST", base+"/"+row["id"].(string)+"/open_method", map[string]any{"method_kind": method["method_kind"], "enabled": true, "collection": false, "fee_mode": "fixed", "flat_fee_money": "1.5", "payout_enabled": true, "expected_version": row["version"]}, uuid.NewString())
 	mustOK(t, status, out)
 	f.openRegistration(t)
 	f.registered(t, "method-choice@example.test")

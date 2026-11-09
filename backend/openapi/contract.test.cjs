@@ -221,10 +221,14 @@ test('procurement revisions explicitly retain authorization identity and require
 
 test('payout methods retain their actual concurrency fields', () => {
   assert.equal(document.components.schemas.Operator_refunds_policy, undefined);
-  for (const name of ['Operator_payment_methods_fee_rule']) {
+  for (const name of ['Operator_payment_methods_open_method']) {
     const method = document.components.schemas[name];
     assert.equal(method.properties.expected_version.type, 'integer');
-    assert.deepEqual(method.properties.payout_kind.enum, ['bank_cn', 'alipay', 'wechat', 'paypal', 'wire', 'usdt']);
+    assert.equal(method.properties.payout_kind,undefined);
+    assert.equal(method.properties.name,undefined);
+    assert.ok(method.properties.method_kind.enum.includes('kvoucher'));
+    assert.ok(method.properties.method_kind.enum.includes('offline'));
+    assert.ok(method.properties.credentials);
     assert.ok(method.properties.payout_enabled);
     assert.equal(document.components.schemas.Operator_withdrawals_method, undefined);
     assert.equal(document.components.schemas.Operator_withdrawals_edit_method, undefined);

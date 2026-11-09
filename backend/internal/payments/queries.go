@@ -21,6 +21,7 @@ func (in MerchantInput) Configuration() Merchant {
 }
 
 type PublicMethod struct {
+	Kind                           string         `json:"method_kind"`
 	FeeRuleID                      string         `json:"fee_rule_id"`
 	Name                           string         `json:"name"`
 	FlatFeeMoney                   ledger.Decimal `json:"flat_fee_money"`
@@ -129,10 +130,23 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 		if m.Driver == "kvoucher" {
 			view.RefundChannels = normalizeRefundChannels(m.Credentials["refund_channels"])
 		}
-		rule, err := paymentmethods.Current(ctx, s.DB, operator, m.ID)
+		rule, err := paymentmethods.Current(ctx, s.DB, operator, methodIdentity(m))
 		if err != nil {
 			return nil, err
 		}
+		if rule.Paused || !rule.Collection {
+			continue
+		}
+		if rule.Kind != "" {
+			var identity paymentmethods.Identity
+			if err = s.DB.WithContext(ctx).Where("operator_id=? AND method_id=?", operator, rule.MethodID).First(&identity).Error; err != nil {
+				return nil, err
+			}
+			if identity.MerchantID != m.ID {
+				continue
+			}
+		}
+		view.Kind = rule.Kind
 		view.FeeRuleID = rule.ID
 		view.Name = rule.Name
 		view.FlatFeeMoney = rule.FlatFeeMoney

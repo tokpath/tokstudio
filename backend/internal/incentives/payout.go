@@ -35,6 +35,7 @@ type PayoutProfile struct {
 
 func PayoutProfiles() []PayoutProfile {
 	return []PayoutProfile{
+		{Kind: "cash", Label: "现金", OptionLabel: "现金 · 收款人姓名", Summary: "经营方与客户线下交付现金，核实收款人后登记付款。", Fields: []PayoutField{{Name: "payee_name", Label: "收款人姓名", Kind: "text", Help: "填写现场领取现金的人。"}}},
 		{
 			Kind: "bank_cn", Label: "境内银行卡", OptionLabel: "境内银行卡 · 户名、开户银行、卡号、支行",
 			Summary: "客户需填写与银行卡一致的户名、开户银行、卡号和开户支行。跨行或对公转账通常要靠支行名称入账。",

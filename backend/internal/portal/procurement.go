@@ -315,7 +315,7 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 			}
 			for _, m := range methods {
 				if m.Driver == "manual" && m.SettlementSupported {
-					ops[i].Fields[j].Options = append(ops[i].Fields[j].Options, gin.H{"value": m.ID, "label": m.Name, "fee_rule": gin.H{"driver": m.Driver, "fee_rule_id": m.FeeRuleID, "flat_fee_money": m.FlatFeeMoney, "fee_rate": m.FeeRate}})
+					ops[i].Fields[j].Options = append(ops[i].Fields[j].Options, gin.H{"value": m.ID, "label": paymentMethodName(c, m), "fee_rule": gin.H{"driver": m.Driver, "fee_rule_id": m.FeeRuleID, "flat_fee_money": m.FlatFeeMoney, "fee_rate": m.FeeRate}})
 				}
 			}
 		}

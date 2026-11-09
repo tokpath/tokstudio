@@ -11,7 +11,6 @@ import { Empty, Heading } from "./shared";
 
 const sections = [
   { id: "rules", label: "分佣规则", resource: "commissions", view: "", description: "设置注册赠送、KOL 资格门槛、两级分佣和最低提现金额。" },
-  { id: "methods", label: "提现方式", resource: "withdrawals", view: "methods", description: "设置可用提现方式及固定手续费或手续费率。申请时固定本次费用和实付金额，线下按实付金额付款，无需逐笔登记实际手续费。" },
   { id: "requests", label: "提现申请", resource: "withdrawals", view: "requests", description: "先审批，再登记实际付款。登记完成后申请结束。如果确认没有付款，可以终止申请并释放占用。" },
 ] as const;
 
@@ -37,6 +36,7 @@ export function OperatorCommissionsScreen({ operatorID, record }: { operatorID: 
   useEffect(() => {
     if (!selected) return;
     const url = new URL(window.location.href);
+    url.searchParams.delete("view");
     url.searchParams.set("section", selected.id);
     window.history.replaceState(window.history.state, "", url);
   }, [selected?.id]);

@@ -101,6 +101,7 @@ func nativeValue(m Money, evidence string) MoneyValue {
 }
 
 type Merchant struct {
+	PaymentMethodID       string            `json:"payment_method_id,omitempty"`
 	ID                    string            `json:"id"`
 	OperatorID            string            `json:"operator_id"`
 	Driver                string            `json:"driver"`

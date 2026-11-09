@@ -104,7 +104,7 @@ func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, o
 		if e != nil && e != gorm.ErrRecordNotFound {
 			return e
 		}
-		r, e := paymentmethods.Save(ctx, t, paymentmethods.Rule{CreatedBy: actor, MethodID: in.MethodID, OperatorID: operator, Name: in.MethodName, Collection: old.Collection, PayoutEnabled: in.Enabled, PayoutKind: in.PayoutKind, FlatFeeMoney: in.FlatFeeMoney, FeeRate: in.FeeRate}, expectedVersion)
+		r, e := paymentmethods.Save(ctx, t, paymentmethods.Rule{Kind: old.Kind, Paused: old.Paused, CreatedBy: actor, MethodID: in.MethodID, OperatorID: operator, Name: in.MethodName, Collection: old.Collection, PayoutEnabled: in.Enabled, PayoutKind: in.PayoutKind, FlatFeeMoney: in.FlatFeeMoney, FeeRate: in.FeeRate}, expectedVersion)
 		if e == paymentmethods.ErrChanged {
 			return ErrConflict
 		}
@@ -125,7 +125,7 @@ func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, o
 	return
 }
 func withdrawalRule(r paymentmethods.Rule, wallet string, minimum ledger.Decimal, currency string) WithdrawalPolicy {
-	return WithdrawalPolicy{ID: r.ID, MethodID: r.MethodID, OperatorID: r.OperatorID, Version: r.Version, Wallet: wallet, MethodName: r.Name, PayoutKind: r.PayoutKind, Enabled: r.PayoutEnabled, FlatFeeMoney: r.FlatFeeMoney, FeeRate: r.FeeRate, MinimumMoney: minimum, Currency: currency, MethodReference: commissionWithdrawalTerms, EffectiveAt: r.CreatedAt}
+	return WithdrawalPolicy{ID: r.ID, MethodID: r.MethodID, OperatorID: r.OperatorID, Version: r.Version, Wallet: wallet, MethodName: r.Name, PayoutKind: r.PayoutKind, Enabled: r.PayoutEnabled && !r.Paused, FlatFeeMoney: r.FlatFeeMoney, FeeRate: r.FeeRate, MinimumMoney: minimum, Currency: currency, MethodReference: commissionWithdrawalTerms, EffectiveAt: r.CreatedAt}
 }
 func (s *Service) WithdrawalMethods(ctx context.Context, tx *gorm.DB, operator string, enabledOnly bool, wallet string) ([]WithdrawalPolicy, error) {
 	if wallet != "balance" {
@@ -142,7 +142,7 @@ func (s *Service) WithdrawalMethods(ctx context.Context, tx *gorm.DB, operator s
 	minimum := s.WithdrawalMinimum(ctx, tx, operator, wallet)
 	out := []WithdrawalPolicy{}
 	for _, r := range rows {
-		if r.PayoutKind == "" || enabledOnly && !r.PayoutEnabled {
+		if r.PayoutKind == "" || enabledOnly && (!r.PayoutEnabled || r.Paused) {
 			continue
 		}
 		out = append(out, withdrawalRule(r, wallet, minimum, monetary.Currency))

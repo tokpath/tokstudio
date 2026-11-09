@@ -22,6 +22,7 @@ import { canReadResource, operatorResourcePath, resourceLabel } from "@/lib/navi
 import { useNavigationBlock } from "@/lib/navigation-guard";
 import { useProduct } from "./context";
 import { InvoiceFiles } from "./invoice-files";
+import { PaymentMethodForm } from "./payment-method-form";
 import { OperationForm } from "./operation-form";
 import { CustomerWithdrawalApplications, CustomerWithdrawalRequest } from "./customer-withdrawal-request";
 import { Empty, ErrorPanel, Heading, Loading, Money, Notice, Stat, Status, Table, useCommand, When, refundStatusLabels, statusLabels, withdrawalStatusLabels } from "./shared";
@@ -352,7 +353,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     </div> : balanceMinimum ? <BalanceMinimumSetting operation={balanceMinimum} /> : customerPayout ? <CustomerWithdrawalApplications rows={rows} walletName={payoutNoun} cancel={page.row_operations.find(operation => operation.name === "cancel")} onCancel={selectOperation} /> : renderTable(rows)}
     {selection && <OperatorPanel title={t(selection.operation.label)} description={selection.row ? recordTitle(selection.row, resourceName, locale) : customer ? t("在当前客户范围内办理") : t("在当前经营范围内办理")} open blocked={blocked} close={closeOperation}>
       {selection.row && !customer && /\/invoices\/\{id\}\/register$/.test(selection.operation.path) && <InvoiceFiles embedded scope={selection.operation.path.replace(/\/\{id\}\/register$/, "")} invoiceID={selection.row.id} upload={selection.operation.name === "register"} />}
-      <OperationForm key={`${selection.operation.name}:${selection.row?.id || "new"}`} operation={selection.operation} row={selection.row} operatorID={operatorID} embedded initialValues={{ ...savedValues, ...initialValues }} lockedFields={Object.keys(initialValues || {})} onBlockedChange={setBlocked} onAbandon={() => setSelection(undefined)} />
+      {selection.operation.name === "open_method" && operatorID ? <PaymentMethodForm key={selection.row?.id || "new"} operation={selection.operation} row={selection.row} operatorID={operatorID} catalog={page.payment_method_catalog || []} onBlockedChange={setBlocked} /> : <OperationForm key={`${selection.operation.name}:${selection.row?.id || "new"}`} operation={selection.operation} row={selection.row} operatorID={operatorID} embedded initialValues={{ ...savedValues, ...initialValues }} lockedFields={Object.keys(initialValues || {})} onBlockedChange={setBlocked} onAbandon={() => setSelection(undefined)} />}
     </OperatorPanel>}
     {invoiceID && <InvoiceFiles scope={`${scope}/${resourceName}`} invoiceID={invoiceID} upload={!customer && resourceName === "invoices"} close={() => setInvoiceID("")} />}
     {facts && <OperatorPanel open title={recordTitle(facts, resourceName, locale)} description={t("记录 {id}", { id: facts.id })} close={() => setFacts(undefined)}>
@@ -502,6 +503,7 @@ export function ReadFacts({ value, field }: { value: JSONValue; field?: string }
 }
 
 export function recordTitle(row: Entity, resource: string, locale: Locale = "zh") {
+  if(resource==="payment-methods" && typeof row.values.method_label==="string")return translate(locale,row.values.method_label);
   if (row.presentation?.title) {
     const title = row.presentation.title, prefix = row.presentation.title_kind;
     return prefix && title.startsWith(prefix) ? translate(locale,prefix) + title.slice(prefix.length) : title;
@@ -523,6 +525,7 @@ export function resourceValueText(value: JSONValue | undefined, field: string | 
   if (typeof value === "boolean") return translate(locale, value ? "是" : "否");
   if (typeof value !== "string") return String(value ?? "—");
   if (field === "record_kind") return recordKindLabel(value, locale);
+  if (field === "readiness_note") return value.split("、").map(part=>translate(locale,part)).join(locale==="zh"?"、":", ");
   if (field && ["scope_label", "metric_name", "direction_name", "api_entry_note", "reserved_note", "payment_hold", "applicant_kind"].includes(field)) return translate(locale,value);
   if (field === "action") return translate(locale, ({registration:"注册",new_purchase:"新购",renewal:"续费",model_usage:"模型调用",activity:"营销活动",withdrawal:"佣金提现",balance_withdrawal:"余额提现",customer_login:"登录",all_new_business:"所有新增业务"} as Record<string,string>)[value] || value);
   if (field && enumLabelsByField[field]?.[value]) return translate(locale, enumLabelsByField[field][value]);

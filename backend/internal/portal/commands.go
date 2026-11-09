@@ -192,9 +192,10 @@ func (a *Application) operatorCommand(c *gin.Context) {
 				Action string `json:"action"`
 			}
 			_ = json.Unmarshal(config, &action)
-			if action.Action == "fee_rule" {
-				return a.savePaymentMethodRule(c, op, actor, "", config, tx)
+			if action.Action == "open_method" {
+				return a.openPaymentMethod(c, op, actor, "", config, tx)
 			}
+
 			var in payments.MerchantInput
 			if e := json.Unmarshal(config, &in); e != nil {
 				return nil, payments.ErrInvalid
@@ -389,12 +390,14 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	action := c.Param("action")
-	if resource == "payment-methods" && action == "fee_rule" {
+	if resource == "payment-methods" && action == "open_method" {
 		var input json.RawMessage
 		if !body(c, &input) {
 			return
 		}
-		raw, err := a.command(c, "payment-method-rule:"+op.ID+":"+c.Param("id"), input, func(tx *gorm.DB) (any, error) { return a.savePaymentMethodRule(c, op, actor, c.Param("id"), input, tx) })
+		raw, err := a.command(c, "payment-method-rule:"+op.ID+":"+c.Param("id"), input, func(tx *gorm.DB) (any, error) {
+			return a.openPaymentMethod(c, op, actor, c.Param("id"), input, tx)
+		})
 		jsonResponse(c, raw, err)
 		return
 	}

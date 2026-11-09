@@ -128,7 +128,7 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		}
 		options := []gin.H{}
 		for _, m := range methods {
-			options = append(options, gin.H{"value": m.ID, "label": m.Name + " · " + m.Currency, "fee_rule": gin.H{"driver": m.Driver, "fee_rule_id": m.FeeRuleID, "flat_fee_money": m.FlatFeeMoney, "fee_rate": m.FeeRate}})
+			options = append(options, gin.H{"value": m.ID, "label": paymentMethodName(c, m), "fee_rule": gin.H{"driver": m.Driver, "fee_rule_id": m.FeeRuleID, "flat_fee_money": m.FlatFeeMoney, "fee_rate": m.FeeRate}})
 		}
 		if len(options) > 0 {
 			method := f("external_method_id", "收款方式", "select")
@@ -511,29 +511,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 		a.paymentQuoteSettingsResource(c, op, p, base)
 		return
 	case "payment-methods":
-		p["views"] = []gin.H{{"value": "fees", "label": "方式与手续费"}, {"value": "connections", "label": "收款连接"}}
-		if c.Query("view") != "connections" {
-			a.paymentMethodRules(c, op, p, base)
-			return
-		}
-		p["description"] = "配置实际收款通道和账号。保存后在方式与手续费中统一设置名称、费用及提现用途。"
-		rows, e := a.Payments.ListMerchantConfigs(ctx, actor, op.ID)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		for _, row := range rows {
-			v := values(row.Merchant)
-			v["missing_fields"] = row.MissingFields
-			v["fields_set"] = row.FieldsSet
-			status := "pending_configuration"
-			if len(row.MissingFields) == 0 && row.Merchant.Enabled {
-				status = "ready"
-			}
-			items = append(items, entity(row.Merchant.ID, status, int64(row.Merchant.Version), v))
-		}
-		p["columns"] = []gin.H{col("id", "商户配置", "text"), col("driver", "协议", "text"), col("enabled", "启用", "boolean"), col("missing_fields", "待配置材料", "text"), col("fields_set", "已设置字段", "text")}
-		p["operations"] = []operation{{Name: "configure", Label: "保存真实商户配置", Method: "POST", Path: base, Fields: []field{jsonField("id(UUID)、driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual)、enabled、credentials（按协议必填材料）、expected_version；不回显密钥。")}, Description: "材料齐全后启用实际驱动。协议测试证据不能代替真实商户验收。"}}
+		a.paymentMethodRules(c, op, p, base)
+		return
 	case "payments":
 		p["search_supported"], p["status_supported"] = true, true
 		rows, e := a.Commerce.OperatorReceipts(ctx, nil, op.ID, c.Query("cursor"), 51, c.Query("q"), c.Query("status"))

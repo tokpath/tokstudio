@@ -843,5 +843,180 @@
     "en": "Verified principal",
     "ja": "確認済み本体額",
     "ru": "Подтверждённая основная сумма"
+  },
+  "开通支付方式": {
+    "en": "Open a payment method",
+    "ja": "支払方法を開通",
+    "ru": "Подключить способ оплаты"
+  },
+  "管理支付方式": {
+    "en": "Manage payment method",
+    "ja": "支払方法を管理",
+    "ru": "Управление способом оплаты"
+  },
+  "保存支付方式": {
+    "en": "Save payment method",
+    "ja": "支払方法を保存",
+    "ru": "Сохранить способ оплаты"
+  },
+  "启用支付方式": {
+    "en": "Enable payment method",
+    "ja": "支払方法を有効にする",
+    "ru": "Включить способ оплаты"
+  },
+  "用于收款": {
+    "en": "Accept payments",
+    "ja": "入金に使用",
+    "ru": "Принимать платежи"
+  },
+  "可收款": {
+    "en": "Can accept payments",
+    "ja": "入金可能",
+    "ru": "Приём платежей доступен"
+  },
+  "可提现": {
+    "en": "Can process withdrawals",
+    "ja": "出金可能",
+    "ru": "Вывод доступен"
+  },
+  "待接入": {
+    "en": "Awaiting connection",
+    "ja": "接続待ち",
+    "ru": "Ожидает подключения"
+  },
+  "awaiting_connection": {
+    "en": "Awaiting connection",
+    "ja": "接続待ち",
+    "ru": "Ожидает подключения"
+  },
+  "待补充资料": {
+    "en": "Missing information",
+    "ja": "不足資料",
+    "ru": "Недостающие данные"
+  },
+  "收款办理方式": {
+    "en": "Collection processing",
+    "ja": "入金の処理方法",
+    "ru": "Обработка входящих платежей"
+  },
+  "线下办理": {
+    "en": "Handled offline",
+    "ja": "オフラインで処理",
+    "ru": "Офлайн-обработка"
+  },
+  "线下支付": {
+    "en": "Offline payment",
+    "ja": "オフライン決済",
+    "ru": "Офлайн-оплата"
+  },
+  "银行卡": {
+    "en": "Bank card",
+    "ja": "銀行カード",
+    "ru": "Банковская карта"
+  },
+  "银行转账": {
+    "en": "Bank transfer",
+    "ja": "銀行振込",
+    "ru": "Банковский перевод"
+  },
+  "接入资料": {
+    "en": "Connection details",
+    "ja": "接続情報",
+    "ru": "Данные подключения"
+  },
+  "收款资产与网络": {
+    "en": "Collection asset and network",
+    "ja": "受取資産とネットワーク",
+    "ru": "Актив и сеть для приёма"
+  },
+  "待接入，先保存规则": {
+    "en": "Not connected: save the rule first",
+    "ja": "未接続：先に規則を保存",
+    "ru": "Ещё не подключено: сохранить правило"
+  },
+  "留空保留已保存的密钥": {
+    "en": "Leave blank to retain the saved secret",
+    "ja": "空欄で保存済みのキーを保持",
+    "ru": "Оставьте пустым, чтобы сохранить текущий ключ"
+  },
+  "此方式仅用于收款。": {
+    "en": "This method supports collections only.",
+    "ja": "この方法は入金専用です。",
+    "ru": "Этот способ предназначен только для приёма платежей."
+  },
+  "选择支付方式，在同一处填写接入资料、手续费及用途。资料未齐可先保存规则，收款不会提前开放。": {
+    "en": "Choose a payment method and set its connection details, fee and uses together. You may save the rule before all details are ready; collections remain unavailable.",
+    "ja": "支払方法を選び、接続情報、手数料、用途を一括設定します。資料が未完成でも規則を保存でき、入金はまだ有効になりません。",
+    "ru": "Выберите способ оплаты и задайте подключение, комиссию и назначение в одном месте. Правило можно сохранить заранее; приём платежей останется недоступным."
+  },
+  "双方线下完成收付款后登记实际收款事实，系统按本金入账和交付。": {
+    "en": "Complete the payment offline, then record the actual receipt. Wallet credit and delivery use the principal.",
+    "ja": "当事者間でオフライン決済を完了してから実際の入金を登録します。残高計上と提供は元本に基づきます。",
+    "ru": "После офлайн-расчёта зарегистрируйте фактическое поступление. Зачисление и предоставление прав рассчитываются по основной сумме."
+  },
+  "提现收款资料由支付方式自动确定。余额和佣金提现共用本次费用规则，由经营方线下付款后登记完成。": {
+    "en": "Withdrawal recipient fields follow the payment method automatically. Balance and commission withdrawals share this fee rule. The operator pays offline, then records completion.",
+    "ja": "出金先の項目は支払方法から自動設定されます。残高とコミッションの出金に同じ手数料規則を使い、事業者がオフラインで支払後に完了を登録します。",
+    "ru": "Поля получателя определяются способом оплаты. Для вывода баланса и комиссионных действует одно правило. Оператор платит вне системы и регистрирует завершение."
+  },
+  "收款在本金之外加收，提现从申请总额扣除。内部余额和佣金抵扣不收费；修改不影响已确认的交易。": {
+    "en": "Collection fees are added to the principal; withdrawal fees are deducted from the requested total. Internal wallet offsets are free. Changes do not alter confirmed transactions.",
+    "ja": "入金手数料は元本に加算し、出金手数料は申請総額から控除します。内部残高やコミッションの充当は無料で、変更は確認済み取引に影響しません。",
+    "ru": "При оплате комиссия добавляется к основной сумме, при выводе вычитается из суммы заявки. Внутренние списания бесплатны. Изменения не затрагивают подтверждённые операции."
+  },
+  "支付方式和手续费规则已保存。请按卡片状态核对可用业务。": {
+    "en": "Payment method and fee rule saved. Check the card status for available uses.",
+    "ja": "支払方法と手数料規則を保存しました。カードの状態で利用可能な業務を確認してください。",
+    "ru": "Способ оплаты и комиссия сохранены. Доступные операции указаны в статусе карточки."
+  },
+  "等待平台完成收款所需配置": {
+    "en": "Waiting for the platform to complete collection setup",
+    "ja": "入金に必要なプラットフォーム設定待ち",
+    "ru": "Ожидание настройки приёма платежей платформой"
+  },
+  "支付宝线上收款": {
+    "en": "Alipay online collection",
+    "ja": "Alipay オンライン入金",
+    "ru": "Онлайн-приём Alipay"
+  },
+  "微信线上收款": {
+    "en": "WeChat online collection",
+    "ja": "WeChat オンライン入金",
+    "ru": "Онлайн-приём WeChat"
+  },
+  "自有链上钱包": {
+    "en": "Own on-chain wallet",
+    "ja": "自己管理のオンチェーンウォレット",
+    "ru": "Собственный блокчейн-кошелёк"
+  },
+  "现金 · 收款人姓名": {
+    "en": "Cash · recipient name",
+    "ja": "現金・受取人名",
+    "ru": "Наличные · имя получателя"
+  },
+  "经营方与客户线下交付现金，核实收款人后登记付款。": {
+    "en": "The operator hands over cash offline, verifies the recipient and records payment.",
+    "ja": "事業者が現金をオフラインで渡し、受取人を確認して支払を登録します。",
+    "ru": "Оператор передаёт наличные вне системы, проверяет получателя и регистрирует выплату."
+  },
+  "填写现场领取现金的人。": {
+    "en": "Enter the person collecting the cash.",
+    "ja": "現金を受け取る人を入力してください。",
+    "ru": "Укажите человека, получающего наличные."
+  },
+  "请选择至少一项用途，或停用此支付方式。": {
+    "en": "Select at least one use, or disable this payment method.",
+    "ja": "用途を少なくとも一つ選ぶか、この支払方法を無効にしてください。",
+    "ru": "Выберите хотя бы одно назначение или отключите способ оплаты."
+  },
+  "现金": {
+    "en": "Cash",
+    "ja": "現金",
+    "ru": "Наличные"
+  },
+  "收款币种（大写，例如USD/CNY）": {
+    "en": "Collection currency (uppercase, e.g. USD/CNY)",
+    "ja": "受取通貨（大文字、例：USD/CNY）",
+    "ru": "Валюта приёма (заглавными буквами, например USD/CNY)"
   }
 }

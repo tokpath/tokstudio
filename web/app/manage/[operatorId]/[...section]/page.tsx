@@ -6,7 +6,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   if (section.length === 1 && section[0] === "withdrawals") {
     const query = new URLSearchParams();
     for (const [key, value] of Object.entries(search)) for (const item of Array.isArray(value) ? value : value ? [value] : []) query.append(key, item);
-    query.set("section", search.view === "methods" ? "methods" : "requests");
+    query.set("section", "requests");
     query.delete("view");
     redirect(`/manage/${encodeURIComponent(operatorId)}/commissions?${query}`);
   }

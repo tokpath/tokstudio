@@ -273,7 +273,7 @@ func TestPostgresBalanceWithdrawalMinimumIsSetOnItsOwnPage(t *testing.T) {
 	}
 }
 
-func TestSameCurrencyPayoutFormOmitsTheFixedNet(t *testing.T) {
+func TestAcceptedPayoutFormOmitsQuotedCurrencyAndAmounts(t *testing.T) {
 	f := setupPortal(t)
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	base := "/v1/operators/" + f.a.Installation.OperatorID
@@ -294,11 +294,16 @@ func TestSameCurrencyPayoutFormOmitsTheFixedNet(t *testing.T) {
 		if fields["currency"]["default_value"] != "USD" {
 			t.Fatal(resource, fields["currency"])
 		}
-		for _, name := range []string{"original_amount", "valuation_evidence"} {
+		for _, name := range []string{"currency", "original_amount", "valuation_evidence"} {
 			when, _ := fields[name]["visible_when"].(map[string]any)
 			values, _ := when["values"].([]any)
-			if when["not"] != true || when["field"] != "currency" || len(values) != 1 || values[0] != "USD" {
+			if when["not"] == true || when["field"] != "payout_currency" || len(values) != 1 || values[0] != "" {
 				t.Fatal(resource, name, fields[name])
+			}
+		}
+		for _, name := range []string{"original_amount", "valuation_evidence"} {
+			if fields[name]["required"] == true {
+				t.Fatal("historical same-currency payments must not require a second amount", resource, name)
 			}
 		}
 	}

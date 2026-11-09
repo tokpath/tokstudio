@@ -76,7 +76,7 @@ func TestPostgresCustomerWithdrawalCancellationOnlyBeforeReview(t *testing.T) {
 			minimum = item
 		}
 	}
-	if minimum["value"] != "1" || minimum["unit"] != "MONEY" || !strings.Contains(page["description"].(string), "1 结算币种") {
+	if minimum["value"] != "1" || minimum["unit"] != "MONEY" || !strings.Contains(page["description"].(string), "最低额度") {
 		t.Fatal("customer withdrawal page omitted the published minimum", minimum, page["description"])
 	}
 	if len(page["operations"].([]any)) != 0 {

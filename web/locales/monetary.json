@@ -1018,5 +1018,255 @@
     "en": "Collection currency (uppercase, e.g. USD/CNY)",
     "ja": "受取通貨（大文字、例：USD/CNY）",
     "ru": "Валюта приёма (заглавными буквами, например USD/CNY)"
+  },
+  "人工办理": {
+    "en": "Handled manually",
+    "ja": "手動対応",
+    "ru": "Ручная обработка"
+  },
+  "人工提现": {
+    "en": "Manual withdrawals",
+    "ja": "手動出金",
+    "ru": "Ручные выплаты"
+  },
+  "人工收款说明": {
+    "en": "Manual collection instructions",
+    "ja": "手動入金の案内",
+    "ru": "Инструкции по ручному приёму платежей"
+  },
+  "付款说明（可选）": {
+    "en": "Payment instructions (optional)",
+    "ja": "支払案内（任意）",
+    "ru": "Инструкции по оплате (необязательно)"
+  },
+  "先选择要办理的业务。人工提现无需接入接口；线上收款按通道要求配置。": {
+    "en": "Choose the services to offer. Manual withdrawals need no API connection; configure online collection for its provider.",
+    "ja": "提供する業務を選択してください。手動出金にAPI連携は不要です。オンライン入金は決済サービスの要件に従って設定します。",
+    "ru": "Выберите операции. Для ручных выплат подключение API не требуется; онлайн-приём настраивается по требованиям провайдера."
+  },
+  "可办理的提现网络": {
+    "en": "Supported withdrawal networks",
+    "ja": "対応する出金ネットワーク",
+    "ru": "Доступные сети для выплат"
+  },
+  "客户填写的收款资料": {
+    "en": "Recipient details customers provide",
+    "ja": "顧客が入力する受取情報",
+    "ru": "Реквизиты, заполняемые клиентом"
+  },
+  "可选": {
+    "en": "Optional",
+    "ja": "任意",
+    "ru": "Необязательно"
+  },
+  "必填": {
+    "en": "Required",
+    "ja": "必須",
+    "ru": "Обязательно"
+  },
+  "实际到账": {
+    "en": "Amount received",
+    "ja": "実際の受取額",
+    "ru": "Сумма к получению"
+  },
+  "提现": {
+    "en": "Withdrawals",
+    "ja": "出金",
+    "ru": "Вывод средств"
+  },
+  "清算净额": {
+    "en": "Net settlement amount",
+    "ja": "決済通貨での正味額",
+    "ru": "Чистая сумма в валюте расчётов"
+  },
+  "提现兑换比例": {
+    "en": "Withdrawal exchange rate",
+    "ja": "出金時の換算比率",
+    "ru": "Курс для выплат"
+  },
+  "提现到账币种": {
+    "en": "Withdrawal receiving currency",
+    "ja": "出金の受取通貨",
+    "ru": "Валюта получения выплаты"
+  },
+  "提现办理说明": {
+    "en": "Withdrawal instructions",
+    "ja": "出金の案内",
+    "ru": "Инструкции по выплатам"
+  },
+  "提现办理说明（可选）": {
+    "en": "Withdrawal instructions (optional)",
+    "ja": "出金の案内（任意）",
+    "ru": "Инструкции по выплатам (необязательно)"
+  },
+  "收款信息（可选）": {
+    "en": "Payment recipient details (optional)",
+    "ja": "入金先情報（任意）",
+    "ru": "Реквизиты получателя оплаты (необязательно)"
+  },
+  "收款银行地址": {
+    "en": "Recipient bank address",
+    "ja": "受取銀行の住所",
+    "ru": "Адрес банка получателя"
+  },
+  "补充汇款资料": {
+    "en": "Additional transfer details",
+    "ja": "追加の送金情報",
+    "ru": "Дополнительные реквизиты перевода"
+  },
+  "添加支付方式": {
+    "en": "Add payment method",
+    "ja": "支払方法を追加",
+    "ru": "Добавить способ оплаты"
+  },
+  "等待平台配置可用的资产与网络。": {
+    "en": "Waiting for the platform to configure supported assets and networks.",
+    "ja": "プラットフォームによる対応資産・ネットワークの設定待ちです。",
+    "ru": "Ожидание настройки доступных активов и сетей платформой."
+  },
+  "系统内置，启用即可人工办理": {
+    "en": "Built in; enable for manual processing",
+    "ja": "標準機能。有効にすると手動で対応できます",
+    "ru": "Встроенный способ; включите для ручной обработки"
+  },
+  "线上收款接入": {
+    "en": "Online collection connection",
+    "ja": "オンライン入金の接続設定",
+    "ru": "Подключение онлайн-приёма платежей"
+  },
+  "线下支付 · 收款人、办理说明": {
+    "en": "Offline payment · recipient and instructions",
+    "ja": "オフライン決済 · 受取人・案内",
+    "ru": "Офлайн-оплата · получатель и инструкции"
+  },
+  "线下支付是系统内置能力。启用所需业务并设置费用，双方实际收付款后登记完成。": {
+    "en": "Offline payment is built in. Enable the services and set the fee, then record completion after the actual payment.",
+    "ja": "オフライン決済は標準機能です。必要な業務と手数料を設定し、実際の授受後に完了を記録します。",
+    "ru": "Офлайн-оплата встроена в систему. Включите нужные операции, задайте комиссию и зарегистрируйте завершение после фактической оплаты."
+  },
+  "经营方审批后自行付款，再登记完成。余额和佣金提现共用以下资料和费用规则。": {
+    "en": "The operator approves, makes the payment externally, and records completion. Balance and commission withdrawals share these recipient details and fees.",
+    "ja": "運営者が承認後に外部で支払い、完了を記録します。残高とコミッションの出金は以下の受取情報と手数料を共用します。",
+    "ru": "Оператор одобряет заявку, самостоятельно переводит деньги и регистрирует завершение. Вывод баланса и комиссий использует общие реквизиты и правила сборов."
+  },
+  "请填写有效的提现兑换比例。": {
+    "en": "Enter a valid withdrawal exchange rate.",
+    "ja": "有効な出金換算比率を入力してください。",
+    "ru": "Укажите корректный курс для выплат."
+  },
+  "请按申请时固定的到账金额完成付款：": {
+    "en": "Pay the receiving amount fixed when this request was submitted:",
+    "ja": "申請時に確定した受取額を支払ってください：",
+    "ru": "Переведите сумму к получению, зафиксированную при подаче заявки:"
+  },
+  "请联系经营方，按约定完成线下付款。": {
+    "en": "Contact the operator and complete the agreed offline payment.",
+    "ja": "運営者に連絡し、合意した方法でオフライン支払いを完了してください。",
+    "ru": "Свяжитесь с оператором и оплатите согласованным офлайн-способом."
+  },
+  "请选择经营方能够办理的提现网络。": {
+    "en": "Select the withdrawal networks the operator can process.",
+    "ja": "運営者が対応できる出金ネットワークを選択してください。",
+    "ru": "Выберите сети, в которых оператор может выполнить выплату."
+  },
+  "资料未齐可先保存，收款尚不开放，不影响已启用的人工提现。": {
+    "en": "You can save incomplete settings. Collection stays unavailable; enabled manual withdrawals remain available.",
+    "ja": "情報が未完成でも保存できます。入金は未開放のままですが、有効な手動出金には影響しません。",
+    "ru": "Неполные настройки можно сохранить. Приём платежей останется недоступным; включённые ручные выплаты продолжат работать."
+  },
+  "这是本方式承诺的实际付款比例。客户申请前看到到账金额，申请后固定；调整只影响新申请。": {
+    "en": "This is the payout rate offered for this method. Customers see the receiving amount before applying; it is fixed on submission. Changes apply only to new requests.",
+    "ja": "この方法で支払う換算比率です。顧客は申請前に受取額を確認し、申請時に確定します。変更は新規申請のみに適用されます。",
+    "ru": "Это курс выплаты для данного способа. Клиент видит сумму до подачи заявки; после подачи она фиксируется. Изменения действуют только для новых заявок."
+  },
+  "与经营方联系并约定现金等线下收款安排，经营方付款后登记完成。": {
+    "en": "Contact the operator to arrange cash or another offline payment. The operator records completion after paying.",
+    "ja": "運営者に連絡して現金などの受取方法を決めます。運営者は支払い後に完了を記録します。",
+    "ru": "Согласуйте с оператором получение наличных или другую офлайн-выплату. После оплаты оператор зарегистрирует завершение."
+  },
+  "填写实际收款人。": {
+    "en": "Enter the actual recipient.",
+    "ja": "実際の受取人を入力してください。",
+    "ru": "Укажите фактического получателя."
+  },
+  "可填写已约定的联系或交付安排。": {
+    "en": "Optionally describe the agreed contact or handover arrangements.",
+    "ja": "合意済みの連絡・受渡方法を任意で記入できます。",
+    "ru": "Можно указать согласованные условия связи или передачи средств."
+  },
+  "填写户名、银行和账号。开户支行仅在实际转账需要时补充。": {
+    "en": "Enter the account holder, bank and account number. Add the branch only when needed for the transfer.",
+    "ja": "口座名義、銀行、口座番号を入力します。支店は実際の振込に必要な場合のみ追記してください。",
+    "ru": "Укажите владельца счёта, банк и номер счёта. Отделение указывается только при необходимости для перевода."
+  },
+  "实际转账需要时填写。": {
+    "en": "Fill in only if needed for the transfer.",
+    "ja": "実際の振込に必要な場合に入力してください。",
+    "ru": "Заполните, если это требуется для перевода."
+  },
+  "填写可用于人工转账的支付宝登录手机号或邮箱。": {
+    "en": "Enter the Alipay login phone number or email used for manual transfers.",
+    "ja": "手動送金に使えるAlipayのログイン電話番号またはメールアドレスを入力してください。",
+    "ru": "Укажите телефон или email входа в Alipay, доступный для ручного перевода."
+  },
+  "经营方通过微信联系并核对实际收款方式后人工付款。填写联系方式不代表已完成微信账户验证。": {
+    "en": "The operator contacts you on WeChat, confirms how to pay, and pays manually. Contact details do not constitute WeChat account verification.",
+    "ja": "運営者がWeChatで連絡し、受取方法を確認して手動で支払います。連絡先の入力はWeChatアカウントの認証ではありません。",
+    "ru": "Оператор свяжется через WeChat, уточнит способ получения и выполнит перевод вручную. Контактные данные не означают проверку аккаунта WeChat."
+  },
+  "供经营方联系时核对收款人。": {
+    "en": "For the operator to confirm the recipient when contacting them.",
+    "ja": "運営者が連絡時に受取人を確認するための情報です。",
+    "ru": "Для проверки получателя оператором при связи."
+  },
+  "填写可联系到你的微信号或手机号，实际转账方式与经营方确认。": {
+    "en": "Enter a WeChat ID or phone number where you can be reached. Confirm the actual transfer method with the operator.",
+    "ja": "連絡可能なWeChat IDまたは電話番号を入力し、実際の送金方法を運営者と確認してください。",
+    "ru": "Укажите WeChat ID или телефон для связи. Согласуйте фактический способ перевода с оператором."
+  },
+  "填写接收本次付款的 PayPal 邮箱。": {
+    "en": "Enter the PayPal email receiving this payment.",
+    "ja": "今回の支払いを受け取るPayPalメールアドレスを入力してください。",
+    "ru": "Укажите email PayPal для получения этой выплаты."
+  },
+  "汇出银行要求时填写。": {
+    "en": "Fill in if required by the sending bank.",
+    "ja": "送金銀行が要求する場合に入力してください。",
+    "ru": "Заполните, если этого требует банк отправителя."
+  },
+  "可补充银行要求的当地清算代码或中转行信息。": {
+    "en": "Add local clearing codes or intermediary bank details if required by the bank.",
+    "ja": "銀行が求める国内決済コードや中継銀行情報を追記できます。",
+    "ru": "При необходимости добавьте местный клиринговый код или реквизиты банка-посредника."
+  },
+  "填写 8 位或 11 位 SWIFT/BIC。": {
+    "en": "Enter an 8- or 11-character SWIFT/BIC.",
+    "ja": "8桁または11桁のSWIFT/BICを入力してください。",
+    "ru": "Укажите SWIFT/BIC из 8 или 11 символов."
+  },
+  "充值、直接购买套餐": {
+    "en": "Top-ups and direct plan purchases",
+    "ja": "チャージ、プランの直接購入",
+    "ru": "Пополнение и прямая покупка тарифов"
+  },
+  "充值、直接购买套餐、余额提现、佣金提现": {
+    "en": "Top-ups, direct plan purchases, balance and commission withdrawals",
+    "ja": "チャージ、プランの直接購入、残高出金、報酬出金",
+    "ru": "Пополнение, прямая покупка тарифов, вывод баланса и комиссий"
+  },
+  "充值和直接购买套餐，共用所选方式的规则。支付 100 本金、手续费 2 时，合计付款 102，权益按 100 交付。": {
+    "en": "Top-ups and direct plan purchases share the selected method’s rule. A principal of 100 plus a fee of 2 means paying 102, with benefits delivered for 100.",
+    "ja": "チャージとプランの直接購入には同じ方式のルールを適用します。元本100、手数料2なら支払額は102、付与額は100です。",
+    "ru": "Пополнение и прямая покупка тарифов используют правило выбранного способа. При основной сумме 100 и комиссии 2 клиент платит 102, права предоставляются на 100."
+  },
+  "余额和佣金提现共用同一规则。申请 100、手续费 2 时，账户扣除 100、清算净额 98；实际到账按所选币种和比例展示。": {
+    "en": "Balance and commission withdrawals share one rule. Requesting 100 with a fee of 2 debits 100 and leaves a net settlement amount of 98; the receiving amount uses the chosen currency and rate.",
+    "ja": "残高と報酬の出金には同じルールを適用します。申請100、手数料2なら口座から100を差し引き、決済通貨での正味額は98です。受取額は選択した通貨と比率で表示します。",
+    "ru": "Для вывода баланса и комиссий действует одно правило. При заявке на 100 и комиссии 2 списывается 100, чистая расчётная сумма — 98; сумма к получению показана в выбранной валюте по указанному курсу."
+  },
+  "提现须达到经营方公布的最低额度。手续费和实际到账金额在申请时固定，由你确认。": {
+    "en": "Withdrawals must meet the operator’s minimum. Review and confirm the fee and receiving amount when applying.",
+    "ja": "出金は運営者の最低額以上が必要です。申請時に手数料と実際の受取額を確認し、確定します。",
+    "ru": "Сумма вывода должна быть не ниже минимума оператора. При подаче заявки проверьте и подтвердите комиссию и сумму к получению."
   }
 }

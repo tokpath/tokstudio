@@ -11,11 +11,12 @@ vi.mock("./shared",()=>({useCommand:()=>({run,busy:false,unresolved:pending}),Er
 afterEach(()=>{cleanup();vi.clearAllMocks();pending=false});
 const catalog=[{kind:"bank_transfer",label:"银行转账",payout:true,drivers:[{value:"manual",label:"线下办理",fields:[{name:"instructions",label:"付款说明",secret:false}]}]},{kind:"kvoucher",label:"KVoucher",payout:false,drivers:[{value:"kvoucher",label:"KVoucher",fields:[{name:"kvoucher_api_key",label:"KVoucher API Key",secret:true}]}]}];
 function mount(){return render(<QueryClientProvider client={new QueryClient()}><PaymentMethodForm operatorID="op" operation={{name:"open_method",label:"开通支付方式",path:"/api/v1/operators/op/payment-methods",method:"POST",fields:[]}} catalog={catalog} onBlockedChange={()=>{}}/></QueryClientProvider>)}
-it("opens a built-in offline method with automatic payout materials and one fee rule",async()=>{
+it("enables manual collection and payout only when selected, with one shared fee rule",async()=>{
  mount();fireEvent.change(screen.getByLabelText('支付方式'),{target:{value:'bank_transfer'}});
  expect(screen.queryByLabelText('支付方式名称')).toBeNull();expect(screen.queryByLabelText('提现收款材料')).toBeNull();
- expect((screen.getByLabelText('用于余额和佣金提现') as HTMLInputElement).checked).toBe(true);
- fireEvent.change(screen.getByLabelText('付款说明'),{target:{value:'At the counter'}});
+ expect((screen.getByLabelText('用于余额和佣金提现') as HTMLInputElement).checked).toBe(false);
+ fireEvent.click(screen.getByLabelText('用于收款'));fireEvent.click(screen.getByLabelText('用于余额和佣金提现'));
+ fireEvent.change(screen.getByLabelText('付款说明（可选）'),{target:{value:'At the counter'}});
  fireEvent.change(screen.getByLabelText('手续费规则'),{target:{value:'percent'}});
  fireEvent.change(screen.getByLabelText('手续费率 %'),{target:{value:'2'}});
  fireEvent.click(screen.getByRole('button',{name:'保存支付方式'}));

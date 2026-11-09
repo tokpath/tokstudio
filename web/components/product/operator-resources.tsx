@@ -1,4 +1,5 @@
 "use client";
+import { payoutRecipientText } from "@/lib/payout-recipient";
 import { canRunOperatorAction } from "@/lib/operator-transition";
 import { RiskSettings } from "./risk-settings";
 import { LedgerCollection } from "./ledger-workspace";
@@ -352,6 +353,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     </div>}
     </div> : balanceMinimum ? <BalanceMinimumSetting operation={balanceMinimum} /> : customerPayout ? <CustomerWithdrawalApplications rows={rows} walletName={payoutNoun} cancel={page.row_operations.find(operation => operation.name === "cancel")} onCancel={selectOperation} /> : renderTable(rows)}
     {selection && <OperatorPanel title={t(selection.operation.label)} description={selection.row ? recordTitle(selection.row, resourceName, locale) : customer ? t("在当前客户范围内办理") : t("在当前经营范围内办理")} open blocked={blocked} close={closeOperation}>
+      {selection.row?.values.payout_display && selection.operation.name === "verify_paid" && <Notice>{t("请按申请时固定的到账金额完成付款：")} {String(selection.row.values.payout_display)}</Notice>}
       {selection.row && !customer && /\/invoices\/\{id\}\/register$/.test(selection.operation.path) && <InvoiceFiles embedded scope={selection.operation.path.replace(/\/\{id\}\/register$/, "")} invoiceID={selection.row.id} upload={selection.operation.name === "register"} />}
       {selection.operation.name === "open_method" && operatorID ? <PaymentMethodForm key={selection.row?.id || "new"} operation={selection.operation} row={selection.row} operatorID={operatorID} catalog={page.payment_method_catalog || []} onBlockedChange={setBlocked} /> : <OperationForm key={`${selection.operation.name}:${selection.row?.id || "new"}`} operation={selection.operation} row={selection.row} operatorID={operatorID} embedded initialValues={{ ...savedValues, ...initialValues }} lockedFields={Object.keys(initialValues || {})} onBlockedChange={setBlocked} onAbandon={() => setSelection(undefined)} />}
     </OperatorPanel>}
@@ -524,7 +526,9 @@ const currentRecordOperations: Record<string, string[]> = { mail: ["configure"],
 export function resourceValueText(value: JSONValue | undefined, field: string | undefined, locale: Locale): string {
   if (typeof value === "boolean") return translate(locale, value ? "是" : "否");
   if (typeof value !== "string") return String(value ?? "—");
+  if (field === "recipient_reference") return payoutRecipientText(value, source => translate(locale, source));
   if (field === "record_kind") return recordKindLabel(value, locale);
+  if (["collection_status","payout_status"].includes(field || "")) return translate(locale,value);
   if (field === "readiness_note") return value.split("、").map(part=>translate(locale,part)).join(locale==="zh"?"、":", ");
   if (field && ["scope_label", "metric_name", "direction_name", "api_entry_note", "reserved_note", "payment_hold", "applicant_kind"].includes(field)) return translate(locale,value);
   if (field === "action") return translate(locale, ({registration:"注册",new_purchase:"新购",renewal:"续费",model_usage:"模型调用",activity:"营销活动",withdrawal:"佣金提现",balance_withdrawal:"余额提现",customer_login:"登录",all_new_business:"所有新增业务"} as Record<string,string>)[value] || value);

@@ -39,3 +39,11 @@ export function previewWithdrawal(input: { amount: string; flatFee: string; feeR
   if (net <= 0n) return { ok: false, reason: "fee_exceeds" };
   return { ok: true, amount: text(payable), fee: text(fee), net: text(net) };
 }
+
+// Match the accepted payout quote, rounding once to the receiving currency unit.
+export function previewPayout(net:string,rate:string,digits:number):string | undefined {
+ const a=atoms(net),r=atoms(rate);if(a===undefined||r===undefined||r<=0n||digits<0||digits>8)return undefined;
+ const denominator=10n**BigInt(scale*2-digits),numerator=a*r;
+ const units=(numerator*2n+denominator)/(denominator*2n);
+ if(units<=0n)return undefined;return text(units*10n**BigInt(scale-digits));
+}

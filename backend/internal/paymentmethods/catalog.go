@@ -11,10 +11,9 @@ type Method struct {
 
 func Catalog() []Method {
 	return []Method{
-		{"offline", "线下支付", "", []string{"manual"}},
-		{"cash", "现金", "cash", []string{"manual"}},
+		{"offline", "线下支付", "offline", []string{"manual"}},
 		{"bank_transfer", "银行转账", "bank_cn", []string{"manual"}},
-		{"bank_card", "银行卡", "bank_cn", []string{"stripe"}},
+		{"stripe", "Stripe", "", []string{"stripe"}},
 		{"alipay", "支付宝", "alipay", []string{"manual", "alipay"}},
 		{"wechat", "微信支付", "wechat", []string{"manual", "wechat"}},
 		{"paypal", "PayPal", "paypal", []string{"manual"}},

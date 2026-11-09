@@ -3067,19 +3067,37 @@
         "label": "实际付款币种",
         "name": "currency",
         "help": "默认是结算币种。用结算币种付款时不用再填金额。如果实际付出的是另一种货币，改成那种货币。",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "payout_currency",
+          "values": [
+            ""
+          ]
+        }
       },
       {
         "kind": "decimal",
         "label": "实际原币付款金额",
         "name": "original_amount",
-        "help": "填写实际付出的原币金额。账上仍按申请时已经固定的实付净额入账。"
+        "help": "填写实际付出的原币金额。账上仍按申请时已经固定的实付净额入账。",
+        "visible_when": {
+          "field": "payout_currency",
+          "values": [
+            ""
+          ]
+        }
       },
       {
         "kind": "textarea",
         "label": "本笔原币付款与实付净额的关联凭证",
         "name": "valuation_evidence",
-        "help": "说明这笔原币付款对应申请里的实付净额。"
+        "help": "说明这笔原币付款对应申请里的实付净额。",
+        "visible_when": {
+          "field": "payout_currency",
+          "values": [
+            ""
+          ]
+        }
       },
       {
         "kind": "datetime",
@@ -4181,7 +4199,7 @@
     "method": "POST",
     "path": "/v1/operators/{operatorId}/payment-methods",
     "permission": "payments.manage",
-    "label": "开通支付方式",
+    "label": "添加支付方式",
     "description": "Choose one built-in payment identity and save its connection, uses and immutable fee rule atomically. Missing connection details stay pending. Payout changes additionally require withdrawals.manage.",
     "fields": [
       {
@@ -4201,16 +4219,12 @@
             "label": "线下支付"
           },
           {
-            "value": "cash",
-            "label": "现金"
-          },
-          {
             "value": "bank_transfer",
             "label": "银行转账"
           },
           {
-            "value": "bank_card",
-            "label": "银行卡"
+            "value": "stripe",
+            "label": "Stripe"
           },
           {
             "value": "alipay",
@@ -4254,7 +4268,27 @@
         "name": "payout_enabled",
         "label": "用于余额和佣金提现",
         "kind": "boolean",
-        "default_value": true
+        "default_value": false
+      },
+      {
+        "name": "payout_currency",
+        "label": "提现到账币种",
+        "kind": "text"
+      },
+      {
+        "name": "payout_rate",
+        "label": "提现兑换比例",
+        "kind": "decimal"
+      },
+      {
+        "name": "payout_note",
+        "label": "提现办理说明",
+        "kind": "textarea"
+      },
+      {
+        "name": "payout_networks",
+        "label": "可办理的提现网络",
+        "kind": "json"
       },
       {
         "name": "driver",
@@ -4339,16 +4373,12 @@
             "label": "线下支付"
           },
           {
-            "value": "cash",
-            "label": "现金"
-          },
-          {
             "value": "bank_transfer",
             "label": "银行转账"
           },
           {
-            "value": "bank_card",
-            "label": "银行卡"
+            "value": "stripe",
+            "label": "Stripe"
           },
           {
             "value": "alipay",
@@ -4392,7 +4422,27 @@
         "name": "payout_enabled",
         "label": "用于余额和佣金提现",
         "kind": "boolean",
-        "default_value": true
+        "default_value": false
+      },
+      {
+        "name": "payout_currency",
+        "label": "提现到账币种",
+        "kind": "text"
+      },
+      {
+        "name": "payout_rate",
+        "label": "提现兑换比例",
+        "kind": "decimal"
+      },
+      {
+        "name": "payout_note",
+        "label": "提现办理说明",
+        "kind": "textarea"
+      },
+      {
+        "name": "payout_networks",
+        "label": "可办理的提现网络",
+        "kind": "json"
       },
       {
         "name": "driver",

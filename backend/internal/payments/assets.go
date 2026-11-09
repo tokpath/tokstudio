@@ -253,3 +253,28 @@ func (s *Service) historicalMerchant(ctx context.Context, m Merchant, o Order) (
 	}
 	return m, nil
 }
+
+// PrepareMerchantAsset fills canonical network data for the onboarding form.
+func (s *Service) PrepareMerchantAsset(ctx context.Context, m *Merchant, methodKind string) error {
+	if m.Driver != "evm_wallet" && m.Driver != "nowpayments" {
+		return nil
+	}
+	if m.AssetNetworkVersionID == "" {
+		return nil
+	}
+	a, e := s.assetVersion(ctx, s.DB, m.AssetNetworkVersionID, true)
+	if e != nil {
+		return e
+	}
+	if methodKind == "usdt" && !IsUSDTAsset(a.Asset) {
+		return ErrInvalid
+	}
+	for _, key := range []string{"chain_id", "asset", "token_contract", "token_decimals", "min_confirmations", "pay_currency", "pay_network", "pay_token_contract", "pay_asset_verification_reference"} {
+		delete(m.Credentials, key)
+	}
+	return s.applyAssetNetwork(ctx, s.DB, m, true)
+}
+func IsUSDTAsset(asset string) bool {
+	a := strings.ToUpper(asset)
+	return a == "USDT" || strings.HasPrefix(a, "USDT") && len(a) > 4 && !strings.Contains(a, "USDC")
+}

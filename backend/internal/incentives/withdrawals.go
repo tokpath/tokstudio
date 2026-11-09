@@ -104,7 +104,10 @@ func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, o
 		if e != nil && e != gorm.ErrRecordNotFound {
 			return e
 		}
-		r, e := paymentmethods.Save(ctx, t, paymentmethods.Rule{Kind: old.Kind, Paused: old.Paused, CreatedBy: actor, MethodID: in.MethodID, OperatorID: operator, Name: in.MethodName, Collection: old.Collection, PayoutEnabled: in.Enabled, PayoutKind: in.PayoutKind, FlatFeeMoney: in.FlatFeeMoney, FeeRate: in.FeeRate}, expectedVersion)
+		if in.PayoutCurrency != "" {
+			old.PayoutCurrency, old.PayoutRate, old.PayoutNote, old.PayoutNetworks = in.PayoutCurrency, in.PayoutRate, in.PayoutNote, in.PayoutNetworks
+		}
+		r, e := paymentmethods.Save(ctx, t, paymentmethods.Rule{PayoutCurrency: old.PayoutCurrency, PayoutRate: old.PayoutRate, PayoutNote: old.PayoutNote, PayoutNetworks: old.PayoutNetworks, Kind: old.Kind, Paused: old.Paused, CreatedBy: actor, MethodID: in.MethodID, OperatorID: operator, Name: in.MethodName, Collection: old.Collection, PayoutEnabled: in.Enabled, PayoutKind: in.PayoutKind, FlatFeeMoney: in.FlatFeeMoney, FeeRate: in.FeeRate}, expectedVersion)
 		if e == paymentmethods.ErrChanged {
 			return ErrConflict
 		}
@@ -125,7 +128,11 @@ func (s *Service) SetWithdrawalPolicy(ctx context.Context, tx *gorm.DB, actor, o
 	return
 }
 func withdrawalRule(r paymentmethods.Rule, wallet string, minimum ledger.Decimal, currency string) WithdrawalPolicy {
-	return WithdrawalPolicy{ID: r.ID, MethodID: r.MethodID, OperatorID: r.OperatorID, Version: r.Version, Wallet: wallet, MethodName: r.Name, PayoutKind: r.PayoutKind, Enabled: r.PayoutEnabled && !r.Paused, FlatFeeMoney: r.FlatFeeMoney, FeeRate: r.FeeRate, MinimumMoney: minimum, Currency: currency, MethodReference: commissionWithdrawalTerms, EffectiveAt: r.CreatedAt}
+	if r.PayoutCurrency == "" {
+		r.PayoutCurrency = currency
+		r.PayoutRate = ledger.FromInt64(1)
+	}
+	return WithdrawalPolicy{PayoutCurrency: r.PayoutCurrency, PayoutRate: r.PayoutRate, PayoutNote: r.PayoutNote, PayoutNetworks: r.PayoutNetworks, ID: r.ID, MethodID: r.MethodID, OperatorID: r.OperatorID, Version: r.Version, Wallet: wallet, MethodName: r.Name, PayoutKind: r.PayoutKind, Enabled: r.PayoutEnabled && !r.Paused, FlatFeeMoney: r.FlatFeeMoney, FeeRate: r.FeeRate, MinimumMoney: minimum, Currency: currency, MethodReference: commissionWithdrawalTerms, EffectiveAt: r.CreatedAt}
 }
 func (s *Service) WithdrawalMethods(ctx context.Context, tx *gorm.DB, operator string, enabledOnly bool, wallet string) ([]WithdrawalPolicy, error) {
 	if wallet != "balance" {
@@ -209,7 +216,17 @@ func quoteWithdrawal(policy WithdrawalPolicy, amount ledger.Decimal) (Withdrawal
 	if net.Sign() <= 0 {
 		return WithdrawalQuote{}, ErrInvalidInput
 	}
-	return WithdrawalQuote{Policy: policy, AmountMoney: amount, FeeMoney: fee, NetMoney: net, FeeRemainder: remainder.RatString()}, nil
+	payoutCurrency := policy.PayoutCurrency
+	rate := policy.PayoutRate
+	if payoutCurrency == "" {
+		payoutCurrency = policy.Currency
+		rate = ledger.FromInt64(1)
+	}
+	payoutAmount, err := PayoutAmount(net, rate, payoutCurrency)
+	if err != nil {
+		return WithdrawalQuote{}, err
+	}
+	return WithdrawalQuote{PayoutCurrency: payoutCurrency, PayoutAmount: payoutAmount, Policy: policy, AmountMoney: amount, FeeMoney: fee, NetMoney: net, FeeRemainder: remainder.RatString()}, nil
 }
 func (s *Service) RequestWithdrawal(ctx context.Context, tx *gorm.DB, in WithdrawalInput) (out Withdrawal, err error) {
 	if in.Wallet != "" && in.Wallet != "balance" && in.Wallet != "commission" {
@@ -307,7 +324,7 @@ func (s *Service) RequestWithdrawal(ctx context.Context, tx *gorm.DB, in Withdra
 		if balance {
 			wallet = "balance"
 		}
-		r := withdrawalRow{Wallet: wallet, MethodID: quote.Policy.MethodID, MethodName: quote.Policy.MethodName, ID: id, OperatorID: in.OperatorID, CustomerID: in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fp, PolicyID: quote.Policy.ID, AmountMoney: quote.AmountMoney, FeeMoney: quote.FeeMoney, NetMoney: quote.NetMoney, FeeRemainder: quote.FeeRemainder, RecipientReference: in.RecipientReference, HoldID: hold.ID, Status: "requested", CreatedAt: instant.At}
+		r := withdrawalRow{PayoutCurrency: quote.PayoutCurrency, PayoutAmount: quote.PayoutAmount, Wallet: wallet, MethodID: quote.Policy.MethodID, MethodName: quote.Policy.MethodName, ID: id, OperatorID: in.OperatorID, CustomerID: in.CustomerID, BusinessKey: in.BusinessKey, Fingerprint: fp, PolicyID: quote.Policy.ID, AmountMoney: quote.AmountMoney, FeeMoney: quote.FeeMoney, NetMoney: quote.NetMoney, FeeRemainder: quote.FeeRemainder, RecipientReference: in.RecipientReference, HoldID: hold.ID, Status: "requested", CreatedAt: instant.At}
 		if err = tx.Create(&r).Error; err != nil {
 			return err
 		}
@@ -411,6 +428,22 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 		r, err := s.withdrawalForStaff(ctx, tx, actor, operator, id)
 		if err != nil {
 			return err
+		}
+		if r.PayoutCurrency != "" {
+			if proof.Currency != "" && !strings.EqualFold(proof.Currency, r.PayoutCurrency) {
+				return ErrInvalidInput
+			}
+			if proof.OriginalAmount != "" {
+				v, e := ledger.ParseDecimal(proof.OriginalAmount)
+				if e != nil || v.Cmp(r.PayoutAmount) != 0 {
+					return ErrInvalidInput
+				}
+			}
+			proof.Currency = r.PayoutCurrency
+			proof.OriginalAmount = r.PayoutAmount.String()
+			if proof.ValuationEvidence == "" {
+				proof.ValuationEvidence = "withdrawal-accepted-quote:" + r.PolicyID
+			}
 		}
 		if err = completeWithdrawalProof(&proof, r.NetMoney, monetary.Currency); err != nil {
 			return err

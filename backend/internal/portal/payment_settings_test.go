@@ -27,7 +27,7 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 	}
 	for _, method := range []map[string]any{
 		{"action": "open_method", "method_kind": "bank_transfer", "enabled": true, "collection": false, "fee_mode": "fixed", "flat_fee_money": "1", "payout_enabled": true},
-		{"action": "open_method", "method_kind": "alipay", "enabled": true, "collection": false, "fee_mode": "percent", "fee_percent": "2", "payout_enabled": true},
+		{"action": "open_method", "method_kind": "alipay", "payout_currency": "CNY", "payout_rate": "7", "enabled": true, "collection": false, "fee_mode": "percent", "fee_percent": "2", "payout_enabled": true},
 	} {
 		key := uuid.NewString()
 		status, out, _ := f.call(t, "POST", base, method, key)
@@ -40,7 +40,16 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 	}
 	status, page, _ = f.call(t, "GET", base, nil, "")
 	mustOK(t, status, page)
-	row := page["items"].([]any)[0].(map[string]any)
+	var row map[string]any
+	for _, raw := range page["items"].([]any) {
+		candidate := raw.(map[string]any)
+		if candidate["values"].(map[string]any)["method_kind"] == "bank_transfer" {
+			row = candidate
+		}
+	}
+	if row == nil {
+		t.Fatal("bank transfer missing")
+	}
 	method := row["values"].(map[string]any)
 	status, out, _ := f.call(t, "POST", base+"/"+row["id"].(string)+"/open_method", map[string]any{"method_kind": method["method_kind"], "enabled": true, "collection": false, "fee_mode": "fixed", "flat_fee_money": "1.5", "payout_enabled": true, "expected_version": row["version"]}, uuid.NewString())
 	mustOK(t, status, out)

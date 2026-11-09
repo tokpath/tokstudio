@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
+	"golang.org/x/text/currency"
 	"gorm.io/gorm"
 	"strings"
 )
@@ -20,13 +22,17 @@ func paymentCatalog() []gin.H {
 		for _, driver := range m.Drivers {
 			fields := []gin.H{}
 			for _, material := range paymentMaterials {
-				if contains(material.Drivers, driver) {
+				if contains(material.Drivers, driver) && !contains([]string{"chain_id", "token_contract", "token_decimals", "asset", "min_confirmations", "pay_currency", "pay_network", "pay_token_contract", "pay_asset_verification_reference"}, material.Key) {
 					fields = append(fields, gin.H{"name": material.Key, "label": material.Label, "secret": contains([]string{"secret_key", "webhook_secret", "app_private_key", "merchant_api_private_key", "api_v3_key", "api_key", "ipn_secret", "kvoucher_api_key", "kvoucher_api_secret"}, material.Key)})
 				}
 			}
 			drivers = append(drivers, gin.H{"value": driver, "label": labels[driver], "fields": fields})
 		}
-		out = append(out, gin.H{"kind": m.Kind, "label": m.Label, "payout": m.PayoutKind != "", "drivers": drivers})
+		profile, _ := incentives.FindPayoutProfile(m.PayoutKind)
+		if profile.Fields == nil {
+			profile.Fields = []incentives.PayoutField{}
+		}
+		out = append(out, gin.H{"kind": m.Kind, "label": m.Label, "payout": m.PayoutKind != "", "payout_summary": profile.Summary, "payout_fields": profile.Fields, "drivers": drivers})
 	}
 	return out
 }
@@ -35,10 +41,15 @@ func methodOpenFields() []field {
 	for _, m := range paymentmethods.Catalog() {
 		kind.Options = append(kind.Options, gin.H{"value": m.Kind, "label": m.Label})
 	}
-	return []field{defaultField("action", "操作", "hidden", "open_method"), kind, defaultField("enabled", "启用支付方式", "boolean", true), defaultField("collection", "用于收款", "boolean", true), defaultField("payout_enabled", "用于余额和佣金提现", "boolean", true), optional("driver", "收款办理方式", "text"), optional("credentials", "接入资料", "json"), optional("asset_network_version_id", "收款资产与网络", "text"), selectField("fee_mode", "手续费规则", "none|不收费", "fixed|固定金额", "percent|按比例"), defaultField("flat_fee_money", "固定手续费 结算币种", "decimal", "0"), defaultField("fee_percent", "手续费率 %", "decimal", "0"), defaultField("expected_version", "当前版本", "hidden", 0)}
+	return []field{defaultField("action", "操作", "hidden", "open_method"), kind, defaultField("enabled", "启用支付方式", "boolean", true), defaultField("collection", "用于收款", "boolean", true), defaultField("payout_enabled", "用于余额和佣金提现", "boolean", false), optional("payout_currency", "提现到账币种", "text"), optional("payout_rate", "提现兑换比例", "decimal"), optional("payout_note", "提现办理说明", "textarea"), optional("payout_networks", "可办理的提现网络", "json"), optional("driver", "收款办理方式", "text"), optional("credentials", "接入资料", "json"), optional("asset_network_version_id", "收款资产与网络", "text"), selectField("fee_mode", "手续费规则", "none|不收费", "fixed|固定金额", "percent|按比例"), defaultField("flat_fee_money", "固定手续费 结算币种", "decimal", "0"), defaultField("fee_percent", "手续费率 %", "decimal", "0"), defaultField("expected_version", "当前版本", "hidden", 0)}
 }
 func (a *Application) openPaymentMethod(c *gin.Context, op organization.Operator, actor, id string, raw json.RawMessage, tx *gorm.DB) (any, error) {
+	builtin := id == "offline"
 	var in struct {
+		PayoutCurrency        string            `json:"payout_currency"`
+		PayoutRate            ledger.Decimal    `json:"payout_rate"`
+		PayoutNote            string            `json:"payout_note"`
+		PayoutNetworks        []string          `json:"payout_networks"`
 		AssetNetworkVersionID string            `json:"asset_network_version_id"`
 		Kind                  string            `json:"method_kind"`
 		Enabled               bool              `json:"enabled"`
@@ -53,6 +64,12 @@ func (a *Application) openPaymentMethod(c *gin.Context, op organization.Operator
 	}
 	if json.Unmarshal(raw, &in) != nil {
 		return nil, paymentmethods.ErrInvalid
+	}
+	if builtin {
+		if in.Kind != "offline" {
+			return nil, paymentmethods.ErrInvalid
+		}
+		id = ""
 	}
 	method, ok := paymentmethods.Find(in.Kind)
 	if in.Enabled && !in.Collection && !in.Payout {
@@ -87,7 +104,55 @@ func (a *Application) openPaymentMethod(c *gin.Context, op organization.Operator
 			return nil, e
 		}
 	}
-	rule := paymentmethods.Rule{MethodID: id, OperatorID: op.ID, Kind: in.Kind, Name: method.Label, Paused: !in.Enabled, Collection: in.Collection, PayoutEnabled: in.Payout, PayoutKind: method.PayoutKind, CreatedBy: actor}
+	settings, err := ledger.GetMonetary(c.Request.Context(), tx)
+	if err != nil {
+		return nil, err
+	}
+	in.PayoutCurrency = strings.ToUpper(strings.TrimSpace(in.PayoutCurrency))
+	if in.PayoutCurrency == "" {
+		in.PayoutCurrency = settings.Currency
+		if in.Kind == "usdt" {
+			in.PayoutCurrency = "USDT"
+		}
+		if in.Kind == "alipay" || in.Kind == "wechat" {
+			in.PayoutCurrency = "CNY"
+		}
+	}
+	if in.PayoutCurrency == settings.Currency {
+		in.PayoutRate = ledger.FromInt64(1)
+	}
+	if in.Payout {
+		if in.Kind != "usdt" && in.PayoutCurrency == "USDT" {
+			return nil, paymentmethods.ErrInvalid
+		}
+		if in.Kind == "usdt" && in.PayoutCurrency != "USDT" || (in.Kind == "alipay" || in.Kind == "wechat") && in.PayoutCurrency != "CNY" {
+			return nil, paymentmethods.ErrInvalid
+		}
+		if in.PayoutCurrency != "USDT" {
+			if _, e := currency.ParseISO(in.PayoutCurrency); e != nil {
+				return nil, paymentmethods.ErrInvalid
+			}
+		}
+		if !in.PayoutRate.Valid() || in.PayoutRate.Sign() <= 0 || len(in.PayoutNote) > 2000 {
+			return nil, paymentmethods.ErrInvalid
+		}
+		if in.Kind == "usdt" {
+			if len(in.PayoutNetworks) == 0 {
+				return nil, paymentmethods.ErrInvalid
+			}
+			seen := map[string]bool{}
+			for _, n := range in.PayoutNetworks {
+				if !contains([]string{"TRC20", "ERC20"}, n) || seen[n] {
+					return nil, paymentmethods.ErrInvalid
+				}
+				seen[n] = true
+			}
+		}
+	}
+	if in.Kind != "usdt" {
+		in.PayoutNetworks = []string{}
+	}
+	rule := paymentmethods.Rule{PayoutCurrency: in.PayoutCurrency, PayoutRate: in.PayoutRate, PayoutNote: in.PayoutNote, PayoutNetworks: in.PayoutNetworks, MethodID: id, OperatorID: op.ID, Kind: in.Kind, Name: method.Label, Paused: !in.Enabled, Collection: in.Collection, PayoutEnabled: in.Payout, PayoutKind: method.PayoutKind, CreatedBy: actor}
 	switch in.Mode {
 	case "none":
 	case "fixed":
@@ -102,6 +167,12 @@ func (a *Application) openPaymentMethod(c *gin.Context, op organization.Operator
 	}
 	if _, e = paymentmethods.Save(c.Request.Context(), tx, rule, in.Expected); e != nil {
 		return nil, e
+	}
+	if in.Collection && in.Kind == "offline" {
+		in.Driver = "manual"
+	}
+	if in.Collection && len(method.Drivers) == 1 && method.Drivers[0] == "manual" {
+		in.Driver = "manual"
 	}
 	merchantID := identity.MerchantID
 	if in.Collection {
@@ -132,8 +203,16 @@ func (a *Application) openPaymentMethod(c *gin.Context, op organization.Operator
 			m.AssetNetworkVersionID = in.AssetNetworkVersionID
 		}
 		for key, value := range in.Credentials {
-			if strings.TrimSpace(value) != "" {
-				m.Credentials[key] = value
+			if strings.TrimSpace(value) != "" || key == "instructions" || key == "recipient_reference" {
+				m.Credentials[key] = strings.TrimSpace(value)
+			}
+		}
+		if m.Driver == "manual" {
+			if in.Kind == "alipay" || in.Kind == "wechat" {
+				m.Credentials["currency"] = "CNY"
+			}
+			if in.Kind == "usdt" {
+				m.Credentials["currency"] = "USDT"
 			}
 		}
 		if m.Driver == "manual" && m.Credentials["currency"] == "" {
@@ -142,6 +221,12 @@ func (a *Application) openPaymentMethod(c *gin.Context, op organization.Operator
 				return nil, err
 			}
 			m.Credentials["currency"] = settings.Currency
+		}
+		if m.Driver == "manual" && m.Credentials["instructions"] == "" {
+			m.Credentials["instructions"] = "请联系经营方，按约定完成线下付款。"
+		}
+		if err := svc.PrepareMerchantAsset(c.Request.Context(), &m, in.Kind); err != nil {
+			return nil, err
 		}
 		m.Enabled = len(svc.Drivers[m.Driver].Validate(m)) == 0
 		// Switching a payee creates a new connection; accepted payments retain the

@@ -36,3 +36,38 @@ func TestWithdrawalPreviewUsesPayableCurrencyUnits(t *testing.T) {
 		t.Fatal("sub-cent amount was payable", err)
 	}
 }
+
+func TestPayoutMaterialsAreManualAndNetworkSpecific(t *testing.T) {
+	for kind, values := range map[string]map[string]string{
+		"offline": {"payee_name": "张三"},
+		"bank_cn": {"payee_name": "张三", "bank_name": "Example Bank", "account_number": "1234567890"},
+		"paypal":  {"email": "payee@example.test"},
+		"usdt":    {"network": "TRC20", "address": "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7"},
+	} {
+		if _, e := FormatPayoutRecipient(kind, values); e != nil {
+			t.Fatalf("%s: %v", kind, e)
+		}
+	}
+	for _, tc := range []struct {
+		network, address string
+		valid            bool
+	}{
+		{"ERC20", "0x1234567890123456789012345678901234567890", true},
+		{"ERC20", "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7", false},
+		{"TRC20", "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU8", false},
+		{"ERC20", "0x123456789012345678901234567890123456789z", false},
+	} {
+		if got := validPayoutAddress(tc.network, tc.address); got != tc.valid {
+			t.Fatal(tc, got)
+		}
+	}
+	if _, e := FormatPayoutRecipient("paypal", map[string]string{"email": "Name <payee@example.test>"}); e == nil {
+		t.Fatal("display name accepted as an email")
+	}
+	for _, tc := range []struct{ net, rate, code, want string }{{"9.81", "7.123", "CNY", "69.88"}, {"9.81", "150.5", "JPY", "1476"}, {"9.81", "1.001", "USDT", "9.81981"}} {
+		got, e := PayoutAmount(d(tc.net), d(tc.rate), tc.code)
+		if e != nil || got.String() != tc.want {
+			t.Fatal(tc, got, e)
+		}
+	}
+}

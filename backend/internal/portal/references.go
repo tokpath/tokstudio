@@ -267,6 +267,12 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		for _, r := range rows {
+			if c.Query("method_kind") == "usdt" && !payments.IsUSDTAsset(r.Asset) {
+				continue
+			}
+			if d := c.Query("driver"); d != "" && d != r.Driver {
+				continue
+			}
 			add(r.VersionID, r.Driver+" · "+r.Asset+" · 网络 "+r.Network+" · 合约 "+r.TokenContract, gin.H{"asset_network_version_id": r.VersionID, "driver": r.Driver})
 		}
 	case "scope-subjects":

@@ -56,6 +56,9 @@ func (a *Application) applyWalletWithdrawal(c *gin.Context, wallet string) {
 		if _, ok := incentives.FindPayoutProfile(method.PayoutKind); !ok {
 			return nil, incentives.ErrInvalidInput
 		}
+		if method.PayoutKind == "usdt" && !contains(method.PayoutNetworks, in.Recipient["network"]) {
+			return nil, incentives.ErrInvalidInput
+		}
 		reference, err := incentives.FormatPayoutRecipient(method.PayoutKind, in.Recipient)
 		if err != nil {
 			return nil, err
@@ -71,11 +74,7 @@ func (a *Application) applyWalletWithdrawal(c *gin.Context, wallet string) {
 		if err != nil {
 			return nil, err
 		}
-		received := "实付"
-		if wallet == "balance" {
-			received = "实得"
-		}
-		return gin.H{"id": out.ID, "status": out.Status, "message": "已提交提现申请。总额 " + quote.AmountMoney.String() + " " + quote.Policy.Currency + "，手续费 " + quote.FeeMoney.String() + " " + quote.Policy.Currency + "，" + received + " " + quote.NetMoney.String() + " " + quote.Policy.Currency + "。"}, nil
+		return gin.H{"id": out.ID, "status": out.Status, "message": "已提交提现申请。"}, nil
 	})
 	jsonResponse(c, raw, e)
 }
@@ -97,7 +96,11 @@ func (a *Application) customerWithdrawalWorkspace(c *gin.Context, p gin.H, opera
 	}
 	items := []any{}
 	for _, w := range rows {
-		row := entity(w.ID, w.Status, 1, w)
+		v := values(w)
+		if w.PayoutCurrency != "" {
+			v["payout_display"] = w.PayoutAmount.String() + " " + w.PayoutCurrency
+		}
+		row := entity(w.ID, w.Status, 1, v)
 		row["allowed_actions"] = []string{}
 		if w.Status == "requested" {
 			row["allowed_actions"] = []string{"cancel"}
@@ -136,7 +139,7 @@ func (a *Application) customerWithdrawalWorkspace(c *gin.Context, p gin.H, opera
 	p["currency_digits"] = digits
 	if len(offered) > 0 {
 		minimum := offered[0]["minimum_money"].(string)
-		p["description"] = "单笔提现总额不能低于经营方公布的最低额度 " + minimum + " 结算币种。手续费在申请时固定，由你承担。"
+		p["description"] = "提现须达到经营方公布的最低额度。手续费和实际到账金额在申请时固定，由你确认。"
 		p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum, "unit": "MONEY", "detail": "单笔提现总额不能低于经营方公布的这个额度。"}}
 	} else {
 		p["description"] = "请等待经营方配置可用提现方式。"
@@ -168,8 +171,16 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 		return
 	}
 	items := []any{}
+	hasUnquoted := false
 	for _, w := range rows {
-		row := entity(w.ID, w.Status, 1, w)
+		if w.PayoutCurrency == "" {
+			hasUnquoted = true
+		}
+		v := values(w)
+		if w.PayoutCurrency != "" {
+			v["payout_display"] = w.PayoutAmount.String() + " " + w.PayoutCurrency
+		}
+		row := entity(w.ID, w.Status, 1, v)
 		actions := withdrawalAllowedActions(w.Status)
 		row["allowed_actions"] = actions
 		items = append(items, row)
@@ -183,7 +194,10 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 	}
 	p["items"] = items
 	p["next_cursor"] = next
-	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
+	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("payout_display", "实际到账", "text"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
+	if hasUnquoted {
+		p["columns"] = append(p["columns"].([]gin.H), col("net_money", "清算净额", "money"))
+	}
 	if wallet != "balance" {
 		p["operations"] = []operation{}
 	}
@@ -201,7 +215,20 @@ func customerPayoutMethods(methods []incentives.WithdrawalPolicy) []gin.H {
 		if !ok {
 			continue
 		}
-		out = append(out, gin.H{"id": method.MethodID, "policy_id": method.ID, "name": method.MethodName, "kind": method.PayoutKind, "kind_label": profile.Label, "summary": profile.Summary, "flat_fee_money": method.FlatFeeMoney.String(), "fee_rate": method.FeeRate.String(), "minimum_money": method.MinimumMoney.String(), "fields": profile.Fields})
+		if method.PayoutKind == "usdt" {
+			for i := range profile.Fields {
+				if profile.Fields[i].Name == "network" {
+					options := []incentives.PayoutChoice{}
+					for _, o := range profile.Fields[i].Options {
+						if contains(method.PayoutNetworks, o.Value) {
+							options = append(options, o)
+						}
+					}
+					profile.Fields[i].Options = options
+				}
+			}
+		}
+		out = append(out, gin.H{"payout_currency": method.PayoutCurrency, "payout_rate": method.PayoutRate.String(), "payout_digits": incentives.PayoutDigits(method.PayoutCurrency), "payout_note": method.PayoutNote, "id": method.MethodID, "policy_id": method.ID, "name": method.MethodName, "kind": method.PayoutKind, "kind_label": profile.Label, "summary": profile.Summary, "flat_fee_money": method.FlatFeeMoney.String(), "fee_rate": method.FeeRate.String(), "minimum_money": method.MinimumMoney.String(), "fields": profile.Fields})
 	}
 	return out
 }
@@ -316,12 +343,15 @@ func (a *Application) withdrawalStaffAction(c *gin.Context, op organization.Oper
 func withdrawalPaymentFields() []field {
 	currency := f("currency", "实际付款币种", "text")
 	currency.Help = "默认是结算币种。用结算币种付款时不用再填金额。如果实际付出的是另一种货币，改成那种货币。"
-	original := f("original_amount", "实际原币付款金额", "decimal")
+	original := optional("original_amount", "实际原币付款金额", "decimal")
 	original.Help = "填写实际付出的原币金额。账上仍按申请时已经固定的实付净额入账。"
-	link := f("valuation_evidence", "本笔原币付款与实付净额的关联凭证", "textarea")
+	link := optional("valuation_evidence", "本笔原币付款与实付净额的关联凭证", "textarea")
 	link.Help = "说明这笔原币付款对应申请里的实付净额。"
 	evidence := optional("evidence", "付款备注（可选）", "textarea")
 	evidence.Help = "可补充付款情况或凭证。系统自动记录经办人、付款金额与时间。"
+	for _, v := range []*field{&currency, &original, &link} {
+		v.VisibleWhen = &fieldVisibility{Field: "payout_currency", Values: []string{""}}
+	}
 	return []field{optional("payment_reference", "付款流水或收据号（可选）", "text"), evidence, currency, original, link, f("paid_at", "实际付款时刻", "datetime")}
 }
 

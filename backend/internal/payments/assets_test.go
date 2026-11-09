@@ -215,3 +215,25 @@ func TestRefundExecutionSealingNeverQueriesOrRetriesProvider(t *testing.T) {
 		t.Fatalf("sealed result: %+v %v", result, e)
 	}
 }
+
+func TestOnboardingDerivesUSDTMetadataBeforeReadiness(t *testing.T) {
+	db := paymentDB(t)
+	ctx := t.Context()
+	svc := NewService(db, "test-key", testPaymentAuth{}, NewTransport(true), &sqlReceiptSink{})
+	asset := AssetNetwork{ID: uuid.NewString(), VersionID: uuid.NewString(), Version: 1, Driver: "evm_wallet", Asset: "USDT", Network: "1", TokenContract: "0x1234567890123456789012345678901234567890", TokenDecimals: 6, MinimumConfirmations: 12, Enabled: true, EffectiveAt: time.Now().Add(-time.Hour), PublishedAt: time.Now(), PublishedBy: "test", EvidenceReference: "test"}
+	if e := db.Create(&asset).Error; e != nil {
+		t.Fatal(e)
+	}
+	m := Merchant{Driver: "evm_wallet", AssetNetworkVersionID: asset.VersionID, Credentials: map[string]string{"chain_id": "old-network", "asset": "USDC"}}
+	if e := svc.PrepareMerchantAsset(ctx, &m, "usdt"); e != nil || m.Credentials["chain_id"] != "1" || m.Credentials["asset"] != "USDT" || m.Credentials["token_decimals"] != "6" || m.Credentials["min_confirmations"] != "12" {
+		t.Fatal(m.Credentials, e)
+	}
+	asset.ID, asset.VersionID, asset.Asset = uuid.NewString(), uuid.NewString(), "USDC"
+	if e := db.Create(&asset).Error; e != nil {
+		t.Fatal(e)
+	}
+	m.AssetNetworkVersionID = asset.VersionID
+	if e := svc.PrepareMerchantAsset(ctx, &m, "usdt"); e == nil {
+		t.Fatal("USDC advertised as USDT")
+	}
+}

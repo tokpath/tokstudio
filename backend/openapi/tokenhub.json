@@ -12357,7 +12357,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_payment_methods",
-        "summary": "开通支付方式",
+        "summary": "添加支付方式",
         "tags": [
           "Operator browser API"
         ],
@@ -42239,6 +42239,31 @@
             "payout": {
               "type": "boolean"
             },
+            "payout_summary": {
+              "type": "string"
+            },
+            "payout_fields": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "optional": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name",
+                  "label"
+                ],
+                "additionalProperties": true
+              }
+            },
             "existing_id": {
               "type": "string"
             },
@@ -42311,6 +42336,31 @@
                 },
                 "payout": {
                   "type": "boolean"
+                },
+                "payout_summary": {
+                  "type": "string"
+                },
+                "payout_fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "optional": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "label"
+                    ],
+                    "additionalProperties": true
+                  }
                 },
                 "existing_id": {
                   "type": "string"
@@ -44300,6 +44350,19 @@
                 "name": {
                   "type": "string"
                 },
+                "payout_currency": {
+                  "type": "string"
+                },
+                "payout_rate": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                },
+                "payout_digits": {
+                  "type": "number"
+                },
+                "payout_note": {
+                  "type": "string"
+                },
                 "kind": {
                   "type": "string"
                 },
@@ -44334,6 +44397,9 @@
                       },
                       "help": {
                         "type": "string"
+                      },
+                      "optional": {
+                        "type": "boolean"
                       },
                       "kind": {
                         "type": "string",
@@ -49463,17 +49529,38 @@
           },
           "currency": {
             "type": "string",
-            "description": "实际付款币种 — 默认是结算币种。用结算币种付款时不用再填金额。如果实际付出的是另一种货币，改成那种货币。"
+            "description": "实际付款币种 — 默认是结算币种。用结算币种付款时不用再填金额。如果实际付出的是另一种货币，改成那种货币。",
+            "x-visible-when": {
+              "field": "payout_currency",
+              "values": [
+                ""
+              ]
+            },
+            "x-required-when-visible": true
           },
           "original_amount": {
             "$ref": "#/components/schemas/LedgerDecimal",
             "description": "实际原币付款金额 — 填写实际付出的原币金额。账上仍按申请时已经固定的实付净额入账。",
-            "x-required-when-currency-differs-from-settlement": true
+            "x-required-when-currency-differs-from-settlement": true,
+            "x-visible-when": {
+              "field": "payout_currency",
+              "values": [
+                ""
+              ]
+            },
+            "x-required-when-visible": false
           },
           "valuation_evidence": {
             "type": "string",
             "description": "本笔原币付款与实付净额的关联凭证 — 说明这笔原币付款对应申请里的实付净额。",
-            "x-required-when-currency-differs-from-settlement": true
+            "x-required-when-currency-differs-from-settlement": true,
+            "x-visible-when": {
+              "field": "payout_currency",
+              "values": [
+                ""
+              ]
+            },
+            "x-required-when-visible": false
           },
           "paid_at": {
             "type": "string",
@@ -49482,7 +49569,6 @@
           }
         },
         "required": [
-          "currency",
           "paid_at"
         ],
         "additionalProperties": false
@@ -50347,9 +50433,8 @@
             "type": "string",
             "enum": [
               "offline",
-              "cash",
               "bank_transfer",
-              "bank_card",
+              "stripe",
               "alipay",
               "wechat",
               "paypal",
@@ -50370,6 +50455,30 @@
           "payout_enabled": {
             "type": "boolean",
             "description": "用于余额和佣金提现"
+          },
+          "payout_currency": {
+            "type": "string",
+            "description": "提现到账币种"
+          },
+          "payout_rate": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "提现兑换比例"
+          },
+          "payout_note": {
+            "type": "string",
+            "description": "提现办理说明"
+          },
+          "payout_networks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "TRC20",
+                "ERC20"
+              ]
+            },
+            "uniqueItems": true,
+            "description": "可办理的提现网络"
           },
           "driver": {
             "type": "string",

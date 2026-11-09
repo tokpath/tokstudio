@@ -23,7 +23,7 @@ import (
 //go:embed schema.sql
 var schema string
 
-//go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql zzzzzz_payment_quotes.sql zzzzzzz_shared_payment_methods.sql zzzzzzzz_method_catalog.sql
+//go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql zzzzzz_payment_quotes.sql zzzzzzz_shared_payment_methods.sql zzzzzzzz_method_catalog.sql zzzzzzzzz_method_capabilities.sql
 var migrationFS embed.FS
 
 //go:embed zz_refund_executions.sql
@@ -56,10 +56,13 @@ var sharedMethodsSchema string
 //go:embed zzzzzzzz_method_catalog.sql
 var methodCatalogSchema string
 
+//go:embed zzzzzzzzz_method_capabilities.sql
+var methodCapabilitiesSchema string
+
 func Migrations() (string, fs.FS) { return "payments", migrationFS }
 
 func Schema() string {
-	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema + "\n" + sharedMethodsSchema + "\n" + methodCatalogSchema
+	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema + "\n" + sharedMethodsSchema + "\n" + methodCatalogSchema + "\n" + methodCapabilitiesSchema
 }
 
 type Authorizer interface {

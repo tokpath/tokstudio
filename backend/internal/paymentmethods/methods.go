@@ -24,27 +24,32 @@ func Migrations() (string, fs.FS) { f, _ := fs.Sub(migrations, "migrate"); retur
 func Schema() string {
 	a, _ := migrations.ReadFile("migrate/0001_methods.sql")
 	b, _ := migrations.ReadFile("migrate/0002_method_catalog.sql")
-	return string(a) + "\n" + string(b)
+	c, _ := migrations.ReadFile("migrate/0003_payout_details.sql")
+	return string(a) + "\n" + string(b) + "\n" + string(c)
 }
 
 var ErrInvalid = errors.New("invalid payment method fee rule")
 var ErrChanged = errors.New("payment method fees changed; review the updated amounts")
 
 type Rule struct {
-	Kind          string         `json:"method_kind" gorm:"column:method_kind"`
-	Paused        bool           `json:"paused"`
-	ID            string         `json:"id"`
-	MethodID      string         `json:"method_id"`
-	OperatorID    string         `json:"operator_id"`
-	Version       int64          `json:"version"`
-	Name          string         `json:"name"`
-	Collection    bool           `json:"collection"`
-	PayoutEnabled bool           `json:"payout_enabled"`
-	PayoutKind    string         `json:"payout_kind"`
-	FlatFeeMoney  ledger.Decimal `json:"flat_fee_money"`
-	FeeRate       ledger.Decimal `json:"fee_rate"`
-	CreatedBy     string         `json:"created_by"`
-	CreatedAt     time.Time      `json:"created_at"`
+	PayoutCurrency string         `json:"payout_currency"`
+	PayoutRate     ledger.Decimal `json:"payout_rate"`
+	PayoutNote     string         `json:"payout_note"`
+	PayoutNetworks []string       `json:"payout_networks" gorm:"serializer:json;type:jsonb"`
+	Kind           string         `json:"method_kind" gorm:"column:method_kind"`
+	Paused         bool           `json:"paused"`
+	ID             string         `json:"id"`
+	MethodID       string         `json:"method_id"`
+	OperatorID     string         `json:"operator_id"`
+	Version        int64          `json:"version"`
+	Name           string         `json:"name"`
+	Collection     bool           `json:"collection"`
+	PayoutEnabled  bool           `json:"payout_enabled"`
+	PayoutKind     string         `json:"payout_kind"`
+	FlatFeeMoney   ledger.Decimal `json:"flat_fee_money"`
+	FeeRate        ledger.Decimal `json:"fee_rate"`
+	CreatedBy      string         `json:"created_by"`
+	CreatedAt      time.Time      `json:"created_at"`
 }
 
 func (Rule) TableName() string { return "payment_method_versions" }
@@ -67,6 +72,9 @@ func List(ctx context.Context, db *gorm.DB, op string) ([]Rule, error) {
 // Save requires the caller's authorization and transaction. The lock protects
 // concurrent edits; quotes reference immutable version IDs, never current fees.
 func Save(ctx context.Context, tx *gorm.DB, r Rule, expected int64) (Rule, error) {
+	if r.PayoutNetworks == nil {
+		r.PayoutNetworks = []string{}
+	}
 	if r.MethodID == "" || r.OperatorID == "" || len(r.MethodID) > 150 || len(r.OperatorID) > 150 {
 		return r, ErrInvalid
 	}
@@ -87,6 +95,9 @@ func Save(ctx context.Context, tx *gorm.DB, r Rule, expected int64) (Rule, error
 		}
 		r.Name = m.Label
 		r.PayoutKind = m.PayoutKind
+		if r.PayoutEnabled && r.PayoutKind == "" {
+			return r, ErrInvalid
+		}
 		identity := Identity{OperatorID: r.OperatorID, Kind: r.Kind, MethodID: r.MethodID}
 		if e := tx.WithContext(ctx).Exec("INSERT INTO payment_method_identities(operator_id,kind,method_id) VALUES(?,?,?) ON CONFLICT DO NOTHING", identity.OperatorID, identity.Kind, identity.MethodID).Error; e != nil {
 			return r, e
@@ -97,6 +108,16 @@ func Save(ctx context.Context, tx *gorm.DB, r Rule, expected int64) (Rule, error
 		}
 		if existing.MethodID != r.MethodID {
 			return r, ErrChanged
+		}
+	}
+	if r.PayoutEnabled && r.PayoutCurrency != "" {
+		if r.PayoutCurrency != "USDT" {
+			if _, err := currency.ParseISO(r.PayoutCurrency); err != nil {
+				return r, ErrInvalid
+			}
+		}
+		if !r.PayoutRate.Valid() || r.PayoutRate.Sign() <= 0 {
+			return r, ErrInvalid
 		}
 	}
 	if old.Version != expected {

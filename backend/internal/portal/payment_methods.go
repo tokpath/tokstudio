@@ -3,6 +3,7 @@ package portal
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
@@ -28,12 +29,24 @@ func (a *Application) paymentMethodRules(c *gin.Context, op organization.Operato
 		reasons[m.ID] = m.UnsupportedReason
 	}
 	items := []any{}
+	hasOffline := false
 	for _, r := range rows {
-		if r.Kind == "" && r.Paused {
+		if r.Kind == "offline" {
+			hasOffline = true
+		}
+	}
+	if !hasOffline {
+		row := entity("offline", "disabled", 0, gin.H{"method_kind": "offline", "method_label": "线下支付", "name": "线下支付", "enabled": false, "collection": true, "payout_enabled": false, "builtin": true, "scope_label": "系统内置，启用即可人工办理", "flat_fee_money": "0", "fee_percent": "0", "fee_mode": "none", "collection_status": "未启用", "payout_status": "未启用"})
+		row["allowed_actions"] = []string{"open_method"}
+		items = append(items, row)
+	}
+	for _, r := range rows {
+		if r.Kind == "" && r.Paused || r.Kind == "cash" || r.Kind == "bank_card" {
 			continue
 		}
 		v := values(r)
 		v["enabled"] = !r.Paused
+		v["builtin"] = r.Kind == "offline"
 		v["driver"] = ""
 		v["credentials"] = gin.H{}
 		state := "awaiting_connection"
@@ -100,13 +113,27 @@ func (a *Application) paymentMethodRules(c *gin.Context, op organization.Operato
 		}
 		v["collection_ready"] = r.Collection && collectionReady && !r.Paused
 		v["payout_ready"] = r.PayoutEnabled && !r.Paused
-		if !r.Collection && r.PayoutEnabled || r.Collection && collectionReady {
+		if r.PayoutEnabled || r.Collection && collectionReady {
 			state = "ready"
 		}
 		if r.Paused {
 			state = "disabled"
 		}
 
+		v["collection_status"] = "未启用"
+		v["payout_status"] = "未启用"
+		if r.Collection && !r.Paused {
+			v["collection_status"] = "待配置"
+			if collectionReady {
+				v["collection_status"] = "可收款"
+			}
+		}
+		if r.PayoutEnabled && !r.Paused {
+			v["payout_status"] = "人工办理"
+		}
+		if profile, ok := incentives.FindPayoutProfile(r.PayoutKind); ok {
+			v["payout_summary"] = profile.Summary
+		}
 		v["fee_mode"] = "none"
 		if r.FlatFeeMoney.Sign() > 0 {
 			v["fee_mode"] = "fixed"
@@ -126,6 +153,9 @@ func (a *Application) paymentMethodRules(c *gin.Context, op organization.Operato
 				scope = "余额提现、佣金提现"
 			}
 		}
+		if op.Kind == organization.Channel {
+			scope = strings.ReplaceAll(scope, "、下级采购", "")
+		}
 		v["scope_label"] = scope
 		row := entity(r.MethodID, state, r.Version, v)
 		row["allowed_actions"] = []string{"open_method"}
@@ -134,7 +164,7 @@ func (a *Application) paymentMethodRules(c *gin.Context, op organization.Operato
 	p["title"] = "支付方式与手续费"
 	p["description"] = "每种支付方式只设置一套手续费，适用于它支持的收款和提现。收款额外加收，提现从申请总额中扣除；余额和佣金内部抵扣不收费。修改只影响新确认的交易。"
 	p["items"] = items
-	p["columns"] = []gin.H{col("scope_label", "适用业务", "text"), col("flat_fee_money", "固定手续费", "money"), col("fee_percent", "手续费率 %", "decimal"), col("collection_ready", "可收款", "boolean"), col("payout_ready", "可提现", "boolean"), col("readiness_note", "待补充资料", "text")}
+	p["columns"] = []gin.H{col("scope_label", "适用业务", "text"), col("flat_fee_money", "固定手续费", "money"), col("fee_percent", "手续费率 %", "decimal"), col("collection_status", "收款", "text"), col("payout_status", "提现", "text"), col("readiness_note", "待补充资料", "text")}
 	catalog := paymentCatalog()
 	for _, m := range catalog {
 		for _, r := range rows {
@@ -144,7 +174,7 @@ func (a *Application) paymentMethodRules(c *gin.Context, op organization.Operato
 		}
 	}
 	p["payment_method_catalog"] = catalog
-	p["operations"] = []operation{{Name: "open_method", Label: "开通支付方式", Method: "POST", Path: base, Fields: methodOpenFields()}}
+	p["operations"] = []operation{{Name: "open_method", Label: "添加支付方式", Method: "POST", Path: base, Fields: methodOpenFields()}}
 	p["row_operations"] = []operation{{Name: "open_method", Label: "管理支付方式", Method: "POST", Path: base + "/{id}/open_method", Fields: methodOpenFields()}}
 	a.resourceResponse(c, p)
 }
@@ -153,7 +183,7 @@ func inferredMethodKind(driver, payout string) string {
 	case "manual":
 		return "offline"
 	case "stripe":
-		return "bank_card"
+		return "stripe"
 	case "alipay", "wechat", "kvoucher":
 		return driver
 	case "nowpayments", "evm_wallet":

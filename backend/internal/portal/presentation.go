@@ -68,7 +68,7 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				// The application already fixed the settlement net. Paying in that
 				// currency records the net itself, so both payout wallets hide the
 				// amount and its link until the operator changes the currency.
-				if (resource == "withdrawals" || resource == "balance-withdrawals") && (f.Name == "original_amount" || f.Name == "valuation_evidence") && settlementCurrency != "" {
+				if (resource == "withdrawals" || resource == "balance-withdrawals") && (f.Name == "original_amount" || f.Name == "valuation_evidence") && settlementCurrency != "" && f.VisibleWhen == nil {
 					f.VisibleWhen = &fieldVisibility{Not: true, Field: "currency", Values: []string{settlementCurrency}}
 				}
 				if resource == "refunds" && ops[i].Name == "verify_manual" && f.Name == "amount" && settlementCurrency != "" {

@@ -90,14 +90,14 @@ export const FieldSchema = z.object({ name: z.string(), label: z.string(), kind:
 export type CommandField = z.infer<typeof FieldSchema>;
 export const OperationSchema = z.object({ name: z.string(), label: z.string(), method: z.enum(["POST", "PATCH", "DELETE"]), path: z.string(), description: z.string().optional(), confirmation: z.string().optional(), fields: z.array(FieldSchema), permission: z.string().optional(), include_version: z.boolean().optional() });
 export type Operation = z.infer<typeof OperationSchema>;
-export const PaymentMethodCatalogSchema = z.array(z.object({kind:z.string(),label:z.string(),payout:z.boolean(),existing_id:z.string().optional(),drivers:z.array(z.object({value:z.string(),label:z.string(),fields:z.array(z.object({name:z.string(),label:z.string(),secret:z.boolean()}))}))}));
+export const PaymentMethodCatalogSchema = z.array(z.object({kind:z.string(),label:z.string(),payout:z.boolean(),payout_summary:z.string().optional(),payout_fields:z.array(z.object({name:z.string(),label:z.string(),optional:z.boolean().optional()})).optional(),existing_id:z.string().optional(),drivers:z.array(z.object({value:z.string(),label:z.string(),fields:z.array(z.object({name:z.string(),label:z.string(),secret:z.boolean()}))}))}));
 export const ResourcePageSchema = z.object({ payment_method_catalog:PaymentMethodCatalogSchema.optional(), views:z.array(z.object({value:z.string(),label:z.string()})).optional(),
   title: z.string(), description: z.string(), items: z.array(EntitySchema), search_supported: z.boolean().optional(), status_supported: z.boolean().optional(),
   columns: z.array(z.object({ key: z.string(), label: z.string(), help: z.string().optional(), kind: z.enum(["text", "money", "atg", "decimal", "datetime", "status", "boolean", "link", "details"]) })),
   operations: z.array(OperationSchema), row_operations: z.array(OperationSchema),
   availability: z.array(AvailabilitySchema).optional(), next_cursor: z.string().nullable().optional(),
   summary: z.array(z.object({ label: z.string(), value: z.string(), unit: z.string().optional(), detail: z.string().optional() })).optional(),
-  payout_methods: z.array(z.object({ id: z.string(), policy_id: z.string(), name: z.string(), kind: z.string(), kind_label: z.string(), summary: z.string(), flat_fee_money: Decimal, fee_rate: Decimal, minimum_money: Decimal, fields: z.array(z.object({ name: z.string(), label: z.string(), help: z.string(), kind: z.enum(["text", "select"]), options: z.array(z.object({ value: z.string(), label: z.string() })).optional() })) })).optional(),
+  payout_methods: z.array(z.object({ id: z.string(), policy_id: z.string(), name: z.string(), payout_currency:z.string().optional(),payout_rate:Decimal.optional(),payout_digits:z.number().optional(),payout_note:z.string().optional(),kind: z.string(), kind_label: z.string(), summary: z.string(), flat_fee_money: Decimal, fee_rate: Decimal, minimum_money: Decimal, fields: z.array(z.object({ name: z.string(), label: z.string(), help: z.string(), optional:z.boolean().optional(),kind: z.enum(["text", "select"]), options: z.array(z.object({ value: z.string(), label: z.string() })).optional() })) })).optional(),
   currency_digits: z.number().int().nonnegative().optional(),
 });
 export type ResourcePage = z.infer<typeof ResourcePageSchema>;

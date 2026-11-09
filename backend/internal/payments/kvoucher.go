@@ -27,9 +27,6 @@ type KVoucher struct{ HTTP *Transport }
 func (KVoucher) Name() string { return "kvoucher" }
 func (KVoucher) Validate(m Merchant) []string {
 	missing := required(m, "kvoucher_api_key", "kvoucher_api_secret")
-	if channels := strings.TrimSpace(m.Credentials["refund_channels"]); channels != "" && len(normalizeRefundChannels(channels)) == 0 {
-		missing = append(missing, "refund_channels")
-	}
 	return missing
 }
 func (k KVoucher) QuotePayment(ctx context.Context, m Merchant, o Order) (PaymentQuote, error) {
@@ -227,18 +224,6 @@ func (s *Service) driverTransport() *Transport {
 	}
 	return nil
 }
-func (s *Service) KVoucherRefundChannels(ctx context.Context, operator string) []string {
-	rows, e := s.PublicMethods(ctx, operator)
-	if e != nil {
-		return nil
-	}
-	for _, row := range rows {
-		if row.Driver == "kvoucher" && len(row.RefundChannels) > 0 {
-			return row.RefundChannels
-		}
-	}
-	return nil
-}
 
 func (k KVoucher) sandbox(ctx context.Context, m Merchant) (bool, error) {
 	raw, e := k.order(ctx, m, http.MethodGet, "/account", nil)
@@ -412,19 +397,4 @@ func kvoucherSignature(secret string, body []byte, header string) bool {
 	mac.Write(body)
 	expect := "sha256=" + hex.EncodeToString(mac.Sum(nil))
 	return subtle.ConstantTimeCompare([]byte(expect), []byte(strings.TrimSpace(header))) == 1
-}
-func normalizeRefundChannels(value string) []string {
-	allowed := map[string]string{"bank": "银行卡", "alipay": "支付宝", "wechat": "微信支付", "tng": "Touch 'n Go", "duitnow": "DuitNow"}
-	seen := map[string]bool{}
-	out := []string{}
-	for _, part := range strings.Split(value, ",") {
-		key := strings.ToLower(strings.TrimSpace(part))
-		label := allowed[key]
-		if label == "" || seen[key] {
-			continue
-		}
-		seen[key] = true
-		out = append(out, key)
-	}
-	return out
 }

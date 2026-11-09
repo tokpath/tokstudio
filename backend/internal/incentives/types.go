@@ -210,10 +210,6 @@ type CorrectionInput struct {
 	AmountMoney     ledger.Decimal `json:"amount_money"`
 }
 type WithdrawalPolicy struct {
-	PayoutCurrency       string         `json:"payout_currency"`
-	PayoutRate           ledger.Decimal `json:"payout_rate"`
-	PayoutNote           string         `json:"payout_note"`
-	PayoutNetworks       []string       `json:"payout_networks" gorm:"-"`
 	Currency             string         `json:"currency,omitempty" gorm:"-"`
 	Wallet               string         `json:"wallet" gorm:"default:commission"`
 	MethodID             string         `json:"method_id"`
@@ -240,13 +236,11 @@ type WithdrawalInput struct {
 	AmountMoney        ledger.Decimal `json:"amount_money"`
 }
 type WithdrawalQuote struct {
-	PayoutCurrency string           `json:"payout_currency"`
-	PayoutAmount   ledger.Decimal   `json:"payout_amount"`
-	Policy         WithdrawalPolicy `json:"policy"`
-	AmountMoney    ledger.Decimal   `json:"amount_money"`
-	FeeMoney       ledger.Decimal   `json:"fee_money"`
-	NetMoney       ledger.Decimal   `json:"net_money"`
-	FeeRemainder   string           `json:"fee_remainder"`
+	Policy       WithdrawalPolicy `json:"policy"`
+	AmountMoney  ledger.Decimal   `json:"amount_money"`
+	FeeMoney     ledger.Decimal   `json:"fee_money"`
+	NetMoney     ledger.Decimal   `json:"net_money"`
+	FeeRemainder string           `json:"fee_remainder"`
 }
 type Withdrawal struct {
 	PayoutCurrency     string         `json:"payout_currency"`

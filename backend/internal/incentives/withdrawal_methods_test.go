@@ -56,20 +56,24 @@ func TestWithdrawalMethodsKeepIndependentFeesAndFreezeTheChosenPayout(t *testing
 	}
 }
 
-func TestWithdrawalFreezesForeignPayoutBeforeApplication(t *testing.T) {
+func TestPreviouslyAcceptedPayoutSnapshotStillHonored(t *testing.T) {
 	f := setup(t)
 	c := f.register(t, "foreign-payout@example.test", "")
 	f.seed(t, c.Customer.ID, "customer:money", "100")
-	p, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MethodID: uuid.NewString(), PayoutKind: "paypal", MethodName: "PayPal", Enabled: true, MinimumMoney: d("1"), FlatFeeMoney: d("1"), PayoutCurrency: "EUR", PayoutRate: d("0.9")}, 0)
+	p, e := f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, WithdrawalPolicy{MethodID: uuid.NewString(), PayoutKind: "paypal", MethodName: "PayPal", Enabled: true, MinimumMoney: d("1"), FlatFeeMoney: d("1")}, 0)
 	if e != nil {
 		t.Fatal(e)
 	}
 	in := WithdrawalInput{Wallet: "balance", OperatorID: f.operator, CustomerID: c.Customer.ID, BusinessKey: "foreign-payout", PolicyID: p.ID, AmountMoney: d("40"), RecipientReference: "PayPal: recipient@example.test"}
 	w, e := f.s.RequestWithdrawal(f.ctx, nil, in)
-	if e != nil || w.PayoutCurrency != "EUR" || w.PayoutAmount.String() != "35.1" {
+	if e != nil || w.PayoutCurrency != "" || w.NetMoney.String() != "39" {
 		t.Fatal(w, e)
 	}
-	p.PayoutRate = d("0.8")
+	// A request accepted before the settings simplification retains its promised payout.
+	if e = f.s.db.Exec("UPDATE incentives_withdrawals SET payout_currency='EUR',payout_amount=35.1 WHERE id=?", w.ID).Error; e != nil {
+		t.Fatal(e)
+	}
+	p.FlatFeeMoney = d("2")
 	if _, e = f.s.SetWithdrawalPolicy(f.ctx, nil, f.owner, f.operator, p, p.Version); e != nil {
 		t.Fatal(e)
 	}

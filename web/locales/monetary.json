@@ -1268,5 +1268,15 @@
     "en": "Withdrawals must meet the operator’s minimum. Review and confirm the fee and receiving amount when applying.",
     "ja": "出金は運営者の最低額以上が必要です。申請時に手数料と実際の受取額を確認し、確定します。",
     "ru": "Сумма вывода должна быть не ниже минимума оператора. При подаче заявки проверьте и подтвердите комиссию и сумму к получению."
+  },
+  "余额和佣金提现共用同一规则。申请 100、手续费 2 时，账户扣除 100，经营方按净应付 98 办理付款。": {
+    "en": "Balance and commission withdrawals share this rule. For a request of 100 with a fee of 2, the account is debited 100 and the operator pays the net amount of 98.",
+    "ja": "残高と報酬の出金は同じ規則を使います。申請額100、手数料2の場合、口座から100を差し引き、運営者は差引額98を支払います。",
+    "ru": "Для вывода баланса и комиссий действует одно правило. При заявке на 100 и сборе 2 со счёта списывается 100, а оператор выплачивает чистую сумму 98."
+  },
+  "提现须达到经营方公布的最低额度。申请时确认总额、手续费和净应付金额。": {
+    "en": "Withdrawals must meet the operator’s minimum. Review the total, fee and net amount when applying.",
+    "ja": "出金は運営者が定めた最低額以上である必要があります。申請時に総額、手数料、差引支払額を確認してください。",
+    "ru": "Вывод должен соответствовать минимуму оператора. При подаче заявки проверьте общую сумму, сбор и чистую сумму выплаты."
   }
 }

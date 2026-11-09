@@ -86,3 +86,47 @@ func TestMethodCapabilitiesMigrationKeepsSnapshotsAndFoldsCash(t *testing.T) {
 		t.Fatal(cash, e)
 	}
 }
+
+func TestSimpleWithdrawalMigrationRestoresOriginalRulesAndRespectsOperatorEdits(t *testing.T) {
+	db := paymentDB(t)
+	ctx := t.Context()
+	for _, kind := range []string{"wechat", "alipay", "usdt"} {
+		if e := db.Exec(`INSERT INTO payment_method_versions(id,method_id,operator_id,version,name,method_kind,payout_kind,payout_enabled,fee_rate) VALUES(?,?, 'simple',1,?,?,?,true,0.02)`, uuid.NewString(), kind, kind, kind, kind).Error; e != nil {
+			t.Fatal(e)
+		}
+	}
+	if e := db.Transaction(func(tx *gorm.DB) error { return tx.Exec(methodCapabilitiesSchema).Error }); e != nil {
+		t.Fatal(e)
+	}
+	// This operator subsequently chose to keep Alipay disabled. Do not undo that choice.
+	if e := db.Exec(`INSERT INTO payment_method_versions(id,method_id,operator_id,version,name,method_kind,payout_kind,payout_enabled,fee_rate,created_by,payout_currency,payout_rate) VALUES(?,'alipay','simple',3,'支付宝','alipay','alipay',false,0.03,'operator','CNY',7)`, uuid.NewString()).Error; e != nil {
+		t.Fatal(e)
+	}
+	if e := db.Exec(simpleWithdrawalsSchema).Error; e != nil {
+		t.Fatal(e)
+	}
+	for _, kind := range []string{"wechat", "alipay", "usdt"} {
+		rule, e := paymentmethods.Current(ctx, db, "simple", kind)
+		if e != nil || rule.PayoutEnabled != (kind != "alipay") {
+			t.Fatal(kind, rule, e)
+		}
+		want := "0.02"
+		if kind == "alipay" {
+			want = "0.03"
+		}
+		if rule.FeeRate.String() != want {
+			t.Fatal(rule)
+		}
+		var details struct {
+			PayoutCurrency, PayoutNote string
+			PayoutRate                 ledger.Decimal
+		}
+		if e := db.Table("payment_method_versions").Where("id=?", rule.ID).Scan(&details).Error; e != nil || details.PayoutCurrency != "" || !details.PayoutRate.IsZero() || details.PayoutNote != "" {
+			t.Fatal(details, e)
+		}
+		var original paymentmethods.Rule
+		if e := db.Where("operator_id='simple' AND method_id=? AND version=1", kind).First(&original).Error; e != nil || !original.PayoutEnabled || original.FeeRate.String() != "0.02" {
+			t.Fatal("accepted fee version changed", original, e)
+		}
+	}
+}

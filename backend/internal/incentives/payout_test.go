@@ -64,10 +64,4 @@ func TestPayoutMaterialsAreManualAndNetworkSpecific(t *testing.T) {
 	if _, e := FormatPayoutRecipient("paypal", map[string]string{"email": "Name <payee@example.test>"}); e == nil {
 		t.Fatal("display name accepted as an email")
 	}
-	for _, tc := range []struct{ net, rate, code, want string }{{"9.81", "7.123", "CNY", "69.88"}, {"9.81", "150.5", "JPY", "1476"}, {"9.81", "1.001", "USDT", "9.81981"}} {
-		got, e := PayoutAmount(d(tc.net), d(tc.rate), tc.code)
-		if e != nil || got.String() != tc.want {
-			t.Fatal(tc, got, e)
-		}
-	}
 }

@@ -59,7 +59,7 @@ func businessFields(o operation) []field {
 		asset := optional("asset_network_version_id", "平台已发布的准确资产与网络", "text")
 		asset.VisibleWhen = &fieldVisibility{Field: "driver", Values: []string{"evm_wallet", "nowpayments"}}
 		fields = append(fields, asset)
-		for _, key := range []string{"currency", "recipient_reference", "instructions", "secret_key", "publishable_key", "webhook_secret", "app_id", "mch_id", "merchant_api_private_key", "cert_serial", "api_v3_key", "wechat_public_key", "public_key_id", "app_private_key", "alipay_public_key", "seller_id", "api_key", "kvoucher_api_key", "kvoucher_api_secret", "refund_channels", "ipn_secret", "rpc_url", "wallet_address"} {
+		for _, key := range []string{"currency", "recipient_reference", "instructions", "secret_key", "publishable_key", "webhook_secret", "app_id", "mch_id", "merchant_api_private_key", "cert_serial", "api_v3_key", "wechat_public_key", "public_key_id", "app_private_key", "alipay_public_key", "seller_id", "api_key", "kvoucher_api_key", "kvoucher_api_secret", "ipn_secret", "rpc_url", "wallet_address"} {
 			v := optional("credentials."+key, "通道材料 · "+key, "text")
 			if strings.Contains(key, "private_key") || strings.Contains(key, "public_key") {
 				v.Kind = "textarea"

@@ -260,24 +260,3 @@ func validPayoutAddress(network, address string) bool {
 	check := sha256.Sum256(a[:])
 	return string(check[:4]) == string(b[21:])
 }
-func PayoutDigits(code string) int {
-	if code == "USDT" {
-		return 6
-	}
-	return CurrencyMinorDigits(code)
-}
-func PayoutAmount(net, rate ledger.Decimal, code string) (ledger.Decimal, error) {
-	if !rate.Valid() || rate.Sign() <= 0 {
-		return ledger.Zero(), ErrInvalidInput
-	}
-	scale := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(PayoutDigits(code))), nil)
-	r := new(big.Rat).Mul(net.Rat(), rate.Rat())
-	r.Mul(r, new(big.Rat).SetInt(scale))
-	numerator := new(big.Int).Add(new(big.Int).Mul(r.Num(), big.NewInt(2)), r.Denom())
-	units := new(big.Int).Quo(numerator, new(big.Int).Mul(r.Denom(), big.NewInt(2)))
-	result, _ := ledger.Quantize(new(big.Rat).SetFrac(units, scale))
-	if result.Sign() <= 0 {
-		return result, ErrInvalidInput
-	}
-	return result, nil
-}

@@ -38,7 +38,7 @@ export function PaymentMethodsScreen({ operatorID }: { operatorID: string }) {
     <Heading title={t("支付方式与手续费")} description={t("每种支付方式只设置一套手续费，统一用于它支持的收款、余额提现和佣金提现。")} />
     <div className="mb-6 grid gap-4 md:grid-cols-3">{[
       ["收款：本金之外另加", channel ? "充值和直接购买套餐，共用所选方式的规则。支付 100 本金、手续费 2 时，合计付款 102，权益按 100 交付。" : "充值、直接购买套餐和下级采购，共用所选方式的规则。支付 100 本金、手续费 2 时，合计付款 102，权益按 100 交付。"],
-      ["提现：申请总额内扣", "余额和佣金提现共用同一规则。申请 100、手续费 2 时，账户扣除 100、清算净额 98；实际到账按所选币种和比例展示。"],
+      ["提现：申请总额内扣", "余额和佣金提现共用同一规则。申请 100、手续费 2 时，账户扣除 100，经营方按净应付 98 办理付款。"],
       ["保存后影响哪些交易", "只影响新确认的付款和提现。已确认的金额保持不变；内部余额和佣金抵扣不收费。异常退款会退回本金及已收支付手续费。"]
     ].map(([title,detail])=><div key={title} className="rounded-control border border-hairline p-4"><h3 className="font-medium">{t(title)}</h3><p className="mt-2 text-sm leading-7 text-ink-secondary">{t(detail)}</p></div>)}</div>
     <ResourceScreen operatorID={operatorID} resource="payment-methods" embedded layout="cards" inspectionLinks />

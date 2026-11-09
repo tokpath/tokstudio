@@ -39,7 +39,6 @@ type PublicMethod struct {
 	Configured                     bool           `json:"configured"`
 	RefundAPI                      bool           `json:"refund_api"`
 	AutoCharge                     bool           `json:"auto_charge"`
-	RefundChannels                 []string       `json:"refund_channels,omitempty"`
 }
 
 func (s *Service) ListMerchantConfigs(ctx context.Context, actor, operator string) ([]MerchantView, error) {
@@ -127,9 +126,6 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 		if m.Driver == "manual" {
 			view.Instructions = m.Credentials["instructions"]
 		}
-		if m.Driver == "kvoucher" {
-			view.RefundChannels = normalizeRefundChannels(m.Credentials["refund_channels"])
-		}
 		rule, err := paymentmethods.Current(ctx, s.DB, operator, methodIdentity(m))
 		if err != nil {
 			return nil, err
@@ -145,6 +141,9 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 			if identity.MerchantID != m.ID {
 				continue
 			}
+		}
+		if rule.Kind == "offline" {
+			view.Instructions = "请联系经营方，按约定完成线下付款。"
 		}
 		view.Kind = rule.Kind
 		view.FeeRuleID = rule.ID

@@ -754,6 +754,10 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 	if intent.Driver == "manual" {
 		action["kind"], action["instructions"] = "offline", checkout.Instructions
 	}
+	if e := a.simplifyOfflineAction(ctx, po.OperatorID, intent.Driver, checkout.FeeQuote, action); e != nil {
+		handleError(c, e)
+		return
+	}
 	if intent.Driver == "evm_wallet" {
 		action["wallet_receipt_path"] = "/api/v1/operators/" + op.ID + "/procurement/" + id + "/wallet_receipt"
 	}

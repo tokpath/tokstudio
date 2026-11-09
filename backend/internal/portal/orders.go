@@ -372,6 +372,10 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 			if ch.Instructions != "" {
 				action["instructions"] = ch.Instructions
 			}
+			if err := a.simplifyOfflineAction(ctx, o.OperatorID, intent.Driver, ch.FeeQuote, action); err != nil {
+				return nil, err
+			}
+
 			action["network"], action["token_contract"] = intent.Network, intent.TokenContract
 			if intent.Driver == "evm_wallet" {
 				action["wallet_receipt_path"] = "/api/v1/me/orders/" + o.ID + "/wallet-receipts"
@@ -1185,4 +1189,20 @@ func (a *Application) paymentWebhook(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"received": true})
+}
+
+// Generic offline payment is arranged with the operator, not a configured bank account.
+func (a *Application) simplifyOfflineAction(ctx context.Context, operator, driver string, quote *paymentmethods.Quote, action gin.H) error {
+	if driver != "manual" || quote == nil {
+		return nil
+	}
+	rule, err := paymentmethods.Version(ctx, a.DB, operator, quote.RuleID)
+	if err != nil {
+		return err
+	}
+	if rule.Kind == "offline" {
+		delete(action, "address")
+		action["instructions"] = "请联系经营方，按约定完成线下付款。"
+	}
+	return nil
 }

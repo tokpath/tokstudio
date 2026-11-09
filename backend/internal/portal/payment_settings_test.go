@@ -27,7 +27,7 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 	}
 	for _, method := range []map[string]any{
 		{"action": "open_method", "method_kind": "bank_transfer", "enabled": true, "collection": false, "fee_mode": "fixed", "flat_fee_money": "1", "payout_enabled": true},
-		{"action": "open_method", "method_kind": "alipay", "payout_currency": "CNY", "payout_rate": "7", "enabled": true, "collection": false, "fee_mode": "percent", "fee_percent": "2", "payout_enabled": true},
+		{"action": "open_method", "method_kind": "alipay", "enabled": true, "collection": false, "fee_mode": "percent", "fee_percent": "2", "payout_enabled": true},
 	} {
 		key := uuid.NewString()
 		status, out, _ := f.call(t, "POST", base, method, key)

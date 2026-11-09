@@ -3067,37 +3067,19 @@
         "label": "实际付款币种",
         "name": "currency",
         "help": "默认是结算币种。用结算币种付款时不用再填金额。如果实际付出的是另一种货币，改成那种货币。",
-        "required": true,
-        "visible_when": {
-          "field": "payout_currency",
-          "values": [
-            ""
-          ]
-        }
+        "required": true
       },
       {
         "kind": "decimal",
         "label": "实际原币付款金额",
         "name": "original_amount",
-        "help": "填写实际付出的原币金额。账上仍按申请时已经固定的实付净额入账。",
-        "visible_when": {
-          "field": "payout_currency",
-          "values": [
-            ""
-          ]
-        }
+        "help": "填写实际付出的原币金额。账上仍按申请时已经固定的实付净额入账。"
       },
       {
         "kind": "textarea",
         "label": "本笔原币付款与实付净额的关联凭证",
         "name": "valuation_evidence",
-        "help": "说明这笔原币付款对应申请里的实付净额。",
-        "visible_when": {
-          "field": "payout_currency",
-          "values": [
-            ""
-          ]
-        }
+        "help": "说明这笔原币付款对应申请里的实付净额。"
       },
       {
         "kind": "datetime",
@@ -4271,26 +4253,6 @@
         "default_value": false
       },
       {
-        "name": "payout_currency",
-        "label": "提现到账币种",
-        "kind": "text"
-      },
-      {
-        "name": "payout_rate",
-        "label": "提现兑换比例",
-        "kind": "decimal"
-      },
-      {
-        "name": "payout_note",
-        "label": "提现办理说明",
-        "kind": "textarea"
-      },
-      {
-        "name": "payout_networks",
-        "label": "可办理的提现网络",
-        "kind": "json"
-      },
-      {
         "name": "driver",
         "label": "收款办理方式",
         "kind": "text"
@@ -4423,26 +4385,6 @@
         "label": "用于余额和佣金提现",
         "kind": "boolean",
         "default_value": false
-      },
-      {
-        "name": "payout_currency",
-        "label": "提现到账币种",
-        "kind": "text"
-      },
-      {
-        "name": "payout_rate",
-        "label": "提现兑换比例",
-        "kind": "decimal"
-      },
-      {
-        "name": "payout_note",
-        "label": "提现办理说明",
-        "kind": "textarea"
-      },
-      {
-        "name": "payout_networks",
-        "label": "可办理的提现网络",
-        "kind": "json"
       },
       {
         "name": "driver",

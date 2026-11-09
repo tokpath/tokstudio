@@ -16,7 +16,7 @@ func TestPostgresPaymentMethodOnboardingSharesIdentityAndKeepsPendingRules(t *te
 	op := f.a.Installation.OperatorID
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	base := "/v1/operators/" + op + "/payment-methods"
-	body := map[string]any{"action": "open_method", "payout_currency": "CNY", "payout_rate": "7", "method_kind": "alipay", "enabled": true, "collection": true, "payout_enabled": true, "driver": "", "fee_mode": "percent", "fee_percent": "2"}
+	body := map[string]any{"action": "open_method", "method_kind": "alipay", "enabled": true, "collection": true, "payout_enabled": true, "driver": "", "fee_mode": "percent", "fee_percent": "2"}
 	key := uuid.NewString()
 	status, out, _ := f.call(t, "POST", base, body, key)
 	mustOK(t, status, out)
@@ -178,11 +178,7 @@ func TestPostgresManualPaymentCapabilitiesAcrossOperatorRoles(t *testing.T) {
 		if status == 200 {
 			t.Fatal("Stripe became manual bank payouts", out)
 		}
-		status, out, _ = f.call(t, "POST", base, map[string]any{"action": "open_method", "method_kind": "usdt", "enabled": true, "collection": false, "payout_enabled": true, "payout_currency": "USDT", "payout_rate": "1.01", "fee_mode": "none"}, uuid.NewString())
-		if status == 200 {
-			t.Fatal("unconfigured payout network accepted", out)
-		}
-		status, out, _ = f.call(t, "POST", base, map[string]any{"action": "open_method", "method_kind": "usdt", "enabled": true, "collection": false, "payout_enabled": true, "payout_currency": "USDT", "payout_rate": "1.01", "payout_networks": []string{"TRC20"}, "fee_mode": "none"}, uuid.NewString())
+		status, out, _ = f.call(t, "POST", base, map[string]any{"action": "open_method", "method_kind": "usdt", "enabled": true, "collection": false, "payout_enabled": true, "fee_mode": "none"}, uuid.NewString())
 		mustOK(t, status, out)
 		payouts, e = f.a.Incentives.WithdrawalMethods(ctx, nil, op, true, "commission")
 		if e != nil || len(payouts) != 2 {
@@ -191,7 +187,7 @@ func TestPostgresManualPaymentCapabilitiesAcrossOperatorRoles(t *testing.T) {
 		for _, p := range customerPayoutMethods(payouts) {
 			if p["kind"] == "usdt" {
 				fields := p["fields"].([]incentives.PayoutField)
-				if len(fields[0].Options) != 1 || fields[0].Options[0].Value != "TRC20" {
+				if len(fields[0].Options) != 2 || fields[0].Options[0].Value != "TRC20" {
 					t.Fatal(fields)
 				}
 			}

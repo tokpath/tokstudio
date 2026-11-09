@@ -56,9 +56,6 @@ func (a *Application) applyWalletWithdrawal(c *gin.Context, wallet string) {
 		if _, ok := incentives.FindPayoutProfile(method.PayoutKind); !ok {
 			return nil, incentives.ErrInvalidInput
 		}
-		if method.PayoutKind == "usdt" && !contains(method.PayoutNetworks, in.Recipient["network"]) {
-			return nil, incentives.ErrInvalidInput
-		}
 		reference, err := incentives.FormatPayoutRecipient(method.PayoutKind, in.Recipient)
 		if err != nil {
 			return nil, err
@@ -139,7 +136,7 @@ func (a *Application) customerWithdrawalWorkspace(c *gin.Context, p gin.H, opera
 	p["currency_digits"] = digits
 	if len(offered) > 0 {
 		minimum := offered[0]["minimum_money"].(string)
-		p["description"] = "提现须达到经营方公布的最低额度。手续费和实际到账金额在申请时固定，由你确认。"
+		p["description"] = "提现须达到经营方公布的最低额度。申请时确认总额、手续费和净应付金额。"
 		p["summary"] = []gin.H{{"label": "最低提现额度", "value": minimum, "unit": "MONEY", "detail": "单笔提现总额不能低于经营方公布的这个额度。"}}
 	} else {
 		p["description"] = "请等待经营方配置可用提现方式。"
@@ -171,10 +168,10 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 		return
 	}
 	items := []any{}
-	hasUnquoted := false
+	hasQuoted := false
 	for _, w := range rows {
-		if w.PayoutCurrency == "" {
-			hasUnquoted = true
+		if w.PayoutCurrency != "" {
+			hasQuoted = true
 		}
 		v := values(w)
 		if w.PayoutCurrency != "" {
@@ -194,9 +191,9 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 	}
 	p["items"] = items
 	p["next_cursor"] = next
-	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("payout_display", "实际到账", "text"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
-	if hasUnquoted {
-		p["columns"] = append(p["columns"].([]gin.H), col("net_money", "清算净额", "money"))
+	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
+	if hasQuoted {
+		p["columns"] = append(p["columns"].([]gin.H), col("payout_display", "实际到账", "text"))
 	}
 	if wallet != "balance" {
 		p["operations"] = []operation{}
@@ -215,20 +212,7 @@ func customerPayoutMethods(methods []incentives.WithdrawalPolicy) []gin.H {
 		if !ok {
 			continue
 		}
-		if method.PayoutKind == "usdt" {
-			for i := range profile.Fields {
-				if profile.Fields[i].Name == "network" {
-					options := []incentives.PayoutChoice{}
-					for _, o := range profile.Fields[i].Options {
-						if contains(method.PayoutNetworks, o.Value) {
-							options = append(options, o)
-						}
-					}
-					profile.Fields[i].Options = options
-				}
-			}
-		}
-		out = append(out, gin.H{"payout_currency": method.PayoutCurrency, "payout_rate": method.PayoutRate.String(), "payout_digits": incentives.PayoutDigits(method.PayoutCurrency), "payout_note": method.PayoutNote, "id": method.MethodID, "policy_id": method.ID, "name": method.MethodName, "kind": method.PayoutKind, "kind_label": profile.Label, "summary": profile.Summary, "flat_fee_money": method.FlatFeeMoney.String(), "fee_rate": method.FeeRate.String(), "minimum_money": method.MinimumMoney.String(), "fields": profile.Fields})
+		out = append(out, gin.H{"id": method.MethodID, "policy_id": method.ID, "name": method.MethodName, "kind": method.PayoutKind, "kind_label": profile.Label, "summary": profile.Summary, "flat_fee_money": method.FlatFeeMoney.String(), "fee_rate": method.FeeRate.String(), "minimum_money": method.MinimumMoney.String(), "fields": profile.Fields})
 	}
 	return out
 }
@@ -349,9 +333,6 @@ func withdrawalPaymentFields() []field {
 	link.Help = "说明这笔原币付款对应申请里的实付净额。"
 	evidence := optional("evidence", "付款备注（可选）", "textarea")
 	evidence.Help = "可补充付款情况或凭证。系统自动记录经办人、付款金额与时间。"
-	for _, v := range []*field{&currency, &original, &link} {
-		v.VisibleWhen = &fieldVisibility{Field: "payout_currency", Values: []string{""}}
-	}
 	return []field{optional("payment_reference", "付款流水或收据号（可选）", "text"), evidence, currency, original, link, f("paid_at", "实际付款时刻", "datetime")}
 }
 

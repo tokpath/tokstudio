@@ -81,7 +81,14 @@ test("OEM workspace and portalled form use its own palette on the platform login
   const surface = page.locator(".product-theme");
   await expect(page.locator("header").getByRole("link", { name: oemOperator.name })).toBeVisible();
   await expect(surface).toHaveCSS("background-color", "rgb(128, 128, 128)");
-  await expect(page.getByRole("button", { name: "人工赠送与补偿", exact: true })).toHaveCSS("background-color", "rgb(186, 57, 233)");
+  await expect.poll(() => page.getByRole("button", { name: "人工赠送与补偿", exact: true }).evaluate(element => {
+    // color-mix() may serialize as color(srgb ...) instead of rgb(...).
+    // Compare rendered channels so both representations test the same color.
+    const canvas = document.createElement("canvas"), context = canvas.getContext("2d")!;
+    context.fillStyle = getComputedStyle(element).backgroundColor;
+    context.fillRect(0, 0, 1, 1);
+    return Array.from(context.getImageData(0, 0, 1, 1).data);
+  })).toEqual([186, 57, 233, 255]);
   await page.getByRole("button", { name: "人工赠送与补偿", exact: true }).click();
   await expect(page.getByRole("dialog").last()).toHaveCSS("background-color", "rgb(128, 128, 128)");
   await page.keyboard.press("Escape");

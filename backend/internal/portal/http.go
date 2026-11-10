@@ -114,6 +114,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 400, "invalid_input", "请按已批准的应退金额一次足额付款。用结算币种付款时无需另填金额，跨币付款只登记实际原币金额。", false
 	case errors.Is(err, incentives.ErrWithdrawalTermsChanged):
 		status, code, msg, retry = 409, "withdrawal_terms_changed", "提现方式或手续费已更新，请刷新页面，核对最新费用后重新提交。", false
+	case errors.Is(err, incentives.ErrPayoutUSDTAddress):
+		status, code, msg, retry = 400, "invalid_payout_address", "USDT 钱包地址无效或与所选网络不匹配，请核对钱包地址和网络后重新提交。", false
 	case errors.Is(err, incentives.ErrWithdrawalMinimum):
 		status, code, msg, retry = 400, "invalid_input", "佣金最低提现不能小于 1 结算币种。", false
 	case errors.Is(err, incentives.ErrBalanceWithdrawalMinimum):

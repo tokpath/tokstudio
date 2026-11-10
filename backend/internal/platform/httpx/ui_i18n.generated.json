@@ -1253,6 +1253,12 @@
     "USDT · ネットワーク、ウォレットアドレス",
     "USDT · сеть, адрес кошелька"
   ],
+  "USDT 钱包地址无效或与所选网络不匹配，请核对钱包地址和网络后重新提交。": [
+    "USDT 钱包地址无效或与所选网络不匹配，请核对钱包地址和网络后重新提交。",
+    "The USDT wallet address is invalid or does not match the selected network. Check the wallet address and network before submitting again.",
+    "USDTウォレットアドレスが無効、または選択したネットワークと一致していません。アドレスとネットワークを確認して再送信してください。",
+    "Адрес кошелька USDT недействителен или не соответствует выбранной сети. Проверьте адрес и сеть, затем отправьте заявку ещё раз."
+  ],
   "UTC自然周期": [
     "UTC自然周期",
     "UTC calendar period",

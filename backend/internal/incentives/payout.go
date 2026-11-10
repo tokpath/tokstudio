@@ -140,6 +140,9 @@ func FormatPayoutRecipient(kind string, values map[string]string) (string, error
 			return "", ErrInvalidInput
 		}
 	}
+	if kind == "usdt" && !validPayoutAddress(strings.TrimSpace(values["network"]), strings.TrimSpace(values["address"])) {
+		return "", ErrPayoutUSDTAddress
+	}
 	lines := make([]string, 0, len(profile.Fields))
 	for _, field := range profile.Fields {
 		value := strings.TrimSpace(values[field.Name])
@@ -168,9 +171,6 @@ func FormatPayoutRecipient(kind string, values map[string]string) (string, error
 			}
 			lines = append(lines, field.Label+"："+normalized)
 		}
-	}
-	if kind == "usdt" && !validPayoutAddress(values["network"], values["address"]) {
-		return "", ErrInvalidInput
 	}
 	return strings.Join(lines, "\n"), nil
 }

@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import { allowNavigation } from "@/lib/navigation-guard";
+import { translate } from "@/lib/i18n";
+import { I18nProvider } from "@/components/i18n";
 import { MonetaryProvider } from "./monetary";
 import { CustomerWithdrawalApplications, CustomerWithdrawalRequest, type PayoutMethod } from "./customer-withdrawal-request";
 
@@ -17,6 +19,41 @@ function mount(content: React.ReactNode) {
   const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={cache}><MonetaryProvider value={{ currency: "USD", atg_per_unit: "1", status: "locked", version: 1 }}>{content}</MonetaryProvider></QueryClientProvider>);
 }
+
+it.each(["zh", "en", "ja", "ru"] as const)("explains invalid USDT addresses and allows correction without losing the amount (%s)", async locale => {
+  const t = (source: string) => translate(locale, source, undefined, "USD");
+  const message = t("USDT 钱包地址无效或与所选网络不匹配，请核对钱包地址和网络后重新提交。");
+  const attempts: {key: string | null; body: any}[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (_url, init: RequestInit) => {
+    attempts.push({key: new Headers(init.headers).get("Idempotency-Key"), body: JSON.parse(String(init.body))});
+    return attempts.length === 1
+      ? new Response(JSON.stringify({error: {code: "invalid_payout_address", message, request_id: "usdt-request", retryable: false}}), {status: 400})
+      : new Response(JSON.stringify({id: "usdt-withdrawal", status: "requested", message: t("已提交提现申请。")}), {status: 200});
+  }));
+  const usdt: PayoutMethod = {id: "usdt", policy_id: "usdt-v1", name: "USDT", kind: "usdt", kind_label: "USDT", summary: "", flat_fee_money: "0", fee_rate: "0.03", minimum_money: "1", fields: [
+    {name: "network", label: "网络", help: "", kind: "select", options: [{value: "TRC20", label: "TRC20"}, {value: "ERC20", label: "ERC20"}]},
+    {name: "address", label: "钱包地址", help: "", kind: "text"},
+  ]};
+  mount(<I18nProvider initialLocale={locale}><CustomerWithdrawalRequest methods={[usdt]} digits={2} walletName="支付余额" submitPath="/api/v1/me/balance-withdrawals" /></I18nProvider>);
+  const amount = screen.getByLabelText(t("提现金额 结算币种"), {exact: false}) as HTMLInputElement;
+  const address = screen.getByLabelText(t("钱包地址")) as HTMLInputElement;
+  fireEvent.change(amount, {target: {value: "15"}});
+  fireEvent.change(screen.getByLabelText(t("网络")), {target: {value: "TRC20"}});
+  fireEvent.change(address, {target: {value: "test"}});
+  fireEvent.click(screen.getByRole("button", {name: t("提交提现申请")}));
+  expect((await screen.findByRole("alert")).textContent).toContain(message);
+  expect(amount.value).toBe("15");
+  expect(address.value).toBe("test");
+  expect(amount.closest("fieldset")?.disabled).toBe(false);
+  expect(allowNavigation()).toBe(true);
+  expect(screen.getAllByLabelText("14.55 USD").length).toBeGreaterThan(0);
+  fireEvent.change(address, {target: {value: "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7"}});
+  fireEvent.click(screen.getByRole("button", {name: t("提交提现申请")}));
+  await screen.findByText(t("已提交提现申请。"));
+  expect(attempts).toHaveLength(2);
+  expect(attempts[1].key).not.toBe(attempts[0].key);
+  expect(attempts[1].body).toEqual({method_id: "usdt", policy_id: "usdt-v1", amount_money: "15", recipient: {network: "TRC20", address: "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7"}});
+});
 
 it("compares fees while switching payout methods and submits the selected materials once", async () => {
   const fetch = vi.fn(async () => new Response(JSON.stringify({ id: "withdrawal-one", status: "requested", message: "已提交提现申请。" }), { status: 200 }));

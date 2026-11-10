@@ -65,3 +65,24 @@ func TestPayoutMaterialsAreManualAndNetworkSpecific(t *testing.T) {
 		t.Fatal("display name accepted as an email")
 	}
 }
+
+func TestUSDTRecipientReportsInvalidAddressAndNormalizesOuterWhitespace(t *testing.T) {
+	for _, recipient := range []map[string]string{
+		{"network": "TRC20", "address": "test"},
+		{"network": "TRC20", "address": "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU8"},
+		{"network": "TRC20", "address": "0x1234567890123456789012345678901234567890"},
+		{"network": "ERC20", "address": "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7"},
+		{"network": "ERC20", "address": "0x123456789012345678901234567890123456789z"},
+		{"network": "TRC20", "address": "TLa2f6VPqDgRE67v1 736s7bJ8Ray5wYjU7"},
+		{"network": "TRC20"},
+		{"network": "SOL", "address": "test"},
+	} {
+		if _, err := FormatPayoutRecipient("usdt", recipient); !errors.Is(err, ErrPayoutUSDTAddress) || !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("invalid USDT recipient lost its actionable error: %v", err)
+		}
+	}
+	text, err := FormatPayoutRecipient("usdt", map[string]string{"network": " TRC20 ", "address": " TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7\n"})
+	if err != nil || text != "网络：TRC20\n钱包地址：TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7" {
+		t.Fatal("outer whitespace changed the recipient", text, err)
+	}
+}

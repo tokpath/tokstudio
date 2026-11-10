@@ -7466,6 +7466,11 @@
     "ja": "出金方法または手数料が更新されました。最新の手数料を確認して再申請してください。",
     "ru": "Способ вывода или комиссия изменились. Проверьте обновлённые условия и отправьте заявку заново."
   },
+  "USDT 钱包地址无效或与所选网络不匹配，请核对钱包地址和网络后重新提交。": {
+    "en": "The USDT wallet address is invalid or does not match the selected network. Check the wallet address and network before submitting again.",
+    "ja": "USDTウォレットアドレスが無効、または選択したネットワークと一致していません。アドレスとネットワークを確認して再送信してください。",
+    "ru": "Адрес кошелька USDT недействителен или не соответствует выбранной сети. Проверьте адрес и сеть, затем отправьте заявку ещё раз."
+  },
   "请按已批准的应退金额一次足额付款。用结算币种付款时无需另填金额，跨币付款只登记实际原币金额。": {
     "en": "Pay the full approved refund in one payment. No amount entry is needed in the settlement currency; for another currency, record the amount actually paid.",
     "ja": "承認済みの返金額を一括で全額お支払いください。決済通貨では金額の再入力は不要です。他の通貨では実際の支払額を記録してください。",

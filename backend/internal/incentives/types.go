@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
@@ -16,6 +17,7 @@ import (
 
 var (
 	ErrInvalidInput                 = errors.New("incentives: invalid input")
+	ErrPayoutUSDTAddress            = fmt.Errorf("%w: USDT address does not match the payout network", ErrInvalidInput)
 	ErrNotFound                     = errors.New("incentives: not found")
 	ErrConflict                     = errors.New("incentives: conflicting command or version")
 	ErrNotEligible                  = errors.New("incentives: customer or campaign is not eligible")

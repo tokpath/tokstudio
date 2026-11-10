@@ -2,201 +2,321 @@
   "Base URL、应用 Key 和调用代码，在这里完成。": {
     "en": "Find your Base URL, app Key and request code here.",
     "ja": "Base URL、アプリの Key、呼び出しコードをここで設定できます。",
-    "ru": "Base URL, ключ приложения и код запроса — в одном месте."
+    "ru": "Base URL, ключ приложения и код запроса — в одном месте.",
+    "hi": "यहाँ अपना Base URL, ऐप Key और अनुरोध कोड पाएँ।",
+    "ms": "Cari Base URL, Key aplikasi dan kod permintaan anda di sini.",
+    "th": "ค้นหา Base URL, Key แอป และโค้ดคำขอที่นี่"
   },
   "API Base URL": {
     "en": "API Base URL",
     "ja": "API Base URL",
-    "ru": "Базовый URL API"
+    "ru": "Базовый URL API",
+    "hi": "API Base URL",
+    "ms": "API Base URL",
+    "th": "API Base URL"
   },
   "使用当前品牌公布的 API 地址。账号、套餐和 Key 仍归注册时确认的经营方。": {
     "en": "Use the API address published by this brand. Your account, plans and Keys belong to the operator confirmed at registration.",
     "ja": "現在のブランドが公開する API アドレスを使用します。アカウント、プラン、Key は登録時に確認した運営事業者に属します。",
-    "ru": "Используйте адрес API текущего бренда. Аккаунт, пакеты и ключи принадлежат оператору, подтверждённому при регистрации."
+    "ru": "Используйте адрес API текущего бренда. Аккаунт, пакеты и ключи принадлежат оператору, подтверждённому при регистрации.",
+    "hi": "इस ब्रांड द्वारा प्रकाशित API पता उपयोग करें। आपका खाता, योजनाएँ और Key पंजीकरण पर पुष्ट संचालक के हैं।",
+    "ms": "Gunakan alamat API yang diterbitkan jenama ini. Akaun, pelan dan Key anda milik pengendali yang disahkan semasa pendaftaran.",
+    "th": "ใช้ที่อยู่ API ที่แบรนด์นี้เผยแพร่ บัญชี แพ็กเกจ และ Key เป็นของผู้ดำเนินงานที่ยืนยันเมื่อลงทะเบียน"
   },
   "将密钥保存为环境变量": {
     "en": "Save the Key in the environment variable",
     "ja": "Key を環境変数に保存",
-    "ru": "Сохраните ключ в переменной окружения"
+    "ru": "Сохраните ключ в переменной окружения",
+    "hi": "Key पर्यावरण चर में सहेजें",
+    "ms": "Simpan Key dalam pemboleh ubah persekitaran",
+    "th": "เก็บ Key ในตัวแปรสภาพแวดล้อม"
   },
   "为此模型创建 Key": {
     "en": "Create a Key for this model",
     "ja": "このモデル用の Key を作成",
-    "ru": "Создать ключ для этой модели"
+    "ru": "Создать ключ для этой модели",
+    "hi": "इस मॉडल के लिए Key बनाएँ",
+    "ms": "Cipta Key untuk model ini",
+    "th": "สร้าง Key สำหรับโมเดลนี้"
   },
   "选择要接入的模型": {
     "en": "Select a model to integrate",
     "ja": "接続するモデルを選択",
-    "ru": "Выберите модель для подключения"
+    "ru": "Выберите модель для подключения",
+    "hi": "एकीकरण के लिए मॉडल चुनें",
+    "ms": "Pilih model untuk diintegrasikan",
+    "th": "เลือกโมเดลที่จะเชื่อมต่อ"
   },
   "所选模型已不在当前目录，请明确选择其他模型；系统不会自动替换。": {
     "en": "The selected model is no longer in this catalog. Choose another model explicitly; it will not be replaced automatically.",
     "ja": "選択したモデルは現在のカタログにありません。他のモデルを明示的に選択してください。自動では置き換えられません。",
-    "ru": "Выбранной модели больше нет в каталоге. Выберите другую модель самостоятельно: автоматической замены не будет."
+    "ru": "Выбранной модели больше нет в каталоге. Выберите другую модель самостоятельно: автоматической замены не будет.",
+    "hi": "चुना गया मॉडल अब इस कैटलॉग में नहीं है। स्पष्ट रूप से दूसरा मॉडल चुनें; यह अपने आप नहीं बदला जाएगा।",
+    "ms": "Model yang dipilih tiada lagi dalam katalog ini. Pilih model lain secara jelas; ia tidak akan diganti secara automatik.",
+    "th": "โมเดลที่เลือกไม่อยู่ในแค็ตตาล็อกนี้แล้ว โปรดเลือกโมเดลอื่นอย่างชัดเจน ระบบจะไม่แทนที่โดยอัตโนมัติ"
   },
   "运行示例会按实际用量扣减 ATG。": {
     "en": "Running the example charges ATG for actual usage.",
     "ja": "サンプルの実行時は実際の使用量に応じて ATG が差し引かれます。",
-    "ru": "Запуск примера расходует ATG по фактическому использованию."
+    "ru": "Запуск примера расходует ATG по фактическому использованию.",
+    "hi": "उदाहरण चलाने पर वास्तविक उपयोग के लिए ATG शुल्क लगता है।",
+    "ms": "Menjalankan contoh mencaj ATG bagi penggunaan sebenar.",
+    "th": "การเรียกใช้ตัวอย่างคิด ATG ตามการใช้งานจริง"
   },
   "请求重试与计费": {
     "en": "Retries and billing",
     "ja": "再試行と課金",
-    "ru": "Повтор запросов и оплата"
+    "ru": "Повтор запросов и оплата",
+    "hi": "पुनः प्रयास और बिलिंग",
+    "ms": "Cuba semula dan pengebilan",
+    "th": "การลองคำขออีกครั้งและการคิดค่าบริการ"
   },
   "按可用状态筛选": {
     "en": "Filter by availability",
     "ja": "利用状態で絞り込み",
-    "ru": "Фильтр по доступности"
+    "ru": "Фильтр по доступности",
+    "hi": "उपलब्धता से फ़िल्टर करें",
+    "ms": "Tapis mengikut ketersediaan",
+    "th": "กรองตามสถานะความพร้อมใช้งาน"
   },
   "当前可调用": {
     "en": "Available now",
     "ja": "現在呼び出し可能",
-    "ru": "Доступны сейчас"
+    "ru": "Доступны сейчас",
+    "hi": "अभी उपलब्ध",
+    "ms": "Tersedia sekarang",
+    "th": "ใช้ได้ตอนนี้"
   },
   "显示 {shown} / {total} 个模型": {
     "en": "Showing {shown} of {total} models",
     "ja": "{total} 件中 {shown} 件のモデルを表示",
-    "ru": "Показано моделей: {shown} из {total}"
+    "ru": "Показано моделей: {shown} из {total}",
+    "hi": "{total} में से {shown} मॉडल दिख रहे हैं",
+    "ms": "Menunjukkan {shown} daripada {total} model",
+    "th": "แสดง {shown} จาก {total} โมเดล"
   },
   "清除筛选": {
     "en": "Clear filters",
     "ja": "絞り込みを解除",
-    "ru": "Сбросить фильтры"
+    "ru": "Сбросить фильтры",
+    "hi": "फ़िल्टर साफ़ करें",
+    "ms": "Kosongkan penapis",
+    "th": "ล้างตัวกรอง"
   },
   "计量价格 · ATG": {
     "en": "Usage prices · ATG",
     "ja": "従量料金 · ATG",
-    "ru": "Цены за использование · ATG"
+    "ru": "Цены за использование · ATG",
+    "hi": "उपयोग मूल्य · ATG",
+    "ms": "Harga penggunaan · ATG",
+    "th": "ราคาการใช้งาน · ATG"
   },
   "已选择 · 查看接入": {
     "en": "Selected · view integration",
     "ja": "選択済み · 接続方法を表示",
-    "ru": "Выбрано · подключение"
+    "ru": "Выбрано · подключение",
+    "hi": "चयनित · एकीकरण देखें",
+    "ms": "Dipilih · lihat integrasi",
+    "th": "เลือกแล้ว · ดูการเชื่อมต่อ"
   },
   "接入此模型": {
     "en": "Integrate this model",
     "ja": "このモデルを接続",
-    "ru": "Подключить модель"
+    "ru": "Подключить модель",
+    "hi": "यह मॉडल एकीकृत करें",
+    "ms": "Integrasikan model ini",
+    "th": "เชื่อมต่อโมเดลนี้"
   },
   "先比较能力和价格，再为所选模型创建 Key、复制代码。": {
     "en": "Compare capabilities and prices, then create a Key and copy code for your selected model.",
     "ja": "機能と料金を比較してから、選択したモデル用の Key を作成し、コードをコピーします。",
-    "ru": "Сравните возможности и цены, затем создайте ключ и скопируйте код для выбранной модели."
+    "ru": "Сравните возможности и цены, затем создайте ключ и скопируйте код для выбранной модели.",
+    "hi": "क्षमताओं और मूल्यों की तुलना करें, फिर चुने मॉडल के लिए Key बनाएँ और कोड कॉपी करें।",
+    "ms": "Bandingkan keupayaan dan harga, kemudian cipta Key dan salin kod untuk model pilihan anda.",
+    "th": "เปรียบเทียบความสามารถและราคา จากนั้นสร้าง Key และคัดลอกโค้ดสำหรับโมเดลที่เลือก"
   },
   "活动已发布，可以分享给直属受邀客户。": {
     "en": "Campaign published. Share it with customers you invited directly.",
     "ja": "キャンペーンを公開しました。直接招待した顧客に共有できます。",
-    "ru": "Кампания опубликована. Поделитесь ею с лично приглашёнными клиентами."
+    "ru": "Кампания опубликована. Поделитесь ею с лично приглашёнными клиентами.",
+    "hi": "अभियान प्रकाशित हुआ। इसे अपने सीधे आमंत्रित ग्राहकों से साझा करें।",
+    "ms": "Kempen diterbitkan. Kongsikannya dengan pelanggan yang anda jemput secara langsung.",
+    "th": "เผยแพร่แคมเปญแล้ว แชร์ให้ลูกค้าที่คุณเชิญโดยตรงได้"
   },
   "单笔最多使用一个 KOL 活动，不能跨 KOL 领取；后续购买与续费不会自动继承。": {
     "en": "Each order can use at most one KOL campaign from its direct inviter. It does not carry over to later purchases or renewals.",
     "ja": "1 注文につき直属紹介者の KOL キャンペーンを 1 件まで利用できます。他の KOL からは受け取れず、次回購入や更新には自動継承されません。",
-    "ru": "В заказе доступна одна кампания KOL только от прямого пригласившего. Она не переносится на следующие покупки и продления."
+    "ru": "В заказе доступна одна кампания KOL только от прямого пригласившего. Она не переносится на следующие покупки и продления.",
+    "hi": "प्रत्येक ऑर्डर अपने प्रत्यक्ष आमंत्रक का अधिकतम एक KOL अभियान उपयोग कर सकता है। यह बाद की खरीद या नवीनीकरण में आगे नहीं जाता।",
+    "ms": "Setiap pesanan boleh menggunakan paling banyak satu kempen KOL daripada pengundang langsungnya. Ia tidak dibawa ke pembelian atau pembaharuan kemudian.",
+    "th": "แต่ละคำสั่งซื้อใช้แคมเปญ KOL ของผู้เชิญโดยตรงได้สูงสุดหนึ่งแคมเปญ และไม่ส่งต่อไปยังการซื้อหรือการต่ออายุครั้งถัดไป"
   },
   "活动效果预览": {
     "en": "Campaign preview",
     "ja": "キャンペーンのプレビュー",
-    "ru": "Предпросмотр кампании"
+    "ru": "Предпросмотр кампании",
+    "hi": "अभियान पूर्वावलोकन",
+    "ms": "Pratonton kempen",
+    "th": "ดูตัวอย่างแคมเปญ"
   },
   "套餐基础总额度": {
     "en": "Base plan credits",
     "ja": "プランの基本合計枠",
-    "ru": "Базовый объём пакета"
+    "ru": "Базовый объём пакета",
+    "hi": "आधार योजना क्रेडिट",
+    "ms": "Kredit pelan asas",
+    "th": "เครดิตแพ็กเกจพื้นฐาน"
   },
   "本活动每单加赠": {
     "en": "Extra credits per order",
     "ja": "注文ごとの追加特典",
-    "ru": "Бонус по кампании на заказ"
+    "ru": "Бонус по кампании на заказ",
+    "hi": "प्रति ऑर्डर अतिरिक्त क्रेडिट",
+    "ms": "Kredit tambahan setiap pesanan",
+    "th": "เครดิตเพิ่มเติมต่อคำสั่งซื้อ"
   },
   "含本活动的服务额度": {
     "en": "Credits including this campaign",
     "ja": "このキャンペーンを含むサービス枠",
-    "ru": "Объём с бонусом кампании"
+    "ru": "Объём с бонусом кампании",
+    "hi": "इस अभियान सहित क्रेडिट",
+    "ms": "Kredit termasuk kempen ini",
+    "th": "เครดิตรวมแคมเปญนี้"
   },
   "本人剩余直接佣金比例": {
     "en": "Your remaining direct commission rate",
     "ja": "自身に残る直接コミッション率",
-    "ru": "Ваша оставшаяся ставка прямой комиссии"
+    "ru": "Ваша оставшаяся ставка прямой комиссии",
+    "hi": "आपकी शेष प्रत्यक्ष कमीशन दर",
+    "ms": "Baki kadar komisen langsung anda",
+    "th": "อัตราค่าคอมมิชชันโดยตรงที่เหลือของคุณ"
   },
   "选择套餐并填写有效的让利百分点，立即查看加赠与剩余佣金。": {
     "en": "Select a plan and enter valid concession points to preview the bonus and remaining commission.",
     "ja": "プランを選び、有効な還元パーセンテージポイントを入力すると、追加特典と残るコミッションを確認できます。",
-    "ru": "Выберите пакет и укажите допустимую уступку в процентных пунктах, чтобы увидеть бонус и оставшуюся комиссию."
+    "ru": "Выберите пакет и укажите допустимую уступку в процентных пунктах, чтобы увидеть бонус и оставшуюся комиссию.",
+    "hi": "बोनस और शेष कमीशन का पूर्वावलोकन देखने के लिए योजना चुनें और वैध छूट अंक दर्ज करें।",
+    "ms": "Pilih pelan dan masukkan mata konsesi yang sah untuk pratonton bonus dan baki komisen.",
+    "th": "เลือกแพ็กเกจและระบุจุดเปอร์เซ็นต์ส่วนลดที่ถูกต้องเพื่อดูตัวอย่างของแถมและค่าคอมมิชชันที่เหลือ"
   },
   "仅为活动预览，最终权益、次数、预算与组合资格由购买报价核实。": {
     "en": "This is a preview. The purchase quote verifies final credits, usage limits, budgets and campaign compatibility.",
     "ja": "これはプレビューです。最終的な特典、回数、予算、併用資格は購入見積もりで確認されます。",
-    "ru": "Это предварительный расчёт. Итоговые права, лимиты, бюджет и совместимость акций проверяются в предложении при покупке."
+    "ru": "Это предварительный расчёт. Итоговые права, лимиты, бюджет и совместимость акций проверяются в предложении при покупке.",
+    "hi": "यह पूर्वावलोकन है। खरीद कोटेशन अंतिम क्रेडिट, उपयोग सीमा, बजट और अभियान अनुकूलता सत्यापित करता है।",
+    "ms": "Ini ialah pratonton. Sebut harga pembelian mengesahkan kredit akhir, had penggunaan, bajet dan keserasian kempen.",
+    "th": "นี่เป็นตัวอย่าง ใบเสนอราคาซื้อจะตรวจสอบเครดิตสุดท้าย ขีดจำกัดการใช้ งบประมาณ และการใช้แคมเปญร่วมกัน"
   },
   "活动分享链接": {
     "en": "Campaign share link",
     "ja": "キャンペーン共有リンク",
-    "ru": "Ссылка на кампанию"
+    "ru": "Ссылка на кампанию",
+    "hi": "अभियान साझा लिंक",
+    "ms": "Pautan perkongsian kempen",
+    "th": "ลิงก์แชร์แคมเปญ"
   },
   "链接保留你的原邀请入口。已有客户的经营方和邀请人不会改变；活动只向有效直属受邀客户开放。": {
     "en": "The link keeps your original invitation. Existing customers keep their operator and inviter; the campaign is available only to eligible direct referrals.",
     "ja": "元の招待情報を保持したリンクです。既存顧客の運営事業者と紹介者は変更されず、対象の直属招待顧客のみ利用できます。",
-    "ru": "Ссылка сохраняет ваше исходное приглашение. У существующих клиентов оператор и пригласивший не меняются; кампания доступна только подходящим прямым рефералам."
+    "ru": "Ссылка сохраняет ваше исходное приглашение. У существующих клиентов оператор и пригласивший не меняются; кампания доступна только подходящим прямым рефералам.",
+    "hi": "लिंक आपका मूल आमंत्रण बनाए रखता है। मौजूदा ग्राहक अपना संचालक और आमंत्रक रखते हैं; अभियान केवल पात्र प्रत्यक्ष रेफ़रल के लिए उपलब्ध है।",
+    "ms": "Pautan mengekalkan jemputan asal anda. Pelanggan sedia ada mengekalkan pengendali dan pengundang mereka; kempen hanya tersedia kepada rujukan langsung yang layak.",
+    "th": "ลิงก์คงคำเชิญเดิมของคุณ ลูกค้าที่มีอยู่ยังคงผู้ดำเนินงานและผู้เชิญเดิม แคมเปญใช้ได้เฉพาะผู้ได้รับเชิญโดยตรงที่มีสิทธิ์"
   },
   "复制活动链接": {
     "en": "Copy campaign link",
     "ja": "キャンペーンリンクをコピー",
-    "ru": "Копировать ссылку на кампанию"
+    "ru": "Копировать ссылку на кампанию",
+    "hi": "अभियान लिंक कॉपी करें",
+    "ms": "Salin pautan kempen",
+    "th": "คัดลอกลิงก์แคมเปญ"
   },
   "分享邀请链接，查看邀请效果与 KOL 资格进度。": {
     "en": "Share your invitation and track referrals and KOL qualification.",
     "ja": "招待リンクを共有し、招待の成果と KOL 資格の進捗を確認できます。",
-    "ru": "Делитесь приглашением и отслеживайте рефералов и прогресс получения статуса KOL."
+    "ru": "Делитесь приглашением и отслеживайте рефералов и прогресс получения статуса KOL.",
+    "hi": "अपना आमंत्रण साझा करें और रेफ़रल तथा KOL पात्रता ट्रैक करें।",
+    "ms": "Kongsi jemputan anda dan jejak rujukan serta kelayakan KOL.",
+    "th": "แชร์คำเชิญและติดตามการแนะนำกับคุณสมบัติ KOL"
   },
   "使用邀请码": {
     "en": "Use an invitation code",
     "ja": "招待コードを使用",
-    "ru": "Использовать код приглашения"
+    "ru": "Использовать код приглашения",
+    "hi": "आमंत्रण कोड उपयोग करें",
+    "ms": "Gunakan kod jemputan",
+    "th": "ใช้รหัสเชิญ"
   },
   "距离当前门槛还差": {
     "en": "Remaining to the current threshold",
     "ja": "現在の基準まであと",
-    "ru": "До текущего порога осталось"
+    "ru": "До текущего порога осталось",
+    "hi": "वर्तमान सीमा तक शेष",
+    "ms": "Baki untuk mencapai ambang semasa",
+    "th": "ยอดที่เหลือเพื่อถึงเกณฑ์ปัจจุบัน"
   },
   "KOL 资格进度": {
     "en": "KOL qualification progress",
     "ja": "KOL 資格の進捗",
-    "ru": "Прогресс получения статуса KOL"
+    "ru": "Прогресс получения статуса KOL",
+    "hi": "KOL पात्रता प्रगति",
+    "ms": "Kemajuan kelayakan KOL",
+    "th": "ความคืบหน้าคุณสมบัติ KOL"
   },
   "尚不计入资格进度": {
     "en": "Not yet counted toward qualification",
     "ja": "まだ資格の進捗に含まれません",
-    "ru": "Пока не учитывается для статуса"
+    "ru": "Пока не учитывается для статуса",
+    "hi": "अभी पात्रता में नहीं गिना गया",
+    "ms": "Belum dikira untuk kelayakan",
+    "th": "ยังไม่นับรวมในคุณสมบัติ"
   },
   "分享链接中的套餐": {
     "en": "Plan from the shared link",
     "ja": "共有リンクのプラン",
-    "ru": "Пакет из ссылки"
+    "ru": "Пакет из ссылки",
+    "hi": "साझा लिंक की योजना",
+    "ms": "Pelan daripada pautan dikongsi",
+    "th": "แพ็กเกจจากลิงก์ที่แชร์"
   },
   "继续，核实活动资格": {
     "en": "Continue to verify eligibility",
     "ja": "続けてキャンペーン資格を確認",
-    "ru": "Продолжить и проверить право на акцию"
+    "ru": "Продолжить и проверить право на акцию",
+    "hi": "पात्रता सत्यापित करने के लिए जारी रखें",
+    "ms": "Teruskan untuk mengesahkan kelayakan",
+    "th": "ดำเนินการต่อเพื่อตรวจสอบสิทธิ์"
   },
   "已有账号，登录核实活动": {
     "en": "Already have an account? Sign in to check",
     "ja": "アカウントをお持ちの方はログインして確認",
-    "ru": "Уже есть аккаунт? Войдите для проверки"
+    "ru": "Уже есть аккаунт? Войдите для проверки",
+    "hi": "पहले से खाता है? जाँचने के लिए साइन इन करें",
+    "ms": "Sudah mempunyai akaun? Log masuk untuk menyemak",
+    "th": "มีบัญชีแล้วหรือไม่ ลงชื่อเข้าใช้เพื่อตรวจสอบ"
   },
   "探索模型与价格": {
     "en": "Explore models and prices",
     "ja": "モデルと料金を見る",
-    "ru": "Посмотреть модели и цены"
+    "ru": "Посмотреть модели и цены",
+    "hi": "मॉडल और मूल्य देखें",
+    "ms": "Terokai model dan harga",
+    "th": "สำรวจโมเดลและราคา"
   },
   "你正在查看分享的套餐活动。登录后会核实直属邀请关系、期限与剩余名额。": {
     "en": "You are viewing a shared plan campaign. Sign in to verify your direct inviter, campaign dates and remaining availability.",
     "ja": "共有されたプランキャンペーンを表示しています。ログイン後、直属の招待関係、期間、残り枠を確認します。",
-    "ru": "Вы просматриваете кампанию из ссылки. После входа будут проверены прямой пригласивший, сроки и оставшиеся места."
+    "ru": "Вы просматриваете кампанию из ссылки. После входа будут проверены прямой пригласивший, сроки и оставшиеся места.",
+    "hi": "आप साझा योजना अभियान देख रहे हैं। अपने प्रत्यक्ष आमंत्रक, अभियान तिथियों और शेष उपलब्धता को सत्यापित करने के लिए साइन इन करें।",
+    "ms": "Anda sedang melihat kempen pelan yang dikongsi. Log masuk untuk mengesahkan pengundang langsung, tarikh kempen dan ketersediaan yang tinggal.",
+    "th": "คุณกำลังดูแคมเปญแพ็กเกจที่แชร์ ลงชื่อเข้าใช้เพื่อตรวจสอบผู้เชิญโดยตรง วันที่แคมเปญ และสิทธิ์ที่เหลือ"
   },
   "已有账号的经营方和邀请人不会因打开链接而改变。": {
     "en": "Opening this link does not change an existing account’s operator or inviter.",
     "ja": "リンクを開いても、既存アカウントの運営事業者と紹介者は変わりません。",
-    "ru": "Открытие ссылки не меняет оператора и пригласившего существующего аккаунта."
+    "ru": "Открытие ссылки не меняет оператора и пригласившего существующего аккаунта.",
+    "hi": "यह लिंक खोलने से मौजूदा खाते का संचालक या आमंत्रक नहीं बदलता।",
+    "ms": "Membuka pautan ini tidak mengubah pengendali atau pengundang akaun sedia ada.",
+    "th": "การเปิดลิงก์นี้ไม่เปลี่ยนผู้ดำเนินงานหรือผู้เชิญของบัญชีที่มีอยู่"
   }
 }

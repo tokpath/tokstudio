@@ -20,7 +20,7 @@ func TestMailTestErrorsDoNotExposeSMTPResponses(t *testing.T) {
 		if strings.Contains(got, "secret") || got == "" {
 			t.Fatal(got)
 		}
-		for _, locale := range []string{"en", "ja", "ru"} {
+		for _, locale := range []string{"en", "ja", "ru", "hi", "ms", "th"} {
 			if httpx.LocalizedText(locale, got) == got {
 				t.Fatal("untranslated error", locale, got)
 			}

@@ -3,673 +3,1030 @@
     "zh": "图片尺寸不符合上传要求。",
     "en": "The image dimensions do not meet the upload requirements.",
     "ja": "画像サイズがアップロード要件を満たしていません。",
-    "ru": "Размеры изображения не соответствуют требованиям загрузки."
+    "ru": "Размеры изображения не соответствуют требованиям загрузки.",
+    "hi": "छवि के आयाम अपलोड आवश्यकताओं को पूरा नहीं करते।",
+    "ms": "Dimensi imej tidak memenuhi keperluan muat naik.",
+    "th": "ขนาดภาพไม่ตรงตามข้อกำหนดการอัปโหลด"
   },
   "This asset kind is not supported.": {
     "zh": "不支持此资源类型。",
     "en": "This asset kind is not supported.",
     "ja": "このリソース種別には対応していません。",
-    "ru": "Этот тип ресурса не поддерживается."
+    "ru": "Этот тип ресурса не поддерживается.",
+    "hi": "यह परिसंपत्ति प्रकार समर्थित नहीं है।",
+    "ms": "Jenis aset ini tidak disokong.",
+    "th": "ไม่รองรับสินทรัพย์ประเภทนี้"
   },
   "This SVG is invalid or contains unsupported content.": {
     "zh": "SVG 无效或包含不支持的内容。",
     "en": "This SVG is invalid or contains unsupported content.",
     "ja": "SVG が無効か、未対応の内容を含んでいます。",
-    "ru": "SVG недействителен или содержит неподдерживаемые данные."
+    "ru": "SVG недействителен или содержит неподдерживаемые данные.",
+    "hi": "यह SVG अमान्य है या इसमें असमर्थित सामग्री है।",
+    "ms": "SVG ini tidak sah atau mengandungi kandungan yang tidak disokong.",
+    "th": "SVG นี้ไม่ถูกต้องหรือมีเนื้อหาที่ไม่รองรับ"
   },
   "The file exceeds the upload size limit.": {
     "zh": "文件超过上传大小限制。",
     "en": "The file exceeds the upload size limit.",
     "ja": "ファイルがアップロードのサイズ上限を超えています。",
-    "ru": "Файл превышает допустимый размер загрузки."
+    "ru": "Файл превышает допустимый размер загрузки.",
+    "hi": "फ़ाइल अपलोड आकार सीमा से अधिक है।",
+    "ms": "Fail melebihi had saiz muat naik.",
+    "th": "ไฟล์เกินขีดจำกัดขนาดอัปโหลด"
   },
   "This file type is not supported.": {
     "zh": "不支持此文件类型。",
     "en": "This file type is not supported.",
     "ja": "このファイル形式には対応していません。",
-    "ru": "Этот тип файла не поддерживается."
+    "ru": "Этот тип файла не поддерживается.",
+    "hi": "यह फ़ाइल प्रकार समर्थित नहीं है।",
+    "ms": "Jenis fail ini tidak disokong.",
+    "th": "ไม่รองรับไฟล์ประเภทนี้"
   },
   "Sign-in failed. Check the account and credentials.": {
     "zh": "登录失败，请核对账号和凭据。",
     "en": "Sign-in failed. Check the account and credentials.",
     "ja": "ログインに失敗しました。アカウントと認証情報を確認してください。",
-    "ru": "Не удалось войти. Проверьте аккаунт и данные для входа."
+    "ru": "Не удалось войти. Проверьте аккаунт и данные для входа.",
+    "hi": "साइन इन विफल हुआ। खाता और क्रेडेंशियल जाँचें।",
+    "ms": "Log masuk gagal. Semak akaun dan kelayakan.",
+    "th": "ลงชื่อเข้าใช้ไม่สำเร็จ โปรดตรวจสอบบัญชีและข้อมูลรับรอง"
   },
   "The brand API address is unavailable.": {
     "zh": "品牌 API 地址不可用。",
     "en": "The brand API address is unavailable.",
     "ja": "ブランドの API アドレスを利用できません。",
-    "ru": "API-адрес бренда недоступен."
+    "ru": "API-адрес бренда недоступен.",
+    "hi": "ब्रांड API पता अनुपलब्ध है।",
+    "ms": "Alamat API jenama tidak tersedia.",
+    "th": "ที่อยู่ API ของแบรนด์ใช้ไม่ได้"
   },
   "This account or record belongs to a different brand.": {
     "zh": "此账号或记录属于其他品牌。",
     "en": "This account or record belongs to a different brand.",
     "ja": "このアカウントまたは記録は別のブランドに属しています。",
-    "ru": "Аккаунт или запись принадлежит другому бренду."
+    "ru": "Аккаунт или запись принадлежит другому бренду.",
+    "hi": "यह खाता या रिकॉर्ड दूसरे ब्रांड का है।",
+    "ms": "Akaun atau rekod ini milik jenama lain.",
+    "th": "บัญชีหรือระเบียนนี้เป็นของแบรนด์อื่น"
   },
   "This brand cannot be customized.": {
     "zh": "此品牌无法定制。",
     "en": "This brand cannot be customized.",
     "ja": "このブランドはカスタマイズできません。",
-    "ru": "Настройка этого бренда недоступна."
+    "ru": "Настройка этого бренда недоступна.",
+    "hi": "इस ब्रांड को अनुकूलित नहीं किया जा सकता।",
+    "ms": "Jenama ini tidak boleh disesuaikan.",
+    "th": "ไม่สามารถปรับแต่งแบรนด์นี้"
   },
   "The model catalog is temporarily unavailable.": {
     "zh": "模型目录暂时不可用。",
     "en": "The model catalog is temporarily unavailable.",
     "ja": "モデルカタログを一時的に利用できません。",
-    "ru": "Каталог моделей временно недоступен."
+    "ru": "Каталог моделей временно недоступен.",
+    "hi": "मॉडल कैटलॉग अस्थायी रूप से अनुपलब्ध है।",
+    "ms": "Katalog model tidak tersedia buat sementara waktu.",
+    "th": "แค็ตตาล็อกโมเดลไม่พร้อมใช้งานชั่วคราว"
   },
   "This channel is disabled. New usage is unavailable.": {
     "zh": "此渠道已停用，不能新增使用。",
     "en": "This channel is disabled. New usage is unavailable.",
     "ja": "このチャネルは無効です。新規利用はできません。",
-    "ru": "Канал отключён. Новые обращения недоступны."
+    "ru": "Канал отключён. Новые обращения недоступны.",
+    "hi": "यह चैनल निष्क्रिय है। नया उपयोग उपलब्ध नहीं है।",
+    "ms": "Saluran ini dinyahaktifkan. Penggunaan baharu tidak tersedia.",
+    "th": "ช่องทางนี้ปิดใช้แล้ว ไม่สามารถใช้งานใหม่"
   },
   "This Google client ID is already assigned to another brand.": {
     "zh": "此 Google 客户端编号已被其他品牌使用。",
     "en": "This Google client ID is already assigned to another brand.",
     "ja": "この Google クライアント ID は別のブランドで使用されています。",
-    "ru": "Этот идентификатор клиента Google уже назначен другому бренду."
+    "ru": "Этот идентификатор клиента Google уже назначен другому бренду.",
+    "hi": "यह Google क्लाइंट ID पहले से दूसरे ब्रांड को आवंटित है।",
+    "ms": "ID klien Google ini sudah ditugaskan kepada jenama lain.",
+    "th": "ID ไคลเอนต์ Google นี้กำหนดให้แบรนด์อื่นแล้ว"
   },
   "The commission record has changed. Reload and review it.": {
     "zh": "佣金记录已变化，请重新读取并核实。",
     "en": "The commission record has changed. Reload and review it.",
     "ja": "コミッション記録が変更されています。再読み込みして確認してください。",
-    "ru": "Запись комиссии изменилась. Обновите и проверьте её."
+    "ru": "Запись комиссии изменилась. Обновите и проверьте её.",
+    "hi": "कमीशन रिकॉर्ड बदल गया है। फिर लोड करके समीक्षा करें।",
+    "ms": "Rekod komisen telah berubah. Muat semula dan semaknya.",
+    "th": "ระเบียนค่าคอมมิชชันเปลี่ยนแล้ว โปรดโหลดและตรวจสอบอีกครั้ง"
   },
   "The commission wallet does not match the settlement facts.": {
     "zh": "佣金钱包与精算事实不一致。",
     "en": "The commission wallet does not match the settlement facts.",
     "ja": "コミッションウォレットが精算記録と一致しません。",
-    "ru": "Комиссионный кошелёк не соответствует фактам расчёта."
+    "ru": "Комиссионный кошелёк не соответствует фактам расчёта.",
+    "hi": "कमीशन वॉलेट निपटान तथ्यों से मेल नहीं खाता।",
+    "ms": "Dompet komisen tidak sepadan dengan fakta penyelesaian.",
+    "th": "กระเป๋าค่าคอมมิชชันไม่ตรงกับข้อเท็จจริงการชำระบัญชี"
   },
   "The service configuration is incomplete or invalid.": {
     "zh": "服务配置不完整或无效。",
     "en": "The service configuration is incomplete or invalid.",
     "ja": "サービス設定が未完了または無効です。",
-    "ru": "Настройки сервиса неполные или недействительные."
+    "ru": "Настройки сервиса неполные или недействительные.",
+    "hi": "सेवा कॉन्फ़िगरेशन अधूरा या अमान्य है।",
+    "ms": "Konfigurasi perkhidmatan tidak lengkap atau tidak sah.",
+    "th": "การตั้งค่าบริการไม่ครบหรือไม่ถูกต้อง"
   },
   "Confirm this operation before submitting it.": {
     "zh": "请确认本次操作后再提交。",
     "en": "Confirm this operation before submitting it.",
     "ja": "送信前にこの操作を確認してください。",
-    "ru": "Подтвердите операцию перед отправкой."
+    "ru": "Подтвердите операцию перед отправкой.",
+    "hi": "सबमिट करने से पहले इस कार्रवाई की पुष्टि करें।",
+    "ms": "Sahkan operasi ini sebelum menghantarnya.",
+    "th": "ยืนยันการดำเนินการนี้ก่อนส่ง"
   },
   "OEM delivery requirements are incomplete.": {
     "zh": "OEM 交付条件尚未齐全。",
     "en": "OEM delivery requirements are incomplete.",
     "ja": "OEM の納品要件が未完了です。",
-    "ru": "Требования к предоставлению услуг OEM не выполнены."
+    "ru": "Требования к предоставлению услуг OEM не выполнены.",
+    "hi": "OEM डिलीवरी आवश्यकताएँ अधूरी हैं।",
+    "ms": "Keperluan penyerahan OEM belum lengkap.",
+    "th": "ข้อกำหนดการส่งมอบ OEM ยังไม่ครบ"
   },
   "This email link is invalid, expired or already used. Request a new one.": {
     "zh": "邮件链接无效、已到期或已使用，请重新申请。",
     "en": "This email link is invalid, expired or already used. Request a new one.",
     "ja": "メールリンクが無効、期限切れ、または使用済みです。新しいリンクを申請してください。",
-    "ru": "Ссылка из письма недействительна, просрочена или уже использована. Запросите новую."
+    "ru": "Ссылка из письма недействительна, просрочена или уже использована. Запросите новую.",
+    "hi": "यह ईमेल लिंक अमान्य, समाप्त या पहले उपयोग हो चुका है। नया अनुरोध करें।",
+    "ms": "Pautan e-mel ini tidak sah, tamat tempoh atau sudah digunakan. Minta yang baharu.",
+    "th": "ลิงก์อีเมลไม่ถูกต้อง หมดอายุ หรือถูกใช้แล้ว โปรดขอใหม่"
   },
   "Email service is unavailable. Contact the platform administrator.": {
     "zh": "邮件服务不可用，请联系平台负责人。",
     "en": "Email service is unavailable. Contact the platform administrator.",
     "ja": "メールサービスを利用できません。プラットフォーム管理者に連絡してください。",
-    "ru": "Почтовая служба недоступна. Обратитесь к администратору платформы."
+    "ru": "Почтовая служба недоступна. Обратитесь к администратору платформы.",
+    "hi": "ईमेल सेवा अनुपलब्ध है। प्लेटफ़ॉर्म व्यवस्थापक से संपर्क करें।",
+    "ms": "Perkhidmatan e-mel tidak tersedia. Hubungi pentadbir platform.",
+    "th": "บริการอีเมลไม่พร้อมใช้งาน โปรดติดต่อผู้ดูแลแพลตฟอร์ม"
   },
   "This external reference is already used by another operation.": {
     "zh": "此外部依据已被其他操作使用。",
     "en": "This external reference is already used by another operation.",
     "ja": "この外部参照は別の操作で使用されています。",
-    "ru": "Эта внешняя ссылка уже используется другой операцией."
+    "ru": "Эта внешняя ссылка уже используется другой операцией.",
+    "hi": "यह बाहरी संदर्भ पहले से दूसरी कार्रवाई में उपयोग है।",
+    "ms": "Rujukan luaran ini sudah digunakan oleh operasi lain.",
+    "th": "เลขอ้างอิงภายนอกนี้ถูกใช้โดยการดำเนินการอื่นแล้ว"
   },
   "This external transaction is already recorded.": {
     "zh": "此外部交易已经登记。",
     "en": "This external transaction is already recorded.",
     "ja": "この外部取引は記録済みです。",
-    "ru": "Эта внешняя транзакция уже зарегистрирована."
+    "ru": "Эта внешняя транзакция уже зарегистрирована.",
+    "hi": "यह बाहरी लेनदेन पहले ही दर्ज है।",
+    "ms": "Transaksi luaran ini sudah direkodkan.",
+    "th": "ธุรกรรมภายนอกนี้ถูกบันทึกแล้ว"
   },
   "You do not have permission to perform this operation.": {
     "zh": "你没有执行此操作的权限。",
     "en": "You do not have permission to perform this operation.",
     "ja": "この操作を行う権限がありません。",
-    "ru": "У вас нет прав для выполнения этой операции."
+    "ru": "У вас нет прав для выполнения этой операции.",
+    "hi": "आपको यह कार्रवाई करने की अनुमति नहीं है।",
+    "ms": "Anda tidak mempunyai kebenaran untuk melakukan operasi ini.",
+    "th": "คุณไม่มีสิทธิ์ดำเนินการนี้"
   },
   "This resource is no longer available.": {
     "zh": "此资源已不可用。",
     "en": "This resource is no longer available.",
     "ja": "このリソースは利用できなくなりました。",
-    "ru": "Этот ресурс больше недоступен."
+    "ru": "Этот ресурс больше недоступен.",
+    "hi": "यह संसाधन अब उपलब्ध नहीं है।",
+    "ms": "Sumber ini tidak lagi tersedia.",
+    "th": "ทรัพยากรนี้ไม่พร้อมใช้งานแล้ว"
   },
   "Verify this Google configuration before enabling it.": {
     "zh": "请先验证 Google 配置后再启用。",
     "en": "Verify this Google configuration before enabling it.",
     "ja": "有効化する前に Google 設定を検証してください。",
-    "ru": "Проверьте настройки Google перед включением."
+    "ru": "Проверьте настройки Google перед включением.",
+    "hi": "सक्षम करने से पहले यह Google कॉन्फ़िगरेशन सत्यापित करें।",
+    "ms": "Sahkan konfigurasi Google ini sebelum mengaktifkannya.",
+    "th": "ตรวจสอบการตั้งค่า Google นี้ก่อนเปิดใช้"
   },
   "This operation ID was used with different details. Check the original operation.": {
     "zh": "此操作编号曾用于不同内容，请核对原操作。",
     "en": "This operation ID was used with different details. Check the original operation.",
     "ja": "この操作 ID は異なる内容で使用されています。元の操作を確認してください。",
-    "ru": "Этот идентификатор операции использовался с другими данными. Проверьте исходную операцию."
+    "ru": "Этот идентификатор операции использовался с другими данными. Проверьте исходную операцию.",
+    "hi": "यह कार्रवाई ID अलग विवरण के साथ उपयोग हुई थी। मूल कार्रवाई जाँचें।",
+    "ms": "ID operasi ini digunakan dengan butiran berbeza. Semak operasi asal.",
+    "th": "ID การดำเนินการนี้ถูกใช้กับรายละเอียดอื่นแล้ว โปรดตรวจสอบการดำเนินการเดิม"
   },
   "Eligible credit is insufficient. Add credit or purchase a valid plan.": {
     "zh": "可用额度不足，请补充额度或购买有效套餐。",
     "en": "Eligible credit is insufficient. Add credit or purchase a valid plan.",
     "ja": "利用可能な枠が不足しています。チャージまたは有効なプランの購入を行ってください。",
-    "ru": "Недостаточно доступных кредитов. Пополните баланс или купите действующий пакет."
+    "ru": "Недостаточно доступных кредитов. Пополните баланс или купите действующий пакет.",
+    "hi": "पात्र क्रेडिट अपर्याप्त है। क्रेडिट जोड़ें या वैध योजना खरीदें।",
+    "ms": "Kredit yang layak tidak mencukupi. Tambah kredit atau beli pelan yang sah.",
+    "th": "เครดิตที่เข้าเกณฑ์ไม่เพียงพอ โปรดเพิ่มเครดิตหรือซื้อแพ็กเกจที่ใช้ได้"
   },
   "Available service credit is insufficient.": {
     "zh": "可用服务额度不足。",
     "en": "Available service credit is insufficient.",
     "ja": "利用可能なサービス枠が不足しています。",
-    "ru": "Недостаточно доступных кредитов для услуг."
+    "ru": "Недостаточно доступных кредитов для услуг.",
+    "hi": "उपलब्ध सेवा क्रेडिट अपर्याप्त है।",
+    "ms": "Kredit perkhidmatan tersedia tidak mencukupi.",
+    "th": "เครดิตบริการที่ใช้ได้ไม่เพียงพอ"
   },
   "The operation could not be completed. Check its result before retrying.": {
     "zh": "操作未能完成，请核对结果后再重试。",
     "en": "The operation could not be completed. Check its result before retrying.",
     "ja": "操作を完了できませんでした。再試行前に結果を確認してください。",
-    "ru": "Операцию не удалось завершить. Проверьте результат перед повторной попыткой."
+    "ru": "Операцию не удалось завершить. Проверьте результат перед повторной попыткой.",
+    "hi": "कार्रवाई पूरी नहीं हो सकी। फिर प्रयास करने से पहले उसका परिणाम जाँचें।",
+    "ms": "Operasi tidak dapat diselesaikan. Semak hasilnya sebelum mencuba semula.",
+    "th": "ไม่สามารถดำเนินการให้เสร็จ โปรดตรวจสอบผลก่อนลองอีกครั้ง"
   },
   "Enter a valid amount within the allowed limits.": {
     "zh": "请填写符合范围限制的有效金额。",
     "en": "Enter a valid amount within the allowed limits.",
     "ja": "許容範囲内の有効な金額を入力してください。",
-    "ru": "Введите допустимую сумму в установленных пределах."
+    "ru": "Введите допустимую сумму в установленных пределах.",
+    "hi": "अनुमत सीमाओं के भीतर वैध राशि दर्ज करें।",
+    "ms": "Masukkan jumlah sah dalam had yang dibenarkan.",
+    "th": "ระบุจำนวนที่ถูกต้องภายในขีดจำกัดที่อนุญาต"
   },
   "The channel administrator is invalid or cannot be changed this way.": {
     "zh": "渠道管理员无效或不能以此方式变更。",
     "en": "The channel administrator is invalid or cannot be changed this way.",
     "ja": "チャネル管理者が無効か、この方法では変更できません。",
-    "ru": "Администратор канала недействителен или не может быть изменён таким способом."
+    "ru": "Администратор канала недействителен или не может быть изменён таким способом.",
+    "hi": "चैनल व्यवस्थापक अमान्य है या इस तरह बदला नहीं जा सकता।",
+    "ms": "Pentadbir saluran tidak sah atau tidak boleh diubah dengan cara ini.",
+    "th": "ผู้ดูแลช่องทางไม่ถูกต้องหรือเปลี่ยนด้วยวิธีนี้ไม่ได้"
   },
   "The pagination cursor is invalid. Return to the first page.": {
     "zh": "分页游标无效，请返回第一页。",
     "en": "The pagination cursor is invalid. Return to the first page.",
     "ja": "ページ移動のカーソルが無効です。最初のページに戻ってください。",
-    "ru": "Указатель страницы недействителен. Вернитесь на первую страницу."
+    "ru": "Указатель страницы недействителен. Вернитесь на первую страницу.",
+    "hi": "पृष्ठांकन कर्सर अमान्य है। पहले पृष्ठ पर लौटें।",
+    "ms": "Kursor penomboran halaman tidak sah. Kembali ke halaman pertama.",
+    "th": "เคอร์เซอร์แบ่งหน้าไม่ถูกต้อง โปรดกลับไปหน้าแรก"
   },
   "The API key limits are invalid.": {
     "zh": "API Key 限制设置无效。",
     "en": "The API key limits are invalid.",
     "ja": "API キーの制限設定が無効です。",
-    "ru": "Ограничения API-ключа недействительны."
+    "ru": "Ограничения API-ключа недействительны.",
+    "hi": "API key सीमाएँ अमान्य हैं।",
+    "ms": "Had API Key tidak sah.",
+    "th": "ขีดจำกัด API Key ไม่ถูกต้อง"
   },
   "Select a valid recipient within your scope.": {
     "zh": "请选择权限范围内的有效收件人。",
     "en": "Select a valid recipient within your scope.",
     "ja": "管理範囲内の有効な受取人を選択してください。",
-    "ru": "Выберите допустимого получателя в пределах своих полномочий."
+    "ru": "Выберите допустимого получателя в пределах своих полномочий.",
+    "hi": "अपने दायरे में वैध प्राप्तकर्ता चुनें।",
+    "ms": "Pilih penerima sah dalam skop anda.",
+    "th": "เลือกผู้รับที่ถูกต้องภายในขอบเขตของคุณ"
   },
   "The request is invalid. Check the fields and try again.": {
     "zh": "请求无效，请核对各项输入后重试。",
     "en": "The request is invalid. Check the fields and try again.",
     "ja": "リクエストが無効です。入力項目を確認して再試行してください。",
-    "ru": "Запрос недействителен. Проверьте поля и повторите попытку."
+    "ru": "Запрос недействителен. Проверьте поля и повторите попытку.",
+    "hi": "अनुरोध अमान्य है। फ़ील्ड जाँचकर फिर प्रयास करें।",
+    "ms": "Permintaan tidak sah. Semak medan dan cuba lagi.",
+    "th": "คำขอไม่ถูกต้อง โปรดตรวจสอบฟิลด์และลองอีกครั้ง"
   },
   "Check the SMTP server, port, sender address and secure connection settings.": {
     "zh": "请核对 SMTP 服务、端口、发件地址和安全连接设置。",
     "en": "Check the SMTP server, port, sender address and secure connection settings.",
     "ja": "SMTP サーバー、ポート、送信元、セキュア接続の設定を確認してください。",
-    "ru": "Проверьте SMTP-сервер, порт, адрес отправителя и настройки защищённого соединения."
+    "ru": "Проверьте SMTP-сервер, порт, адрес отправителя и настройки защищённого соединения.",
+    "hi": "SMTP सर्वर, पोर्ट, प्रेषक पता और सुरक्षित कनेक्शन सेटिंग जाँचें।",
+    "ms": "Semak pelayan SMTP, port, alamat pengirim dan tetapan sambungan selamat.",
+    "th": "ตรวจสอบเซิร์ฟเวอร์ SMTP พอร์ต ที่อยู่ผู้ส่ง และการตั้งค่าการเชื่อมต่อที่ปลอดภัย"
   },
   "This API key has reached its spending limit.": {
     "zh": "此 API Key 已达到使用预算上限。",
     "en": "This API key has reached its spending limit.",
     "ja": "この API キーは利用金額の上限に達しています。",
-    "ru": "Этот API-ключ достиг лимита расходов."
+    "ru": "Этот API-ключ достиг лимита расходов.",
+    "hi": "इस API key की खर्च सीमा पूरी हो गई है।",
+    "ms": "API Key ini telah mencapai had perbelanjaannya.",
+    "th": "API Key นี้ถึงขีดจำกัดการใช้จ่ายแล้ว"
   },
   "This API key has expired.": {
     "zh": "此 API Key 已到期。",
     "en": "This API key has expired.",
     "ja": "この API キーは有効期限が切れています。",
-    "ru": "Срок действия API-ключа истёк."
+    "ru": "Срок действия API-ключа истёк.",
+    "hi": "यह API key समाप्त हो गई है।",
+    "ms": "API Key ini telah tamat tempoh.",
+    "th": "API Key นี้หมดอายุแล้ว"
   },
   "This API key is invalid.": {
     "zh": "此 API Key 无效。",
     "en": "This API key is invalid.",
     "ja": "この API キーは無効です。",
-    "ru": "API-ключ недействителен."
+    "ru": "API-ключ недействителен.",
+    "hi": "यह API key अमान्य है।",
+    "ms": "API Key ini tidak sah.",
+    "th": "API Key นี้ไม่ถูกต้อง"
   },
   "This API key was not found.": {
     "zh": "未找到此 API Key。",
     "en": "This API key was not found.",
     "ja": "この API キーが見つかりません。",
-    "ru": "API-ключ не найден."
+    "ru": "API-ключ не найден.",
+    "hi": "यह API key नहीं मिली।",
+    "ms": "API Key ini tidak ditemui.",
+    "th": "ไม่พบ API Key นี้"
   },
   "The API key operation conflicts with its current state. Refresh and review it.": {
     "zh": "API Key 操作与当前状态冲突，请刷新后核实。",
     "en": "The API key operation conflicts with its current state. Refresh and review it.",
     "ja": "API キーの現在の状態と操作が競合しています。更新して確認してください。",
-    "ru": "Операция с API-ключом противоречит его текущему состоянию. Обновите данные и проверьте их."
+    "ru": "Операция с API-ключом противоречит его текущему состоянию. Обновите данные и проверьте их.",
+    "hi": "API key कार्रवाई उसकी वर्तमान स्थिति से टकराती है। रीफ़्रेश करके समीक्षा करें।",
+    "ms": "Operasi API Key bercanggah dengan keadaan semasanya. Muat semula dan semaknya.",
+    "th": "การดำเนินการ API Key ขัดกับสถานะปัจจุบัน โปรดรีเฟรชและตรวจสอบ"
   },
   "This API key cannot currently be used.": {
     "zh": "此 API Key 当前不可使用。",
     "en": "This API key cannot currently be used.",
     "ja": "この API キーは現在利用できません。",
-    "ru": "Этот API-ключ сейчас недоступен для использования."
+    "ru": "Этот API-ключ сейчас недоступен для использования.",
+    "hi": "यह API key अभी उपयोग नहीं की जा सकती।",
+    "ms": "API Key ini tidak boleh digunakan sekarang.",
+    "th": "API Key นี้ยังใช้ไม่ได้ในขณะนี้"
   },
   "The media result is not ready yet. Check the job status.": {
     "zh": "媒体结果尚未就绪，请查询任务状态。",
     "en": "The media result is not ready yet. Check the job status.",
     "ja": "メディア結果はまだ準備できていません。ジョブの状態を確認してください。",
-    "ru": "Медиарезультат ещё не готов. Проверьте состояние задачи."
+    "ru": "Медиарезультат ещё не готов. Проверьте состояние задачи.",
+    "hi": "मीडिया परिणाम अभी तैयार नहीं है। कार्य की स्थिति जाँचें।",
+    "ms": "Hasil media belum sedia. Semak status tugas.",
+    "th": "ผลลัพธ์สื่อยังไม่พร้อม โปรดตรวจสอบสถานะงาน"
   },
   "This model is unavailable or is not granted to this account.": {
     "zh": "此模型不可用或未授权给当前账号。",
     "en": "This model is unavailable or is not granted to this account.",
     "ja": "このモデルは利用できないか、このアカウントに許可されていません。",
-    "ru": "Модель недоступна или не разрешена этому аккаунту."
+    "ru": "Модель недоступна или не разрешена этому аккаунту.",
+    "hi": "यह मॉडल अनुपलब्ध है या इस खाते को नहीं दिया गया है।",
+    "ms": "Model ini tidak tersedia atau tidak diberikan kepada akaun ini.",
+    "th": "โมเดลนี้ไม่พร้อมใช้งานหรือไม่ได้รับอนุญาตให้บัญชีนี้"
   },
   "The requested record was not found.": {
     "zh": "未找到请求的记录。",
     "en": "The requested record was not found.",
     "ja": "対象の記録が見つかりません。",
-    "ru": "Запрошенная запись не найдена."
+    "ru": "Запрошенная запись не найдена.",
+    "hi": "अनुरोधित रिकॉर्ड नहीं मिला।",
+    "ms": "Rekod yang diminta tidak ditemui.",
+    "th": "ไม่พบระเบียนที่ร้องขอ"
   },
   "There are no eligible commissions to settle.": {
     "zh": "当前没有可精算的佣金。",
     "en": "There are no eligible commissions to settle.",
     "ja": "精算対象のコミッションがありません。",
-    "ru": "Нет комиссий, доступных для расчёта."
+    "ru": "Нет комиссий, доступных для расчёта.",
+    "hi": "निपटान के लिए कोई पात्र कमीशन नहीं है।",
+    "ms": "Tiada komisen yang layak untuk diselesaikan.",
+    "th": "ไม่มีค่าคอมมิชชันที่เข้าเกณฑ์ให้ชำระบัญชี"
   },
   "Check SMTP configuration, email verification and whether this notification is expired or already sent.": {
     "zh": "请核对 SMTP、邮箱验证和通知是否已到期或已发送。",
     "en": "Check SMTP configuration, email verification and whether this notification is expired or already sent.",
     "ja": "SMTP 設定、メール認証、通知の有効期限と送信済み状態を確認してください。",
-    "ru": "Проверьте SMTP, подтверждение email и то, не истёк ли срок уведомления и не было ли оно уже отправлено."
+    "ru": "Проверьте SMTP, подтверждение email и то, не истёк ли срок уведомления и не было ли оно уже отправлено.",
+    "hi": "SMTP कॉन्फ़िगरेशन, ईमेल सत्यापन और सूचना के समाप्त या पहले भेजे जाने की स्थिति जाँचें।",
+    "ms": "Semak konfigurasi SMTP, pengesahan e-mel dan sama ada pemberitahuan ini tamat tempoh atau sudah dihantar.",
+    "th": "ตรวจสอบการตั้งค่า SMTP การยืนยันอีเมล และว่าการแจ้งเตือนหมดอายุหรือส่งแล้วหรือไม่"
   },
   "This notification was not found.": {
     "zh": "未找到此通知。",
     "en": "This notification was not found.",
     "ja": "この通知が見つかりません。",
-    "ru": "Уведомление не найдено."
+    "ru": "Уведомление не найдено.",
+    "hi": "यह सूचना नहीं मिली।",
+    "ms": "Pemberitahuan ini tidak ditemui.",
+    "th": "ไม่พบการแจ้งเตือนนี้"
   },
   "The operation conflicts with the current state. Reload the original record.": {
     "zh": "操作与当前状态冲突，请重新读取原记录。",
     "en": "The operation conflicts with the current state. Reload the original record.",
     "ja": "現在の状態と操作が競合しています。元の記録を再読み込みしてください。",
-    "ru": "Операция противоречит текущему состоянию. Обновите исходную запись."
+    "ru": "Операция противоречит текущему состоянию. Обновите исходную запись.",
+    "hi": "कार्रवाई वर्तमान स्थिति से टकराती है। मूल रिकॉर्ड फिर लोड करें।",
+    "ms": "Operasi bercanggah dengan keadaan semasa. Muat semula rekod asal.",
+    "th": "การดำเนินการขัดกับสถานะปัจจุบัน โปรดโหลดระเบียนเดิมอีกครั้ง"
   },
   "The order status has changed or does not permit this action.": {
     "zh": "订单状态已变化或不允许此操作。",
     "en": "The order status has changed or does not permit this action.",
     "ja": "注文の状態が変更されているか、この操作を許可していません。",
-    "ru": "Состояние заказа изменилось или не допускает это действие."
+    "ru": "Состояние заказа изменилось или не допускает это действие.",
+    "hi": "ऑर्डर स्थिति बदल गई है या इस कार्रवाई की अनुमति नहीं देती।",
+    "ms": "Status pesanan telah berubah atau tidak membenarkan tindakan ini.",
+    "th": "สถานะคำสั่งซื้อเปลี่ยนไปหรือไม่อนุญาตการดำเนินการนี้"
   },
   "The payment provider could not complete the operation. Check the payment result.": {
     "zh": "支付通道未能完成操作，请核对支付结果。",
     "en": "The payment provider could not complete the operation. Check the payment result.",
     "ja": "決済事業者が操作を完了できませんでした。決済結果を確認してください。",
-    "ru": "Платёжный провайдер не смог завершить операцию. Проверьте результат платежа."
+    "ru": "Платёжный провайдер не смог завершить операцию. Проверьте результат платежа.",
+    "hi": "भुगतान प्रदाता कार्रवाई पूरी नहीं कर सका। भुगतान परिणाम जाँचें।",
+    "ms": "Penyedia pembayaran tidak dapat menyelesaikan operasi. Semak hasil pembayaran.",
+    "th": "ผู้ให้บริการชำระเงินไม่สามารถดำเนินการให้เสร็จ โปรดตรวจสอบผลการชำระเงิน"
   },
   "This payment method is currently unavailable.": {
     "zh": "此支付方式当前不可用。",
     "en": "This payment method is currently unavailable.",
     "ja": "この決済手段は現在利用できません。",
-    "ru": "Этот способ оплаты сейчас недоступен."
+    "ru": "Этот способ оплаты сейчас недоступен.",
+    "hi": "यह भुगतान विधि अभी अनुपलब्ध है।",
+    "ms": "Kaedah pembayaran ini tidak tersedia sekarang.",
+    "th": "วิธีชำระเงินนี้ไม่พร้อมใช้งานในขณะนี้"
   },
   "You do not have permission to access this record or perform this operation.": {
     "zh": "你没有访问此记录或执行此操作的权限。",
     "en": "You do not have permission to access this record or perform this operation.",
     "ja": "この記録へのアクセスまたは操作の権限がありません。",
-    "ru": "У вас нет прав для просмотра записи или выполнения операции."
+    "ru": "У вас нет прав для просмотра записи или выполнения операции.",
+    "hi": "आपको इस रिकॉर्ड तक पहुँचने या यह कार्रवाई करने की अनुमति नहीं है।",
+    "ms": "Anda tidak mempunyai kebenaran untuk mengakses rekod ini atau melakukan operasi ini.",
+    "th": "คุณไม่มีสิทธิ์เข้าถึงระเบียนนี้หรือดำเนินการนี้"
   },
   "A plan with this name already exists.": {
     "zh": "同名套餐已经存在。",
     "en": "A plan with this name already exists.",
     "ja": "同じ名前のプランが既に存在します。",
-    "ru": "Пакет с таким названием уже существует."
+    "ru": "Пакет с таким названием уже существует.",
+    "hi": "इस नाम की योजना पहले से मौजूद है।",
+    "ms": "Pelan dengan nama ini sudah wujud.",
+    "th": "มีแพ็กเกจชื่อนี้อยู่แล้ว"
   },
   "The preview has changed. Reload and confirm the updated result.": {
     "zh": "预览已变化，请重新读取并确认新结果。",
     "en": "The preview has changed. Reload and confirm the updated result.",
     "ja": "プレビューが変更されています。再読み込みして最新の結果を確認してください。",
-    "ru": "Предварительный расчёт изменился. Обновите и подтвердите новый результат."
+    "ru": "Предварительный расчёт изменился. Обновите и подтвердите новый результат.",
+    "hi": "पूर्वावलोकन बदल गया है। फिर लोड करके अपडेट परिणाम की पुष्टि करें।",
+    "ms": "Pratonton telah berubah. Muat semula dan sahkan hasil terkini.",
+    "th": "ตัวอย่างเปลี่ยนแปลง โปรดโหลดและยืนยันผลที่อัปเดต"
   },
   "A reliable price estimate is unavailable for this request.": {
     "zh": "无法为此请求提供可靠费用预估。",
     "en": "A reliable price estimate is unavailable for this request.",
     "ja": "このリクエストの価格を正確に見積もれません。",
-    "ru": "Надёжная оценка стоимости этого запроса недоступна."
+    "ru": "Надёжная оценка стоимости этого запроса недоступна.",
+    "hi": "इस अनुरोध के लिए विश्वसनीय मूल्य अनुमान उपलब्ध नहीं है।",
+    "ms": "Anggaran harga yang boleh dipercayai tidak tersedia untuk permintaan ini.",
+    "th": "ไม่มีการประมาณราคาที่เชื่อถือได้สำหรับคำขอนี้"
   },
   "This provider does not support this probe.": {
     "zh": "此供应商不支持该探测。",
     "en": "This provider does not support this probe.",
     "ja": "このプロバイダーはこのプローブに対応していません。",
-    "ru": "Провайдер не поддерживает эту проверку."
+    "ru": "Провайдер не поддерживает эту проверку.",
+    "hi": "यह प्रदाता इस जाँच का समर्थन नहीं करता।",
+    "ms": "Penyedia ini tidak menyokong ujian ini.",
+    "th": "ผู้ให้บริการนี้ไม่รองรับการตรวจสอบนี้"
   },
   "The upstream provider is currently unavailable.": {
     "zh": "上游供应商当前不可用。",
     "en": "The upstream provider is currently unavailable.",
     "ja": "上流プロバイダーは現在利用できません。",
-    "ru": "Поставщик сейчас недоступен."
+    "ru": "Поставщик сейчас недоступен.",
+    "hi": "अपस्ट्रीम प्रदाता अभी अनुपलब्ध है।",
+    "ms": "Penyedia huluan tidak tersedia sekarang.",
+    "th": "ผู้ให้บริการต้นทางไม่พร้อมใช้งานในขณะนี้"
   },
   "This credit cannot be recovered in its current state.": {
     "zh": "此额度在当前状态下不可回收。",
     "en": "This credit cannot be recovered in its current state.",
     "ja": "この枠は現在の状態では回収できません。",
-    "ru": "Эти кредиты нельзя вернуть в текущем состоянии."
+    "ru": "Эти кредиты нельзя вернуть в текущем состоянии.",
+    "hi": "इस क्रेडिट को वर्तमान स्थिति में वापस नहीं लिया जा सकता।",
+    "ms": "Kredit ini tidak boleh dipulihkan dalam keadaan semasanya.",
+    "th": "ไม่สามารถเรียกคืนเครดิตนี้ในสถานะปัจจุบัน"
   },
   "The request rate limit has been reached. Try again later.": {
     "zh": "已达到调用频率限制，请稍后重试。",
     "en": "The request rate limit has been reached. Try again later.",
     "ja": "リクエスト数の上限に達しました。時間をおいて再試行してください。",
-    "ru": "Достигнут лимит частоты запросов. Повторите позже."
+    "ru": "Достигнут лимит частоты запросов. Повторите позже.",
+    "hi": "अनुरोध दर सीमा पूरी हो गई है। बाद में फिर प्रयास करें।",
+    "ms": "Had kadar permintaan telah dicapai. Cuba semula kemudian.",
+    "th": "ถึงขีดจำกัดอัตราคำขอแล้ว โปรดลองอีกครั้งภายหลัง"
   },
   "Too many requests. Try again later.": {
     "zh": "请求过于频繁，请稍后重试。",
     "en": "Too many requests. Try again later.",
     "ja": "リクエストが多すぎます。時間をおいて再試行してください。",
-    "ru": "Слишком много запросов. Повторите позже."
+    "ru": "Слишком много запросов. Повторите позже.",
+    "hi": "बहुत अधिक अनुरोध। बाद में फिर प्रयास करें।",
+    "ms": "Terlalu banyak permintaan. Cuba semula kemudian.",
+    "th": "มีคำขอมากเกินไป โปรดลองอีกครั้งภายหลัง"
   },
   "Could not load the record. Please retry.": {
     "zh": "读取记录失败，请重试。",
     "en": "Could not load the record. Please retry.",
     "ja": "記録を読み込めませんでした。再試行してください。",
-    "ru": "Не удалось загрузить запись. Повторите попытку."
+    "ru": "Не удалось загрузить запись. Повторите попытку.",
+    "hi": "रिकॉर्ड लोड नहीं हो सका। कृपया फिर प्रयास करें।",
+    "ms": "Tidak dapat memuatkan rekod. Sila cuba semula.",
+    "th": "โหลดระเบียนไม่สำเร็จ โปรดลองอีกครั้ง"
   },
   "The recovery record has changed. Reload the original record.": {
     "zh": "回收记录已变化，请重新读取原记录。",
     "en": "The recovery record has changed. Reload the original record.",
     "ja": "回収記録が変更されています。元の記録を再読み込みしてください。",
-    "ru": "Запись возврата изменилась. Обновите исходную запись."
+    "ru": "Запись возврата изменилась. Обновите исходную запись.",
+    "hi": "पुनर्प्राप्ति रिकॉर्ड बदल गया है। मूल रिकॉर्ड फिर लोड करें।",
+    "ms": "Rekod pemulihan telah berubah. Muat semula rekod asal.",
+    "th": "ระเบียนการเรียกคืนเปลี่ยนแล้ว โปรดโหลดระเบียนเดิมอีกครั้ง"
   },
   "The refund could not be completed. Check the original operation before retrying.": {
     "zh": "退款未能完成，请核对原操作后再重试。",
     "en": "The refund could not be completed. Check the original operation before retrying.",
     "ja": "返金を完了できませんでした。再試行前に元の操作を確認してください。",
-    "ru": "Возврат не завершён. Проверьте исходную операцию перед повторной попыткой."
+    "ru": "Возврат не завершён. Проверьте исходную операцию перед повторной попыткой.",
+    "hi": "धनवापसी पूरी नहीं हो सकी। फिर प्रयास करने से पहले मूल कार्रवाई जाँचें।",
+    "ms": "Bayaran balik tidak dapat diselesaikan. Semak operasi asal sebelum mencuba semula.",
+    "th": "การคืนเงินไม่สำเร็จ โปรดตรวจสอบการดำเนินการเดิมก่อนลองอีกครั้ง"
   },
   "This refund requires a financial review before it can proceed.": {
     "zh": "此退款需要先完成财务复核。",
     "en": "This refund requires a financial review before it can proceed.",
     "ja": "この返金を進めるには財務による確認が必要です。",
-    "ru": "Для продолжения возврата требуется финансовая проверка."
+    "ru": "Для продолжения возврата требуется финансовая проверка.",
+    "hi": "आगे बढ़ने से पहले इस धनवापसी की वित्तीय समीक्षा आवश्यक है।",
+    "ms": "Bayaran balik ini memerlukan semakan kewangan sebelum boleh diteruskan.",
+    "th": "การคืนเงินนี้ต้องได้รับการทบทวนทางการเงินก่อนดำเนินการต่อ"
   },
   "The request result is unconfirmed. Check the original request before retrying.": {
     "zh": "请求结果尚未确认，请核对原请求后再重试。",
     "en": "The request result is unconfirmed. Check the original request before retrying.",
     "ja": "リクエスト結果が未確認です。再試行前に元のリクエストを確認してください。",
-    "ru": "Результат запроса не подтверждён. Проверьте исходный запрос перед повторной попыткой."
+    "ru": "Результат запроса не подтверждён. Проверьте исходный запрос перед повторной попыткой.",
+    "hi": "अनुरोध का परिणाम अपुष्ट है। फिर प्रयास करने से पहले मूल अनुरोध जाँचें।",
+    "ms": "Hasil permintaan belum disahkan. Semak permintaan asal sebelum mencuba semula.",
+    "th": "ผลคำขอยังไม่ยืนยัน โปรดตรวจสอบคำขอเดิมก่อนลองอีกครั้ง"
   },
   "The result is unconfirmed. Check the original operation rather than creating a new one.": {
     "zh": "结果尚未确认，请核对原操作，不要另建新操作。",
     "en": "The result is unconfirmed. Check the original operation rather than creating a new one.",
     "ja": "結果が未確認です。新しい操作を作成せず、元の操作を確認してください。",
-    "ru": "Результат не подтверждён. Проверьте исходную операцию, не создавая новую."
+    "ru": "Результат не подтверждён. Проверьте исходную операцию, не создавая новую.",
+    "hi": "परिणाम अपुष्ट है। नया बनाने के बजाय मूल कार्रवाई जाँचें।",
+    "ms": "Hasil belum disahkan. Semak operasi asal dan jangan cipta yang baharu.",
+    "th": "ผลยังไม่ยืนยัน โปรดตรวจสอบการดำเนินการเดิมแทนการสร้างใหม่"
   },
   "The service is temporarily unavailable. Try again later.": {
     "zh": "服务暂时不可用，请稍后重试。",
     "en": "The service is temporarily unavailable. Try again later.",
     "ja": "サービスを一時的に利用できません。時間をおいて再試行してください。",
-    "ru": "Сервис временно недоступен. Повторите позже."
+    "ru": "Сервис временно недоступен. Повторите позже.",
+    "hi": "सेवा अस्थायी रूप से अनुपलब्ध है। बाद में फिर प्रयास करें।",
+    "ms": "Perkhidmatan tidak tersedia buat sementara waktu. Cuba semula kemudian.",
+    "th": "บริการไม่พร้อมใช้งานชั่วคราว โปรดลองอีกครั้งภายหลัง"
   },
   "The settlement facts have changed. Reload the preview before confirming.": {
     "zh": "精算事实已变化，请重新读取预览后确认。",
     "en": "The settlement facts have changed. Reload the preview before confirming.",
     "ja": "精算内容が変更されています。確認前にプレビューを再読み込みしてください。",
-    "ru": "Факты расчёта изменились. Обновите предварительный расчёт перед подтверждением."
+    "ru": "Факты расчёта изменились. Обновите предварительный расчёт перед подтверждением.",
+    "hi": "निपटान तथ्य बदल गए हैं। पुष्टि से पहले पूर्वावलोकन फिर लोड करें।",
+    "ms": "Fakta penyelesaian telah berubah. Muat semula pratonton sebelum mengesahkan.",
+    "th": "ข้อเท็จจริงการชำระบัญชีเปลี่ยนแล้ว โปรดโหลดตัวอย่างอีกครั้งก่อนยืนยัน"
   },
   "Email delivery is unavailable. Check SMTP and platform encryption settings.": {
     "zh": "邮件发送不可用，请核对 SMTP 和平台加密设置。",
     "en": "Email delivery is unavailable. Check SMTP and platform encryption settings.",
     "ja": "メール配信を利用できません。SMTP と暗号化設定を確認してください。",
-    "ru": "Отправка писем недоступна. Проверьте SMTP и настройки шифрования платформы."
+    "ru": "Отправка писем недоступна. Проверьте SMTP и настройки шифрования платформы.",
+    "hi": "ईमेल डिलीवरी अनुपलब्ध है। SMTP और प्लेटफ़ॉर्म एन्क्रिप्शन सेटिंग जाँचें।",
+    "ms": "Penghantaran e-mel tidak tersedia. Semak SMTP dan tetapan penyulitan platform.",
+    "th": "ส่งอีเมลไม่ได้ โปรดตรวจสอบ SMTP และการตั้งค่าการเข้ารหัสแพลตฟอร์ม"
   },
   "The original snapshot is unavailable. This operation needs review.": {
     "zh": "原始快照不可用，此操作需要复核。",
     "en": "The original snapshot is unavailable. This operation needs review.",
     "ja": "元のスナップショットを利用できません。この操作には確認が必要です。",
-    "ru": "Исходный снимок данных недоступен. Операция требует проверки."
+    "ru": "Исходный снимок данных недоступен. Операция требует проверки.",
+    "hi": "मूल स्नैपशॉट अनुपलब्ध है। इस कार्रवाई की समीक्षा आवश्यक है।",
+    "ms": "Rekod asal tidak tersedia. Operasi ini memerlukan semakan.",
+    "th": "ข้อมูลเดิมไม่พร้อมใช้งาน การดำเนินการนี้ต้องทบทวน"
   },
   "Storage is unavailable.": {
     "zh": "存储暂时不可用。",
     "en": "Storage is unavailable.",
     "ja": "ストレージを利用できません。",
-    "ru": "Хранилище недоступно."
+    "ru": "Хранилище недоступно.",
+    "hi": "स्टोरेज अनुपलब्ध है।",
+    "ms": "Storan tidak tersedia.",
+    "th": "พื้นที่จัดเก็บไม่พร้อมใช้งาน"
   },
   "The supplier record conflicts with existing financial facts.": {
     "zh": "供应商记录与现有资金事实冲突。",
     "en": "The supplier record conflicts with existing financial facts.",
     "ja": "仕入先の記録が既存の会計記録と競合しています。",
-    "ru": "Запись поставщика противоречит существующим финансовым фактам."
+    "ru": "Запись поставщика противоречит существующим финансовым фактам.",
+    "hi": "आपूर्तिकर्ता रिकॉर्ड मौजूदा वित्तीय तथ्यों से टकराता है।",
+    "ms": "Rekod pembekal bercanggah dengan fakta kewangan sedia ada.",
+    "th": "ระเบียนผู้จัดหาขัดกับข้อเท็จจริงทางการเงินที่มีอยู่"
   },
   "The top-up status does not permit this operation.": {
     "zh": "充值状态不允许此操作。",
     "en": "The top-up status does not permit this operation.",
     "ja": "チャージの状態がこの操作を許可していません。",
-    "ru": "Состояние пополнения не допускает эту операцию."
+    "ru": "Состояние пополнения не допускает эту операцию.",
+    "hi": "टॉप-अप स्थिति इस कार्रवाई की अनुमति नहीं देती।",
+    "ms": "Status tambah nilai tidak membenarkan operasi ini.",
+    "th": "สถานะการเติมเงินไม่อนุญาตการดำเนินการนี้"
   },
   "Enter a valid authenticator code for this operation.": {
     "zh": "请填写有效的动态验证器代码。",
     "en": "Enter a valid authenticator code for this operation.",
     "ja": "この操作には有効な認証アプリのコードを入力してください。",
-    "ru": "Введите действительный код приложения-аутентификатора."
+    "ru": "Введите действительный код приложения-аутентификатора.",
+    "hi": "इस कार्रवाई के लिए वैध ऑथेंटिकेटर कोड दर्ज करें।",
+    "ms": "Masukkan kod pengesah yang sah untuk operasi ini.",
+    "th": "ระบุรหัสตัวตรวจสอบสิทธิ์ที่ถูกต้องสำหรับการดำเนินการนี้"
   },
   "Sign in again to continue.": {
     "zh": "请重新登录后继续。",
     "en": "Sign in again to continue.",
     "ja": "再度ログインして続行してください。",
-    "ru": "Войдите снова, чтобы продолжить."
+    "ru": "Войдите снова, чтобы продолжить.",
+    "hi": "जारी रखने के लिए फिर साइन इन करें।",
+    "ms": "Log masuk semula untuk meneruskan.",
+    "th": "ลงชื่อเข้าใช้อีกครั้งเพื่อดำเนินการต่อ"
   },
   "This request contains unsupported control parameters.": {
     "zh": "请求中包含不支持的控制参数。",
     "en": "This request contains unsupported control parameters.",
     "ja": "リクエストに未対応の制御パラメーターが含まれています。",
-    "ru": "Запрос содержит неподдерживаемые управляющие параметры."
+    "ru": "Запрос содержит неподдерживаемые управляющие параметры.",
+    "hi": "इस अनुरोध में असमर्थित नियंत्रण पैरामीटर हैं।",
+    "ms": "Permintaan ini mengandungi parameter kawalan yang tidak disokong.",
+    "th": "คำขอนี้มีพารามิเตอร์ควบคุมที่ไม่รองรับ"
   },
   "This operation is not supported.": {
     "zh": "不支持此操作。",
     "en": "This operation is not supported.",
     "ja": "この操作には対応していません。",
-    "ru": "Операция не поддерживается."
+    "ru": "Операция не поддерживается.",
+    "hi": "यह कार्रवाई समर्थित नहीं है।",
+    "ms": "Operasi ini tidak disokong.",
+    "th": "ไม่รองรับการดำเนินการนี้"
   },
   "The configuration has changed. Reload it before saving.": {
     "zh": "配置已变化，请重新读取后再保存。",
     "en": "The configuration has changed. Reload it before saving.",
     "ja": "設定が変更されています。保存前に再読み込みしてください。",
-    "ru": "Настройки изменились. Обновите их перед сохранением."
+    "ru": "Настройки изменились. Обновите их перед сохранением.",
+    "hi": "कॉन्फ़िगरेशन बदल गया है। सहेजने से पहले फिर लोड करें।",
+    "ms": "Konfigurasi telah berubah. Muat semula sebelum menyimpan.",
+    "th": "การตั้งค่าเปลี่ยนแล้ว โปรดโหลดอีกครั้งก่อนบันทึก"
   },
   "未授权": {
     "en": "Authentication is required.",
     "ja": "認証が必要です。",
-    "ru": "Требуется аутентификация."
+    "ru": "Требуется аутентификация.",
+    "hi": "प्रमाणीकरण आवश्यक है।",
+    "ms": "Pengesahan diperlukan.",
+    "th": "ต้องยืนยันตัวตน"
   },
   "存储不可用": {
     "en": "Storage unavailable",
     "ja": "ストレージを利用できません",
-    "ru": "Хранилище недоступно"
+    "ru": "Хранилище недоступно",
+    "hi": "स्टोरेज अनुपलब्ध",
+    "ms": "Storan tidak tersedia",
+    "th": "พื้นที่จัดเก็บไม่พร้อมใช้งาน"
   },
   "未登录": {
     "en": "Sign in to continue.",
     "ja": "ログインして続行してください。",
-    "ru": "Войдите, чтобы продолжить."
+    "ru": "Войдите, чтобы продолжить.",
+    "hi": "जारी रखने के लिए साइन इन करें।",
+    "ms": "Log masuk untuk meneruskan.",
+    "th": "ลงชื่อเข้าใช้เพื่อดำเนินการต่อ"
   },
   "模型不可用": {
     "en": "Model unavailable",
     "ja": "モデルが利用できない",
-    "ru": "Модель недоступна"
+    "ru": "Модель недоступна",
+    "hi": "मॉडल अनुपलब्ध",
+    "ms": "Model tidak tersedia",
+    "th": "โมเดลไม่พร้อมใช้งาน"
   },
   "读取路由失败": {
     "en": "Could not load the route",
     "ja": "ルートを読み込めませんでした",
-    "ru": "Не удалось загрузить маршрут"
+    "ru": "Не удалось загрузить маршрут",
+    "hi": "मार्ग लोड नहीं हो सका",
+    "ms": "Tidak dapat memuatkan laluan",
+    "th": "โหลดเส้นทางไม่สำเร็จ"
   },
   "读取品牌失败": {
     "en": "Could not load the brand",
     "ja": "ブランドを読み込めませんでした",
-    "ru": "Не удалось загрузить бренд"
+    "ru": "Не удалось загрузить бренд",
+    "hi": "ब्रांड लोड नहीं हो सका",
+    "ms": "Tidak dapat memuatkan jenama",
+    "th": "โหลดแบรนด์ไม่สำเร็จ"
   },
   "请填写有效邮箱": {
     "en": "Enter a valid email",
     "ja": "有効なメールを入力してください",
-    "ru": "Введите действительный email"
+    "ru": "Введите действительный email",
+    "hi": "वैध ईमेल दर्ज करें",
+    "ms": "Masukkan e-mel yang sah",
+    "th": "ระบุอีเมลที่ถูกต้อง"
   },
   "不是推广主体": {
     "en": "Not a promotion principal",
     "ja": "紹介主体ではありません",
-    "ru": "Аккаунт не является участником продвижения"
+    "ru": "Аккаунт не является участником продвижения",
+    "hi": "प्रचार का प्रधान नहीं",
+    "ms": "Bukan prinsipal promosi",
+    "th": "ไม่ใช่ผู้มีสิทธิ์ส่งเสริมการขาย"
   },
   "结果尚未确认，请回查或重试原操作。": {
     "en": "The result is unconfirmed. Check or retry the original operation.",
     "ja": "結果が未確認です。元の操作を確認するか再試行してください。",
-    "ru": "Результат не подтверждён. Проверьте или повторите исходную операцию."
+    "ru": "Результат не подтверждён. Проверьте или повторите исходную операцию.",
+    "hi": "परिणाम अपुष्ट है। मूल कार्रवाई जाँचें या उसका फिर प्रयास करें।",
+    "ms": "Hasil belum disahkan. Semak atau cuba semula operasi asal.",
+    "th": "ผลยังไม่ยืนยัน โปรดตรวจสอบหรือลองดำเนินการเดิมอีกครั้ง"
   },
   "请先登录": {
     "en": "Sign in first.",
     "ja": "先にログインしてください。",
-    "ru": "Сначала войдите в аккаунт."
+    "ru": "Сначала войдите в аккаунт.",
+    "hi": "पहले साइन इन करें।",
+    "ms": "Log masuk dahulu.",
+    "th": "โปรดลงชื่อเข้าใช้ก่อน"
   },
   "送入待对账失败": {
     "en": "Could not flag the mismatch",
     "ja": "キュー投入に失敗しました",
-    "ru": "Не удалось передать расхождение на сверку"
+    "ru": "Не удалось передать расхождение на сверку",
+    "hi": "अंतर चिह्नित नहीं हो सका",
+    "ms": "Tidak dapat menandakan ketidakpadanan",
+    "th": "ไม่สามารถทำเครื่องหมายรายการไม่ตรงกัน"
   },
   "标记已解失败": {
     "en": "Could not mark resolved",
     "ja": "解除に失敗しました",
-    "ru": "Не удалось отметить расхождение как устранённое"
+    "ru": "Не удалось отметить расхождение как устранённое",
+    "hi": "हल हुआ चिह्नित नहीं हो सका",
+    "ms": "Tidak dapat menandakan sebagai selesai",
+    "th": "ไม่สามารถทำเครื่องหมายว่าแก้ไขแล้ว"
   },
   "发布价格失败": {
     "en": "Price publication failed",
     "ja": "価格の公開に失敗しました",
-    "ru": "Не удалось опубликовать цену"
+    "ru": "Не удалось опубликовать цену",
+    "hi": "मूल्य प्रकाशन विफल",
+    "ms": "Penerbitan harga gagal",
+    "th": "เผยแพร่ราคาไม่สำเร็จ"
   },
   "读取账单失败，请重试。": {
     "en": "Could not load the bill. Please try again.",
     "ja": "請求を読み込めませんでした。再試行してください。",
-    "ru": "Не удалось загрузить счёт. Повторите попытку."
+    "ru": "Не удалось загрузить счёт. Повторите попытку.",
+    "hi": "बिल लोड नहीं हो सका। कृपया फिर प्रयास करें।",
+    "ms": "Tidak dapat memuatkan bil. Sila cuba lagi.",
+    "th": "โหลดใบแจ้งหนี้ไม่สำเร็จ โปรดลองอีกครั้ง"
   },
   "Google 登录失败": {
     "en": "Google sign-in failed.",
     "ja": "Google ログインに失敗しました。",
-    "ru": "Не удалось войти через Google."
+    "ru": "Не удалось войти через Google.",
+    "hi": "Google साइन इन विफल।",
+    "ms": "Log masuk Google gagal.",
+    "th": "ลงชื่อเข้าใช้ Google ไม่สำเร็จ"
   },
   "读取 2FA 失败": {
     "en": "Could not read 2FA status",
     "ja": "2FA の状態を読み込めませんでした",
-    "ru": "Не удалось прочитать состояние двухфакторной аутентификации"
+    "ru": "Не удалось прочитать состояние двухфакторной аутентификации",
+    "hi": "2FA स्थिति पढ़ी नहीं जा सकी",
+    "ms": "Tidak dapat membaca status 2FA",
+    "th": "อ่านสถานะ 2FA ไม่สำเร็จ"
   },
   "邮箱已注册": {
     "en": "This email is already registered for this brand.",
     "ja": "このメールはこのブランドで登録済みです。",
-    "ru": "Этот email уже зарегистрирован у данного бренда."
+    "ru": "Этот email уже зарегистрирован у данного бренда.",
+    "hi": "यह ईमेल इस ब्रांड के लिए पहले से पंजीकृत है।",
+    "ms": "E-mel ini sudah didaftarkan untuk jenama ini.",
+    "th": "อีเมลนี้ลงทะเบียนกับแบรนด์นี้แล้ว"
   },
   "密码至少 8 位，UTF-8 编码不超过 72 字节": {
     "en": "Use at least 8 characters and no more than 72 UTF-8 bytes for the password.",
     "ja": "パスワードは8文字以上、UTF-8で72バイト以内にしてください。",
-    "ru": "Пароль должен содержать не менее 8 символов и занимать не более 72 байтов UTF-8."
+    "ru": "Пароль должен содержать не менее 8 символов и занимать не более 72 байтов UTF-8.",
+    "hi": "पासवर्ड में कम से कम 8 अक्षर और अधिकतम 72 UTF-8 बाइट उपयोग करें।",
+    "ms": "Gunakan sekurang-kurangnya 8 aksara dan tidak lebih daripada 72 bait UTF-8 untuk kata laluan.",
+    "th": "ใช้รหัสผ่านอย่างน้อย 8 อักขระและไม่เกิน 72 ไบต์ UTF-8"
   },
   "推广码无效": {
     "en": "The promotion code is invalid.",
     "ja": "紹介コードが無効です。",
-    "ru": "Код приглашения недействителен."
+    "ru": "Код приглашения недействителен.",
+    "hi": "प्रचार कोड अमान्य है।",
+    "ms": "Kod promosi tidak sah.",
+    "th": "รหัสโปรโมชันไม่ถูกต้อง"
   },
   "渠道归属不可自行切换": {
     "en": "You cannot change your channel membership yourself.",
     "ja": "チャネルの所属は自分で変更できません。",
-    "ru": "Вы не можете самостоятельно изменить принадлежность к каналу."
+    "ru": "Вы не можете самостоятельно изменить принадлежность к каналу.",
+    "hi": "आप अपनी चैनल सदस्यता स्वयं नहीं बदल सकते।",
+    "ms": "Anda tidak boleh menukar keahlian saluran sendiri.",
+    "th": "คุณเปลี่ยนการสังกัดช่องทางเองไม่ได้"
   },
   "记录不存在": {
     "en": "The record does not exist.",
     "ja": "記録が存在しません。",
-    "ru": "Запись не существует."
+    "ru": "Запись не существует.",
+    "hi": "रिकॉर्ड मौजूद नहीं है।",
+    "ms": "Rekod tidak wujud.",
+    "th": "ไม่มีระเบียนนี้"
   },
   "账号或密码错误": {
     "en": "The account or password is incorrect.",
     "ja": "アカウントまたはパスワードが正しくありません。",
-    "ru": "Неверный аккаунт или пароль."
+    "ru": "Неверный аккаунт или пароль.",
+    "hi": "खाता या पासवर्ड गलत है।",
+    "ms": "Akaun atau kata laluan salah.",
+    "th": "บัญชีหรือรหัสผ่านไม่ถูกต้อง"
   },
   "显示名过长": {
     "en": "The display name is too long.",
     "ja": "表示名が長すぎます。",
-    "ru": "Отображаемое имя слишком длинное."
+    "ru": "Отображаемое имя слишком длинное.",
+    "hi": "प्रदर्शन नाम बहुत लंबा है।",
+    "ms": "Nama paparan terlalu panjang.",
+    "th": "ชื่อที่แสดงยาวเกินไป"
   },
   "必须填写原因": {
     "en": "Enter a reason for this operation.",
     "ja": "操作の理由を入力してください。",
-    "ru": "Укажите причину операции."
+    "ru": "Укажите причину операции.",
+    "hi": "इस कार्रवाई का कारण दर्ज करें।",
+    "ms": "Masukkan sebab operasi ini.",
+    "th": "ระบุเหตุผลสำหรับการดำเนินการนี้"
   },
   "不能对自己执行该操作": {
     "en": "You cannot perform this operation on your own account.",
     "ja": "自分のアカウントにはこの操作を実行できません。",
-    "ru": "Вы не можете выполнить эту операцию со своим аккаунтом."
+    "ru": "Вы не можете выполнить эту операцию со своим аккаунтом.",
+    "hi": "आप अपने खाते पर यह कार्रवाई नहीं कर सकते।",
+    "ms": "Anda tidak boleh melakukan operasi ini pada akaun sendiri.",
+    "th": "คุณดำเนินการนี้กับบัญชีของตนเองไม่ได้"
   },
   "不能操作后台管理员": {
     "en": "This operation cannot be applied to an administrator account.",
     "ja": "管理者アカウントにはこの操作を実行できません。",
-    "ru": "Эта операция неприменима к аккаунту администратора."
+    "ru": "Эта операция неприменима к аккаунту администратора.",
+    "hi": "यह कार्रवाई व्यवस्थापक खाते पर लागू नहीं हो सकती।",
+    "ms": "Operasi ini tidak boleh digunakan pada akaun pentadbir.",
+    "th": "การดำเนินการนี้ใช้กับบัญชีผู้ดูแลไม่ได้"
   },
   "请求体无效": {
     "en": "The request body is invalid.",
     "ja": "リクエスト本文が無効です。",
-    "ru": "Тело запроса недействительно."
+    "ru": "Тело запроса недействительно.",
+    "hi": "अनुरोध बॉडी अमान्य है।",
+    "ms": "Badan permintaan tidak sah.",
+    "th": "เนื้อหาคำขอไม่ถูกต้อง"
   },
   "账号已停用": {
     "en": "This account has been disabled.",
     "ja": "このアカウントは無効化されています。",
-    "ru": "Аккаунт отключён."
+    "ru": "Аккаунт отключён.",
+    "hi": "यह खाता निष्क्रिय कर दिया गया है।",
+    "ms": "Akaun ini telah dinyahaktifkan.",
+    "th": "บัญชีนี้ถูกปิดใช้แล้ว"
   },
   "未配置 Google 登录": {
     "en": "Google sign-in has not been configured.",
     "ja": "Google ログインは未設定です。",
-    "ru": "Вход через Google не настроен."
+    "ru": "Вход через Google не настроен.",
+    "hi": "Google साइन इन कॉन्फ़िगर नहीं किया गया है।",
+    "ms": "Log masuk Google belum dikonfigurasi.",
+    "th": "ยังไม่ได้ตั้งค่าการลงชื่อเข้าใช้ Google"
   },
   "请填写有效邮箱和密码": {
     "en": "Enter a valid email and password.",
     "ja": "有効なメールとパスワードを入力してください。",
-    "ru": "Введите действительные email и пароль."
+    "ru": "Введите действительные email и пароль.",
+    "hi": "वैध ईमेल और पासवर्ड दर्ज करें।",
+    "ms": "Masukkan e-mel dan kata laluan yang sah.",
+    "th": "ระบุอีเมลและรหัสผ่านที่ถูกต้อง"
   },
   "该邮箱在本品牌已注册，请直接登录": {
     "en": "This email is already registered for this brand. Sign in instead.",
     "ja": "このメールはこのブランドで登録済みです。ログインしてください。",
-    "ru": "Этот email уже зарегистрирован у данного бренда. Войдите в существующий аккаунт."
+    "ru": "Этот email уже зарегистрирован у данного бренда. Войдите в существующий аккаунт.",
+    "hi": "यह ईमेल इस ब्रांड के लिए पहले से पंजीकृत है। इसके बजाय साइन इन करें।",
+    "ms": "E-mel ini sudah didaftarkan untuk jenama ini. Log masuk sahaja.",
+    "th": "อีเมลนี้ลงทะเบียนกับแบรนด์นี้แล้ว โปรดลงชื่อเข้าใช้แทน"
   },
   "邮箱密码账号需要先登录后绑定 Google": {
     "en": "Sign in with your password before linking Google.",
     "ja": "パスワードでログインしてから Google を連携してください。",
-    "ru": "Войдите с паролем перед привязкой Google."
+    "ru": "Войдите с паролем перед привязкой Google.",
+    "hi": "Google जोड़ने से पहले अपने पासवर्ड से साइन इन करें।",
+    "ms": "Log masuk menggunakan kata laluan sebelum memautkan Google.",
+    "th": "ลงชื่อเข้าใช้ด้วยรหัสผ่านก่อนเชื่อม Google"
   },
   "该品牌不支持自定义配置": {
     "en": "This brand does not support custom configuration.",
     "ja": "このブランドは独自設定に対応していません。",
-    "ru": "Этот бренд не поддерживает индивидуальные настройки."
+    "ru": "Этот бренд не поддерживает индивидуальные настройки.",
+    "hi": "यह ब्रांड कस्टम कॉन्फ़िगरेशन का समर्थन नहीं करता।",
+    "ms": "Jenama ini tidak menyokong konfigurasi tersuai.",
+    "th": "แบรนด์นี้ไม่รองรับการตั้งค่าเฉพาะ"
   },
   "请求参数无效": {
     "en": "The request parameters are invalid.",
     "ja": "リクエストのパラメーターが無効です。",
-    "ru": "Параметры запроса недействительны."
+    "ru": "Параметры запроса недействительны.",
+    "hi": "अनुरोध पैरामीटर अमान्य हैं।",
+    "ms": "Parameter permintaan tidak sah.",
+    "th": "พารามิเตอร์คำขอไม่ถูกต้อง"
   },
   "渠道不存在": {
     "en": "This channel does not exist.",
     "ja": "このチャネルは存在しません。",
-    "ru": "Канал не существует."
+    "ru": "Канал не существует.",
+    "hi": "यह चैनल मौजूद नहीं है।",
+    "ms": "Saluran ini tidak wujud.",
+    "th": "ไม่มีช่องทางนี้"
   },
   "用户不存在": {
     "en": "This user does not exist.",
     "ja": "このユーザーは存在しません。",
-    "ru": "Пользователь не существует."
+    "ru": "Пользователь не существует.",
+    "hi": "यह उपयोगकर्ता मौजूद नहीं है।",
+    "ms": "Pengguna ini tidak wujud.",
+    "th": "ไม่มีผู้ใช้นี้"
   },
   "只能查看自己的渠道": {
     "en": "You can only view your own channel.",
     "ja": "自分のチャネルのみ表示できます。",
-    "ru": "Вы можете просматривать только свой канал."
+    "ru": "Вы можете просматривать только свой канал.",
+    "hi": "आप केवल अपना चैनल देख सकते हैं।",
+    "ms": "Anda hanya boleh melihat saluran sendiri.",
+    "th": "คุณดูได้เฉพาะช่องทางของตนเอง"
   },
   "只能管理自己的直属下属渠道": {
     "en": "You can only manage your own direct child channels.",
     "ja": "自分の直属の下位チャネルのみ管理できます。",
-    "ru": "Вы можете управлять только своими прямыми подчинёнными каналами."
+    "ru": "Вы можете управлять только своими прямыми подчинёнными каналами.",
+    "hi": "आप केवल अपने सीधे अधीनस्थ चैनल प्रबंधित कर सकते हैं।",
+    "ms": "Anda hanya boleh mengurus saluran anak langsung anda.",
+    "th": "คุณจัดการได้เฉพาะช่องทางย่อยในสังกัดโดยตรงของตนเอง"
   },
   "只能上传图片资源": {
     "en": "Only image assets can be uploaded.",
     "ja": "画像リソースのみアップロードできます。",
-    "ru": "Можно загружать только изображения."
+    "ru": "Можно загружать только изображения.",
+    "hi": "केवल छवि परिसंपत्तियाँ अपलोड की जा सकती हैं।",
+    "ms": "Hanya aset imej boleh dimuat naik.",
+    "th": "อัปโหลดได้เฉพาะสินทรัพย์ภาพ"
   },
   "文件过大": {
     "en": "The file is too large.",
     "ja": "ファイルが大きすぎます。",
-    "ru": "Файл слишком большой."
+    "ru": "Файл слишком большой.",
+    "hi": "फ़ाइल बहुत बड़ी है।",
+    "ms": "Fail terlalu besar.",
+    "th": "ไฟล์ใหญ่เกินไป"
   },
   "语言只支持 zh、en、ja、ru": {
     "en": "Supported languages are Chinese, English, Japanese and Russian.",
     "ja": "対応言語は中国語、英語、日本語、ロシア語です。",
-    "ru": "Поддерживаются китайский, английский, японский и русский языки."
+    "ru": "Поддерживаются китайский, английский, японский и русский языки.",
+    "hi": "समर्थित भाषाएँ चीनी, अंग्रेज़ी, जापानी और रूसी हैं।",
+    "ms": "Bahasa yang disokong ialah bahasa Cina, Inggeris, Jepun dan Rusia.",
+    "th": "ภาษาที่รองรับคือจีน อังกฤษ ญี่ปุ่น และรัสเซีย"
   }
 }

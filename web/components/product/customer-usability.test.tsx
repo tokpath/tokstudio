@@ -167,7 +167,7 @@ it.each([true, false])("uses a shared KOL promotion only when the user's eligibl
 
 it("provides complete UX translations with matching named placeholders", () => {
   const fields = (value: string) => [...value.matchAll(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g)].map(match => match[1]).sort();
-  for (const [source, message] of Object.entries(customerUX)) for (const locale of ["en", "ja", "ru"] as const) {
+  for (const [source, message] of Object.entries(customerUX)) for (const locale of ["en", "ja", "ru", "hi", "ms", "th"] as const) {
     expect(message[locale].trim()).not.toBe(""); expect(fields(message[locale])).toEqual(fields(source));
   }
 });

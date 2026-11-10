@@ -2,1281 +2,2049 @@
   "营业前请选择全系统的结算币种和 ATG 基础比例。": {
     "en": "Choose the system settlement currency and base ATG rate before opening for business.",
     "ja": "営業開始前にシステム全体の決済通貨と ATG 基準比率を選んでください。",
-    "ru": "Перед открытием выберите валюту расчётов системы и базовое соотношение ATG."
+    "ru": "Перед открытием выберите валюту расчётов системы и базовое соотношение ATG.",
+    "hi": "व्यवसाय शुरू करने से पहले सिस्टम निपटान मुद्रा और आधार ATG दर चुनें।",
+    "ms": "Pilih mata wang penyelesaian sistem dan kadar asas ATG sebelum membuka perniagaan.",
+    "th": "เลือกสกุลเงินที่ใช้ชำระบัญชีของระบบและอัตรา ATG พื้นฐานก่อนเปิดธุรกิจ"
   },
   "预约基础规则：每 1 {currency} 对应 {ratio} ATG，将于预约时间生效。": {
     "en": "Scheduled base rules: 1 {currency} equals {ratio} ATG, effective at the scheduled time.",
     "ja": "予約済みの基準規則：1 {currency} は {ratio} ATG に相当し、予約時刻に発効します。",
-    "ru": "Запланированные базовые правила: 1 {currency} соответствует {ratio} ATG; они вступят в силу в назначенное время."
+    "ru": "Запланированные базовые правила: 1 {currency} соответствует {ratio} ATG; они вступят в силу в назначенное время.",
+    "hi": "निर्धारित आधार नियम: 1 {currency} बराबर {ratio} ATG, निर्धारित समय पर प्रभावी।",
+    "ms": "Peraturan asas dijadualkan: 1 {currency} bersamaan {ratio} ATG, berkuat kuasa pada masa dijadualkan.",
+    "th": "กฎพื้นฐานที่กำหนดไว้: 1 {currency} เท่ากับ {ratio} ATG มีผลตามเวลาที่กำหนด"
   },
   "已核实订单入账金额（结算币种）": {
     "en": "Verified order settlement amount (settlement currency)",
     "ja": "確認済み注文計上額（決済通貨）",
-    "ru": "Подтверждённая сумма по заказу (валюта расчётов)"
+    "ru": "Подтверждённая сумма по заказу (валюта расчётов)",
+    "hi": "सत्यापित ऑर्डर निपटान राशि (निपटान मुद्रा)",
+    "ms": "Jumlah penyelesaian pesanan yang disahkan (mata wang penyelesaian)",
+    "th": "ยอดชำระบัญชีคำสั่งซื้อที่ตรวจสอบแล้ว (สกุลเงินที่ใช้ชำระบัญชี)"
   },
   "已核实订单入账金额（结算币种，扣己方手续费前）": {
     "en": "Verified order settlement amount before our fees (settlement currency)",
     "ja": "当方手数料控除前の確認済み注文計上額（決済通貨）",
-    "ru": "Подтверждённая сумма по заказу до нашей комиссии (валюта расчётов)"
+    "ru": "Подтверждённая сумма по заказу до нашей комиссии (валюта расчётов)",
+    "hi": "हमारे शुल्क से पहले सत्यापित ऑर्डर निपटान राशि (निपटान मुद्रा)",
+    "ms": "Jumlah penyelesaian pesanan yang disahkan sebelum fi kami (mata wang penyelesaian)",
+    "th": "ยอดชำระบัญชีคำสั่งซื้อที่ตรวจสอบแล้วก่อนหักค่าธรรมเนียมของเรา (สกุลเงินที่ใช้ชำระบัญชี)"
   },
   "已核实清算手续费（结算币种）": {
     "en": "Verified settlement fee (settlement currency)",
     "ja": "確認済み決済手数料（決済通貨）",
-    "ru": "Подтверждённая комиссия расчёта (валюта расчётов)"
+    "ru": "Подтверждённая комиссия расчёта (валюта расчётов)",
+    "hi": "सत्यापित निपटान शुल्क (निपटान मुद्रा)",
+    "ms": "Fi penyelesaian yang disahkan (mata wang penyelesaian)",
+    "th": "ค่าธรรมเนียมชำระบัญชีที่ตรวจสอบแล้ว (สกุลเงินที่ใช้ชำระบัญชี)"
   },
   "实际原币收款总额（扣己方手续费前）": {
     "en": "Original currency gross receipt before our fees",
     "ja": "当方手数料控除前の元通貨入金総額",
-    "ru": "Валовое поступление в исходной валюте до нашей комиссии"
+    "ru": "Валовое поступление в исходной валюте до нашей комиссии",
+    "hi": "हमारे शुल्क से पहले मूल मुद्रा सकल प्राप्ति",
+    "ms": "Penerimaan kasar mata wang asal sebelum fi kami",
+    "th": "ยอดรับรวมในสกุลเงินเดิมก่อนหักค่าธรรมเนียมของเรา"
   },
   "己方收款手续费（原币，可稍后核实）": {
     "en": "Our receipt fee in the original currency (may be verified later)",
     "ja": "当方の入金手数料（元通貨、後で確認可）",
-    "ru": "Наша комиссия за поступление в исходной валюте (можно подтвердить позже)"
+    "ru": "Наша комиссия за поступление в исходной валюте (можно подтвердить позже)",
+    "hi": "मूल मुद्रा में हमारा प्राप्ति शुल्क (बाद में सत्यापित हो सकता है)",
+    "ms": "Fi penerimaan kami dalam mata wang asal (boleh disahkan kemudian)",
+    "th": "ค่าธรรมเนียมรับเงินของเราในสกุลเงินเดิม (ตรวจสอบภายหลังได้)"
   },
   "真实收款币种": {
     "en": "Actual receipt currency",
     "ja": "実際の入金通貨",
-    "ru": "Фактическая валюта поступления"
+    "ru": "Фактическая валюта поступления",
+    "hi": "वास्तविक प्राप्ति मुद्रा",
+    "ms": "Mata wang penerimaan sebenar",
+    "th": "สกุลเงินที่รับจริง"
   },
   "本笔交易与订单清算金额的核实依据": {
     "en": "Evidence linking this transaction to the order settlement amount",
     "ja": "今回の取引と注文決済額の対応を確認する根拠",
-    "ru": "Основание связи этой транзакции с суммой расчёта по заказу"
+    "ru": "Основание связи этой транзакции с суммой расчёта по заказу",
+    "hi": "इस लेनदेन को ऑर्डर निपटान राशि से जोड़ने का प्रमाण",
+    "ms": "Bukti yang mengaitkan transaksi ini dengan jumlah penyelesaian pesanan",
+    "th": "หลักฐานเชื่อมโยงธุรกรรมนี้กับยอดชำระบัญชีคำสั่งซื้อ"
   },
   "仅登记这笔真实原币收款对应的订单清算金额。收款方承担的手续费不减少订单交付额度。": {
     "en": "Record only the order settlement amount verified for this original currency receipt. Fees paid by the recipient do not reduce order delivery.",
     "ja": "この実際の元通貨入金に対応する確認済み注文決済額のみを記録します。受取人負担の手数料は注文の提供額を減らしません。",
-    "ru": "Укажите только подтверждённую сумму расчёта по заказу для этого поступления в исходной валюте. Комиссии получателя не уменьшают объём исполнения заказа."
+    "ru": "Укажите только подтверждённую сумму расчёта по заказу для этого поступления в исходной валюте. Комиссии получателя не уменьшают объём исполнения заказа.",
+    "hi": "इस मूल मुद्रा प्राप्ति के लिए केवल सत्यापित ऑर्डर निपटान राशि दर्ज करें। प्राप्तकर्ता द्वारा दिए शुल्क से ऑर्डर डिलीवरी कम नहीं होती।",
+    "ms": "Rekodkan hanya jumlah penyelesaian pesanan yang disahkan untuk penerimaan mata wang asal ini. Fi yang dibayar penerima tidak mengurangkan penyerahan pesanan.",
+    "th": "บันทึกเฉพาะยอดชำระบัญชีคำสั่งซื้อที่ตรวจสอบแล้วสำหรับยอดรับในสกุลเงินเดิมนี้ ค่าธรรมเนียมที่ผู้รับจ่ายไม่ลดจำนวนที่ส่งมอบตามคำสั่งซื้อ"
   },
   "保留真实收款币种与金额；付款人另付的发送费或链上手续费不计入。": {
     "en": "Keep the actual receipt currency and amount. Exclude sending or blockchain fees paid separately by the payer.",
     "ja": "実際の入金通貨と金額を保持します。支払者が別途負担する送金手数料やチェーン手数料は含めません。",
-    "ru": "Сохраните фактическую валюту и сумму поступления. Отдельно оплаченные отправителем комиссии перевода или блокчейна не включаются."
+    "ru": "Сохраните фактическую валюту и сумму поступления. Отдельно оплаченные отправителем комиссии перевода или блокчейна не включаются.",
+    "hi": "वास्तविक प्राप्ति मुद्रा और राशि रखें। भुगतानकर्ता द्वारा अलग दिए प्रेषण या ब्लॉकचेन शुल्क शामिल न करें।",
+    "ms": "Kekalkan mata wang dan jumlah penerimaan sebenar. Kecualikan fi penghantaran atau blockchain yang dibayar secara berasingan oleh pembayar.",
+    "th": "เก็บสกุลเงินและยอดรับจริง ไม่รวมค่าธรรมเนียมการส่งหรือบล็อกเชนที่ผู้ชำระจ่ายแยกต่างหาก"
   },
   "只记录收款方承担的真实原币费用。未核实时留空，确实没有时填0。": {
     "en": "Record only actual original currency fees paid by the recipient. Leave blank until verified; enter 0 only when no fee was incurred.",
     "ja": "受取人が負担した実際の元通貨手数料のみを記録します。未確認時は空欄にし、手数料がないと確認した場合のみ 0 を入力してください。",
-    "ru": "Укажите только фактические комиссии получателя в исходной валюте. До подтверждения оставьте поле пустым; вводите 0 только при подтверждённом отсутствии комиссии."
+    "ru": "Укажите только фактические комиссии получателя в исходной валюте. До подтверждения оставьте поле пустым; вводите 0 только при подтверждённом отсутствии комиссии.",
+    "hi": "केवल प्राप्तकर्ता द्वारा वास्तव में दिए मूल मुद्रा शुल्क दर्ज करें। सत्यापित होने तक खाली छोड़ें; केवल शुल्क न लगा हो तो 0 दर्ज करें।",
+    "ms": "Rekodkan hanya fi mata wang asal sebenar yang dibayar penerima. Biarkan kosong sehingga disahkan; masukkan 0 hanya apabila tiada fi dikenakan.",
+    "th": "บันทึกเฉพาะค่าธรรมเนียมจริงในสกุลเงินเดิมที่ผู้รับจ่าย เว้นว่างจนกว่าจะตรวจสอบ กรอก 0 เฉพาะเมื่อไม่มีค่าธรรมเนียมจริง"
   },
   "仅在通道真实提供或人工明确核实结算币种费用时登记。同币费用可直接记录；不能按原币费用自动折算。该费用由收款方承担，不减少订单交付金额。": {
     "en": "Record settlement currency fees only when supplied by the payment provider or explicitly verified by staff. Same-currency fees can be recorded directly; original currency fees are never converted automatically. The recipient pays these fees without reducing order delivery.",
     "ja": "決済通貨の手数料は通道から実際に提供された場合、または担当者が明確に確認した場合のみ記録します。同通貨の手数料は直接記録でき、元通貨の手数料を自動換算しません。受取人負担のため注文の提供額は減りません。",
-    "ru": "Записывайте комиссии в валюте расчётов только по данным платёжного провайдера или после явной проверки сотрудником. Комиссии в той же валюте записываются напрямую; автоматического пересчёта из исходной валюты нет. Эти комиссии оплачивает получатель, и они не уменьшают исполнение заказа."
+    "ru": "Записывайте комиссии в валюте расчётов только по данным платёжного провайдера или после явной проверки сотрудником. Комиссии в той же валюте записываются напрямую; автоматического пересчёта из исходной валюты нет. Эти комиссии оплачивает получатель, и они не уменьшают исполнение заказа.",
+    "hi": "निपटान मुद्रा शुल्क केवल भुगतान प्रदाता द्वारा दिए जाने या कर्मचारी द्वारा स्पष्ट सत्यापन पर दर्ज करें। समान मुद्रा शुल्क सीधे दर्ज हो सकते हैं; मूल मुद्रा शुल्क कभी स्वतः परिवर्तित नहीं होते। प्राप्तकर्ता ये शुल्क देता है और ऑर्डर डिलीवरी कम नहीं होती।",
+    "ms": "Rekodkan fi mata wang penyelesaian hanya apabila diberikan oleh penyedia pembayaran atau disahkan secara jelas oleh kakitangan. Fi dalam mata wang yang sama boleh direkodkan secara langsung; fi mata wang asal tidak pernah ditukar secara automatik. Penerima membayar fi ini tanpa mengurangkan penyerahan pesanan.",
+    "th": "บันทึกค่าธรรมเนียมในสกุลเงินที่ใช้ชำระบัญชีเฉพาะเมื่อผู้ให้บริการชำระเงินระบุหรือพนักงานตรวจสอบชัดเจนแล้ว ค่าธรรมเนียมสกุลเดียวกันบันทึกได้โดยตรง ระบบไม่แปลงค่าธรรมเนียมสกุลเงินเดิมโดยอัตโนมัติ ผู้รับเป็นผู้จ่ายค่าธรรมเนียมโดยไม่ลดจำนวนที่ส่งมอบตามคำสั่งซื้อ"
   },
   "通道结算到账时间（清算手续费已核实时填写）": {
     "en": "Provider settlement time (when settlement fees are verified)",
     "ja": "決済通道の着金日時（決済手数料確認済みの場合）",
-    "ru": "Время зачисления от провайдера (при подтверждённой комиссии расчёта)"
+    "ru": "Время зачисления от провайдера (при подтверждённой комиссии расчёта)",
+    "hi": "प्रदाता निपटान समय (निपटान शुल्क सत्यापित होने पर)",
+    "ms": "Masa penyelesaian penyedia (apabila fi penyelesaian disahkan)",
+    "th": "เวลาชำระบัญชีของผู้ให้บริการ (เมื่อยืนยันค่าธรรมเนียมชำระบัญชีแล้ว)"
   },
   "已核实本次清偿金额（结算币种）": {
     "en": "Verified amount settled this time (settlement currency)",
     "ja": "今回の確認済み弁済額（決済通貨）",
-    "ru": "Подтверждённая сумма этого погашения (валюта расчётов)"
+    "ru": "Подтверждённая сумма этого погашения (валюта расчётов)",
+    "hi": "इस बार निपटाई गई सत्यापित राशि (निपटान मुद्रा)",
+    "ms": "Jumlah diselesaikan kali ini yang disahkan (mata wang penyelesaian)",
+    "th": "ยอดที่ชำระบัญชีครั้งนี้และตรวจสอบแล้ว (สกุลเงินที่ใช้ชำระบัญชี)"
   },
   "付款方已核实清算手续费（可稍后核实）": {
     "en": "Verified settlement fee paid by the payer (may be verified later)",
     "ja": "支払者負担の確認済み決済手数料（後で確認可）",
-    "ru": "Подтверждённая комиссия расчёта плательщика (можно подтвердить позже)"
+    "ru": "Подтверждённая комиссия расчёта плательщика (можно подтвердить позже)",
+    "hi": "भुगतानकर्ता द्वारा दिया सत्यापित निपटान शुल्क (बाद में सत्यापित हो सकता है)",
+    "ms": "Fi penyelesaian yang disahkan dan dibayar pembayar (boleh disahkan kemudian)",
+    "th": "ค่าธรรมเนียมชำระบัญชีที่ผู้ชำระจ่ายและตรวจสอบแล้ว (ตรวจสอบภายหลังได้)"
   },
   "本笔付款与清偿金额的核实说明": {
     "en": "Verification of this payment and the settled obligation amount",
     "ja": "今回の支払いと弁済額の確認説明",
-    "ru": "Пояснение к подтверждению этого платежа и суммы погашения"
+    "ru": "Пояснение к подтверждению этого платежа и суммы погашения",
+    "hi": "इस भुगतान और निपटाई गई दायित्व राशि का सत्यापन",
+    "ms": "Pengesahan pembayaran ini dan jumlah tanggungjawab yang diselesaikan",
+    "th": "การตรวจสอบการชำระเงินนี้และยอดภาระที่ชำระแล้ว"
   },
   "本次已核实清偿金额（结算币种，跨币必填）": {
     "en": "Verified amount settled this time (settlement currency; required across currencies)",
     "ja": "今回の確認済み弁済額（決済通貨、異通貨の場合は必須）",
-    "ru": "Подтверждённая сумма погашения (валюта расчётов; обязательна при разных валютах)"
+    "ru": "Подтверждённая сумма погашения (валюта расчётов; обязательна при разных валютах)",
+    "hi": "इस बार निपटाई गई सत्यापित राशि (निपटान मुद्रा; अलग मुद्राओं में आवश्यक)",
+    "ms": "Jumlah diselesaikan kali ini yang disahkan (mata wang penyelesaian; wajib untuk rentas mata wang)",
+    "th": "ยอดที่ชำระบัญชีครั้งนี้และตรวจสอบแล้ว (สกุลเงินที่ใช้ชำระบัญชี บังคับสำหรับการชำระต่างสกุล)"
   },
   "本笔付款与清偿金额关联凭证（跨币必填）": {
     "en": "Evidence linking this payment to the settled amount (required across currencies)",
     "ja": "今回の支払いと弁済額の対応証憑（異通貨の場合は必須）",
-    "ru": "Документ связи этого платежа с суммой погашения (обязателен при разных валютах)"
+    "ru": "Документ связи этого платежа с суммой погашения (обязателен при разных валютах)",
+    "hi": "इस भुगतान को निपटाई गई राशि से जोड़ने का प्रमाण (अलग मुद्राओं में आवश्यक)",
+    "ms": "Bukti yang mengaitkan pembayaran ini dengan jumlah yang diselesaikan (wajib untuk rentas mata wang)",
+    "th": "หลักฐานเชื่อมโยงการชำระเงินนี้กับยอดที่ชำระบัญชีแล้ว (บังคับเมื่อใช้ต่างสกุล)"
   },
   "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。": {
     "en": "Verify only the obligation amount settled by this actual payment. Payments in the same currency settle at the actual amount; payments across currencies are never posted automatically at 1:1.",
     "ja": "今回の実際の支払いに対応する弁済額のみを確認します。同通貨では実際の支払額で弁済し、異通貨を 1:1 で自動計上しません。",
-    "ru": "Подтвердите только сумму обязательства, погашенную этим фактическим платежом. В одной валюте используется фактически уплаченная сумма; для разных валют автоматической проводки 1:1 нет."
+    "ru": "Подтвердите только сумму обязательства, погашенную этим фактическим платежом. В одной валюте используется фактически уплаченная сумма; для разных валют автоматической проводки 1:1 нет.",
+    "hi": "इस वास्तविक भुगतान से निपटाई गई केवल दायित्व राशि सत्यापित करें। समान मुद्रा भुगतान वास्तविक राशि पर निपटते हैं; अलग मुद्रा भुगतान कभी अपने आप 1:1 पर दर्ज नहीं होते।",
+    "ms": "Sahkan hanya jumlah tanggungjawab yang diselesaikan oleh pembayaran sebenar ini. Pembayaran dalam mata wang yang sama diselesaikan pada jumlah sebenar; pembayaran rentas mata wang tidak pernah dikreditkan secara automatik pada 1:1.",
+    "th": "ตรวจสอบเฉพาะยอดภาระที่ชำระด้วยการจ่ายเงินจริงครั้งนี้ การชำระสกุลเดียวกันคิดตามยอดจริง ส่วนการชำระต่างสกุลจะไม่ลงบัญชีอัตโนมัติที่ 1:1"
   },
   "money:{currency,amount}、settlement_amount、settlement_evidence；跨币填写本笔真实交易对应的清偿清算金额，原merchant/order由服务器解析。": {
     "en": "money:{currency,amount}, settlement_amount, settlement_evidence. For different currencies, enter the verified obligation amount settled by this transaction. The server resolves the original merchant/order.",
     "ja": "money:{currency,amount}、settlement_amount、settlement_evidence。異通貨では今回の実取引に対応する確認済み弁済額を入力します。元の merchant/order はサーバーで特定します。",
-    "ru": "money:{currency,amount}, settlement_amount, settlement_evidence. При разных валютах укажите подтверждённую сумму обязательства, погашенную этой транзакцией. Исходные merchant/order определяет сервер."
+    "ru": "money:{currency,amount}, settlement_amount, settlement_evidence. При разных валютах укажите подтверждённую сумму обязательства, погашенную этой транзакцией. Исходные merchant/order определяет сервер.",
+    "hi": "money:{currency,amount}, settlement_amount, settlement_evidence। अलग मुद्राओं के लिए इस लेनदेन से निपटाई गई सत्यापित दायित्व राशि दर्ज करें। सर्वर मूल व्यापारी/ऑर्डर निर्धारित करता है।",
+    "ms": "money:{currency,amount}, settlement_amount, settlement_evidence. Untuk mata wang berbeza, masukkan jumlah tanggungjawab yang disahkan diselesaikan oleh transaksi ini. Pelayan menentukan merchant/order asal.",
+    "th": "money:{currency,amount}, settlement_amount, settlement_evidence สำหรับสกุลเงินที่ต่างกัน ให้กรอกยอดภาระที่ตรวจสอบแล้วว่าชำระด้วยธุรกรรมนี้ เซิร์ฟเวอร์กำหนด merchant/order เดิม"
   },
   "确认本次实际付款与清偿金额依据；只执行已批准原退款leg，不会重提未知退款。": {
     "en": "Confirm the actual payment and evidence for the settled amount. Execute only the approved original refund leg; do not resubmit a refund with an unknown result.",
     "ja": "今回の実際の支払いと弁済額の根拠を確認します。承認済みの元の返金 leg のみを実行し、結果不明の返金を再送しません。",
-    "ru": "Подтвердите фактический платёж и основание суммы погашения. Исполняется только одобренная исходная часть возврата; возврат с неизвестным результатом повторно не отправляется."
+    "ru": "Подтвердите фактический платёж и основание суммы погашения. Исполняется только одобренная исходная часть возврата; возврат с неизвестным результатом повторно не отправляется.",
+    "hi": "वास्तविक भुगतान और निपटाई गई राशि के प्रमाण की पुष्टि करें। केवल मंज़ूर मूल धनवापसी भाग निष्पादित करें; अज्ञात परिणाम वाली धनवापसी फिर सबमिट न करें।",
+    "ms": "Sahkan pembayaran sebenar dan bukti jumlah yang diselesaikan. Laksanakan hanya bahagian bayaran balik asal yang diluluskan; jangan hantar semula bayaran balik dengan hasil tidak diketahui.",
+    "th": "ยืนยันการชำระเงินจริงและหลักฐานยอดที่ชำระแล้ว ดำเนินการเฉพาะส่วนคืนเงินเดิมที่อนุมัติแล้ว ห้ามส่งคำขอคืนเงินซ้ำเมื่อไม่ทราบผล"
   },
   "核实本次原币付款与清偿金额，退款ID固定为原leg；未知时只查询原交易。": {
     "en": "Verify this original currency payment and the settled amount. Keep the original refund leg ID; if the result is unknown, query only the original transaction.",
     "ja": "今回の元通貨支払いと弁済額を確認します。返金 ID は元の leg に固定し、結果不明時は元の取引のみを照会します。",
-    "ru": "Подтвердите платёж в исходной валюте и сумму погашения. Сохраняйте исходный ID части возврата; при неизвестном результате запрашивайте только исходную транзакцию."
+    "ru": "Подтвердите платёж в исходной валюте и сумму погашения. Сохраняйте исходный ID части возврата; при неизвестном результате запрашивайте только исходную транзакцию.",
+    "hi": "यह मूल मुद्रा भुगतान और निपटाई गई राशि सत्यापित करें। मूल धनवापसी भाग ID रखें; परिणाम अज्ञात हो तो केवल मूल लेनदेन जाँचें।",
+    "ms": "Sahkan pembayaran mata wang asal ini dan jumlah yang diselesaikan. Kekalkan ID bahagian bayaran balik asal; jika hasil tidak diketahui, semak hanya transaksi asal.",
+    "th": "ตรวจสอบการชำระเงินในสกุลเดิมและยอดที่ชำระแล้ว คง ID ส่วนคืนเงินเดิม หากไม่ทราบผลให้ตรวจสอบเฉพาะธุรกรรมเดิม"
   },
   "真实原币款待核实/入账事项": {
     "en": "Actual original currency receipts awaiting verification or posting",
     "ja": "確認・計上待ちの実際の元通貨入金",
-    "ru": "Фактические поступления в исходной валюте, ожидающие проверки или проводки"
+    "ru": "Фактические поступления в исходной валюте, ожидающие проверки или проводки",
+    "hi": "सत्यापन या बही प्रविष्टि लंबित वास्तविक मूल मुद्रा प्राप्तियाँ",
+    "ms": "Penerimaan sebenar mata wang asal menunggu pengesahan atau pengkreditan",
+    "th": "ยอดรับจริงในสกุลเงินเดิมที่รอตรวจสอบหรือลงบัญชี"
   },
   "包含原币收款与订单入账匹配待办；未核实前不计入订单交付": {
     "en": "Includes original currency receipts awaiting matching to orders. Unverified amounts do not count toward order delivery.",
     "ja": "元通貨の入金と注文計上の照合待ちを含みます。確認前は注文の提供額に算入しません。",
-    "ru": "Включает поступления в исходной валюте, ожидающие сопоставления с заказами. До подтверждения они не учитываются в исполнении заказа."
+    "ru": "Включает поступления в исходной валюте, ожидающие сопоставления с заказами. До подтверждения они не учитываются в исполнении заказа.",
+    "hi": "ऑर्डर से मिलान लंबित मूल मुद्रा प्राप्तियाँ शामिल हैं। असत्यापित राशियाँ ऑर्डर डिलीवरी में नहीं गिनी जातीं।",
+    "ms": "Termasuk penerimaan mata wang asal yang menunggu pemadanan dengan pesanan. Jumlah yang belum disahkan tidak dikira untuk penyerahan pesanan.",
+    "th": "รวมยอดรับสกุลเงินเดิมที่รอจับคู่กับคำสั่งซื้อ ยอดที่ยังไม่ตรวจสอบไม่นับรวมในการส่งมอบคำสั่งซื้อ"
   },
   "原币实际收款已记录。请依据本笔真实交易核实对应的订单清算金额；保留原币收支，不能要求客户重复付款。": {
     "en": "The actual original currency receipt is recorded. Verify the corresponding order settlement amount using this transaction. Preserve original currency flows and do not ask the customer to pay again.",
     "ja": "元通貨の実際の入金は記録済みです。この実取引に基づき注文の決済額を確認してください。元通貨の収支を保持し、顧客に再度支払いを求めないでください。",
-    "ru": "Фактическое поступление в исходной валюте записано. Подтвердите соответствующую сумму расчёта по заказу на основании этой транзакции. Сохраните исходные денежные потоки и не требуйте от клиента повторной оплаты."
+    "ru": "Фактическое поступление в исходной валюте записано. Подтвердите соответствующую сумму расчёта по заказу на основании этой транзакции. Сохраните исходные денежные потоки и не требуйте от клиента повторной оплаты.",
+    "hi": "वास्तविक मूल मुद्रा प्राप्ति दर्ज है। इस लेनदेन से संबंधित ऑर्डर निपटान राशि सत्यापित करें। मूल मुद्रा प्रवाह सुरक्षित रखें और ग्राहक से दोबारा भुगतान न माँगें।",
+    "ms": "Penerimaan sebenar mata wang asal direkodkan. Sahkan jumlah penyelesaian pesanan yang sepadan menggunakan transaksi ini. Kekalkan aliran mata wang asal dan jangan minta pelanggan membayar lagi.",
+    "th": "บันทึกยอดรับจริงในสกุลเงินเดิมแล้ว ตรวจสอบยอดชำระบัญชีของคำสั่งซื้อที่สอดคล้องกันโดยใช้ธุรกรรมนี้ เก็บกระแสเงินในสกุลเดิมและอย่าขอให้ลูกค้าชำระซ้ำ"
   },
   "本次真实交易与入账关联凭证": {
     "en": "Evidence linking the actual transaction to the posted amount",
     "ja": "今回の実取引と計上額の対応証憑",
-    "ru": "Документ связи фактической транзакции с проводкой"
+    "ru": "Документ связи фактической транзакции с проводкой",
+    "hi": "वास्तविक लेनदेन को दर्ज राशि से जोड़ने का प्रमाण",
+    "ms": "Bukti yang mengaitkan transaksi sebenar dengan jumlah yang dikreditkan",
+    "th": "หลักฐานเชื่อมโยงธุรกรรมจริงกับยอดลงบัญชี"
   },
   "独立证明的真实付款时间（原事实缺失时填写）": {
     "en": "Independently evidenced actual payment time (if missing from the original fact)",
     "ja": "独立した証拠による実際の支払日時（元の記録にない場合）",
-    "ru": "Независимо подтверждённое время фактического платежа (если отсутствует в исходном факте)"
+    "ru": "Независимо подтверждённое время фактического платежа (если отсутствует в исходном факте)",
+    "hi": "स्वतंत्र प्रमाण वाला वास्तविक भुगतान समय (मूल तथ्य में न होने पर)",
+    "ms": "Masa pembayaran sebenar yang dibuktikan secara bebas (jika tiada dalam fakta asal)",
+    "th": "เวลาชำระเงินจริงที่มีหลักฐานอิสระ (หากไม่มีในข้อเท็จจริงเดิม)"
   },
   "核实本笔收款入账": {
     "en": "Verify and post this receipt",
     "ja": "今回の入金を確認して計上",
-    "ru": "Подтвердить и провести это поступление"
+    "ru": "Подтвердить и провести это поступление",
+    "hi": "यह प्राप्ति सत्यापित करके दर्ज करें",
+    "ms": "Sahkan dan kreditkan penerimaan ini",
+    "th": "ตรวจสอบและลงบัญชียอดรับนี้"
   },
   "确认原币真实收款与本次清算入账金额的关联。只使原已收款事实一次入账，不生成新收款或重复交付。": {
     "en": "Confirm the link between the actual original currency receipt and this settlement posting. Post the existing receipt once, without creating a new receipt or duplicating delivery.",
     "ja": "元通貨の実際の入金と今回の決済計上額の対応を確認します。既存の入金事実を一度だけ計上し、新たな入金や重複提供は作成しません。",
-    "ru": "Подтвердите связь фактического поступления в исходной валюте с этой проводкой расчёта. Существующее поступление проводится один раз, без нового поступления и повторного исполнения."
+    "ru": "Подтвердите связь фактического поступления в исходной валюте с этой проводкой расчёта. Существующее поступление проводится один раз, без нового поступления и повторного исполнения.",
+    "hi": "वास्तविक मूल मुद्रा प्राप्ति और इस निपटान प्रविष्टि के संबंध की पुष्टि करें। नई प्राप्ति बनाए या डिलीवरी दोहराए बिना मौजूदा प्राप्ति एक बार दर्ज करें।",
+    "ms": "Sahkan hubungan antara penerimaan sebenar mata wang asal dan pengkreditan penyelesaian ini. Kreditkan penerimaan sedia ada sekali, tanpa mencipta penerimaan baharu atau menggandakan penyerahan.",
+    "th": "ยืนยันความเชื่อมโยงระหว่างยอดรับเงินจริงในสกุลเดิมกับยอดลงบัญชีชำระบัญชีนี้ ลงบัญชียอดรับเดิมเพียงครั้งเดียวโดยไม่สร้างยอดรับใหม่หรือส่งมอบซ้ำ"
   },
   "按全系统基础比例计算购买额度，赠送按本单金额分段累加。每单一笔线上或线下付款，足额核实后自动交付。待付款订单持续占用供货库存，取消后释放。": {
     "en": "Purchased credits use the system base rate, with bonuses accumulated across this order's tiers. Each order has one online or offline payment and is delivered after full payment is verified. Unpaid orders reserve supply inventory until cancellation.",
     "ja": "購入枠はシステム全体の基準比率で計算し、特典は本注文の金額を段階別に累積します。注文ごとにオンラインまたはオフラインの一回の支払いを使用し、全額確認後に自動提供します。未払い注文は供給在庫を確保し、取消後に解放します。",
-    "ru": "Покупаемый объём рассчитывается по базовому соотношению системы; бонусы суммируются по ступеням суммы этого заказа. На заказ приходится один онлайн- или офлайн-платёж; после подтверждения полной оплаты объём предоставляется автоматически. Неоплаченные заказы резервируют запас до отмены."
+    "ru": "Покупаемый объём рассчитывается по базовому соотношению системы; бонусы суммируются по ступеням суммы этого заказа. На заказ приходится один онлайн- или офлайн-платёж; после подтверждения полной оплаты объём предоставляется автоматически. Неоплаченные заказы резервируют запас до отмены.",
+    "hi": "खरीदे क्रेडिट सिस्टम आधार दर उपयोग करते हैं और बोनस इस ऑर्डर के स्तरों में संचित होता है। प्रत्येक ऑर्डर का एक ऑनलाइन या ऑफ़लाइन भुगतान होता है और सत्यापित पूर्ण भुगतान के बाद डिलीवरी होती है। अवैतनिक ऑर्डर रद्द होने तक आपूर्ति स्टॉक आरक्षित रखते हैं।",
+    "ms": "Kredit yang dibeli menggunakan kadar asas sistem, dengan bonus terkumpul merentas peringkat pesanan ini. Setiap pesanan mempunyai satu pembayaran dalam talian atau luar talian dan diserahkan selepas pembayaran penuh disahkan. Pesanan belum dibayar merizabkan inventori bekalan sehingga pembatalan.",
+    "th": "เครดิตที่ซื้อใช้อัตราพื้นฐานของระบบ โดยสะสมโบนัสตามแต่ละขั้นของคำสั่งซื้อนี้ แต่ละคำสั่งซื้อมีการชำระออนไลน์หรือออฟไลน์หนึ่งครั้งและส่งมอบหลังตรวจสอบการชำระครบ คำสั่งซื้อที่ยังไม่ชำระกันสินค้าคงคลังของผู้จัดหาไว้จนกว่าจะยกเลิก"
   },
   "同一数据库快照列示清算币种业务事实与各币种原始收支。供应商参考、报告与登记成本分别呈现，不折算，不计算跨币种利润。": {
     "en": "One database snapshot shows settlement currency business facts and original flows in each currency. Supplier reference, reported, and recorded costs are presented separately, without conversion or profit calculations across currencies.",
     "ja": "同じデータベーススナップショットで決済通貨の業務事実と各通貨の元の収支を表示します。供給元の参考・報告・登録コストは別々に示し、換算や異通貨間の利益計算は行いません。",
-    "ru": "Один снимок базы данных показывает операции в валюте расчётов и исходные потоки по каждой валюте. Справочные, сообщённые и зарегистрированные затраты поставщиков показаны отдельно, без пересчёта и расчёта прибыли между валютами."
+    "ru": "Один снимок базы данных показывает операции в валюте расчётов и исходные потоки по каждой валюте. Справочные, сообщённые и зарегистрированные затраты поставщиков показаны отдельно, без пересчёта и расчёта прибыли между валютами.",
+    "hi": "एक डेटाबेस स्नैपशॉट निपटान मुद्रा व्यावसायिक तथ्य और प्रत्येक मुद्रा के मूल प्रवाह दिखाता है। आपूर्तिकर्ता संदर्भ, रिपोर्ट की गई और दर्ज लागत अलग दिखाई जाती हैं, मुद्राओं के बीच रूपांतरण या लाभ गणना के बिना।",
+    "ms": "Satu rekod keadaan pangkalan data menunjukkan fakta perniagaan mata wang penyelesaian dan aliran asal dalam setiap mata wang. Kos rujukan, dilaporkan dan direkodkan pembekal ditunjukkan secara berasingan, tanpa penukaran atau pengiraan keuntungan merentas mata wang.",
+    "th": "ข้อมูลฐานข้อมูลชุดเดียวแสดงข้อเท็จจริงธุรกิจในสกุลเงินที่ใช้ชำระบัญชีและกระแสเงินเดิมในแต่ละสกุล ต้นทุนอ้างอิง ต้นทุนที่ผู้ให้บริการรายงาน และต้นทุนที่บันทึกแสดงแยกกันโดยไม่แปลงหรือคำนวณกำไรข้ามสกุล"
   },
   "供应商报告成本（原币）": {
     "en": "Supplier reported cost (original currency)",
     "ja": "供給元報告コスト（元通貨）",
-    "ru": "Сообщённые поставщиком затраты (исходная валюта)"
+    "ru": "Сообщённые поставщиком затраты (исходная валюта)",
+    "hi": "आपूर्तिकर्ता द्वारा रिपोर्ट की गई लागत (मूल मुद्रा)",
+    "ms": "Kos dilaporkan pembekal (mata wang asal)",
+    "th": "ต้นทุนที่ผู้ให้บริการรายงาน (สกุลเงินเดิม)"
   },
   "参考成本（原币）": {
     "en": "Reference cost (original currency)",
     "ja": "参考コスト（元通貨）",
-    "ru": "Справочные затраты (исходная валюта)"
+    "ru": "Справочные затраты (исходная валюта)",
+    "hi": "संदर्भ लागत (मूल मुद्रा)",
+    "ms": "Kos rujukan (mata wang asal)",
+    "th": "ต้นทุนอ้างอิง (สกุลเงินเดิม)"
   },
   "清算币种业务成本": {
     "en": "Business costs in the settlement currency",
     "ja": "決済通貨の業務コスト",
-    "ru": "Операционные затраты в валюте расчётов"
+    "ru": "Операционные затраты в валюте расчётов",
+    "hi": "निपटान मुद्रा में व्यावसायिक लागत",
+    "ms": "Kos perniagaan dalam mata wang penyelesaian",
+    "th": "ต้นทุนธุรกิจในสกุลเงินที่ใช้ชำระบัญชี"
   },
   "清算责任": {
     "en": "Settlement obligations",
     "ja": "決済債務",
-    "ru": "Обязательства по расчётам"
+    "ru": "Обязательства по расчётам",
+    "hi": "निपटान दायित्व",
+    "ms": "Tanggungjawab penyelesaian",
+    "th": "ภาระการชำระบัญชี"
   },
   "Bifrost 参考成本": {
     "en": "Bifrost reference cost",
     "ja": "Bifrost 参考コスト",
-    "ru": "Справочные затраты Bifrost"
+    "ru": "Справочные затраты Bifrost",
+    "hi": "Bifrost संदर्भ लागत",
+    "ms": "Kos rujukan Bifrost",
+    "th": "ต้นทุนอ้างอิง Bifrost"
   },
   "参考币种": {
     "en": "Reference currency",
     "ja": "参考通貨",
-    "ru": "Справочная валюта"
+    "ru": "Справочная валюта",
+    "hi": "संदर्भ मुद्रा",
+    "ms": "Mata wang rujukan",
+    "th": "สกุลเงินอ้างอิง"
   },
   "账单币种": {
     "en": "Invoice currency",
     "ja": "請求書通貨",
-    "ru": "Валюта счёта"
+    "ru": "Валюта счёта",
+    "hi": "इनवॉइस मुद्रा",
+    "ms": "Mata wang invois",
+    "th": "สกุลเงินในใบแจ้งหนี้"
   },
   "登记实际成本": {
     "en": "Recorded actual cost",
     "ja": "登録実費",
-    "ru": "Зарегистрированные фактические затраты"
+    "ru": "Зарегистрированные фактические затраты",
+    "hi": "दर्ज वास्तविक लागत",
+    "ms": "Kos sebenar yang direkodkan",
+    "th": "ต้นทุนจริงที่บันทึก"
   },
   "账单原币币种": {
     "en": "Original invoice currency",
     "ja": "請求書の元通貨",
-    "ru": "Исходная валюта счёта"
+    "ru": "Исходная валюта счёта",
+    "hi": "मूल इनवॉइस मुद्रा",
+    "ms": "Mata wang asal invois",
+    "th": "สกุลเงินเดิมในใบแจ้งหนี้"
   },
   "账单原币实际费用": {
     "en": "Actual invoice cost in its original currency",
     "ja": "請求書の元通貨での実費",
-    "ru": "Фактические затраты по счёту в исходной валюте"
+    "ru": "Фактические затраты по счёту в исходной валюте",
+    "hi": "इनवॉइस की मूल मुद्रा में वास्तविक लागत",
+    "ms": "Kos sebenar invois dalam mata wang asalnya",
+    "th": "ต้นทุนจริงในใบแจ้งหนี้ตามสกุลเงินเดิม"
   },
   "同步 Bifrost 的 USD 模型参考价目，用于参考成本观察和选路。供应商实际账单按原币独立登记。客户与下级经营方按各自 ATG 价目计费。": {
     "en": "Sync Bifrost model reference prices in USD for reference cost monitoring and routing. Record actual supplier invoices independently in their original currencies. Customers and downstream operators use their respective ATG price lists.",
     "ja": "参考コストの観察と経路選択に Bifrost の USD モデル参考価格を同期します。供給元の実際の請求書は元通貨で独立して登録します。顧客と下位事業者はそれぞれの ATG 価格表で課金します。",
-    "ru": "Синхронизируйте справочные цены моделей Bifrost в USD для наблюдения за затратами и выбора маршрута. Фактические счета поставщиков записываются отдельно в исходных валютах. Клиенты и нижестоящие операторы тарифицируются по своим прайс-листам ATG."
+    "ru": "Синхронизируйте справочные цены моделей Bifrost в USD для наблюдения за затратами и выбора маршрута. Фактические счета поставщиков записываются отдельно в исходных валютах. Клиенты и нижестоящие операторы тарифицируются по своим прайс-листам ATG.",
+    "hi": "संदर्भ लागत निगरानी और रूटिंग के लिए USD में Bifrost मॉडल संदर्भ मूल्य सिंक करें। वास्तविक आपूर्तिकर्ता इनवॉइस उनकी मूल मुद्राओं में स्वतंत्र रूप से दर्ज करें। ग्राहक और अधीनस्थ संचालक अपनी-अपनी ATG मूल्य सूचियाँ उपयोग करते हैं।",
+    "ms": "Segerakkan harga rujukan model Bifrost dalam USD untuk pemantauan kos rujukan dan penghalaan. Rekodkan invois pembekal sebenar secara bebas dalam mata wang asalnya. Pelanggan dan pengendali hiliran menggunakan senarai harga ATG masing-masing.",
+    "th": "ซิงก์ราคาอ้างอิงโมเดล Bifrost ใน USD เพื่อเฝ้าติดตามต้นทุนอ้างอิงและกำหนดเส้นทาง บันทึกใบแจ้งหนี้จริงของผู้ให้บริการแยกกันตามสกุลเงินเดิม ลูกค้าและผู้ดำเนินงานปลายทางใช้รายการราคา ATG ของแต่ละฝ่าย"
   },
   "按账单原币登记供应商实际费用，并列展示同一供应商、模型及期间的 Bifrost USD 参考成本。两者独立列示，不折算、不相减、不重复计入总成本。财务按登记时间汇总，服务期间结束时间不包含在统计内。": {
     "en": "Record actual supplier costs in the invoice currency alongside Bifrost USD reference costs for the same supplier, model, and period. They remain separate, without conversion, subtraction, or duplicate cost totals. Financial reports use the recording time; the service period end is exclusive.",
     "ja": "供給元の実費を請求書の元通貨で登録し、同じ供給元・モデル・期間の Bifrost USD 参考コストと並べて表示します。換算・差引・総コストへの重複算入は行いません。財務集計は登録日時に基づき、サービス期間の終了日時は含みません。",
-    "ru": "Записывайте фактические затраты поставщика в валюте счёта рядом со справочными затратами Bifrost в USD для того же поставщика, модели и периода. Показатели остаются отдельными, без пересчёта, вычитания и двойного учёта. Финансовые отчёты используют время регистрации; конец периода услуг не включается."
+    "ru": "Записывайте фактические затраты поставщика в валюте счёта рядом со справочными затратами Bifrost в USD для того же поставщика, модели и периода. Показатели остаются отдельными, без пересчёта, вычитания и двойного учёта. Финансовые отчёты используют время регистрации; конец периода услуг не включается.",
+    "hi": "उसी आपूर्तिकर्ता, मॉडल और अवधि के लिए Bifrost USD संदर्भ लागत के साथ वास्तविक आपूर्तिकर्ता लागत इनवॉइस मुद्रा में दर्ज करें। वे रूपांतरण, घटाव या दोहराए कुल लागत के बिना अलग रहती हैं। वित्तीय रिपोर्ट दर्ज समय उपयोग करती हैं; सेवा अवधि का अंत शामिल नहीं है।",
+    "ms": "Rekodkan kos pembekal sebenar dalam mata wang invois bersama kos rujukan Bifrost USD untuk pembekal, model dan tempoh yang sama. Kedua-duanya kekal berasingan, tanpa penukaran, penolakan atau jumlah kos berganda. Laporan kewangan menggunakan masa perekodan; penghujung tempoh perkhidmatan tidak termasuk.",
+    "th": "บันทึกต้นทุนจริงของผู้ให้บริการในสกุลเงินตามใบแจ้งหนี้ควบคู่กับต้นทุนอ้างอิง Bifrost USD ของผู้ให้บริการ โมเดล และช่วงเวลาเดียวกัน ทั้งสองแสดงแยกกันโดยไม่แปลง หักลบ หรือรวมต้นทุนซ้ำ รายงานการเงินใช้เวลาบันทึก และไม่นับเวลาสิ้นสุดช่วงบริการ"
   },
   "汇率配置已移除": {
     "en": "Exchange rate configuration has been removed",
     "ja": "為替レート設定は廃止されました",
-    "ru": "Настройка валютных курсов удалена"
+    "ru": "Настройка валютных курсов удалена",
+    "hi": "विनिमय दर कॉन्फ़िगरेशन हटा दिया गया है",
+    "ms": "Konfigurasi kadar pertukaran telah dibuang",
+    "th": "ลบการตั้งค่าอัตราแลกเปลี่ยนแล้ว"
   },
   "汇率配置已移除，请核实真实收款及本次订单入账金额。": {
     "en": "Exchange rate configuration has been removed. Verify the actual receipt and this order's posted amount.",
     "ja": "為替レート設定は廃止されました。実際の入金と今回の注文計上額を確認してください。",
-    "ru": "Настройка валютных курсов удалена. Подтвердите фактическое поступление и сумму проводки по этому заказу."
+    "ru": "Настройка валютных курсов удалена. Подтвердите фактическое поступление и сумму проводки по этому заказу.",
+    "hi": "विनिमय दर कॉन्फ़िगरेशन हटा दिया गया है। वास्तविक प्राप्ति और इस ऑर्डर की दर्ज राशि सत्यापित करें।",
+    "ms": "Konfigurasi kadar pertukaran telah dibuang. Sahkan penerimaan sebenar dan jumlah yang dikreditkan kepada pesanan ini.",
+    "th": "ลบการตั้งค่าอัตราแลกเปลี่ยนแล้ว ตรวจสอบยอดรับจริงและยอดลงบัญชีของคำสั่งซื้อนี้"
   },
   "活动售价": {
     "en": "Promotion price",
     "ja": "キャンペーン価格",
-    "ru": "Акционная цена"
+    "ru": "Акционная цена",
+    "hi": "प्रचार मूल्य",
+    "ms": "Harga promosi",
+    "th": "ราคาส่งเสริมการขาย"
   },
   "额外赠送": {
     "en": "Additional bonus",
     "ja": "追加特典",
-    "ru": "Дополнительный бонус"
+    "ru": "Дополнительный бонус",
+    "hi": "अतिरिक्त बोनस",
+    "ms": "Bonus tambahan",
+    "th": "โบนัสเพิ่มเติม"
   },
   "收款账号": {
     "en": "Receiving account",
     "ja": "受取口座",
-    "ru": "Счёт получателя"
+    "ru": "Счёт получателя",
+    "hi": "प्राप्ति खाता",
+    "ms": "Akaun penerimaan",
+    "th": "บัญชีรับเงิน"
   },
   "结算币种": {
     "en": "Settlement currency",
     "ja": "決済通貨",
-    "ru": "Валюта расчётов"
+    "ru": "Валюта расчётов",
+    "hi": "निपटान मुद्रा",
+    "ms": "mata wang penyelesaian",
+    "th": "สกุลเงินที่ใช้ชำระบัญชี"
   },
   "请核对已录入的套餐、报价和费率：其中金额将按本次选定币种解释，ATG 数量保持原值；系统不会按外汇汇率换算已有配置。生效前资金与模型调用业务尚未开放，生效后规则永久锁定。": {
     "en": "Review existing packages, quotes, and fees: their amounts will be denominated in the selected currency, while ATG quantities stay unchanged. Existing settings will not be converted using exchange rates. Money operations and model calls remain closed until activation; the rules then lock permanently.",
     "ja": "登録済みのプラン、見積もり、手数料を確認してください。金額は今回選んだ通貨として扱い、ATG 数量は元の値を維持します。既存設定を為替レートで換算しません。発効まで資金取引とモデル呼び出しは開放されず、発効後は規則が永久に固定されます。",
-    "ru": "Проверьте уже введённые пакеты, предложения и комиссии: суммы будут выражены в выбранной валюте, а количество ATG останется прежним. Существующие настройки не пересчитываются по валютным курсам. Денежные операции и вызовы моделей закрыты до вступления правил в силу; затем правила фиксируются навсегда."
+    "ru": "Проверьте уже введённые пакеты, предложения и комиссии: суммы будут выражены в выбранной валюте, а количество ATG останется прежним. Существующие настройки не пересчитываются по валютным курсам. Денежные операции и вызовы моделей закрыты до вступления правил в силу; затем правила фиксируются навсегда.",
+    "hi": "मौजूदा पैकेज, कोटेशन और शुल्क की समीक्षा करें: उनकी राशियाँ चुनी मुद्रा में होंगी, जबकि ATG मात्राएँ अपरिवर्तित रहेंगी। मौजूदा सेटिंग विनिमय दर से परिवर्तित नहीं होंगी। सक्रियण तक धन संचालन और मॉडल कॉल बंद रहेंगे; फिर नियम स्थायी रूप से लॉक हो जाएँगे।",
+    "ms": "Semak pakej, sebut harga dan fi sedia ada: jumlahnya akan dinyatakan dalam mata wang yang dipilih, sementara kuantiti ATG kekal tidak berubah. Tetapan sedia ada tidak akan ditukar menggunakan kadar pertukaran. Operasi wang dan panggilan model kekal ditutup sehingga pengaktifan; peraturan kemudian dikunci secara kekal.",
+    "th": "ตรวจสอบแพ็กเกจ ใบเสนอราคา และค่าธรรมเนียมที่มีอยู่ โดยจำนวนเงินจะใช้สกุลที่เลือก ส่วนจำนวน ATG ไม่เปลี่ยน ระบบจะไม่แปลงการตั้งค่าเดิมตามอัตราแลกเปลี่ยน การดำเนินการด้านเงินและการเรียกใช้โมเดลยังปิดจนกว่าจะเปิดใช้งาน จากนั้นกฎจะถูกล็อกถาวร"
   },
   "原币实际款已保留，等待收款方核实本笔交易对应的订单清算金额，请勿重复付款。": {
     "en": "The original-currency receipt has been preserved. The recipient must verify the settlement amount for this order. Please do not pay again.",
     "ja": "元通貨の実際の入金は保存されています。受取側による注文決済額の確認をお待ちください。重複して支払わないでください。",
-    "ru": "Фактическое поступление в исходной валюте сохранено. Получатель должен подтвердить сумму расчёта по заказу. Не оплачивайте повторно."
+    "ru": "Фактическое поступление в исходной валюте сохранено. Получатель должен подтвердить сумму расчёта по заказу. Не оплачивайте повторно.",
+    "hi": "मूल मुद्रा प्राप्ति सुरक्षित रखी गई है। प्राप्तकर्ता को इस ऑर्डर की निपटान राशि सत्यापित करनी होगी। कृपया दोबारा भुगतान न करें।",
+    "ms": "Penerimaan mata wang asal telah dikekalkan. Penerima mesti mengesahkan jumlah penyelesaian bagi pesanan ini. Jangan bayar lagi.",
+    "th": "เก็บยอดรับในสกุลเงินเดิมไว้แล้ว ผู้รับต้องตรวจสอบยอดชำระบัญชีสำหรับคำสั่งซื้อนี้ โปรดอย่าชำระซ้ำ"
   },
   "付款页金额按实际收款币种展示。本订单按已核实的结算金额入账。": {
     "en": "The payment page shows the actual receipt currency. This order is recorded using the verified settlement amount.",
     "ja": "支払ページには実際の入金通貨を表示します。注文は確認済みの決済額で記帳します。",
-    "ru": "На странице оплаты показана фактическая валюта поступления. Заказ учитывается по подтверждённой сумме расчёта."
+    "ru": "На странице оплаты показана фактическая валюта поступления. Заказ учитывается по подтверждённой сумме расчёта.",
+    "hi": "भुगतान पृष्ठ वास्तविक प्राप्ति मुद्रा दिखाता है। यह ऑर्डर सत्यापित निपटान राशि से दर्ज होता है।",
+    "ms": "Halaman pembayaran menunjukkan mata wang penerimaan sebenar. Pesanan ini direkodkan menggunakan jumlah penyelesaian yang disahkan.",
+    "th": "หน้าชำระเงินแสดงสกุลเงินที่รับจริง คำสั่งซื้อนี้บันทึกตามยอดชำระบัญชีที่ตรวจสอบแล้ว"
   },
   "已核实原币收款手续费": {
     "en": "Verified receipt fees in original currency",
     "ja": "確認済みの元通貨入金手数料",
-    "ru": "Подтверждённые комиссии за поступления в исходной валюте"
+    "ru": "Подтверждённые комиссии за поступления в исходной валюте",
+    "hi": "मूल मुद्रा में सत्यापित प्राप्ति शुल्क",
+    "ms": "Fi penerimaan yang disahkan dalam mata wang asal",
+    "th": "ค่าธรรมเนียมรับเงินในสกุลเดิมที่ตรวจสอบแล้ว"
   },
   "已核实原币净入账": {
     "en": "Verified net receipts in original currency",
     "ja": "確認済みの元通貨差引入金額",
-    "ru": "Подтверждённые чистые поступления в исходной валюте"
+    "ru": "Подтверждённые чистые поступления в исходной валюте",
+    "hi": "मूल मुद्रा में सत्यापित शुद्ध प्राप्तियाँ",
+    "ms": "Penerimaan bersih yang disahkan dalam mata wang asal",
+    "th": "ยอดรับสุทธิในสกุลเดิมที่ตรวจสอบแล้ว"
   },
   "另有 {count} 笔手续费待核实": {
     "en": "{count} additional fees await verification",
     "ja": "ほかに {count} 件の手数料が確認待ちです",
-    "ru": "Ещё {count} комиссий ожидают подтверждения"
+    "ru": "Ещё {count} комиссий ожидают подтверждения",
+    "hi": "{count} अतिरिक्त शुल्क सत्यापन लंबित",
+    "ms": "{count} fi tambahan menunggu pengesahan",
+    "th": "ค่าธรรมเนียมเพิ่มเติม {count} รายการรอตรวจสอบ"
   },
   "生效前全系统资金与模型调用业务尚未开放。生效时间即基础规则正式启用的时间，无需另外开业。": {
     "en": "Financial and model usage operations remain closed system-wide until activation. The scheduled time activates the base rules; no separate opening action is required.",
     "ja": "発効前はシステム全体の資金業務とモデル利用は開始されません。指定日時に基準ルールが正式に有効になり、別の開業操作は不要です。",
-    "ru": "До вступления в силу финансовые операции и вызовы моделей закрыты во всей системе. В указанное время базовые правила активируются; отдельное открытие не требуется."
+    "ru": "До вступления в силу финансовые операции и вызовы моделей закрыты во всей системе. В указанное время базовые правила активируются; отдельное открытие не требуется.",
+    "hi": "सक्रियण तक वित्तीय और मॉडल उपयोग संचालन पूरे सिस्टम में बंद रहेंगे। निर्धारित समय पर आधार नियम सक्रिय होते हैं; अलग खोलने की कार्रवाई आवश्यक नहीं है।",
+    "ms": "Operasi kewangan dan penggunaan model kekal ditutup di seluruh sistem sehingga pengaktifan. Masa dijadualkan mengaktifkan peraturan asas; tiada tindakan pembukaan berasingan diperlukan.",
+    "th": "การดำเนินการทางการเงินและการใช้โมเดลทั่วทั้งระบบยังปิดจนกว่าจะเปิดใช้งาน เวลาที่กำหนดจะเปิดกฎพื้นฐานโดยไม่ต้องดำเนินการเปิดแยกต่างหาก"
   },
   "待核实结算金额": {
     "en": "Awaiting settlement confirmation",
     "ja": "決済額の確認待ち",
-    "ru": "Ожидается подтверждение суммы расчёта"
+    "ru": "Ожидается подтверждение суммы расчёта",
+    "hi": "निपटान पुष्टि लंबित",
+    "ms": "Menunggu pengesahan penyelesaian",
+    "th": "รอยืนยันยอดชำระบัญชี"
   },
   "订单冻结基础比例": {
     "en": "Frozen order conversion rate",
     "ja": "注文確定時の基準換算比率",
-    "ru": "Зафиксированное соотношение заказа"
+    "ru": "Зафиксированное соотношение заказа",
+    "hi": "फ़्रीज़ ऑर्डर रूपांतरण दर",
+    "ms": "Kadar penukaran pesanan yang dibekukan",
+    "th": "อัตราแปลงของคำสั่งซื้อที่ตรึงไว้"
   },
   "每 1 {currency} = {ratio} ATG（版本 {version}）": {
     "en": "1 {currency} = {ratio} ATG (version {version})",
     "ja": "1 {currency} = {ratio} ATG（バージョン {version}）",
-    "ru": "1 {currency} = {ratio} ATG (версия {version})"
+    "ru": "1 {currency} = {ratio} ATG (версия {version})",
+    "hi": "1 {currency} = {ratio} ATG (संस्करण {version})",
+    "ms": "1 {currency} = {ratio} ATG (versi {version})",
+    "th": "1 {currency} = {ratio} ATG (เวอร์ชัน {version})"
   },
   "本单结算应付": {
     "en": "Settlement amount due for this order",
     "ja": "この注文の決済支払額",
-    "ru": "Сумма к оплате по заказу в валюте расчётов"
+    "ru": "Сумма к оплате по заказу в валюте расчётов",
+    "hi": "इस ऑर्डर की देय निपटान राशि",
+    "ms": "Jumlah penyelesaian perlu dibayar untuk pesanan ini",
+    "th": "ยอดชำระบัญชีที่ต้องจ่ายสำหรับคำสั่งซื้อนี้"
   },
   "按本单说明核实原币付款，结算金额以经营方核实为准": {
     "en": "Follow this order’s instructions for payment in the original currency. The operator confirms the settlement amount.",
     "ja": "この注文の案内に従って元の通貨で支払い、決済額は運営者の確認に従います。",
-    "ru": "Следуйте инструкциям заказа для оплаты в исходной валюте. Сумму расчёта подтверждает оператор."
+    "ru": "Следуйте инструкциям заказа для оплаты в исходной валюте. Сумму расчёта подтверждает оператор.",
+    "hi": "मूल मुद्रा में भुगतान के लिए इस ऑर्डर के निर्देशों का पालन करें। संचालक निपटान राशि की पुष्टि करता है।",
+    "ms": "Ikuti arahan pesanan ini untuk pembayaran dalam mata wang asal. Pengendali mengesahkan jumlah penyelesaian.",
+    "th": "ทำตามคำแนะนำของคำสั่งซื้อนี้เพื่อชำระในสกุลเงินเดิม ผู้ดำเนินงานจะยืนยันยอดชำระบัญชี"
   },
   "配置实际收款通道。原币收款与已核实的结算金额分别记录，不设置汇率。": {
     "en": "Configure payment channels. Record original-currency receipts and verified settlement amounts separately, without exchange rates.",
     "ja": "入金経路を設定します。元通貨の入金と確認済み決済額を別々に記録し、為替レートは設定しません。",
-    "ru": "Настройте способы приёма платежей. Поступления в исходной валюте и подтверждённые суммы расчёта учитываются отдельно, без валютных курсов."
+    "ru": "Настройте способы приёма платежей. Поступления в исходной валюте и подтверждённые суммы расчёта учитываются отдельно, без валютных курсов.",
+    "hi": "भुगतान चैनल कॉन्फ़िगर करें। मूल मुद्रा प्राप्तियाँ और सत्यापित निपटान राशियाँ विनिमय दर के बिना अलग दर्ज करें।",
+    "ms": "Konfigurasikan saluran pembayaran. Rekodkan penerimaan mata wang asal dan jumlah penyelesaian yang disahkan secara berasingan, tanpa kadar pertukaran.",
+    "th": "ตั้งค่าช่องทางชำระเงิน บันทึกยอดรับสกุลเงินเดิมและยอดชำระบัญชีที่ตรวจสอบแล้วแยกกัน โดยไม่ใช้อัตราแลกเปลี่ยน"
   },
   "查看销售、调用和资金收支；不同币种的原始金额分别列示，不计算利润。": {
     "en": "View sales, usage, and cash flows. Original amounts are shown separately by currency, without profit calculations.",
     "ja": "売上、利用、入出金を確認します。元の金額を通貨別に表示し、利益は計算しません。",
-    "ru": "Просматривайте продажи, использование и движение средств. Исходные суммы показаны отдельно по валютам, без расчёта прибыли."
+    "ru": "Просматривайте продажи, использование и движение средств. Исходные суммы показаны отдельно по валютам, без расчёта прибыли.",
+    "hi": "बिक्री, उपयोग और नकद प्रवाह देखें। मूल राशियाँ लाभ गणना के बिना मुद्रा अनुसार अलग दिखाई जाती हैं।",
+    "ms": "Lihat jualan, penggunaan dan aliran tunai. Jumlah asal ditunjukkan secara berasingan mengikut mata wang, tanpa pengiraan keuntungan.",
+    "th": "ดูยอดขาย การใช้งาน และกระแสเงินสด ยอดเดิมแสดงแยกตามสกุลเงินโดยไม่คำนวณกำไร"
   },
   "仍有成本待核实，请结合各币种原始记录查看。": {
     "en": "Some costs remain unverified. Review the original records for each currency.",
     "ja": "未確認のコストがあります。各通貨の元の記録と合わせて確認してください。",
-    "ru": "Некоторые затраты ещё не подтверждены. Сверяйтесь с исходными записями по каждой валюте."
+    "ru": "Некоторые затраты ещё не подтверждены. Сверяйтесь с исходными записями по каждой валюте.",
+    "hi": "कुछ लागत अभी असत्यापित हैं। प्रत्येक मुद्रा के मूल रिकॉर्ड की समीक्षा करें।",
+    "ms": "Sesetengah kos masih belum disahkan. Semak rekod asal bagi setiap mata wang.",
+    "th": "ต้นทุนบางรายการยังไม่ได้ตรวจสอบ โปรดดูบันทึกเดิมของแต่ละสกุลเงิน"
   },
   "各币种原始收支与供应商成本": {
     "en": "Original cash flows and supplier costs by currency",
     "ja": "通貨別の元の入出金と供給元コスト",
-    "ru": "Исходные поступления, расходы и затраты поставщиков по валютам"
+    "ru": "Исходные поступления, расходы и затраты поставщиков по валютам",
+    "hi": "मुद्रा अनुसार मूल नकद प्रवाह और आपूर्तिकर्ता लागत",
+    "ms": "Aliran tunai asal dan kos pembekal mengikut mata wang",
+    "th": "กระแสเงินสดเดิมและต้นทุนผู้ให้บริการแยกตามสกุลเงิน"
   },
   "各币种分别汇总，不折算、不相减。供应商报告成本、参考成本与实际账单分别展示，不能相加作为同一成本。": {
     "en": "Each currency is totaled separately, without conversion or subtraction. Reported supplier costs, reference costs, and actual bills are shown independently and must not be added as one cost.",
     "ja": "通貨ごとに集計し、換算や差引きは行いません。供給元の報告コスト、参考コスト、実際の請求は別々に表示し、同一コストとして合算できません。",
-    "ru": "Каждая валюта суммируется отдельно, без пересчёта и вычитания. Заявленные и справочные затраты поставщика и фактические счета показаны отдельно; их нельзя складывать в одну сумму затрат."
+    "ru": "Каждая валюта суммируется отдельно, без пересчёта и вычитания. Заявленные и справочные затраты поставщика и фактические счета показаны отдельно; их нельзя складывать в одну сумму затрат.",
+    "hi": "प्रत्येक मुद्रा रूपांतरण या घटाव के बिना अलग जोड़ी जाती है। रिपोर्ट की गई आपूर्तिकर्ता लागत, संदर्भ लागत और वास्तविक बिल स्वतंत्र दिखते हैं और उन्हें एक लागत के रूप में नहीं जोड़ना चाहिए।",
+    "ms": "Setiap mata wang dijumlahkan secara berasingan, tanpa penukaran atau penolakan. Kos pembekal yang dilaporkan, kos rujukan dan bil sebenar ditunjukkan secara bebas dan tidak boleh dijumlahkan sebagai satu kos.",
+    "th": "รวมยอดแต่ละสกุลแยกกันโดยไม่แปลงหรือหักลบ ต้นทุนที่ผู้ให้บริการรายงาน ต้นทุนอ้างอิง และใบแจ้งหนี้จริงแสดงแยกกันและห้ามนำมารวมเป็นต้นทุนเดียว"
   },
   "原币收入": {
     "en": "Original-currency income",
     "ja": "元通貨の収入",
-    "ru": "Доход в исходной валюте"
+    "ru": "Доход в исходной валюте",
+    "hi": "मूल मुद्रा आय",
+    "ms": "Pendapatan mata wang asal",
+    "th": "รายรับในสกุลเงินเดิม"
   },
   "原币支出": {
     "en": "Original-currency expenses",
     "ja": "元通貨の支出",
-    "ru": "Расходы в исходной валюте"
+    "ru": "Расходы в исходной валюте",
+    "hi": "मूल मुद्रा खर्च",
+    "ms": "Perbelanjaan mata wang asal",
+    "th": "รายจ่ายในสกุลเงินเดิม"
   },
   "供应商报告成本": {
     "en": "Supplier-reported cost",
     "ja": "供給元の報告コスト",
-    "ru": "Затраты по данным поставщика"
+    "ru": "Затраты по данным поставщика",
+    "hi": "आपूर्तिकर्ता द्वारा रिपोर्ट की गई लागत",
+    "ms": "Kos dilaporkan pembekal",
+    "th": "ต้นทุนที่ผู้ให้บริการรายงาน"
   },
   "供应商参考成本": {
     "en": "Supplier reference cost",
     "ja": "供給元の参考コスト",
-    "ru": "Справочные затраты поставщика"
+    "ru": "Справочные затраты поставщика",
+    "hi": "आपूर्तिकर्ता संदर्भ लागत",
+    "ms": "Kos rujukan pembekal",
+    "th": "ต้นทุนอ้างอิงของผู้ให้บริการ"
   },
   "供应商实际账单": {
     "en": "Actual supplier bill",
     "ja": "供給元の実際の請求",
-    "ru": "Фактический счёт поставщика"
+    "ru": "Фактический счёт поставщика",
+    "hi": "वास्तविक आपूर्तिकर्ता बिल",
+    "ms": "Bil pembekal sebenar",
+    "th": "ใบแจ้งหนี้จริงของผู้ให้บริการ"
   },
   "全系统结算币种与 ATG 基础比例": {
     "en": "System settlement currency and base ATG rate",
     "ja": "システム全体の決済通貨と ATG 基準比率",
-    "ru": "Валюта расчётов и базовое соотношение ATG для всей системы"
+    "ru": "Валюта расчётов и базовое соотношение ATG для всей системы",
+    "hi": "सिस्टम निपटान मुद्रा और आधार ATG दर",
+    "ms": "mata wang penyelesaian sistem dan kadar asas ATG",
+    "th": "สกุลเงินที่ใช้ชำระบัญชีของระบบและอัตรา ATG พื้นฐาน"
   },
   "全系统使用同一结算币种。每 1 {currency} 对应 {ratio} ATG。": {
     "en": "The entire system uses one settlement currency. 1 {currency} equals {ratio} ATG.",
     "ja": "システム全体で同じ決済通貨を使用します。1 {currency} は {ratio} ATG に相当します。",
-    "ru": "Вся система использует одну валюту расчётов. 1 {currency} соответствует {ratio} ATG."
+    "ru": "Вся система использует одну валюту расчётов. 1 {currency} соответствует {ratio} ATG.",
+    "hi": "पूरा सिस्टम एक निपटान मुद्रा उपयोग करता है। 1 {currency} बराबर {ratio} ATG है।",
+    "ms": "Seluruh sistem menggunakan satu mata wang penyelesaian. 1 {currency} bersamaan {ratio} ATG.",
+    "th": "ทั้งระบบใช้สกุลเงินที่ใช้ชำระบัญชีเดียวกัน 1 {currency} เท่ากับ {ratio} ATG"
   },
   "结算币种（ISO 代码）": {
     "en": "Settlement currency (ISO code)",
     "ja": "決済通貨（ISO コード）",
-    "ru": "Валюта расчётов (код ISO)"
+    "ru": "Валюта расчётов (код ISO)",
+    "hi": "निपटान मुद्रा (ISO कोड)",
+    "ms": "mata wang penyelesaian (kod ISO)",
+    "th": "สกุลเงินที่ใช้ชำระบัญชี (รหัส ISO)"
   },
   "每 1 单位结算币种购买的 ATG": {
     "en": "ATG purchased per unit of settlement currency",
     "ja": "決済通貨 1 単位で購入する ATG",
-    "ru": "ATG за единицу валюты расчётов"
+    "ru": "ATG за единицу валюты расчётов",
+    "hi": "प्रति इकाई निपटान मुद्रा पर खरीदा गया ATG",
+    "ms": "ATG yang dibeli setiap unit mata wang penyelesaian",
+    "th": "ATG ที่ซื้อต่อหนึ่งหน่วยสกุลเงินที่ใช้ชำระบัญชี"
   },
   "核对并查看风险说明": {
     "en": "Review settings and risks",
     "ja": "設定とリスクを確認",
-    "ru": "Проверить настройки и риски"
+    "ru": "Проверить настройки и риски",
+    "hi": "सेटिंग और जोखिमों की समीक्षा करें",
+    "ms": "Semak tetapan dan risiko",
+    "th": "ตรวจสอบการตั้งค่าและความเสี่ยง"
   },
   "请再次确认：{currency}，每 1 单位购买 {ratio} ATG，生效于：": {
     "en": "Confirm again: {currency}, {ratio} ATG per unit, effective at:",
     "ja": "再確認：{currency}、1 単位あたり {ratio} ATG、発効日時：",
-    "ru": "Подтвердите ещё раз: {currency}, {ratio} ATG за единицу, вступает в силу:"
+    "ru": "Подтвердите ещё раз: {currency}, {ratio} ATG за единицу, вступает в силу:",
+    "hi": "फिर पुष्टि करें: {currency}, प्रति इकाई {ratio} ATG, प्रभावी समय:",
+    "ms": "Sahkan semula: {currency}, {ratio} ATG seunit, berkuat kuasa pada:",
+    "th": "ยืนยันอีกครั้ง: {currency}, {ratio} ATG ต่อหน่วย มีผลเมื่อ:"
   },
   "生效后币种和基础比例永久锁定，暂停营业也无法修改。该比例只用于购买 ATG 换算和采购阶梯赠送；套餐等明确配置的 ATG 数量不会自动改变。系统不提供手工或自动汇率，不汇总跨币种利润。": {
     "en": "The currency and base rate are permanently locked when effective, including during a business pause. The rate applies only to ATG purchases and tiered procurement bonuses; explicitly configured ATG amounts, including packages, do not change automatically. The system provides no manual or automatic exchange rates and does not aggregate profit across currencies.",
     "ja": "発効後は通貨と基準比率が永久に固定され、営業停止中も変更できません。この比率は ATG 購入と調達の段階別特典にのみ適用され、プランなどで明示した ATG 数量は自動変更されません。手動・自動の為替レートは提供せず、異なる通貨の利益は合算しません。",
-    "ru": "После вступления в силу валюта и базовое соотношение фиксируются навсегда, в том числе при приостановке работы. Соотношение применяется только к покупке ATG и ступенчатым закупочным бонусам; явно заданные объёмы ATG, включая пакеты, автоматически не меняются. Система не использует ручные или автоматические валютные курсы и не суммирует прибыль в разных валютах."
+    "ru": "После вступления в силу валюта и базовое соотношение фиксируются навсегда, в том числе при приостановке работы. Соотношение применяется только к покупке ATG и ступенчатым закупочным бонусам; явно заданные объёмы ATG, включая пакеты, автоматически не меняются. Система не использует ручные или автоматические валютные курсы и не суммирует прибыль в разных валютах.",
+    "hi": "प्रभावी होने पर मुद्रा और आधार दर स्थायी रूप से लॉक होते हैं, व्यवसाय रुकने के दौरान भी। दर केवल ATG खरीद और स्तरीय खरीद बोनस पर लागू होती है; पैकेज सहित स्पष्ट कॉन्फ़िगर ATG राशियाँ अपने आप नहीं बदलतीं। सिस्टम मैन्युअल या स्वचालित विनिमय दर नहीं देता और मुद्राओं के बीच लाभ एकत्र नहीं करता।",
+    "ms": "Mata wang dan kadar asas dikunci secara kekal apabila berkuat kuasa, termasuk semasa jeda perniagaan. Kadar hanya terpakai kepada pembelian ATG dan bonus perolehan berperingkat; jumlah ATG yang dikonfigurasi secara jelas, termasuk pakej, tidak berubah secara automatik. Sistem tidak menyediakan kadar pertukaran manual atau automatik dan tidak mengagregatkan keuntungan merentas mata wang.",
+    "th": "สกุลเงินและอัตราพื้นฐานจะล็อกถาวรเมื่อมีผล รวมถึงระหว่างหยุดธุรกิจ อัตรานี้ใช้เฉพาะการซื้อ ATG และโบนัสการจัดซื้อแบบขั้นบันได จำนวน ATG ที่ตั้งค่าไว้อย่างชัดเจนรวมถึงแพ็กเกจจะไม่เปลี่ยนอัตโนมัติ ระบบไม่มีอัตราแลกเปลี่ยนด้วยตนเองหรืออัตโนมัติ และไม่รวมกำไรข้ามสกุลเงิน"
   },
   "我已核对并理解永久锁定及换算规则": {
     "en": "I have reviewed and understand the permanent lock and conversion rules",
     "ja": "永久固定と換算ルールを確認し、理解しました",
-    "ru": "Я понимаю правила постоянной фиксации и пересчёта"
+    "ru": "Я понимаю правила постоянной фиксации и пересчёта",
+    "hi": "मैंने स्थायी लॉक और रूपांतरण नियमों की समीक्षा की है और उन्हें समझता/समझती हूँ",
+    "ms": "Saya telah menyemak dan memahami peraturan penguncian kekal dan penukaran",
+    "th": "ฉันตรวจสอบและเข้าใจกฎการล็อกถาวรและการแปลงแล้ว"
   },
   "返回修改": {
     "en": "Back to edit",
     "ja": "編集に戻る",
-    "ru": "Вернуться к изменению"
+    "ru": "Вернуться к изменению",
+    "hi": "संपादन पर लौटें",
+    "ms": "Kembali untuk mengedit",
+    "th": "กลับไปแก้ไข"
   },
   "基础比例尚未生效，暂不提供采购换算。": {
     "en": "The base rate is not effective yet. Procurement conversion is unavailable.",
     "ja": "基準比率はまだ発効していないため、調達換算は利用できません。",
-    "ru": "Базовое соотношение ещё не вступило в силу. Пересчёт закупок пока недоступен."
+    "ru": "Базовое соотношение ещё не вступило в силу. Пересчёт закупок пока недоступен.",
+    "hi": "आधार दर अभी प्रभावी नहीं है। खरीद रूपांतरण अनुपलब्ध है।",
+    "ms": "Kadar asas belum berkuat kuasa. Penukaran perolehan tidak tersedia.",
+    "th": "อัตราพื้นฐานยังไม่มีผล จึงยังแปลงการจัดซื้อไม่ได้"
   },
   "每 1 {currency} 购买 {ratio} ATG；赠送按本单金额分段累加，不跨订单累计。": {
     "en": "1 {currency} purchases {ratio} ATG. Bonuses accumulate by tier within this order only.",
     "ja": "1 {currency} で {ratio} ATG を購入します。特典はこの注文の金額を段階別に累計し、注文間では累計しません。",
-    "ru": "1 {currency} позволяет купить {ratio} ATG. Бонусы суммируются по ступеням только в рамках этого заказа."
+    "ru": "1 {currency} позволяет купить {ratio} ATG. Бонусы суммируются по ступеням только в рамках этого заказа.",
+    "hi": "1 {currency} से {ratio} ATG खरीदा जाता है। बोनस केवल इसी ऑर्डर के भीतर स्तरों के अनुसार जुड़ता है।",
+    "ms": "1 {currency} membeli {ratio} ATG. Bonus terkumpul mengikut peringkat dalam pesanan ini sahaja.",
+    "th": "1 {currency} ซื้อได้ {ratio} ATG โบนัสสะสมตามขั้นภายในคำสั่งซื้อนี้เท่านั้น"
   },
   "每 1 {currency} 购买 {ratio} ATG。赠送只计算落在本阶区间的金额，填 1 表示 1%，最后一阶没有上限。": {
     "en": "1 {currency} purchases {ratio} ATG. A tier’s bonus applies only to the amount within that tier. Enter 1 for 1%; the final tier has no upper limit.",
     "ja": "1 {currency} で {ratio} ATG を購入します。特典は各段階の範囲内の金額にのみ適用され、1 は 1% を表します。最終段階に上限はありません。",
-    "ru": "1 {currency} позволяет купить {ratio} ATG. Бонус ступени применяется только к сумме в её диапазоне. Введите 1 для 1%; последняя ступень не ограничена сверху."
+    "ru": "1 {currency} позволяет купить {ratio} ATG. Бонус ступени применяется только к сумме в её диапазоне. Введите 1 для 1%; последняя ступень не ограничена сверху.",
+    "hi": "1 {currency} से {ratio} ATG खरीदा जाता है। स्तर का बोनस केवल उसी स्तर की राशि पर लागू होता है। 1% के लिए 1 दर्ज करें; अंतिम स्तर की ऊपरी सीमा नहीं है।",
+    "ms": "1 {currency} membeli {ratio} ATG. Bonus sesuatu peringkat hanya terpakai kepada jumlah dalam peringkat itu. Masukkan 1 untuk 1%; peringkat akhir tiada had atas.",
+    "th": "1 {currency} ซื้อได้ {ratio} ATG โบนัสของแต่ละขั้นใช้เฉพาะยอดในขั้นนั้น กรอก 1 สำหรับ 1% ขั้นสุดท้ายไม่มีขีดจำกัดสูงสุด"
   },
   "区间起点（结算币种）": {
     "en": "Tier start (settlement currency)",
     "ja": "段階の開始額（決済通貨）",
-    "ru": "Начало ступени (валюта расчётов)"
+    "ru": "Начало ступени (валюта расчётов)",
+    "hi": "स्तर की शुरुआत (निपटान मुद्रा)",
+    "ms": "Permulaan peringkat (mata wang penyelesaian)",
+    "th": "จุดเริ่มขั้น (สกุลเงินที่ใช้ชำระบัญชี)"
   },
   "试算采购金额（结算币种）": {
     "en": "Preview purchase amount (settlement currency)",
     "ja": "調達額の試算（決済通貨）",
-    "ru": "Сумма закупки для расчёта (валюта расчётов)"
+    "ru": "Сумма закупки для расчёта (валюта расчётов)",
+    "hi": "खरीद राशि का पूर्वावलोकन (निपटान मुद्रा)",
+    "ms": "Jumlah pembelian pratonton (mata wang penyelesaian)",
+    "th": "ยอดซื้อสำหรับทดลองคำนวณ (สกุลเงินที่ใช้ชำระบัญชี)"
   },
   "{direction}。分别核实原币收付款事实、结算金额和付款方手续费，不填写汇率。": {
     "en": "{direction}. Verify original-currency payment facts, the settlement amount, and payer fees separately, without entering an exchange rate.",
     "ja": "{direction}。元通貨の入出金事実、決済額、支払者の手数料をそれぞれ確認し、為替レートは入力しません。",
-    "ru": "{direction}. Подтвердите отдельно факты платежа в исходной валюте, сумму расчёта и комиссии плательщика, без ввода валютного курса."
+    "ru": "{direction}. Подтвердите отдельно факты платежа в исходной валюте, сумму расчёта и комиссии плательщика, без ввода валютного курса.",
+    "hi": "{direction}। विनिमय दर दर्ज किए बिना मूल मुद्रा भुगतान तथ्य, निपटान राशि और भुगतानकर्ता शुल्क अलग सत्यापित करें।",
+    "ms": "{direction}. Sahkan fakta pembayaran mata wang asal, jumlah penyelesaian dan fi pembayar secara berasingan, tanpa memasukkan kadar pertukaran.",
+    "th": "{direction} ตรวจสอบข้อเท็จจริงการชำระในสกุลเงินเดิม ยอดชำระบัญชี และค่าธรรมเนียมผู้ชำระแยกกันโดยไม่กรอกอัตราแลกเปลี่ยน"
   },
   "收付款核实依据": {
     "en": "Payment verification evidence",
     "ja": "入出金の確認根拠",
-    "ru": "Основание подтверждения платежа"
+    "ru": "Основание подтверждения платежа",
+    "hi": "भुगतान सत्यापन प्रमाण",
+    "ms": "Bukti pengesahan pembayaran",
+    "th": "หลักฐานการตรวจสอบการชำระเงิน"
   },
   "已生效并永久锁定。暂停营业不会解锁。": {
     "en": "Effective and permanently locked. Pausing business does not unlock these settings.",
     "ja": "発効済みで永久に固定されています。営業を停止しても解除されません。",
-    "ru": "Вступило в силу и зафиксировано навсегда. Приостановка работы не снимает блокировку."
+    "ru": "Вступило в силу и зафиксировано навсегда. Приостановка работы не снимает блокировку.",
+    "hi": "प्रभावी और स्थायी रूप से लॉक। व्यवसाय रोकने से ये सेटिंग अनलॉक नहीं होतीं।",
+    "ms": "Berkuat kuasa dan dikunci secara kekal. Menjeda perniagaan tidak membuka kunci tetapan ini.",
+    "th": "มีผลและล็อกถาวร การหยุดธุรกิจไม่ปลดล็อกการตั้งค่านี้"
   },
   "已预约生效；生效前可取消并重新设置。": {
     "en": "Scheduled. You can cancel and reconfigure before it takes effect.",
     "ja": "発効予約済みです。発効前は取り消して再設定できます。",
-    "ru": "Запланировано. До вступления в силу можно отменить и настроить заново."
+    "ru": "Запланировано. До вступления в силу можно отменить и настроить заново.",
+    "hi": "निर्धारित। प्रभावी होने से पहले आप रद्द करके फिर कॉन्फ़िगर कर सकते हैं।",
+    "ms": "Dijadualkan. Anda boleh membatalkan dan mengkonfigurasi semula sebelum berkuat kuasa.",
+    "th": "กำหนดเวลาแล้ว คุณยกเลิกและตั้งค่าใหม่ได้ก่อนมีผล"
   },
   "尚未设置，营业前须由平台负责人完成。": {
     "en": "Not configured. The platform owner must complete this before business opens.",
     "ja": "未設定です。営業開始前にプラットフォーム所有者が設定する必要があります。",
-    "ru": "Не настроено. Владелец платформы должен завершить настройку до начала работы."
+    "ru": "Не настроено. Владелец платформы должен завершить настройку до начала работы.",
+    "hi": "कॉन्फ़िगर नहीं। व्यवसाय खुलने से पहले प्लेटफ़ॉर्म स्वामी को इसे पूरा करना होगा।",
+    "ms": "Belum dikonfigurasi. Pemilik platform mesti melengkapkannya sebelum perniagaan dibuka.",
+    "th": "ยังไม่ได้ตั้งค่า เจ้าของแพลตฟอร์มต้องดำเนินการก่อนเปิดธุรกิจ"
   },
   "确认预约生效": {
     "en": "Confirm scheduled activation",
     "ja": "発効予約を確定",
-    "ru": "Подтвердить запланированное вступление в силу"
+    "ru": "Подтвердить запланированное вступление в силу",
+    "hi": "निर्धारित सक्रियण की पुष्टि करें",
+    "ms": "Sahkan pengaktifan dijadualkan",
+    "th": "ยืนยันการเปิดใช้งานตามกำหนด"
   },
   "取消预约并重新设置": {
     "en": "Cancel schedule and reconfigure",
     "ja": "予約を取り消して再設定",
-    "ru": "Отменить расписание и настроить заново"
+    "ru": "Отменить расписание и настроить заново",
+    "hi": "निर्धारण रद्द करके फिर कॉन्फ़िगर करें",
+    "ms": "Batalkan jadual dan konfigurasikan semula",
+    "th": "ยกเลิกกำหนดการและตั้งค่าใหม่"
   },
   "请填写有效的三位 ISO 币种、正数 ATG 比例和未来生效时间。": {
     "en": "Enter a valid three-letter ISO currency code, a positive ATG rate, and a future activation time.",
     "ja": "有効な 3 文字の ISO 通貨コード、正の ATG 比率、将来の発効日時を入力してください。",
-    "ru": "Введите корректный трёхбуквенный код валюты ISO, положительное соотношение ATG и будущее время вступления в силу."
+    "ru": "Введите корректный трёхбуквенный код валюты ISO, положительное соотношение ATG и будущее время вступления в силу.",
+    "hi": "वैध तीन अक्षर का ISO मुद्रा कोड, धनात्मक ATG दर और भविष्य का सक्रियण समय दर्ज करें।",
+    "ms": "Masukkan kod mata wang ISO tiga huruf yang sah, kadar ATG positif dan masa pengaktifan pada masa depan.",
+    "th": "กรอกรหัสสกุลเงิน ISO สามตัวอักษรที่ถูกต้อง อัตรา ATG เป็นบวก และเวลาเปิดใช้งานในอนาคต"
   },
   "ATG 基础比例必须大于 0。": {
     "en": "The base ATG rate must be greater than zero.",
     "ja": "ATG 基準比率は 0 より大きくする必要があります。",
-    "ru": "Базовое соотношение ATG должно быть больше нуля."
+    "ru": "Базовое соотношение ATG должно быть больше нуля.",
+    "hi": "आधार ATG दर शून्य से अधिक होनी चाहिए।",
+    "ms": "Kadar asas ATG mesti melebihi sifar.",
+    "th": "อัตรา ATG พื้นฐานต้องมากกว่าศูนย์"
   },
   "首阶从 0 开始，后续起点必须依次递增。": {
     "en": "The first tier starts at 0; subsequent starts must increase.",
     "ja": "最初の段階は 0 から始め、以降の開始額は順に増やしてください。",
-    "ru": "Первая ступень начинается с 0; начала следующих ступеней должны возрастать."
+    "ru": "Первая ступень начинается с 0; начала следующих ступеней должны возрастать.",
+    "hi": "पहला स्तर 0 पर शुरू होता है; बाद की शुरुआत बढ़नी चाहिए।",
+    "ms": "Peringkat pertama bermula pada 0; permulaan seterusnya mesti meningkat.",
+    "th": "ขั้นแรกเริ่มที่ 0 จุดเริ่มขั้นถัดไปต้องเพิ่มขึ้น"
   },
   " 本次申请金额 {amount} {currency}。": {
     "en": " Requested amount: {amount} {currency}.",
     "ja": " 今回の申請額は {amount} {currency} です。",
-    "ru": " Сумма заявки: {amount} {currency}."
+    "ru": " Сумма заявки: {amount} {currency}.",
+    "hi": " अनुरोधित राशि: {amount} {currency}।",
+    "ms": " Jumlah dimohon: {amount} {currency}.",
+    "th": " ยอดที่ขอ: {amount} {currency}"
   },
   "收款待核实结算金额": {
     "en": "Receipt awaiting settlement confirmation",
     "ja": "決済額の確認待ち入金",
-    "ru": "Поступление ожидает подтверждения суммы расчёта"
+    "ru": "Поступление ожидает подтверждения суммы расчёта",
+    "hi": "प्राप्ति निपटान पुष्टि लंबित",
+    "ms": "Penerimaan menunggu pengesahan penyelesaian",
+    "th": "ยอดรับรอยืนยันการชำระบัญชี"
   },
   "核实收款结算金额": {
     "en": "Verify receipt settlement amount",
     "ja": "入金の決済額を確認",
-    "ru": "Подтвердить сумму расчёта по поступлению"
+    "ru": "Подтвердить сумму расчёта по поступлению",
+    "hi": "प्राप्ति निपटान राशि सत्यापित करें",
+    "ms": "Sahkan jumlah penyelesaian penerimaan",
+    "th": "ตรวจสอบยอดชำระบัญชียอดรับ"
   },
   "核实实际收款事实及订单结算金额。": {
     "en": "Verify the actual receipt and the order settlement amount.",
     "ja": "実際の入金事実と注文の決済額を確認します。",
-    "ru": "Подтвердите фактическое поступление и сумму расчёта по заказу."
+    "ru": "Подтвердите фактическое поступление и сумму расчёта по заказу.",
+    "hi": "वास्तविक प्राप्ति और ऑर्डर निपटान राशि सत्यापित करें।",
+    "ms": "Sahkan penerimaan sebenar dan jumlah penyelesaian pesanan.",
+    "th": "ตรวจสอบยอดรับจริงและยอดชำระบัญชีคำสั่งซื้อ"
   },
   "包含结算币种的履约、佣金、手续费和异常损失；供应商原币成本独立列示。": {
     "en": "Includes fulfillment, commissions, fees, and exceptional losses in the settlement currency. Supplier costs in their original currencies are listed separately.",
     "ja": "決済通貨の履行費用、コミッション、手数料、例外損失を含みます。供給元の元通貨コストは別に表示します。",
-    "ru": "Включает исполнение, комиссии, сборы и исключительные убытки в валюте расчётов. Затраты поставщиков в исходных валютах показаны отдельно."
+    "ru": "Включает исполнение, комиссии, сборы и исключительные убытки в валюте расчётов. Затраты поставщиков в исходных валютах показаны отдельно.",
+    "hi": "निपटान मुद्रा में पूर्ति, कमीशन, शुल्क और अपवाद हानि शामिल हैं। आपूर्तिकर्ता लागत उनकी मूल मुद्राओं में अलग सूचीबद्ध हैं।",
+    "ms": "Termasuk pemenuhan, komisen, fi dan kerugian luar biasa dalam mata wang penyelesaian. Kos pembekal dalam mata wang asal disenaraikan secara berasingan.",
+    "th": "รวมการให้บริการ ค่าคอมมิชชัน ค่าธรรมเนียม และความสูญเสียพิเศษในสกุลเงินที่ใช้ชำระบัญชี ต้นทุนผู้ให้บริการในสกุลเงินเดิมแสดงแยกกัน"
   },
   "时间按当前设备时区 {timezone} 输入，保存为统一时刻。": {
     "en": "Enter the time in your device time zone, {timezone}; it is saved as one universal instant.",
     "ja": "現在の端末のタイムゾーン {timezone} で入力してください。同じ時刻として保存されます。",
-    "ru": "Введите время в часовом поясе устройства {timezone}; оно сохраняется как единый момент времени."
+    "ru": "Введите время в часовом поясе устройства {timezone}; оно сохраняется как единый момент времени.",
+    "hi": "अपने उपकरण के समय क्षेत्र {timezone} में समय दर्ज करें; यह एक सार्वभौमिक समय बिंदु के रूप में सहेजा जाता है।",
+    "ms": "Masukkan masa dalam zon waktu peranti anda, {timezone}; ia disimpan sebagai satu masa sejagat.",
+    "th": "กรอกเวลาในเขตเวลาของอุปกรณ์ {timezone} ระบบบันทึกเป็นเวลาสากลเดียวกัน"
   },
   "采购金额过小，换算后不足最小 ATG 单位。": {
     "en": "The purchase amount converts to less than the smallest ATG unit.",
     "ja": "購入金額を換算すると ATG の最小単位を下回ります。",
-    "ru": "Сумма покупки после пересчёта меньше минимальной единицы ATG."
+    "ru": "Сумма покупки после пересчёта меньше минимальной единицы ATG.",
+    "hi": "खरीद राशि रूपांतरण पर सबसे छोटी ATG इकाई से कम होती है।",
+    "ms": "Jumlah pembelian ditukar kepada kurang daripada unit ATG terkecil.",
+    "th": "ยอดซื้อเมื่อแปลงแล้วน้อยกว่าหน่วย ATG ที่เล็กที่สุด"
   },
   "原币收款金额核对": {
     "en": "Original currency receipt check",
     "ja": "元通貨の入金額確認",
-    "ru": "Проверка поступления в исходной валюте"
+    "ru": "Проверка поступления в исходной валюте",
+    "hi": "मूल मुद्रा प्राप्ति जाँच",
+    "ms": "Semakan penerimaan mata wang asal",
+    "th": "ตรวจสอบยอดรับสกุลเงินเดิม"
   },
   "原币净到账金额＝原币收款总额－原币手续费；订单交付按已核实结算金额计算。": {
     "en": "Original currency net receipt = gross receipt minus the original currency fee. Order delivery uses the verified settlement amount.",
     "ja": "元通貨の差引入金額＝元通貨の入金総額－元通貨の手数料。注文の提供額は確認済み決済額に基づきます。",
-    "ru": "Чистое поступление в исходной валюте = валовая сумма минус комиссия в той же валюте. Исполнение заказа рассчитывается по подтверждённой сумме расчёта."
+    "ru": "Чистое поступление в исходной валюте = валовая сумма минус комиссия в той же валюте. Исполнение заказа рассчитывается по подтверждённой сумме расчёта.",
+    "hi": "मूल मुद्रा शुद्ध प्राप्ति = सकल प्राप्ति घटा मूल मुद्रा शुल्क। ऑर्डर डिलीवरी सत्यापित निपटान राशि उपयोग करती है।",
+    "ms": "Penerimaan bersih mata wang asal = penerimaan kasar tolak fi mata wang asal. Penyerahan pesanan menggunakan jumlah penyelesaian yang disahkan.",
+    "th": "ยอดรับสุทธิสกุลเงินเดิม = ยอดรับรวมลบค่าธรรมเนียมสกุลเงินเดิม การส่งมอบตามคำสั่งซื้อใช้ยอดชำระบัญชีที่ตรวจสอบแล้ว"
   },
   "清算币种和 ATG 基础比例已正式生效，永久锁定；暂停营业也不能修改。": {
     "en": "The settlement currency and ATG base ratio are effective and permanently locked. Pausing business does not unlock them.",
     "ja": "決済通貨と ATG 基本比率は発効済みで永久に固定されています。営業を停止しても変更できません。",
-    "ru": "Расчётная валюта и базовое соотношение ATG вступили в силу и заблокированы навсегда. Приостановка работы не снимает блокировку."
+    "ru": "Расчётная валюта и базовое соотношение ATG вступили в силу и заблокированы навсегда. Приостановка работы не снимает блокировку.",
+    "hi": "निपटान मुद्रा और ATG आधार अनुपात प्रभावी और स्थायी रूप से लॉक हैं। व्यवसाय रोकने से वे अनलॉक नहीं होते।",
+    "ms": "mata wang penyelesaian dan nisbah asas ATG berkuat kuasa dan dikunci secara kekal. Menjeda perniagaan tidak membuka kuncinya.",
+    "th": "สกุลเงินที่ใช้ชำระบัญชีและอัตราพื้นฐาน ATG มีผลและล็อกถาวรแล้ว การหยุดธุรกิจไม่ปลดล็อก"
   },
   "全系统清算币种和 ATG 基础比例尚未正式生效，请由平台负责人完成营业前设置。": {
     "en": "The system settlement currency and ATG base ratio are not effective yet. The platform owner must complete the pre-opening setup.",
     "ja": "システム全体の決済通貨と ATG 基本比率はまだ発効していません。プラットフォーム責任者が営業開始前の設定を完了してください。",
-    "ru": "Расчётная валюта системы и базовое соотношение ATG ещё не вступили в силу. Владелец платформы должен завершить настройки до начала работы."
+    "ru": "Расчётная валюта системы и базовое соотношение ATG ещё не вступили в силу. Владелец платформы должен завершить настройки до начала работы.",
+    "hi": "सिस्टम निपटान मुद्रा और ATG आधार अनुपात अभी प्रभावी नहीं हैं। प्लेटफ़ॉर्म स्वामी को खोलने से पहले का सेटअप पूरा करना होगा।",
+    "ms": "mata wang penyelesaian sistem dan nisbah asas ATG belum berkuat kuasa. Pemilik platform mesti melengkapkan persediaan sebelum pembukaan.",
+    "th": "สกุลเงินที่ใช้ชำระบัญชีของระบบและอัตราพื้นฐาน ATG ยังไม่มีผล เจ้าของแพลตฟอร์มต้องตั้งค่าก่อนเปิดธุรกิจให้เสร็จ"
   },
   "真实退款事实已保留，本次原币付款或清偿金额差异需要核实；未清偿责任仍保留占用": {
     "en": "The actual refund is recorded. Verify the original-currency payment or confirmed settlement amount discrepancy; the outstanding obligation remains reserved.",
     "ja": "実際の返金は記録済みです。原通貨の支払額または確認済みの弁済額の差異を確認してください。未弁済分の引当は維持されます。",
-    "ru": "Фактический возврат записан. Проверьте расхождение исходного платежа или подтверждённой суммы погашения; остаток обязательства остаётся зарезервированным."
+    "ru": "Фактический возврат записан. Проверьте расхождение исходного платежа или подтверждённой суммы погашения; остаток обязательства остаётся зарезервированным.",
+    "hi": "वास्तविक धनवापसी दर्ज है। मूल मुद्रा भुगतान या पुष्ट निपटान राशि का अंतर सत्यापित करें; बकाया दायित्व आरक्षित रहता है।",
+    "ms": "Bayaran balik sebenar direkodkan. Sahkan perbezaan pembayaran mata wang asal atau jumlah penyelesaian yang disahkan; tanggungjawab tertunggak kekal dirizabkan.",
+    "th": "บันทึกการคืนเงินจริงแล้ว ตรวจสอบความแตกต่างของการชำระในสกุลเงินเดิมหรือยอดชำระบัญชีที่ยืนยันแล้ว ภาระคงค้างยังคงกันไว้"
   },
   "按原币分别汇总收支和成本，不做汇率换算或利润计算。": {
     "en": "Receipts, payments and costs are grouped by original currency, without currency conversion or profit calculation.",
     "ja": "収支と費用は原通貨別に集計し、為替換算や利益計算は行いません。",
-    "ru": "Поступления, платежи и затраты сгруппированы по исходным валютам без пересчёта и расчёта прибыли."
+    "ru": "Поступления, платежи и затраты сгруппированы по исходным валютам без пересчёта и расчёта прибыли.",
+    "hi": "प्राप्तियाँ, भुगतान और लागत मुद्रा रूपांतरण या लाभ गणना के बिना मूल मुद्रा के अनुसार समूहित हैं।",
+    "ms": "Penerimaan, pembayaran dan kos dikumpulkan mengikut mata wang asal, tanpa penukaran mata wang atau pengiraan keuntungan.",
+    "th": "จัดกลุ่มยอดรับ การชำระเงิน และต้นทุนตามสกุลเงินเดิมโดยไม่แปลงสกุลเงินหรือคำนวณกำไร"
   },
   "参考成本、供应商报告成本与登记账单分别展示，不应相加为一个总成本。": {
     "en": "Reference costs, provider-reported costs and recorded statements are shown separately and must not be added into one total.",
     "ja": "参考費用、プロバイダー報告費用、登録済み請求書は個別に表示され、合算して一つの総費用にしないでください。",
-    "ru": "Справочные затраты, данные поставщиков и зарегистрированные счета показаны отдельно; их нельзя складывать в общую сумму затрат."
+    "ru": "Справочные затраты, данные поставщиков и зарегистрированные счета показаны отдельно; их нельзя складывать в общую сумму затрат.",
+    "hi": "संदर्भ लागत, प्रदाता द्वारा रिपोर्ट की गई लागत और दर्ज विवरण अलग दिखते हैं और एक कुल में नहीं जोड़े जाने चाहिए।",
+    "ms": "Kos rujukan, kos dilaporkan penyedia dan penyata direkodkan ditunjukkan secara berasingan dan tidak boleh dijumlahkan menjadi satu jumlah.",
+    "th": "ต้นทุนอ้างอิง ต้นทุนที่ผู้ให้บริการรายงาน และใบแจ้งยอดที่บันทึกแสดงแยกกัน ห้ามรวมเป็นยอดเดียว"
   },
   "收支按所选期间统计，期末余额截至结束时刻，待处理项反映查询时状态。": {
     "en": "Transfers use the selected period, closing balances use its end time, and pending items reflect the query time.",
     "ja": "収支は選択期間、期末残高は終了時刻まで、未処理項目は照会時点の状態を示します。",
-    "ru": "Движение средств относится к выбранному периоду, остатки — к его концу, а незавершённые операции отражают состояние на момент запроса."
+    "ru": "Движение средств относится к выбранному периоду, остатки — к его концу, а незавершённые операции отражают состояние на момент запроса.",
+    "hi": "हस्तांतरण चुनी अवधि उपयोग करते हैं, अंतिम शेष राशि उसका समाप्ति समय उपयोग करती है और लंबित मदें क्वेरी समय दर्शाती हैं।",
+    "ms": "Pemindahan menggunakan tempoh yang dipilih, baki penutup menggunakan masa tamatnya, dan perkara tertunda mencerminkan masa pertanyaan.",
+    "th": "รายการโอนใช้ช่วงเวลาที่เลือก ยอดคงเหลือปลายงวดใช้เวลาสิ้นสุด และรายการค้างสะท้อนเวลาที่สอบถาม"
   },
   "实际账单按登记时间汇总并保留原服务期间；来源不明的费用保持待核实。": {
     "en": "Actual statements are grouped by registration time and retain their service period. Unverified costs remain pending.",
     "ja": "実際の請求書は登録時刻で集計し、元のサービス期間を保持します。未確認の費用は確認待ちとして残します。",
-    "ru": "Фактические счета учитываются по времени регистрации с сохранением периода услуг. Неподтверждённые расходы остаются на проверке."
+    "ru": "Фактические счета учитываются по времени регистрации с сохранением периода услуг. Неподтверждённые расходы остаются на проверке.",
+    "hi": "वास्तविक विवरण पंजीकरण समय से समूहित हैं और अपनी सेवा अवधि रखते हैं। असत्यापित लागत लंबित रहती हैं।",
+    "ms": "Penyata sebenar dikumpulkan mengikut masa pendaftaran dan mengekalkan tempoh perkhidmatannya. Kos yang belum disahkan kekal tertunda.",
+    "th": "ใบแจ้งยอดจริงจัดกลุ่มตามเวลาลงทะเบียนและคงช่วงเวลาบริการเดิม ต้นทุนที่ยังไม่ตรวจสอบยังคงรอดำเนินการ"
   },
   "接管款同时保留独立明细和原币收支，采购付款仅在整笔收款可明确归属采购方时纳入该方原币支出。": {
     "en": "Takeover payments retain separate details and original-currency transfers. Procurement outflows are attributed only when the full receipt belongs to one buyer.",
     "ja": "引継ぎ代金は個別明細と原通貨収支を保持します。調達支払は入金全額の帰属先が一つの購入者と確認できる場合にのみ計上します。",
-    "ru": "Платежи при передаче сохраняются в отдельных деталях и движении исходной валюты. Закупочные платежи относятся к покупателю только при однозначной принадлежности всей суммы."
+    "ru": "Платежи при передаче сохраняются в отдельных деталях и движении исходной валюты. Закупочные платежи относятся к покупателю только при однозначной принадлежности всей суммы.",
+    "hi": "कार्यभार ग्रहण भुगतान अलग विवरण और मूल मुद्रा हस्तांतरण रखते हैं। खरीद बहिर्वाह केवल तब आवंटित होते हैं जब पूरी प्राप्ति एक खरीदार की हो।",
+    "ms": "Pembayaran pengambilalihan mengekalkan butiran berasingan dan pemindahan mata wang asal. Aliran keluar perolehan hanya diatribusikan apabila keseluruhan penerimaan milik satu pembeli.",
+    "th": "การชำระเงินรับช่วงเก็บรายละเอียดแยกและรายการรับจ่ายในสกุลเดิม การชำระเงินจัดซื้อจะนับเป็นรายจ่ายสกุลเดิมของผู้ซื้อรายนั้นเฉพาะเมื่อระบุได้ชัดเจนว่าเงินรับทั้งจำนวนเป็นของผู้ซื้อรายเดียว"
   },
   "不收费": {
     "en": "No fee",
     "ja": "手数料なし",
-    "ru": "Без комиссии"
+    "ru": "Без комиссии",
+    "hi": "कोई शुल्क नहीं",
+    "ms": "Tiada fi",
+    "th": "ไม่มีค่าธรรมเนียม"
   },
   "付款金额明细": {
     "en": "Payment breakdown",
     "ja": "支払額の内訳",
-    "ru": "Состав платежа"
+    "ru": "Состав платежа",
+    "hi": "भुगतान का विवरण",
+    "ms": "Pecahan pembayaran",
+    "th": "รายละเอียดการชำระเงิน"
   },
   "余额和佣金提现共用同一规则。申请 100、手续费 2 时，账户扣除 100，实际付款 98。": {
     "en": "Balance and commission withdrawals share this rule. For a request of 100 with a fee of 2, the account is debited 100 and the recipient receives 98.",
     "ja": "残高とコミッションの出金には同じ規則を適用します。申請額 100、手数料 2 の場合、口座から 100 を差し引き、実際に 98 を支払います。",
-    "ru": "Для вывода баланса и комиссионных действует одно правило. При заявке на 100 и комиссии 2 со счёта списывается 100, получателю выплачивается 98."
+    "ru": "Для вывода баланса и комиссионных действует одно правило. При заявке на 100 и комиссии 2 со счёта списывается 100, получателю выплачивается 98.",
+    "hi": "शेष राशि और कमीशन निकासी यह नियम साझा करती हैं। 2 शुल्क वाले 100 के अनुरोध में खाते से 100 कटते हैं और प्राप्तकर्ता को 98 मिलते हैं।",
+    "ms": "Pengeluaran baki dan komisen berkongsi peraturan ini. Untuk permintaan 100 dengan fi 2, akaun didebit 100 dan penerima menerima 98.",
+    "th": "การถอนเงินจากยอดคงเหลือและค่าคอมมิชชันใช้กฎนี้ร่วมกัน หากขอถอน 100 และมีค่าธรรมเนียม 2 บัญชีถูกหัก 100 และผู้รับได้รับ 98"
   },
   "余额提现、佣金提现": {
     "en": "Balance and commission withdrawals",
     "ja": "残高出金・コミッション出金",
-    "ru": "Вывод баланса и комиссионных"
+    "ru": "Вывод баланса и комиссионных",
+    "hi": "शेष राशि और कमीशन निकासी",
+    "ms": "Pengeluaran baki dan komisen",
+    "th": "การถอนเงินจากยอดคงเหลือและค่าคอมมิชชัน"
   },
   "保存后影响哪些交易": {
     "en": "Transactions affected by saving",
     "ja": "保存後の適用範囲",
-    "ru": "Какие операции затронет сохранение"
+    "ru": "Какие операции затронет сохранение",
+    "hi": "सहेजने से प्रभावित लेनदेन",
+    "ms": "Transaksi yang terjejas apabila disimpan",
+    "th": "ธุรกรรมที่ได้รับผลเมื่อบันทึก"
   },
   "充值、直接购买套餐、下级采购": {
     "en": "Top-ups, direct plan purchases, downstream procurement",
     "ja": "チャージ・プランの直接購入・下位事業者の仕入れ",
-    "ru": "Пополнение, прямая покупка пакетов, закупки нижестоящих операторов"
+    "ru": "Пополнение, прямая покупка пакетов, закупки нижестоящих операторов",
+    "hi": "टॉप-अप, सीधी योजना खरीद, अधीनस्थ खरीद",
+    "ms": "Tambah nilai, pembelian pelan langsung, perolehan hiliran",
+    "th": "การเติมเงิน การซื้อแพ็กเกจโดยตรง การจัดซื้อของผู้ใต้สังกัด"
   },
   "充值、直接购买套餐、下级采购、余额提现、佣金提现": {
     "en": "Top-ups, direct plan purchases, downstream procurement, balance and commission withdrawals",
     "ja": "チャージ・プランの直接購入・下位事業者の仕入れ・残高出金・コミッション出金",
-    "ru": "Пополнение, прямая покупка пакетов, закупки нижестоящих операторов, вывод баланса и комиссионных"
+    "ru": "Пополнение, прямая покупка пакетов, закупки нижестоящих операторов, вывод баланса и комиссионных",
+    "hi": "टॉप-अप, सीधी योजना खरीद, अधीनस्थ खरीद, शेष राशि और कमीशन निकासी",
+    "ms": "Tambah nilai, pembelian pelan langsung, perolehan hiliran, pengeluaran baki dan komisen",
+    "th": "การเติมเงิน การซื้อแพ็กเกจโดยตรง การจัดซื้อของผู้ใต้สังกัด การถอนเงินจากยอดคงเหลือและค่าคอมมิชชัน"
   },
   "充值、直接购买套餐和下级采购，共用所选方式的规则。支付 100 本金、手续费 2 时，合计付款 102，权益按 100 交付。": {
     "en": "Top-ups, direct plan purchases and downstream procurement share the selected method’s rule. A principal of 100 plus a fee of 2 means paying 102; entitlements are delivered for 100.",
     "ja": "チャージ、プランの直接購入、下位事業者の仕入れには選択した方法の規則を共通適用します。本体額 100、手数料 2 の場合、合計 102 を支払い、100 相当の権利を受け取ります。",
-    "ru": "Пополнение, прямая покупка пакетов и закупки нижестоящих операторов используют правило выбранного способа. При основной сумме 100 и комиссии 2 платёж составляет 102, права предоставляются на 100."
+    "ru": "Пополнение, прямая покупка пакетов и закупки нижестоящих операторов используют правило выбранного способа. При основной сумме 100 и комиссии 2 платёж составляет 102, права предоставляются на 100.",
+    "hi": "टॉप-अप, सीधी योजना खरीद और अधीनस्थ खरीद चुनी विधि का नियम साझा करते हैं। 100 मूल राशि और 2 शुल्क का अर्थ 102 चुकाना है; अधिकार 100 के लिए डिलीवर होते हैं।",
+    "ms": "Tambah nilai, pembelian pelan langsung dan perolehan hiliran berkongsi peraturan kaedah yang dipilih. Prinsipal 100 ditambah fi 2 bermaksud membayar 102; hak diserahkan untuk 100.",
+    "th": "การเติมเงิน การซื้อแพ็กเกจโดยตรง และการจัดซื้อของผู้ใต้สังกัดใช้กฎของวิธีที่เลือก เงินต้น 100 บวกค่าธรรมเนียม 2 หมายถึงชำระ 102 และส่งมอบสิทธิ์ตาม 100"
   },
   "只影响新确认的付款和提现。已确认的金额保持不变；内部余额和佣金抵扣不收费。异常退款会退回本金及已收支付手续费。": {
     "en": "Only newly confirmed payments and withdrawals are affected. Confirmed amounts stay unchanged; internal balance and commission offsets incur no fee. Exception refunds return both principal and the payment fee charged.",
     "ja": "新たに確定する支払いと出金のみに適用します。確定済み金額は変更せず、内部残高やコミッションの充当には課金しません。例外返金では本体額と徴収済み決済手数料を返します。",
-    "ru": "Изменения касаются только новых подтверждённых платежей и выводов. Подтверждённые суммы сохраняются; внутреннее списание баланса и комиссионных бесплатно. При исключительном возврате возвращаются основная сумма и удержанная комиссия за платёж."
+    "ru": "Изменения касаются только новых подтверждённых платежей и выводов. Подтверждённые суммы сохраняются; внутреннее списание баланса и комиссионных бесплатно. При исключительном возврате возвращаются основная сумма и удержанная комиссия за платёж.",
+    "hi": "केवल नए पुष्ट भुगतान और निकासी प्रभावित होते हैं। पुष्ट राशियाँ अपरिवर्तित रहती हैं; आंतरिक शेष राशि और कमीशन समायोजन पर शुल्क नहीं लगता। अपवाद धनवापसी मूल राशि और लिया गया भुगतान शुल्क दोनों लौटाती है।",
+    "ms": "Hanya pembayaran dan pengeluaran yang baru disahkan terjejas. Jumlah yang disahkan kekal tidak berubah; ofset baki dalaman dan komisen tidak dikenakan fi. Bayaran balik pengecualian memulangkan prinsipal dan fi pembayaran yang dicaj.",
+    "th": "มีผลเฉพาะการชำระเงินและการถอนเงินที่ยืนยันใหม่ ยอดที่ยืนยันแล้วไม่เปลี่ยน การหักกลบยอดคงเหลือภายในและค่าคอมมิชชันไม่มีค่าธรรมเนียม การคืนเงินกรณีข้อยกเว้นคืนทั้งเงินต้นและค่าธรรมเนียมชำระเงินที่เรียกเก็บ"
   },
   "可用于提现": {
     "en": "Available for withdrawals",
     "ja": "出金に利用可能",
-    "ru": "Доступен для вывода"
+    "ru": "Доступен для вывода",
+    "hi": "निकासी के लिए उपलब्ध",
+    "ms": "Tersedia untuk pengeluaran",
+    "th": "ใช้สำหรับการถอนเงินได้"
   },
   "合计应付": {
     "en": "Total payable",
     "ja": "支払合計",
-    "ru": "Всего к оплате"
+    "ru": "Всего к оплате",
+    "hi": "कुल देय",
+    "ms": "Jumlah perlu dibayar",
+    "th": "ยอดที่ต้องชำระทั้งหมด"
   },
   "同时开放两类提现，使用上面的同一套手续费。经营方线下付款后登记完成，系统不会自动转账。": {
     "en": "Enable both withdrawal types with the fee above. The operator pays offline and records completion; the system does not transfer funds automatically.",
     "ja": "両方の出金を有効にし、上記の手数料を共通適用します。事業者が外部で支払った後に完了を記録します。システムは自動送金しません。",
-    "ru": "Включает оба вида вывода с указанной выше комиссией. Оператор платит вне системы и отмечает завершение; система не переводит средства автоматически."
+    "ru": "Включает оба вида вывода с указанной выше комиссией. Оператор платит вне системы и отмечает завершение; система не переводит средства автоматически.",
+    "hi": "ऊपर के शुल्क के साथ दोनों निकासी प्रकार सक्षम करें। संचालक ऑफ़लाइन भुगतान करके पूर्णता दर्ज करता है; सिस्टम अपने आप निधि हस्तांतरित नहीं करता।",
+    "ms": "Aktifkan kedua-dua jenis pengeluaran dengan fi di atas. Pengendali membayar di luar talian dan merekodkan penyelesaian; sistem tidak memindahkan dana secara automatik.",
+    "th": "เปิดการถอนเงินทั้งสองประเภทโดยใช้ค่าธรรมเนียมข้างต้น ผู้ดำเนินงานจ่ายออฟไลน์และบันทึกว่าเสร็จ ระบบไม่โอนเงินอัตโนมัติ"
   },
   "在邀请与分佣中审批并登记线下付款。最低提现金额在分佣规则中设置，手续费统一在设置中的支付方式与手续费页面配置。": {
     "en": "Approve requests and record offline payments under Invitations and commissions. Set the minimum withdrawal in commission rules and fees under Settings → Payment methods and fees.",
     "ja": "「招待とコミッション」で承認し、外部での支払いを記録します。最低出金額はコミッション規則で、手数料は設定の「支払方法と手数料」で設定します。",
-    "ru": "Одобряйте заявки и отмечайте внешние выплаты в разделе приглашений и комиссионных. Минимальную сумму задавайте в правилах комиссионных, а комиссии — в настройках способов оплаты и комиссий."
+    "ru": "Одобряйте заявки и отмечайте внешние выплаты в разделе приглашений и комиссионных. Минимальную сумму задавайте в правилах комиссионных, а комиссии — в настройках способов оплаты и комиссий.",
+    "hi": "आमंत्रण और कमीशन में अनुरोध मंज़ूर करें और ऑफ़लाइन भुगतान दर्ज करें। कमीशन नियम में न्यूनतम निकासी और सेटिंग → भुगतान विधियाँ और शुल्क में शुल्क सेट करें।",
+    "ms": "Luluskan permintaan dan rekodkan pembayaran luar talian di bawah Jemputan dan komisen. Tetapkan pengeluaran minimum dalam peraturan komisen dan fi di bawah Tetapan → Kaedah pembayaran dan fi.",
+    "th": "อนุมัติคำขอและบันทึกการจ่ายออฟไลน์ในส่วนคำเชิญและค่าคอมมิชชัน ตั้งยอดถอนขั้นต่ำในกฎค่าคอมมิชชัน และตั้งค่าธรรมเนียมใน การตั้งค่า → วิธีชำระเงินและค่าธรรมเนียม"
   },
   "填写 2 表示收取 2%。收款按外部付款本金计算，提现按申请总额计算，均按清算币种最小支付单位四舍五入。": {
     "en": "Enter 2 for 2%. Collection fees use the external principal; withdrawal fees use the requested total. Both round to the settlement currency’s smallest payment unit.",
     "ja": "2 と入力すると 2% です。入金は外部支払いの本体額、出金は申請総額を基準に計算し、決済通貨の最小支払単位に四捨五入します。",
-    "ru": "Введите 2 для 2%. Комиссия за приём платежа считается от внешней основной суммы, за вывод — от суммы заявки. Результат округляется до минимальной платёжной единицы валюты расчётов."
+    "ru": "Введите 2 для 2%. Комиссия за приём платежа считается от внешней основной суммы, за вывод — от суммы заявки. Результат округляется до минимальной платёжной единицы валюты расчётов.",
+    "hi": "2% के लिए 2 दर्ज करें। संग्रह शुल्क बाहरी मूल राशि उपयोग करता है; निकासी शुल्क अनुरोधित कुल उपयोग करता है। दोनों निपटान मुद्रा की सबसे छोटी भुगतान इकाई तक गोल होते हैं।",
+    "ms": "Masukkan 2 untuk 2%. Fi penerimaan menggunakan prinsipal luaran; fi pengeluaran menggunakan jumlah dimohon. Kedua-duanya dibundarkan kepada unit pembayaran terkecil mata wang penyelesaian.",
+    "th": "กรอก 2 สำหรับ 2% ค่าธรรมเนียมรับเงินคิดจากเงินต้นภายนอก ค่าธรรมเนียมการถอนเงินคิดจากยอดรวมที่ขอ ทั้งสองปัดเป็นหน่วยชำระเงินที่เล็กที่สุดของสกุลเงินที่ใช้ชำระบัญชี"
   },
   "填写付款人本次实际支付的总额。关联订单后，系统按付款时固定的规则区分订单本金和支付手续费，套餐、采购或充值权益只按本金交付。": {
     "en": "Enter the total actually paid. When linked to an order, the system separates principal and payment fee using the confirmed rule. Plan, procurement and top-up entitlements use principal only.",
     "ja": "支払者が実際に支払った総額を入力します。注文に関連付けると、確定済み規則に従い本体額と決済手数料を区分します。プラン、仕入れ、チャージの権利は本体額のみに基づき付与します。",
-    "ru": "Укажите фактически уплаченную сумму. После привязки к заказу система разделит основную сумму и комиссию по зафиксированному правилу. Пакет, закупка или пополнение предоставляются только на основную сумму."
+    "ru": "Укажите фактически уплаченную сумму. После привязки к заказу система разделит основную сумму и комиссию по зафиксированному правилу. Пакет, закупка или пополнение предоставляются только на основную сумму.",
+    "hi": "भुगतानकर्ता द्वारा वास्तव में चुकाया गया कुल दर्ज करें। ऑर्डर से जुड़ने पर सिस्टम भुगतान के समय तय नियम के अनुसार मूल राशि और भुगतान शुल्क अलग करता है। योजना, खरीद और टॉप-अप अधिकार केवल मूल राशि के आधार पर डिलीवर होते हैं।",
+    "ms": "Masukkan jumlah sebenar yang dibayar oleh pembayar. Apabila dipautkan kepada pesanan, sistem memisahkan prinsipal dan fi pembayaran mengikut peraturan yang ditetapkan pada masa pembayaran. Hak pelan, perolehan dan tambah nilai diserahkan berdasarkan prinsipal sahaja.",
+    "th": "กรอกยอดที่ชำระจริงทั้งหมด เมื่อเชื่อมกับคำสั่งซื้อ ระบบแยกเงินต้นและค่าธรรมเนียมชำระเงินตามกฎที่กำหนดไว้เมื่อชำระเงิน สิทธิ์แพ็กเกจ การจัดซื้อ และการเติมเงินใช้เงินต้นเท่านั้น"
   },
   "实际原币收款总额": {
     "en": "Actual gross receipt in original currency",
     "ja": "元通貨での実際の入金総額",
-    "ru": "Фактическое валовое поступление в исходной валюте"
+    "ru": "Фактическое валовое поступление в исходной валюте",
+    "hi": "मूल मुद्रा में वास्तविक सकल प्राप्ति",
+    "ms": "Penerimaan kasar sebenar dalam mata wang asal",
+    "th": "ยอดรับรวมจริงในสกุลเงินเดิม"
   },
   "审批支付余额提现，并按申请时固定的实付金额登记一次付款。最低额度在最低提现额度页设置，手续费统一在设置中的支付方式与手续费页面配置，由客户承担。": {
     "en": "Approve balance withdrawals and record one payment of the net amount fixed at application. Set the minimum under Minimum withdrawal; customer-paid fees are configured under Settings → Payment methods and fees.",
     "ja": "支払残高の出金を承認し、申請時に確定した実払額で一度の支払いを記録します。最低額は最低出金額ページ、顧客負担の手数料は設定の「支払方法と手数料」で設定します。",
-    "ru": "Одобряйте вывод платёжного баланса и регистрируйте одну выплату чистой суммы, зафиксированной при заявке. Минимум задаётся на странице минимальной суммы вывода, комиссии клиента — в настройках способов оплаты и комиссий."
+    "ru": "Одобряйте вывод платёжного баланса и регистрируйте одну выплату чистой суммы, зафиксированной при заявке. Минимум задаётся на странице минимальной суммы вывода, комиссии клиента — в настройках способов оплаты и комиссий.",
+    "hi": "शेष राशि निकासी मंज़ूर करें और आवेदन पर तय शुद्ध राशि का एक भुगतान दर्ज करें। न्यूनतम निकासी में न्यूनतम सेट करें; ग्राहक द्वारा दिए शुल्क सेटिंग → भुगतान विधियाँ और शुल्क में कॉन्फ़िगर होते हैं।",
+    "ms": "Luluskan pengeluaran baki dan rekodkan satu pembayaran bagi jumlah bersih yang ditetapkan semasa permohonan. Tetapkan minimum di bawah Pengeluaran minimum; fi yang dibayar pelanggan dikonfigurasi di bawah Tetapan → Kaedah pembayaran dan fi.",
+    "th": "อนุมัติการถอนเงินจากยอดคงเหลือและบันทึกการจ่ายหนึ่งครั้งตามยอดสุทธิที่กำหนดเมื่อยื่นคำขอ ตั้งขั้นต่ำในยอดถอนขั้นต่ำ ส่วนค่าธรรมเนียมที่ลูกค้าจ่ายตั้งใน การตั้งค่า → วิธีชำระเงินและค่าธรรมเนียม"
   },
   "尚未启用": {
     "en": "Not enabled",
     "ja": "未有効",
-    "ru": "Не включён"
+    "ru": "Не включён",
+    "hi": "सक्षम नहीं",
+    "ms": "Tidak diaktifkan",
+    "th": "ยังไม่เปิดใช้"
   },
   "已收支付手续费": {
     "en": "Payment fees charged",
     "ja": "徴収済み決済手数料",
-    "ru": "Полученные комиссии за платежи"
+    "ru": "Полученные комиссии за платежи",
+    "hi": "लिए गए भुगतान शुल्क",
+    "ms": "Fi pembayaran yang dicaj",
+    "th": "ค่าธรรมเนียมชำระเงินที่เรียกเก็บ"
   },
   "已核实收款总额（结算币种，含支付手续费）": {
     "en": "Verified gross receipt (settlement currency, including payment fee)",
     "ja": "確認済み入金総額（決済通貨、決済手数料込み）",
-    "ru": "Подтверждённое валовое поступление (валюта расчётов, включая комиссию за платёж)"
+    "ru": "Подтверждённое валовое поступление (валюта расчётов, включая комиссию за платёж)",
+    "hi": "सत्यापित सकल प्राप्ति (निपटान मुद्रा, भुगतान शुल्क सहित)",
+    "ms": "Penerimaan kasar disahkan (mata wang penyelesaian, termasuk fi pembayaran)",
+    "th": "ยอดรับรวมที่ตรวจสอบแล้ว (สกุลเงินที่ใช้ชำระบัญชี รวมค่าธรรมเนียมชำระเงิน)"
   },
   "已核实结算金额": {
     "en": "Verified settlement amount",
     "ja": "確認済み決済額",
-    "ru": "Подтверждённая сумма расчёта"
+    "ru": "Подтверждённая сумма расчёта",
+    "hi": "सत्यापित निपटान राशि",
+    "ms": "Jumlah penyelesaian yang disahkan",
+    "th": "ยอดชำระบัญชีที่ตรวจสอบแล้ว"
   },
   "待确认退款手续费": {
     "en": "Refund fees awaiting confirmation",
     "ja": "確認待ちの返金手数料",
-    "ru": "Комиссии возвратов, ожидающие подтверждения"
+    "ru": "Комиссии возвратов, ожидающие подтверждения",
+    "hi": "पुष्टि लंबित धनवापसी शुल्क",
+    "ms": "Fi bayaran balik menunggu pengesahan",
+    "th": "ค่าธรรมเนียมการคืนเงินรอยืนยัน"
   },
   "手续费不进入余额或 ATG，不计入分佣；余额和佣金抵扣部分不收取支付手续费。": {
     "en": "Fees do not credit balance or ATG and do not earn commissions. Internal balance and commission offsets incur no payment fee.",
     "ja": "手数料は残高や ATG に加算されず、コミッションの対象外です。残高とコミッションの充当分には決済手数料を課しません。",
-    "ru": "Комиссии не зачисляются в баланс или ATG и не участвуют в распределении комиссионных. За внутреннее списание баланса и комиссионных платёжная комиссия не взимается."
+    "ru": "Комиссии не зачисляются в баланс или ATG и не участвуют в распределении комиссионных. За внутреннее списание баланса и комиссионных платёжная комиссия не взимается.",
+    "hi": "शुल्क शेष राशि या ATG में जमा नहीं होते और उनसे कमीशन नहीं मिलता। आंतरिक शेष राशि और कमीशन समायोजन पर भुगतान शुल्क नहीं लगता।",
+    "ms": "Fi tidak dikreditkan kepada baki atau ATG dan tidak menghasilkan komisen. Ofset baki dalaman dan komisen tidak dikenakan fi pembayaran.",
+    "th": "ค่าธรรมเนียมไม่เพิ่มยอดคงเหลือหรือ ATG และไม่ก่อให้เกิดค่าคอมมิชชัน การหักกลบยอดคงเหลือภายในและค่าคอมมิชชันไม่มีค่าธรรมเนียมชำระเงิน"
   },
   "手续费规则": {
     "en": "Fee rule",
     "ja": "手数料規則",
-    "ru": "Правило комиссии"
+    "ru": "Правило комиссии",
+    "hi": "शुल्क नियम",
+    "ms": "Peraturan fi",
+    "th": "กฎค่าธรรมเนียม"
   },
   "提现收款材料": {
     "en": "Withdrawal recipient details",
     "ja": "出金先の受取情報",
-    "ru": "Данные получателя вывода"
+    "ru": "Данные получателя вывода",
+    "hi": "निकासी प्राप्तकर्ता विवरण",
+    "ms": "Butiran penerima pengeluaran",
+    "th": "ข้อมูลผู้รับการถอนเงิน"
   },
   "提现：申请总额内扣": {
     "en": "Withdrawals: deducted from the request",
     "ja": "出金：申請総額から控除",
-    "ru": "Вывод: комиссия внутри суммы заявки"
+    "ru": "Вывод: комиссия внутри суммы заявки",
+    "hi": "निकासी: अनुरोध से काटा गया",
+    "ms": "Pengeluaran: ditolak daripada permintaan",
+    "th": "การถอนเงิน: หักจากยอดที่ขอ"
   },
   "支付手续费": {
     "en": "Payment fee",
     "ja": "決済手数料",
-    "ru": "Комиссия за платёж"
+    "ru": "Комиссия за платёж",
+    "hi": "भुगतान शुल्क",
+    "ms": "Fi pembayaran",
+    "th": "ค่าธรรมเนียมชำระเงิน"
   },
   "支付方式与手续费": {
     "en": "Payment methods and fees",
     "ja": "支払方法と手数料",
-    "ru": "Способы оплаты и комиссии"
+    "ru": "Способы оплаты и комиссии",
+    "hi": "भुगतान विधियाँ और शुल्क",
+    "ms": "Kaedah pembayaran dan fi",
+    "th": "วิธีชำระเงินและค่าธรรมเนียม"
   },
   "支付方式名称": {
     "en": "Payment method name",
     "ja": "支払方法名",
-    "ru": "Название способа оплаты"
+    "ru": "Название способа оплаты",
+    "hi": "भुगतान विधि का नाम",
+    "ms": "Nama kaedah pembayaran",
+    "th": "ชื่อวิธีชำระเงิน"
   },
   "支付方式或手续费已变化，请刷新后重新核对金额。": {
     "en": "The payment method or fee has changed. Refresh and review the amounts.",
     "ja": "支払方法または手数料が変更されました。更新して金額を再確認してください。",
-    "ru": "Способ оплаты или комиссия изменились. Обновите страницу и проверьте суммы."
+    "ru": "Способ оплаты или комиссия изменились. Обновите страницу и проверьте суммы.",
+    "hi": "भुगतान विधि या शुल्क बदल गया है। रीफ़्रेश करके राशियों की समीक्षा करें।",
+    "ms": "Kaedah pembayaran atau fi telah berubah. Muat semula dan semak jumlah.",
+    "th": "วิธีชำระเงินหรือค่าธรรมเนียมเปลี่ยนแล้ว รีเฟรชและตรวจสอบจำนวนเงิน"
   },
   "收款总额（含支付手续费）": {
     "en": "Gross receipt including payment fee",
     "ja": "入金総額（決済手数料込み）",
-    "ru": "Валовое поступление с комиссией за платёж"
+    "ru": "Валовое поступление с комиссией за платёж",
+    "hi": "भुगतान शुल्क सहित सकल प्राप्ति",
+    "ms": "Penerimaan kasar termasuk fi pembayaran",
+    "th": "ยอดรับรวมรวมค่าธรรมเนียมชำระเงิน"
   },
   "收款总额（含支付手续费） 结算币种": {
     "en": "Gross receipt including payment fee · settlement currency",
     "ja": "入金総額（決済手数料込み）・決済通貨",
-    "ru": "Валовое поступление с комиссией за платёж · валюта расчётов"
+    "ru": "Валовое поступление с комиссией за платёж · валюта расчётов",
+    "hi": "भुगतान शुल्क सहित सकल प्राप्ति · निपटान मुद्रा",
+    "ms": "Penerimaan kasar termasuk fi pembayaran · mata wang penyelesaian",
+    "th": "ยอดรับรวมรวมค่าธรรมเนียมชำระเงิน · สกุลเงินที่ใช้ชำระบัญชี"
   },
   "收款连接": {
     "en": "Collection connections",
     "ja": "入金接続設定",
-    "ru": "Подключения для приёма платежей"
+    "ru": "Подключения для приёма платежей",
+    "hi": "संग्रह कनेक्शन",
+    "ms": "Sambungan penerimaan",
+    "th": "การเชื่อมต่อรับเงิน"
   },
   "收款：本金之外另加": {
     "en": "Collections: added to principal",
     "ja": "入金：本体額に加算",
-    "ru": "Приём платежа: сверх основной суммы"
+    "ru": "Приём платежа: сверх основной суммы",
+    "hi": "संग्रह: मूल राशि में जोड़ा गया",
+    "ms": "Penerimaan: ditambah kepada prinsipal",
+    "th": "การรับเงิน: เพิ่มจากเงินต้น"
   },
   "整笔收款关联一个金额一致的订单，足额后自动交付。": {
     "en": "Link the whole receipt to one order with the matching total. Delivery follows full payment.",
     "ja": "入金全額を金額が一致する一つの注文に関連付けます。全額確認後に自動で付与します。",
-    "ru": "Привяжите всё поступление к одному заказу с соответствующей суммой. После полной оплаты права предоставляются автоматически."
+    "ru": "Привяжите всё поступление к одному заказу с соответствующей суммой. После полной оплаты права предоставляются автоматически.",
+    "hi": "मेल खाते कुल वाले एक ऑर्डर से पूरी प्राप्ति जोड़ें। पूर्ण भुगतान के बाद डिलीवरी होती है।",
+    "ms": "Pautkan seluruh penerimaan kepada satu pesanan dengan jumlah sepadan. Penyerahan menyusuli pembayaran penuh.",
+    "th": "เชื่อมยอดรับทั้งหมดกับคำสั่งซื้อหนึ่งรายการที่มียอดตรงกัน ส่งมอบหลังชำระครบ"
   },
   "新增的方式用于线下提现。收款方式请先在收款连接中配置，系统会自动在此建立同一套费用规则。": {
     "en": "New methods here support offline withdrawals. Configure collection methods under Collection connections; their shared fee rules appear here automatically.",
     "ja": "ここで追加する方法は外部での出金に使用します。入金方法は「入金接続設定」で設定すると、共通の手数料規則がここに自動作成されます。",
-    "ru": "Добавленные здесь способы используются для внешних выплат. Способы приёма настройте в подключениях: их общие правила комиссий автоматически появятся здесь."
+    "ru": "Добавленные здесь способы используются для внешних выплат. Способы приёма настройте в подключениях: их общие правила комиссий автоматически появятся здесь.",
+    "hi": "यहाँ नई विधियाँ ऑफ़लाइन निकासी का समर्थन करती हैं। संग्रह कनेक्शन में संग्रह विधियाँ कॉन्फ़िगर करें; उनके साझा शुल्क नियम यहाँ अपने आप दिखते हैं।",
+    "ms": "Kaedah baharu di sini menyokong pengeluaran luar talian. Konfigurasikan kaedah penerimaan di bawah Sambungan penerimaan; peraturan fi bersama muncul di sini secara automatik.",
+    "th": "วิธีใหม่ที่นี่รองรับการถอนเงินออฟไลน์ ตั้งค่าวิธีรับเงินในส่วนการเชื่อมต่อรับเงิน กฎค่าธรรมเนียมร่วมจะแสดงที่นี่โดยอัตโนมัติ"
   },
   "方式与手续费": {
     "en": "Methods and fees",
     "ja": "方法と手数料",
-    "ru": "Способы и комиссии"
+    "ru": "Способы и комиссии",
+    "hi": "विधियाँ और शुल्क",
+    "ms": "Kaedah dan fi",
+    "th": "วิธีและค่าธรรมเนียม"
   },
   "每种支付方式只设置一套手续费，统一用于它支持的收款、余额提现和佣金提现。": {
     "en": "Set one fee rule per payment method, shared across its supported collections, balance withdrawals and commission withdrawals.",
     "ja": "各支払方法に一つの手数料規則を設定し、対応する入金・残高出金・コミッション出金で共用します。",
-    "ru": "Для каждого способа задаётся одно правило комиссии, общее для поддерживаемых поступлений, вывода баланса и комиссионных."
+    "ru": "Для каждого способа задаётся одно правило комиссии, общее для поддерживаемых поступлений, вывода баланса и комиссионных.",
+    "hi": "प्रति भुगतान विधि एक शुल्क नियम सेट करें, जो उसके समर्थित संग्रह, शेष राशि निकासी और कमीशन निकासी में साझा हो।",
+    "ms": "Tetapkan satu peraturan fi bagi setiap kaedah pembayaran, dikongsi merentas penerimaan, pengeluaran baki dan pengeluaran komisen yang disokongnya.",
+    "th": "ตั้งกฎค่าธรรมเนียมหนึ่งชุดต่อวิธีชำระเงิน ใช้ร่วมกับการรับเงิน การถอนเงินจากยอดคงเหลือ และการถอนเงินค่าคอมมิชชันที่วิธีนั้นรองรับ"
   },
   "每种支付方式只设置一套手续费，适用于它支持的收款和提现。收款额外加收，提现从申请总额中扣除；余额和佣金内部抵扣不收费。修改只影响新确认的交易。": {
     "en": "Each method has one fee rule for its supported collections and withdrawals. Collection fees are added; withdrawal fees are deducted from the request. Internal balance and commission offsets are free. Edits affect newly confirmed transactions only.",
     "ja": "各方法に一つの規則を設定し、対応する入出金で共用します。入金では加算、出金では申請総額から控除し、内部残高とコミッションの充当は無料です。変更は新たに確定する取引のみに適用します。",
-    "ru": "Для каждого способа действует одно правило приёма и вывода средств. При приёме комиссия добавляется, при выводе вычитается из заявки. Внутреннее списание баланса и комиссионных бесплатно. Изменения касаются только новых подтверждённых операций."
+    "ru": "Для каждого способа действует одно правило приёма и вывода средств. При приёме комиссия добавляется, при выводе вычитается из заявки. Внутреннее списание баланса и комиссионных бесплатно. Изменения касаются только новых подтверждённых операций.",
+    "hi": "हर विधि के समर्थित संग्रह और निकासी का एक शुल्क नियम है। संग्रह शुल्क जोड़ा जाता है; निकासी शुल्क अनुरोध से काटा जाता है। आंतरिक शेष राशि और कमीशन समायोजन निःशुल्क हैं। संपादन केवल नए पुष्ट लेनदेन प्रभावित करते हैं।",
+    "ms": "Setiap kaedah mempunyai satu peraturan fi untuk penerimaan dan pengeluaran yang disokongnya. Fi penerimaan ditambah; fi pengeluaran ditolak daripada permintaan. Ofset baki dalaman dan komisen adalah percuma. Suntingan hanya mempengaruhi transaksi yang baru disahkan.",
+    "th": "แต่ละวิธีมีกฎค่าธรรมเนียมหนึ่งชุดสำหรับการรับเงินและการถอนเงินที่รองรับ ค่าธรรมเนียมรับเงินบวกเพิ่ม ส่วนค่าธรรมเนียมการถอนเงินหักจากยอดที่ขอ การหักกลบยอดคงเหลือภายในและค่าคอมมิชชันไม่มีค่าธรรมเนียม การแก้ไขมีผลเฉพาะธุรกรรมที่ยืนยันใหม่"
   },
   "清算币种业务事实": {
     "en": "Business facts in settlement currency",
     "ja": "決済通貨による業務記録",
-    "ru": "Факты операций в валюте расчётов"
+    "ru": "Факты операций в валюте расчётов",
+    "hi": "निपटान मुद्रा में व्यावसायिक तथ्य",
+    "ms": "Fakta perniagaan dalam mata wang penyelesaian",
+    "th": "ข้อเท็จจริงธุรกิจในสกุลเงินที่ใช้ชำระบัญชี"
   },
   "用于余额和佣金提现": {
     "en": "Enable balance and commission withdrawals",
     "ja": "残高とコミッションの出金に使用",
-    "ru": "Использовать для вывода баланса и комиссионных"
+    "ru": "Использовать для вывода баланса и комиссионных",
+    "hi": "शेष राशि और कमीशन निकासी सक्षम करें",
+    "ms": "Aktifkan pengeluaran baki dan komisen",
+    "th": "เปิดการถอนเงินจากยอดคงเหลือและค่าคอมมิชชัน"
   },
   "订单或充值本金": {
     "en": "Order or top-up principal",
     "ja": "注文またはチャージの本体額",
-    "ru": "Основная сумма заказа или пополнения"
+    "ru": "Основная сумма заказа или пополнения",
+    "hi": "ऑर्डर या टॉप-अप मूल राशि",
+    "ms": "Prinsipal pesanan atau tambah nilai",
+    "th": "เงินต้นคำสั่งซื้อหรือเติมเงิน"
   },
   "订单本金": {
     "en": "Order principal",
     "ja": "注文本体額",
-    "ru": "Основная сумма заказа"
+    "ru": "Основная сумма заказа",
+    "hi": "ऑर्डर मूल राशि",
+    "ms": "Prinsipal pesanan",
+    "th": "เงินต้นคำสั่งซื้อ"
   },
   "记录真实收款币种与金额；付款人在外部自行支付的发送费或链上手续费不计入。": {
     "en": "Record the actual receipt currency and amount. Exclude transfer or blockchain fees paid separately outside the system.",
     "ja": "実際の入金通貨と金額を記録します。支払者が外部で別途負担した送金手数料やチェーン手数料は含めません。",
-    "ru": "Укажите фактическую валюту и сумму поступления. Отдельно оплаченные внешние комиссии перевода или блокчейна не включаются."
+    "ru": "Укажите фактическую валюту и сумму поступления. Отдельно оплаченные внешние комиссии перевода или блокчейна не включаются.",
+    "hi": "वास्तविक प्राप्ति मुद्रा और राशि दर्ज करें। सिस्टम से बाहर अलग दिए हस्तांतरण या ब्लॉकचेन शुल्क शामिल न करें।",
+    "ms": "Rekodkan mata wang dan jumlah penerimaan sebenar. Kecualikan fi pemindahan atau blockchain yang dibayar secara berasingan di luar sistem.",
+    "th": "บันทึกสกุลเงินและยอดรับจริง ไม่รวมค่าธรรมเนียมโอนหรือบล็อกเชนที่ผู้ชำระจ่ายแยกต่างหากนอกระบบ"
   },
   "设置方式与费用": {
     "en": "Edit method and fees",
     "ja": "方法と手数料を設定",
-    "ru": "Настроить способ и комиссию"
+    "ru": "Настроить способ и комиссию",
+    "hi": "विधि और शुल्क संपादित करें",
+    "ms": "Edit kaedah dan fi",
+    "th": "แก้ไขวิธีและค่าธรรมเนียม"
   },
   "请到设置中的支付方式与手续费统一配置。": {
     "en": "Configure this under Settings → Payment methods and fees.",
     "ja": "設定の「支払方法と手数料」で一元設定してください。",
-    "ru": "Настройте это в разделе «Настройки → Способы оплаты и комиссии»."
+    "ru": "Настройте это в разделе «Настройки → Способы оплаты и комиссии».",
+    "hi": "इसे सेटिंग → भुगतान विधियाँ और शुल्क में कॉन्फ़िगर करें।",
+    "ms": "Konfigurasikan ini di bawah Tetapan → Kaedah pembayaran dan fi.",
+    "th": "ตั้งค่าใน การตั้งค่า → วิธีชำระเงินและค่าธรรมเนียม"
   },
   "请检查支付方式和手续费规则。": {
     "en": "Check the payment method and fee rule.",
     "ja": "支払方法と手数料規則を確認してください。",
-    "ru": "Проверьте способ оплаты и правило комиссии."
+    "ru": "Проверьте способ оплаты и правило комиссии.",
+    "hi": "भुगतान विधि और शुल्क नियम जाँचें।",
+    "ms": "Semak kaedah pembayaran dan peraturan fi.",
+    "th": "ตรวจสอบวิธีชำระเงินและกฎค่าธรรมเนียม"
   },
   "适用业务": {
     "en": "Applies to",
     "ja": "適用業務",
-    "ru": "Применяется к"
+    "ru": "Применяется к",
+    "hi": "लागू होता है",
+    "ms": "Terpakai kepada",
+    "th": "ใช้กับ"
   },
   "配置实际收款通道和账号。保存后在方式与手续费中统一设置名称、费用及提现用途。": {
     "en": "Configure the payment connection and account. After saving, set its name, fees and withdrawal use under Methods and fees.",
     "ja": "実際の入金接続とアカウントを設定します。保存後、「方法と手数料」で名称・手数料・出金用途をまとめて設定します。",
-    "ru": "Настройте платёжное подключение и счёт. После сохранения задайте название, комиссию и использование для вывода в разделе способов и комиссий."
+    "ru": "Настройте платёжное подключение и счёт. После сохранения задайте название, комиссию и использование для вывода в разделе способов и комиссий.",
+    "hi": "भुगतान कनेक्शन और खाता कॉन्फ़िगर करें। सहेजने के बाद विधियाँ और शुल्क में उसका नाम, शुल्क और निकासी उपयोग सेट करें।",
+    "ms": "Konfigurasikan sambungan dan akaun pembayaran. Selepas menyimpan, tetapkan nama, fi dan kegunaan pengeluarannya di bawah Kaedah dan fi.",
+    "th": "ตั้งค่าการเชื่อมต่อชำระเงินและบัญชี หลังบันทึกให้ตั้งชื่อ ค่าธรรมเนียม และการใช้ถอนเงินในส่วนวิธีและค่าธรรมเนียม"
   },
   "周期付款上限（含支付手续费）": {
     "en": "Period payment limit (including payment fees)",
     "ja": "期間内の支払上限（決済手数料込み）",
-    "ru": "Лимит платежей за период (с учётом комиссий)"
+    "ru": "Лимит платежей за период (с учётом комиссий)",
+    "hi": "अवधि भुगतान सीमा (भुगतान शुल्क सहित)",
+    "ms": "Had pembayaran tempoh (termasuk fi pembayaran)",
+    "th": "ขีดจำกัดชำระเงินต่องวด (รวมค่าธรรมเนียมชำระเงิน)"
   },
   "采购本金 结算币种": {
     "en": "Procurement principal · settlement currency",
     "ja": "仕入本体額・決済通貨",
-    "ru": "Основная сумма закупки · валюта расчётов"
+    "ru": "Основная сумма закупки · валюта расчётов",
+    "hi": "खरीद मूल राशि · निपटान मुद्रा",
+    "ms": "Prinsipal perolehan · mata wang penyelesaian",
+    "th": "เงินต้นการจัดซื้อ · สกุลเงินที่ใช้ชำระบัญชี"
   },
   "本次线下收款方式": {
     "en": "Method used for this offline receipt",
     "ja": "今回の外部入金方法",
-    "ru": "Способ этого внешнего поступления"
+    "ru": "Способ этого внешнего поступления",
+    "hi": "इस ऑफ़लाइन प्राप्ति की उपयोग विधि",
+    "ms": "Kaedah yang digunakan untuk penerimaan luar talian ini",
+    "th": "วิธีที่ใช้รับเงินออฟไลน์ครั้งนี้"
   },
   "选择实际收款方式并填写采购本金。本金加支付手续费必须等于这笔实际收款总额，仅本金计算购买和赠送 ATG。": {
     "en": "Select the actual collection method and enter procurement principal. Principal plus payment fee must equal the actual gross receipt. Purchased and bonus ATG use principal only.",
     "ja": "実際の入金方法と仕入本体額を指定します。本体額と決済手数料の合計は実際の入金総額と一致する必要があります。購入・付与 ATG は本体額のみから計算します。",
-    "ru": "Выберите фактический способ приёма и укажите основную сумму закупки. Она вместе с комиссией должна равняться фактическому поступлению. Купленные и бонусные ATG рассчитываются только от основной суммы."
+    "ru": "Выберите фактический способ приёма и укажите основную сумму закупки. Она вместе с комиссией должна равняться фактическому поступлению. Купленные и бонусные ATG рассчитываются только от основной суммы.",
+    "hi": "वास्तविक संग्रह विधि चुनें और खरीद मूल राशि दर्ज करें। मूल राशि और भुगतान शुल्क का योग वास्तविक सकल प्राप्ति के बराबर होना चाहिए। खरीदा और बोनस ATG केवल मूल राशि उपयोग करते हैं।",
+    "ms": "Pilih kaedah penerimaan sebenar dan masukkan prinsipal perolehan. Prinsipal ditambah fi pembayaran mesti sama dengan penerimaan kasar sebenar. ATG dibeli dan bonus hanya menggunakan prinsipal.",
+    "th": "เลือกวิธีรับเงินจริงและกรอกเงินต้นการจัดซื้อ เงินต้นบวกค่าธรรมเนียมชำระเงินต้องเท่ากับยอดรับรวมจริง ATG ที่ซื้อและโบนัสคิดจากเงินต้นเท่านั้น"
   },
   "收款总额（含支付手续费） 清算币种": {
     "en": "Gross receipt including payment fee · settlement currency",
     "ja": "入金総額（決済手数料込み）・決済通貨",
-    "ru": "Валовое поступление с комиссией за платёж · валюта расчётов"
+    "ru": "Валовое поступление с комиссией за платёж · валюта расчётов",
+    "hi": "भुगतान शुल्क सहित सकल प्राप्ति · निपटान मुद्रा",
+    "ms": "Penerimaan kasar termasuk fi pembayaran · mata wang penyelesaian",
+    "th": "ยอดรับรวมรวมค่าธรรมเนียมชำระเงิน · สกุลเงินที่ใช้ชำระบัญชี"
   },
   "已收支付手续费 清算币种": {
     "en": "Payment fee charged · settlement currency",
     "ja": "徴収済み決済手数料・決済通貨",
-    "ru": "Полученная комиссия за платёж · валюта расчётов"
+    "ru": "Полученная комиссия за платёж · валюта расчётов",
+    "hi": "लिया गया भुगतान शुल्क · निपटान मुद्रा",
+    "ms": "Fi pembayaran yang dicaj · mata wang penyelesaian",
+    "th": "ค่าธรรมเนียมชำระเงินที่เรียกเก็บ · สกุลเงินที่ใช้ชำระบัญชี"
   },
   "已核实本金": {
     "en": "Verified principal",
     "ja": "確認済み本体額",
-    "ru": "Подтверждённая основная сумма"
+    "ru": "Подтверждённая основная сумма",
+    "hi": "सत्यापित मूल राशि",
+    "ms": "Prinsipal yang disahkan",
+    "th": "เงินต้นที่ตรวจสอบแล้ว"
   },
   "开通支付方式": {
     "en": "Open a payment method",
     "ja": "支払方法を開通",
-    "ru": "Подключить способ оплаты"
+    "ru": "Подключить способ оплаты",
+    "hi": "भुगतान विधि खोलें",
+    "ms": "Buka kaedah pembayaran",
+    "th": "เปิดวิธีชำระเงิน"
   },
   "管理支付方式": {
     "en": "Manage payment method",
     "ja": "支払方法を管理",
-    "ru": "Управление способом оплаты"
+    "ru": "Управление способом оплаты",
+    "hi": "भुगतान विधि प्रबंधित करें",
+    "ms": "Urus kaedah pembayaran",
+    "th": "จัดการวิธีชำระเงิน"
   },
   "保存支付方式": {
     "en": "Save payment method",
     "ja": "支払方法を保存",
-    "ru": "Сохранить способ оплаты"
+    "ru": "Сохранить способ оплаты",
+    "hi": "भुगतान विधि सहेजें",
+    "ms": "Simpan kaedah pembayaran",
+    "th": "บันทึกวิธีชำระเงิน"
   },
   "启用支付方式": {
     "en": "Enable payment method",
     "ja": "支払方法を有効にする",
-    "ru": "Включить способ оплаты"
+    "ru": "Включить способ оплаты",
+    "hi": "भुगतान विधि सक्षम करें",
+    "ms": "Aktifkan kaedah pembayaran",
+    "th": "เปิดใช้งานวิธีชำระเงิน"
   },
   "用于收款": {
     "en": "Accept payments",
     "ja": "入金に使用",
-    "ru": "Принимать платежи"
+    "ru": "Принимать платежи",
+    "hi": "भुगतान स्वीकार करें",
+    "ms": "Terima pembayaran",
+    "th": "รับชำระเงิน"
   },
   "可收款": {
     "en": "Can accept payments",
     "ja": "入金可能",
-    "ru": "Приём платежей доступен"
+    "ru": "Приём платежей доступен",
+    "hi": "भुगतान स्वीकार कर सकता है",
+    "ms": "Boleh menerima pembayaran",
+    "th": "รับชำระเงินได้"
   },
   "可提现": {
     "en": "Can process withdrawals",
     "ja": "出金可能",
-    "ru": "Вывод доступен"
+    "ru": "Вывод доступен",
+    "hi": "निकासी संसाधित कर सकता है",
+    "ms": "Boleh memproses pengeluaran",
+    "th": "ดำเนินการถอนเงินได้"
   },
   "待接入": {
     "en": "Awaiting connection",
     "ja": "接続待ち",
-    "ru": "Ожидает подключения"
+    "ru": "Ожидает подключения",
+    "hi": "कनेक्शन लंबित",
+    "ms": "Menunggu sambungan",
+    "th": "รอเชื่อมต่อ"
   },
   "awaiting_connection": {
     "en": "Awaiting connection",
     "ja": "接続待ち",
-    "ru": "Ожидает подключения"
+    "ru": "Ожидает подключения",
+    "hi": "कनेक्शन लंबित",
+    "ms": "Menunggu sambungan",
+    "th": "รอเชื่อมต่อ"
   },
   "待补充资料": {
     "en": "Missing information",
     "ja": "不足資料",
-    "ru": "Недостающие данные"
+    "ru": "Недостающие данные",
+    "hi": "जानकारी अधूरी",
+    "ms": "Maklumat tiada",
+    "th": "ข้อมูลขาดหาย"
   },
   "收款办理方式": {
     "en": "Collection processing",
     "ja": "入金の処理方法",
-    "ru": "Обработка входящих платежей"
+    "ru": "Обработка входящих платежей",
+    "hi": "संग्रह प्रसंस्करण",
+    "ms": "Pemprosesan penerimaan",
+    "th": "การดำเนินการรับเงิน"
   },
   "线下办理": {
     "en": "Handled offline",
     "ja": "オフラインで処理",
-    "ru": "Офлайн-обработка"
+    "ru": "Офлайн-обработка",
+    "hi": "ऑफ़लाइन संभाला गया",
+    "ms": "Diurus di luar talian",
+    "th": "ดำเนินการออฟไลน์"
   },
   "线下支付": {
     "en": "Offline payment",
     "ja": "オフライン決済",
-    "ru": "Офлайн-оплата"
+    "ru": "Офлайн-оплата",
+    "hi": "ऑफ़लाइन भुगतान",
+    "ms": "Pembayaran luar talian",
+    "th": "ชำระเงินออฟไลน์"
   },
   "银行卡": {
     "en": "Bank card",
     "ja": "銀行カード",
-    "ru": "Банковская карта"
+    "ru": "Банковская карта",
+    "hi": "बैंक कार्ड",
+    "ms": "Kad bank",
+    "th": "บัตรธนาคาร"
   },
   "银行转账": {
     "en": "Bank transfer",
     "ja": "銀行振込",
-    "ru": "Банковский перевод"
+    "ru": "Банковский перевод",
+    "hi": "बैंक हस्तांतरण",
+    "ms": "Pindahan bank",
+    "th": "โอนผ่านธนาคาร"
   },
   "接入资料": {
     "en": "Connection details",
     "ja": "接続情報",
-    "ru": "Данные подключения"
+    "ru": "Данные подключения",
+    "hi": "कनेक्शन विवरण",
+    "ms": "Butiran sambungan",
+    "th": "รายละเอียดการเชื่อมต่อ"
   },
   "收款资产与网络": {
     "en": "Collection asset and network",
     "ja": "受取資産とネットワーク",
-    "ru": "Актив и сеть для приёма"
+    "ru": "Актив и сеть для приёма",
+    "hi": "संग्रह परिसंपत्ति और नेटवर्क",
+    "ms": "Aset dan rangkaian penerimaan",
+    "th": "สินทรัพย์และเครือข่ายรับเงิน"
   },
   "待接入，先保存规则": {
     "en": "Not connected: save the rule first",
     "ja": "未接続：先に規則を保存",
-    "ru": "Ещё не подключено: сохранить правило"
+    "ru": "Ещё не подключено: сохранить правило",
+    "hi": "कनेक्ट नहीं: पहले नियम सहेजें",
+    "ms": "Belum disambungkan: simpan peraturan dahulu",
+    "th": "ยังไม่เชื่อมต่อ: บันทึกกฎก่อน"
   },
   "留空保留已保存的密钥": {
     "en": "Leave blank to retain the saved secret",
     "ja": "空欄で保存済みのキーを保持",
-    "ru": "Оставьте пустым, чтобы сохранить текущий ключ"
+    "ru": "Оставьте пустым, чтобы сохранить текущий ключ",
+    "hi": "सहेजा गुप्त मान रखने के लिए खाली छोड़ें",
+    "ms": "Biarkan kosong untuk mengekalkan rahsia yang disimpan",
+    "th": "เว้นว่างเพื่อเก็บข้อมูลลับที่บันทึกไว้"
   },
   "此方式仅用于收款。": {
     "en": "This method supports collections only.",
     "ja": "この方法は入金専用です。",
-    "ru": "Этот способ предназначен только для приёма платежей."
+    "ru": "Этот способ предназначен только для приёма платежей.",
+    "hi": "यह विधि केवल संग्रह समर्थित करती है।",
+    "ms": "Kaedah ini hanya menyokong penerimaan.",
+    "th": "วิธีนี้รองรับเฉพาะการรับเงิน"
   },
   "选择支付方式，在同一处填写接入资料、手续费及用途。资料未齐可先保存规则，收款不会提前开放。": {
     "en": "Choose a payment method and set its connection details, fee and uses together. You may save the rule before all details are ready; collections remain unavailable.",
     "ja": "支払方法を選び、接続情報、手数料、用途を一括設定します。資料が未完成でも規則を保存でき、入金はまだ有効になりません。",
-    "ru": "Выберите способ оплаты и задайте подключение, комиссию и назначение в одном месте. Правило можно сохранить заранее; приём платежей останется недоступным."
+    "ru": "Выберите способ оплаты и задайте подключение, комиссию и назначение в одном месте. Правило можно сохранить заранее; приём платежей останется недоступным.",
+    "hi": "भुगतान विधि चुनें और उसका कनेक्शन विवरण, शुल्क और उपयोग साथ सेट करें। सभी विवरण तैयार होने से पहले नियम सहेज सकते हैं; संग्रह अनुपलब्ध रहेगा।",
+    "ms": "Pilih kaedah pembayaran dan tetapkan butiran sambungan, fi dan kegunaannya bersama. Anda boleh menyimpan peraturan sebelum semua butiran sedia; penerimaan kekal tidak tersedia.",
+    "th": "เลือกวิธีชำระเงินและตั้งค่ารายละเอียดเชื่อมต่อ ค่าธรรมเนียม และการใช้งานร่วมกัน คุณบันทึกกฎก่อนข้อมูลครบได้ แต่ยังรับเงินไม่ได้"
   },
   "双方线下完成收付款后登记实际收款事实，系统按本金入账和交付。": {
     "en": "Complete the payment offline, then record the actual receipt. Wallet credit and delivery use the principal.",
     "ja": "当事者間でオフライン決済を完了してから実際の入金を登録します。残高計上と提供は元本に基づきます。",
-    "ru": "После офлайн-расчёта зарегистрируйте фактическое поступление. Зачисление и предоставление прав рассчитываются по основной сумме."
+    "ru": "После офлайн-расчёта зарегистрируйте фактическое поступление. Зачисление и предоставление прав рассчитываются по основной сумме.",
+    "hi": "भुगतान ऑफ़लाइन पूरा करें, फिर वास्तविक प्राप्ति दर्ज करें। वॉलेट जमा और डिलीवरी मूल राशि उपयोग करते हैं।",
+    "ms": "Selesaikan pembayaran di luar talian, kemudian rekodkan penerimaan sebenar. Kredit dompet dan penyerahan menggunakan prinsipal.",
+    "th": "ชำระเงินออฟไลน์ให้เสร็จ จากนั้นบันทึกยอดรับจริง เครดิตกระเป๋าและการส่งมอบใช้เงินต้น"
   },
   "提现收款资料由支付方式自动确定。余额和佣金提现共用本次费用规则，由经营方线下付款后登记完成。": {
     "en": "Withdrawal recipient fields follow the payment method automatically. Balance and commission withdrawals share this fee rule. The operator pays offline, then records completion.",
     "ja": "出金先の項目は支払方法から自動設定されます。残高とコミッションの出金に同じ手数料規則を使い、事業者がオフラインで支払後に完了を登録します。",
-    "ru": "Поля получателя определяются способом оплаты. Для вывода баланса и комиссионных действует одно правило. Оператор платит вне системы и регистрирует завершение."
+    "ru": "Поля получателя определяются способом оплаты. Для вывода баланса и комиссионных действует одно правило. Оператор платит вне системы и регистрирует завершение.",
+    "hi": "निकासी प्राप्तकर्ता फ़ील्ड अपने आप भुगतान विधि के अनुसार होते हैं। शेष राशि और कमीशन निकासी यह शुल्क नियम साझा करती हैं। संचालक ऑफ़लाइन भुगतान करके पूर्णता दर्ज करता है।",
+    "ms": "Medan penerima pengeluaran mengikut kaedah pembayaran secara automatik. Pengeluaran baki dan komisen berkongsi peraturan fi ini. Pengendali membayar di luar talian, kemudian merekodkan penyelesaian.",
+    "th": "ช่องข้อมูลผู้รับการถอนเงินเป็นไปตามวิธีชำระเงินโดยอัตโนมัติ การถอนเงินจากยอดคงเหลือและค่าคอมมิชชันใช้กฎค่าธรรมเนียมนี้ร่วมกัน ผู้ดำเนินงานจ่ายออฟไลน์แล้วบันทึกว่าเสร็จ"
   },
   "收款在本金之外加收，提现从申请总额扣除。内部余额和佣金抵扣不收费；修改不影响已确认的交易。": {
     "en": "Collection fees are added to the principal; withdrawal fees are deducted from the requested total. Internal wallet offsets are free. Changes do not alter confirmed transactions.",
     "ja": "入金手数料は元本に加算し、出金手数料は申請総額から控除します。内部残高やコミッションの充当は無料で、変更は確認済み取引に影響しません。",
-    "ru": "При оплате комиссия добавляется к основной сумме, при выводе вычитается из суммы заявки. Внутренние списания бесплатны. Изменения не затрагивают подтверждённые операции."
+    "ru": "При оплате комиссия добавляется к основной сумме, при выводе вычитается из суммы заявки. Внутренние списания бесплатны. Изменения не затрагивают подтверждённые операции.",
+    "hi": "संग्रह शुल्क मूल राशि में जुड़ते हैं; निकासी शुल्क अनुरोधित कुल से कटते हैं। आंतरिक वॉलेट समायोजन निःशुल्क हैं। बदलाव पुष्ट लेनदेन नहीं बदलते।",
+    "ms": "Fi penerimaan ditambah kepada prinsipal; fi pengeluaran ditolak daripada jumlah dimohon. Ofset dompet dalaman adalah percuma. Perubahan tidak mengubah transaksi yang disahkan.",
+    "th": "ค่าธรรมเนียมรับเงินบวกเพิ่มจากเงินต้น ค่าธรรมเนียมการถอนเงินหักจากยอดรวมที่ขอ การหักกลบในกระเป๋าภายในไม่มีค่าธรรมเนียม การเปลี่ยนแปลงไม่แก้ธุรกรรมที่ยืนยันแล้ว"
   },
   "支付方式和手续费规则已保存。请按卡片状态核对可用业务。": {
     "en": "Payment method and fee rule saved. Check the card status for available uses.",
     "ja": "支払方法と手数料規則を保存しました。カードの状態で利用可能な業務を確認してください。",
-    "ru": "Способ оплаты и комиссия сохранены. Доступные операции указаны в статусе карточки."
+    "ru": "Способ оплаты и комиссия сохранены. Доступные операции указаны в статусе карточки.",
+    "hi": "भुगतान विधि और शुल्क नियम सहेजे गए। उपलब्ध उपयोग के लिए कार्ड स्थिति जाँचें।",
+    "ms": "Kaedah pembayaran dan peraturan fi disimpan. Semak status kad untuk kegunaan yang tersedia.",
+    "th": "บันทึกวิธีชำระเงินและกฎค่าธรรมเนียมแล้ว ตรวจสอบสถานะการ์ดเพื่อดูการใช้งานที่ใช้ได้"
   },
   "等待平台完成收款所需配置": {
     "en": "Waiting for the platform to complete collection setup",
     "ja": "入金に必要なプラットフォーム設定待ち",
-    "ru": "Ожидание настройки приёма платежей платформой"
+    "ru": "Ожидание настройки приёма платежей платформой",
+    "hi": "प्लेटफ़ॉर्म द्वारा संग्रह सेटअप पूरा होने की प्रतीक्षा में",
+    "ms": "Menunggu platform melengkapkan persediaan penerimaan",
+    "th": "รอแพลตฟอร์มตั้งค่าการรับเงินให้เสร็จ"
   },
   "支付宝线上收款": {
     "en": "Alipay online collection",
     "ja": "Alipay オンライン入金",
-    "ru": "Онлайн-приём Alipay"
+    "ru": "Онлайн-приём Alipay",
+    "hi": "Alipay ऑनलाइन संग्रह",
+    "ms": "Penerimaan dalam talian Alipay",
+    "th": "รับเงินออนไลน์ Alipay"
   },
   "微信线上收款": {
     "en": "WeChat online collection",
     "ja": "WeChat オンライン入金",
-    "ru": "Онлайн-приём WeChat"
+    "ru": "Онлайн-приём WeChat",
+    "hi": "WeChat ऑनलाइन संग्रह",
+    "ms": "Penerimaan dalam talian WeChat",
+    "th": "รับเงินออนไลน์ WeChat"
   },
   "自有链上钱包": {
     "en": "Own on-chain wallet",
     "ja": "自己管理のオンチェーンウォレット",
-    "ru": "Собственный блокчейн-кошелёк"
+    "ru": "Собственный блокчейн-кошелёк",
+    "hi": "अपना ऑन-चेन वॉलेट",
+    "ms": "Dompet pada rantaian sendiri",
+    "th": "กระเป๋าบนเชนของตนเอง"
   },
   "现金 · 收款人姓名": {
     "en": "Cash · recipient name",
     "ja": "現金・受取人名",
-    "ru": "Наличные · имя получателя"
+    "ru": "Наличные · имя получателя",
+    "hi": "नकद · प्राप्तकर्ता का नाम",
+    "ms": "Tunai · nama penerima",
+    "th": "เงินสด · ชื่อผู้รับ"
   },
   "经营方与客户线下交付现金，核实收款人后登记付款。": {
     "en": "The operator hands over cash offline, verifies the recipient and records payment.",
     "ja": "事業者が現金をオフラインで渡し、受取人を確認して支払を登録します。",
-    "ru": "Оператор передаёт наличные вне системы, проверяет получателя и регистрирует выплату."
+    "ru": "Оператор передаёт наличные вне системы, проверяет получателя и регистрирует выплату.",
+    "hi": "संचालक ऑफ़लाइन नकद देता है, प्राप्तकर्ता सत्यापित करता है और भुगतान दर्ज करता है।",
+    "ms": "Pengendali menyerahkan tunai di luar talian, mengesahkan penerima dan merekodkan pembayaran.",
+    "th": "ผู้ดำเนินงานส่งมอบเงินสดออฟไลน์ ตรวจสอบผู้รับ และบันทึกการชำระเงิน"
   },
   "填写现场领取现金的人。": {
     "en": "Enter the person collecting the cash.",
     "ja": "現金を受け取る人を入力してください。",
-    "ru": "Укажите человека, получающего наличные."
+    "ru": "Укажите человека, получающего наличные.",
+    "hi": "नकद प्राप्त करने वाले व्यक्ति का नाम दर्ज करें।",
+    "ms": "Masukkan nama orang yang mengambil tunai.",
+    "th": "กรอกชื่อผู้มารับเงินสด"
   },
   "请选择至少一项用途，或停用此支付方式。": {
     "en": "Select at least one use, or disable this payment method.",
     "ja": "用途を少なくとも一つ選ぶか、この支払方法を無効にしてください。",
-    "ru": "Выберите хотя бы одно назначение или отключите способ оплаты."
+    "ru": "Выберите хотя бы одно назначение или отключите способ оплаты.",
+    "hi": "कम से कम एक उपयोग चुनें या यह भुगतान विधि निष्क्रिय करें।",
+    "ms": "Pilih sekurang-kurangnya satu kegunaan, atau nyahaktifkan kaedah pembayaran ini.",
+    "th": "เลือกการใช้งานอย่างน้อยหนึ่งประเภท หรือปิดวิธีชำระเงินนี้"
   },
   "现金": {
     "en": "Cash",
     "ja": "現金",
-    "ru": "Наличные"
+    "ru": "Наличные",
+    "hi": "नकद",
+    "ms": "Tunai",
+    "th": "เงินสด"
   },
   "收款币种（大写，例如USD/CNY）": {
     "en": "Collection currency (uppercase, e.g. USD/CNY)",
     "ja": "受取通貨（大文字、例：USD/CNY）",
-    "ru": "Валюта приёма (заглавными буквами, например USD/CNY)"
+    "ru": "Валюта приёма (заглавными буквами, например USD/CNY)",
+    "hi": "संग्रह मुद्रा (बड़े अक्षरों में, जैसे USD/CNY)",
+    "ms": "Mata wang penerimaan (huruf besar, contohnya USD/CNY)",
+    "th": "สกุลเงินรับเงิน (ตัวพิมพ์ใหญ่ เช่น USD/CNY)"
   },
   "人工办理": {
     "en": "Handled manually",
     "ja": "手動対応",
-    "ru": "Ручная обработка"
+    "ru": "Ручная обработка",
+    "hi": "मैन्युअल संभाला गया",
+    "ms": "Diurus secara manual",
+    "th": "ดำเนินการด้วยตนเอง"
   },
   "人工提现": {
     "en": "Manual withdrawals",
     "ja": "手動出金",
-    "ru": "Ручные выплаты"
+    "ru": "Ручные выплаты",
+    "hi": "मैन्युअल निकासी",
+    "ms": "Pengeluaran manual",
+    "th": "การถอนเงินด้วยตนเอง"
   },
   "人工收款说明": {
     "en": "Manual collection instructions",
     "ja": "手動入金の案内",
-    "ru": "Инструкции по ручному приёму платежей"
+    "ru": "Инструкции по ручному приёму платежей",
+    "hi": "मैन्युअल संग्रह निर्देश",
+    "ms": "Arahan penerimaan manual",
+    "th": "คำแนะนำการรับเงินด้วยตนเอง"
   },
   "付款说明（可选）": {
     "en": "Payment instructions (optional)",
     "ja": "支払案内（任意）",
-    "ru": "Инструкции по оплате (необязательно)"
+    "ru": "Инструкции по оплате (необязательно)",
+    "hi": "भुगतान निर्देश (वैकल्पिक)",
+    "ms": "Arahan pembayaran (pilihan)",
+    "th": "คำแนะนำการชำระเงิน (ไม่บังคับ)"
   },
   "先选择要办理的业务。人工提现无需接入接口；线上收款按通道要求配置。": {
     "en": "Choose the services to offer. Manual withdrawals need no API connection; configure online collection for its provider.",
     "ja": "提供する業務を選択してください。手動出金にAPI連携は不要です。オンライン入金は決済サービスの要件に従って設定します。",
-    "ru": "Выберите операции. Для ручных выплат подключение API не требуется; онлайн-приём настраивается по требованиям провайдера."
+    "ru": "Выберите операции. Для ручных выплат подключение API не требуется; онлайн-приём настраивается по требованиям провайдера.",
+    "hi": "प्रदान की जाने वाली सेवाएँ चुनें। मैन्युअल निकासी के लिए API कनेक्शन आवश्यक नहीं है; प्रदाता के लिए ऑनलाइन संग्रह कॉन्फ़िगर करें।",
+    "ms": "Pilih perkhidmatan yang ditawarkan. Pengeluaran manual tidak memerlukan sambungan API; konfigurasikan penerimaan dalam talian untuk penyedianya.",
+    "th": "เลือกบริการที่จะเปิดให้ใช้ การถอนเงินด้วยตนเองไม่ต้องเชื่อม API ส่วนการรับเงินออนไลน์ให้ตั้งค่าตามผู้ให้บริการ"
   },
   "可办理的提现网络": {
     "en": "Supported withdrawal networks",
     "ja": "対応する出金ネットワーク",
-    "ru": "Доступные сети для выплат"
+    "ru": "Доступные сети для выплат",
+    "hi": "समर्थित निकासी नेटवर्क",
+    "ms": "Rangkaian pengeluaran yang disokong",
+    "th": "เครือข่ายถอนเงินที่รองรับ"
   },
   "客户填写的收款资料": {
     "en": "Recipient details customers provide",
     "ja": "顧客が入力する受取情報",
-    "ru": "Реквизиты, заполняемые клиентом"
+    "ru": "Реквизиты, заполняемые клиентом",
+    "hi": "ग्राहक द्वारा दिए जाने वाले प्राप्तकर्ता विवरण",
+    "ms": "Butiran penerima yang diberikan pelanggan",
+    "th": "ข้อมูลผู้รับที่ลูกค้าต้องระบุ"
   },
   "可选": {
     "en": "Optional",
     "ja": "任意",
-    "ru": "Необязательно"
+    "ru": "Необязательно",
+    "hi": "वैकल्पिक",
+    "ms": "Pilihan",
+    "th": "ไม่บังคับ"
   },
   "必填": {
     "en": "Required",
     "ja": "必須",
-    "ru": "Обязательно"
+    "ru": "Обязательно",
+    "hi": "आवश्यक",
+    "ms": "Wajib",
+    "th": "บังคับ"
   },
   "实际到账": {
     "en": "Amount received",
     "ja": "実際の受取額",
-    "ru": "Сумма к получению"
+    "ru": "Сумма к получению",
+    "hi": "प्राप्त राशि",
+    "ms": "Jumlah diterima",
+    "th": "ยอดที่ได้รับ"
   },
   "提现": {
     "en": "Withdrawals",
     "ja": "出金",
-    "ru": "Вывод средств"
+    "ru": "Вывод средств",
+    "hi": "निकासी",
+    "ms": "Pengeluaran",
+    "th": "การถอนเงิน"
   },
   "清算净额": {
     "en": "Net settlement amount",
     "ja": "決済通貨での正味額",
-    "ru": "Чистая сумма в валюте расчётов"
+    "ru": "Чистая сумма в валюте расчётов",
+    "hi": "शुद्ध निपटान राशि",
+    "ms": "Jumlah penyelesaian bersih",
+    "th": "ยอดชำระบัญชีสุทธิ"
   },
   "提现兑换比例": {
     "en": "Withdrawal exchange rate",
     "ja": "出金時の換算比率",
-    "ru": "Курс для выплат"
+    "ru": "Курс для выплат",
+    "hi": "निकासी विनिमय दर",
+    "ms": "Kadar pertukaran pengeluaran",
+    "th": "อัตราแลกเปลี่ยนการถอนเงิน"
   },
   "提现到账币种": {
     "en": "Withdrawal receiving currency",
     "ja": "出金の受取通貨",
-    "ru": "Валюта получения выплаты"
+    "ru": "Валюта получения выплаты",
+    "hi": "निकासी प्राप्ति मुद्रा",
+    "ms": "Mata wang penerimaan pengeluaran",
+    "th": "สกุลเงินที่ได้รับจากการถอนเงิน"
   },
   "提现办理说明": {
     "en": "Withdrawal instructions",
     "ja": "出金の案内",
-    "ru": "Инструкции по выплатам"
+    "ru": "Инструкции по выплатам",
+    "hi": "निकासी निर्देश",
+    "ms": "Arahan pengeluaran",
+    "th": "คำแนะนำการถอนเงิน"
   },
   "提现办理说明（可选）": {
     "en": "Withdrawal instructions (optional)",
     "ja": "出金の案内（任意）",
-    "ru": "Инструкции по выплатам (необязательно)"
+    "ru": "Инструкции по выплатам (необязательно)",
+    "hi": "निकासी निर्देश (वैकल्पिक)",
+    "ms": "Arahan pengeluaran (pilihan)",
+    "th": "คำแนะนำการถอนเงิน (ไม่บังคับ)"
   },
   "收款信息（可选）": {
     "en": "Payment recipient details (optional)",
     "ja": "入金先情報（任意）",
-    "ru": "Реквизиты получателя оплаты (необязательно)"
+    "ru": "Реквизиты получателя оплаты (необязательно)",
+    "hi": "भुगतान प्राप्तकर्ता विवरण (वैकल्पिक)",
+    "ms": "Butiran penerima pembayaran (pilihan)",
+    "th": "ข้อมูลผู้รับชำระเงิน (ไม่บังคับ)"
   },
   "收款银行地址": {
     "en": "Recipient bank address",
     "ja": "受取銀行の住所",
-    "ru": "Адрес банка получателя"
+    "ru": "Адрес банка получателя",
+    "hi": "प्राप्तकर्ता बैंक पता",
+    "ms": "Alamat bank penerima",
+    "th": "ที่อยู่ธนาคารผู้รับ"
   },
   "补充汇款资料": {
     "en": "Additional transfer details",
     "ja": "追加の送金情報",
-    "ru": "Дополнительные реквизиты перевода"
+    "ru": "Дополнительные реквизиты перевода",
+    "hi": "अतिरिक्त हस्तांतरण विवरण",
+    "ms": "Butiran pemindahan tambahan",
+    "th": "รายละเอียดการโอนเพิ่มเติม"
   },
   "添加支付方式": {
     "en": "Add payment method",
     "ja": "支払方法を追加",
-    "ru": "Добавить способ оплаты"
+    "ru": "Добавить способ оплаты",
+    "hi": "भुगतान विधि जोड़ें",
+    "ms": "Tambah kaedah pembayaran",
+    "th": "เพิ่มวิธีชำระเงิน"
   },
   "等待平台配置可用的资产与网络。": {
     "en": "Waiting for the platform to configure supported assets and networks.",
     "ja": "プラットフォームによる対応資産・ネットワークの設定待ちです。",
-    "ru": "Ожидание настройки доступных активов и сетей платформой."
+    "ru": "Ожидание настройки доступных активов и сетей платформой.",
+    "hi": "प्लेटफ़ॉर्म द्वारा समर्थित परिसंपत्तियाँ और नेटवर्क कॉन्फ़िगर होने की प्रतीक्षा में।",
+    "ms": "Menunggu platform mengkonfigurasi aset dan rangkaian yang disokong.",
+    "th": "รอแพลตฟอร์มตั้งค่าสินทรัพย์และเครือข่ายที่รองรับ"
   },
   "系统内置，启用即可人工办理": {
     "en": "Built in; enable for manual processing",
     "ja": "標準機能。有効にすると手動で対応できます",
-    "ru": "Встроенный способ; включите для ручной обработки"
+    "ru": "Встроенный способ; включите для ручной обработки",
+    "hi": "अंतर्निहित; मैन्युअल प्रसंस्करण के लिए सक्षम करें",
+    "ms": "Terbina dalam; aktifkan untuk pemprosesan manual",
+    "th": "มีในระบบ เปิดใช้งานเพื่อดำเนินการด้วยตนเอง"
   },
   "线上收款接入": {
     "en": "Online collection connection",
     "ja": "オンライン入金の接続設定",
-    "ru": "Подключение онлайн-приёма платежей"
+    "ru": "Подключение онлайн-приёма платежей",
+    "hi": "ऑनलाइन संग्रह कनेक्शन",
+    "ms": "Sambungan penerimaan dalam talian",
+    "th": "การเชื่อมต่อรับเงินออนไลน์"
   },
   "线下支付 · 收款人、办理说明": {
     "en": "Offline payment · recipient and instructions",
     "ja": "オフライン決済 · 受取人・案内",
-    "ru": "Офлайн-оплата · получатель и инструкции"
+    "ru": "Офлайн-оплата · получатель и инструкции",
+    "hi": "ऑफ़लाइन भुगतान · प्राप्तकर्ता और निर्देश",
+    "ms": "Pembayaran luar talian · penerima dan arahan",
+    "th": "การชำระเงินออฟไลน์ · ผู้รับและคำแนะนำ"
   },
   "线下支付是系统内置能力。启用所需业务并设置费用，双方实际收付款后登记完成。": {
     "en": "Offline payment is built in. Enable the services and set the fee, then record completion after the actual payment.",
     "ja": "オフライン決済は標準機能です。必要な業務と手数料を設定し、実際の授受後に完了を記録します。",
-    "ru": "Офлайн-оплата встроена в систему. Включите нужные операции, задайте комиссию и зарегистрируйте завершение после фактической оплаты."
+    "ru": "Офлайн-оплата встроена в систему. Включите нужные операции, задайте комиссию и зарегистрируйте завершение после фактической оплаты.",
+    "hi": "ऑफ़लाइन भुगतान अंतर्निहित है। सेवाएँ सक्षम करें और शुल्क सेट करें, फिर वास्तविक भुगतान के बाद पूर्णता दर्ज करें।",
+    "ms": "Pembayaran luar talian terbina dalam. Aktifkan perkhidmatan dan tetapkan fi, kemudian rekodkan penyelesaian selepas pembayaran sebenar.",
+    "th": "การชำระเงินออฟไลน์มีในระบบ เปิดบริการและตั้งค่าธรรมเนียม จากนั้นบันทึกว่าเสร็จหลังชำระเงินจริง"
   },
   "经营方审批后自行付款，再登记完成。余额和佣金提现共用以下资料和费用规则。": {
     "en": "The operator approves, makes the payment externally, and records completion. Balance and commission withdrawals share these recipient details and fees.",
     "ja": "運営者が承認後に外部で支払い、完了を記録します。残高とコミッションの出金は以下の受取情報と手数料を共用します。",
-    "ru": "Оператор одобряет заявку, самостоятельно переводит деньги и регистрирует завершение. Вывод баланса и комиссий использует общие реквизиты и правила сборов."
+    "ru": "Оператор одобряет заявку, самостоятельно переводит деньги и регистрирует завершение. Вывод баланса и комиссий использует общие реквизиты и правила сборов.",
+    "hi": "संचालक मंज़ूरी देता है, बाहरी भुगतान करता है और पूर्णता दर्ज करता है। शेष राशि और कमीशन निकासी ये प्राप्तकर्ता विवरण और शुल्क साझा करती हैं।",
+    "ms": "Pengendali meluluskan, membuat pembayaran secara luaran dan merekodkan penyelesaian. Pengeluaran baki dan komisen berkongsi butiran penerima dan fi ini.",
+    "th": "ผู้ดำเนินงานอนุมัติ ชำระเงินภายนอก และบันทึกว่าเสร็จ การถอนเงินจากยอดคงเหลือและค่าคอมมิชชันใช้ข้อมูลผู้รับและค่าธรรมเนียมนี้ร่วมกัน"
   },
   "请填写有效的提现兑换比例。": {
     "en": "Enter a valid withdrawal exchange rate.",
     "ja": "有効な出金換算比率を入力してください。",
-    "ru": "Укажите корректный курс для выплат."
+    "ru": "Укажите корректный курс для выплат.",
+    "hi": "वैध निकासी विनिमय दर दर्ज करें।",
+    "ms": "Masukkan kadar pertukaran pengeluaran yang sah.",
+    "th": "กรอกอัตราแลกเปลี่ยนการถอนเงินที่ถูกต้อง"
   },
   "请按申请时固定的到账金额完成付款：": {
     "en": "Pay the receiving amount fixed when this request was submitted:",
     "ja": "申請時に確定した受取額を支払ってください：",
-    "ru": "Переведите сумму к получению, зафиксированную при подаче заявки:"
+    "ru": "Переведите сумму к получению, зафиксированную при подаче заявки:",
+    "hi": "इस अनुरोध के सबमिशन पर तय प्राप्ति राशि का भुगतान करें:",
+    "ms": "Bayar jumlah penerimaan yang ditetapkan semasa permintaan ini dihantar:",
+    "th": "ชำระตามยอดรับที่กำหนดไว้เมื่อส่งคำขอนี้:"
   },
   "请联系经营方，按约定完成线下付款。": {
     "en": "Contact the operator and complete the agreed offline payment.",
     "ja": "運営者に連絡し、合意した方法でオフライン支払いを完了してください。",
-    "ru": "Свяжитесь с оператором и оплатите согласованным офлайн-способом."
+    "ru": "Свяжитесь с оператором и оплатите согласованным офлайн-способом.",
+    "hi": "संचालक से संपर्क करके सहमत ऑफ़लाइन भुगतान पूरा करें।",
+    "ms": "Hubungi pengendali dan selesaikan pembayaran luar talian yang dipersetujui.",
+    "th": "ติดต่อผู้ดำเนินงานและชำระเงินออฟไลน์ตามที่ตกลง"
   },
   "请选择经营方能够办理的提现网络。": {
     "en": "Select the withdrawal networks the operator can process.",
     "ja": "運営者が対応できる出金ネットワークを選択してください。",
-    "ru": "Выберите сети, в которых оператор может выполнить выплату."
+    "ru": "Выберите сети, в которых оператор может выполнить выплату.",
+    "hi": "संचालक द्वारा संसाधित किए जा सकने वाले निकासी नेटवर्क चुनें।",
+    "ms": "Pilih rangkaian pengeluaran yang boleh diproses oleh pengendali.",
+    "th": "เลือกเครือข่ายถอนเงินที่ผู้ดำเนินงานสามารถดำเนินการได้"
   },
   "资料未齐可先保存，收款尚不开放，不影响已启用的人工提现。": {
     "en": "You can save incomplete settings. Collection stays unavailable; enabled manual withdrawals remain available.",
     "ja": "情報が未完成でも保存できます。入金は未開放のままですが、有効な手動出金には影響しません。",
-    "ru": "Неполные настройки можно сохранить. Приём платежей останется недоступным; включённые ручные выплаты продолжат работать."
+    "ru": "Неполные настройки можно сохранить. Приём платежей останется недоступным; включённые ручные выплаты продолжат работать.",
+    "hi": "आप अधूरी सेटिंग सहेज सकते हैं। संग्रह अनुपलब्ध रहता है; सक्षम मैन्युअल निकासी उपलब्ध रहती हैं।",
+    "ms": "Anda boleh menyimpan tetapan yang belum lengkap. Penerimaan kekal tidak tersedia; pengeluaran manual yang diaktifkan kekal tersedia.",
+    "th": "คุณบันทึกการตั้งค่าที่ยังไม่ครบได้ การรับเงินยังใช้ไม่ได้ ส่วนการถอนเงินด้วยตนเองที่เปิดไว้ยังใช้ได้"
   },
   "这是本方式承诺的实际付款比例。客户申请前看到到账金额，申请后固定；调整只影响新申请。": {
     "en": "This is the payout rate offered for this method. Customers see the receiving amount before applying; it is fixed on submission. Changes apply only to new requests.",
     "ja": "この方法で支払う換算比率です。顧客は申請前に受取額を確認し、申請時に確定します。変更は新規申請のみに適用されます。",
-    "ru": "Это курс выплаты для данного способа. Клиент видит сумму до подачи заявки; после подачи она фиксируется. Изменения действуют только для новых заявок."
+    "ru": "Это курс выплаты для данного способа. Клиент видит сумму до подачи заявки; после подачи она фиксируется. Изменения действуют только для новых заявок.",
+    "hi": "यह इस विधि की प्रस्तावित भुगतान दर है। ग्राहक आवेदन से पहले प्राप्ति राशि देखते हैं; यह सबमिशन पर तय होती है। बदलाव केवल नए अनुरोधों पर लागू होते हैं।",
+    "ms": "Ini ialah kadar pembayaran yang ditawarkan untuk kaedah ini. Pelanggan melihat jumlah penerimaan sebelum memohon; ia ditetapkan semasa penyerahan. Perubahan hanya terpakai kepada permintaan baharu.",
+    "th": "นี่คืออัตราจ่ายที่เสนอสำหรับวิธีนี้ ลูกค้าเห็นยอดที่จะได้รับก่อนยื่นคำขอ และยอดจะถูกกำหนดเมื่อส่ง การเปลี่ยนแปลงมีผลเฉพาะคำขอใหม่"
   },
   "与经营方联系并约定现金等线下收款安排，经营方付款后登记完成。": {
     "en": "Contact the operator to arrange cash or another offline payment. The operator records completion after paying.",
     "ja": "運営者に連絡して現金などの受取方法を決めます。運営者は支払い後に完了を記録します。",
-    "ru": "Согласуйте с оператором получение наличных или другую офлайн-выплату. После оплаты оператор зарегистрирует завершение."
+    "ru": "Согласуйте с оператором получение наличных или другую офлайн-выплату. После оплаты оператор зарегистрирует завершение.",
+    "hi": "नकद या अन्य ऑफ़लाइन भुगतान की व्यवस्था के लिए संचालक से संपर्क करें। संचालक भुगतान के बाद पूर्णता दर्ज करता है।",
+    "ms": "Hubungi pengendali untuk mengatur tunai atau pembayaran luar talian lain. Pengendali merekodkan penyelesaian selepas membayar.",
+    "th": "ติดต่อผู้ดำเนินงานเพื่อนัดรับเงินสดหรือการชำระออฟไลน์วิธีอื่น ผู้ดำเนินงานบันทึกว่าเสร็จหลังชำระเงิน"
   },
   "填写实际收款人。": {
     "en": "Enter the actual recipient.",
     "ja": "実際の受取人を入力してください。",
-    "ru": "Укажите фактического получателя."
+    "ru": "Укажите фактического получателя.",
+    "hi": "वास्तविक प्राप्तकर्ता दर्ज करें।",
+    "ms": "Masukkan penerima sebenar.",
+    "th": "กรอกผู้รับเงินจริง"
   },
   "可填写已约定的联系或交付安排。": {
     "en": "Optionally describe the agreed contact or handover arrangements.",
     "ja": "合意済みの連絡・受渡方法を任意で記入できます。",
-    "ru": "Можно указать согласованные условия связи или передачи средств."
+    "ru": "Можно указать согласованные условия связи или передачи средств.",
+    "hi": "चाहें तो सहमत संपर्क या सुपुर्दगी व्यवस्था बताएँ।",
+    "ms": "Anda boleh menerangkan aturan hubungan atau penyerahan yang dipersetujui.",
+    "th": "ระบุข้อตกลงการติดต่อหรือส่งมอบเพิ่มเติมได้"
   },
   "填写户名、银行和账号。开户支行仅在实际转账需要时补充。": {
     "en": "Enter the account holder, bank and account number. Add the branch only when needed for the transfer.",
     "ja": "口座名義、銀行、口座番号を入力します。支店は実際の振込に必要な場合のみ追記してください。",
-    "ru": "Укажите владельца счёта, банк и номер счёта. Отделение указывается только при необходимости для перевода."
+    "ru": "Укажите владельца счёта, банк и номер счёта. Отделение указывается только при необходимости для перевода.",
+    "hi": "खाताधारक, बैंक और खाता संख्या दर्ज करें। शाखा केवल हस्तांतरण के लिए आवश्यक होने पर जोड़ें।",
+    "ms": "Masukkan pemegang akaun, bank dan nombor akaun. Tambah cawangan hanya apabila diperlukan untuk pemindahan.",
+    "th": "กรอกชื่อเจ้าของบัญชี ธนาคาร และเลขบัญชี เพิ่มสาขาเฉพาะเมื่อจำเป็นต่อการโอน"
   },
   "实际转账需要时填写。": {
     "en": "Fill in only if needed for the transfer.",
     "ja": "実際の振込に必要な場合に入力してください。",
-    "ru": "Заполните, если это требуется для перевода."
+    "ru": "Заполните, если это требуется для перевода.",
+    "hi": "केवल हस्तांतरण के लिए आवश्यक होने पर भरें।",
+    "ms": "Isi hanya jika diperlukan untuk pemindahan.",
+    "th": "กรอกเฉพาะเมื่อจำเป็นต่อการโอน"
   },
   "填写可用于人工转账的支付宝登录手机号或邮箱。": {
     "en": "Enter the Alipay login phone number or email used for manual transfers.",
     "ja": "手動送金に使えるAlipayのログイン電話番号またはメールアドレスを入力してください。",
-    "ru": "Укажите телефон или email входа в Alipay, доступный для ручного перевода."
+    "ru": "Укажите телефон или email входа в Alipay, доступный для ручного перевода.",
+    "hi": "मैन्युअल हस्तांतरण के लिए उपयोग Alipay लॉगिन फ़ोन नंबर या ईमेल दर्ज करें।",
+    "ms": "Masukkan nombor telefon log masuk atau e-mel Alipay yang digunakan untuk pemindahan manual.",
+    "th": "กรอกหมายเลขโทรศัพท์หรืออีเมลเข้าสู่ระบบ Alipay ที่ใช้โอนด้วยตนเอง"
   },
   "经营方通过微信联系并核对实际收款方式后人工付款。填写联系方式不代表已完成微信账户验证。": {
     "en": "The operator contacts you on WeChat, confirms how to pay, and pays manually. Contact details do not constitute WeChat account verification.",
     "ja": "運営者がWeChatで連絡し、受取方法を確認して手動で支払います。連絡先の入力はWeChatアカウントの認証ではありません。",
-    "ru": "Оператор свяжется через WeChat, уточнит способ получения и выполнит перевод вручную. Контактные данные не означают проверку аккаунта WeChat."
+    "ru": "Оператор свяжется через WeChat, уточнит способ получения и выполнит перевод вручную. Контактные данные не означают проверку аккаунта WeChat.",
+    "hi": "संचालक WeChat पर आपसे संपर्क करता है, भुगतान का तरीका पुष्ट करता है और मैन्युअल भुगतान करता है। संपर्क विवरण WeChat खाते का सत्यापन नहीं है।",
+    "ms": "Pengendali menghubungi anda melalui WeChat, mengesahkan cara pembayaran dan membayar secara manual. Butiran hubungan tidak bermakna akaun WeChat telah disahkan.",
+    "th": "ผู้ดำเนินงานติดต่อคุณทาง WeChat ยืนยันวิธีชำระเงิน และชำระด้วยตนเอง ข้อมูลติดต่อไม่ได้ถือเป็นการตรวจสอบบัญชี WeChat"
   },
   "供经营方联系时核对收款人。": {
     "en": "For the operator to confirm the recipient when contacting them.",
     "ja": "運営者が連絡時に受取人を確認するための情報です。",
-    "ru": "Для проверки получателя оператором при связи."
+    "ru": "Для проверки получателя оператором при связи.",
+    "hi": "संपर्क करते समय संचालक द्वारा प्राप्तकर्ता की पुष्टि के लिए।",
+    "ms": "Untuk pengendali mengesahkan penerima semasa menghubunginya.",
+    "th": "เพื่อให้ผู้ดำเนินงานยืนยันผู้รับเมื่อติดต่อ"
   },
   "填写可联系到你的微信号或手机号，实际转账方式与经营方确认。": {
     "en": "Enter a WeChat ID or phone number where you can be reached. Confirm the actual transfer method with the operator.",
     "ja": "連絡可能なWeChat IDまたは電話番号を入力し、実際の送金方法を運営者と確認してください。",
-    "ru": "Укажите WeChat ID или телефон для связи. Согласуйте фактический способ перевода с оператором."
+    "ru": "Укажите WeChat ID или телефон для связи. Согласуйте фактический способ перевода с оператором.",
+    "hi": "संपर्क योग्य WeChat ID या फ़ोन नंबर दर्ज करें। वास्तविक हस्तांतरण विधि संचालक से पुष्ट करें।",
+    "ms": "Masukkan ID WeChat atau nombor telefon yang boleh dihubungi. Sahkan kaedah pemindahan sebenar dengan pengendali.",
+    "th": "กรอก WeChat ID หรือหมายเลขโทรศัพท์ที่ติดต่อคุณได้ ยืนยันวิธีโอนจริงกับผู้ดำเนินงาน"
   },
   "填写接收本次付款的 PayPal 邮箱。": {
     "en": "Enter the PayPal email receiving this payment.",
     "ja": "今回の支払いを受け取るPayPalメールアドレスを入力してください。",
-    "ru": "Укажите email PayPal для получения этой выплаты."
+    "ru": "Укажите email PayPal для получения этой выплаты.",
+    "hi": "यह भुगतान प्राप्त करने वाला PayPal ईमेल दर्ज करें।",
+    "ms": "Masukkan e-mel PayPal yang menerima pembayaran ini.",
+    "th": "กรอกอีเมล PayPal ที่รับการชำระเงินนี้"
   },
   "汇出银行要求时填写。": {
     "en": "Fill in if required by the sending bank.",
     "ja": "送金銀行が要求する場合に入力してください。",
-    "ru": "Заполните, если этого требует банк отправителя."
+    "ru": "Заполните, если этого требует банк отправителя.",
+    "hi": "भेजने वाले बैंक को आवश्यक होने पर भरें।",
+    "ms": "Isi jika diperlukan oleh bank penghantar.",
+    "th": "กรอกหากธนาคารผู้ส่งกำหนด"
   },
   "可补充银行要求的当地清算代码或中转行信息。": {
     "en": "Add local clearing codes or intermediary bank details if required by the bank.",
     "ja": "銀行が求める国内決済コードや中継銀行情報を追記できます。",
-    "ru": "При необходимости добавьте местный клиринговый код или реквизиты банка-посредника."
+    "ru": "При необходимости добавьте местный клиринговый код или реквизиты банка-посредника.",
+    "hi": "बैंक को आवश्यक होने पर स्थानीय क्लियरिंग कोड या मध्यस्थ बैंक विवरण जोड़ें।",
+    "ms": "Tambah kod penjelasan tempatan atau butiran bank perantara jika diperlukan oleh bank.",
+    "th": "เพิ่มรหัสชำระบัญชีท้องถิ่นหรือข้อมูลธนาคารตัวกลางหากธนาคารกำหนด"
   },
   "填写 8 位或 11 位 SWIFT/BIC。": {
     "en": "Enter an 8- or 11-character SWIFT/BIC.",
     "ja": "8桁または11桁のSWIFT/BICを入力してください。",
-    "ru": "Укажите SWIFT/BIC из 8 или 11 символов."
+    "ru": "Укажите SWIFT/BIC из 8 или 11 символов.",
+    "hi": "8 या 11 अक्षर का SWIFT/BIC दर्ज करें।",
+    "ms": "Masukkan SWIFT/BIC 8 atau 11 aksara.",
+    "th": "กรอก SWIFT/BIC ความยาว 8 หรือ 11 ตัวอักษร"
   },
   "充值、直接购买套餐": {
     "en": "Top-ups and direct plan purchases",
     "ja": "チャージ、プランの直接購入",
-    "ru": "Пополнение и прямая покупка тарифов"
+    "ru": "Пополнение и прямая покупка тарифов",
+    "hi": "टॉप-अप और सीधी योजना खरीद",
+    "ms": "Tambah nilai dan pembelian pelan langsung",
+    "th": "การเติมเงินและซื้อแพ็กเกจโดยตรง"
   },
   "充值、直接购买套餐、余额提现、佣金提现": {
     "en": "Top-ups, direct plan purchases, balance and commission withdrawals",
     "ja": "チャージ、プランの直接購入、残高出金、報酬出金",
-    "ru": "Пополнение, прямая покупка тарифов, вывод баланса и комиссий"
+    "ru": "Пополнение, прямая покупка тарифов, вывод баланса и комиссий",
+    "hi": "टॉप-अप, सीधी योजना खरीद, शेष राशि और कमीशन निकासी",
+    "ms": "Tambah nilai, pembelian pelan langsung, pengeluaran baki dan komisen",
+    "th": "การเติมเงิน การซื้อแพ็กเกจโดยตรง การถอนเงินจากยอดคงเหลือและค่าคอมมิชชัน"
   },
   "充值和直接购买套餐，共用所选方式的规则。支付 100 本金、手续费 2 时，合计付款 102，权益按 100 交付。": {
     "en": "Top-ups and direct plan purchases share the selected method’s rule. A principal of 100 plus a fee of 2 means paying 102, with benefits delivered for 100.",
     "ja": "チャージとプランの直接購入には同じ方式のルールを適用します。元本100、手数料2なら支払額は102、付与額は100です。",
-    "ru": "Пополнение и прямая покупка тарифов используют правило выбранного способа. При основной сумме 100 и комиссии 2 клиент платит 102, права предоставляются на 100."
+    "ru": "Пополнение и прямая покупка тарифов используют правило выбранного способа. При основной сумме 100 и комиссии 2 клиент платит 102, права предоставляются на 100.",
+    "hi": "टॉप-अप और सीधी योजना खरीद चुनी विधि का नियम साझा करते हैं। 100 मूल राशि और 2 शुल्क का अर्थ 102 चुकाना है और लाभ 100 के लिए डिलीवर होते हैं।",
+    "ms": "Tambah nilai dan pembelian pelan langsung berkongsi peraturan kaedah yang dipilih. Prinsipal 100 ditambah fi 2 bermaksud membayar 102, dengan manfaat diserahkan untuk 100.",
+    "th": "การเติมเงินและซื้อแพ็กเกจโดยตรงใช้กฎของวิธีที่เลือกร่วมกัน เงินต้น 100 บวกค่าธรรมเนียม 2 หมายถึงชำระ 102 โดยส่งมอบสิทธิ์ตาม 100"
   },
   "余额和佣金提现共用同一规则。申请 100、手续费 2 时，账户扣除 100、清算净额 98；实际到账按所选币种和比例展示。": {
     "en": "Balance and commission withdrawals share one rule. Requesting 100 with a fee of 2 debits 100 and leaves a net settlement amount of 98; the receiving amount uses the chosen currency and rate.",
     "ja": "残高と報酬の出金には同じルールを適用します。申請100、手数料2なら口座から100を差し引き、決済通貨での正味額は98です。受取額は選択した通貨と比率で表示します。",
-    "ru": "Для вывода баланса и комиссий действует одно правило. При заявке на 100 и комиссии 2 списывается 100, чистая расчётная сумма — 98; сумма к получению показана в выбранной валюте по указанному курсу."
+    "ru": "Для вывода баланса и комиссий действует одно правило. При заявке на 100 и комиссии 2 списывается 100, чистая расчётная сумма — 98; сумма к получению показана в выбранной валюте по указанному курсу.",
+    "hi": "शेष राशि और कमीशन निकासी एक नियम साझा करती हैं। 2 शुल्क के साथ 100 का अनुरोध खाते से 100 काटता है और 98 शुद्ध निपटान राशि छोड़ता है; प्राप्ति राशि चुनी मुद्रा और दर उपयोग करती है।",
+    "ms": "Pengeluaran baki dan komisen berkongsi satu peraturan. Memohon 100 dengan fi 2 mendebit 100 dan meninggalkan jumlah penyelesaian bersih 98; jumlah penerimaan menggunakan mata wang dan kadar yang dipilih.",
+    "th": "การถอนเงินจากยอดคงเหลือและค่าคอมมิชชันใช้กฎเดียวกัน ขอถอน 100 มีค่าธรรมเนียม 2 จะหักบัญชี 100 เหลือยอดชำระบัญชีสุทธิ 98 ยอดที่ได้รับใช้สกุลเงินและอัตราที่เลือก"
   },
   "提现须达到经营方公布的最低额度。手续费和实际到账金额在申请时固定，由你确认。": {
     "en": "Withdrawals must meet the operator’s minimum. Review and confirm the fee and receiving amount when applying.",
     "ja": "出金は運営者の最低額以上が必要です。申請時に手数料と実際の受取額を確認し、確定します。",
-    "ru": "Сумма вывода должна быть не ниже минимума оператора. При подаче заявки проверьте и подтвердите комиссию и сумму к получению."
+    "ru": "Сумма вывода должна быть не ниже минимума оператора. При подаче заявки проверьте и подтвердите комиссию и сумму к получению.",
+    "hi": "निकासी संचालक के न्यूनतम के अनुरूप होनी चाहिए। आवेदन करते समय शुल्क और प्राप्ति राशि की समीक्षा करके पुष्टि करें।",
+    "ms": "Pengeluaran mesti memenuhi minimum pengendali. Semak dan sahkan fi dan jumlah penerimaan semasa memohon.",
+    "th": "การถอนเงินต้องถึงขั้นต่ำของผู้ดำเนินงาน ตรวจสอบและยืนยันค่าธรรมเนียมและยอดที่จะได้รับเมื่อยื่นคำขอ"
   },
   "余额和佣金提现共用同一规则。申请 100、手续费 2 时，账户扣除 100，经营方按净应付 98 办理付款。": {
     "en": "Balance and commission withdrawals share this rule. For a request of 100 with a fee of 2, the account is debited 100 and the operator pays the net amount of 98.",
     "ja": "残高と報酬の出金は同じ規則を使います。申請額100、手数料2の場合、口座から100を差し引き、運営者は差引額98を支払います。",
-    "ru": "Для вывода баланса и комиссий действует одно правило. При заявке на 100 и сборе 2 со счёта списывается 100, а оператор выплачивает чистую сумму 98."
+    "ru": "Для вывода баланса и комиссий действует одно правило. При заявке на 100 и сборе 2 со счёта списывается 100, а оператор выплачивает чистую сумму 98.",
+    "hi": "शेष राशि और कमीशन निकासी यह नियम साझा करती हैं। 2 शुल्क वाले 100 के अनुरोध में खाते से 100 कटते हैं और संचालक 98 शुद्ध राशि देता है।",
+    "ms": "Pengeluaran baki dan komisen berkongsi peraturan ini. Untuk permintaan 100 dengan fi 2, akaun didebit 100 dan pengendali membayar jumlah bersih 98.",
+    "th": "การถอนเงินจากยอดคงเหลือและค่าคอมมิชชันใช้กฎนี้ร่วมกัน หากขอถอน 100 มีค่าธรรมเนียม 2 บัญชีถูกหัก 100 และผู้ดำเนินงานจ่ายยอดสุทธิ 98"
   },
   "提现须达到经营方公布的最低额度。申请时确认总额、手续费和净应付金额。": {
     "en": "Withdrawals must meet the operator’s minimum. Review the total, fee and net amount when applying.",
     "ja": "出金は運営者が定めた最低額以上である必要があります。申請時に総額、手数料、差引支払額を確認してください。",
-    "ru": "Вывод должен соответствовать минимуму оператора. При подаче заявки проверьте общую сумму, сбор и чистую сумму выплаты."
+    "ru": "Вывод должен соответствовать минимуму оператора. При подаче заявки проверьте общую сумму, сбор и чистую сумму выплаты.",
+    "hi": "निकासी संचालक के न्यूनतम के अनुरूप होनी चाहिए। आवेदन करते समय कुल, शुल्क और शुद्ध राशि की समीक्षा करें।",
+    "ms": "Pengeluaran mesti memenuhi minimum pengendali. Semak jumlah keseluruhan, fi dan jumlah bersih semasa memohon.",
+    "th": "การถอนเงินต้องถึงขั้นต่ำของผู้ดำเนินงาน ตรวจสอบยอดรวม ค่าธรรมเนียม และยอดสุทธิเมื่อยื่นคำขอ"
   }
 }

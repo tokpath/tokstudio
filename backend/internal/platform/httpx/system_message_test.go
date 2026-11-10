@@ -7,7 +7,7 @@ import (
 )
 
 func TestSystemMailTranslatesDynamicMessagesWithoutChangingFacts(t *testing.T) {
-	for _, locale := range []string{"en", "ja", "ru"} {
+	for _, locale := range []string{"en", "ja", "ru", "hi", "ms", "th"} {
 		source := "这笔提现申请已被拒绝，占用已释放。 本次申请金额 15.000000000000000001 USD。拒绝理由：Account unavailable。"
 		got := LocalizedSystemMessage(locale, source)
 		if got == source || !strings.Contains(got, "15.000000000000000001 USD") || !strings.Contains(got, "Account unavailable") || strings.Contains(got, "{amount}") {

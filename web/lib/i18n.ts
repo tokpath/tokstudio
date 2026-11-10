@@ -11,14 +11,14 @@ import backend from "@/locales/backend.json";
 import errors from "@/locales/errors.json";
 import monetary from "@/locales/monetary.json";
 
-export const locales = ["zh", "en", "ja", "ru"] as const;
+export const locales = ["zh", "en", "ja", "ru", "hi", "ms", "th"] as const;
 export type Locale = (typeof locales)[number];
-export const localeTags: Record<Locale, string> = { zh: "zh-CN", en: "en", ja: "ja", ru: "ru" };
-export const localeNames: Record<Locale, string> = { zh: "中文", en: "English", ja: "日本語", ru: "Русский" };
+export const localeTags: Record<Locale, string> = { zh: "zh-CN", en: "en", ja: "ja", ru: "ru", hi: "hi", ms: "ms", th: "th" };
+export const localeNames: Record<Locale, string> = { zh: "中文", en: "English", ja: "日本語", ru: "Русский", hi: "हिन्दी", ms: "Bahasa Melayu", th: "ไทย" };
 export const localeCookie = "NEXT_LOCALE";
 export type TranslationValues = Record<string, string | number>;
 export type Translator = (source: string, values?: TranslationValues) => string;
-export type Message = { en: string; ja: string; ru: string; zh?: string };
+export type Message = Record<Exclude<Locale, "zh">, string> & { zh?: string };
 export const catalogs = { common, customer, operator, forms, backend, errors, help, customerUx, operatorUx, discoveryUx, usabilityUx, monetary };
 export const messages: Record<string, Message> = Object.assign({}, ...Object.values(catalogs));
 
@@ -95,7 +95,7 @@ function systemText(message: SystemMessage, locale: Locale, source: string, sett
   if (!message.currencyAware || !settlementCurrency) return text;
   // Replace the catalog template before interpolation, preserving names and
   // explicit original currencies supplied as values or authored text.
-  return text.replace(/结算币种|settlement currency|決済通貨|валют(?:а|ы|е|у|ой) расч[её]тов/gi, settlementCurrency);
+  return text.replace(/结算币种|settlement currency|決済通貨|валют(?:а|ы|е|у|ой) расч[её]тов|निपटान मुद्रा|mata wang penyelesaian|สกุลเงินที่ใช้ชำระบัญชี/gi, settlementCurrency);
 }
 
 export function translate(locale: Locale, source: string, values?: TranslationValues, settlementCurrency?: string): string {
@@ -103,7 +103,7 @@ export function translate(locale: Locale, source: string, values?: TranslationVa
   if (entry) { const text = systemText(entry, locale, source, settlementCurrency); return values ? interpolate(text, values) : text; }
   if (!values && source.length <= 20000) {
     const requirement = messages["仍有未满足事项："];
-    for (const prefix of ["仍有未满足事项：", requirement.en, requirement.ja, requirement.ru]) {
+    for (const prefix of locales.map(item => requirement[item] || "仍有未满足事项：")) {
       if (source.startsWith(prefix)) {
         const items = source.slice(prefix.length).split(/；|\n/);
         return translate(locale, "仍有未满足事项：", undefined, settlementCurrency) + items.map(item => translate(locale, item, undefined, settlementCurrency)).join("\n");
@@ -126,9 +126,13 @@ export function getClientLocale(): Locale {
   return normalizeLocale(cookie?.slice(localeCookie.length + 1)) || normalizeLocale(document.documentElement.lang) || "zh";
 }
 
-// Change separators only: do not convert high-precision financial strings to
-// floating point or change the original value copied/submitted to the API.
+// Localize display grouping/separators without converting financial strings to
+// floating point or changing the original value copied/submitted to the API.
 export function localizeNumberText(value: string, locale: Locale): string {
+  if (locale === "hi") return value.replace(/\d{1,3}(?:,\d{3})+/g, grouped => {
+    const digits = grouped.replaceAll(",", ""), leading = digits.slice(0, -3);
+    return leading.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + digits.slice(-3);
+  });
   if (locale !== "ru") return value;
   return value.replace(/[,\.]/g, token => token === "," ? "\u00a0" : ",");
 }

@@ -6,7 +6,7 @@ import (
 )
 
 func TestUpstreamErrorsCannotBypassPrivacyThroughLocalization(t *testing.T) {
-	for _, locale := range []string{"zh", "en", "ja", "ru"} {
+	for _, locale := range []string{"zh", "en", "ja", "ru", "hi", "ms", "th"} {
 		got := LocalizedErrorMessage(locale, "upstream_error", "HTTP 401: opaque-supplier-secret")
 		if got == "" || strings.Contains(got, "opaque-supplier-secret") || got != LocalizedErrorMessage(locale, "upstream_error", UpstreamUnavailableMessage) {
 			t.Fatal("supplier text escaped the response boundary", locale)

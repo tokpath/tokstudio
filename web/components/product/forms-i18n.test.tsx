@@ -10,7 +10,7 @@ import { ConfigurationError, prepareConfiguration, type ConfigNode } from "./ope
 import type { Operation } from "@/lib/contracts";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
-function LocaleButtons() { const { setLocale } = useI18n(); return <>{(["zh", "en", "ja", "ru"] as Locale[]).map(locale => <button key={locale} onClick={() => setLocale(locale)}>{locale}</button>)}</>; }
+function LocaleButtons() { const { setLocale } = useI18n(); return <>{(["zh", "en", "ja", "ru", "hi", "ms", "th"] as Locale[]).map(locale => <button key={locale} onClick={() => setLocale(locale)}>{locale}</button>)}</>; }
 function show(operation: Operation) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<I18nProvider><LocaleButtons /><QueryClientProvider client={client}><OperationForm operation={operation} /></QueryClientProvider></I18nProvider>);
@@ -21,7 +21,7 @@ it("translates receipt net amounts without losing entered gross or fee values",(
     {name:"fee_status",label:"收款手续费核实状态",kind:"hidden",default_value:"confirmed"},
     {name:"fee_money",label:"己方承担的收款手续费 结算币种",kind:"decimal",required:true,default_value:"10"},
   ]});
-  for(const locale of ["en","ja","ru","zh"] as Locale[]) {
+  for(const locale of ["en","ja","ru","hi","ms","th","zh"] as Locale[]) {
     fireEvent.click(screen.getByRole("button",{name:locale,exact:true}));
     expect(screen.getByRole("region",{name:translate(locale,"收款金额核对")})).toBeTruthy();
     expect((screen.getByLabelText(translate(locale,"收款总额（扣手续费前） 结算币种"),{exact:true}) as HTMLInputElement).value).toBe("1000");
@@ -35,7 +35,7 @@ it("changes form labels and existing validation in every locale without replacin
   const input = screen.getByLabelText("邮箱", { exact: false }) as HTMLInputElement;
   fireEvent.change(input, { target: { value: "customer-authored-invalid-address" } });
   fireEvent.click(screen.getByRole("button", { name: "更新密码", exact: true }));
-  for (const locale of ["en", "ja", "ru", "zh"] as Locale[]) {
+  for (const locale of ["en", "ja", "ru", "hi", "ms", "th", "zh"] as Locale[]) {
     fireEvent.click(screen.getByRole("button", { name: locale, exact: true }));
     expect(screen.getByLabelText(translate(locale, "邮箱"), { exact: false })).toBe(input);
     expect(input.value).toBe("customer-authored-invalid-address");
@@ -62,7 +62,7 @@ it("localizes structured configuration paths without translating schema keys or 
   let failure: ConfigurationError | undefined;
   try { prepareConfiguration({ amount: "invalid" }, schema); } catch (error) { failure = error as ConfigurationError; }
   expect(failure?.fieldPath).toBe("amount");
-  for (const locale of ["zh", "en", "ja", "ru"] as Locale[]) {
+  for (const locale of ["zh", "en", "ja", "ru", "hi", "ms", "th"] as Locale[]) {
     expect(failure?.localized(locale)).toContain(translate(locale, "模型价格"));
     expect(failure?.localized(locale)).toContain(translate(locale, "基础单价"));
   }

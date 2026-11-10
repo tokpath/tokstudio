@@ -9,10 +9,10 @@ for (const name of ["common", "customer", "operator", "forms", "backend", "error
 }
 const generated = Object.fromEntries(Object.keys(messages).sort().map(source => {
   const value = messages[source];
-  for (const locale of ["en", "ja", "ru"]) {
+  for (const locale of ["en", "ja", "ru", "hi", "ms", "th"]) {
     if (typeof value[locale] !== "string" || !value[locale].trim()) throw new Error(`Missing ${locale}: ${source}`);
   }
-  return [source, [value.zh || source, value.en, value.ja, value.ru]];
+  return [source, [value.zh || source, value.en, value.ja, value.ru, value.hi, value.ms, value.th]];
 }));
 const target = new URL("../backend/internal/platform/httpx/ui_i18n.generated.json", root);
 const content = JSON.stringify(generated, null, 2) + "\n";

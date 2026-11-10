@@ -20,7 +20,7 @@ function LocaleControls() {
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-it("switches a customer form and its validation through all four languages while retaining authored input", async () => {
+it("switches a customer form and its validation through all supported languages while retaining authored input", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 })));
   const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<I18nProvider><QueryClientProvider client={cache}><LocaleControls /><CustomerKeys /></QueryClientProvider></I18nProvider>);
@@ -56,7 +56,7 @@ it("localizes generated example placeholders and finance validation without chan
 it("provides complete translations with matching named placeholders for the customer catalog", () => {
   const placeholders = (value: string) => [...value.matchAll(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g)].map(match => match[1]).sort();
   for (const [source, message] of Object.entries(customerMessages)) {
-    for (const locale of ["en", "ja", "ru"] as const) {
+    for (const locale of ["en", "ja", "ru", "hi", "ms", "th"] as const) {
       expect(message[locale].trim(), `${locale}: ${source}`).not.toBe("");
       expect(placeholders(message[locale]), `${locale}: ${source}`).toEqual(placeholders(source));
     }
@@ -72,7 +72,7 @@ it("translates trusted system notifications and preserves authored broadcasts wi
   const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<I18nProvider initialLocale="en"><QueryClientProvider client={cache}><LocaleControls /><CustomerPage section="notifications" /></QueryClientProvider></I18nProvider>);
   await screen.findByText(translate("en", "订单已建立"));
-  for (const locale of ["en", "ja", "ru"] as const) {
+  for (const locale of ["en", "ja", "ru", "hi", "ms", "th"] as const) {
     fireEvent.click(screen.getByRole("button", { name: locale, exact: true }));
     expect(screen.getByText(translate(locale, "订单已建立"))).toBeTruthy();
     expect(screen.getByText(translate(locale, "服务额度已到账，可以开始使用。"))).toBeTruthy();

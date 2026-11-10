@@ -4,8 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { Quote } from "@/lib/contracts";
+import { I18nProvider, LanguageControl } from "@/components/i18n";
+import { translate } from "@/lib/i18n";
 import { Checkout, CustomerPlans, PaymentAction } from "./customer-plans";
 
+const { stripeLoader } = vi.hoisted(() => ({ stripeLoader: vi.fn() }));
+vi.mock("@stripe/stripe-js", () => ({ loadStripe: stripeLoader }));
 vi.mock("./context", () => ({ useProduct: () => ({ context: { payment_methods: [{ id: "bank", name: "银行转账", status: "ready" }] } }) }));
 const credits = { customer_atg: { available: "0", held: "0", purchased_remaining: "0", gift_remaining: "0" }, money_balance: { available: "3.000000000000000001", held: "0" }, commission_money: { available: "2.000000000000000001", held: "0", frozen: "50", recovery_due: "0" }, qualification: { confirmed_money: "0", pending_money: "0", threshold_money: "100", qualified_at: null, function_status: "normal" } };
 const quote: Quote = { id: "quote-one", plan_id: "plan-one", plan_name: "通用套餐", operator_name: "本次经营方", amount_money: "10.000000000000000001", purchase_atg: "20", plan_gift_atg: "2", operator_gift_atg: "0", kol_gift_atg: "0", total_atg: "22", validity: "month", terms_version: "terms-one", terms_summary: "按成交订单内购赠比例耗用。", expires_at: "2099-10-18T00:00:00Z", warnings: [] };
@@ -18,7 +22,27 @@ function mount(children: ReactNode) {
 }
 function terms() { return screen.getByLabelText(/我确认本次价格/); }
 beforeEach(() => { HTMLElement.prototype.scrollIntoView = vi.fn(); });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); vi.restoreAllMocks(); document.cookie = "NEXT_LOCALE=; Max-Age=0; Path=/"; document.documentElement.lang = "zh-CN"; });
+
+it("keeps the Stripe form mounted while using supported payment locales for Hindi, Malay and Thai", async () => {
+  const element = { mount: vi.fn(), destroy: vi.fn(), on: vi.fn((event: string, callback: () => void) => { if (event === "ready") callback(); }) };
+  const elements = { create: vi.fn(() => element), update: vi.fn() };
+  const stripe = { elements: vi.fn(() => elements) };
+  const stripeOrder = { ...order, payment_action: { kind: "stripe", client_secret: "synthetic-payment-secret", publishable_key: "pk_test_synthetic" } };
+  stripeLoader.mockReset().mockResolvedValue(stripe);
+  vi.stubGlobal("fetch", vi.fn(async () => response(stripeOrder)));
+  mount(<I18nProvider initialLocale="hi"><LanguageControl /><PaymentAction order={stripeOrder} /></I18nProvider>);
+  await waitFor(() => expect(stripe.elements).toHaveBeenCalledWith({ clientSecret: "synthetic-payment-secret", locale: "en" }));
+  expect(screen.getByRole("button", { name: translate("hi", "确认通道支付"), exact: true })).toBeTruthy();
+  for (const locale of ["ms", "th"] as const) {
+    fireEvent.change(screen.getByTestId("language-selector"), { target: { value: locale } });
+    await waitFor(() => expect(elements.update).toHaveBeenLastCalledWith({ locale }));
+    expect(screen.getByRole("button", { name: translate(locale, "确认通道支付"), exact: true })).toBeTruthy();
+  }
+  expect(stripe.elements).toHaveBeenCalledTimes(1);
+  expect(element.mount).toHaveBeenCalledTimes(1);
+  expect(element.destroy).not.toHaveBeenCalled();
+});
 
 it("keeps present commission payment and future renewal permission as separate opt-ins", async () => {
   const fetch = vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => response(init?.method === "POST" ? order : credits));

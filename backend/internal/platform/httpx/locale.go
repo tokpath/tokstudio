@@ -50,7 +50,7 @@ func RequestLocale(r *http.Request) string {
 func supportedLocale(value string) string {
 	language := strings.SplitN(strings.ReplaceAll(strings.ToLower(strings.TrimSpace(value)), "_", "-"), "-", 2)[0]
 	switch language {
-	case "zh", "en", "ja", "ru":
+	case "zh", "en", "ja", "ru", "hi", "ms", "th":
 		return language
 	default:
 		return ""

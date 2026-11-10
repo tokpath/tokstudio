@@ -2,231 +2,369 @@
   "准备额度和 Key，完成第一次调用。": {
     "en": "Prepare credits and a Key for your first call.",
     "ja": "クレジットと Key を準備して、初回の呼び出しを行いましょう。",
-    "ru": "Подготовьте кредиты и Key для первого вызова."
+    "ru": "Подготовьте кредиты и Key для первого вызова.",
+    "hi": "अपनी पहली कॉल के लिए क्रेडिट और Key तैयार करें।",
+    "ms": "Sediakan kredit dan Key untuk panggilan pertama anda.",
+    "th": "เตรียมเครดิตและ Key สำหรับการเรียกใช้ครั้งแรก"
   },
   "查看可用额度、近期调用和套餐到期情况。": {
     "en": "View available credits, recent calls, and plan expiry.",
     "ja": "利用可能なクレジット、最近の呼び出し、プランの有効期限を確認できます。",
-    "ru": "Доступные кредиты, последние вызовы и сроки действия пакетов."
+    "ru": "Доступные кредиты, последние вызовы и сроки действия пакетов.",
+    "hi": "उपलब्ध क्रेडिट, हाल की कॉल और योजना की समाप्ति देखें।",
+    "ms": "Lihat kredit tersedia, panggilan terkini dan tamat tempoh pelan.",
+    "th": "ดูเครดิตที่ใช้ได้ การเรียกใช้ล่าสุด และวันหมดอายุแพ็กเกจ"
   },
   "支付余额与调用额度": {
     "en": "Payment balance and usage credits",
     "ja": "支払い残高と利用クレジット",
-    "ru": "Платёжный баланс и кредиты для вызовов"
+    "ru": "Платёжный баланс и кредиты для вызовов",
+    "hi": "भुगतान शेष राशि और उपयोग क्रेडिट",
+    "ms": "Baki pembayaran dan kredit penggunaan",
+    "th": "ยอดคงเหลือสำหรับชำระเงินและเครดิตใช้งาน"
   },
   "例如：充值 10 结算币种 只增加支付余额；购买并交付套餐后才增加 ATG 调用额度。": {
     "en": "For example, topping up 10 settlement currency only increases your payment balance. ATG usage credits are added after a plan is purchased and delivered.",
     "ja": "例：10 決済通貨 をチャージすると支払い残高のみが増えます。ATG 利用クレジットはプランの購入・付与後に増えます。",
-    "ru": "Например, пополнение на 10 валюта расчётов увеличит только платёжный баланс. Кредиты ATG появятся после покупки и предоставления пакета."
+    "ru": "Например, пополнение на 10 валюта расчётов увеличит только платёжный баланс. Кредиты ATG появятся после покупки и предоставления пакета.",
+    "hi": "उदाहरण के लिए, 10 निपटान मुद्रा का टॉप-अप केवल आपकी भुगतान शेष राशि बढ़ाता है। योजना खरीदने और डिलीवर होने पर ATG उपयोग क्रेडिट जुड़ते हैं।",
+    "ms": "Contohnya, tambah nilai 10 mata wang penyelesaian hanya menambah baki pembayaran anda. Kredit penggunaan ATG ditambah selepas pelan dibeli dan diserahkan.",
+    "th": "ตัวอย่างเช่น การเติม 10 สกุลเงินที่ใช้ชำระบัญชีเพิ่มเฉพาะยอดคงเหลือสำหรับชำระเงิน เครดิตใช้งาน ATG จะเพิ่มหลังซื้อและส่งมอบแพ็กเกจแล้ว"
   },
   "Key 预算如何生效": {
     "en": "How Key budgets work",
     "ja": "Key 予算の仕組み",
-    "ru": "Как работает бюджет Key"
+    "ru": "Как работает бюджет Key",
+    "hi": "Key बजट कैसे काम करते हैं",
+    "ms": "Cara bajet Key berfungsi",
+    "th": "วิธีทำงานของงบประมาณ Key"
   },
   "例如：账号有 100 ATG，给某个 Key 设置每月 20 ATG 预算，该 Key 当月最多使用 20 ATG；创建时不会划走这 20 ATG，其他 Key 仍共享账号可用额度。": {
     "en": "For example, with 100 ATG in your account, a monthly Key budget of 20 ATG limits that Key to 20 ATG per month. Creating it does not reserve 20 ATG; all Keys still share the account's available credits.",
     "ja": "例：アカウントに 100 ATG があり、Key の月額予算を 20 ATG に設定すると、その Key は月に最大 20 ATG を利用できます。作成時に 20 ATG が移動・確保されるわけではなく、すべての Key がアカウントのクレジットを共有します。",
-    "ru": "Например, при балансе 100 ATG месячный бюджет Key в 20 ATG ограничит его расход до 20 ATG в месяц. Создание Key не резервирует эти 20 ATG: все Key используют общие кредиты аккаунта."
+    "ru": "Например, при балансе 100 ATG месячный бюджет Key в 20 ATG ограничит его расход до 20 ATG в месяц. Создание Key не резервирует эти 20 ATG: все Key используют общие кредиты аккаунта.",
+    "hi": "उदाहरण के लिए, आपके खाते में 100 ATG होने पर 20 ATG का मासिक Key बजट उस Key को प्रति माह 20 ATG तक सीमित करता है। इसे बनाने से 20 ATG आरक्षित नहीं होते; सभी Key अब भी खाते के उपलब्ध क्रेडिट साझा करती हैं।",
+    "ms": "Contohnya, dengan 100 ATG dalam akaun anda, bajet Key bulanan 20 ATG mengehadkan Key itu kepada 20 ATG sebulan. Penciptaannya tidak merizabkan 20 ATG; semua Key masih berkongsi kredit tersedia akaun.",
+    "th": "ตัวอย่างเช่น หากบัญชีมี 100 ATG งบประมาณรายเดือน 20 ATG สำหรับ Key หนึ่งจะจำกัด Key นั้นที่ 20 ATG ต่อเดือน การสร้างไม่ได้กัน 20 ATG ไว้ Key ทั้งหมดยังใช้เครดิตที่ใช้ได้ของบัญชีร่วมกัน"
   },
   "调整预算、停用或重置密钥都不清零当前已用与预占。停用后不再受理新请求，已受理请求继续结算。": {
     "en": "Changing budgets, disabling, or resetting a Key does not reset spent or held amounts. Disabling stops new requests; accepted requests still settle.",
     "ja": "予算の変更、Key の無効化・リセットを行っても、利用済み額と仮確保額はリセットされません。無効化後は新規リクエストを受け付けませんが、受理済みのリクエストは精算されます。",
-    "ru": "Изменение бюджета, отключение или сброс Key не обнуляют расходы и резервы. Отключение останавливает новые запросы; принятые запросы продолжают рассчитываться."
+    "ru": "Изменение бюджета, отключение или сброс Key не обнуляют расходы и резервы. Отключение останавливает новые запросы; принятые запросы продолжают рассчитываться.",
+    "hi": "बजट बदलने, Key निष्क्रिय या रीसेट करने से खर्च या आरक्षित राशि रीसेट नहीं होती। निष्क्रिय करने से नए अनुरोध रुकते हैं; स्वीकृत अनुरोधों का निपटान होता है।",
+    "ms": "Mengubah bajet, menyahaktifkan atau menetapkan semula Key tidak menetapkan semula jumlah yang digunakan atau ditahan. Penyahaktifan menghentikan permintaan baharu; permintaan yang diterima masih diselesaikan.",
+    "th": "การเปลี่ยนงบประมาณ ปิดใช้ หรือรีเซ็ต Key ไม่ล้างยอดที่ใช้หรือกันไว้ การปิดใช้หยุดคำขอใหม่ แต่คำขอที่รับแล้วยังคงชำระบัญชี"
   },
   "预算周期详情": {
     "en": "Budget period details",
     "ja": "予算期間の詳細",
-    "ru": "Период бюджета"
+    "ru": "Период бюджета",
+    "hi": "बजट अवधि विवरण",
+    "ms": "Butiran tempoh bajet",
+    "th": "รายละเอียดรอบงบประมาณ"
   },
   "已限定 {count} 个模型": {
     "en": "Limited to {count} models",
     "ja": "{count} 個のモデルに制限",
-    "ru": "Доступ к {count} моделям"
+    "ru": "Доступ к {count} моделям",
+    "hi": "{count} मॉडल तक सीमित",
+    "ms": "Terhad kepada {count} model",
+    "th": "จำกัดที่ {count} โมเดล"
   },
   "查看模型范围": {
     "en": "View allowed models",
     "ja": "許可されたモデルを確認",
-    "ru": "Доступные модели"
+    "ru": "Доступные модели",
+    "hi": "अनुमत मॉडल देखें",
+    "ms": "Lihat model yang dibenarkan",
+    "th": "ดูโมเดลที่อนุญาต"
   },
   "状态待核实，刷新记录": {
     "en": "Status unverified — refresh",
     "ja": "状態を確認するため更新",
-    "ru": "Статус не подтверждён — обновить"
+    "ru": "Статус не подтверждён — обновить",
+    "hi": "स्थिति असत्यापित — रीफ़्रेश करें",
+    "ms": "Status belum disahkan — muat semula",
+    "th": "สถานะยังไม่ตรวจสอบ — รีเฟรช"
   },
   "把 Base URL 和此 Key 填入应用，再选择模型 ID 即可开始调用。": {
     "en": "Enter this Base URL and Key in your app, then choose a model ID to start calling.",
     "ja": "アプリにこの Base URL と Key を設定し、モデル ID を選択すると呼び出しを開始できます。",
-    "ru": "Укажите этот Base URL и Key в приложении, затем выберите ID модели для вызова."
+    "ru": "Укажите этот Base URL и Key в приложении, затем выберите ID модели для вызова.",
+    "hi": "अपने ऐप में यह Base URL और Key दर्ज करें, फिर कॉल शुरू करने के लिए मॉडल ID चुनें।",
+    "ms": "Masukkan Base URL dan Key ini dalam aplikasi anda, kemudian pilih ID model untuk mula membuat panggilan.",
+    "th": "ระบุ Base URL และ Key นี้ในแอปของคุณ จากนั้นเลือก ID โมเดลเพื่อเริ่มเรียกใช้"
   },
   "套餐页面导航": {
     "en": "Plan page navigation",
     "ja": "プランページのナビゲーション",
-    "ru": "Навигация по пакетам"
+    "ru": "Навигация по пакетам",
+    "hi": "योजना पृष्ठ नेविगेशन",
+    "ms": "Navigasi halaman pelan",
+    "th": "เมนูนำทางหน้าแพ็กเกจ"
   },
   "资金与记录": {
     "en": "Funds and records",
     "ja": "資金と記録",
-    "ru": "Средства и записи"
+    "ru": "Средства и записи",
+    "hi": "निधि और रिकॉर्ड",
+    "ms": "Dana dan rekod",
+    "th": "เงินและระเบียน"
   },
   "链接中的活动当前不可用，可按当前可用条款继续购买。": {
     "en": "The linked promotion is unavailable. You can continue with the currently available terms.",
     "ja": "リンク先のキャンペーンは現在利用できません。現在利用可能な条件で購入を続けられます。",
-    "ru": "Акция по ссылке недоступна. Вы можете продолжить покупку на доступных сейчас условиях."
+    "ru": "Акция по ссылке недоступна. Вы можете продолжить покупку на доступных сейчас условиях.",
+    "hi": "जुड़ा प्रचार उपलब्ध नहीं है। आप वर्तमान उपलब्ध शर्तों पर जारी रख सकते हैं।",
+    "ms": "Promosi terpaut tidak tersedia. Anda boleh meneruskan dengan terma yang tersedia sekarang.",
+    "th": "โปรโมชันที่เชื่อมโยงใช้ไม่ได้ คุณดำเนินการต่อตามเงื่อนไขที่ใช้ได้ปัจจุบัน"
   },
   "正在核实分享活动，请稍候。": {
     "en": "Checking the shared promotion…",
     "ja": "共有されたキャンペーンを確認しています…",
-    "ru": "Проверяем акцию по ссылке…"
+    "ru": "Проверяем акцию по ссылке…",
+    "hi": "साझा प्रचार जाँचा जा रहा है…",
+    "ms": "Menyemak promosi yang dikongsi…",
+    "th": "กำลังตรวจสอบโปรโมชันที่แชร์…"
   },
   "余额优先组合": {
     "en": "Use balance first",
     "ja": "残高を優先して支払う",
-    "ru": "Сначала использовать баланс"
+    "ru": "Сначала использовать баланс",
+    "hi": "पहले शेष राशि उपयोग करें",
+    "ms": "Gunakan baki dahulu",
+    "th": "ใช้ยอดคงเหลือก่อน"
   },
   "本次支付如何组合": {
     "en": "How this payment is split",
     "ja": "今回の支払いの組み合わせ",
-    "ru": "Как распределяется этот платёж"
+    "ru": "Как распределяется этот платёж",
+    "hi": "यह भुगतान कैसे बाँटा गया है",
+    "ms": "Cara pembayaran ini dibahagikan",
+    "th": "แบ่งการชำระเงินครั้งนี้อย่างไร"
   },
   "例如：套餐 10 结算币种，余额 3 结算币种，默认用余额抵扣 3 结算币种，再直接支付 7 结算币种。勾选使用佣金后，才会用可用佣金继续补足。": {
     "en": "For example, a 10 settlement currency plan with a 3 settlement currency balance uses 3 settlement currency from your balance and charges the remaining 7 settlement currency directly. Available commission is used only if you select it.",
     "ja": "例：10 決済通貨 のプランで残高が 3 決済通貨 の場合、初期設定では残高から 3 決済通貨 を充当し、残りの 7 決済通貨 を直接支払います。利用可能なコミッションは、使用を選択した場合のみ充当されます。",
-    "ru": "Например, пакет за 10 валюта расчётов при балансе 3 валюта расчётов оплачивается 3 валюта расчётов с баланса и 7 валюта расчётов напрямую. Доступная комиссия используется только с вашего согласия."
+    "ru": "Например, пакет за 10 валюта расчётов при балансе 3 валюта расчётов оплачивается 3 валюта расчётов с баланса и 7 валюта расчётов напрямую. Доступная комиссия используется только с вашего согласия.",
+    "hi": "उदाहरण के लिए, 3 निपटान मुद्रा शेष राशि वाली 10 निपटान मुद्रा की योजना में आपकी शेष राशि से 3 निपटान मुद्रा उपयोग होती है और शेष 7 निपटान मुद्रा सीधे ली जाती है। उपलब्ध कमीशन केवल आपके चुनने पर उपयोग होता है।",
+    "ms": "Contohnya, pelan 10 mata wang penyelesaian dengan baki 3 mata wang penyelesaian menggunakan 3 mata wang penyelesaian daripada baki anda dan mencaj baki 7 mata wang penyelesaian secara langsung. Komisen tersedia hanya digunakan jika anda memilihnya.",
+    "th": "ตัวอย่างเช่น แพ็กเกจราคา 10 สกุลเงินที่ใช้ชำระบัญชีและมียอดคงเหลือ 3 สกุลเงินที่ใช้ชำระบัญชี จะใช้ยอดคงเหลือ 3 สกุลเงินที่ใช้ชำระบัญชีและชำระส่วนที่เหลือ 7 สกุลเงินที่ใช้ชำระบัญชีโดยตรง ค่าคอมมิชชันที่ใช้ได้จะถูกใช้เฉพาะเมื่อคุณเลือก"
   },
   "本次使用佣金不会授权未来续费使用佣金。": {
     "en": "Using commission now does not authorize its use for future renewals.",
     "ja": "今回のコミッション使用は、今後の更新での使用許可にはなりません。",
-    "ru": "Использование комиссии сейчас не разрешает использовать её при будущих продлениях."
+    "ru": "Использование комиссии сейчас не разрешает использовать её при будущих продлениях.",
+    "hi": "अभी कमीशन उपयोग करने से भविष्य के नवीनीकरण के लिए उसका उपयोग अधिकृत नहीं होता।",
+    "ms": "Menggunakan komisen sekarang tidak membenarkan penggunaannya untuk pembaharuan masa depan.",
+    "th": "การใช้ค่าคอมมิชชันครั้งนี้ไม่อนุญาตให้ใช้ในการต่ออายุครั้งต่อไป"
   },
   "可用余额": {
     "en": "Available balance",
     "ja": "利用可能残高",
-    "ru": "Доступный баланс"
+    "ru": "Доступный баланс",
+    "hi": "उपलब्ध शेष राशि",
+    "ms": "Baki tersedia",
+    "th": "ยอดคงเหลือที่ใช้ได้"
   },
   "本次余额抵扣": {
     "en": "Balance applied",
     "ja": "今回充当する残高",
-    "ru": "Списать с баланса"
+    "ru": "Списать с баланса",
+    "hi": "लागू शेष राशि",
+    "ms": "Baki yang digunakan",
+    "th": "ยอดคงเหลือที่ใช้ครั้งนี้"
   },
   "本次佣金抵扣": {
     "en": "Commission applied",
     "ja": "今回充当するコミッション",
-    "ru": "Списать из комиссии"
+    "ru": "Списать из комиссии",
+    "hi": "लागू कमीशन",
+    "ms": "Komisen yang digunakan",
+    "th": "ค่าคอมมิชชันที่ใช้ครั้งนี้"
   },
   "精确调整抵扣金额": {
     "en": "Adjust exact amounts",
     "ja": "充当額を正確に調整",
-    "ru": "Указать точные суммы"
+    "ru": "Указать точные суммы",
+    "hi": "सटीक राशियाँ समायोजित करें",
+    "ms": "Laraskan jumlah tepat",
+    "th": "ปรับจำนวนที่แน่นอน"
   },
   "未来续费": {
     "en": "Future renewals",
     "ja": "今後の更新",
-    "ru": "Будущие продления"
+    "ru": "Будущие продления",
+    "hi": "भविष्य के नवीनीकरण",
+    "ms": "Pembaharuan masa depan",
+    "th": "การต่ออายุในอนาคต"
   },
   "到期自动续费如何扣款": {
     "en": "How automatic renewal is paid",
     "ja": "自動更新時の支払い方法",
-    "ru": "Как оплачивается автопродление"
+    "ru": "Как оплачивается автопродление",
+    "hi": "स्वचालित नवीनीकरण का भुगतान कैसे होता है",
+    "ms": "Cara pembaharuan automatik dibayar",
+    "th": "วิธีชำระการต่ออายุอัตโนมัติ"
   },
   "例如：月套餐到期时，用足额 结算币种 余额购买下一份套餐；只有单独授权后才用佣金补足。不会自动从外部钱包扣款，余额不足时不续费。": {
     "en": "For example, when a monthly plan expires, a new plan is purchased with sufficient settlement currency balance. Commission can cover a shortfall only with separate permission. External wallets are never charged automatically; renewal fails if authorized funds are insufficient.",
     "ja": "例：月間プランの満了時に、十分な 決済通貨 残高で次のプランを購入します。コミッションによる不足分の補填には別途許可が必要です。外部ウォレットから自動で引き落とされることはなく、許可された資金が不足する場合は更新されません。",
-    "ru": "Например, по окончании месячного пакета новый пакет покупается при достаточном балансе валюта расчётов. Комиссия покрывает нехватку только с отдельного разрешения. Внешние кошельки автоматически не списываются; при недостатке разрешённых средств продление не выполняется."
+    "ru": "Например, по окончании месячного пакета новый пакет покупается при достаточном балансе валюта расчётов. Комиссия покрывает нехватку только с отдельного разрешения. Внешние кошельки автоматически не списываются; при недостатке разрешённых средств продление не выполняется.",
+    "hi": "उदाहरण के लिए, मासिक योजना समाप्त होने पर पर्याप्त निपटान मुद्रा शेष राशि से नई योजना खरीदी जाती है। कमीशन केवल अलग अनुमति से कमी पूरी कर सकता है। बाहरी वॉलेट से कभी स्वचालित शुल्क नहीं लिया जाता; अधिकृत निधि अपर्याप्त होने पर नवीनीकरण विफल होता है।",
+    "ms": "Contohnya, apabila pelan bulanan tamat tempoh, pelan baharu dibeli dengan baki mata wang penyelesaian yang mencukupi. Komisen boleh menampung kekurangan hanya dengan kebenaran berasingan. Dompet luaran tidak pernah dicaj secara automatik; pembaharuan gagal jika dana yang dibenarkan tidak mencukupi.",
+    "th": "ตัวอย่างเช่น เมื่อแพ็กเกจรายเดือนหมดอายุ จะซื้อแพ็กเกจใหม่ด้วยยอดคงเหลือสกุลเงินที่ใช้ชำระบัญชีที่เพียงพอ ใช้ค่าคอมมิชชันชดเชยส่วนที่ขาดได้เฉพาะเมื่อได้รับอนุญาตแยกต่างหาก ไม่มีการหักเงินจากกระเป๋าภายนอกอัตโนมัติ หากเงินที่อนุญาตไม่พอจะต่ออายุไม่สำเร็จ"
   },
   "提前用完不会提前续费，当前套餐到期余量不结转；续费条件变差时须重新确认。": {
     "en": "Using all credits early does not trigger early renewal. Unused credits expire with the plan, and less favorable renewal terms require your confirmation again.",
     "ja": "クレジットを早く使い切っても前倒しで更新されません。満了時の未使用分は繰り越されず、更新条件が悪化した場合は再確認が必要です。",
-    "ru": "Досрочное исчерпание кредитов не запускает продление. Остаток сгорает по окончании пакета; ухудшение условий продления требует нового подтверждения."
+    "ru": "Досрочное исчерпание кредитов не запускает продление. Остаток сгорает по окончании пакета; ухудшение условий продления требует нового подтверждения.",
+    "hi": "सभी क्रेडिट जल्दी उपयोग करने से नवीनीकरण जल्दी शुरू नहीं होता। अप्रयुक्त क्रेडिट योजना के साथ समाप्त होते हैं और कम अनुकूल नवीनीकरण शर्तों के लिए आपकी फिर पुष्टि आवश्यक है।",
+    "ms": "Menggunakan semua kredit lebih awal tidak mencetuskan pembaharuan awal. Kredit yang belum digunakan tamat bersama pelan, dan terma pembaharuan yang kurang baik memerlukan pengesahan anda semula.",
+    "th": "การใช้เครดิตหมดก่อนเวลาไม่ทำให้ต่ออายุก่อน เครดิตที่เหลือหมดอายุพร้อมแพ็กเกจ และเงื่อนไขต่ออายุที่เสียเปรียบกว่าต้องได้รับการยืนยันจากคุณอีกครั้ง"
   },
   "快捷查询状态": {
     "en": "Search by status",
     "ja": "状態ですばやく検索",
-    "ru": "Поиск по статусу"
+    "ru": "Поиск по статусу",
+    "hi": "स्थिति से खोजें",
+    "ms": "Cari mengikut status",
+    "th": "ค้นหาตามสถานะ"
   },
   "搜索订单编号、订单类型或状态": {
     "en": "Search order ID, type, or status",
     "ja": "注文番号、種類、状態で検索",
-    "ru": "Номер, тип или статус заказа"
+    "ru": "Номер, тип или статус заказа",
+    "hi": "ऑर्डर ID, प्रकार या स्थिति खोजें",
+    "ms": "Cari ID pesanan, jenis atau status",
+    "th": "ค้นหา ID คำสั่งซื้อ ประเภท หรือสถานะ"
   },
   "查询套餐购买和续费；选择状态会替换当前关键词。": {
     "en": "Search package purchases and renewals. Selecting a status replaces the current search term.",
     "ja": "プランの購入と更新を検索します。状態を選択すると現在のキーワードが置き換わります。",
-    "ru": "Поиск по покупкам и продлениям пакетов. Выбранный статус заменит текущий поисковый запрос."
+    "ru": "Поиск по покупкам и продлениям пакетов. Выбранный статус заменит текущий поисковый запрос.",
+    "hi": "पैकेज खरीद और नवीनीकरण खोजें। स्थिति चुनने से वर्तमान खोज शब्द बदल जाता है।",
+    "ms": "Cari pembelian dan pembaharuan pakej. Memilih status menggantikan istilah carian semasa.",
+    "th": "ค้นหาการซื้อและต่ออายุแพ็กเกจ การเลือกสถานะจะแทนคำค้นปัจจุบัน"
   },
   "查询全部订单；选择状态会替换当前关键词。": {
     "en": "Search all orders. Selecting a status replaces the current search term.",
     "ja": "すべての注文を検索します。状態を選択すると現在のキーワードが置き換わります。",
-    "ru": "Поиск по всем заказам. Выбранный статус заменит текущий поисковый запрос."
+    "ru": "Поиск по всем заказам. Выбранный статус заменит текущий поисковый запрос.",
+    "hi": "सभी ऑर्डर खोजें। स्थिति चुनने से वर्तमान खोज शब्द बदल जाता है।",
+    "ms": "Cari semua pesanan. Memilih status menggantikan istilah carian semasa.",
+    "th": "ค้นหาคำสั่งซื้อทั้งหมด การเลือกสถานะจะแทนคำค้นปัจจุบัน"
   },
   "搜索请求编号、模型 ID 或状态": {
     "en": "Search request ID, model ID, or status",
     "ja": "リクエスト番号、モデル ID、状態で検索",
-    "ru": "ID запроса, модели или статус"
+    "ru": "ID запроса, модели или статус",
+    "hi": "अनुरोध ID, मॉडल ID या स्थिति खोजें",
+    "ms": "Cari ID permintaan, ID model atau status",
+    "th": "ค้นหา ID คำขอ ID โมเดล หรือสถานะ"
   },
   "查询全部调用；选择状态会替换当前关键词。": {
     "en": "Search all calls. Selecting a status replaces the current search term.",
     "ja": "すべての呼び出しを検索します。状態を選択すると現在のキーワードが置き換わります。",
-    "ru": "Поиск по всем вызовам. Выбранный статус заменит текущий поисковый запрос."
+    "ru": "Поиск по всем вызовам. Выбранный статус заменит текущий поисковый запрос.",
+    "hi": "सभी कॉल खोजें। स्थिति चुनने से वर्तमान खोज शब्द बदल जाता है।",
+    "ms": "Cari semua panggilan. Memilih status menggantikan istilah carian semasa.",
+    "th": "ค้นหาการเรียกใช้ทั้งหมด การเลือกสถานะจะแทนคำค้นปัจจุบัน"
   },
   "移动工作台工具": {
     "en": "Mobile workspace tools",
     "ja": "モバイルワークスペースのツール",
-    "ru": "Инструменты мобильного рабочего пространства"
+    "ru": "Инструменты мобильного рабочего пространства",
+    "hi": "मोबाइल कार्यक्षेत्र उपकरण",
+    "ms": "Alat ruang kerja mudah alih",
+    "th": "เครื่องมือพื้นที่ทำงานบนมือถือ"
   },
   "工作台工具": {
     "en": "Workspace tools",
     "ja": "ワークスペースのツール",
-    "ru": "Инструменты рабочего пространства"
+    "ru": "Инструменты рабочего пространства",
+    "hi": "कार्यक्षेत्र उपकरण",
+    "ms": "Alat ruang kerja",
+    "th": "เครื่องมือพื้นที่ทำงาน"
   },
   "新建时系统生成唯一编号，编辑时保留原编号，无需手工填写。它用于识别本条价格或路由，不是公开模型 ID，也不会改变模型能力。": {
     "en": "A unique ID is generated for new entries and retained when editing. It identifies this price or route; it is not the public model ID and does not change model capabilities.",
     "ja": "新規作成時に一意の番号が生成され、編集時は元の番号が保持されます。価格またはルートを識別する番号で、公開モデル ID とは別です。モデルの能力は変更されません。",
-    "ru": "При создании формируется уникальный ID, который сохраняется при редактировании. Он обозначает эту цену или маршрут, отличается от публичного ID модели и не меняет её возможности."
+    "ru": "При создании формируется уникальный ID, который сохраняется при редактировании. Он обозначает эту цену или маршрут, отличается от публичного ID модели и не меняет её возможности.",
+    "hi": "नई प्रविष्टियों के लिए अद्वितीय ID बनती है और संपादन पर बनी रहती है। यह इस मूल्य या मार्ग की पहचान करती है; सार्वजनिक मॉडल ID नहीं है और मॉडल क्षमताएँ नहीं बदलती।",
+    "ms": "ID unik dijana untuk entri baharu dan dikekalkan semasa mengedit. Ia mengenal pasti harga atau laluan ini; ia bukan ID model awam dan tidak mengubah keupayaan model.",
+    "th": "ระบบสร้าง ID ที่ไม่ซ้ำกันสำหรับรายการใหม่และคงไว้เมื่อแก้ไข ใช้ระบุราคาหรือเส้นทางนี้ ไม่ใช่ ID โมเดลสาธารณะและไม่เปลี่ยนความสามารถโมเดล"
   },
   "这是应用请求中填写的公开模型 ID，例如 text-pro-v1。请确定稳定且便于识别的名称。供应商模型名称写在模型供应商页，不要把密钥或供应商地址填在这里。": {
     "en": "This is the public model ID used in application requests, for example text-pro-v1. Choose a stable, recognizable name. The supplier model name belongs on the supplier page. Do not enter secrets or supplier addresses here.",
     "ja": "アプリのリクエストで指定する公開モデル ID です。例：text-pro-v1。安定して見分けやすい名前にしてください。供給元のモデル名は供給元のページに書きます。ここに鍵や供給元のアドレスは書きません。",
-    "ru": "Это публичный ID модели в запросе приложения, например text-pro-v1. Выберите стабильное понятное имя. Имя модели поставщика указывается на странице поставщика. Не вводите здесь секреты или адреса поставщика."
+    "ru": "Это публичный ID модели в запросе приложения, например text-pro-v1. Выберите стабильное понятное имя. Имя модели поставщика указывается на странице поставщика. Не вводите здесь секреты или адреса поставщика.",
+    "hi": "यह एप्लिकेशन अनुरोधों में प्रयुक्त सार्वजनिक मॉडल ID है, उदाहरण text-pro-v1। स्थिर और पहचानने योग्य नाम चुनें। आपूर्तिकर्ता मॉडल नाम आपूर्तिकर्ता पृष्ठ पर होता है। यहाँ गुप्त मान या आपूर्तिकर्ता पते दर्ज न करें।",
+    "ms": "Ini ialah ID model awam yang digunakan dalam permintaan aplikasi, contohnya text-pro-v1. Pilih nama yang stabil dan mudah dikenal pasti. Nama model pembekal ditetapkan pada halaman pembekal. Jangan masukkan rahsia atau alamat pembekal di sini.",
+    "th": "นี่คือ ID โมเดลสาธารณะที่ใช้ในคำขอแอปพลิเคชัน เช่น text-pro-v1 เลือกชื่อที่คงที่และจดจำได้ ชื่อโมเดลผู้จัดหาอยู่ในหน้าผู้จัดหา ห้ามระบุข้อมูลลับหรือที่อยู่ผู้จัดหาที่นี่"
   },
   "填写已经核实的模型身份和修订版本，例如 vendor-model-2026-01。上游路由须与对应公开模型身份一致，避免把不同模型或版本混在同一个公开模型下。": {
     "en": "Enter the verified model identity and revision, for example vendor-model-2026-01. The upstream route must match the public model identity so different models or revisions are not mixed under one public model.",
     "ja": "検証済みのモデル識別情報とリビジョンを入力します。例：vendor-model-2026-01。異なるモデルやバージョンが混在しないように、上流ルートは対応する公開モデルの識別情報と一致する必要があります。",
-    "ru": "Укажите проверенную идентичность и ревизию модели, например vendor-model-2026-01. Вышестоящий маршрут должен соответствовать публичной модели, чтобы под одним ID не смешивались разные модели или версии."
+    "ru": "Укажите проверенную идентичность и ревизию модели, например vendor-model-2026-01. Вышестоящий маршрут должен соответствовать публичной модели, чтобы под одним ID не смешивались разные модели или версии.",
+    "hi": "सत्यापित मॉडल पहचान और संशोधन दर्ज करें, उदाहरण vendor-model-2026-01। अपस्ट्रीम मार्ग की पहचान सार्वजनिक मॉडल से मेल खानी चाहिए ताकि एक सार्वजनिक मॉडल के तहत अलग मॉडल या संशोधन न मिलें।",
+    "ms": "Masukkan identiti dan semakan model yang disahkan, contohnya vendor-model-2026-01. Laluan huluan mesti sepadan dengan identiti model awam supaya model atau semakan berbeza tidak dicampurkan di bawah satu model awam.",
+    "th": "ระบุตัวตนและรุ่นแก้ไขโมเดลที่ตรวจสอบแล้ว เช่น vendor-model-2026-01 เส้นทางต้นทางต้องตรงกับตัวตนโมเดลสาธารณะ เพื่อไม่ให้รวมโมเดลหรือรุ่นต่างกันไว้ภายใต้โมเดลสาธารณะเดียว"
   },
   "选择已保存的供应商凭据后，系统会带入对应供应商引用。它必须指向真实供应商主体，与供应商协议名称和模型名称分别记录。": {
     "en": "Selecting saved provider credentials fills in the matching provider reference. It must identify the actual provider and is recorded separately from the provider protocol and model names.",
     "ja": "保存済みのプロバイダー認証情報を選択すると、対応するプロバイダー参照が入力されます。実際の供給主体を指定し、プロトコル名やモデル名とは別に記録します。",
-    "ru": "После выбора сохранённых учётных данных подставляется ссылка на соответствующего поставщика. Она должна указывать на реального поставщика и хранится отдельно от названий протокола и модели."
+    "ru": "После выбора сохранённых учётных данных подставляется ссылка на соответствующего поставщика. Она должна указывать на реального поставщика и хранится отдельно от названий протокола и модели.",
+    "hi": "सहेजे गए प्रदाता क्रेडेंशियल चुनने पर मेल खाता प्रदाता संदर्भ भरता है। इसे वास्तविक प्रदाता की पहचान करनी चाहिए और यह प्रदाता प्रोटोकॉल तथा मॉडल नामों से अलग दर्ज होता है।",
+    "ms": "Memilih kelayakan penyedia yang disimpan mengisi rujukan penyedia yang sepadan. Ia mesti mengenal pasti penyedia sebenar dan direkodkan secara berasingan daripada nama protokol dan model penyedia.",
+    "th": "การเลือกข้อมูลรับรองผู้ให้บริการที่บันทึกแล้วจะเติมการอ้างอิงผู้ให้บริการที่ตรงกัน ต้องระบุผู้ให้บริการจริง และบันทึกแยกจากชื่อโปรโตคอลผู้ให้บริการและชื่อโมเดล"
   },
   "按双方接管合同填写服务责任每 ATG 的 结算币种 作价。例如 100 ATG、每 ATG 作价 0.02 结算币种，对应服务作价 2 结算币种；最终金额依完整责任快照核实，填写不会发起实际付款。": {
     "en": "Enter the agreed settlement currency value per ATG of service obligations. For example, 100 ATG at 0.02 settlement currency per ATG is valued at 2 settlement currency. The full obligation snapshot determines the final amount; entering a value does not initiate payment.",
     "ja": "双方の接管契約に従って、サービス責任 1 ATG 当たりの 決済通貨 評価額を入力します。例：100 ATG × 0.02 決済通貨 = 2 決済通貨。最終金額は完全な責任スナップショットで確認され、入力しても実際の支払いは開始されません。",
-    "ru": "Укажите согласованную договором стоимость обязательств в валюта расчётов за ATG. Например, 100 ATG по 0.02 валюта расчётов оцениваются в 2 валюта расчётов. Итог проверяется по полному снимку обязательств; ввод не запускает платёж."
+    "ru": "Укажите согласованную договором стоимость обязательств в валюта расчётов за ATG. Например, 100 ATG по 0.02 валюта расчётов оцениваются в 2 валюта расчётов. Итог проверяется по полному снимку обязательств; ввод не запускает платёж.",
+    "hi": "सेवा दायित्वों के प्रति ATG का सहमत निपटान मुद्रा मूल्य दर्ज करें। उदाहरण के लिए, प्रति ATG 0.02 निपटान मुद्रा पर 100 ATG का मूल्य 2 निपटान मुद्रा है। पूरा दायित्व स्नैपशॉट अंतिम राशि तय करता है; मूल्य दर्ज करने से भुगतान शुरू नहीं होता।",
+    "ms": "Masukkan nilai mata wang penyelesaian yang dipersetujui bagi setiap ATG tanggungjawab perkhidmatan. Contohnya, 100 ATG pada 0.02 mata wang penyelesaian setiap ATG bernilai 2 mata wang penyelesaian. Rekod tanggungjawab penuh menentukan jumlah akhir; memasukkan nilai tidak memulakan pembayaran.",
+    "th": "ระบุมูลค่าภาระบริการต่อ ATG ที่ตกลงกันในสกุลเงินที่ใช้ชำระบัญชี ตัวอย่าง 100 ATG ที่ราคา 0.02 สกุลเงินที่ใช้ชำระบัญชีต่อ ATG มีมูลค่า 2 สกุลเงินที่ใช้ชำระบัญชี จำนวนสุดท้ายขึ้นอยู่กับข้อมูลภาระทั้งหมด การระบุค่าไม่เริ่มชำระเงิน"
   },
   "这是采购库存抵扣时每 ATG 的合同 结算币种 作价，与承接服务作价分别约定。系统按真实库存和合同规则核算抵扣，不会因填写此价格增加库存或直接退款。": {
     "en": "This is the contractual settlement currency value per ATG used to offset procurement inventory, agreed separately from service obligations. Offsets use actual inventory and contract rules. This value does not add inventory or directly issue a refund.",
     "ja": "調達在庫の相殺に使用する 1 ATG 当たりの契約上の 決済通貨 評価額です。サービス責任の評価額とは別に合意します。実際の在庫と契約条件に基づいて相殺され、入力しても在庫追加や直接返金は行われません。",
-    "ru": "Это договорная стоимость ATG в валюта расчётов для зачёта закупленного запаса, согласуемая отдельно от стоимости услуг. Зачёт рассчитывается по реальному запасу и договору. Ввод цены не увеличивает запас и не оформляет возврат."
+    "ru": "Это договорная стоимость ATG в валюта расчётов для зачёта закупленного запаса, согласуемая отдельно от стоимости услуг. Зачёт рассчитывается по реальному запасу и договору. Ввод цены не увеличивает запас и не оформляет возврат.",
+    "hi": "यह खरीद स्टॉक समायोजित करने के लिए प्रति ATG का अनुबंधित निपटान मुद्रा मूल्य है, जो सेवा दायित्वों से अलग सहमत है। समायोजन वास्तविक स्टॉक और अनुबंध नियम उपयोग करते हैं। यह मूल्य स्टॉक नहीं जोड़ता या सीधे धनवापसी जारी नहीं करता।",
+    "ms": "Ini ialah nilai mata wang penyelesaian kontrak setiap ATG yang digunakan untuk mengofset inventori perolehan, dipersetujui secara berasingan daripada tanggungjawab perkhidmatan. Ofset menggunakan inventori sebenar dan peraturan kontrak. Nilai ini tidak menambah inventori atau mengeluarkan bayaran balik secara langsung.",
+    "th": "นี่คือมูลค่าตามสัญญาต่อ ATG ในสกุลเงินที่ใช้ชำระบัญชีสำหรับหักกลบสินค้าคงคลังจัดซื้อ ซึ่งตกลงแยกจากภาระบริการ การหักกลบใช้สินค้าคงคลังจริงและกฎสัญญา ค่านี้ไม่เพิ่มสินค้าคงคลังหรือคืนเงินโดยตรง"
   },
   "正数增加渠道向品牌的合同结清额，负数减少该金额，并可能改变付款方向。没有额外约定填写 0；请在完整快照核对最终结清方向。": {
     "en": "A positive amount increases the contractual settlement owed by the channel to the brand; a negative amount reduces it and may reverse the payment direction. Enter 0 if there is no extra agreement, and verify the final direction in the full snapshot.",
     "ja": "正数はチャネルからブランドへの契約精算額を増やし、負数は減らします。支払い方向が逆転する場合もあります。追加合意がない場合は 0 を入力し、完全なスナップショットで最終方向を確認してください。",
-    "ru": "Положительная сумма увеличивает расчётный долг канала перед брендом, отрицательная уменьшает его и может изменить направление платежа. При отсутствии дополнительных условий укажите 0 и проверьте итоговое направление по полному снимку."
+    "ru": "Положительная сумма увеличивает расчётный долг канала перед брендом, отрицательная уменьшает его и может изменить направление платежа. При отсутствии дополнительных условий укажите 0 и проверьте итоговое направление по полному снимку.",
+    "hi": "धनात्मक राशि चैनल द्वारा ब्रांड को देय अनुबंधित निपटान बढ़ाती है; ऋणात्मक राशि उसे घटाती है और भुगतान की दिशा पलट सकती है। अतिरिक्त समझौता न होने पर 0 दर्ज करें और पूरे स्नैपशॉट में अंतिम दिशा सत्यापित करें।",
+    "ms": "Jumlah positif menambah penyelesaian kontrak yang perlu dibayar saluran kepada jenama; jumlah negatif mengurangkannya dan mungkin membalikkan arah pembayaran. Masukkan 0 jika tiada perjanjian tambahan, dan sahkan arah akhir dalam rekod penuh.",
+    "th": "จำนวนบวกเพิ่มยอดชำระตามสัญญาที่ช่องทางต้องจ่ายให้แบรนด์ จำนวนลบลดยอดดังกล่าวและอาจกลับทิศทางการชำระเงิน ระบุ 0 หากไม่มีข้อตกลงเพิ่มเติม และตรวจสอบทิศทางสุดท้ายในข้อมูลทั้งหมด"
   },
   "填写双方已确认的接管合同编号或文件引用，用于核对本次承接范围、作价、库存退出和结清责任。创建方案不会代替双方签署合同。": {
     "en": "Enter the takeover contract number or document reference confirmed by both parties. It supports checking the scope, valuation, inventory exit, and settlement obligations. Creating a proposal does not replace signing the contract.",
     "ja": "双方が確認した接管契約番号または文書参照を入力し、承継範囲、評価額、在庫退出、精算責任を確認します。計画の作成は契約の署名に代わるものではありません。",
-    "ru": "Укажите номер или ссылку на договор, подтверждённый обеими сторонами. По нему проверяются объём передачи, оценка, выход из запасов и расчётные обязательства. Создание плана не заменяет подписание договора."
+    "ru": "Укажите номер или ссылку на договор, подтверждённый обеими сторонами. По нему проверяются объём передачи, оценка, выход из запасов и расчётные обязательства. Создание плана не заменяет подписание договора.",
+    "hi": "दोनों पक्षों द्वारा पुष्ट कार्यभार ग्रहण अनुबंध संख्या या दस्तावेज़ संदर्भ दर्ज करें। इससे दायरा, मूल्यांकन, स्टॉक निकास और निपटान दायित्व जाँचने में सहायता मिलती है। प्रस्ताव बनाना अनुबंध पर हस्ताक्षर का विकल्प नहीं है।",
+    "ms": "Masukkan nombor kontrak pengambilalihan atau rujukan dokumen yang disahkan kedua-dua pihak. Ia membantu menyemak skop, penilaian, pengeluaran inventori dan tanggungjawab penyelesaian. Mencipta cadangan tidak menggantikan penandatanganan kontrak.",
+    "th": "ระบุเลขสัญญารับช่วงหรือเอกสารอ้างอิงที่ทั้งสองฝ่ายยืนยัน ใช้ตรวจสอบขอบเขต มูลค่า การออกจากสินค้าคงคลัง และภาระชำระบัญชี การสร้างข้อเสนอไม่แทนการลงนามสัญญา"
   },
   "填写本次实际清偿的 结算币种 金额，手续费单独记录。例如到账结清 9.8 结算币种、付款方另付手续费 0.2 结算币种，此处填 9.8，手续费填 0.2；非 结算币种 执行应保留当次真实估值依据。": {
     "en": "Enter the settlement currency amount actually settled and record fees separately. For example, if 9.8 settlement currency settles the obligation and the payer pays a separate 0.2 settlement currency fee, enter 9.8 here and 0.2 as the fee. Keep current valuation evidence for non-settlement currency payments.",
     "ja": "今回実際に精算した 決済通貨 額を入力し、手数料は別に記録します。例：精算入金 9.8 決済通貨、支払者が別途負担する手数料 0.2 決済通貨 の場合、ここに 9.8、手数料に 0.2 を入力します。外貨の場合は今回の実際の評価根拠を保存してください。",
-    "ru": "Укажите фактически погашенную сумму в валюта расчётов, а комиссию отдельно. Например, при погашении 9.8 валюта расчётов и дополнительной комиссии плательщика 0.2 валюта расчётов укажите здесь 9.8, а в поле комиссии 0.2. Для иной валюты сохраните актуальное основание оценки."
+    "ru": "Укажите фактически погашенную сумму в валюта расчётов, а комиссию отдельно. Например, при погашении 9.8 валюта расчётов и дополнительной комиссии плательщика 0.2 валюта расчётов укажите здесь 9.8, а в поле комиссии 0.2. Для иной валюты сохраните актуальное основание оценки.",
+    "hi": "वास्तव में निपटाई गई निपटान मुद्रा राशि दर्ज करें और शुल्क अलग दर्ज करें। उदाहरण के लिए, यदि 9.8 निपटान मुद्रा से दायित्व निपटता है और भुगतानकर्ता अलग 0.2 निपटान मुद्रा शुल्क देता है, तो यहाँ 9.8 और शुल्क में 0.2 दर्ज करें। गैर-निपटान मुद्रा भुगतान के लिए वर्तमान मूल्यांकन प्रमाण रखें।",
+    "ms": "Masukkan jumlah mata wang penyelesaian yang benar-benar diselesaikan dan rekodkan fi secara berasingan. Contohnya, jika 9.8 mata wang penyelesaian menyelesaikan tanggungjawab dan pembayar membayar fi berasingan 0.2 mata wang penyelesaian, masukkan 9.8 di sini dan 0.2 sebagai fi. Simpan bukti penilaian semasa bagi pembayaran selain mata wang penyelesaian.",
+    "th": "ระบุจำนวนที่ชำระหนี้จริงในสกุลเงินที่ใช้ชำระบัญชีและบันทึกค่าธรรมเนียมแยก ตัวอย่างเช่น หาก 9.8 สกุลเงินที่ใช้ชำระบัญชีชำระภาระและผู้จ่ายชำระค่าธรรมเนียมแยก 0.2 สกุลเงินที่ใช้ชำระบัญชี ให้ระบุ 9.8 ที่นี่และ 0.2 เป็นค่าธรรมเนียม เก็บหลักฐานมูลค่าปัจจุบันสำหรับการชำระที่ไม่ใช่สกุลเงินที่ใช้ชำระบัญชี"
   },
   "填写银行或支付通道为本次实际收付款出具的唯一流水号，不要重复登记同一笔款项。它与合同编号分别记录，提交后仍按真实凭证核实。": {
     "en": "Enter the unique transaction reference issued by the bank or payment channel for this actual payment. Do not register the same payment twice. It is separate from the contract number, and the actual proof remains subject to verification.",
     "ja": "銀行または決済サービスが今回の実際の入出金に発行した一意の取引番号を入力します。同じ支払いを重複登録しないでください。契約番号とは別に記録し、提出後も実際の証憑に基づいて確認します。",
-    "ru": "Укажите уникальный номер этой фактической операции, выданный банком или платёжным каналом. Не регистрируйте один платёж дважды. Номер хранится отдельно от договора; поданные данные проверяются по реальному подтверждению."
+    "ru": "Укажите уникальный номер этой фактической операции, выданный банком или платёжным каналом. Не регистрируйте один платёж дважды. Номер хранится отдельно от договора; поданные данные проверяются по реальному подтверждению.",
+    "hi": "इस वास्तविक भुगतान के लिए बैंक या भुगतान चैनल द्वारा जारी अद्वितीय लेनदेन संदर्भ दर्ज करें। एक ही भुगतान दो बार दर्ज न करें। यह अनुबंध संख्या से अलग है और वास्तविक प्रमाण का सत्यापन अभी भी आवश्यक है।",
+    "ms": "Masukkan rujukan transaksi unik yang dikeluarkan bank atau saluran pembayaran untuk pembayaran sebenar ini. Jangan daftarkan pembayaran yang sama dua kali. Ia berasingan daripada nombor kontrak, dan bukti sebenar masih tertakluk kepada pengesahan.",
+    "th": "ระบุเลขอ้างอิงธุรกรรมที่ไม่ซ้ำกันซึ่งธนาคารหรือช่องทางชำระเงินออกให้สำหรับการชำระเงินจริงครั้งนี้ ห้ามบันทึกการชำระเดียวกันซ้ำ เลขนี้แยกจากเลขสัญญา และหลักฐานจริงยังต้องตรวจสอบ"
   }
 }

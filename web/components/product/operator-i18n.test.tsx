@@ -36,7 +36,7 @@ it("shows simplified takeover copy in all supported languages", async()=>{
  vi.stubGlobal("fetch",vi.fn(async()=>response({items:[],channels:[{id:"channel",name:"Channel",legal_name:"",lifecycle:"active"}]})));
  show(<TakeoversScreen operatorID="operator-one"/>);
  await screen.findByRole("button",{name:"Take over channel"});
- for(const locale of ["zh","en","ja","ru"] as const){
+ for(const locale of ["zh","en","ja","ru","hi","ms","th"] as const){
   fireEvent.change(screen.getByTestId("language-selector"),{target:{value:locale}});
   expect(screen.getByText(translate(locale,"查看停业告知、渠道接管进度和结果。采购余额不退，双方资金交接在线下处理。"))).toBeTruthy();
  }

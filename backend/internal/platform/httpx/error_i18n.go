@@ -13,11 +13,11 @@ var errorCatalogJSON []byte
 //go:embed ui_i18n.generated.json
 var uiCatalogJSON []byte
 
-var uiCatalog map[string][4]string
+var uiCatalog map[string][7]string
 
 var errorCatalog struct {
-	Codes    map[string][3]string `json:"codes"`
-	Messages map[string][3]string `json:"messages"`
+	Codes    map[string][6]string `json:"codes"`
+	Messages map[string][6]string `json:"messages"`
 }
 
 func init() {
@@ -73,6 +73,12 @@ func localeIndex(locale string) int {
 		return 1
 	case "ru":
 		return 2
+	case "hi":
+		return 3
+	case "ms":
+		return 4
+	case "th":
+		return 5
 	default:
 		return -1
 	}

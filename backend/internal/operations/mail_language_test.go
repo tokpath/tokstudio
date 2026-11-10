@@ -17,6 +17,33 @@ func (b *languageMailBox) Send(_ context.Context, m mail.Message) error {
 	return nil
 }
 
+func TestMailLanguageMigrationPreservesExistingPreferences(t *testing.T) {
+	db := operationsDBBefore(t, "0013_add_mail_languages.sql")
+	operator, recipient := uuid.NewString(), uuid.NewString()
+	if err := db.Exec(`INSERT INTO operations_preferences(operator_id,recipient_id,marketing,usage_email,language,updated_at) VALUES(?,?,true,false,'ru',clock_timestamp())`, operator, recipient).Error; err != nil {
+		t.Fatal(err)
+	}
+	migration, err := migrations.ReadFile("migrate/0013_add_mail_languages.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec(string(migration)).Error; err != nil {
+		t.Fatal(err)
+	}
+	var preference Preference
+	if err := db.First(&preference).Error; err != nil || preference.Language != "ru" || !preference.Marketing || preference.UsageEmail {
+		t.Fatal("migration changed existing language or consent", preference, err)
+	}
+	for _, language := range []string{"hi", "ms", "th"} {
+		if err := db.Exec(`UPDATE operations_preferences SET language=?`, language).Error; err != nil {
+			t.Fatal(language, err)
+		}
+	}
+	if err := db.Exec(`UPDATE operations_preferences SET language='xx'`).Error; err == nil {
+		t.Fatal("migration removed language validation")
+	}
+}
+
 func TestNotificationMailLanguagePreservesConsentScopeAndAuthoredContent(t *testing.T) {
 	s, _, _, operator, customer := opsFixture(t)
 	ctx := t.Context()
@@ -31,7 +58,7 @@ func TestNotificationMailLanguagePreservesConsentScopeAndAuthoredContent(t *test
 	if err := s.SetMailLanguage(ctx, customer, operator, "xx"); err == nil {
 		t.Fatal("invalid language accepted")
 	}
-	for _, locale := range []string{"zh", "en", "ja", "ru"} {
+	for _, locale := range []string{"zh", "en", "ja", "ru", "hi", "ms", "th"} {
 		if err := s.SetMailLanguage(ctx, customer, operator, locale); err != nil {
 			t.Fatal(err)
 		}
@@ -60,7 +87,7 @@ func TestNotificationMailLanguagePreservesConsentScopeAndAuthoredContent(t *test
 		t.Fatal(err)
 	}
 	pref, err := s.Preferences(ctx, customer, operator)
-	if err != nil || pref.Language != "ru" {
+	if err != nil || pref.Language != "th" {
 		t.Fatal(pref, err)
 	}
 	authored := "付款已完成。This is operator-authored text."

@@ -18,7 +18,7 @@ it("persists language, preserves field identity, and sends it without changing a
   render(<I18nProvider><LanguageControl /><input aria-label="authored name" defaultValue="客户" /><Money value="12345.000000000000000001" unit="USD" /><When value="2026-10-18T12:34:00Z" /></I18nProvider>);
   const input = screen.getByRole("textbox"), date = new Date("2026-10-18T12:34:00Z");
   const original = { name: "客户", amount_money: "0.000000000000000001" };
-  for (const locale of ["en", "ja", "ru", "zh"] as const) {
+  for (const locale of ["en", "ja", "ru", "hi", "ms", "th", "zh"] as const) {
     fireEvent.change(screen.getByTestId("language-selector"), { target: { value: locale } });
     expect(document.documentElement.lang).toBe(localeTags[locale]); expect(document.cookie).toContain(`NEXT_LOCALE=${locale}`);
     expect(screen.getByRole("textbox")).toBe(input); expect((input as HTMLInputElement).value).toBe("客户");

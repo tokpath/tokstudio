@@ -16,7 +16,7 @@ test('brand mail contracts cover platform SMTP and OEM inheritance with brand-sc
   assert.equal(op['x-required-permission'], 'branding.manage');
   assert.equal(operation('mail/test')['x-required-permission'], 'branding.manage');
   assert.deepEqual(body('mail/test').properties, {});
-  assert.deepEqual(resolve(document.paths['/v1/auth/language'].post.requestBody.content['application/json'].schema).properties.language.enum, ['zh','en','ja','ru']);
+  assert.deepEqual(resolve(document.paths['/v1/auth/language'].post.requestBody.content['application/json'].schema).properties.language.enum, ['zh','en','ja','ru','hi','ms','th']);
   assert.match(op.description, /Channels.*cannot configure SMTP/);
   const alternatives = op.requestBody.content['application/json'].schema.oneOf.map(resolve);
   assert.equal(alternatives.length, 2);

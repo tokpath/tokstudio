@@ -164,10 +164,12 @@ export function CancelUnpaidOrder({ orderID, onCancelled }: { orderID: string; o
 }
 function StripeCheckout({ clientSecret, publishableKey }: { clientSecret: string; publishableKey: string }) {
   const { t, locale } = useI18n();
+  // Stripe's Payment Element does not offer Hindi; local UI copy stays Hindi.
+  const paymentLocale = locale === "hi" ? "en" : locale;
   const mount = useRef<HTMLDivElement>(null), ready = useRef<{ stripe: Stripe; elements: StripeElements } | undefined>(undefined);
-  const currentLocale = useRef(locale);
-  currentLocale.current = locale;
-  useEffect(() => { ready.current?.elements.update({ locale }); }, [locale]);
+  const currentLocale = useRef(paymentLocale);
+  currentLocale.current = paymentLocale;
+  useEffect(() => { ready.current?.elements.update({ locale: paymentLocale }); }, [paymentLocale]);
   const [error, setError] = useState<string>(), [busy, setBusy] = useState(false), [isReady, setIsReady] = useState(false), [submitted, setSubmitted] = useState(false);
   useEffect(() => { let cancelled = false; let destroy: (() => void) | undefined; void loadStripe(publishableKey).then(stripe => { if (!stripe || cancelled || !mount.current) return; const elements = stripe.elements({ clientSecret, locale: currentLocale.current }); const element = elements.create("payment"); element.mount(mount.current); element.on("ready", () => setIsReady(true)); ready.current = { stripe, elements }; destroy = () => element.destroy(); }).catch(e => setError(e instanceof Error ? e.message : t("支付组件加载失败"))); return () => { cancelled = true; destroy?.(); ready.current = undefined; }; }, [clientSecret, publishableKey]);
   return <div className="mt-5 space-y-4"><div ref={mount} />{error && <AlertText>{t(error)}</AlertText>}{submitted && <Notice>{t("支付已提交，服务端将继续核实收款与交付，请刷新原订单记录。")}</Notice>}<Button disabled={busy || !isReady || submitted} onClick={async () => { if (!ready.current) return; setBusy(true); setError(undefined); try { const result = await ready.current.stripe.confirmPayment({ elements: ready.current.elements, confirmParams: { return_url: `${window.location.origin}/workspace/orders` }, redirect: "if_required" }); if (result.error) setError(result.error.message || t("支付未完成")); else setSubmitted(true); } catch { setError("支付提交结果待核实，请刷新原订单核对收款状态。"); setSubmitted(true); } finally { setBusy(false); } }}>{busy ? t("正在提交支付…") : t("确认通道支付")}</Button></div>;

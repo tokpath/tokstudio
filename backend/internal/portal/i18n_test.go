@@ -20,7 +20,7 @@ import (
 
 func TestPortalLocalizedErrorsPreserveDetailedBusinessContract(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	for _, locale := range []string{"zh", "en", "ja", "ru"} {
+	for _, locale := range []string{"zh", "en", "ja", "ru", "hi", "ms", "th"} {
 		t.Run(locale, func(t *testing.T) {
 			writer := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(writer)
@@ -52,7 +52,7 @@ func TestPortalLocalizedErrorsPreserveDetailedBusinessContract(t *testing.T) {
 func TestWithdrawalMinimumErrorStatesTheOneUnitFloor(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	source := "佣金最低提现不能小于 1 结算币种。"
-	for _, locale := range []string{"zh", "en", "ja", "ru"} {
+	for _, locale := range []string{"zh", "en", "ja", "ru", "hi", "ms", "th"} {
 		writer := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(writer)
 		c.Request = httptest.NewRequest("POST", "/v1/operators/op/commissions", nil)
@@ -75,7 +75,7 @@ func TestWithdrawalMinimumErrorStatesTheOneUnitFloor(t *testing.T) {
 
 func TestUpstreamFailureIsPrivateAndLocalized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	for _, locale := range []string{"zh", "en", "ja", "ru"} {
+	for _, locale := range []string{"zh", "en", "ja", "ru", "hi", "ms", "th"} {
 		for _, status := range []int{0, 400, 401, 403, 429, 500, 504} {
 			writer := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(writer)
@@ -110,7 +110,7 @@ func TestPortalLocaleThroughRealAuthAndVerificationMail(t *testing.T) {
 	f := setupPortal(t)
 	f.openRegistration(t)
 	address, _ := url.Parse(f.server.URL)
-	for _, locale := range []string{"zh", "en", "ja", "ru"} {
+	for _, locale := range []string{"zh", "en", "ja", "ru", "hi", "ms", "th"} {
 		t.Run(locale, func(t *testing.T) {
 			f.client.Jar.SetCookies(address, []*http.Cookie{{Name: "NEXT_LOCALE", Value: locale, Path: "/"}})
 			status, body, _ := f.call(t, "POST", "/v1/auth/login", map[string]any{"kind": "staff", "email": "owner@example.test", "password": "wrong-password"}, uuid.NewString())

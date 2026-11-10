@@ -10,7 +10,9 @@ import (
 // Language follows the recipient's existing UI selector. It never changes
 // subscription consent or the language of operator-authored announcements.
 func (s *Service) SetMailLanguage(ctx context.Context, actor, operator, language string) error {
-	if language != "zh" && language != "en" && language != "ja" && language != "ru" {
+	switch language {
+	case "zh", "en", "ja", "ru", "hi", "ms", "th":
+	default:
 		return ErrInvalid
 	}
 	return s.within(ctx, nil, func(tx *gorm.DB) error {

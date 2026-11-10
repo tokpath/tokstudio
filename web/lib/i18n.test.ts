@@ -3,12 +3,15 @@ import { readFileSync, readdirSync } from "node:fs";
 import ts from "typescript";
 import { catalogs, localizeNumberText, messages, normalizeLocale, resolveLocale, translate } from "./i18n";
 
-describe("four-language presentation contract", () => {
+describe("seven-language presentation contract", () => {
   it.each([
     ["ru-RU", "en-US,en;q=0.9", "ru"], ["ja", "ru;q=1", "ja"],
     ["invalid", "fr;q=1,ru-RU;q=0.8,en;q=0.3", "ru"], [undefined, "ja-JP;q=0.9,zh;q=0.2", "ja"],
     ["", "en;q=0,ru;q=NaN,ja;q=3", "zh"], ["", "ru;q=0.8,en;q=0.8", "ru"],
     ["zh-Hant", "en", "zh"], ["fr", "de,*", "zh"],
+    ["hi-IN", "en", "hi"], ["MS_my", "th", "ms"], ["th-TH", "hi", "th"],
+    [undefined, "hi-IN;q=0.9,ms-MY;q=0.8,th-TH;q=0.7", "hi"],
+    ["invalid", "ms;q=0.6,th;q=0.9,en;q=0.3", "th"],
   ])("negotiates cookie %s and header %s as %s", (cookie, header, want) => {
     expect(resolveLocale(cookie, header)).toBe(want);
   });
@@ -20,7 +23,7 @@ describe("four-language presentation contract", () => {
     const parameters = (text: string) => (text.match(/\{[A-Za-z_]\w*\}|%[sd]/g) || []).sort();
     for (const [catalog, entries] of Object.entries(catalogs)) {
       for (const [source, message] of Object.entries(entries)) {
-        for (const locale of ["en", "ja", "ru"] as const) {
+        for (const locale of ["en", "ja", "ru", "hi", "ms", "th"] as const) {
           const value = message[locale];
           expect(value?.trim(), `${catalog}/${source}/${locale}`).toBeTruthy();
           expect(parameters(value), `${catalog}/${source}/${locale} parameters`).toEqual(parameters(source));
@@ -64,12 +67,20 @@ describe("four-language presentation contract", () => {
     expect(translate("ru", "请填写有效的foo")).toBe(translate("ru", "请填写有效的{label}", { label: "foo" }));
     const readiness = "仍有未满足事项：品牌未开放；负责人尚未开通经营方";
     expect(translate("ja", translate("en", readiness))).toBe(translate("ja", readiness));
+    for (const locale of ["hi", "ms", "th"] as const) {
+      expect(translate("en", translate(locale, readiness))).toBe(translate("en", readiness));
+      expect(translate("en", translate(locale, detailed, { label: "external-id" }))).toBe(translate("en", detailed, { label: "external-id" }));
+    }
   });
   it("changes display separators without rounding financial strings", () => {
     expect(localizeNumberText("12,345.000000000000000001", "ru")).toBe("12\u00a0345,000000000000000001");
     expect(localizeNumberText("0.000000000000000001", "en")).toBe("0.000000000000000001");
+    expect(localizeNumberText("1,234,567.000000000000000001", "hi")).toBe("12,34,567.000000000000000001");
+    for (const locale of ["hi", "ms", "th"] as const) {
+      expect(localizeNumberText("0.000000000000000001", locale)).toBe("0.000000000000000001");
+    }
   });
-  it.each(["zh", "en", "ja", "ru"] as const)("shows the configured settlement currency only in marked system templates in %s", locale => {
+  it.each(["zh", "en", "ja", "ru", "hi", "ms", "th"] as const)("shows the configured settlement currency only in marked system templates in %s", locale => {
     const amount = translate(locale, "金额 结算币种", undefined, "CNY");
     expect(amount).toContain("CNY");
     expect(amount).not.toMatch(/结算币种|settlement currency|決済通貨|валюта расчётов/);

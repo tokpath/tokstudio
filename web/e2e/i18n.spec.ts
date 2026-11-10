@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { translate, type Locale } from "../lib/i18n";
+import { localeNames, locales, translate, type Locale } from "../lib/i18n";
 
 const brand = { id: "brand-i18n", name: "山海模型", api_base_url: "https://api.shanhai.example/v1", theme: { primary_color: "#2444aa" } };
 const operator = { id: "operator-i18n", name: "星河渠道", kind: "channel", brand_id: brand.id, contact_email: "support@example.test", legal_name: "星河服务主体" };
@@ -27,7 +27,7 @@ async function api(page: Page, session: unknown = customer) {
 
 // Public pages are server-rendered with the request locale; browser API mocks
 // intentionally affect only the product data fetched during hydration.
-for (const [locale, acceptLanguage] of [["ru", "ru-RU"], ["ja", "ja-JP"]] as const) {
+for (const [locale, acceptLanguage] of [["ru", "ru-RU"], ["ja", "ja-JP"], ["hi", "hi-IN"], ["ms", "ms-MY"], ["th", "th-TH"]] as const) {
   test(`initial ${acceptLanguage} request renders the matching html language`, async ({ browser, baseURL }) => {
     const isolated = await browser.newContext({ baseURL, locale: acceptLanguage });
     try {
@@ -41,22 +41,22 @@ for (const [locale, acceptLanguage] of [["ru", "ru-RU"], ["ja", "ja-JP"]] as con
   });
 }
 
-test("public selector offers four languages and its host cookie survives reload and navigation", async ({ page, context }) => {
+test("public selector offers seven languages and its host cookie survives reload and navigation", async ({ page, context }) => {
   await api(page, { kind: "anonymous" }); await page.goto("/");
-  const selector = page.getByTestId("language-selector"); await expect(selector.locator("option")).toHaveCount(4);
-  await expect(selector.locator("option")).toHaveText(["中文", "English", "日本語", "Русский"]);
-  for (const locale of ["en", "ja", "ru", "zh"] as const) {
+  const selector = page.getByTestId("language-selector"); await expect(selector.locator("option")).toHaveCount(locales.length);
+  await expect(selector.locator("option")).toHaveText(locales.map(locale => localeNames[locale]));
+  for (const locale of ["en", "ja", "ru", "hi", "ms", "th", "zh"] as const) {
     await selector.selectOption(locale); await expect(page.locator("html")).toHaveAttribute("lang", locale === "zh" ? "zh-CN" : locale);
     await expect(page.getByRole("link", { name: text(locale, "模型与价格"), exact: true })).toBeVisible();
     await page.screenshot({ path: test.info().outputPath(`public-${locale}.png`), fullPage: true });
   }
-  await selector.selectOption("ru");
+  await selector.selectOption("th");
   const cookie = (await context.cookies()).find(item => item.name === "NEXT_LOCALE");
-  expect(cookie).toMatchObject({ value: "ru", domain: new URL(page.url()).hostname, path: "/", sameSite: "Lax" });
+  expect(cookie).toMatchObject({ value: "th", domain: new URL(page.url()).hostname, path: "/", sameSite: "Lax" });
   expect(cookie!.expires).toBeGreaterThan(Date.now() / 1000 + 300 * 24 * 60 * 60);
-  await page.reload(); await expect(selector).toHaveValue("ru"); await expect(page.locator("html")).toHaveAttribute("lang", "ru");
-  await page.getByRole("link", { name: text("ru", "模型与价格"), exact: true }).click();
-  await expect(page).toHaveURL(/\/models$/); await expect(selector).toHaveValue("ru"); await expect(page.getByRole("heading", { name: text("ru", "模型与价格"), exact: true })).toBeVisible();
+  await page.reload(); await expect(selector).toHaveValue("th"); await expect(page.locator("html")).toHaveAttribute("lang", "th");
+  await page.getByRole("link", { name: text("th", "模型与价格"), exact: true }).click();
+  await expect(page).toHaveURL(/\/models$/); await expect(selector).toHaveValue("th"); await expect(page.getByRole("heading", { name: text("th", "模型与价格"), exact: true })).toBeVisible();
 });
 
 test("customer Key edits retain authored input, precise money, and the existing Key ID across all languages", async ({ page }) => {
@@ -67,7 +67,7 @@ test("customer Key edits retain authored input, precise money, and the existing 
   });
   await page.goto("/workspace/keys"); await page.getByRole("button", { name: text("zh", "编辑配置"), exact: true }).click();
   await page.getByLabel("名称", { exact: true }).fill("查看详情"); await page.getByLabel("ATG 预算上限", { exact: true }).fill("7.000000000000000001");
-  for (const locale of ["en", "ja", "ru", "zh"] as const) {
+  for (const locale of ["en", "ja", "ru", "hi", "ms", "th", "zh"] as const) {
     await page.getByTestId("language-selector").selectOption(locale);
     await expect(page.getByLabel(text(locale, "名称"), { exact: true })).toHaveValue("查看详情");
     await expect(page.getByLabel(text(locale, "ATG 预算上限"), { exact: true })).toHaveValue("7.000000000000000001");
@@ -94,7 +94,8 @@ test("customer Key edits retain authored input, precise money, and the existing 
   expect(writes[0].body.budget.limit_atg).toEqual(expect.any(String));
 });
 
-test("an unresolved financial modal switches language and retries the exact JSON and idempotency key", async ({ page }) => {
+for (const locale of ["ru", "hi", "ms", "th"] as const) {
+test(`an unresolved financial modal switches to ${locale} and retries the exact JSON and idempotency key`, async ({ page }) => {
   await api(page); const attempts: { key: string; body: string | null }[] = [];
   await page.route("**/api/v1/me/refunds/workspace", route => route.fulfill({ json: { ...resource("退款办理"), operations: [{ name: "apply", label: "确认费用并提交", method: "POST", path: "/api/v1/me/refunds", fields: [{ name: "amount_money", label: "申请金额 结算币种", kind: "decimal", required: true }, { name: "evidence", label: "付款核实说明", kind: "text", required: true }], confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。" }] } }));
   await page.route("**/api/v1/me/refunds", async route => {
@@ -107,18 +108,19 @@ test("an unresolved financial modal switches language and retries the exact JSON
   await dialog.getByLabel("申请金额 结算币种", { exact: false }).fill("0.000000000000000001"); await dialog.getByRole("textbox", { name: /^付款核实说明/ }).fill("查看详情");
   await dialog.getByRole("checkbox").check(); await dialog.getByRole("button", { name: "确认费用并提交", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "重试本次操作", exact: true })).toBeVisible();
-  await dialog.getByTestId("language-selector").selectOption("ru");
+  await dialog.getByTestId("language-selector").selectOption(locale);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
-  await expect(dialog.getByLabel(text("ru", "申请金额 结算币种"), { exact: false })).toHaveValue("0.000000000000000001");
-  await expect(dialog.getByLabel(text("ru", "申请金额 结算币种"), { exact: false })).toBeDisabled();
-  await expect(dialog.getByRole("textbox", { name: new RegExp("^" + text("ru", "付款核实说明")) })).toHaveValue("查看详情");
-  await expect(dialog.getByRole("button", { name: text("ru", "关闭办理面板"), exact: true })).toBeDisabled();
-  await dialog.getByRole("button", { name: text("ru", "重试本次操作"), exact: true }).click();
-  await expect(dialog.getByRole("button", { name: text("ru", "本次操作已完成，关闭后查看最新记录"), exact: true })).toBeVisible();
+  await expect(dialog.getByLabel(text(locale, "申请金额 结算币种"), { exact: false })).toHaveValue("0.000000000000000001");
+  await expect(dialog.getByLabel(text(locale, "申请金额 结算币种"), { exact: false })).toBeDisabled();
+  await expect(dialog.getByRole("textbox", { name: new RegExp("^" + text(locale, "付款核实说明")) })).toHaveValue("查看详情");
+  await expect(dialog.getByRole("button", { name: text(locale, "关闭办理面板"), exact: true })).toBeDisabled();
+  await dialog.getByRole("button", { name: text(locale, "重试本次操作"), exact: true }).click();
+  await expect(dialog.getByRole("button", { name: text(locale, "本次操作已完成，关闭后查看最新记录"), exact: true })).toBeVisible();
   expect(attempts).toHaveLength(2); expect(attempts[0]).toEqual(attempts[1]); expect(attempts[0].key).toMatch(/^[0-9a-f-]{36}$/);
   expect(JSON.parse(attempts[0].body!)).toEqual({ amount_money: "0.000000000000000001", evidence: "查看详情" });
 });
+}
 
 test("operator server metadata translates while authored Chinese names and evidence remain verbatim", async ({ page }) => {
   await api(page, staff);
@@ -138,22 +140,25 @@ test("operator server metadata translates while authored Chinese names and evide
   await expect(dialog.getByText("查看详情", { exact: true }).first()).toBeVisible();
 });
 
-test("Russian public and customer mobile layouts stay within the viewport", async ({ page }) => {
-  await api(page); await page.setViewportSize({ width: 390, height: 844 }); await page.goto("/"); await page.getByTestId("language-selector").selectOption("ru");
+for (const locale of ["ru", "hi", "ms", "th"] as const) {
+test(`${locale} public and customer mobile layouts stay within the viewport`, async ({ page }) => {
+  await api(page); await page.setViewportSize({ width: 390, height: 844 }); await page.goto("/"); await page.getByTestId("language-selector").selectOption(locale);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
-  await page.goto("/workspace/keys"); await expect(page.getByTestId("language-selector")).toHaveValue("ru");
-  await page.getByRole("button", { name: text("ru", "打开工作台导航"), exact: true }).click();
-  await expect(page.getByRole("navigation", { name: text("ru", "移动工作台"), exact: true })).toBeVisible();
+  await page.goto("/workspace/keys"); await expect(page.getByTestId("language-selector")).toHaveValue(locale);
+  await page.getByRole("button", { name: text(locale, "打开工作台导航"), exact: true }).click();
+  await expect(page.getByRole("navigation", { name: text(locale, "移动工作台"), exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
-  await page.getByRole("button", { name: text("ru", "编辑配置"), exact: true }).click();
-  await expect(page.getByLabel(text("ru", "ATG 预算上限"), { exact: true })).toHaveValue(existingKey.budget.limit_atg);
+  await page.getByRole("button", { name: text(locale, "编辑配置"), exact: true }).click();
+  await expect(page.getByLabel(text(locale, "ATG 预算上限"), { exact: true })).toHaveValue(existingKey.budget.limit_atg);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
-  await page.screenshot({ path: "test-results/i18n-russian-mobile.png", fullPage: true });
+  await page.screenshot({ path: test.info().outputPath(`i18n-${locale}-mobile.png`), fullPage: true });
 });
 
+}
 
-for (const locale of ["zh", "en", "ja", "ru"] as const) {
+
+for (const locale of ["zh", "en", "ja", "ru", "hi", "ms", "th"] as const) {
   test(`invoice workspace and original purchase details render in ${locale}`, async ({ page }) => {
     await api(page, staff);
     await page.route(`**/api/v1/operators/${operator.id}/invoices**`, route => route.fulfill({json:route.request().url().endsWith("/files") ? {
@@ -183,7 +188,7 @@ for (const locale of ["zh", "en", "ja", "ru"] as const) {
   });
 }
 
-for (const locale of ["zh","en","ja","ru"] as const) {
+for (const locale of ["zh","en","ja","ru","hi","ms","th"] as const) {
  test(`optional invoice instructions can be saved and cleared in ${locale}`,async({page})=>{
   await api(page,staff);
   let note="",version=0;

@@ -2,146 +2,233 @@
   "了解{title}": {
     "en": "About {title}",
     "ja": "{title}について",
-    "ru": "Подробнее: {title}"
+    "ru": "Подробнее: {title}",
+    "hi": "{title} के बारे में",
+    "ms": "Perihal {title}",
+    "th": "เกี่ยวกับ {title}"
   },
   "填写能够核实本次操作的材料、文件编号或链接，并说明核实结果。系统保留此依据供复核；填写文字本身不代表付款、授权或验证成功。": {
     "en": "Enter verifiable material, a document ID or link, and the verification result. This is retained for review; text alone does not confirm payment, authorization or validation.",
     "ja": "操作を確認できる資料、文書番号やリンクと確認結果を入力します。監査のため保存されますが、記入だけで支払いや権限、検証が成立するわけではありません。",
-    "ru": "Укажите проверяемые материалы, номер документа или ссылку и результат проверки. Запись сохраняется для контроля, но сама по себе не подтверждает оплату, разрешение или проверку."
+    "ru": "Укажите проверяемые материалы, номер документа или ссылку и результат проверки. Запись сохраняется для контроля, но сама по себе не подтверждает оплату, разрешение или проверку.",
+    "hi": "सत्यापन योग्य सामग्री, दस्तावेज़ ID या लिंक और सत्यापन परिणाम दर्ज करें। इसे समीक्षा के लिए रखा जाता है; केवल पाठ भुगतान, प्राधिकरण या मान्यता की पुष्टि नहीं करता।",
+    "ms": "Masukkan bahan yang boleh disahkan, ID dokumen atau pautan, dan hasil pengesahan. Ini disimpan untuk semakan; teks sahaja tidak mengesahkan pembayaran, kebenaran atau pengesahan.",
+    "th": "กรอกเอกสารที่ตรวจสอบได้ ID เอกสารหรือลิงก์ และผลการตรวจสอบ ระบบเก็บข้อมูลนี้เพื่อทบทวน ข้อความเพียงอย่างเดียวไม่ยืนยันการชำระเงิน การอนุญาต หรือการตรวจสอบว่าเสร็จสมบูรณ์"
   },
   "填写付款渠道或银行给出的原始唯一流水号，用来识别同一笔收款并防止重复入账。不要填写客户邮箱或自己新造的订单号。": {
     "en": "Use the original unique transaction reference from the payment provider or bank. It identifies the receipt and prevents duplicate posting. Do not use a customer email or an invented order number.",
     "ja": "決済サービスまたは銀行が発行した一意の取引番号を入力します。重複計上を防ぐための番号です。顧客メールや独自の注文番号は使用しません。",
-    "ru": "Используйте исходный уникальный номер операции банка или платёжного сервиса. Он предотвращает повторный учёт. Не вводите email клиента или придуманный номер заказа."
+    "ru": "Используйте исходный уникальный номер операции банка или платёжного сервиса. Он предотвращает повторный учёт. Не вводите email клиента или придуманный номер заказа.",
+    "hi": "भुगतान प्रदाता या बैंक का मूल अद्वितीय लेनदेन संदर्भ उपयोग करें। यह प्राप्ति पहचानता है और दोहरी बही प्रविष्टि रोकता है। ग्राहक ईमेल या मनगढ़ंत ऑर्डर संख्या उपयोग न करें।",
+    "ms": "Gunakan rujukan transaksi unik asal daripada penyedia pembayaran atau bank. Ia mengenal pasti penerimaan dan mencegah pengkreditan berganda. Jangan gunakan e-mel pelanggan atau nombor pesanan yang direka.",
+    "th": "ใช้เลขอ้างอิงธุรกรรมเฉพาะเดิมจากผู้ให้บริการชำระเงินหรือธนาคาร เพื่อระบุรายการรับเงินและป้องกันการลงบัญชีซ้ำ อย่าใช้อีเมลลูกค้าหรือเลขคำสั่งซื้อที่สร้างขึ้นเอง"
   },
   "按秒填写等待或有效时长：1 小时为 3600，1 天为 86400。0 是否允许以当前字段规则为准，不要把 0 默认理解为永久有效。": {
     "en": "Enter a duration in seconds: 1 hour is 3600 and 1 day is 86400. Whether zero is allowed depends on this field; do not assume it means unlimited.",
     "ja": "秒で入力します。1時間は3600、1日は86400です。0が使えるかは各項目の規則に従い、無期限とは限りません。",
-    "ru": "Введите секунды: 1 час — 3600, 1 день — 86400. Допустимость нуля зависит от поля; он не обязательно означает бессрочность."
+    "ru": "Введите секунды: 1 час — 3600, 1 день — 86400. Допустимость нуля зависит от поля; он не обязательно означает бессрочность.",
+    "hi": "अवधि सेकंड में दर्ज करें: 1 घंटा 3600 और 1 दिन 86400 है। शून्य अनुमत है या नहीं यह फ़ील्ड पर निर्भर है; इसे असीमित न मानें।",
+    "ms": "Masukkan tempoh dalam saat: 1 jam ialah 3600 dan 1 hari ialah 86400. Sama ada sifar dibenarkan bergantung pada medan ini; jangan anggap ia bermaksud tanpa had.",
+    "th": "กรอกระยะเวลาเป็นวินาที: 1 ชั่วโมงเท่ากับ 3600 และ 1 วันเท่ากับ 86400 การอนุญาตให้ใช้ศูนย์ขึ้นอยู่กับช่องนี้ อย่าคิดว่าหมายถึงไม่จำกัด"
   },
   "当前记录版本由系统带入，用于防止两人同时编辑相互覆盖。如果记录已更新，请重新读取后再提交，不需要自己猜版本号。": {
     "en": "The system fills the record version to prevent concurrent edits from overwriting each other. Reload changed records before submitting; do not guess the version.",
     "ja": "同時編集による上書きを防ぐため、システムがバージョンを設定します。更新済みの場合は再読込みして送信してください。番号を推測する必要はありません。",
-    "ru": "Версия подставляется системой и защищает от перезаписи параллельных изменений. Если запись обновлена, перечитайте её перед отправкой; не угадывайте версию."
+    "ru": "Версия подставляется системой и защищает от перезаписи параллельных изменений. Если запись обновлена, перечитайте её перед отправкой; не угадывайте версию.",
+    "hi": "समवर्ती संपादन से एक-दूसरे पर बदलाव न लिख जाएँ, इसके लिए सिस्टम रिकॉर्ड संस्करण भरता है। सबमिट करने से पहले बदले रिकॉर्ड फिर लोड करें; संस्करण का अनुमान न लगाएँ।",
+    "ms": "Sistem mengisi versi rekod untuk mengelakkan suntingan serentak saling menimpa. Muat semula rekod yang berubah sebelum menghantar; jangan teka versi.",
+    "th": "ระบบกรอกเวอร์ชันบันทึกเพื่อป้องกันการแก้ไขพร้อมกันทับกัน โหลดบันทึกที่เปลี่ยนแล้วอีกครั้งก่อนส่ง อย่าคาดเดาเวอร์ชัน"
   },
   "匹配调用实际用量的计费组件，例如 input_tokens。组件标识、单位和模型能力定义必须一致；价格填写每个计价基数对应的金额。": {
     "en": "Matches a metered usage component such as input_tokens. The identifier and unit must match the model capability. Enter the price for the specified billing quantity.",
     "ja": "input_tokensなどの実利用計量項目です。識別子と単位はモデル能力定義と一致させます。指定した基準数量あたりの金額を入力します。",
-    "ru": "Компонент измеренного использования, например input_tokens. Идентификатор и единица должны совпадать с возможностями модели. Цена задаётся за указанное базовое количество."
+    "ru": "Компонент измеренного использования, например input_tokens. Идентификатор и единица должны совпадать с возможностями модели. Цена задаётся за указанное базовое количество.",
+    "hi": "input_tokens जैसे मापे गए उपयोग घटक से मेल खाता है। पहचानकर्ता और इकाई मॉडल क्षमता से मेल खाने चाहिए। निर्दिष्ट बिलिंग मात्रा का मूल्य दर्ज करें।",
+    "ms": "Sepadan dengan komponen penggunaan bermeter seperti input_tokens. Pengecam dan unit mesti sepadan dengan keupayaan model. Masukkan harga untuk kuantiti pengebilan yang ditentukan.",
+    "th": "ตรงกับองค์ประกอบการใช้งานที่วัด เช่น input_tokens ตัวระบุและหน่วยต้องตรงกับความสามารถของโมเดล กรอกราคาสำหรับจำนวนที่กำหนดในการคิดค่าบริการ"
   },
   "例如每百万 token 收取 2 ATG：每多少单位填 1000000，基础单价填 2。零售价和供货价的单位为各自 ATG，供应商成本价为 原币种。": {
     "en": "For 2 ATG per million tokens, enter 1000000 as the quantity and 2 as the rate. Retail and supply prices use their respective ATG; provider cost uses original currency.",
     "ja": "100万tokenあたり2ATGなら、基準数量に1000000、単価に2を入力します。小売・供給価格はそれぞれのATG、プロバイダー原価は元通貨です。",
-    "ru": "Для 2 ATG за миллион токенов укажите количество 1000000 и цену 2. Розничные и оптовые цены выражены в соответствующих ATG, себестоимость поставщика — в исходная валюта."
+    "ru": "Для 2 ATG за миллион токенов укажите количество 1000000 и цену 2. Розничные и оптовые цены выражены в соответствующих ATG, себестоимость поставщика — в исходная валюта.",
+    "hi": "प्रति मिलियन टोकन 2 ATG के लिए मात्रा में 1000000 और दर में 2 दर्ज करें। खुदरा और आपूर्ति मूल्य अपने-अपने ATG उपयोग करते हैं; प्रदाता लागत मूल मुद्रा उपयोग करती है।",
+    "ms": "Untuk 2 ATG setiap sejuta token, masukkan 1000000 sebagai kuantiti dan 2 sebagai kadar. Harga runcit dan bekalan menggunakan ATG masing-masing; kos penyedia menggunakan mata wang asal.",
+    "th": "สำหรับ 2 ATG ต่อหนึ่งล้านโทเคน ให้กรอก 1000000 เป็นจำนวนและ 2 เป็นอัตรา ราคาปลีกและราคาขายส่งใช้ ATG ของแต่ละฝ่าย ส่วนต้นทุนผู้ให้บริการใช้สกุลเงินเดิม"
   },
   "例如 1.2 表示按跟随价目的 120% 定价。它只是定价倍率；实际利润还取决于采购成本、赠送、佣金和费用，不能当作利润率。": {
     "en": "For example, 1.2 prices at 120% of the followed rate. This is a pricing multiplier, not a profit margin: real profit also depends on procurement cost, bonuses, commissions and fees.",
     "ja": "1.2は参照価格の120%です。価格倍率であり利益率ではありません。実利益は仕入原価、特典、コミッション、手数料にも左右されます。",
-    "ru": "Например, 1.2 означает 120% исходной цены. Это множитель цены, а не рентабельность: прибыль зависит также от закупок, бонусов, комиссий и сборов."
+    "ru": "Например, 1.2 означает 120% исходной цены. Это множитель цены, а не рентабельность: прибыль зависит также от закупок, бонусов, комиссий и сборов.",
+    "hi": "उदाहरण के लिए, 1.2 अनुसरण दर का 120% मूल्य तय करता है। यह मूल्य गुणक है, लाभ मार्जिन नहीं: वास्तविक लाभ खरीद लागत, बोनस, कमीशन और शुल्क पर भी निर्भर है।",
+    "ms": "Contohnya, 1.2 menetapkan harga pada 120% daripada kadar yang diikuti. Ini ialah pengganda harga, bukan margin keuntungan: keuntungan sebenar juga bergantung pada kos perolehan, bonus, komisen dan fi.",
+    "th": "ตัวอย่างเช่น 1.2 กำหนดราคาเป็น 120% ของอัตราที่ตาม นี่คือตัวคูณราคา ไม่ใช่อัตรากำไร กำไรจริงยังขึ้นอยู่กับต้นทุนการจัดซื้อ โบนัส ค่าคอมมิชชัน และค่าธรรมเนียม"
   },
   "从当前有权限的业务记录中搜索并选择。看不到目标时先检查是否属于当前经营方，以及前置记录是否已经建立；不要用其他经营方的编号代替。": {
     "en": "Search and select an authorized record. If it is missing, check its operator and whether the prerequisite record exists. Do not substitute an ID from another operator.",
     "ja": "権限のある業務記録を検索して選択します。見つからない場合は現在の運営者への所属と前提記録の作成状況を確認してください。他社の番号は使いません。",
-    "ru": "Найдите и выберите доступную запись. Если её нет, проверьте принадлежность текущему оператору и наличие исходной записи. Не подставляйте идентификатор другого оператора."
+    "ru": "Найдите и выберите доступную запись. Если её нет, проверьте принадлежность текущему оператору и наличие исходной записи. Не подставляйте идентификатор другого оператора.",
+    "hi": "अधिकृत रिकॉर्ड खोजकर चुनें। न मिले तो उसका संचालक और आवश्यक पूर्ववर्ती रिकॉर्ड मौजूद है या नहीं जाँचें। दूसरे संचालक की ID विकल्प के रूप में न दें।",
+    "ms": "Cari dan pilih rekod yang dibenarkan. Jika tiada, semak pengendalinya dan sama ada rekod prasyarat wujud. Jangan gantikan dengan ID daripada pengendali lain.",
+    "th": "ค้นหาและเลือกบันทึกที่ได้รับอนุญาต หากไม่พบ ให้ตรวจสอบผู้ดำเนินงานและว่ามีบันทึกที่ต้องมีมาก่อนหรือไม่ อย่าใช้ ID ของผู้ดำเนินงานอื่นแทน"
   },
   "首次新增时系统生成唯一编号；修订时沿用原编号。公开模型标识会出现在客户的 API 请求中，应使用稳定、可读的名称，例如 demo-chat。": {
     "en": "New internal records receive unique IDs; revisions retain their original IDs. Public model IDs appear in customer API requests, so use a stable, readable name such as demo-chat.",
     "ja": "内部記録の新規番号は自動生成し、改訂時は元の番号を使います。公開モデルIDはAPI呼出しに使うため、demo-chatなど安定した読みやすい名前にします。",
-    "ru": "Новые внутренние записи получают уникальный ID, изменения сохраняют исходный. ID публичной модели используется в API; выбирайте стабильное понятное имя, например demo-chat."
+    "ru": "Новые внутренние записи получают уникальный ID, изменения сохраняют исходный. ID публичной модели используется в API; выбирайте стабильное понятное имя, например demo-chat.",
+    "hi": "नए आंतरिक रिकॉर्ड को अद्वितीय ID मिलती है; संशोधन मूल ID रखते हैं। सार्वजनिक मॉडल ID ग्राहक API अनुरोधों में दिखती है, इसलिए demo-chat जैसा स्थिर, पढ़ने योग्य नाम उपयोग करें।",
+    "ms": "Rekod dalaman baharu menerima ID unik; pindaan mengekalkan ID asalnya. ID model awam muncul dalam permintaan API pelanggan, jadi gunakan nama yang stabil dan mudah dibaca seperti demo-chat.",
+    "th": "บันทึกภายในใหม่ได้รับ ID เฉพาะ การแก้ไขใช้ ID เดิม ID โมเดลสาธารณะปรากฏในคำขอ API ของลูกค้า จึงควรใช้ชื่อที่มั่นคงและอ่านง่าย เช่น demo-chat"
   },
   "填写已经核实的供应商能力与证据。只有参数保留、用量可靠、上界和失败恢复均验证通过，才可开放调用；勾选不能代替联调。": {
     "en": "Enter verified provider capabilities and evidence. Calls can open only after parameter preservation, reliable usage, finite bounds and failure recovery are verified. Checking a box is not an integration test.",
     "ja": "検証済みの能力と証拠を入力します。パラメータ保持、用量の信頼性、上限、失敗復旧の検証が必要です。チェックだけで連携試験を代替できません。",
-    "ru": "Укажите проверенные возможности и доказательства. Для открытия вызовов нужны проверки параметров, учёта, верхних границ и восстановления. Галочка не заменяет интеграционное тестирование."
+    "ru": "Укажите проверенные возможности и доказательства. Для открытия вызовов нужны проверки параметров, учёта, верхних границ и восстановления. Галочка не заменяет интеграционное тестирование.",
+    "hi": "सत्यापित प्रदाता क्षमताएँ और प्रमाण दर्ज करें। पैरामीटर संरक्षण, विश्वसनीय उपयोग, सीमित दायरे और विफलता पुनर्प्राप्ति सत्यापित होने के बाद ही कॉल खोले जा सकते हैं। बॉक्स चुनना एकीकरण परीक्षण नहीं है।",
+    "ms": "Masukkan keupayaan dan bukti penyedia yang disahkan. Panggilan hanya boleh dibuka selepas pengekalan parameter, penggunaan yang boleh dipercayai, had terhingga dan pemulihan kegagalan disahkan. Menandakan kotak bukan ujian integrasi.",
+    "th": "กรอกความสามารถและหลักฐานของผู้ให้บริการที่ตรวจสอบแล้ว เปิดรับคำขอได้ต่อเมื่อยืนยันการคงพารามิเตอร์ ความน่าเชื่อถือของการใช้งาน ขอบเขตจำกัด และการกู้คืนหลังล้มเหลวแล้ว การทำเครื่องหมายในช่องไม่ใช่การทดสอบการเชื่อมต่อ"
   },
   "填写客户实际调用的完整 API 入口，例如 https://api.example.com/v1。OEM 使用自己的已验证品牌域名；不要填写上游模型供应商地址。": {
     "en": "Enter the complete customer API base URL, for example https://api.example.com/v1. OEMs use their verified brand domain, not the upstream provider URL.",
     "ja": "顧客向けAPIの完全なURLを入力します（例：https://api.example.com/v1）。OEMは検証済み自社ブランドドメインを使い、上流プロバイダーURLは入力しません。",
-    "ru": "Укажите полный клиентский API URL, например https://api.example.com/v1. OEM использует подтверждённый домен своего бренда, а не адрес поставщика моделей."
+    "ru": "Укажите полный клиентский API URL, например https://api.example.com/v1. OEM использует подтверждённый домен своего бренда, а не адрес поставщика моделей.",
+    "hi": "पूरा ग्राहक API base URL दर्ज करें, उदाहरण https://api.example.com/v1। OEM अपना सत्यापित ब्रांड डोमेन उपयोग करते हैं, अपस्ट्रीम प्रदाता URL नहीं।",
+    "ms": "Masukkan API Base URL pelanggan yang lengkap, contohnya https://api.example.com/v1. OEM menggunakan domain jenama mereka yang disahkan, bukan URL penyedia huluan.",
+    "th": "กรอก API base URL สำหรับลูกค้าฉบับสมบูรณ์ เช่น https://api.example.com/v1 OEM ใช้โดเมนแบรนด์ของตนที่ตรวจสอบแล้ว ไม่ใช่ URL ของผู้ให้บริการต้นทาง"
   },
   "将该域名解析到平台指定入口，再按页面提示添加验证记录。填写不代表立即生效；必须完成域名所有权和 TLS 检查。": {
     "en": "Point the domain to the platform entry and add the verification record shown. Entering a hostname does not activate it; domain ownership and TLS must pass verification.",
     "ja": "ドメインを指定入口へ向け、表示された認証レコードを追加します。入力だけでは有効になりません。所有権とTLSの確認が必要です。",
-    "ru": "Направьте домен на вход платформы и добавьте указанную запись проверки. Ввод имени не активирует домен: требуются подтверждение владения и TLS."
+    "ru": "Направьте домен на вход платформы и добавьте указанную запись проверки. Ввод имени не активирует домен: требуются подтверждение владения и TLS.",
+    "hi": "डोमेन को प्लेटफ़ॉर्म प्रवेश पर निर्देशित करें और दिखाया गया सत्यापन रिकॉर्ड जोड़ें। होस्टनाम दर्ज करने से वह सक्रिय नहीं होता; डोमेन स्वामित्व और TLS का सत्यापन सफल होना चाहिए।",
+    "ms": "Halakan domain ke titik masuk platform dan tambah rekod pengesahan yang ditunjukkan. Memasukkan nama hos tidak mengaktifkannya; pemilikan domain dan TLS mesti lulus pengesahan.",
+    "th": "ชี้โดเมนไปยังจุดเข้าแพลตฟอร์มและเพิ่มระเบียนยืนยันที่แสดง การกรอกชื่อโฮสต์ไม่ได้เปิดใช้งานโดเมน ต้องผ่านการตรวจสอบความเป็นเจ้าของโดเมนและ TLS"
   },
   "这是实际发送给付款人的收款指引。说明收款账户、汇款备注和核实方式；测试环境请明确标注“测试，请勿转入真实资金”。": {
     "en": "These instructions are shown to the payer. State the receiving account, payment reference and verification process. In tests, clearly state “Test only — do not send real funds”.",
     "ja": "支払者に表示する案内です。受取口座、送金メモ、確認方法を記載します。テストでは「テスト用・実際の送金禁止」と明示してください。",
-    "ru": "Эти инструкции увидит плательщик. Укажите счёт, назначение и порядок проверки. В тестовой среде явно напишите: «Только тест — не переводите реальные средства»."
+    "ru": "Эти инструкции увидит плательщик. Укажите счёт, назначение и порядок проверки. В тестовой среде явно напишите: «Только тест — не переводите реальные средства».",
+    "hi": "ये निर्देश भुगतानकर्ता को दिखते हैं। प्राप्ति खाता, भुगतान संदर्भ और सत्यापन प्रक्रिया बताएँ। परीक्षण में स्पष्ट लिखें “केवल परीक्षण — वास्तविक निधि न भेजें”।",
+    "ms": "Arahan ini ditunjukkan kepada pembayar. Nyatakan akaun penerimaan, rujukan pembayaran dan proses pengesahan. Dalam ujian, nyatakan dengan jelas “Ujian sahaja — jangan hantar dana sebenar”.",
+    "th": "คำแนะนำนี้แสดงแก่ผู้ชำระเงิน ระบุบัญชีผู้รับ เลขอ้างอิงการชำระเงิน และกระบวนการตรวจสอบ ในการทดสอบให้ระบุชัดเจนว่า “สำหรับทดสอบเท่านั้น — ห้ามส่งเงินจริง”"
   },
   "材料来自对应支付商户后台，必须属于本经营方的实际商户。保存后不回显敏感值；修改时留空通常表示沿用，实际启用仍会检查必需材料。": {
     "en": "Obtain credentials from this operator’s payment merchant account. Sensitive values are not returned after saving. Blank edits normally preserve them; activation still checks required materials.",
     "ja": "当該運営者の決済加盟店管理画面から取得します。保存後に機密値は再表示されません。変更時の空欄は通常既存値を維持し、有効化時に必須情報を確認します。",
-    "ru": "Получите данные в кабинете платёжного аккаунта этого оператора. Секретные значения после сохранения не показываются. Пустое поле при изменении обычно сохраняет старое; активация проверяет обязательные материалы."
+    "ru": "Получите данные в кабинете платёжного аккаунта этого оператора. Секретные значения после сохранения не показываются. Пустое поле при изменении обычно сохраняет старое; активация проверяет обязательные материалы.",
+    "hi": "इस संचालक के भुगतान व्यापारी खाते से क्रेडेंशियल प्राप्त करें। सहेजने के बाद संवेदनशील मान नहीं लौटाए जाते। खाली संपादन सामान्यतः उन्हें बनाए रखते हैं; सक्रियण पर आवश्यक सामग्री फिर भी जाँची जाती है।",
+    "ms": "Dapatkan kelayakan daripada akaun pedagang pembayaran pengendali ini. Nilai sensitif tidak dikembalikan selepas disimpan. Suntingan kosong biasanya mengekalkannya; pengaktifan masih menyemak bahan yang diperlukan.",
+    "th": "รับข้อมูลรับรองจากบัญชีผู้ค้าชำระเงินของผู้ดำเนินงานนี้ ค่าที่ละเอียดอ่อนจะไม่ถูกส่งกลับหลังบันทึก การเว้นว่างขณะแก้ไขโดยปกติจะคงค่าเดิม การเปิดใช้งานยังคงตรวจสอบข้อมูลที่จำเป็น"
   },
   "例如 15% 填写 0.15。购买时固定订单的直接、间接比例及 KOL 让利，直接佣金比例须减去订单让利。实际有偿消费发生时分别判断两跳邀请人的有效分佣资格，之后取得资格不追溯；不合资格的份额不转给其他跳。": {
     "en": "Enter 0.15 for 15%. Purchase fixes the order’s direct and indirect rates and KOL concession; subtract that concession from the direct rate. Each inviter’s eligibility is assessed when paid usage occurs. Later qualification is not retroactive, and an ineligible share is not reassigned to another referral level.",
     "ja": "15% は 0.15 と入力します。注文購入時に直接・間接料率と KOL 還元率を固定し、直接料率から注文の還元分を差し引きます。有償利用の発生時に二段階それぞれの紹介者の有効な分配資格を判定します。後からの資格取得は遡及せず、資格のない紹介者の分を他の段階へ移しません。",
-    "ru": "Для 15% введите 0.15. При покупке фиксируются прямая и косвенная ставки заказа и уступка KOL; уступка вычитается из прямой ставки. Право каждого из двух пригласивших проверяется в момент оплаченного использования. Более позднее получение статуса не действует задним числом, а доля без права на комиссию не передаётся другому уровню."
+    "ru": "Для 15% введите 0.15. При покупке фиксируются прямая и косвенная ставки заказа и уступка KOL; уступка вычитается из прямой ставки. Право каждого из двух пригласивших проверяется в момент оплаченного использования. Более позднее получение статуса не действует задним числом, а доля без права на комиссию не передаётся другому уровню.",
+    "hi": "15% के लिए 0.15 दर्ज करें। खरीद ऑर्डर की प्रत्यक्ष और अप्रत्यक्ष दर तथा KOL छूट तय करती है; वह छूट प्रत्यक्ष दर से घटाएँ। प्रत्येक आमंत्रक की पात्रता भुगतान उपयोग होने पर जाँची जाती है। बाद की पात्रता पूर्वप्रभाव से लागू नहीं होती और अपात्र हिस्सा दूसरे रेफ़रल स्तर को नहीं दिया जाता।",
+    "ms": "Masukkan 0.15 untuk 15%. Pembelian menetapkan kadar langsung dan tidak langsung pesanan serta konsesi KOL; tolak konsesi itu daripada kadar langsung. Kelayakan setiap pengundang dinilai apabila penggunaan berbayar berlaku. Kelayakan kemudian tidak berkuat kuasa secara surut, dan bahagian yang tidak layak tidak diagihkan semula ke tahap rujukan lain.",
+    "th": "กรอก 0.15 สำหรับ 15% การซื้อกำหนดอัตราแนะนำตรง อัตราแนะนำทางอ้อม และส่วนลดที่ KOL สละไว้ในคำสั่งซื้อ โดยหักส่วนลดนั้นจากอัตราตรง ระบบประเมินคุณสมบัติของผู้เชิญแต่ละคนเมื่อเกิดการใช้งานแบบชำระเงิน การได้คุณสมบัติภายหลังไม่มีผลย้อนหลัง และส่วนของผู้ที่ไม่มีสิทธิ์จะไม่โอนไปยังระดับแนะนำอื่น"
   },
   "本账号订单中，实际消耗和到期未用的购买额度按对应实付 结算币种 经确认后累计，两类互斥，同一订单不超过有效实付金额。充值、有效期内未消费的购买额度和赠送不计入；到期确认不产生佣金。提高门槛不撤销已取得资格。": {
     "en": "Qualification accumulates confirmed settlement currency paid for purchased credits that were consumed or expired unused in this account’s orders. The two categories do not overlap, and each order is capped at its valid paid amount. Top-ups, unconsumed purchased credits that remain valid, and gifts do not count. Expiry confirmation earns no commission. Raising the threshold preserves acquired qualification.",
     "ja": "本アカウントの注文で消費済み、または未使用のまま期限切れとなった購入枠について、対応する実支払 決済通貨 を確認後に累積します。両区分は重複せず、各注文の有効な実支払額が上限です。入金、有効期間内の未消費購入枠、特典分は対象外です。期限切れ確認ではコミッションは発生せず、基準引上げでも取得済み資格は失われません。",
-    "ru": "Для статуса учитывается подтверждённая оплаченная стоимость использованных или истёкших неиспользованных покупных единиц в заказах этого аккаунта. Категории не пересекаются; сумма по заказу не превышает действительную оплату. Пополнения, ещё действующие неиспользованные единицы и бонусы не учитываются. Подтверждение истечения не создаёт комиссию. Повышение порога сохраняет полученный статус."
+    "ru": "Для статуса учитывается подтверждённая оплаченная стоимость использованных или истёкших неиспользованных покупных единиц в заказах этого аккаунта. Категории не пересекаются; сумма по заказу не превышает действительную оплату. Пополнения, ещё действующие неиспользованные единицы и бонусы не учитываются. Подтверждение истечения не создаёт комиссию. Повышение порога сохраняет полученный статус.",
+    "hi": "पात्रता इस खाते के ऑर्डरों में उपयोग किए गए या अप्रयुक्त समाप्त खरीदे गए क्रेडिट के लिए पुष्ट भुगतान की गई निपटान मुद्रा जमा करती है। दोनों श्रेणियाँ एक-दूसरे से अलग हैं और प्रत्येक ऑर्डर उसकी वैध भुगतान राशि तक सीमित है। टॉप-अप, अभी वैध अप्रयुक्त खरीदे क्रेडिट और उपहार नहीं गिने जाते। समाप्ति की पुष्टि से कमीशन नहीं मिलता। सीमा बढ़ाने पर प्राप्त पात्रता बनी रहती है।",
+    "ms": "Kelayakan mengumpulkan mata wang penyelesaian yang disahkan dibayar untuk kredit dibeli yang digunakan atau tamat tempoh tanpa digunakan dalam pesanan akaun ini. Kedua-dua kategori tidak bertindih, dan setiap pesanan dihadkan kepada jumlah berbayar sahnya. Tambah nilai, kredit dibeli yang belum digunakan dan masih sah, serta hadiah tidak dikira. Pengesahan tamat tempoh tidak menghasilkan komisen. Menaikkan ambang mengekalkan kelayakan yang diperoleh.",
+    "th": "คุณสมบัติสะสมจากสกุลเงินที่ใช้ชำระบัญชีที่ยืนยันแล้วซึ่งจ่ายเพื่อซื้อเครดิตที่ใช้ไปหรือหมดอายุโดยไม่ได้ใช้ในคำสั่งซื้อของบัญชีนี้ ทั้งสองประเภทไม่ซ้ำกัน และแต่ละคำสั่งซื้อจำกัดไม่เกินยอดชำระที่มีผลจริง การเติมเงิน เครดิตที่ซื้อและยังไม่ใช้ซึ่งยังมีผล และของขวัญไม่นับรวม การยืนยันเมื่อหมดอายุไม่ก่อให้เกิดค่าคอมมิชชัน การเพิ่มเกณฑ์ยังคงคุณสมบัติที่ได้รับแล้ว"
   },
   "按整天填写，默认 30 天。等待期满且相关消费没有未结争议后，才计入资格，对应佣金才能使用或提现。已经开始等待的记录仍按原来的到期时间，不会因为后来改政策而延长。": {
     "en": "Enter whole days. The default is 30 days. Spending counts toward qualification, and the related commission can be used or withdrawn, only after the wait ends and there is no unresolved dispute. A wait that has already started keeps its original end time.",
     "ja": "日数で入力します。既定は 30 日です。待機が終わり、未解決の争議がない消費だけが資格に算入され、対応するコミッションを利用・出金できます。すでに始まった待機は元の期限のままです。",
-    "ru": "Указывайте целые дни. По умолчанию 30 дней. Расход учитывается для статуса, а комиссию можно использовать или вывести только после окончания ожидания и при отсутствии нерешённого спора. Уже начатое ожидание сохраняет исходный срок."
+    "ru": "Указывайте целые дни. По умолчанию 30 дней. Расход учитывается для статуса, а комиссию можно использовать или вывести только после окончания ожидания и при отсутствии нерешённого спора. Уже начатое ожидание сохраняет исходный срок.",
+    "hi": "पूरे दिन दर्ज करें। डिफ़ॉल्ट 30 दिन है। प्रतीक्षा समाप्त होने और कोई अनसुलझा विवाद न होने के बाद ही खर्च पात्रता में गिना जाता है और संबंधित कमीशन उपयोग या निकाला जा सकता है। पहले शुरू हुई प्रतीक्षा अपना मूल समाप्ति समय रखती है।",
+    "ms": "Masukkan hari penuh. Nilai lalai ialah 30 hari. Perbelanjaan hanya dikira untuk kelayakan, dan komisen berkaitan hanya boleh digunakan atau dikeluarkan, selepas tempoh menunggu tamat dan tiada pertikaian yang belum selesai. Tempoh menunggu yang sudah bermula mengekalkan masa tamat asalnya.",
+    "th": "กรอกเป็นวันเต็ม ค่าเริ่มต้นคือ 30 วัน ยอดใช้จ่ายนับเป็นคุณสมบัติและค่าคอมมิชชันที่เกี่ยวข้องใช้หรือถอนได้ต่อเมื่อพ้นเวลารอและไม่มีข้อพิพาทค้างอยู่เท่านั้น เวลารอที่เริ่มแล้วคงเวลาสิ้นสุดเดิม"
   },
   "注册赠送额度从注册成功起按整天计算，默认 30 天。到期后尚未使用的注册奖励不再可用。": {
     "en": "Registration gifts last a whole number of days from successful registration. The default is 30 days. Unused registration rewards expire afterward.",
     "ja": "登録特典は登録成功から日数で計算し、既定は 30 日です。期限後の未使用特典は使えません。",
-    "ru": "Подарок за регистрацию действует целое число дней с момента успешной регистрации. По умолчанию 30 дней. Неиспользованная награда после этого недоступна."
+    "ru": "Подарок за регистрацию действует целое число дней с момента успешной регистрации. По умолчанию 30 дней. Неиспользованная награда после этого недоступна.",
+    "hi": "पंजीकरण उपहार सफल पंजीकरण से पूर्ण दिनों तक चलते हैं। डिफ़ॉल्ट 30 दिन है। अप्रयुक्त पंजीकरण पुरस्कार उसके बाद समाप्त हो जाते हैं।",
+    "ms": "Hadiah pendaftaran sah untuk bilangan hari penuh dari pendaftaran berjaya. Nilai lalai ialah 30 hari. Ganjaran pendaftaran yang belum digunakan tamat selepas itu.",
+    "th": "ของขวัญลงทะเบียนมีอายุเป็นจำนวนวันเต็มนับจากลงทะเบียนสำเร็จ ค่าเริ่มต้นคือ 30 วัน รางวัลลงทะเบียนที่ไม่ได้ใช้จะหมดอายุหลังจากนั้น"
   },
   "这是消费确认与佣金冻结的等待期，与请求用量待核实期限分别计算。等待期届满且相关消费无未结争议、完成确认后，消费计入资格，正确佣金解冻后才可使用或提现。已产生事件保留原确认时点，修订规则不追溯延长冻结。例如 7 天填写 604800 秒。": {
     "en": "This is the waiting period for spending confirmation and commission freezing, separate from request-usage verification. Spending counts toward qualification, and valid commission is released for use or withdrawal, only after the period ends and the related spending is confirmed without unresolved disputes. Existing events retain their original confirmation times; rule revisions do not extend freezes retroactively. Enter 604800 seconds for 7 days.",
     "ja": "消費確認とコミッション凍結の待機期間であり、リクエスト用量の検証期限とは別に計算します。期間経過後も未解決の争議がある消費は確認されません。争議なく確認された消費を資格に算入し、正しいコミッションを解凍して利用・出金可能にします。発生済みイベントの確認時点は保持され、規則改訂で凍結を遡って延長しません。7 日は 604800 秒です。",
-    "ru": "Это срок ожидания подтверждения расходов и заморозки комиссии, отдельный от проверки объёма запроса. Расход учитывается для статуса, а корректная комиссия становится доступна только после истечения срока и подтверждения расхода без нерешённых споров. Ранее возникшие события сохраняют исходное время подтверждения; изменение правил не продлевает заморозку задним числом. Для 7 дней укажите 604800 секунд."
+    "ru": "Это срок ожидания подтверждения расходов и заморозки комиссии, отдельный от проверки объёма запроса. Расход учитывается для статуса, а корректная комиссия становится доступна только после истечения срока и подтверждения расхода без нерешённых споров. Ранее возникшие события сохраняют исходное время подтверждения; изменение правил не продлевает заморозку задним числом. Для 7 дней укажите 604800 секунд.",
+    "hi": "यह खर्च पुष्टि और कमीशन फ़्रीज़ की प्रतीक्षा अवधि है, अनुरोध उपयोग सत्यापन से अलग। अवधि समाप्त होने और संबंधित खर्च बिना अनसुलझे विवाद के पुष्ट होने के बाद ही खर्च पात्रता में गिना जाता है और वैध कमीशन उपयोग या निकासी के लिए मुक्त होता है। मौजूदा घटनाएँ अपना मूल पुष्टि समय रखती हैं; नियम संशोधन पूर्वप्रभाव से फ़्रीज़ नहीं बढ़ाते। 7 दिनों के लिए 604800 सेकंड दर्ज करें।",
+    "ms": "Ini ialah tempoh menunggu untuk pengesahan perbelanjaan dan pembekuan komisen, berasingan daripada pengesahan penggunaan permintaan. Perbelanjaan hanya dikira untuk kelayakan, dan komisen sah dilepaskan untuk digunakan atau dikeluarkan, selepas tempoh tamat dan perbelanjaan berkaitan disahkan tanpa pertikaian yang belum selesai. Peristiwa sedia ada mengekalkan masa pengesahan asal; pindaan peraturan tidak memanjangkan pembekuan secara surut. Masukkan 604800 saat untuk 7 hari.",
+    "th": "นี่คือเวลารอสำหรับยืนยันยอดใช้จ่ายและระงับค่าคอมมิชชัน แยกจากการตรวจสอบการใช้งานของคำขอ ยอดใช้จ่ายจะนับเป็นคุณสมบัติและค่าคอมมิชชันที่ถูกต้องจะปลดให้ใช้หรือถอนได้ต่อเมื่อพ้นกำหนดและยืนยันยอดใช้จ่ายที่เกี่ยวข้องโดยไม่มีข้อพิพาทค้างอยู่ เหตุการณ์เดิมคงเวลายืนยันเดิม การแก้กฎไม่ขยายเวลาระงับย้อนหลัง กรอก 604800 วินาทีสำหรับ 7 วัน"
   },
   "购买 ATG 与赠送 ATG 分开记录；套餐在足额付款并成功交付后生效。购买部分按订单实付分摊有偿消费基数，赠送不计资格或佣金。同一套餐订单内购买与各来源赠送按比例消耗、同期限；独立赠送有各自明确期限。": {
     "en": "Purchased and gifted ATG are recorded separately. A plan takes effect after full payment and successful delivery. Its purchased portion allocates the order’s actual payment to paid usage; gifts count toward neither qualification nor commission. Purchased credits and all gifts in the same plan order are consumed proportionally and share its term. Independent gifts have their own stated terms.",
     "ja": "購入 ATG と特典 ATG は別々に記録し、プランは全額支払いと正常な引渡し後に有効になります。購入分には注文の実支払額に応じた有償消費基数を配分し、特典分は資格にもコミッションにも算入しません。同一プラン注文の購入分と各種特典は比例消費し、期限を共有します。独立した付与にはそれぞれ明示された期限があります。",
-    "ru": "Купленные и подарочные ATG учитываются отдельно. Пакет вступает в силу после полной оплаты и успешной поставки. Купленная часть распределяет фактическую оплату заказа на оплаченные расходы; бонусы не дают ни квалификационных сумм, ни комиссии. Все части одного заказа пакета расходуются пропорционально и имеют общий срок. Независимые подарки имеют собственные указанные сроки."
+    "ru": "Купленные и подарочные ATG учитываются отдельно. Пакет вступает в силу после полной оплаты и успешной поставки. Купленная часть распределяет фактическую оплату заказа на оплаченные расходы; бонусы не дают ни квалификационных сумм, ни комиссии. Все части одного заказа пакета расходуются пропорционально и имеют общий срок. Независимые подарки имеют собственные указанные сроки.",
+    "hi": "खरीदा गया और उपहार ATG अलग दर्ज होते हैं। पूर्ण भुगतान और सफल डिलीवरी के बाद योजना प्रभावी होती है। उसका खरीदा भाग ऑर्डर के वास्तविक भुगतान को भुगतान उपयोग में आवंटित करता है; उपहार न पात्रता में गिने जाते हैं न कमीशन में। एक ही योजना ऑर्डर के खरीदे क्रेडिट और सभी उपहार अनुपात में उपयोग होते हैं और समान अवधि रखते हैं। स्वतंत्र उपहारों की अपनी बताई शर्तें हैं।",
+    "ms": "ATG yang dibeli dan diberikan direkodkan secara berasingan. Pelan berkuat kuasa selepas pembayaran penuh dan penyerahan berjaya. Bahagian yang dibeli memperuntukkan pembayaran sebenar pesanan kepada penggunaan berbayar; hadiah tidak dikira untuk kelayakan atau komisen. Kredit yang dibeli dan semua hadiah dalam pesanan pelan yang sama digunakan secara berkadar dan berkongsi tempohnya. Hadiah bebas mempunyai terma tersendiri yang dinyatakan.",
+    "th": "ATG ที่ซื้อและที่ให้เป็นของขวัญบันทึกแยกกัน แพ็กเกจมีผลหลังชำระครบและส่งมอบสำเร็จ ส่วนที่ซื้อจัดสรรยอดชำระจริงของคำสั่งซื้อเป็นฐานการใช้งานแบบชำระเงิน ของขวัญไม่นับเป็นคุณสมบัติหรือค่าคอมมิชชัน เครดิตที่ซื้อและของขวัญทั้งหมดในคำสั่งซื้อแพ็กเกจเดียวกันใช้ตามสัดส่วนและมีระยะเวลาเดียวกัน ของขวัญแยกต่างหากมีเงื่อนไขของตนเอง"
   },
   "只放宽可新增的销售承诺，不增加采购余额或授信。设为 0 时，售前须备足采购储备，按所有开放模型的最大采购成本覆盖购买、赠送及待成交承诺。调用预占仍须由真实采购余额覆盖，不足时不受理新调用；已售权益保留，由经营方补货履约。": {
     "en": "This increases permitted new sales commitments without adding procurement balance or credit. Zero requires procurement reserves before sale, covering purchased credits, gifts and pending commitments at the highest procurement cost across all available models. Request holds must still be covered by real procurement balance; insufficient funds block new calls. Sold entitlements remain, and the operator must replenish to fulfil them.",
     "ja": "追加販売できる約束枠を広げますが、仕入残高や与信は増えません。0 の場合、販売前に全公開モデルの最大仕入原価で購入枠・特典・未成立注文の約束をカバーする仕入準備が必要です。呼出しの仮押さえは実際の仕入残高で確保し、不足時は新規呼出しを受け付けません。販売済み権利は保持され、運営者が補充して履行します。",
-    "ru": "Лимит расширяет допустимые новые обязательства по продажам, но не увеличивает закупочный баланс и не даёт кредита. При нуле до продажи нужны резервы на купленные и бонусные единицы и ожидающие заказы по максимальной закупочной стоимости всех доступных моделей. Резервы запросов должны покрываться реальным балансом; при нехватке новые вызовы не принимаются. Проданные права сохраняются, оператор обязан пополнить запас для исполнения."
+    "ru": "Лимит расширяет допустимые новые обязательства по продажам, но не увеличивает закупочный баланс и не даёт кредита. При нуле до продажи нужны резервы на купленные и бонусные единицы и ожидающие заказы по максимальной закупочной стоимости всех доступных моделей. Резервы запросов должны покрываться реальным балансом; при нехватке новые вызовы не принимаются. Проданные права сохраняются, оператор обязан пополнить запас для исполнения.",
+    "hi": "यह खरीद शेष राशि या क्रेडिट जोड़े बिना अनुमत नई बिक्री प्रतिबद्धताएँ बढ़ाता है। शून्य पर बिक्री से पहले खरीद भंडार आवश्यक है, जो खरीदे क्रेडिट, उपहार और लंबित प्रतिबद्धताओं को सभी उपलब्ध मॉडलों की सर्वोच्च खरीद लागत पर कवर करे। अनुरोध आरक्षण अब भी वास्तविक खरीद शेष राशि से कवर होने चाहिए; अपर्याप्त निधि नई कॉल रोकती है। बेचे अधिकार बने रहते हैं और संचालक को पूर्ति के लिए पुनःपूर्ति करनी होगी।",
+    "ms": "Ini meningkatkan komitmen jualan baharu yang dibenarkan tanpa menambah baki atau kredit perolehan. Sifar memerlukan rizab perolehan sebelum jualan, meliputi kredit dibeli, hadiah dan komitmen tertunda pada kos perolehan tertinggi merentas semua model tersedia. Penahanan permintaan masih mesti diliputi baki perolehan sebenar; dana tidak mencukupi menyekat panggilan baharu. Hak yang dijual kekal, dan pengendali mesti mengisi semula untuk memenuhinya.",
+    "th": "เพิ่มภาระการขายใหม่ที่อนุญาตโดยไม่เพิ่มยอดคงเหลือหรือเครดิตการจัดซื้อ ค่าเป็นศูนย์กำหนดให้สำรองการจัดซื้อก่อนขาย ครอบคลุมเครดิตที่ซื้อ ของขวัญ และภาระที่รอดำเนินการตามต้นทุนการจัดซื้อสูงสุดของทุกโมเดลที่ใช้ได้ ยอดกันสำหรับคำขอยังต้องมียอดคงเหลือการจัดซื้อจริงรองรับ หากเงินไม่พอจะระงับคำขอใหม่ สิทธิ์ที่ขายแล้วยังคงอยู่ และผู้ดำเนินงานต้องจัดหาเพิ่มเพื่อให้บริการ"
   },
   "使用 IANA 时区名称，例如 Asia/Shanghai、Asia/Tokyo、Europe/Moscow 或 UTC，不填写 UTC+8。Key 预算按经营时区的自然月、季、年划分；套餐的月、季、年期限则从每次成功交付起按约定时区的日历期间计算。切换界面语言不改变业务时区或周期边界。": {
     "en": "Use an IANA time zone such as Asia/Shanghai, Asia/Tokyo, Europe/Moscow or UTC, not UTC+8. Key budgets use calendar months, quarters and years in the business time zone. Monthly, quarterly and annual plan terms instead run from each successful delivery for the agreed calendar duration and time zone. Changing the interface language does not change the business time zone or period boundaries.",
     "ja": "Asia/Shanghai、Asia/Tokyo、Europe/Moscow、UTC などの IANA 名を使い、UTC+8 とは入力しません。Key 予算は営業タイムゾーンの暦月・暦四半期・暦年で区切ります。プランの月・四半期・年期限は、各引渡し成功時から合意したタイムゾーンの暦期間で計算します。画面言語を切り替えても業務タイムゾーンや期間境界は変わりません。",
-    "ru": "Используйте имя IANA, например Asia/Shanghai, Asia/Tokyo, Europe/Moscow или UTC, а не UTC+8. Бюджет ключа делится на календарные месяцы, кварталы и годы в рабочем часовом поясе. Срок месячного, квартального или годового пакета отсчитывается от каждой успешной поставки по согласованному календарному периоду и часовому поясу. Смена языка интерфейса не меняет часовой пояс или границы периодов."
+    "ru": "Используйте имя IANA, например Asia/Shanghai, Asia/Tokyo, Europe/Moscow или UTC, а не UTC+8. Бюджет ключа делится на календарные месяцы, кварталы и годы в рабочем часовом поясе. Срок месячного, квартального или годового пакета отсчитывается от каждой успешной поставки по согласованному календарному периоду и часовому поясу. Смена языка интерфейса не меняет часовой пояс или границы периодов.",
+    "hi": "UTC+8 के बजाय Asia/Shanghai, Asia/Tokyo, Europe/Moscow या UTC जैसा IANA समय क्षेत्र उपयोग करें। Key बजट व्यावसायिक समय क्षेत्र में कैलेंडर महीने, तिमाही और वर्ष उपयोग करते हैं। मासिक, तिमाही और वार्षिक योजना अवधि इसके बजाय प्रत्येक सफल डिलीवरी से सहमत कैलेंडर अवधि और समय क्षेत्र तक चलती है। इंटरफ़ेस भाषा बदलने से व्यावसायिक समय क्षेत्र या अवधि सीमाएँ नहीं बदलतीं।",
+    "ms": "Gunakan zon waktu IANA seperti Asia/Shanghai, Asia/Tokyo, Europe/Moscow atau UTC, bukan UTC+8. Bajet Key menggunakan bulan, suku tahun dan tahun kalendar dalam zon waktu perniagaan. Sebaliknya, tempoh pelan bulanan, suku tahunan dan tahunan bermula dari setiap penyerahan berjaya selama tempoh kalendar dan zon waktu yang dipersetujui. Menukar bahasa antara muka tidak mengubah zon waktu perniagaan atau sempadan tempoh.",
+    "th": "ใช้เขตเวลา IANA เช่น Asia/Shanghai, Asia/Tokyo, Europe/Moscow หรือ UTC ไม่ใช่ UTC+8 งบประมาณ Key ใช้เดือน ไตรมาส และปีปฏิทินในเขตเวลาธุรกิจ ส่วนแพ็กเกจรายเดือน รายไตรมาส และรายปีนับจากการส่งมอบที่สำเร็จแต่ละครั้งตามระยะเวลาปฏิทินและเขตเวลาที่ตกลงกัน การเปลี่ยนภาษาอินเทอร์เฟซไม่เปลี่ยนเขตเวลาธุรกิจหรือขอบเขตงวด"
   },
   "每位客户使用本活动的次数上限。KOL 活动还受同一 KOL 的跨活动累计次数限制，只对有效直属受邀客户生效；单笔最多一个 KOL 活动，不自动延续至后续购买或续费。": {
     "en": "The maximum times each customer may use this campaign. A KOL campaign also follows that KOL’s cumulative cross-campaign limit and is available only to eligible direct referrals. Each order permits at most one KOL campaign; it does not carry over automatically to later purchases or renewals.",
     "ja": "顧客ごとの本キャンペーン利用回数上限です。KOL キャンペーンは同一 KOL の活動横断累積上限も適用され、有効な直属招待顧客のみ対象です。1 注文につき KOL キャンペーンは 1 件までで、次回購入や更新へ自動継承されません。",
-    "ru": "Максимальное число использований этой кампании каждым клиентом. Для кампании KOL также действует общий лимит по его кампаниям, и участвуют только подходящие прямые рефералы. В заказе доступна одна кампания KOL; она не переносится автоматически на следующие покупки и продления."
+    "ru": "Максимальное число использований этой кампании каждым клиентом. Для кампании KOL также действует общий лимит по его кампаниям, и участвуют только подходящие прямые рефералы. В заказе доступна одна кампания KOL; она не переносится автоматически на следующие покупки и продления.",
+    "hi": "प्रत्येक ग्राहक इस अभियान का अधिकतम कितनी बार उपयोग कर सकता है। KOL अभियान उस KOL की सभी अभियानों की संचयी सीमा का भी पालन करता है और केवल पात्र प्रत्यक्ष रेफ़रल को उपलब्ध है। प्रत्येक ऑर्डर अधिकतम एक KOL अभियान अनुमति देता है; यह बाद की खरीद या नवीनीकरण में अपने आप आगे नहीं जाता।",
+    "ms": "Bilangan maksimum setiap pelanggan boleh menggunakan kempen ini. Kempen KOL juga mengikut had terkumpul merentas kempen KOL itu dan hanya tersedia kepada rujukan langsung yang layak. Setiap pesanan membenarkan paling banyak satu kempen KOL; ia tidak dibawa secara automatik ke pembelian atau pembaharuan kemudian.",
+    "th": "จำนวนครั้งสูงสุดที่ลูกค้าแต่ละคนใช้แคมเปญนี้ได้ แคมเปญ KOL ยังอยู่ภายใต้ขีดจำกัดสะสมข้ามแคมเปญของ KOL นั้น และใช้ได้เฉพาะผู้ถูกแนะนำโดยตรงที่มีสิทธิ์ แต่ละคำสั่งซื้อใช้แคมเปญ KOL ได้ไม่เกินหนึ่งรายการ และไม่สืบทอดไปยังการซื้อหรือต่ออายุภายหลังโดยอัตโนมัติ"
   },
   "限制本活动累计额外赠送的 ATG 总量，包含已用及待成交占用，不包含套餐原有额度。待付款订单先占用，成交核销，失败或关闭释放；0 不表示无限赠送。预算、次数及销售承载能力须同时满足，已成交承诺继续履约。": {
     "en": "Caps this campaign’s cumulative extra ATG gifts, including used amounts and pending-order holds, excluding original plan credits. Unpaid orders reserve budget; completion consumes it, while failure or closure releases it. Zero does not mean unlimited gifts. Budget, usage limits and sales coverage must all be satisfied; existing commitments remain enforceable.",
     "ja": "本キャンペーンの追加 ATG 付与累計を制限し、使用済みと未成立注文の仮押さえを含み、元のプラン枠は含みません。未払注文で仮押さえし、成立時に使用確定、失敗・終了時に解放します。0 は無制限付与を意味しません。予算・回数・販売履行能力をすべて満たす必要があり、成立済みの約束は引き続き履行します。",
-    "ru": "Ограничивает суммарные дополнительные подарочные ATG кампании, включая использованные суммы и резервы ожидающих заказов, без исходного объёма пакета. Неоплаченный заказ резервирует бюджет; завершение расходует его, сбой или закрытие освобождает. Ноль не означает безлимитные подарки. Одновременно проверяются бюджет, лимиты и покрытие продаж; уже принятые обязательства исполняются."
+    "ru": "Ограничивает суммарные дополнительные подарочные ATG кампании, включая использованные суммы и резервы ожидающих заказов, без исходного объёма пакета. Неоплаченный заказ резервирует бюджет; завершение расходует его, сбой или закрытие освобождает. Ноль не означает безлимитные подарки. Одновременно проверяются бюджет, лимиты и покрытие продаж; уже принятые обязательства исполняются.",
+    "hi": "यह अभियान के संचयी अतिरिक्त ATG उपहारों को सीमित करता है, जिनमें उपयोग की गई राशि और लंबित ऑर्डर आरक्षण शामिल हैं, मूल योजना क्रेडिट नहीं। अवैतनिक ऑर्डर बजट आरक्षित करते हैं; पूरा होने पर उसका उपयोग होता है और विफलता या बंद होने पर वह मुक्त होता है। शून्य का अर्थ असीमित उपहार नहीं है। बजट, उपयोग सीमा और बिक्री कवरेज सभी पूरे होने चाहिए; मौजूदा प्रतिबद्धताएँ लागू रहती हैं।",
+    "ms": "Mengehadkan jumlah hadiah ATG tambahan terkumpul kempen ini, termasuk jumlah yang digunakan dan penahanan pesanan tertunda, tidak termasuk kredit pelan asal. Pesanan belum dibayar merizabkan bajet; penyelesaian menggunakannya, manakala kegagalan atau penutupan melepaskannya. Sifar tidak bermaksud hadiah tanpa had. Bajet, had penggunaan dan liputan jualan semuanya mesti dipenuhi; komitmen sedia ada kekal wajib dipenuhi.",
+    "th": "จำกัด ATG ของขวัญเพิ่มเติมสะสมของแคมเปญนี้ รวมยอดที่ใช้และยอดกันไว้สำหรับคำสั่งซื้อที่รอดำเนินการ แต่ไม่รวมเครดิตแพ็กเกจเดิม คำสั่งซื้อที่ยังไม่ชำระกันงบไว้ เมื่อสำเร็จจึงใช้ไป ส่วนที่ล้มเหลวหรือปิดจะปล่อยคืน ศูนย์ไม่ได้หมายถึงให้ของขวัญไม่จำกัด ต้องผ่านทั้งงบ ขีดจำกัดการใช้ และความสามารถรองรับการขาย ภาระที่มีอยู่ยังต้องปฏิบัติตาม"
   },
   "达到触发条件后按已授权报价补货，受单次金额及 UTC 自然月、季、年累计金额上限约束，同一采购账户不重复发起未完成的自动补货。线下模式只生成待付款订单；实际核实足额收款并交付后才增加采购余额，不能先授信。": {
     "en": "Replenishment uses the authorized quote when triggered, within per-order and cumulative UTC calendar-month, quarter or year limits. The same procurement account does not start duplicate unfinished automatic replenishments. Offline mode only creates an unpaid order. Procurement balance increases after verified full payment and delivery; no advance credit is granted.",
     "ja": "条件達成時に承認済み見積で補充し、単回金額と UTC の暦月・四半期・年の累計金額上限を適用します。同一仕入アカウントで未完了の自動補充を重複開始しません。オフラインでは未払注文のみ作成し、全額入金確認と引渡し後に仕入残高を増やします。先行与信は行いません。",
-    "ru": "Пополнение выполняется по разрешённому предложению при достижении условия, с лимитом на заказ и суммарным лимитом за календарный месяц, квартал или год по UTC. Для одного закупочного счёта не создаются дубли незавершённого автопополнения. Офлайн-режим создаёт только неоплаченный заказ; баланс увеличивается после подтверждённой полной оплаты и поставки, без предварительного кредита."
+    "ru": "Пополнение выполняется по разрешённому предложению при достижении условия, с лимитом на заказ и суммарным лимитом за календарный месяц, квартал или год по UTC. Для одного закупочного счёта не создаются дубли незавершённого автопополнения. Офлайн-режим создаёт только неоплаченный заказ; баланс увеличивается после подтверждённой полной оплаты и поставки, без предварительного кредита.",
+    "hi": "पुनःपूर्ति शुरू होने पर अधिकृत कोटेशन उपयोग होता है, प्रति ऑर्डर और संचयी UTC कैलेंडर महीने, तिमाही या वर्ष की सीमाओं के भीतर। वही खरीद खाता दोहरी अधूरी स्वचालित पुनःपूर्ति शुरू नहीं करता। ऑफ़लाइन मोड केवल अवैतनिक ऑर्डर बनाता है। सत्यापित पूर्ण भुगतान और डिलीवरी के बाद खरीद शेष राशि बढ़ती है; अग्रिम क्रेडिट नहीं दिया जाता।",
+    "ms": "Pengisian semula menggunakan sebut harga yang dibenarkan apabila dicetuskan, dalam had setiap pesanan dan had terkumpul bulan, suku tahun atau tahun kalendar UTC. Akaun perolehan yang sama tidak memulakan pengisian semula automatik belum selesai secara berganda. Mod luar talian hanya mencipta pesanan belum dibayar. Baki perolehan bertambah selepas pembayaran penuh dan penyerahan disahkan; tiada kredit pendahuluan diberikan.",
+    "th": "เมื่อถึงเงื่อนไข การเติมสต็อกใช้ใบเสนอราคาที่ได้รับอนุญาต ภายใต้ขีดจำกัดต่อคำสั่งซื้อและยอดสะสมรายเดือน ไตรมาส หรือปีปฏิทิน UTC บัญชีการจัดซื้อเดียวกันไม่เริ่มการเติมสต็อกอัตโนมัติที่ยังไม่เสร็จซ้ำ โหมดออฟไลน์สร้างเพียงคำสั่งซื้อที่ยังไม่ชำระ ยอดคงเหลือการจัดซื้อเพิ่มหลังตรวจสอบการชำระครบและส่งมอบแล้ว ไม่มีการให้เครดิตล่วงหน้า"
   },
   "同一客户在同一 KOL 的不同活动中累计可用次数上限，0 表示不单独限制这项累计次数。各活动自身的每人及总次数限制仍同时适用；待成交名额先占用，成交核销，失败或关闭释放。": {
     "en": "The cumulative use limit for one customer across campaigns from the same KOL. Zero adds no separate cross-campaign cap. Each campaign’s own per-customer and total limits still apply. Pending orders reserve uses; completion consumes them, while failure or closure releases them.",
     "ja": "同一顧客が同じ KOL の複数キャンペーンを利用できる累計回数上限で、0 はこの活動横断累計に独自上限を設けない意味です。各キャンペーンの顧客別・総回数制限も同時に適用します。未成立注文で仮押さえし、成立時に使用確定、失敗・終了時に解放します。",
-    "ru": "Общий лимит использований одним клиентом разных кампаний одного KOL. Ноль не устанавливает отдельного общего лимита. Продолжают действовать собственные лимиты кампаний на клиента и общее число использований. Ожидающие заказы резервируют места; завершение расходует их, сбой или закрытие освобождает."
+    "ru": "Общий лимит использований одним клиентом разных кампаний одного KOL. Ноль не устанавливает отдельного общего лимита. Продолжают действовать собственные лимиты кампаний на клиента и общее число использований. Ожидающие заказы резервируют места; завершение расходует их, сбой или закрытие освобождает.",
+    "hi": "एक ही KOL के अभियानों में एक ग्राहक की संचयी उपयोग सीमा। शून्य अलग अभियान-पार सीमा नहीं जोड़ता। प्रत्येक अभियान की अपनी प्रति ग्राहक और कुल सीमाएँ फिर भी लागू हैं। लंबित ऑर्डर उपयोग आरक्षित करते हैं; पूरा होने पर उनका उपयोग होता है और विफलता या बंद होने पर वे मुक्त होते हैं।",
+    "ms": "Had penggunaan terkumpul untuk satu pelanggan merentas kempen daripada KOL yang sama. Sifar tidak menambah had merentas kempen berasingan. Had setiap pelanggan dan jumlah setiap kempen masih terpakai. Pesanan tertunda merizabkan penggunaan; penyelesaian menggunakannya, manakala kegagalan atau penutupan melepaskannya.",
+    "th": "ขีดจำกัดการใช้สะสมของลูกค้าหนึ่งคนข้ามแคมเปญจาก KOL เดียวกัน ศูนย์หมายถึงไม่มีขีดจำกัดข้ามแคมเปญเพิ่มเติม ขีดจำกัดต่อลูกค้าและยอดรวมของแต่ละแคมเปญยังมีผล คำสั่งซื้อที่รอดำเนินการกันสิทธิ์ใช้ไว้ เมื่อสำเร็จจึงใช้ไป ส่วนที่ล้มเหลวหรือปิดจะปล่อยคืน"
   },
   "限制本活动累计 结算币种 降价总额，包含已用及待成交占用，与 ATG 赠送预算分别核实。待付款订单先占用，成交核销，失败或关闭释放；0 不表示无限折扣。降价后的有偿消费基数按本单实付分摊，优惠额不重复扣作成本。": {
     "en": "Caps this campaign’s cumulative settlement currency price reductions, including used amounts and pending-order holds, separately from the ATG gift budget. Unpaid orders reserve budget; completion consumes it, while failure or closure releases it. Zero does not mean unlimited discounts. Paid usage is allocated from the order’s actual discounted payment; the discount is not deducted again as a cost.",
     "ja": "本キャンペーンの 決済通貨 値引き累計を制限し、使用済みと未成立注文の仮押さえを含みます。ATG 付与予算とは別に確認します。未払注文で仮押さえし、成立時に使用確定、失敗・終了時に解放します。0 は無制限値引きを意味しません。有償消費基数は値引き後の実支払額から配分し、値引き額を原価として二重控除しません。",
-    "ru": "Ограничивает суммарные снижения цены в валюта расчётов, включая использованные суммы и резервы ожидающих заказов, отдельно от бюджета подарочных ATG. Неоплаченные заказы резервируют бюджет; завершение расходует его, сбой или закрытие освобождает. Ноль не означает безлимитные скидки. База оплаченного использования распределяется из фактической оплаты со скидкой; скидка повторно не вычитается как расход."
+    "ru": "Ограничивает суммарные снижения цены в валюта расчётов, включая использованные суммы и резервы ожидающих заказов, отдельно от бюджета подарочных ATG. Неоплаченные заказы резервируют бюджет; завершение расходует его, сбой или закрытие освобождает. Ноль не означает безлимитные скидки. База оплаченного использования распределяется из фактической оплаты со скидкой; скидка повторно не вычитается как расход.",
+    "hi": "यह अभियान की संचयी निपटान मुद्रा मूल्य कटौती सीमित करता है, जिसमें उपयोग की गई राशि और लंबित ऑर्डर आरक्षण शामिल हैं, ATG उपहार बजट से अलग। अवैतनिक ऑर्डर बजट आरक्षित करते हैं; पूरा होने पर उसका उपयोग होता है और विफलता या बंद होने पर वह मुक्त होता है। शून्य का अर्थ असीमित छूट नहीं है। भुगतान उपयोग ऑर्डर के वास्तविक रियायती भुगतान से आवंटित होता है; छूट लागत के रूप में दोबारा नहीं काटी जाती।",
+    "ms": "Mengehadkan pengurangan harga terkumpul kempen ini dalam mata wang penyelesaian, termasuk jumlah yang digunakan dan penahanan pesanan tertunda, secara berasingan daripada bajet hadiah ATG. Pesanan belum dibayar merizabkan bajet; penyelesaian menggunakannya, manakala kegagalan atau penutupan melepaskannya. Sifar tidak bermaksud diskaun tanpa had. Penggunaan berbayar diperuntukkan daripada pembayaran sebenar pesanan selepas diskaun; diskaun tidak ditolak lagi sebagai kos.",
+    "th": "จำกัดยอดลดราคาสะสมของแคมเปญนี้ในสกุลเงินที่ใช้ชำระบัญชี รวมยอดที่ใช้และยอดกันไว้สำหรับคำสั่งซื้อที่รอดำเนินการ แยกจากงบของขวัญ ATG คำสั่งซื้อที่ยังไม่ชำระกันงบไว้ เมื่อสำเร็จจึงใช้ไป ส่วนที่ล้มเหลวหรือปิดจะปล่อยคืน ศูนย์ไม่ได้หมายถึงส่วนลดไม่จำกัด ฐานการใช้งานแบบชำระเงินจัดสรรจากยอดชำระจริงหลังลดราคาของคำสั่งซื้อ โดยไม่หักส่วนลดซ้ำเป็นต้นทุน"
   },
   "套餐期限从每次成功交付时开始，按经营时区计算一个、三个或十二个日历月，到期后剩余额度不可用；不限期额度不过期。是否续费由客户授权决定，与 API Key 的自然周期预算分别管理。": {
     "en": "Each package term starts when delivery succeeds and lasts one, three or twelve calendar months in the operator’s timezone. Unused credits expire at the end; lifetime credits do not expire. Renewal requires customer authorization and is separate from an API key’s calendar-period budget.",
     "ja": "プランの期限は各回の提供完了時から始まり、運営者のタイムゾーンで1・3・12暦月を計算します。期限後の残高は使用できず、無期限枠には失効がありません。更新には顧客の承認が必要で、APIキーの暦期間予算とは別に管理します。",
-    "ru": "Срок каждого пакета начинается при успешном предоставлении и составляет один, три или двенадцать календарных месяцев в часовом поясе оператора. По окончании неиспользованные единицы истекают; бессрочные не истекают. Продление требует согласия клиента и учитывается отдельно от бюджета API-ключа по календарным периодам."
+    "ru": "Срок каждого пакета начинается при успешном предоставлении и составляет один, три или двенадцать календарных месяцев в часовом поясе оператора. По окончании неиспользованные единицы истекают; бессрочные не истекают. Продление требует согласия клиента и учитывается отдельно от бюджета API-ключа по календарным периодам.",
+    "hi": "प्रत्येक पैकेज अवधि सफल डिलीवरी से शुरू होती है और संचालक के समय क्षेत्र में एक, तीन या बारह कैलेंडर महीने चलती है। अप्रयुक्त क्रेडिट अंत में समाप्त होते हैं; आजीवन क्रेडिट समाप्त नहीं होते। नवीनीकरण के लिए ग्राहक प्राधिकरण आवश्यक है और यह API key के कैलेंडर अवधि बजट से अलग है।",
+    "ms": "Setiap tempoh pakej bermula apabila penyerahan berjaya dan berlangsung satu, tiga atau dua belas bulan kalendar dalam zon waktu pengendali. Kredit yang belum digunakan tamat pada penghujungnya; kredit seumur hidup tidak tamat tempoh. Pembaharuan memerlukan kebenaran pelanggan dan berasingan daripada bajet tempoh kalendar API Key.",
+    "th": "ระยะเวลาแต่ละแพ็กเกจเริ่มเมื่อส่งมอบสำเร็จและมีอายุหนึ่ง สาม หรือสิบสองเดือนปฏิทินตามเขตเวลาของผู้ดำเนินงาน เครดิตที่ไม่ได้ใช้หมดอายุเมื่อสิ้นสุด เครดิตไม่จำกัดเวลาไม่หมดอายุ การต่ออายุต้องได้รับอนุญาตจากลูกค้าและแยกจากงบประมาณตามรอบปฏิทินของ API Key"
   }
 }

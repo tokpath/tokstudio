@@ -3,609 +3,972 @@
     "asset_dimension": [
       "The image dimensions do not meet the upload requirements.",
       "画像サイズがアップロード要件を満たしていません。",
-      "Размеры изображения не соответствуют требованиям загрузки."
+      "Размеры изображения не соответствуют требованиям загрузки.",
+      "छवि के आयाम अपलोड आवश्यकताओं को पूरा नहीं करते।",
+      "Dimensi imej tidak memenuhi keperluan muat naik.",
+      "ขนาดภาพไม่ตรงตามข้อกำหนดการอัปโหลด"
     ],
     "asset_kind": [
       "This asset kind is not supported.",
       "このリソース種別には対応していません。",
-      "Этот тип ресурса не поддерживается."
+      "Этот тип ресурса не поддерживается.",
+      "यह परिसंपत्ति प्रकार समर्थित नहीं है।",
+      "Jenis aset ini tidak disokong.",
+      "ไม่รองรับสินทรัพย์ประเภทนี้"
     ],
     "asset_svg": [
       "This SVG is invalid or contains unsupported content.",
       "SVG が無効か、未対応の内容を含んでいます。",
-      "SVG недействителен или содержит неподдерживаемые данные."
+      "SVG недействителен или содержит неподдерживаемые данные.",
+      "यह SVG अमान्य है या इसमें असमर्थित सामग्री है।",
+      "SVG ini tidak sah atau mengandungi kandungan yang tidak disokong.",
+      "SVG นี้ไม่ถูกต้องหรือมีเนื้อหาที่ไม่รองรับ"
     ],
     "asset_too_large": [
       "The file exceeds the upload size limit.",
       "ファイルがアップロードのサイズ上限を超えています。",
-      "Файл превышает допустимый размер загрузки."
+      "Файл превышает допустимый размер загрузки.",
+      "फ़ाइल अपलोड आकार सीमा से अधिक है।",
+      "Fail melebihi had saiz muat naik.",
+      "ไฟล์เกินขีดจำกัดขนาดอัปโหลด"
     ],
     "asset_type": [
       "This file type is not supported.",
       "このファイル形式には対応していません。",
-      "Этот тип файла не поддерживается."
+      "Этот тип файла не поддерживается.",
+      "यह फ़ाइल प्रकार समर्थित नहीं है।",
+      "Jenis fail ini tidak disokong.",
+      "ไม่รองรับไฟล์ประเภทนี้"
     ],
     "authentication_error": [
       "Sign-in failed. Check the account and credentials.",
       "ログインに失敗しました。アカウントと認証情報を確認してください。",
-      "Не удалось войти. Проверьте аккаунт и данные для входа."
+      "Не удалось войти. Проверьте аккаунт и данные для входа.",
+      "साइन इन विफल हुआ। खाता और क्रेडेंशियल जाँचें।",
+      "Log masuk gagal. Semak akaun dan kelayakan.",
+      "ลงชื่อเข้าใช้ไม่สำเร็จ โปรดตรวจสอบบัญชีและข้อมูลรับรอง"
     ],
     "brand_api_unavailable": [
       "The brand API address is unavailable.",
       "ブランドの API アドレスを利用できません。",
-      "API-адрес бренда недоступен."
+      "API-адрес бренда недоступен.",
+      "ब्रांड API पता अनुपलब्ध है।",
+      "Alamat API jenama tidak tersedia.",
+      "ที่อยู่ API ของแบรนด์ใช้ไม่ได้"
     ],
     "brand_mismatch": [
       "This account or record belongs to a different brand.",
       "このアカウントまたは記録は別のブランドに属しています。",
-      "Аккаунт или запись принадлежит другому бренду."
+      "Аккаунт или запись принадлежит другому бренду.",
+      "यह खाता या रिकॉर्ड दूसरे ब्रांड का है।",
+      "Akaun atau rekod ini milik jenama lain.",
+      "บัญชีหรือระเบียนนี้เป็นของแบรนด์อื่น"
     ],
     "brand_not_customizable": [
       "This brand cannot be customized.",
       "このブランドはカスタマイズできません。",
-      "Настройка этого бренда недоступна."
+      "Настройка этого бренда недоступна.",
+      "इस ब्रांड को अनुकूलित नहीं किया जा सकता।",
+      "Jenama ini tidak boleh disesuaikan.",
+      "ไม่สามารถปรับแต่งแบรนด์นี้"
     ],
     "catalog_unavailable": [
       "The model catalog is temporarily unavailable.",
       "モデルカタログを一時的に利用できません。",
-      "Каталог моделей временно недоступен."
+      "Каталог моделей временно недоступен.",
+      "मॉडल कैटलॉग अस्थायी रूप से अनुपलब्ध है।",
+      "Katalog model tidak tersedia buat sementara waktu.",
+      "แค็ตตาล็อกโมเดลไม่พร้อมใช้งานชั่วคราว"
     ],
     "channel_disabled": [
       "This channel is disabled. New usage is unavailable.",
       "このチャネルは無効です。新規利用はできません。",
-      "Канал отключён. Новые обращения недоступны."
+      "Канал отключён. Новые обращения недоступны.",
+      "यह चैनल निष्क्रिय है। नया उपयोग उपलब्ध नहीं है।",
+      "Saluran ini dinyahaktifkan. Penggunaan baharu tidak tersedia.",
+      "ช่องทางนี้ปิดใช้แล้ว ไม่สามารถใช้งานใหม่"
     ],
     "client_id_taken": [
       "This Google client ID is already assigned to another brand.",
       "この Google クライアント ID は別のブランドで使用されています。",
-      "Этот идентификатор клиента Google уже назначен другому бренду."
+      "Этот идентификатор клиента Google уже назначен другому бренду.",
+      "यह Google क्लाइंट ID पहले से दूसरे ब्रांड को आवंटित है।",
+      "ID klien Google ini sudah ditugaskan kepada jenama lain.",
+      "ID ไคลเอนต์ Google นี้กำหนดให้แบรนด์อื่นแล้ว"
     ],
     "commission_conflict": [
       "The commission record has changed. Reload and review it.",
       "コミッション記録が変更されています。再読み込みして確認してください。",
-      "Запись комиссии изменилась. Обновите и проверьте её."
+      "Запись комиссии изменилась. Обновите и проверьте её.",
+      "कमीशन रिकॉर्ड बदल गया है। फिर लोड करके समीक्षा करें।",
+      "Rekod komisen telah berubah. Muat semula dan semaknya.",
+      "ระเบียนค่าคอมมิชชันเปลี่ยนแล้ว โปรดโหลดและตรวจสอบอีกครั้ง"
     ],
     "commission_wallet_mismatch": [
       "The commission wallet does not match the settlement facts.",
       "コミッションウォレットが精算記録と一致しません。",
-      "Комиссионный кошелёк не соответствует фактам расчёта."
+      "Комиссионный кошелёк не соответствует фактам расчёта.",
+      "कमीशन वॉलेट निपटान तथ्यों से मेल नहीं खाता।",
+      "Dompet komisen tidak sepadan dengan fakta penyelesaian.",
+      "กระเป๋าค่าคอมมิชชันไม่ตรงกับข้อเท็จจริงการชำระบัญชี"
     ],
     "configuration_error": [
       "The service configuration is incomplete or invalid.",
       "サービス設定が未完了または無効です。",
-      "Настройки сервиса неполные или недействительные."
+      "Настройки сервиса неполные или недействительные.",
+      "सेवा कॉन्फ़िगरेशन अधूरा या अमान्य है।",
+      "Konfigurasi perkhidmatan tidak lengkap atau tidak sah.",
+      "การตั้งค่าบริการไม่ครบหรือไม่ถูกต้อง"
     ],
     "confirm_required": [
       "Confirm this operation before submitting it.",
       "送信前にこの操作を確認してください。",
-      "Подтвердите операцию перед отправкой."
+      "Подтвердите операцию перед отправкой.",
+      "सबमिट करने से पहले इस कार्रवाई की पुष्टि करें।",
+      "Sahkan operasi ini sebelum menghantarnya.",
+      "ยืนยันการดำเนินการนี้ก่อนส่ง"
     ],
     "delivery_incomplete": [
       "OEM delivery requirements are incomplete.",
       "OEM の納品要件が未完了です。",
-      "Требования к предоставлению услуг OEM не выполнены."
+      "Требования к предоставлению услуг OEM не выполнены.",
+      "OEM डिलीवरी आवश्यकताएँ अधूरी हैं।",
+      "Keperluan penyerahan OEM belum lengkap.",
+      "ข้อกำหนดการส่งมอบ OEM ยังไม่ครบ"
     ],
     "email_link_invalid": [
       "This email link is invalid, expired or already used. Request a new one.",
       "メールリンクが無効、期限切れ、または使用済みです。新しいリンクを申請してください。",
-      "Ссылка из письма недействительна, просрочена или уже использована. Запросите новую."
+      "Ссылка из письма недействительна, просрочена или уже использована. Запросите новую.",
+      "यह ईमेल लिंक अमान्य, समाप्त या पहले उपयोग हो चुका है। नया अनुरोध करें।",
+      "Pautan e-mel ini tidak sah, tamat tempoh atau sudah digunakan. Minta yang baharu.",
+      "ลิงก์อีเมลไม่ถูกต้อง หมดอายุ หรือถูกใช้แล้ว โปรดขอใหม่"
     ],
     "email_unavailable": [
       "Email service is unavailable. Contact the platform administrator.",
       "メールサービスを利用できません。プラットフォーム管理者に連絡してください。",
-      "Почтовая служба недоступна. Обратитесь к администратору платформы."
+      "Почтовая служба недоступна. Обратитесь к администратору платформы.",
+      "ईमेल सेवा अनुपलब्ध है। प्लेटफ़ॉर्म व्यवस्थापक से संपर्क करें।",
+      "Perkhidmatan e-mel tidak tersedia. Hubungi pentadbir platform.",
+      "บริการอีเมลไม่พร้อมใช้งาน โปรดติดต่อผู้ดูแลแพลตฟอร์ม"
     ],
     "external_reference_conflict": [
       "This external reference is already used by another operation.",
       "この外部参照は別の操作で使用されています。",
-      "Эта внешняя ссылка уже используется другой операцией."
+      "Эта внешняя ссылка уже используется другой операцией.",
+      "यह बाहरी संदर्भ पहले से दूसरी कार्रवाई में उपयोग है।",
+      "Rujukan luaran ini sudah digunakan oleh operasi lain.",
+      "เลขอ้างอิงภายนอกนี้ถูกใช้โดยการดำเนินการอื่นแล้ว"
     ],
     "external_transaction_conflict": [
       "This external transaction is already recorded.",
       "この外部取引は記録済みです。",
-      "Эта внешняя транзакция уже зарегистрирована."
+      "Эта внешняя транзакция уже зарегистрирована.",
+      "यह बाहरी लेनदेन पहले ही दर्ज है।",
+      "Transaksi luaran ini sudah direkodkan.",
+      "ธุรกรรมภายนอกนี้ถูกบันทึกแล้ว"
     ],
     "forbidden": [
       "You do not have permission to perform this operation.",
       "この操作を行う権限がありません。",
-      "У вас нет прав для выполнения этой операции."
+      "У вас нет прав для выполнения этой операции.",
+      "आपको यह कार्रवाई करने की अनुमति नहीं है।",
+      "Anda tidak mempunyai kebenaran untuk melakukan operasi ini.",
+      "คุณไม่มีสิทธิ์ดำเนินการนี้"
     ],
     "gone": [
       "This resource is no longer available.",
       "このリソースは利用できなくなりました。",
-      "Этот ресурс больше недоступен."
+      "Этот ресурс больше недоступен.",
+      "यह संसाधन अब उपलब्ध नहीं है।",
+      "Sumber ini tidak lagi tersedia.",
+      "ทรัพยากรนี้ไม่พร้อมใช้งานแล้ว"
     ],
     "google_not_verified": [
       "Verify this Google configuration before enabling it.",
       "有効化する前に Google 設定を検証してください。",
-      "Проверьте настройки Google перед включением."
+      "Проверьте настройки Google перед включением.",
+      "सक्षम करने से पहले यह Google कॉन्फ़िगरेशन सत्यापित करें।",
+      "Sahkan konfigurasi Google ini sebelum mengaktifkannya.",
+      "ตรวจสอบการตั้งค่า Google นี้ก่อนเปิดใช้"
     ],
     "idempotency_conflict": [
       "This operation ID was used with different details. Check the original operation.",
       "この操作 ID は異なる内容で使用されています。元の操作を確認してください。",
-      "Этот идентификатор операции использовался с другими данными. Проверьте исходную операцию."
+      "Этот идентификатор операции использовался с другими данными. Проверьте исходную операцию.",
+      "यह कार्रवाई ID अलग विवरण के साथ उपयोग हुई थी। मूल कार्रवाई जाँचें।",
+      "ID operasi ini digunakan dengan butiran berbeza. Semak operasi asal.",
+      "ID การดำเนินการนี้ถูกใช้กับรายละเอียดอื่นแล้ว โปรดตรวจสอบการดำเนินการเดิม"
     ],
     "insufficient_balance": [
       "Eligible credit is insufficient. Add credit or purchase a valid plan.",
       "利用可能な枠が不足しています。チャージまたは有効なプランの購入を行ってください。",
-      "Недостаточно доступных кредитов. Пополните баланс или купите действующий пакет."
+      "Недостаточно доступных кредитов. Пополните баланс или купите действующий пакет.",
+      "पात्र क्रेडिट अपर्याप्त है। क्रेडिट जोड़ें या वैध योजना खरीदें।",
+      "Kredit yang layak tidak mencukupi. Tambah kredit atau beli pelan yang sah.",
+      "เครดิตที่เข้าเกณฑ์ไม่เพียงพอ โปรดเพิ่มเครดิตหรือซื้อแพ็กเกจที่ใช้ได้"
     ],
     "insufficient_quota": [
       "Available service credit is insufficient.",
       "利用可能なサービス枠が不足しています。",
-      "Недостаточно доступных кредитов для услуг."
+      "Недостаточно доступных кредитов для услуг.",
+      "उपलब्ध सेवा क्रेडिट अपर्याप्त है।",
+      "Kredit perkhidmatan tersedia tidak mencukupi.",
+      "เครดิตบริการที่ใช้ได้ไม่เพียงพอ"
     ],
     "internal_error": [
       "The operation could not be completed. Check its result before retrying.",
       "操作を完了できませんでした。再試行前に結果を確認してください。",
-      "Операцию не удалось завершить. Проверьте результат перед повторной попыткой."
+      "Операцию не удалось завершить. Проверьте результат перед повторной попыткой.",
+      "कार्रवाई पूरी नहीं हो सकी। फिर प्रयास करने से पहले उसका परिणाम जाँचें।",
+      "Operasi tidak dapat diselesaikan. Semak hasilnya sebelum mencuba semula.",
+      "ไม่สามารถดำเนินการให้เสร็จ โปรดตรวจสอบผลก่อนลองอีกครั้ง"
     ],
     "invalid_amount": [
       "Enter a valid amount within the allowed limits.",
       "許容範囲内の有効な金額を入力してください。",
-      "Введите допустимую сумму в установленных пределах."
+      "Введите допустимую сумму в установленных пределах.",
+      "अनुमत सीमाओं के भीतर वैध राशि दर्ज करें।",
+      "Masukkan jumlah sah dalam had yang dibenarkan.",
+      "ระบุจำนวนที่ถูกต้องภายในขีดจำกัดที่อนุญาต"
     ],
     "invalid_channel_admin": [
       "The channel administrator is invalid or cannot be changed this way.",
       "チャネル管理者が無効か、この方法では変更できません。",
-      "Администратор канала недействителен или не может быть изменён таким способом."
+      "Администратор канала недействителен или не может быть изменён таким способом.",
+      "चैनल व्यवस्थापक अमान्य है या इस तरह बदला नहीं जा सकता।",
+      "Pentadbir saluran tidak sah atau tidak boleh diubah dengan cara ini.",
+      "ผู้ดูแลช่องทางไม่ถูกต้องหรือเปลี่ยนด้วยวิธีนี้ไม่ได้"
     ],
     "invalid_cursor": [
       "The pagination cursor is invalid. Return to the first page.",
       "ページ移動のカーソルが無効です。最初のページに戻ってください。",
-      "Указатель страницы недействителен. Вернитесь на первую страницу."
+      "Указатель страницы недействителен. Вернитесь на первую страницу.",
+      "पृष्ठांकन कर्सर अमान्य है। पहले पृष्ठ पर लौटें।",
+      "Kursor penomboran halaman tidak sah. Kembali ke halaman pertama.",
+      "เคอร์เซอร์แบ่งหน้าไม่ถูกต้อง โปรดกลับไปหน้าแรก"
     ],
     "invalid_key_limits": [
       "The API key limits are invalid.",
       "API キーの制限設定が無効です。",
-      "Ограничения API-ключа недействительны."
+      "Ограничения API-ключа недействительны.",
+      "API key सीमाएँ अमान्य हैं।",
+      "Had API Key tidak sah.",
+      "ขีดจำกัด API Key ไม่ถูกต้อง"
     ],
     "invalid_recipient": [
       "Select a valid recipient within your scope.",
       "管理範囲内の有効な受取人を選択してください。",
-      "Выберите допустимого получателя в пределах своих полномочий."
+      "Выберите допустимого получателя в пределах своих полномочий.",
+      "अपने दायरे में वैध प्राप्तकर्ता चुनें।",
+      "Pilih penerima sah dalam skop anda.",
+      "เลือกผู้รับที่ถูกต้องภายในขอบเขตของคุณ"
     ],
     "invalid_request": [
       "The request is invalid. Check the fields and try again.",
       "リクエストが無効です。入力項目を確認して再試行してください。",
-      "Запрос недействителен. Проверьте поля и повторите попытку."
+      "Запрос недействителен. Проверьте поля и повторите попытку.",
+      "अनुरोध अमान्य है। फ़ील्ड जाँचकर फिर प्रयास करें।",
+      "Permintaan tidak sah. Semak medan dan cuba lagi.",
+      "คำขอไม่ถูกต้อง โปรดตรวจสอบฟิลด์และลองอีกครั้ง"
     ],
     "invalid_smtp_settings": [
       "Check the SMTP server, port, sender address and secure connection settings.",
       "SMTP サーバー、ポート、送信元、セキュア接続の設定を確認してください。",
-      "Проверьте SMTP-сервер, порт, адрес отправителя и настройки защищённого соединения."
+      "Проверьте SMTP-сервер, порт, адрес отправителя и настройки защищённого соединения.",
+      "SMTP सर्वर, पोर्ट, प्रेषक पता और सुरक्षित कनेक्शन सेटिंग जाँचें।",
+      "Semak pelayan SMTP, port, alamat pengirim dan tetapan sambungan selamat.",
+      "ตรวจสอบเซิร์ฟเวอร์ SMTP พอร์ต ที่อยู่ผู้ส่ง และการตั้งค่าการเชื่อมต่อที่ปลอดภัย"
     ],
     "key_budget_exceeded": [
       "This API key has reached its spending limit.",
       "この API キーは利用金額の上限に達しています。",
-      "Этот API-ключ достиг лимита расходов."
+      "Этот API-ключ достиг лимита расходов.",
+      "इस API key की खर्च सीमा पूरी हो गई है।",
+      "API Key ini telah mencapai had perbelanjaannya.",
+      "API Key นี้ถึงขีดจำกัดการใช้จ่ายแล้ว"
     ],
     "key_expired": [
       "This API key has expired.",
       "この API キーは有効期限が切れています。",
-      "Срок действия API-ключа истёк."
+      "Срок действия API-ключа истёк.",
+      "यह API key समाप्त हो गई है।",
+      "API Key ini telah tamat tempoh.",
+      "API Key นี้หมดอายุแล้ว"
     ],
     "key_invalid": [
       "This API key is invalid.",
       "この API キーは無効です。",
-      "API-ключ недействителен."
+      "API-ключ недействителен.",
+      "यह API key अमान्य है।",
+      "API Key ini tidak sah.",
+      "API Key นี้ไม่ถูกต้อง"
     ],
     "key_not_found": [
       "This API key was not found.",
       "この API キーが見つかりません。",
-      "API-ключ не найден."
+      "API-ключ не найден.",
+      "यह API key नहीं मिली।",
+      "API Key ini tidak ditemui.",
+      "ไม่พบ API Key นี้"
     ],
     "key_operation_conflict": [
       "The API key operation conflicts with its current state. Refresh and review it.",
       "API キーの現在の状態と操作が競合しています。更新して確認してください。",
-      "Операция с API-ключом противоречит его текущему состоянию. Обновите данные и проверьте их."
+      "Операция с API-ключом противоречит его текущему состоянию. Обновите данные и проверьте их.",
+      "API key कार्रवाई उसकी वर्तमान स्थिति से टकराती है। रीफ़्रेश करके समीक्षा करें।",
+      "Operasi API Key bercanggah dengan keadaan semasanya. Muat semula dan semaknya.",
+      "การดำเนินการ API Key ขัดกับสถานะปัจจุบัน โปรดรีเฟรชและตรวจสอบ"
     ],
     "key_unusable": [
       "This API key cannot currently be used.",
       "この API キーは現在利用できません。",
-      "Этот API-ключ сейчас недоступен для использования."
+      "Этот API-ключ сейчас недоступен для использования.",
+      "यह API key अभी उपयोग नहीं की जा सकती।",
+      "API Key ini tidak boleh digunakan sekarang.",
+      "API Key นี้ยังใช้ไม่ได้ในขณะนี้"
     ],
     "media_job_not_ready": [
       "The media result is not ready yet. Check the job status.",
       "メディア結果はまだ準備できていません。ジョブの状態を確認してください。",
-      "Медиарезультат ещё не готов. Проверьте состояние задачи."
+      "Медиарезультат ещё не готов. Проверьте состояние задачи.",
+      "मीडिया परिणाम अभी तैयार नहीं है। कार्य की स्थिति जाँचें।",
+      "Hasil media belum sedia. Semak status tugas.",
+      "ผลลัพธ์สื่อยังไม่พร้อม โปรดตรวจสอบสถานะงาน"
     ],
     "model_not_allowed": [
       "This model is unavailable or is not granted to this account.",
       "このモデルは利用できないか、このアカウントに許可されていません。",
-      "Модель недоступна или не разрешена этому аккаунту."
+      "Модель недоступна или не разрешена этому аккаунту.",
+      "यह मॉडल अनुपलब्ध है या इस खाते को नहीं दिया गया है।",
+      "Model ini tidak tersedia atau tidak diberikan kepada akaun ini.",
+      "โมเดลนี้ไม่พร้อมใช้งานหรือไม่ได้รับอนุญาตให้บัญชีนี้"
     ],
     "not_found": [
       "The requested record was not found.",
       "対象の記録が見つかりません。",
-      "Запрошенная запись не найдена."
+      "Запрошенная запись не найдена.",
+      "अनुरोधित रिकॉर्ड नहीं मिला।",
+      "Rekod yang diminta tidak ditemui.",
+      "ไม่พบระเบียนที่ร้องขอ"
     ],
     "nothing_to_settle": [
       "There are no eligible commissions to settle.",
       "精算対象のコミッションがありません。",
-      "Нет комиссий, доступных для расчёта."
+      "Нет комиссий, доступных для расчёта.",
+      "निपटान के लिए कोई पात्र कमीशन नहीं है।",
+      "Tiada komisen yang layak untuk diselesaikan.",
+      "ไม่มีค่าคอมมิชชันที่เข้าเกณฑ์ให้ชำระบัญชี"
     ],
     "notification_ineligible": [
       "Check SMTP configuration, email verification and whether this notification is expired or already sent.",
       "SMTP 設定、メール認証、通知の有効期限と送信済み状態を確認してください。",
-      "Проверьте SMTP, подтверждение email и то, не истёк ли срок уведомления и не было ли оно уже отправлено."
+      "Проверьте SMTP, подтверждение email и то, не истёк ли срок уведомления и не было ли оно уже отправлено.",
+      "SMTP कॉन्फ़िगरेशन, ईमेल सत्यापन और सूचना के समाप्त या पहले भेजे जाने की स्थिति जाँचें।",
+      "Semak konfigurasi SMTP, pengesahan e-mel dan sama ada pemberitahuan ini tamat tempoh atau sudah dihantar.",
+      "ตรวจสอบการตั้งค่า SMTP การยืนยันอีเมล และว่าการแจ้งเตือนหมดอายุหรือส่งแล้วหรือไม่"
     ],
     "notification_not_found": [
       "This notification was not found.",
       "この通知が見つかりません。",
-      "Уведомление не найдено."
+      "Уведомление не найдено.",
+      "यह सूचना नहीं मिली।",
+      "Pemberitahuan ini tidak ditemui.",
+      "ไม่พบการแจ้งเตือนนี้"
     ],
     "operation_conflict": [
       "The operation conflicts with the current state. Reload the original record.",
       "現在の状態と操作が競合しています。元の記録を再読み込みしてください。",
-      "Операция противоречит текущему состоянию. Обновите исходную запись."
+      "Операция противоречит текущему состоянию. Обновите исходную запись.",
+      "कार्रवाई वर्तमान स्थिति से टकराती है। मूल रिकॉर्ड फिर लोड करें।",
+      "Operasi bercanggah dengan keadaan semasa. Muat semula rekod asal.",
+      "การดำเนินการขัดกับสถานะปัจจุบัน โปรดโหลดระเบียนเดิมอีกครั้ง"
     ],
     "order_status_conflict": [
       "The order status has changed or does not permit this action.",
       "注文の状態が変更されているか、この操作を許可していません。",
-      "Состояние заказа изменилось или не допускает это действие."
+      "Состояние заказа изменилось или не допускает это действие.",
+      "ऑर्डर स्थिति बदल गई है या इस कार्रवाई की अनुमति नहीं देती।",
+      "Status pesanan telah berubah atau tidak membenarkan tindakan ini.",
+      "สถานะคำสั่งซื้อเปลี่ยนไปหรือไม่อนุญาตการดำเนินการนี้"
     ],
     "payment_provider_failed": [
       "The payment provider could not complete the operation. Check the payment result.",
       "決済事業者が操作を完了できませんでした。決済結果を確認してください。",
-      "Платёжный провайдер не смог завершить операцию. Проверьте результат платежа."
+      "Платёжный провайдер не смог завершить операцию. Проверьте результат платежа.",
+      "भुगतान प्रदाता कार्रवाई पूरी नहीं कर सका। भुगतान परिणाम जाँचें।",
+      "Penyedia pembayaran tidak dapat menyelesaikan operasi. Semak hasil pembayaran.",
+      "ผู้ให้บริการชำระเงินไม่สามารถดำเนินการให้เสร็จ โปรดตรวจสอบผลการชำระเงิน"
     ],
     "payment_unavailable": [
       "This payment method is currently unavailable.",
       "この決済手段は現在利用できません。",
-      "Этот способ оплаты сейчас недоступен."
+      "Этот способ оплаты сейчас недоступен.",
+      "यह भुगतान विधि अभी अनुपलब्ध है।",
+      "Kaedah pembayaran ini tidak tersedia sekarang.",
+      "วิธีชำระเงินนี้ไม่พร้อมใช้งานในขณะนี้"
     ],
     "permission_denied": [
       "You do not have permission to access this record or perform this operation.",
       "この記録へのアクセスまたは操作の権限がありません。",
-      "У вас нет прав для просмотра записи или выполнения операции."
+      "У вас нет прав для просмотра записи или выполнения операции.",
+      "आपको इस रिकॉर्ड तक पहुँचने या यह कार्रवाई करने की अनुमति नहीं है।",
+      "Anda tidak mempunyai kebenaran untuk mengakses rekod ini atau melakukan operasi ini.",
+      "คุณไม่มีสิทธิ์เข้าถึงระเบียนนี้หรือดำเนินการนี้"
     ],
     "plan_name_taken": [
       "A plan with this name already exists.",
       "同じ名前のプランが既に存在します。",
-      "Пакет с таким названием уже существует."
+      "Пакет с таким названием уже существует.",
+      "इस नाम की योजना पहले से मौजूद है।",
+      "Pelan dengan nama ini sudah wujud.",
+      "มีแพ็กเกจชื่อนี้อยู่แล้ว"
     ],
     "preview_changed": [
       "The preview has changed. Reload and confirm the updated result.",
       "プレビューが変更されています。再読み込みして最新の結果を確認してください。",
-      "Предварительный расчёт изменился. Обновите и подтвердите новый результат."
+      "Предварительный расчёт изменился. Обновите и подтвердите новый результат.",
+      "पूर्वावलोकन बदल गया है। फिर लोड करके अपडेट परिणाम की पुष्टि करें।",
+      "Pratonton telah berubah. Muat semula dan sahkan hasil terkini.",
+      "ตัวอย่างเปลี่ยนแปลง โปรดโหลดและยืนยันผลที่อัปเดต"
     ],
     "price_estimate_unavailable": [
       "A reliable price estimate is unavailable for this request.",
       "このリクエストの価格を正確に見積もれません。",
-      "Надёжная оценка стоимости этого запроса недоступна."
+      "Надёжная оценка стоимости этого запроса недоступна.",
+      "इस अनुरोध के लिए विश्वसनीय मूल्य अनुमान उपलब्ध नहीं है।",
+      "Anggaran harga yang boleh dipercayai tidak tersedia untuk permintaan ini.",
+      "ไม่มีการประมาณราคาที่เชื่อถือได้สำหรับคำขอนี้"
     ],
     "probe_not_supported": [
       "This provider does not support this probe.",
       "このプロバイダーはこのプローブに対応していません。",
-      "Провайдер не поддерживает эту проверку."
+      "Провайдер не поддерживает эту проверку.",
+      "यह प्रदाता इस जाँच का समर्थन नहीं करता।",
+      "Penyedia ini tidak menyokong ujian ini.",
+      "ผู้ให้บริการนี้ไม่รองรับการตรวจสอบนี้"
     ],
     "provider_unavailable": [
       "The upstream provider is currently unavailable.",
       "上流プロバイダーは現在利用できません。",
-      "Поставщик сейчас недоступен."
+      "Поставщик сейчас недоступен.",
+      "अपस्ट्रीम प्रदाता अभी अनुपलब्ध है।",
+      "Penyedia huluan tidak tersedia sekarang.",
+      "ผู้ให้บริการต้นทางไม่พร้อมใช้งานในขณะนี้"
     ],
     "quota_not_recoverable": [
       "This credit cannot be recovered in its current state.",
       "この枠は現在の状態では回収できません。",
-      "Эти кредиты нельзя вернуть в текущем состоянии."
+      "Эти кредиты нельзя вернуть в текущем состоянии.",
+      "इस क्रेडिट को वर्तमान स्थिति में वापस नहीं लिया जा सकता।",
+      "Kredit ini tidak boleh dipulihkan dalam keadaan semasanya.",
+      "ไม่สามารถเรียกคืนเครดิตนี้ในสถานะปัจจุบัน"
     ],
     "rate_limit_exceeded": [
       "The request rate limit has been reached. Try again later.",
       "リクエスト数の上限に達しました。時間をおいて再試行してください。",
-      "Достигнут лимит частоты запросов. Повторите позже."
+      "Достигнут лимит частоты запросов. Повторите позже.",
+      "अनुरोध दर सीमा पूरी हो गई है। बाद में फिर प्रयास करें।",
+      "Had kadar permintaan telah dicapai. Cuba semula kemudian.",
+      "ถึงขีดจำกัดอัตราคำขอแล้ว โปรดลองอีกครั้งภายหลัง"
     ],
     "rate_limited": [
       "Too many requests. Try again later.",
       "リクエストが多すぎます。時間をおいて再試行してください。",
-      "Слишком много запросов. Повторите позже."
+      "Слишком много запросов. Повторите позже.",
+      "बहुत अधिक अनुरोध। बाद में फिर प्रयास करें।",
+      "Terlalu banyak permintaan. Cuba semula kemudian.",
+      "มีคำขอมากเกินไป โปรดลองอีกครั้งภายหลัง"
     ],
     "read_failed": [
       "Could not load the record. Please retry.",
       "記録を読み込めませんでした。再試行してください。",
-      "Не удалось загрузить запись. Повторите попытку."
+      "Не удалось загрузить запись. Повторите попытку.",
+      "रिकॉर्ड लोड नहीं हो सका। कृपया फिर प्रयास करें।",
+      "Tidak dapat memuatkan rekod. Sila cuba semula.",
+      "โหลดระเบียนไม่สำเร็จ โปรดลองอีกครั้ง"
     ],
     "recovery_conflict": [
       "The recovery record has changed. Reload the original record.",
       "回収記録が変更されています。元の記録を再読み込みしてください。",
-      "Запись возврата изменилась. Обновите исходную запись."
+      "Запись возврата изменилась. Обновите исходную запись.",
+      "पुनर्प्राप्ति रिकॉर्ड बदल गया है। मूल रिकॉर्ड फिर लोड करें।",
+      "Rekod pemulihan telah berubah. Muat semula rekod asal.",
+      "ระเบียนการเรียกคืนเปลี่ยนแล้ว โปรดโหลดระเบียนเดิมอีกครั้ง"
     ],
     "refund_failed": [
       "The refund could not be completed. Check the original operation before retrying.",
       "返金を完了できませんでした。再試行前に元の操作を確認してください。",
-      "Возврат не завершён. Проверьте исходную операцию перед повторной попыткой."
+      "Возврат не завершён. Проверьте исходную операцию перед повторной попыткой.",
+      "धनवापसी पूरी नहीं हो सकी। फिर प्रयास करने से पहले मूल कार्रवाई जाँचें।",
+      "Bayaran balik tidak dapat diselesaikan. Semak operasi asal sebelum mencuba semula.",
+      "การคืนเงินไม่สำเร็จ โปรดตรวจสอบการดำเนินการเดิมก่อนลองอีกครั้ง"
     ],
     "refund_needs_review": [
       "This refund requires a financial review before it can proceed.",
       "この返金を進めるには財務による確認が必要です。",
-      "Для продолжения возврата требуется финансовая проверка."
+      "Для продолжения возврата требуется финансовая проверка.",
+      "आगे बढ़ने से पहले इस धनवापसी की वित्तीय समीक्षा आवश्यक है।",
+      "Bayaran balik ini memerlukan semakan kewangan sebelum boleh diteruskan.",
+      "การคืนเงินนี้ต้องได้รับการทบทวนทางการเงินก่อนดำเนินการต่อ"
     ],
     "request_outcome_unknown": [
       "The request result is unconfirmed. Check the original request before retrying.",
       "リクエスト結果が未確認です。再試行前に元のリクエストを確認してください。",
-      "Результат запроса не подтверждён. Проверьте исходный запрос перед повторной попыткой."
+      "Результат запроса не подтверждён. Проверьте исходный запрос перед повторной попыткой.",
+      "अनुरोध का परिणाम अपुष्ट है। फिर प्रयास करने से पहले मूल अनुरोध जाँचें।",
+      "Hasil permintaan belum disahkan. Semak permintaan asal sebelum mencuba semula.",
+      "ผลคำขอยังไม่ยืนยัน โปรดตรวจสอบคำขอเดิมก่อนลองอีกครั้ง"
     ],
     "result_unconfirmed": [
       "The result is unconfirmed. Check the original operation rather than creating a new one.",
       "結果が未確認です。新しい操作を作成せず、元の操作を確認してください。",
-      "Результат не подтверждён. Проверьте исходную операцию, не создавая новую."
+      "Результат не подтверждён. Проверьте исходную операцию, не создавая новую.",
+      "परिणाम अपुष्ट है। नया बनाने के बजाय मूल कार्रवाई जाँचें।",
+      "Hasil belum disahkan. Semak operasi asal dan jangan cipta yang baharu.",
+      "ผลยังไม่ยืนยัน โปรดตรวจสอบการดำเนินการเดิมแทนการสร้างใหม่"
     ],
     "service_unavailable": [
       "The service is temporarily unavailable. Try again later.",
       "サービスを一時的に利用できません。時間をおいて再試行してください。",
-      "Сервис временно недоступен. Повторите позже."
+      "Сервис временно недоступен. Повторите позже.",
+      "सेवा अस्थायी रूप से अनुपलब्ध है। बाद में फिर प्रयास करें।",
+      "Perkhidmatan tidak tersedia buat sementara waktu. Cuba semula kemudian.",
+      "บริการไม่พร้อมใช้งานชั่วคราว โปรดลองอีกครั้งภายหลัง"
     ],
     "settlement_changed": [
       "The settlement facts have changed. Reload the preview before confirming.",
       "精算内容が変更されています。確認前にプレビューを再読み込みしてください。",
-      "Факты расчёта изменились. Обновите предварительный расчёт перед подтверждением."
+      "Факты расчёта изменились. Обновите предварительный расчёт перед подтверждением.",
+      "निपटान तथ्य बदल गए हैं। पुष्टि से पहले पूर्वावलोकन फिर लोड करें।",
+      "Fakta penyelesaian telah berubah. Muat semula pratonton sebelum mengesahkan.",
+      "ข้อเท็จจริงการชำระบัญชีเปลี่ยนแล้ว โปรดโหลดตัวอย่างอีกครั้งก่อนยืนยัน"
     ],
     "smtp_unavailable": [
       "Email delivery is unavailable. Check SMTP and platform encryption settings.",
       "メール配信を利用できません。SMTP と暗号化設定を確認してください。",
-      "Отправка писем недоступна. Проверьте SMTP и настройки шифрования платформы."
+      "Отправка писем недоступна. Проверьте SMTP и настройки шифрования платформы.",
+      "ईमेल डिलीवरी अनुपलब्ध है। SMTP और प्लेटफ़ॉर्म एन्क्रिप्शन सेटिंग जाँचें।",
+      "Penghantaran e-mel tidak tersedia. Semak SMTP dan tetapan penyulitan platform.",
+      "ส่งอีเมลไม่ได้ โปรดตรวจสอบ SMTP และการตั้งค่าการเข้ารหัสแพลตฟอร์ม"
     ],
     "snapshot_unavailable": [
       "The original snapshot is unavailable. This operation needs review.",
       "元のスナップショットを利用できません。この操作には確認が必要です。",
-      "Исходный снимок данных недоступен. Операция требует проверки."
+      "Исходный снимок данных недоступен. Операция требует проверки.",
+      "मूल स्नैपशॉट अनुपलब्ध है। इस कार्रवाई की समीक्षा आवश्यक है।",
+      "Rekod asal tidak tersedia. Operasi ini memerlukan semakan.",
+      "ข้อมูลเดิมไม่พร้อมใช้งาน การดำเนินการนี้ต้องทบทวน"
     ],
     "store_unavailable": [
       "Storage is unavailable.",
       "ストレージを利用できません。",
-      "Хранилище недоступно."
+      "Хранилище недоступно.",
+      "स्टोरेज अनुपलब्ध है।",
+      "Storan tidak tersedia.",
+      "พื้นที่จัดเก็บไม่พร้อมใช้งาน"
     ],
     "supplier_conflict": [
       "The supplier record conflicts with existing financial facts.",
       "仕入先の記録が既存の会計記録と競合しています。",
-      "Запись поставщика противоречит существующим финансовым фактам."
+      "Запись поставщика противоречит существующим финансовым фактам.",
+      "आपूर्तिकर्ता रिकॉर्ड मौजूदा वित्तीय तथ्यों से टकराता है।",
+      "Rekod pembekal bercanggah dengan fakta kewangan sedia ada.",
+      "ระเบียนผู้จัดหาขัดกับข้อเท็จจริงทางการเงินที่มีอยู่"
     ],
     "topup_status_conflict": [
       "The top-up status does not permit this operation.",
       "チャージの状態がこの操作を許可していません。",
-      "Состояние пополнения не допускает эту операцию."
+      "Состояние пополнения не допускает эту операцию.",
+      "टॉप-अप स्थिति इस कार्रवाई की अनुमति नहीं देती।",
+      "Status tambah nilai tidak membenarkan operasi ini.",
+      "สถานะการเติมเงินไม่อนุญาตการดำเนินการนี้"
     ],
     "totp_required": [
       "Enter a valid authenticator code for this operation.",
       "この操作には有効な認証アプリのコードを入力してください。",
-      "Введите действительный код приложения-аутентификатора."
+      "Введите действительный код приложения-аутентификатора.",
+      "इस कार्रवाई के लिए वैध ऑथेंटिकेटर कोड दर्ज करें।",
+      "Masukkan kod pengesah yang sah untuk operasi ini.",
+      "ระบุรหัสตัวตรวจสอบสิทธิ์ที่ถูกต้องสำหรับการดำเนินการนี้"
     ],
     "unauthorized": [
       "Sign in again to continue.",
       "再度ログインして続行してください。",
-      "Войдите снова, чтобы продолжить."
+      "Войдите снова, чтобы продолжить.",
+      "जारी रखने के लिए फिर साइन इन करें।",
+      "Log masuk semula untuk meneruskan.",
+      "ลงชื่อเข้าใช้อีกครั้งเพื่อดำเนินการต่อ"
     ],
     "unsupported_control_parameter": [
       "This request contains unsupported control parameters.",
       "リクエストに未対応の制御パラメーターが含まれています。",
-      "Запрос содержит неподдерживаемые управляющие параметры."
+      "Запрос содержит неподдерживаемые управляющие параметры.",
+      "इस अनुरोध में असमर्थित नियंत्रण पैरामीटर हैं।",
+      "Permintaan ini mengandungi parameter kawalan yang tidak disokong.",
+      "คำขอนี้มีพารามิเตอร์ควบคุมที่ไม่รองรับ"
     ],
     "unsupported_operation": [
       "This operation is not supported.",
       "この操作には対応していません。",
-      "Операция не поддерживается."
+      "Операция не поддерживается.",
+      "यह कार्रवाई समर्थित नहीं है।",
+      "Operasi ini tidak disokong.",
+      "ไม่รองรับการดำเนินการนี้"
     ],
     "version_conflict": [
       "The configuration has changed. Reload it before saving.",
       "設定が変更されています。保存前に再読み込みしてください。",
-      "Настройки изменились. Обновите их перед сохранением."
+      "Настройки изменились. Обновите их перед сохранением.",
+      "कॉन्फ़िगरेशन बदल गया है। सहेजने से पहले फिर लोड करें।",
+      "Konfigurasi telah berubah. Muat semula sebelum menyimpan.",
+      "การตั้งค่าเปลี่ยนแล้ว โปรดโหลดอีกครั้งก่อนบันทึก"
     ],
     "upstream_error": [
       "The model service is temporarily unavailable. Try again later or contact your operator with the request ID.",
       "モデルサービスを一時的に利用できません。しばらくしてから再試行するか、リクエスト ID を添えて運営者にお問い合わせください。",
-      "Сервис моделей временно недоступен. Повторите попытку позже или обратитесь к оператору, указав идентификатор запроса."
+      "Сервис моделей временно недоступен. Повторите попытку позже или обратитесь к оператору, указав идентификатор запроса.",
+      "मॉडल सेवा अस्थायी रूप से अनुपलब्ध है। बाद में फिर प्रयास करें या अनुरोध ID के साथ अपने संचालक से संपर्क करें।",
+      "Perkhidmatan model tidak tersedia buat sementara waktu. Cuba semula kemudian atau hubungi pengendali anda dengan ID permintaan.",
+      "บริการโมเดลไม่พร้อมใช้งานชั่วคราว ลองอีกครั้งภายหลังหรือติดต่อผู้ดำเนินงานพร้อม ID คำขอ"
     ]
   },
   "messages": {
     "未授权": [
       "Authentication is required.",
       "認証が必要です。",
-      "Требуется аутентификация."
+      "Требуется аутентификация.",
+      "प्रमाणीकरण आवश्यक है।",
+      "Pengesahan diperlukan.",
+      "ต้องยืนยันตัวตน"
     ],
     "存储不可用": [
       "Storage unavailable",
       "ストレージを利用できません",
-      "Хранилище недоступно"
+      "Хранилище недоступно",
+      "स्टोरेज अनुपलब्ध",
+      "Storan tidak tersedia",
+      "พื้นที่จัดเก็บไม่พร้อมใช้งาน"
     ],
     "未登录": [
       "Sign in to continue.",
       "ログインして続行してください。",
-      "Войдите, чтобы продолжить."
+      "Войдите, чтобы продолжить.",
+      "जारी रखने के लिए साइन इन करें।",
+      "Log masuk untuk meneruskan.",
+      "ลงชื่อเข้าใช้เพื่อดำเนินการต่อ"
     ],
     "模型不可用": [
       "Model unavailable",
       "モデルが利用できない",
-      "Модель недоступна"
+      "Модель недоступна",
+      "मॉडल अनुपलब्ध",
+      "Model tidak tersedia",
+      "โมเดลไม่พร้อมใช้งาน"
     ],
     "读取路由失败": [
       "Could not load the route",
       "ルートを読み込めませんでした",
-      "Не удалось загрузить маршрут"
+      "Не удалось загрузить маршрут",
+      "मार्ग लोड नहीं हो सका",
+      "Tidak dapat memuatkan laluan",
+      "โหลดเส้นทางไม่สำเร็จ"
     ],
     "读取品牌失败": [
       "Could not load the brand",
       "ブランドを読み込めませんでした",
-      "Не удалось загрузить бренд"
+      "Не удалось загрузить бренд",
+      "ब्रांड लोड नहीं हो सका",
+      "Tidak dapat memuatkan jenama",
+      "โหลดแบรนด์ไม่สำเร็จ"
     ],
     "请填写有效邮箱": [
       "Enter a valid email",
       "有効なメールを入力してください",
-      "Введите действительный email"
+      "Введите действительный email",
+      "वैध ईमेल दर्ज करें",
+      "Masukkan e-mel yang sah",
+      "ระบุอีเมลที่ถูกต้อง"
     ],
     "不是推广主体": [
       "Not a promotion principal",
       "紹介主体ではありません",
-      "Аккаунт не является участником продвижения"
+      "Аккаунт не является участником продвижения",
+      "प्रचार का प्रधान नहीं",
+      "Bukan prinsipal promosi",
+      "ไม่ใช่ผู้มีสิทธิ์ส่งเสริมการขาย"
     ],
     "结果尚未确认，请回查或重试原操作。": [
       "The result is unconfirmed. Check or retry the original operation.",
       "結果が未確認です。元の操作を確認するか再試行してください。",
-      "Результат не подтверждён. Проверьте или повторите исходную операцию."
+      "Результат не подтверждён. Проверьте или повторите исходную операцию.",
+      "परिणाम अपुष्ट है। मूल कार्रवाई जाँचें या उसका फिर प्रयास करें।",
+      "Hasil belum disahkan. Semak atau cuba semula operasi asal.",
+      "ผลยังไม่ยืนยัน โปรดตรวจสอบหรือลองดำเนินการเดิมอีกครั้ง"
     ],
     "请先登录": [
       "Sign in first.",
       "先にログインしてください。",
-      "Сначала войдите в аккаунт."
+      "Сначала войдите в аккаунт.",
+      "पहले साइन इन करें।",
+      "Log masuk dahulu.",
+      "โปรดลงชื่อเข้าใช้ก่อน"
     ],
     "送入待对账失败": [
       "Could not flag the mismatch",
       "キュー投入に失敗しました",
-      "Не удалось передать расхождение на сверку"
+      "Не удалось передать расхождение на сверку",
+      "अंतर चिह्नित नहीं हो सका",
+      "Tidak dapat menandakan ketidakpadanan",
+      "ไม่สามารถทำเครื่องหมายรายการไม่ตรงกัน"
     ],
     "标记已解失败": [
       "Could not mark resolved",
       "解除に失敗しました",
-      "Не удалось отметить расхождение как устранённое"
+      "Не удалось отметить расхождение как устранённое",
+      "हल हुआ चिह्नित नहीं हो सका",
+      "Tidak dapat menandakan sebagai selesai",
+      "ไม่สามารถทำเครื่องหมายว่าแก้ไขแล้ว"
     ],
     "发布价格失败": [
       "Price publication failed",
       "価格の公開に失敗しました",
-      "Не удалось опубликовать цену"
+      "Не удалось опубликовать цену",
+      "मूल्य प्रकाशन विफल",
+      "Penerbitan harga gagal",
+      "เผยแพร่ราคาไม่สำเร็จ"
     ],
     "读取账单失败，请重试。": [
       "Could not load the bill. Please try again.",
       "請求を読み込めませんでした。再試行してください。",
-      "Не удалось загрузить счёт. Повторите попытку."
+      "Не удалось загрузить счёт. Повторите попытку.",
+      "बिल लोड नहीं हो सका। कृपया फिर प्रयास करें।",
+      "Tidak dapat memuatkan bil. Sila cuba lagi.",
+      "โหลดใบแจ้งหนี้ไม่สำเร็จ โปรดลองอีกครั้ง"
     ],
     "Google 登录失败": [
       "Google sign-in failed.",
       "Google ログインに失敗しました。",
-      "Не удалось войти через Google."
+      "Не удалось войти через Google.",
+      "Google साइन इन विफल।",
+      "Log masuk Google gagal.",
+      "ลงชื่อเข้าใช้ Google ไม่สำเร็จ"
     ],
     "读取 2FA 失败": [
       "Could not read 2FA status",
       "2FA の状態を読み込めませんでした",
-      "Не удалось прочитать состояние двухфакторной аутентификации"
+      "Не удалось прочитать состояние двухфакторной аутентификации",
+      "2FA स्थिति पढ़ी नहीं जा सकी",
+      "Tidak dapat membaca status 2FA",
+      "อ่านสถานะ 2FA ไม่สำเร็จ"
     ],
     "邮箱已注册": [
       "This email is already registered for this brand.",
       "このメールはこのブランドで登録済みです。",
-      "Этот email уже зарегистрирован у данного бренда."
+      "Этот email уже зарегистрирован у данного бренда.",
+      "यह ईमेल इस ब्रांड के लिए पहले से पंजीकृत है।",
+      "E-mel ini sudah didaftarkan untuk jenama ini.",
+      "อีเมลนี้ลงทะเบียนกับแบรนด์นี้แล้ว"
     ],
     "密码至少 8 位，UTF-8 编码不超过 72 字节": [
       "Use at least 8 characters and no more than 72 UTF-8 bytes for the password.",
       "パスワードは8文字以上、UTF-8で72バイト以内にしてください。",
-      "Пароль должен содержать не менее 8 символов и занимать не более 72 байтов UTF-8."
+      "Пароль должен содержать не менее 8 символов и занимать не более 72 байтов UTF-8.",
+      "पासवर्ड में कम से कम 8 अक्षर और अधिकतम 72 UTF-8 बाइट उपयोग करें।",
+      "Gunakan sekurang-kurangnya 8 aksara dan tidak lebih daripada 72 bait UTF-8 untuk kata laluan.",
+      "ใช้รหัสผ่านอย่างน้อย 8 อักขระและไม่เกิน 72 ไบต์ UTF-8"
     ],
     "推广码无效": [
       "The promotion code is invalid.",
       "紹介コードが無効です。",
-      "Код приглашения недействителен."
+      "Код приглашения недействителен.",
+      "प्रचार कोड अमान्य है।",
+      "Kod promosi tidak sah.",
+      "รหัสโปรโมชันไม่ถูกต้อง"
     ],
     "渠道归属不可自行切换": [
       "You cannot change your channel membership yourself.",
       "チャネルの所属は自分で変更できません。",
-      "Вы не можете самостоятельно изменить принадлежность к каналу."
+      "Вы не можете самостоятельно изменить принадлежность к каналу.",
+      "आप अपनी चैनल सदस्यता स्वयं नहीं बदल सकते।",
+      "Anda tidak boleh menukar keahlian saluran sendiri.",
+      "คุณเปลี่ยนการสังกัดช่องทางเองไม่ได้"
     ],
     "记录不存在": [
       "The record does not exist.",
       "記録が存在しません。",
-      "Запись не существует."
+      "Запись не существует.",
+      "रिकॉर्ड मौजूद नहीं है।",
+      "Rekod tidak wujud.",
+      "ไม่มีระเบียนนี้"
     ],
     "账号或密码错误": [
       "The account or password is incorrect.",
       "アカウントまたはパスワードが正しくありません。",
-      "Неверный аккаунт или пароль."
+      "Неверный аккаунт или пароль.",
+      "खाता या पासवर्ड गलत है।",
+      "Akaun atau kata laluan salah.",
+      "บัญชีหรือรหัสผ่านไม่ถูกต้อง"
     ],
     "显示名过长": [
       "The display name is too long.",
       "表示名が長すぎます。",
-      "Отображаемое имя слишком длинное."
+      "Отображаемое имя слишком длинное.",
+      "प्रदर्शन नाम बहुत लंबा है।",
+      "Nama paparan terlalu panjang.",
+      "ชื่อที่แสดงยาวเกินไป"
     ],
     "必须填写原因": [
       "Enter a reason for this operation.",
       "操作の理由を入力してください。",
-      "Укажите причину операции."
+      "Укажите причину операции.",
+      "इस कार्रवाई का कारण दर्ज करें।",
+      "Masukkan sebab operasi ini.",
+      "ระบุเหตุผลสำหรับการดำเนินการนี้"
     ],
     "不能对自己执行该操作": [
       "You cannot perform this operation on your own account.",
       "自分のアカウントにはこの操作を実行できません。",
-      "Вы не можете выполнить эту операцию со своим аккаунтом."
+      "Вы не можете выполнить эту операцию со своим аккаунтом.",
+      "आप अपने खाते पर यह कार्रवाई नहीं कर सकते।",
+      "Anda tidak boleh melakukan operasi ini pada akaun sendiri.",
+      "คุณดำเนินการนี้กับบัญชีของตนเองไม่ได้"
     ],
     "不能操作后台管理员": [
       "This operation cannot be applied to an administrator account.",
       "管理者アカウントにはこの操作を実行できません。",
-      "Эта операция неприменима к аккаунту администратора."
+      "Эта операция неприменима к аккаунту администратора.",
+      "यह कार्रवाई व्यवस्थापक खाते पर लागू नहीं हो सकती।",
+      "Operasi ini tidak boleh digunakan pada akaun pentadbir.",
+      "การดำเนินการนี้ใช้กับบัญชีผู้ดูแลไม่ได้"
     ],
     "请求体无效": [
       "The request body is invalid.",
       "リクエスト本文が無効です。",
-      "Тело запроса недействительно."
+      "Тело запроса недействительно.",
+      "अनुरोध बॉडी अमान्य है।",
+      "Badan permintaan tidak sah.",
+      "เนื้อหาคำขอไม่ถูกต้อง"
     ],
     "账号已停用": [
       "This account has been disabled.",
       "このアカウントは無効化されています。",
-      "Аккаунт отключён."
+      "Аккаунт отключён.",
+      "यह खाता निष्क्रिय कर दिया गया है।",
+      "Akaun ini telah dinyahaktifkan.",
+      "บัญชีนี้ถูกปิดใช้แล้ว"
     ],
     "未配置 Google 登录": [
       "Google sign-in has not been configured.",
       "Google ログインは未設定です。",
-      "Вход через Google не настроен."
+      "Вход через Google не настроен.",
+      "Google साइन इन कॉन्फ़िगर नहीं किया गया है।",
+      "Log masuk Google belum dikonfigurasi.",
+      "ยังไม่ได้ตั้งค่าการลงชื่อเข้าใช้ Google"
     ],
     "请填写有效邮箱和密码": [
       "Enter a valid email and password.",
       "有効なメールとパスワードを入力してください。",
-      "Введите действительные email и пароль."
+      "Введите действительные email и пароль.",
+      "वैध ईमेल और पासवर्ड दर्ज करें।",
+      "Masukkan e-mel dan kata laluan yang sah.",
+      "ระบุอีเมลและรหัสผ่านที่ถูกต้อง"
     ],
     "该邮箱在本品牌已注册，请直接登录": [
       "This email is already registered for this brand. Sign in instead.",
       "このメールはこのブランドで登録済みです。ログインしてください。",
-      "Этот email уже зарегистрирован у данного бренда. Войдите в существующий аккаунт."
+      "Этот email уже зарегистрирован у данного бренда. Войдите в существующий аккаунт.",
+      "यह ईमेल इस ब्रांड के लिए पहले से पंजीकृत है। इसके बजाय साइन इन करें।",
+      "E-mel ini sudah didaftarkan untuk jenama ini. Log masuk sahaja.",
+      "อีเมลนี้ลงทะเบียนกับแบรนด์นี้แล้ว โปรดลงชื่อเข้าใช้แทน"
     ],
     "邮箱密码账号需要先登录后绑定 Google": [
       "Sign in with your password before linking Google.",
       "パスワードでログインしてから Google を連携してください。",
-      "Войдите с паролем перед привязкой Google."
+      "Войдите с паролем перед привязкой Google.",
+      "Google जोड़ने से पहले अपने पासवर्ड से साइन इन करें।",
+      "Log masuk menggunakan kata laluan sebelum memautkan Google.",
+      "ลงชื่อเข้าใช้ด้วยรหัสผ่านก่อนเชื่อม Google"
     ],
     "该品牌不支持自定义配置": [
       "This brand does not support custom configuration.",
       "このブランドは独自設定に対応していません。",
-      "Этот бренд не поддерживает индивидуальные настройки."
+      "Этот бренд не поддерживает индивидуальные настройки.",
+      "यह ब्रांड कस्टम कॉन्फ़िगरेशन का समर्थन नहीं करता।",
+      "Jenama ini tidak menyokong konfigurasi tersuai.",
+      "แบรนด์นี้ไม่รองรับการตั้งค่าเฉพาะ"
     ],
     "请求参数无效": [
       "The request parameters are invalid.",
       "リクエストのパラメーターが無効です。",
-      "Параметры запроса недействительны."
+      "Параметры запроса недействительны.",
+      "अनुरोध पैरामीटर अमान्य हैं।",
+      "Parameter permintaan tidak sah.",
+      "พารามิเตอร์คำขอไม่ถูกต้อง"
     ],
     "渠道不存在": [
       "This channel does not exist.",
       "このチャネルは存在しません。",
-      "Канал не существует."
+      "Канал не существует.",
+      "यह चैनल मौजूद नहीं है।",
+      "Saluran ini tidak wujud.",
+      "ไม่มีช่องทางนี้"
     ],
     "用户不存在": [
       "This user does not exist.",
       "このユーザーは存在しません。",
-      "Пользователь не существует."
+      "Пользователь не существует.",
+      "यह उपयोगकर्ता मौजूद नहीं है।",
+      "Pengguna ini tidak wujud.",
+      "ไม่มีผู้ใช้นี้"
     ],
     "只能查看自己的渠道": [
       "You can only view your own channel.",
       "自分のチャネルのみ表示できます。",
-      "Вы можете просматривать только свой канал."
+      "Вы можете просматривать только свой канал.",
+      "आप केवल अपना चैनल देख सकते हैं।",
+      "Anda hanya boleh melihat saluran sendiri.",
+      "คุณดูได้เฉพาะช่องทางของตนเอง"
     ],
     "只能管理自己的直属下属渠道": [
       "You can only manage your own direct child channels.",
       "自分の直属の下位チャネルのみ管理できます。",
-      "Вы можете управлять только своими прямыми подчинёнными каналами."
+      "Вы можете управлять только своими прямыми подчинёнными каналами.",
+      "आप केवल अपने सीधे अधीनस्थ चैनल प्रबंधित कर सकते हैं।",
+      "Anda hanya boleh mengurus saluran anak langsung anda.",
+      "คุณจัดการได้เฉพาะช่องทางย่อยในสังกัดโดยตรงของตนเอง"
     ],
     "只能上传图片资源": [
       "Only image assets can be uploaded.",
       "画像リソースのみアップロードできます。",
-      "Можно загружать только изображения."
+      "Можно загружать только изображения.",
+      "केवल छवि परिसंपत्तियाँ अपलोड की जा सकती हैं।",
+      "Hanya aset imej boleh dimuat naik.",
+      "อัปโหลดได้เฉพาะสินทรัพย์ภาพ"
     ],
     "文件过大": [
       "The file is too large.",
       "ファイルが大きすぎます。",
-      "Файл слишком большой."
+      "Файл слишком большой.",
+      "फ़ाइल बहुत बड़ी है।",
+      "Fail terlalu besar.",
+      "ไฟล์ใหญ่เกินไป"
     ],
     "语言只支持 zh、en、ja、ru": [
       "Supported languages are Chinese, English, Japanese and Russian.",
       "対応言語は中国語、英語、日本語、ロシア語です。",
-      "Поддерживаются китайский, английский, японский и русский языки."
+      "Поддерживаются китайский, английский, японский и русский языки.",
+      "समर्थित भाषाएँ चीनी, अंग्रेज़ी, जापानी और रूसी हैं।",
+      "Bahasa yang disokong ialah bahasa Cina, Inggeris, Jepun dan Rusia.",
+      "ภาษาที่รองรับคือจีน อังกฤษ ญี่ปุ่น และรัสเซีย"
     ],
     "模型服务暂时不可用，请稍后重试或联系经营方，并提供请求编号": [
       "The model service is temporarily unavailable. Try again later or contact your operator with the request ID.",
       "モデルサービスを一時的に利用できません。しばらくしてから再試行するか、リクエスト ID を添えて運営者にお問い合わせください。",
-      "Сервис моделей временно недоступен. Повторите попытку позже или обратитесь к оператору, указав идентификатор запроса."
+      "Сервис моделей временно недоступен. Повторите попытку позже или обратитесь к оператору, указав идентификатор запроса.",
+      "मॉडल सेवा अस्थायी रूप से अनुपलब्ध है। बाद में फिर प्रयास करें या अनुरोध ID के साथ अपने संचालक से संपर्क करें।",
+      "Perkhidmatan model tidak tersedia buat sementara waktu. Cuba semula kemudian atau hubungi pengendali anda dengan ID permintaan.",
+      "บริการโมเดลไม่พร้อมใช้งานชั่วคราว ลองอีกครั้งภายหลังหรือติดต่อผู้ดำเนินงานพร้อม ID คำขอ"
     ]
   }
 }

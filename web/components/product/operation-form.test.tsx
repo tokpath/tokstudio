@@ -288,7 +288,7 @@ it("queries only the original procurement payment and allows leaving while it is
   mount(procurementCheckout, { row: { id: "purchase-one", values: {} }, onAbandon: close, onBlockedChange: blocked, embedded: true });
   fireEvent.click(screen.getByRole("button", { name: "发起真实付款", exact: true }));
   const query = await screen.findByRole("button", { name: "查询原付款与交付", exact: true });
-  expect(blocked).toHaveBeenLastCalledWith(false);
+  await waitFor(() => expect(blocked).toHaveBeenLastCalledWith(false));
   const unload = new Event("beforeunload", { cancelable: true });
   window.dispatchEvent(unload);
   expect(unload.defaultPrevented).toBe(false);

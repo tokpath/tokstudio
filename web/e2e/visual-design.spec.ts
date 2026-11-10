@@ -79,7 +79,7 @@ test("OEM workspace and portalled form use its own palette on the platform login
   await page.goto(`/manage/${operator.id}/customers`);
   await page.getByLabel("显示主题").selectOption("light");
   const surface = page.locator(".product-theme");
-  await expect(page.getByRole("link", { name: oemOperator.name, exact: true })).toBeVisible();
+  await expect(page.locator("header").getByRole("link", { name: oemOperator.name })).toBeVisible();
   await expect(surface).toHaveCSS("background-color", "rgb(128, 128, 128)");
   await expect(page.getByRole("button", { name: "人工赠送与补偿", exact: true })).toHaveCSS("background-color", "rgb(186, 57, 233)");
   await page.getByRole("button", { name: "人工赠送与补偿", exact: true }).click();
@@ -87,7 +87,7 @@ test("OEM workspace and portalled form use its own palette on the platform login
   await page.keyboard.press("Escape");
   await page.getByRole("link", { name: "模型与价格", exact: true }).click();
   await expect(surface).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await expect(page.getByRole("link", { name: "T TokenHub", exact: true })).toBeVisible();
+  await expect(page.locator("header").getByRole("link", { name: brand.name })).toBeVisible();
 });
 
 test("KVoucher clearly separates USD liability from MYR payment without opening a new order", async ({ page }, info) => {

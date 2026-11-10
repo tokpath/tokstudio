@@ -45,7 +45,8 @@ it.each(["zh", "en", "ja", "ru"] as const)("explains invalid USDT addresses and 
   expect(amount.value).toBe("15");
   expect(address.value).toBe("test");
   expect(amount.closest("fieldset")?.disabled).toBe(false);
-  expect(allowNavigation()).toBe(true);
+  // The error renders before the navigation guard's effect cleanup can finish.
+  await waitFor(() => expect(allowNavigation()).toBe(true));
   expect(screen.getAllByLabelText("14.55 USD").length).toBeGreaterThan(0);
   fireEvent.change(address, {target: {value: "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7"}});
   fireEvent.click(screen.getByRole("button", {name: t("提交提现申请")}));

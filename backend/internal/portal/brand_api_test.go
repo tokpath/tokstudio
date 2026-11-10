@@ -87,9 +87,13 @@ func TestPostgresBrandAPIEndpointIgnoresLegacyInputAndChannelsInheritVerifiedDom
 	if got := f.a.brandAPIEndpoint(ctx, channel.Brand.ID); got != "" {
 		t.Fatalf("channel exposed unverified domain: %q", got)
 	}
-	active, err := f.a.Branding.VerifyAndActivateDomain(ctx, owner, d.Domain.ID, branding.DomainVerifierFunc(func(context.Context, string, string) (branding.DomainVerification, error) {
-		return branding.DomainVerification{OwnershipVerified: true, TLSReady: true, ProviderReference: "isolated-provider-evidence"}, nil
+	active, err := f.a.Branding.VerifyDomain(ctx, owner, d.Domain.ID, branding.DomainVerifierFunc(func(context.Context, string, string) (branding.DomainVerification, error) {
+		return branding.DomainVerification{OwnershipVerified: true, TLSReady: true, RouteReady: true, ProviderReference: "isolated-provider-evidence"}, nil
 	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	active, err = f.a.Branding.SetDomainEnabled(ctx, nil, f.a.Installation.OwnerStaffID, active.ID, true, active.Version)
 	if err != nil {
 		t.Fatal(err)
 	}

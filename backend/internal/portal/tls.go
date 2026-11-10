@@ -19,8 +19,8 @@ func (a *Application) tlsAsk(c *gin.Context) {
 		c.Status(200)
 		return
 	}
-	b, e := a.Branding.ResolveHost(c.Request.Context(), nil, host)
-	if e != nil || b.Status != "active" {
+	_, e = a.Branding.TLSBinding(c.Request.Context(), host)
+	if e != nil {
 		c.Status(403)
 		return
 	}
@@ -32,4 +32,19 @@ func (a *Application) officialHostname(host string) bool {
 	}
 	u, e := url.Parse(a.Config.PublicBaseURL)
 	return e == nil && u.Hostname() != "" && strings.EqualFold(host, u.Hostname())
+}
+
+func (a *Application) domainProof(c *gin.Context) {
+	nonce := c.Query("nonce")
+	if len(nonce) != 64 {
+		c.Status(404)
+		return
+	}
+	d, e := a.Branding.TLSBinding(c.Request.Context(), c.Request.Host)
+	if e != nil {
+		c.Status(404)
+		return
+	}
+	c.Header("Cache-Control", "no-store")
+	c.String(200, branding.DomainProof(a.Config.AppKey, d.Hostname, d.VerificationToken, nonce))
 }

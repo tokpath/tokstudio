@@ -862,6 +862,143 @@
         }
       }
     },
+    "/v1/operators/{operatorId}/branding/assets/{id}/content": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_branding_assets_id_content",
+        "summary": "Preview the current logo in the own appearance workspace",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "contentEncoding": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "contentEncoding": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "contentEncoding": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/login": {
       "post": {
         "operationId": "post__v1_auth_login",
@@ -16397,16 +16534,6 @@
             }
           },
           {
-            "name": "target_operator_id",
-            "in": "query",
-            "required": false,
-            "description": "Exact selected operator target. Omission selects the current operator only where its domain authority permits; it never grants membership or access to the target workspace.",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
             "$ref": "#/components/parameters/IdempotencyKey"
           },
           {
@@ -16515,8 +16642,8 @@
             }
           }
         },
-        "description": " Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "organization.read"
+        "description": " Requires branding.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "branding.manage"
       }
     },
     "/v1/operators/{operatorId}/domains": {
@@ -16682,7 +16809,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_domains",
-        "summary": "申请域名验证",
+        "summary": "登记品牌域名",
         "tags": [
           "Operator browser API"
         ],
@@ -16995,16 +17122,6 @@
             }
           },
           {
-            "name": "target_operator_id",
-            "in": "query",
-            "required": false,
-            "description": "Exact selected operator target. Omission selects the current operator only where its domain authority permits; it never grants membership or access to the target workspace.",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
             "$ref": "#/components/parameters/IdempotencyKey"
           },
           {
@@ -17113,8 +17230,8 @@
             }
           }
         },
-        "description": " Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "organization.read"
+        "description": " Requires branding.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "branding.manage"
       }
     },
     "/v1/operators/{operatorId}/staff": {
@@ -27288,7 +27405,7 @@
     "/v1/operators/{operatorId}/branding/logo": {
       "post": {
         "operationId": "post__v1_operators_operatorId_branding_logo",
-        "summary": "上传目标Logo",
+        "summary": "上传网站 Logo",
         "tags": [
           "Operator browser API"
         ],
@@ -27304,16 +27421,6 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "target_operator_id",
-            "in": "query",
-            "required": false,
-            "description": "Exact selected operator target. Omission selects the current operator only where its domain authority permits; it never grants membership or access to the target workspace.",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
             }
           },
           {
@@ -27425,14 +27532,14 @@
             }
           }
         },
-        "description": " Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "organization.read"
+        "description": "Upload within the own appearance editor; the uploaded asset URL is passed to the theme save operation. Requires branding.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "branding.manage"
       }
     },
     "/v1/operators/{operatorId}/domains/{id}/verify": {
       "post": {
         "operationId": "post__v1_operators_operatorId_domains_id_verify",
-        "summary": "检查DNS与TLS",
+        "summary": "重新检查",
         "tags": [
           "Operator browser API"
         ],
@@ -27567,14 +27674,14 @@
             }
           }
         },
-        "description": "服务器执行真实DNS和TLS验证，不能用按钮直接标记验证成功。 Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "Verify DNS ownership, HTTPS and TokenHub brand routing without activating business access. Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "organization.read"
       }
     },
     "/v1/operators/{operatorId}/domains/{id}/enable": {
       "post": {
         "operationId": "post__v1_operators_operatorId_domains_id_enable",
-        "summary": "启用已验证域名",
+        "summary": "启用域名",
         "tags": [
           "Operator browser API"
         ],
@@ -27709,8 +27816,8 @@
             }
           }
         },
-        "description": " Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "organization.read"
+        "description": "Platform-only activation atomically disables the previous domain of this brand. Required explicit review: 确认启用该品牌域名 Requires domains.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "domains.manage"
       }
     },
     "/v1/operators/{operatorId}/domains/{id}/disable": {
@@ -27851,8 +27958,8 @@
             }
           }
         },
-        "description": " Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "organization.read"
+        "description": " Requires domains.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "domains.manage"
       }
     },
     "/v1/operators/{operatorId}/staff/{id}/membership": {
@@ -48388,7 +48495,7 @@
                   "string",
                   "null"
                 ],
-                "description": "已上传Logo地址（留空继承）"
+                "description": "Logo"
               },
               "support_url": {
                 "type": [
@@ -48410,18 +48517,12 @@
       "Operator_domains_request": {
         "type": "object",
         "properties": {
-          "target_operator_id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "目标品牌经营方"
-          },
           "hostname": {
             "type": "string",
             "description": "品牌域名"
           }
         },
         "required": [
-          "target_operator_id",
           "hostname"
         ],
         "additionalProperties": false
@@ -48519,7 +48620,7 @@
                   "string",
                   "null"
                 ],
-                "description": "已上传Logo地址（留空继承）"
+                "description": "Logo"
               },
               "support_url": {
                 "type": [

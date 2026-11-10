@@ -33,7 +33,7 @@ describe("task navigation and organization boundaries", () => {
   });
   it("keeps platform-only and parent-only tasks out of channel navigation even for owners", () => {
     const channel = {operator:{kind:"channel"},permissions:["*"]};
-    for (const route of ["catalog","providers","routes","requests","jobs","payment-assets","operators","channel-themes"]) expect(canReadResource(channel, route)).toBe(false);
+    for (const route of ["catalog","providers","routes","requests","jobs","payment-assets","operators","branding","domains"]) expect(canReadResource(channel, route)).toBe(false);
     expect(canReadResource(channel,"mail")).toBe(true);
     expect(sectionForResource(operatorNav,"mail")?.id).toBe("settings");
     expect(canReadResource({operator:{kind:"oem"},permissions:["mail.read"]},"mail")).toBe(true);

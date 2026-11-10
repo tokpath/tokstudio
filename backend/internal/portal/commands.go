@@ -335,8 +335,11 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			}
 			return gin.H{"id": out.ID, "status": "published", "version": out.Version}, nil
 		case "branding", "channel-themes":
-			target, targetErr := a.brandingTarget(c, op)
-			if targetErr != nil {
+			if (resource == "channel-themes") != (op.Kind == organization.Channel) {
+				return nil, organization.ErrForbidden
+			}
+			target := op
+			if targetErr := ownAppearanceTarget(c, op); targetErr != nil {
 				return nil, targetErr
 			}
 			var in struct {
@@ -975,7 +978,7 @@ func (a *Application) domainRequest(c *gin.Context, op organization.Operator, ac
 	if !body(c, &in) {
 		return
 	}
-	if op.Kind == organization.OEM && in.TargetOperatorID != "" && in.TargetOperatorID != op.ID {
+	if op.Kind == organization.Channel || in.TargetOperatorID != "" && in.TargetOperatorID != op.ID {
 		handleError(c, organization.ErrForbidden)
 		return
 	}
@@ -994,7 +997,7 @@ func (a *Application) domainRequest(c *gin.Context, op organization.Operator, ac
 	}
 	raw, e := a.command(c, "domain:"+target.BrandID, in, func(tx *gorm.DB) (any, error) {
 		out, e := a.Branding.RequestDomain(c.Request.Context(), tx, actor, target.BrandID, in.Hostname)
-		return gin.H{"id": out.Domain.ID, "status": out.Domain.Status, "message": "请设置 TXT " + out.TXTName + " = " + out.TXTValue + " 并确保有效 TLS"}, e
+		return gin.H{"id": out.Domain.ID, "status": out.Domain.Status, "message": "域名已登记。请按页面提示设置 DNS，验证通过后等待平台启用。"}, e
 	})
 	jsonResponse(c, raw, e)
 }

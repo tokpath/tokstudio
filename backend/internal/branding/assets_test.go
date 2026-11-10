@@ -71,10 +71,10 @@ func TestPostgresS3LogoScopeInheritanceAndPrivateObjectIntegrity(t *testing.T) {
 	if e != nil || !bytes.Equal(body, logoPNG(t)) {
 		t.Fatal("inherited logo missing/corrupt", e)
 	}
-	if _, e = f.s.UploadLogo(f.ctx, UploadLogoInput{ActorStaffID: cOwner, ScopeType: "channel", ScopeID: c.Operator.ID, Filename: "logo.png", Data: logoPNG(t)}); !errors.Is(e, organization.ErrForbidden) {
-		t.Fatal("channel self changed parent branding", e)
+	if _, e = f.s.UploadLogo(f.ctx, UploadLogoInput{ActorStaffID: f.owner, ScopeType: "channel", ScopeID: c.Operator.ID, Filename: "logo.png", Data: logoPNG(t)}); !errors.Is(e, organization.ErrForbidden) {
+		t.Fatal("parent changed channel branding", e)
 	}
-	channelLogo, e := f.s.UploadLogo(f.ctx, UploadLogoInput{ActorStaffID: f.owner, ScopeType: "channel", ScopeID: c.Operator.ID, Filename: "channel.png", Data: logoPNG(t)})
+	channelLogo, e := f.s.UploadLogo(f.ctx, UploadLogoInput{ActorStaffID: cOwner, ScopeType: "channel", ScopeID: c.Operator.ID, Filename: "channel.png", Data: logoPNG(t)})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -83,14 +83,14 @@ func TestPostgresS3LogoScopeInheritanceAndPrivateObjectIntegrity(t *testing.T) {
 			t.Error(e)
 		}
 	})
-	if _, e = f.s.SetChannelTheme(f.ctx, nil, SetThemeInput{ActorStaffID: f.owner, TargetID: c.Operator.ID, Values: ThemeOverrides{LogoURL: &channelLogo.URL}}); e != nil {
+	if _, e = f.s.SetChannelTheme(f.ctx, nil, SetThemeInput{ActorStaffID: cOwner, TargetID: c.Operator.ID, Values: ThemeOverrides{LogoURL: &channelLogo.URL}}); e != nil {
 		t.Fatal(e)
 	}
 	if _, _, e = f.s.PublicLogo(f.ctx, f.platform.Brand.ID, "", channelLogo.ID); e != nil {
 		t.Fatal("published channel asset needs hidden query context", e)
 	}
-	other, _ := f.child(t, f.platform, f.owner, organization.Channel)
-	if _, e = f.s.SetChannelTheme(f.ctx, nil, SetThemeInput{ActorStaffID: f.owner, TargetID: other.Operator.ID, Values: ThemeOverrides{LogoURL: &channelLogo.URL}}); !errors.Is(e, organization.ErrForbidden) {
+	other, otherOwner := f.child(t, f.platform, f.owner, organization.Channel)
+	if _, e = f.s.SetChannelTheme(f.ctx, nil, SetThemeInput{ActorStaffID: otherOwner, TargetID: other.Operator.ID, Values: ThemeOverrides{LogoURL: &channelLogo.URL}}); !errors.Is(e, organization.ErrForbidden) {
 		t.Fatal("cross-channel logo reference", e)
 	}
 	o, oOwner := f.child(t, f.platform, f.owner, organization.OEM)

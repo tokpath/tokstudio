@@ -154,6 +154,7 @@ func newApplication(ctx context.Context, c Config, gdb *gorm.DB) (*Application, 
 		}
 		a.DomainVerifier = verifier
 	}
+	a.DomainVerifier = branding.RouteVerifier{Provider: a.DomainVerifier, Key: c.AppKey}
 	a.ModelPricing = &modelpricing.Service{DB: gdb, AllowTestLoopback: c.TestLoopback}
 	a.Catalog = catalog.CommerceCatalog{Costs: a.ModelPricing, DB: gdb, Operators: cooperation.CatalogDirectory{Organization: a.Organization}, PlatformOperatorID: a.Installation.OperatorID, EncryptionKey: c.AppKey}
 	a.Cooperation = cooperation.New(gdb, a.Ledger, a.Organization)

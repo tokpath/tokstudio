@@ -45,7 +45,7 @@ func businessFields(o operation) []field {
 	case "business-status":
 		return []field{selectField("feature", "营业项目", "registration|注册", "new_purchase|新购", "renewal|续费", "model_usage|模型调用", "activity|营销活动", "settlement|结算"), f("enabled", "通过真实依赖检查后开放", "boolean"), version}
 	case "branding", "channel-themes":
-		return []field{version, optional("values.primary_color", "主色（留空继承，#RRGGBB）", "text"), optional("values.background_color", "背景色（留空继承）", "text"), optional("values.text_color", "文字色（留空继承）", "text"), optional("values.logo_url", "已上传Logo地址（留空继承）", "text"), optional("values.support_url", "客户支持URL（留空继承）", "text")}
+		return []field{version, optional("values.primary_color", "主色（留空继承，#RRGGBB）", "text"), optional("values.background_color", "背景色（留空继承）", "text"), optional("values.text_color", "文字色（留空继承）", "text"), optional("values.logo_url", "Logo", "hidden"), optional("values.support_url", "客户支持URL（留空继承）", "text")}
 	case "notifications":
 		return []field{f("recipient_id", "本经营范围收件人编号", "text"), selectField("category", "通知类别", "mandatory|必要业务通知", "usage|用量提醒", "marketing|已获授权营销"), notificationSeverityField(), f("title", "标题", "text"), f("body", "通知正文", "textarea"), optional("reference", "关联事项（可选）", "text")}
 	case "exports":

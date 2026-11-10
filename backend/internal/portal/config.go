@@ -24,6 +24,7 @@ type Config struct {
 	LegalName                                        string
 	TrustedProxies                                   []string
 	CloudflareToken, CloudflareZone, CloudflareCNAME string
+	DomainCNAMETarget                                string
 	MetricsToken                                     string
 	TestLoopback                                     bool
 }
@@ -37,6 +38,10 @@ func LoadConfig() (Config, error) {
 	c.CloudflareToken = os.Getenv("TOKENHUB_CLOUDFLARE_API_TOKEN")
 	c.CloudflareZone = os.Getenv("TOKENHUB_CLOUDFLARE_ZONE_ID")
 	c.CloudflareCNAME = os.Getenv("TOKENHUB_CLOUDFLARE_CNAME_TARGET")
+	c.DomainCNAMETarget = os.Getenv("TOKENHUB_DOMAIN_CNAME_TARGET")
+	if c.DomainCNAMETarget == "" {
+		c.DomainCNAMETarget = c.CloudflareCNAME
+	}
 	c.MetricsToken = os.Getenv("TOKENHUB_METRICS_TOKEN")
 	if c.AppKey == "" {
 		c.AppKey = base.EncryptionKey

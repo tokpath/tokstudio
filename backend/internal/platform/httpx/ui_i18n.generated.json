@@ -377,6 +377,12 @@
     "SMTP サーバー、ポート、送信元、セキュア接続の設定を確認してください。",
     "Проверьте SMTP-сервер, порт, адрес отправителя и настройки защищённого соединения."
   ],
+  "Cloudflare hostname or certificate validation is pending": [
+    "域名或 HTTPS 证书仍在验证中，请按 DNS 提示设置并等待签发。",
+    "Domain or HTTPS certificate validation is pending. Follow the DNS instructions and wait for issuance.",
+    "ドメインまたは HTTPS 証明書を検証中です。DNS の案内に従って設定し、発行をお待ちください。",
+    "Проверка домена или сертификата HTTPS ещё выполняется. Настройте DNS по инструкции и дождитесь выпуска."
+  ],
   "Confirm this operation before submitting it.": [
     "请确认本次操作后再提交。",
     "Confirm this operation before submitting it.",
@@ -388,6 +394,42 @@
     "Could not load the record. Please retry.",
     "記録を読み込めませんでした。再試行してください。",
     "Не удалось загрузить запись. Повторите попытку."
+  ],
+  "DNS ownership challenge does not match": [
+    "DNS 验证记录不匹配，请复制页面上的完整记录值。",
+    "DNS verification record does not match. Copy the complete value shown on the page.",
+    "DNS 検証レコードが一致しません。画面の値をすべてコピーしてください。",
+    "DNS-запись не совпадает. Скопируйте полное значение со страницы."
+  ],
+  "DNS verification challenge does not match": [
+    "DNS 验证记录不匹配，请复制页面上的完整记录值。",
+    "DNS verification record does not match. Copy the complete value shown on the page.",
+    "DNS 検証レコードが一致しません。画面の値をすべてコピーしてください。",
+    "DNS-запись не совпадает. Скопируйте полное значение со страницы."
+  ],
+  "DNS verification record is not available": [
+    "未找到 DNS 验证记录，请核对记录并等待生效。",
+    "DNS verification record not found. Check the record and wait for propagation.",
+    "DNS 検証レコードが見つかりません。設定を確認して反映をお待ちください。",
+    "DNS-запись проверки не найдена. Проверьте её и дождитесь распространения."
+  ],
+  "Domain does not route to this brand on TokenHub": [
+    "HTTPS 可用，但域名没有接入当前品牌，请平台检查接入配置。",
+    "HTTPS works, but the domain does not reach this brand. Ask the platform to check the ingress configuration.",
+    "HTTPS は利用できますが、このブランドに接続していません。プラットフォームに接続設定の確認を依頼してください。",
+    "HTTPS работает, но домен не ведёт к этому бренду. Попросите платформу проверить настройки подключения."
+  ],
+  "Domain routing is not ready": [
+    "域名接入尚未就绪，请与平台核对 DNS 接入地址。",
+    "Domain routing is not ready. Check the DNS destination with the platform.",
+    "ドメインの接続準備ができていません。DNS の接続先をプラットフォームに確認してください。",
+    "Подключение домена не готово. Уточните адрес назначения DNS у платформы."
+  ],
+  "Domain verification service is temporarily unavailable": [
+    "域名验证服务暂时不可用，请稍后重试。",
+    "Domain verification is temporarily unavailable. Please try again later.",
+    "ドメイン検証サービスを一時的に利用できません。しばらくして再試行してください。",
+    "Проверка домена временно недоступна. Повторите позже."
   ],
   "ERC20 Transfer日志索引": [
     "ERC20 Transfer日志索引",
@@ -868,6 +910,12 @@
     "Stripe server secret key",
     "Stripe サーバー秘密鍵",
     "Серверный секретный ключ Stripe"
+  ],
+  "TLS certificate or hostname is not ready": [
+    "HTTPS 证书尚未就绪或不匹配，请等待签发或由平台核对接入配置。",
+    "The HTTPS certificate is not ready or does not match. Wait for issuance or ask the platform to check ingress.",
+    "HTTPS 証明書が未準備か不一致です。発行を待つか、プラットフォームに接続設定を確認してください。",
+    "Сертификат HTTPS не готов или не соответствует домену. Дождитесь выпуска или попросите платформу проверить подключение."
   ],
   "TXT记录名称": [
     "TXT记录名称",
@@ -1378,6 +1426,18 @@
     "closure dependency did not report its status",
     "アカウント削除の依存事項の状態がまだ報告されていません",
     "Зависимая проверка закрытия ещё не сообщила статус"
+  ],
+  "domain has no verified public network address": [
+    "域名尚未解析到公网地址，请核对 DNS 接入记录。",
+    "The domain has no public network address. Check the DNS routing record.",
+    "ドメインが公開 IP アドレスに解決されません。DNS の接続レコードを確認してください。",
+    "Домен не разрешается в публичный IP-адрес. Проверьте DNS-запись подключения."
+  ],
+  "domain resolves to a restricted network address": [
+    "域名指向了受限地址，请平台核对公网接入配置。",
+    "The domain points to a restricted address. Ask the platform to check public ingress.",
+    "ドメインが制限されたアドレスを指しています。プラットフォームに公開接続設定の確認を依頼してください。",
+    "Домен указывает на запрещённый адрес. Попросите платформу проверить публичное подключение."
   ],
   "feature(registration/new_purchase/renewal/model_usage/activity/settlement)、enabled、expected_version、evidence_reference；只有通过真实依赖检查才会开放。": [
     "feature(registration/new_purchase/renewal/model_usage/activity/settlement)、enabled、expected_version、evidence_reference；只有通过真实依赖检查才会开放。",
@@ -2734,6 +2794,12 @@
     "Balance treatment on voluntary exit",
     "自主退出時の残高処理",
     "Остаток баланса при добровольном выходе"
+  ],
+  "主色": [
+    "主色",
+    "Primary color",
+    "メインカラー",
+    "Основной цвет"
   ],
   "主色（留空继承，#RRGGBB）": [
     "主色（留空继承，#RRGGBB）",
@@ -4163,6 +4229,18 @@
     "メールアドレスで続ける",
     "Продолжить по электронной почте"
   ],
+  "使用默认 Logo": [
+    "使用默认 Logo",
+    "Use default logo",
+    "既定の Logo を使用",
+    "Использовать логотип по умолчанию"
+  ],
+  "使用默认配色": [
+    "使用默认配色",
+    "Use default colors",
+    "既定の配色を使用",
+    "Использовать цвета по умолчанию"
+  ],
   "例如 1.2 表示按跟随价目的 120% 定价。它只是定价倍率；实际利润还取决于采购成本、赠送、佣金和费用，不能当作利润率。": [
     "例如 1.2 表示按跟随价目的 120% 定价。它只是定价倍率；实际利润还取决于采购成本、赠送、佣金和费用，不能当作利润率。",
     "For example, 1.2 prices at 120% of the followed rate. This is a pricing multiplier, not a profit margin: real profit also depends on procurement cost, bonuses, commissions and fees.",
@@ -4708,6 +4786,12 @@
     "Settings take effect after saving.",
     "保存後に設定が反映されます。",
     "Настройки вступят в силу после сохранения."
+  ],
+  "保存外观": [
+    "保存外观",
+    "Save appearance",
+    "外観を保存",
+    "Сохранить оформление"
   ],
   "保存并进入经营空间": [
     "保存并进入经营空间",
@@ -8969,6 +9053,18 @@
     "参考レートによる見積りを有効化",
     "Включить справочные котировки"
   ],
+  "启用后，该品牌的原域名将停用。客户需要使用新的网址和 API 地址。": [
+    "启用后，该品牌的原域名将停用。客户需要使用新的网址和 API 地址。",
+    "Activation disables the previous domain for this brand. Customers must use the new website and API address.",
+    "有効化すると、このブランドの旧ドメインは無効になります。お客様は新しいサイトと API アドレスを使用する必要があります。",
+    "После активации предыдущий домен бренда будет отключён. Клиентам потребуется новый адрес сайта и API."
+  ],
+  "启用域名": [
+    "启用域名",
+    "Activate domain",
+    "ドメインを有効化",
+    "Активировать домен"
+  ],
   "启用已验证域名": [
     "启用已验证域名",
     "Enable verified domain",
@@ -9353,6 +9449,12 @@
     "販売中",
     "В продаже"
   ],
+  "在域名服务商添加以下 DNS 记录。记录生效可能需要等待，系统会自动复查。": [
+    "在域名服务商添加以下 DNS 记录。记录生效可能需要等待，系统会自动复查。",
+    "Add these DNS records at your domain provider. Changes may take time to propagate; the system checks again automatically.",
+    "ドメイン事業者で以下の DNS レコードを追加してください。反映には時間がかかる場合があります。システムが自動で再確認します。",
+    "Добавьте эти DNS-записи у регистратора домена. Изменения могут распространяться не сразу; система повторит проверку автоматически."
+  ],
   "在已授权范围选择上架，平台停用后不能继续受理。": [
     "在已授权范围选择上架，平台停用后不能继续受理。",
     "List models only within authorized scope; stop accepting new requests after the platform disables a model.",
@@ -9466,6 +9568,24 @@
     "Domain provider status",
     "ドメイン提供元の状態",
     "Статус поставщика домена"
+  ],
+  "域名已登记。请按页面提示设置 DNS，验证通过后等待平台启用。": [
+    "域名已登记。请按页面提示设置 DNS，验证通过后等待平台启用。",
+    "Domain registered. Configure DNS as shown on the page, then wait for verification and platform activation.",
+    "ドメインを登録しました。画面の案内に従って DNS を設定し、検証とプラットフォームの有効化をお待ちください。",
+    "Домен зарегистрирован. Настройте DNS по инструкции на странице и дождитесь проверки и активации платформой."
+  ],
+  "域名状态以页面检查结果和平台启用结果为准。": [
+    "域名状态以页面检查结果和平台启用结果为准。",
+    "Domain availability depends on the checks and platform activation shown on the page.",
+    "ドメインの利用可否は画面の検証結果とプラットフォームの有効化状況で確認してください。",
+    "Доступность домена определяется результатами проверки и активации платформой на странице."
+  ],
+  "域名验证服务暂时不可用，请稍后重试。": [
+    "域名验证服务暂时不可用，请稍后重试。",
+    "Domain verification is temporarily unavailable. Please try again later.",
+    "ドメイン検証サービスを一時的に利用できません。しばらくして再試行してください。",
+    "Проверка домена временно недоступна. Повторите позже."
   ],
   "基础 ATG 价格": [
     "基础 ATG 价格",
@@ -9958,6 +10078,12 @@
     "Copy ID",
     "IDをコピー",
     "Копировать ID"
+  ],
+  "复制记录值": [
+    "复制记录值",
+    "Copy record value",
+    "レコード値をコピー",
+    "Скопировать значение"
   ],
   "复制请求编号": [
     "复制请求编号",
@@ -10558,6 +10684,12 @@
     "Usually leave empty for official providers. For compatible services, enter the provider's API Base URL; the system builds request paths.",
     "公式供給元は通常空欄にします。互換サービスでは API Base URL を入力します。呼出パスはシステムが生成します。",
     "Для официальных поставщиков обычно оставьте пустым. Для совместимых сервисов укажите API Base URL; пути запросов создаст система."
+  ],
+  "官方入口由部署配置维护。OEM 自行登记域名和配置 DNS；平台检查验证结果后启用，也可以停用域名。": [
+    "官方入口由部署配置维护。OEM 自行登记域名和配置 DNS；平台检查验证结果后启用，也可以停用域名。",
+    "The official address is maintained in deployment settings. OEMs register their domains and configure DNS; the platform reviews verification results and activates or disables domains.",
+    "公式 URL はデプロイ設定で管理します。OEM がドメイン登録と DNS 設定を行い、プラットフォームが検証結果を確認して有効化・無効化します。",
+    "Официальный адрес задаётся при развёртывании. OEM регистрируют домены и настраивают DNS; платформа проверяет результаты и активирует или отключает домены."
   ],
   "定义商品": [
     "定义商品",
@@ -11297,6 +11429,12 @@
     "顧客サポート URL（空欄で継承）",
     "URL поддержки (пусто — наследовать)"
   ],
+  "客户支持网址（可选）": [
+    "客户支持网址（可选）",
+    "Support URL (optional)",
+    "サポート URL（任意）",
+    "Ссылка поддержки (необязательно)"
+  ],
   "客户服务": [
     "客户服务",
     "Customer service",
@@ -11866,6 +12004,12 @@
     "Not yet effective",
     "適用前",
     "Ещё не действует"
+  ],
+  "尚未登记域名。": [
+    "尚未登记域名。",
+    "No domains registered yet.",
+    "ドメインはまだ登録されていません。",
+    "Домены ещё не зарегистрированы."
   ],
   "尚未确定 结算币种 价值的真实款，先到估值待办核实。": [
     "尚未确定 结算币种 价值的真实款，先到估值待办核实。",
@@ -13451,6 +13595,12 @@
     "プラットフォームは OEM と直属チャネルを作成でき、OEM は自社の直属チャネルを作成できます。チャネルに下位事業者はありません。",
     "Платформа может создавать OEM и прямые каналы, OEM — свои прямые каналы. У каналов нет нижестоящих операторов."
   ],
+  "平台官方入口": [
+    "平台官方入口",
+    "Official platform address",
+    "プラットフォーム公式 URL",
+    "Официальный адрес платформы"
+  ],
   "平台已停用": [
     "平台已停用",
     "Disabled by the platform",
@@ -14206,6 +14356,12 @@
     "Your current identity has no permission to act in this operator scope",
     "現在のユーザーにはこの事業範囲の操作権限がありません",
     "У текущей учётной записи нет прав на действия в этой области оператора"
+  ],
+  "当前配置版本": [
+    "当前配置版本",
+    "Current configuration version",
+    "現在の設定バージョン",
+    "Текущая версия настроек"
   ],
   "当前配置版本（首次为 0）": [
     "当前配置版本（首次为 0）",
@@ -17435,6 +17591,12 @@
     "テキスト",
     "Текст"
   ],
+  "文字色": [
+    "文字色",
+    "Text color",
+    "文字色",
+    "Цвет текста"
+  ],
   "文字色（留空继承）": [
     "文字色（留空继承）",
     "Text color (blank inherits)",
@@ -18370,6 +18532,12 @@
     "Unallocated receipt",
     "未割当の入金",
     "Нераспределённое поступление"
+  ],
+  "未单独设置的项目使用默认值。上传图片后，保存外观才会在网站生效。": [
+    "未单独设置的项目使用默认值。上传图片后，保存外观才会在网站生效。",
+    "Unset fields use defaults. Uploaded images take effect after you save the appearance.",
+    "未設定の項目は既定値を使用します。画像は外観を保存するとサイトに反映されます。",
+    "Для незаданных полей используются значения по умолчанию. Изображение появится на сайте после сохранения оформления."
   ],
   "未取得核算金额的调用": [
     "未取得核算金额的调用",
@@ -20423,6 +20591,12 @@
     "形式",
     "Формат"
   ],
+  "检查 DNS、HTTPS 和品牌接入，结果会自动更新。验证通过后仍需平台启用。": [
+    "检查 DNS、HTTPS 和品牌接入，结果会自动更新。验证通过后仍需平台启用。",
+    "Check DNS, HTTPS and brand routing. Results update automatically. Platform activation is still required after verification.",
+    "DNS、HTTPS、ブランド接続を検証し、結果を自動更新します。検証後もプラットフォームの有効化が必要です。",
+    "Проверка DNS, HTTPS и подключения бренда. Результаты обновятся автоматически. После проверки требуется активация платформой."
+  ],
   "检查DNS与TLS": [
     "检查DNS与TLS",
     "Check DNS and TLS",
@@ -20663,6 +20837,12 @@
     "アップロード中 {percent}%。このページを開いたままにしてください。",
     "Загрузка {percent}%. Не закрывайте эту страницу."
   ],
+  "正在上传…": [
+    "正在上传…",
+    "Uploading…",
+    "アップロード中…",
+    "Загрузка…"
+  ],
   "正在上传，请保持页面": [
     "正在上传，请保持页面",
     "Uploading. Keep this page open.",
@@ -20674,6 +20854,12 @@
     "Saving…",
     "保存中…",
     "Сохранение…"
+  ],
+  "正在保存图片…": [
+    "正在保存图片…",
+    "Saving image…",
+    "画像を保存中…",
+    "Сохранение изображения…"
   ],
   "正在保存，请保持页面。": [
     "正在保存，请保持页面。",
@@ -20818,6 +21004,12 @@
     "Checking the Google account for this brand.",
     "このブランドの Google アカウントを確認しています。",
     "Проверяем аккаунт Google для этого бренда."
+  ],
+  "正在检查…": [
+    "正在检查…",
+    "Checking…",
+    "確認中…",
+    "Проверка…"
   ],
   "正在检查在途业务…": [
     "正在检查在途业务…",
@@ -22541,6 +22733,12 @@
     "この注文を残す",
     "Оставить этот заказ"
   ],
+  "留空使用默认值。上传图片后，保存外观才会在网站生效。": [
+    "留空使用默认值。上传图片后，保存外观才会在网站生效。",
+    "Leave fields empty to use defaults. Uploaded images take effect after you save the appearance.",
+    "空欄の場合は既定値を使用します。画像は外観を保存するとサイトに反映されます。",
+    "Оставьте поля пустыми для значений по умолчанию. Загруженное изображение появится на сайте после сохранения оформления."
+  ],
   "留空保留已保存的密钥": [
     "留空保留已保存的密钥",
     "Leave blank to retain the saved secret",
@@ -22679,6 +22877,12 @@
     "公開モデルを登録",
     "Зарегистрировать публичную модель"
   ],
+  "登记品牌域名": [
+    "登记品牌域名",
+    "Register brand domain",
+    "ブランドドメインを登録",
+    "Зарегистрировать домен бренда"
+  ],
   "登记外部退款执行意图": [
     "登记外部退款执行意图",
     "Record external refund execution intent",
@@ -22756,6 +22960,12 @@
     "Record offline purchase",
     "オフライン仕入れを登録",
     "Зарегистрировать офлайн-закупку"
+  ],
+  "登记自己的域名并按提示配置 DNS，系统自动检查。验证通过后由平台启用。更换域名时，原域名保持可用，直到平台启用新域名；请提前安排客户更新 API 地址。": [
+    "登记自己的域名并按提示配置 DNS，系统自动检查。验证通过后由平台启用。更换域名时，原域名保持可用，直到平台启用新域名；请提前安排客户更新 API 地址。",
+    "Register your own domain and configure the DNS records shown. Checks run automatically; the platform activates verified domains. When replacing a domain, the old one remains available until activation of the new one. Arrange API address updates with customers in advance.",
+    "自社ドメインを登録し、表示された DNS を設定してください。システムが自動検証し、完了後にプラットフォームが有効化します。変更時は新ドメインが有効になるまで旧ドメインを利用できます。API アドレス変更をお客様に事前案内してください。",
+    "Зарегистрируйте свой домен и настройте DNS по инструкции. Система проверит его автоматически, затем платформа активирует. При замене старый домен работает до активации нового. Заранее согласуйте с клиентами обновление адреса API."
   ],
   "登记退款手续费": [
     "登记退款手续费",
@@ -23219,6 +23429,12 @@
     "選択した顧客にこの特典残高を付与しますか？",
     "Выдать эти подарочные кредиты выбранному клиенту?"
   ],
+  "确认启用该品牌域名": [
+    "确认启用该品牌域名",
+    "Confirm activation of this brand domain",
+    "このブランドドメインの有効化を確認",
+    "Подтвердите активацию домена бренда"
+  ],
   "确认固定报价": [
     "确认固定报价",
     "Confirm the fixed quote",
@@ -23657,6 +23873,18 @@
     "初回登録ではオフのままにします。各機能は検証済みでないと保存できません。公開するには、正常な上流ルートも必要です。",
     "При первом добавлении не включайте. Каждую возможность можно сохранить только после проверки. Для открытия также нужен исправный маршрут."
   ],
+  "等待 DNS 配置": [
+    "等待 DNS 配置",
+    "Waiting for DNS configuration",
+    "DNS 設定待ち",
+    "Ожидание настройки DNS"
+  ],
+  "等待 HTTPS 与接入验证": [
+    "等待 HTTPS 与接入验证",
+    "Waiting for HTTPS and routing verification",
+    "HTTPS と接続の検証待ち",
+    "Ожидание проверки HTTPS и подключения"
+  ],
   "等待交付": [
     "等待交付",
     "Awaiting delivery",
@@ -23710,6 +23938,12 @@
     "Waiting for platform configuration.",
     "プラットフォームの設定完了を待っています。",
     "Ожидается настройка платформой."
+  ],
+  "等待平台提供域名接入地址。DNS 和 HTTPS 接入由平台统一维护。": [
+    "等待平台提供域名接入地址。DNS 和 HTTPS 接入由平台统一维护。",
+    "Waiting for the platform to provide the domain routing target. The platform maintains DNS and HTTPS ingress.",
+    "プラットフォームによる接続先の案内待ちです。DNS と HTTPS の接続基盤はプラットフォームが管理します。",
+    "Ожидается адрес подключения от платформы. Платформа обслуживает входящие подключения DNS и HTTPS."
   ],
   "等待平台负责人完成清算币种和 ATG 基础比例设置并生效。": [
     "等待平台负责人完成清算币种和 ATG 基础比例设置并生效。",
@@ -23813,6 +24047,12 @@
     "今後の資格を管理",
     "Управлять дальнейшим участием"
   ],
+  "管理品牌域名启停": [
+    "管理品牌域名启停",
+    "Manage brand domain activation",
+    "ブランドドメインの有効・無効を管理",
+    "Управление активацией доменов брендов"
+  ],
   "管理套餐与模型定价": [
     "管理套餐与模型定价",
     "Manage packages and model pricing",
@@ -23879,11 +24119,23 @@
     "このブランドの外観を管理",
     "Управление оформлением бренда"
   ],
+  "管理本经营方外观": [
+    "管理本经营方外观",
+    "Manage this operator’s appearance",
+    "自社の外観を管理",
+    "Управление оформлением своего оператора"
+  ],
   "管理活动与赠送": [
     "管理活动与赠送",
     "Manage campaigns and bonuses",
     "施策と特典を管理",
     "Управлять акциями и бонусами"
+  ],
+  "管理自己的网站配色、Logo 和客户支持入口。未设置的项目使用默认外观。": [
+    "管理自己的网站配色、Logo 和客户支持入口。未设置的项目使用默认外观。",
+    "Manage your own website colors, logo and support link. Unset fields use the default appearance.",
+    "自社サイトの配色、Logo、サポート先を管理します。未設定の項目は既定の外観を使用します。",
+    "Настройте цвета, логотип и ссылку поддержки своего сайта. Для незаданных полей используется оформление по умолчанию."
   ],
   "管理退款及复核": [
     "管理退款及复核",
@@ -24977,6 +25229,24 @@
     "ウェブサイト",
     "Сайт"
   ],
+  "网站 Logo": [
+    "网站 Logo",
+    "Website logo",
+    "サイトの Logo",
+    "Логотип сайта"
+  ],
+  "网站外观已保存。": [
+    "网站外观已保存。",
+    "Website appearance saved.",
+    "サイトの外観を保存しました。",
+    "Оформление сайта сохранено."
+  ],
+  "网站外观预览": [
+    "网站外观预览",
+    "Website appearance preview",
+    "サイト外観のプレビュー",
+    "Предпросмотр оформления сайта"
+  ],
   "网络": [
     "网络",
     "Network",
@@ -25024,6 +25294,12 @@
     "USD per second",
     "1秒あたりの米ドル",
     "USD за секунду"
+  ],
+  "背景色": [
+    "背景色",
+    "Background color",
+    "背景色",
+    "Цвет фона"
   ],
   "背景色（留空继承）": [
     "背景色（留空继承）",
@@ -25979,11 +26255,23 @@
     "記録が存在しないか、現在の範囲外です",
     "Запись не найдена или вне текущей области"
   ],
+  "记录值": [
+    "记录值",
+    "Record value",
+    "レコード値",
+    "Значение записи"
+  ],
   "记录原路银行退款意图": [
     "记录原路银行退款意图",
     "Record intent for a bank refund via the original route",
     "元の経路による銀行返金の意図を記録",
     "Записать намерение банковского возврата по исходному маршруту"
+  ],
+  "记录名称": [
+    "记录名称",
+    "Record name",
+    "レコード名",
+    "Имя записи"
   ],
   "记录必要复核保护": [
     "记录必要复核保护",
@@ -26446,6 +26734,12 @@
     "Select the direct subordinate first",
     "先に権限を付与する直属の下位事業者を選択",
     "Сначала выберите прямого нижестоящего оператора"
+  ],
+  "请先重新检查域名，DNS、HTTPS 和品牌接入验证通过后才能启用。": [
+    "请先重新检查域名，DNS、HTTPS 和品牌接入验证通过后才能启用。",
+    "Check the domain again. DNS, HTTPS and brand routing must pass verification before activation.",
+    "ドメインを再確認してください。DNS、HTTPS、ブランド接続の検証後に有効化できます。",
+    "Проверьте домен повторно. Для активации должны пройти проверки DNS, HTTPS и подключения бренда."
   ],
   "请再次确认：{currency}，每 1 单位购买 {ratio} ATG，生效于：": [
     "请再次确认：{currency}，每 1 单位购买 {ratio} ATG，生效于：",
@@ -26926,6 +27220,12 @@
     "Select an option",
     "選択してください",
     "Выберите вариант"
+  ],
+  "请选择不超过 2 MB 的 PNG、JPEG 或 WebP 图片。": [
+    "请选择不超过 2 MB 的 PNG、JPEG 或 WebP 图片。",
+    "Choose a PNG, JPEG or WebP image up to 2 MB.",
+    "2 MB 以下の PNG、JPEG、WebP 画像を選択してください。",
+    "Выберите изображение PNG, JPEG или WebP размером до 2 МБ."
   ],
   "请选择供应商模型。": [
     "请选择供应商模型。",
@@ -28516,6 +28816,12 @@
     "This Google client is already configured for another brand",
     "この Google クライアントは別のブランドに設定済みです",
     "Этот клиент Google уже настроен для другого бренда"
+  ],
+  "这个域名已登记，请核对现有域名记录。": [
+    "这个域名已登记，请核对现有域名记录。",
+    "This domain is already registered. Check the existing domain records.",
+    "このドメインは登録済みです。既存のドメイン情報を確認してください。",
+    "Домен уже зарегистрирован. Проверьте существующие записи."
   ],
   "这个域名的 Google 回调测试已通过。回到品牌配置并启用后，客户即可使用。": [
     "这个域名的 Google 回调测试已通过。回到品牌配置并启用后，客户即可使用。",
@@ -30497,6 +30803,12 @@
     "Gkash を開き直す",
     "Открыть Gkash снова"
   ],
+  "重新检查": [
+    "重新检查",
+    "Check again",
+    "再確認",
+    "Проверить снова"
+  ],
   "重新生成": [
     "重新生成",
     "Generate again",
@@ -31510,6 +31822,12 @@
     "Verified maximum quantity",
     "検証済みの最大使用量",
     "Проверенный максимальный объём"
+  ],
+  "验证通过，等待平台启用": [
+    "验证通过，等待平台启用",
+    "Verified, awaiting platform activation",
+    "検証済み・プラットフォームの有効化待ち",
+    "Проверено, ожидается активация платформой"
   ],
   "验证邮件尚未配置": [
     "验证邮件尚未配置",

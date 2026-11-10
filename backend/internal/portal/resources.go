@@ -254,6 +254,7 @@ func (a *Application) operatorRoutes(r *gin.RouterGroup) {
 	r.DELETE("/invoices/:id/files/:fileID", a.deleteInvoiceFile)
 	r.POST("/:resource/:id/replacement", a.replaceInvoice)
 	r.POST("/branding/logo", a.uploadLogo)
+	r.GET("/branding/assets/:id/content", a.ownLogo)
 	r.GET("/:resource", a.operatorResource)
 	r.POST("/:resource", a.operatorCommand)
 	r.POST("/:resource/:id/:action", a.operatorRowCommand)
@@ -277,7 +278,9 @@ func permissionFor(resource string) string {
 		return "organization.read"
 	case "procurement", "coverage", "exits", "procurement-invoices", "contracts":
 		return "cooperation.manage"
-	case "branding", "channel-themes", "domains":
+	case "branding", "channel-themes":
+		return "branding.manage"
+	case "domains":
 		return "organization.read"
 	case "staff":
 		return "staff.read"

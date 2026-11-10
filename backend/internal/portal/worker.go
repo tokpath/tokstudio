@@ -87,6 +87,15 @@ func (a *Application) DiscoverWorkerTasks(ctx context.Context) error {
 			return e
 		}
 	}
+	domains, domainErr := a.Branding.PendingDomainChecks(ctx)
+	if domainErr != nil {
+		return domainErr
+	}
+	for _, domain := range domains {
+		if e := a.schedule(ctx, "brand_domain", domain.ID, workerPayload{ID: domain.ID}, 5*time.Minute); e != nil {
+			return e
+		}
+	}
 	cursor, e := a.progress(ctx, "operators")
 	if e != nil {
 		return e
@@ -244,6 +253,8 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 		return e
 	}
 	switch job.Kind {
+	case "brand_domain":
+		return a.Branding.CheckPendingDomain(ctx, p.ID, a.DomainVerifier)
 	case "catalog_changes":
 		_, e := a.CatalogChanges.Run(ctx, 10)
 		return e

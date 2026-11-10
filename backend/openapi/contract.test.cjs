@@ -99,7 +99,7 @@ test('marketing uses named offers and usage limits while KOL only concedes commi
 });
 
 test('workflow target templates become query parameters without inventing path parameters', () => {
-  for (const resource of ['branding', 'channel-themes', 'branding/logo', 'coverage']) {
+  for (const resource of ['coverage']) {
     const action = operation(resource);
     const target = action.parameters.find(parameter => parameter.name === 'target_operator_id');
     assert.equal(target.in, 'query');
@@ -130,8 +130,9 @@ test('theme inheritance accepts null, preserves version and keeps logo uploads m
 
 test('domain selection uses a body target and explicit DNS/TLS row actions', () => {
   const domain = body('domains');
-  assert.deepEqual(domain.required, ['target_operator_id', 'hostname']);
-  assert.equal(domain.properties.target_operator_id.format, 'uuid');
+  assert.deepEqual(domain.required, ['hostname']);
+  assert.equal(domain.properties.target_operator_id, undefined);
+  for(const r of ['branding','channel-themes','branding/logo']) assert.equal(operation(r).parameters.some(p=>p.name==='target_operator_id'),false);
   assert.equal(operation('domains').parameters.some(parameter => parameter.name === 'target_operator_id'), false);
   for (const action of ['verify', 'enable', 'disable']) assert.ok(body(`domains/{id}/${action}`).required.includes('version'));
   assert.equal(metadata.some(item => ['branding', 'channel-themes'].includes(item.resource) && item.name === 'domain'), false);
@@ -142,7 +143,7 @@ test('permissions retain mutation authority for staff and organization creation'
   assert.equal(operation('staff/{id}/membership')['x-required-permission'], 'staff.manage');
   assert.equal(operation('operators')['x-required-permission'], 'organization.create');
   assert.equal(operation('coverage')['x-required-permission'], 'cooperation.manage');
-  assert.equal(operation('branding')['x-required-permission'], 'organization.read');
+  assert.equal(operation('branding')['x-required-permission'], 'branding.manage');
   assert.ok(metadata.every(item => item.permission));
 });
 

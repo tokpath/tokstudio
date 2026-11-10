@@ -30,9 +30,13 @@ func TestPostgresChannelInvitationUsesOwnBrandAndPreservesDirectRegistration(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	active, err := f.a.Branding.VerifyAndActivateDomain(ctx, f.a.Installation.OwnerStaffID, domain.Domain.ID, branding.DomainVerifierFunc(func(context.Context, string, string) (branding.DomainVerification, error) {
-		return branding.DomainVerification{OwnershipVerified: true, TLSReady: true, ProviderReference: "isolated DNS and TLS verification"}, nil
+	active, err := f.a.Branding.VerifyDomain(ctx, f.a.Installation.OwnerStaffID, domain.Domain.ID, branding.DomainVerifierFunc(func(context.Context, string, string) (branding.DomainVerification, error) {
+		return branding.DomainVerification{OwnershipVerified: true, TLSReady: true, RouteReady: true, ProviderReference: "isolated DNS and TLS verification"}, nil
 	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	active, err = f.a.Branding.SetDomainEnabled(ctx, nil, f.a.Installation.OwnerStaffID, active.ID, true, active.Version)
 	if err != nil {
 		t.Fatal(err)
 	}

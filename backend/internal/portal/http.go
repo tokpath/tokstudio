@@ -80,6 +80,12 @@ func handleError(c *gin.Context, err error) {
 	}
 	status, code, msg, retry := 500, "internal_error", "处理失败，请沿用本次操作编号重试", true
 	switch {
+	case errors.Is(err, branding.ErrDomainBound):
+		status, code, msg, retry = 409, "domain_bound", "这个域名已登记，请核对现有域名记录。", false
+	case errors.Is(err, branding.ErrDomainUnverified):
+		status, code, msg, retry = 409, "domain_unverified", "请先重新检查域名，DNS、HTTPS 和品牌接入验证通过后才能启用。", false
+	case errors.Is(err, branding.ErrVerificationUnavailable):
+		status, code, msg, retry = 503, "domain_verification_unavailable", "域名验证服务暂时不可用，请稍后重试。", true
 	case errors.Is(err, paymentmethods.ErrChanged):
 		status, code, msg, retry = 409, "payment_fee_changed", "支付方式或手续费已变化，请刷新后重新核对金额。", false
 	case errors.Is(err, paymentmethods.ErrInvalid):
@@ -278,6 +284,7 @@ func (a *Application) Router() *gin.Engine {
 		c.JSON(200, gin.H{"status": "ready", "dependencies": gin.H{"postgres": "ready", "object_store": "ready", "redis": "ready"}})
 	})
 	r.GET("/v1/public/tls-check", a.tlsAsk)
+	r.GET("/.well-known/tokenhub-domain", a.domainProof)
 	v := r.Group("/v1")
 	v.Use(a.resolveBrand)
 	v.GET("/branding/assets/:id/content", a.publicLogo)

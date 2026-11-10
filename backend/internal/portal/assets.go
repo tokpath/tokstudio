@@ -13,8 +13,8 @@ func (a *Application) uploadLogo(c *gin.Context) {
 	if !ok {
 		return
 	}
-	targetOp, targetErr := a.brandingTarget(c, op)
-	if targetErr != nil {
+	targetOp := op
+	if targetErr := ownAppearanceTarget(c, op); targetErr != nil {
 		handleError(c, targetErr)
 		return
 	}
@@ -44,7 +44,7 @@ func (a *Application) uploadLogo(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	c.JSON(200, gin.H{"id": asset.ID, "status": asset.Status, "message": "Logo已存入私有对象存储。请在主题Logo字段使用此地址并保存版本：" + asset.URL, "asset": asset})
+	c.JSON(200, gin.H{"id": asset.ID, "status": asset.Status, "asset": asset})
 }
 func (a *Application) publicLogo(c *gin.Context) {
 	b := brand(c)
@@ -71,4 +71,19 @@ func channelThemeID(op organization.Operator) string {
 		return op.ID
 	}
 	return ""
+}
+
+func (a *Application) ownLogo(c *gin.Context) {
+	op, _, ok := a.staffScope(c, "branding")
+	if !ok {
+		return
+	}
+	asset, data, e := a.Branding.PublicLogo(c.Request.Context(), op.BrandID, channelThemeID(op), c.Param("id"))
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	c.Header("Content-Security-Policy", "default-src 'none'; sandbox")
+	c.Header("Cache-Control", "private, no-cache")
+	c.Data(200, asset.ContentType, data)
 }

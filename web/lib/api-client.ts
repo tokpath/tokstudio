@@ -81,7 +81,7 @@ export async function request<T extends z.ZodTypeAny>(path: string, schema: T, o
   for (let attempt = 0; attempt < attempts; attempt++) {
     const controller = new AbortController();
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, multipart ? uploadTimeoutMs : requestTimeoutMs);
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, multipart ? uploadTimeoutMs : /\/domains\/[^/]+\/verify$/.test(path) ? 60_000 : requestTimeoutMs);
     const stop = () => controller.abort();
     options.signal?.addEventListener("abort", stop);
     try {

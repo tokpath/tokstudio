@@ -1602,7 +1602,7 @@
   {
     "resource": "branding",
     "confirmation": "",
-    "description": "",
+    "description": "Upload within the own appearance editor; the uploaded asset URL is passed to the theme save operation.",
     "fields": [
       {
         "name": "file",
@@ -1612,11 +1612,11 @@
       }
     ],
     "include_version": false,
-    "label": "上传目标Logo",
+    "label": "上传网站 Logo",
     "method": "POST",
     "name": "upload_logo",
-    "path": "/v1/operators/{operatorId}/branding/logo?target_operator_id={id}",
-    "permission": "organization.read"
+    "path": "/v1/operators/{operatorId}/branding/logo",
+    "permission": "branding.manage"
   },
   {
     "resource": "branding",
@@ -1646,8 +1646,8 @@
       },
       {
         "name": "values.logo_url",
-        "label": "已上传Logo地址（留空继承）",
-        "kind": "text"
+        "label": "Logo",
+        "kind": "hidden"
       },
       {
         "name": "values.support_url",
@@ -1659,20 +1659,14 @@
     "label": "编辑网站外观",
     "method": "POST",
     "name": "theme",
-    "path": "/v1/operators/{operatorId}/branding?target_operator_id={id}",
-    "permission": "organization.read"
+    "path": "/v1/operators/{operatorId}/branding",
+    "permission": "branding.manage"
   },
   {
     "resource": "domains",
     "confirmation": "",
     "description": "",
     "fields": [
-      {
-        "name": "target_operator_id",
-        "label": "目标品牌经营方",
-        "kind": "text",
-        "required": true
-      },
       {
         "name": "hostname",
         "label": "品牌域名",
@@ -1681,7 +1675,7 @@
       }
     ],
     "include_version": false,
-    "label": "申请域名验证",
+    "label": "登记品牌域名",
     "method": "POST",
     "name": "request",
     "path": "/v1/operators/{operatorId}/domains",
@@ -1690,10 +1684,10 @@
   {
     "resource": "domains",
     "confirmation": "",
-    "description": "服务器执行真实DNS和TLS验证，不能用按钮直接标记验证成功。",
+    "description": "Verify DNS ownership, HTTPS and TokenHub brand routing without activating business access.",
     "fields": [],
     "include_version": true,
-    "label": "检查DNS与TLS",
+    "label": "重新检查",
     "method": "POST",
     "name": "verify",
     "path": "/v1/operators/{operatorId}/domains/{id}/verify",
@@ -1701,15 +1695,15 @@
   },
   {
     "resource": "domains",
-    "confirmation": "",
-    "description": "",
+    "confirmation": "确认启用该品牌域名",
+    "description": "Platform-only activation atomically disables the previous domain of this brand.",
     "fields": [],
     "include_version": true,
-    "label": "启用已验证域名",
+    "label": "启用域名",
     "method": "POST",
     "name": "enable",
     "path": "/v1/operators/{operatorId}/domains/{id}/enable",
-    "permission": "organization.read"
+    "permission": "domains.manage"
   },
   {
     "resource": "domains",
@@ -1721,12 +1715,12 @@
     "method": "POST",
     "name": "disable",
     "path": "/v1/operators/{operatorId}/domains/{id}/disable",
-    "permission": "organization.read"
+    "permission": "domains.manage"
   },
   {
     "resource": "channel-themes",
     "confirmation": "",
-    "description": "",
+    "description": "Upload within the own appearance editor; the uploaded asset URL is passed to the theme save operation.",
     "fields": [
       {
         "name": "file",
@@ -1736,11 +1730,11 @@
       }
     ],
     "include_version": false,
-    "label": "上传目标Logo",
+    "label": "上传网站 Logo",
     "method": "POST",
     "name": "upload_logo",
-    "path": "/v1/operators/{operatorId}/branding/logo?target_operator_id={id}",
-    "permission": "organization.read"
+    "path": "/v1/operators/{operatorId}/branding/logo",
+    "permission": "branding.manage"
   },
   {
     "resource": "channel-themes",
@@ -1770,8 +1764,8 @@
       },
       {
         "name": "values.logo_url",
-        "label": "已上传Logo地址（留空继承）",
-        "kind": "text"
+        "label": "Logo",
+        "kind": "hidden"
       },
       {
         "name": "values.support_url",
@@ -1783,8 +1777,8 @@
     "label": "编辑网站外观",
     "method": "POST",
     "name": "theme",
-    "path": "/v1/operators/{operatorId}/channel-themes?target_operator_id={id}",
-    "permission": "organization.read"
+    "path": "/v1/operators/{operatorId}/channel-themes",
+    "permission": "branding.manage"
   },
   {
     "resource": "staff",
@@ -1954,14 +1948,6 @@
             "value": "branding.manage"
           },
           {
-            "label": "配置直属OEM外观",
-            "value": "branding.manage_oem"
-          },
-          {
-            "label": "配置直属渠道外观",
-            "value": "branding.manage_channels"
-          },
-          {
             "label": "查看客户服务",
             "value": "customers.read"
           },
@@ -2032,6 +2018,10 @@
           {
             "label": "平台技术运营",
             "value": "platform.manage"
+          },
+          {
+            "value": "domains.manage",
+            "label": "管理品牌域名启停"
           }
         ]
       }

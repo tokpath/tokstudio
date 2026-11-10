@@ -262,13 +262,15 @@ it("revises an existing plan with its saved values and optimistic version", asyn
 it("edits the existing theme in place with its saved fields and version", async () => {
   staff(["branding.read", "branding.manage"]);
   let submitted: unknown;
-  vi.stubGlobal("fetch", vi.fn(async (input, init) => { expect(String(input)).toBe("/api/v1/operators/operator-one/branding?target_operator_id=channel-one"); submitted = JSON.parse(String(init?.body)); return response({ id: "channel-one", status: "updated" }); }));
-  show(<ResourceCollection embedded operatorID="operator-one" resource="branding" page={page([{ id: "channel-one", version: 11, values: { target_operator_id: "channel-one", primary_color: "#123456", support_url: "https://support.example.test" } }], { row_operations: [{ name: "theme", label: "保存逐字段主题", method: "POST", path: "/api/v1/operators/operator-one/branding?target_operator_id={id}", permission: "branding.manage", fields: [{ name: "values.primary_color", label: "主色", kind: "text" }, { name: "values.support_url", label: "支持入口", kind: "text" }, { name: "expected_version", label: "当前版本", kind: "hidden", default_value: 0 }] }] })} />);
-  fireEvent.click(screen.getByRole("button", { name: "保存逐字段主题" }));
+  vi.stubGlobal("fetch", vi.fn(async (input, init) => { expect(String(input)).toBe("/api/v1/operators/operator-one/branding"); submitted = JSON.parse(String(init?.body)); return response({ id: "operator-one", status: "updated" }); }));
+  show(<ResourceCollection embedded operatorID="operator-one" resource="branding" page={page([{ id: "operator-one", version: 11, values: { target_operator_id: "operator-one", primary_color: "#123456", support_url: "https://support.example.test" } }], { row_operations: [{ name: "theme", label: "编辑网站外观", method: "POST", path: "/api/v1/operators/operator-one/branding", permission: "branding.manage", fields: [{ name: "values.primary_color", label: "主色", kind: "text" }, { name: "values.support_url", label: "支持入口", kind: "text" }, { name: "expected_version", label: "当前版本", kind: "hidden", default_value: 0 }] }] })} />);
+  fireEvent.click(screen.getByRole("button", { name: "编辑网站外观" }));
   expect((screen.getByLabelText("主色", { exact: true }) as HTMLInputElement).value).toBe("#123456");
-  fireEvent.change(screen.getByLabelText("主色", { exact: true }), { target: { value: "#654321" } });
-  fireEvent.click(screen.getByRole("button", { name: "保存逐字段主题", exact: true }));
-  await waitFor(() => expect(submitted).toEqual({ values: { primary_color: "#654321", support_url: "https://support.example.test" }, expected_version: 11 }));
+  fireEvent.input(screen.getByLabelText("主色", { exact: true }), { target: { value: "#654321" } });
+  fireEvent.change(screen.getByLabelText("客户支持网址（可选）", { exact: true }), { target: { value: "https://support.example.test/help" } });
+  expect((screen.getByLabelText("主色", { exact: true }) as HTMLInputElement).value).toBe("#654321");
+  fireEvent.click(screen.getByRole("button", { name: "保存外观", exact: true }));
+  await waitFor(() => expect(submitted).toEqual({ values: { primary_color: "#654321", support_url: "https://support.example.test/help",background_color:null,text_color:null,logo_url:null }, expected_version: 11 }));
 });
 
 it("edits a directly managed channel coverage policy with that row's actual version", async () => {

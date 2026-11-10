@@ -428,5 +428,285 @@
     "en": "Automatic replenishment uses the original payment authorization. Check the original transaction under Automatic replenishment.",
     "ja": "自動補充は元の支払い承認で実行します。元取引の結果は自動補充で確認してください。",
     "ru": "Автопополнение использует исходное разрешение на оплату. Результат исходной транзакции смотрите в разделе автопополнения."
+  },
+  "管理自己的网站配色、Logo 和客户支持入口。未设置的项目使用默认外观。": {
+    "en": "Manage your own website colors, logo and support link. Unset fields use the default appearance.",
+    "ja": "自社サイトの配色、Logo、サポート先を管理します。未設定の項目は既定の外観を使用します。",
+    "ru": "Настройте цвета, логотип и ссылку поддержки своего сайта. Для незаданных полей используется оформление по умолчанию."
+  },
+  "网站外观预览": {
+    "en": "Website appearance preview",
+    "ja": "サイト外観のプレビュー",
+    "ru": "Предпросмотр оформления сайта"
+  },
+  "网站 Logo": {
+    "en": "Website logo",
+    "ja": "サイトの Logo",
+    "ru": "Логотип сайта"
+  },
+  "请选择不超过 2 MB 的 PNG、JPEG 或 WebP 图片。": {
+    "en": "Choose a PNG, JPEG or WebP image up to 2 MB.",
+    "ja": "2 MB 以下の PNG、JPEG、WebP 画像を選択してください。",
+    "ru": "Выберите изображение PNG, JPEG или WebP размером до 2 МБ."
+  },
+  "正在保存图片…": {
+    "en": "Saving image…",
+    "ja": "画像を保存中…",
+    "ru": "Сохранение изображения…"
+  },
+  "使用默认 Logo": {
+    "en": "Use default logo",
+    "ja": "既定の Logo を使用",
+    "ru": "Использовать логотип по умолчанию"
+  },
+  "客户支持网址（可选）": {
+    "en": "Support URL (optional)",
+    "ja": "サポート URL（任意）",
+    "ru": "Ссылка поддержки (необязательно)"
+  },
+  "留空使用默认值。上传图片后，保存外观才会在网站生效。": {
+    "en": "Leave fields empty to use defaults. Uploaded images take effect after you save the appearance.",
+    "ja": "空欄の場合は既定値を使用します。画像は外観を保存するとサイトに反映されます。",
+    "ru": "Оставьте поля пустыми для значений по умолчанию. Загруженное изображение появится на сайте после сохранения оформления."
+  },
+  "网站外观已保存。": {
+    "en": "Website appearance saved.",
+    "ja": "サイトの外観を保存しました。",
+    "ru": "Оформление сайта сохранено."
+  },
+  "保存外观": {
+    "en": "Save appearance",
+    "ja": "外観を保存",
+    "ru": "Сохранить оформление"
+  },
+  "尚未登记域名。": {
+    "en": "No domains registered yet.",
+    "ja": "ドメインはまだ登録されていません。",
+    "ru": "Домены ещё не зарегистрированы."
+  },
+  "等待 DNS 配置": {
+    "en": "Waiting for DNS configuration",
+    "ja": "DNS 設定待ち",
+    "ru": "Ожидание настройки DNS"
+  },
+  "等待 HTTPS 与接入验证": {
+    "en": "Waiting for HTTPS and routing verification",
+    "ja": "HTTPS と接続の検証待ち",
+    "ru": "Ожидание проверки HTTPS и подключения"
+  },
+  "验证通过，等待平台启用": {
+    "en": "Verified, awaiting platform activation",
+    "ja": "検証済み・プラットフォームの有効化待ち",
+    "ru": "Проверено, ожидается активация платформой"
+  },
+  "等待平台提供域名接入地址。DNS 和 HTTPS 接入由平台统一维护。": {
+    "en": "Waiting for the platform to provide the domain routing target. The platform maintains DNS and HTTPS ingress.",
+    "ja": "プラットフォームによる接続先の案内待ちです。DNS と HTTPS の接続基盤はプラットフォームが管理します。",
+    "ru": "Ожидается адрес подключения от платформы. Платформа обслуживает входящие подключения DNS и HTTPS."
+  },
+  "登记自己的域名并按提示配置 DNS，系统自动检查。验证通过后由平台启用。更换域名时，原域名保持可用，直到平台启用新域名；请提前安排客户更新 API 地址。": {
+    "en": "Register your own domain and configure the DNS records shown. Checks run automatically; the platform activates verified domains. When replacing a domain, the old one remains available until activation of the new one. Arrange API address updates with customers in advance.",
+    "ja": "自社ドメインを登録し、表示された DNS を設定してください。システムが自動検証し、完了後にプラットフォームが有効化します。変更時は新ドメインが有効になるまで旧ドメインを利用できます。API アドレス変更をお客様に事前案内してください。",
+    "ru": "Зарегистрируйте свой домен и настройте DNS по инструкции. Система проверит его автоматически, затем платформа активирует. При замене старый домен работает до активации нового. Заранее согласуйте с клиентами обновление адреса API."
+  },
+  "登记品牌域名": {
+    "en": "Register brand domain",
+    "ja": "ブランドドメインを登録",
+    "ru": "Зарегистрировать домен бренда"
+  },
+  "域名已登记。请按页面提示设置 DNS，验证通过后等待平台启用。": {
+    "en": "Domain registered. Configure DNS as shown on the page, then wait for verification and platform activation.",
+    "ja": "ドメインを登録しました。画面の案内に従って DNS を設定し、検証とプラットフォームの有効化をお待ちください。",
+    "ru": "Домен зарегистрирован. Настройте DNS по инструкции на странице и дождитесь проверки и активации платформой."
+  },
+  "检查 DNS、HTTPS 和品牌接入，结果会自动更新。验证通过后仍需平台启用。": {
+    "en": "Check DNS, HTTPS and brand routing. Results update automatically. Platform activation is still required after verification.",
+    "ja": "DNS、HTTPS、ブランド接続を検証し、結果を自動更新します。検証後もプラットフォームの有効化が必要です。",
+    "ru": "Проверка DNS, HTTPS и подключения бренда. Результаты обновятся автоматически. После проверки требуется активация платформой."
+  },
+  "启用域名": {
+    "en": "Activate domain",
+    "ja": "ドメインを有効化",
+    "ru": "Активировать домен"
+  },
+  "启用后，该品牌的原域名将停用。客户需要使用新的网址和 API 地址。": {
+    "en": "Activation disables the previous domain for this brand. Customers must use the new website and API address.",
+    "ja": "有効化すると、このブランドの旧ドメインは無効になります。お客様は新しいサイトと API アドレスを使用する必要があります。",
+    "ru": "После активации предыдущий домен бренда будет отключён. Клиентам потребуется новый адрес сайта и API."
+  },
+  "确认启用该品牌域名": {
+    "en": "Confirm activation of this brand domain",
+    "ja": "このブランドドメインの有効化を確認",
+    "ru": "Подтвердите активацию домена бренда"
+  },
+  "在域名服务商添加以下 DNS 记录。记录生效可能需要等待，系统会自动复查。": {
+    "en": "Add these DNS records at your domain provider. Changes may take time to propagate; the system checks again automatically.",
+    "ja": "ドメイン事業者で以下の DNS レコードを追加してください。反映には時間がかかる場合があります。システムが自動で再確認します。",
+    "ru": "Добавьте эти DNS-записи у регистратора домена. Изменения могут распространяться не сразу; система повторит проверку автоматически."
+  },
+  "记录名称": {
+    "en": "Record name",
+    "ja": "レコード名",
+    "ru": "Имя записи"
+  },
+  "记录值": {
+    "en": "Record value",
+    "ja": "レコード値",
+    "ru": "Значение записи"
+  },
+  "复制记录值": {
+    "en": "Copy record value",
+    "ja": "レコード値をコピー",
+    "ru": "Скопировать значение"
+  },
+  "管理本经营方外观": {
+    "en": "Manage this operator’s appearance",
+    "ja": "自社の外観を管理",
+    "ru": "Управление оформлением своего оператора"
+  },
+  "管理品牌域名启停": {
+    "en": "Manage brand domain activation",
+    "ja": "ブランドドメインの有効・無効を管理",
+    "ru": "Управление активацией доменов брендов"
+  },
+  "Domain verification service is temporarily unavailable": {
+    "en": "Domain verification is temporarily unavailable. Please try again later.",
+    "ja": "ドメイン検証サービスを一時的に利用できません。しばらくして再試行してください。",
+    "ru": "Проверка домена временно недоступна. Повторите позже.",
+    "zh": "域名验证服务暂时不可用，请稍后重试。"
+  },
+  "Domain routing is not ready": {
+    "en": "Domain routing is not ready. Check the DNS destination with the platform.",
+    "ja": "ドメインの接続準備ができていません。DNS の接続先をプラットフォームに確認してください。",
+    "ru": "Подключение домена не готово. Уточните адрес назначения DNS у платформы.",
+    "zh": "域名接入尚未就绪，请与平台核对 DNS 接入地址。"
+  },
+  "Domain does not route to this brand on TokenHub": {
+    "en": "HTTPS works, but the domain does not reach this brand. Ask the platform to check the ingress configuration.",
+    "ja": "HTTPS は利用できますが、このブランドに接続していません。プラットフォームに接続設定の確認を依頼してください。",
+    "ru": "HTTPS работает, но домен не ведёт к этому бренду. Попросите платформу проверить настройки подключения.",
+    "zh": "HTTPS 可用，但域名没有接入当前品牌，请平台检查接入配置。"
+  },
+  "主色": {
+    "en": "Primary color",
+    "ja": "メインカラー",
+    "ru": "Основной цвет"
+  },
+  "背景色": {
+    "en": "Background color",
+    "ja": "背景色",
+    "ru": "Цвет фона"
+  },
+  "文字色": {
+    "en": "Text color",
+    "ja": "文字色",
+    "ru": "Цвет текста"
+  },
+  "域名状态以页面检查结果和平台启用结果为准。": {
+    "en": "Domain availability depends on the checks and platform activation shown on the page.",
+    "ja": "ドメインの利用可否は画面の検証結果とプラットフォームの有効化状況で確認してください。",
+    "ru": "Доступность домена определяется результатами проверки и активации платформой на странице."
+  },
+  "平台官方入口": {
+    "en": "Official platform address",
+    "ja": "プラットフォーム公式 URL",
+    "ru": "Официальный адрес платформы"
+  },
+  "官方入口由部署配置维护。OEM 自行登记域名和配置 DNS；平台检查验证结果后启用，也可以停用域名。": {
+    "en": "The official address is maintained in deployment settings. OEMs register their domains and configure DNS; the platform reviews verification results and activates or disables domains.",
+    "ja": "公式 URL はデプロイ設定で管理します。OEM がドメイン登録と DNS 設定を行い、プラットフォームが検証結果を確認して有効化・無効化します。",
+    "ru": "Официальный адрес задаётся при развёртывании. OEM регистрируют домены и настраивают DNS; платформа проверяет результаты и активирует или отключает домены."
+  },
+  "重新检查": {
+    "en": "Check again",
+    "ja": "再確認",
+    "ru": "Проверить снова"
+  },
+  "品牌经营方": {
+    "en": "Brand operator",
+    "ja": "ブランド運営者",
+    "ru": "Оператор бренда"
+  },
+  "当前配置版本": {
+    "en": "Current configuration version",
+    "ja": "現在の設定バージョン",
+    "ru": "Текущая версия настроек"
+  },
+  "DNS verification record is not available": {
+    "zh": "未找到 DNS 验证记录，请核对记录并等待生效。",
+    "en": "DNS verification record not found. Check the record and wait for propagation.",
+    "ja": "DNS 検証レコードが見つかりません。設定を確認して反映をお待ちください。",
+    "ru": "DNS-запись проверки не найдена. Проверьте её и дождитесь распространения."
+  },
+  "DNS verification challenge does not match": {
+    "zh": "DNS 验证记录不匹配，请复制页面上的完整记录值。",
+    "en": "DNS verification record does not match. Copy the complete value shown on the page.",
+    "ja": "DNS 検証レコードが一致しません。画面の値をすべてコピーしてください。",
+    "ru": "DNS-запись не совпадает. Скопируйте полное значение со страницы."
+  },
+  "domain has no verified public network address": {
+    "zh": "域名尚未解析到公网地址，请核对 DNS 接入记录。",
+    "en": "The domain has no public network address. Check the DNS routing record.",
+    "ja": "ドメインが公開 IP アドレスに解決されません。DNS の接続レコードを確認してください。",
+    "ru": "Домен не разрешается в публичный IP-адрес. Проверьте DNS-запись подключения."
+  },
+  "domain resolves to a restricted network address": {
+    "zh": "域名指向了受限地址，请平台核对公网接入配置。",
+    "en": "The domain points to a restricted address. Ask the platform to check public ingress.",
+    "ja": "ドメインが制限されたアドレスを指しています。プラットフォームに公開接続設定の確認を依頼してください。",
+    "ru": "Домен указывает на запрещённый адрес. Попросите платформу проверить публичное подключение."
+  },
+  "TLS certificate or hostname is not ready": {
+    "zh": "HTTPS 证书尚未就绪或不匹配，请等待签发或由平台核对接入配置。",
+    "en": "The HTTPS certificate is not ready or does not match. Wait for issuance or ask the platform to check ingress.",
+    "ja": "HTTPS 証明書が未準備か不一致です。発行を待つか、プラットフォームに接続設定を確認してください。",
+    "ru": "Сертификат HTTPS не готов или не соответствует домену. Дождитесь выпуска или попросите платформу проверить подключение."
+  },
+  "DNS ownership challenge does not match": {
+    "zh": "DNS 验证记录不匹配，请复制页面上的完整记录值。",
+    "en": "DNS verification record does not match. Copy the complete value shown on the page.",
+    "ja": "DNS 検証レコードが一致しません。画面の値をすべてコピーしてください。",
+    "ru": "DNS-запись не совпадает. Скопируйте полное значение со страницы."
+  },
+  "正在上传…": {
+    "en": "Uploading…",
+    "ja": "アップロード中…",
+    "ru": "Загрузка…"
+  },
+  "这个域名已登记，请核对现有域名记录。": {
+    "en": "This domain is already registered. Check the existing domain records.",
+    "ja": "このドメインは登録済みです。既存のドメイン情報を確認してください。",
+    "ru": "Домен уже зарегистрирован. Проверьте существующие записи."
+  },
+  "请先重新检查域名，DNS、HTTPS 和品牌接入验证通过后才能启用。": {
+    "en": "Check the domain again. DNS, HTTPS and brand routing must pass verification before activation.",
+    "ja": "ドメインを再確認してください。DNS、HTTPS、ブランド接続の検証後に有効化できます。",
+    "ru": "Проверьте домен повторно. Для активации должны пройти проверки DNS, HTTPS и подключения бренда."
+  },
+  "域名验证服务暂时不可用，请稍后重试。": {
+    "en": "Domain verification is temporarily unavailable. Please try again later.",
+    "ja": "ドメイン検証サービスを一時的に利用できません。しばらくして再試行してください。",
+    "ru": "Проверка домена временно недоступна. Повторите позже."
+  },
+  "使用默认配色": {
+    "en": "Use default colors",
+    "ja": "既定の配色を使用",
+    "ru": "Использовать цвета по умолчанию"
+  },
+  "未单独设置的项目使用默认值。上传图片后，保存外观才会在网站生效。": {
+    "en": "Unset fields use defaults. Uploaded images take effect after you save the appearance.",
+    "ja": "未設定の項目は既定値を使用します。画像は外観を保存するとサイトに反映されます。",
+    "ru": "Для незаданных полей используются значения по умолчанию. Изображение появится на сайте после сохранения оформления."
+  },
+  "正在检查…": {
+    "en": "Checking…",
+    "ja": "確認中…",
+    "ru": "Проверка…"
+  },
+  "Cloudflare hostname or certificate validation is pending": {
+    "zh": "域名或 HTTPS 证书仍在验证中，请按 DNS 提示设置并等待签发。",
+    "en": "Domain or HTTPS certificate validation is pending. Follow the DNS instructions and wait for issuance.",
+    "ja": "ドメインまたは HTTPS 証明書を検証中です。DNS の案内に従って設定し、発行をお待ちください。",
+    "ru": "Проверка домена или сертификата HTTPS ещё выполняется. Настройте DNS по инструкции и дождитесь выпуска."
   }
 }

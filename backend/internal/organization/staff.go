@@ -11,7 +11,7 @@ import (
 
 var rolePermissions = map[string][]string{
 	"owner":      {"*"},
-	"operations": {"organization.read", "organization.create", "cooperation.manage", "business.manage", "staff.read", "branding.manage", "branding.manage_channels", "branding.manage_oem", "customers.read", "sales.manage", "marketing.manage", "operations.manage", "reports.summary", "reports.view"},
+	"operations": {"organization.read", "organization.create", "cooperation.manage", "business.manage", "staff.read", "branding.manage", "domains.manage", "customers.read", "sales.manage", "marketing.manage", "operations.manage", "reports.summary", "reports.view"},
 	"finance":    {"organization.read", "staff.read", "ledger.read", "payments.manage", "refunds.manage", "withdrawals.manage", "invoices.manage", "reports.financial", "reports.view", "reports.export"},
 	"support":    {"organization.read", "customers.read", "support.manage"},
 	"readonly":   {"organization.read", "staff.read", "reports.summary"},
@@ -242,8 +242,7 @@ func (s *Service) SetMembership(ctx context.Context, tx *gorm.DB, in SetMembersh
 	})
 }
 
-// RequireChannelBranding grants only the channel's immediate supplier access
-// to appearance configuration, with no implied financial or customer access.
+// Appearance belongs to the operator itself, independently of supply relations.
 func (s *Service) RequireChannelBranding(ctx context.Context, tx *gorm.DB, staffID, channelID string) error {
 	o, err := s.GetOperator(ctx, tx, channelID)
 	if err != nil {
@@ -252,25 +251,35 @@ func (s *Service) RequireChannelBranding(ctx context.Context, tx *gorm.DB, staff
 	if o.Kind != Channel || o.ParentOperatorID == nil {
 		return ErrInvalidRelationship
 	}
-	return s.RequirePermission(ctx, tx, staffID, *o.ParentOperatorID, "branding.manage_channels")
+	return s.RequirePermission(ctx, tx, staffID, o.ID, "branding.manage")
 }
 func (s *Service) RequireBrandBranding(ctx context.Context, tx *gorm.DB, staffID, brandID string) error {
 	b, err := s.GetBrand(ctx, tx, brandID)
 	if err != nil {
 		return err
 	}
-	if err = s.RequirePermission(ctx, tx, staffID, b.OwnerOperatorID, "branding.manage"); err == nil {
-		return nil
+	return s.RequirePermission(ctx, tx, staffID, b.OwnerOperatorID, "branding.manage")
+}
+
+// Domain owners can register and check their domain. Only the platform may
+// enable or disable it; this grants no access to the OEM's appearance or assets.
+func (s *Service) RequireBrandDomain(ctx context.Context, tx *gorm.DB, staffID, brandID string, activation bool) error {
+	b, err := s.GetBrand(ctx, tx, brandID)
+	if err != nil {
+		return err
 	}
-	if b.Kind != "oem" {
-		return ErrForbidden
+	if !activation && s.RequirePermission(ctx, tx, staffID, b.OwnerOperatorID, "branding.manage") == nil {
+		return nil
 	}
 	o, err := s.GetOperator(ctx, tx, b.OwnerOperatorID)
 	if err != nil {
 		return err
 	}
-	if o.ParentOperatorID == nil {
+	if o.Kind == Platform {
+		return s.RequirePermission(ctx, tx, staffID, o.ID, "domains.manage")
+	}
+	if o.Kind != OEM || o.ParentOperatorID == nil {
 		return ErrForbidden
 	}
-	return s.RequirePermission(ctx, tx, staffID, *o.ParentOperatorID, "branding.manage_oem")
+	return s.RequirePermission(ctx, tx, staffID, *o.ParentOperatorID, "domains.manage")
 }

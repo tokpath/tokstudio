@@ -28,6 +28,7 @@ type Directory interface {
 	GetOperator(context.Context, *gorm.DB, string) (organization.Operator, error)
 	RequireBrandBranding(context.Context, *gorm.DB, string, string) error
 	RequireChannelBranding(context.Context, *gorm.DB, string, string) error
+	RequireBrandDomain(context.Context, *gorm.DB, string, string, bool) error
 }
 
 type Domain struct {
@@ -37,6 +38,7 @@ type Domain struct {
 	VerificationToken    string          `json:"verification_token"`
 	Status               string          `json:"status"`
 	TLSReady             bool            `json:"tls_ready"`
+	RouteReady           bool            `json:"route_ready"`
 	VerifiedAt           *time.Time      `json:"verified_at,omitempty"`
 	CheckedAt            *time.Time      `json:"checked_at,omitempty"`
 	ProviderReference    string          `json:"provider_reference"`
@@ -54,6 +56,7 @@ type DomainChallenge struct {
 }
 type DomainVerification struct {
 	OwnershipVerified                bool
+	RouteReady                       bool
 	TLSReady                         bool
 	ProviderReference, FailureReason string
 	ProviderStatus, TLSStatus        string

@@ -319,8 +319,8 @@
 
 ### 品牌及渠道个性化
 
-- **A131** — W01/W08；branding；平台配置 OEM 域名、主题、Logo 及真实接入验证。
-- **A132** — W08；channel theme；直属上级配置、逐字段继承、品牌默认变化不覆盖定制。
+- **A131** — W01/W08；branding；OEM 自行配置域名、主题、Logo，真实接入验证后由平台启用。
+- **A132** — W08；channel theme；渠道自行配置、逐字段继承、品牌默认变化不覆盖定制。
 - **A133** — W01/W08；branding authorization；跨品牌操作及资金越权拒绝，审计完整。
 - **A134** — W08；domains；未验证和重复绑定不能启用，Host 不串品牌账号。
 - **A135** — W07/W08；branding/ownership；改域名/外观前后资产和推广不变，共用品牌 API。

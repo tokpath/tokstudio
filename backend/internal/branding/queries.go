@@ -9,7 +9,7 @@ func (s *Service) ListDomains(ctx context.Context, tx *gorm.DB, actor, brandID s
 	if !validID(brandID) {
 		return nil, ErrInvalidInput
 	}
-	if err := s.directory.RequireBrandBranding(ctx, tx, actor, brandID); err != nil {
+	if err := s.directory.RequireBrandDomain(ctx, tx, actor, brandID, false); err != nil {
 		return nil, err
 	}
 	var rows []domainRow

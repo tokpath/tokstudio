@@ -78,7 +78,7 @@ func setupExitAcceptance(t *testing.T) exitFixture {
 	oem := create(platform, organization.OEM, "星河品牌")
 
 	domainTime := time.Now()
-	if e := a.DB.Table("branding_domains").Create(&branding.Domain{ID: uuid.NewString(), BrandID: oem.Brand.ID, Hostname: "exit.localhost", VerificationToken: "local-only", Status: "active", TLSReady: true, VerifiedAt: &domainTime, CheckedAt: &domainTime, ProviderReference: "isolated acceptance", Version: 1, CreatedAt: domainTime}).Error; e != nil {
+	if e := a.DB.Table("branding_domains").Create(&branding.Domain{ID: uuid.NewString(), BrandID: oem.Brand.ID, Hostname: "exit.localhost", VerificationToken: "local-only", Status: "active", TLSReady: true, RouteReady: true, VerifiedAt: &domainTime, CheckedAt: &domainTime, ProviderReference: "isolated acceptance", Version: 1, CreatedAt: domainTime}).Error; e != nil {
 		t.Fatal(e)
 	}
 

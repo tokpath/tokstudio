@@ -181,14 +181,17 @@ func operationPermission(resource, action string) string {
 	if resource == "notifications" && action == "read_all" {
 		return ""
 	}
+	if resource == "domains" && (action == "enable" || action == "disable") {
+		return "domains.manage"
+	}
 	switch resource {
 	case "operators":
 		return "organization.create"
 	case "staff":
 		return "staff.manage"
-	// Appearance targets and row actions are filtered using the exact target
-	// authority; ownership of a child workspace is deliberately not required.
-	case "branding", "channel-themes", "domains":
+	case "branding", "channel-themes":
+		return "branding.manage"
+	case "domains":
 		return "organization.read"
 	}
 	return permissionFor(resource)

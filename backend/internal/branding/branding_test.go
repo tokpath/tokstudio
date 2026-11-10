@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
@@ -165,12 +166,12 @@ func TestPostgresDomainRequiresOwnershipAndTLSAndUniqueBinding(t *testing.T) {
 	if _, err = f.s.SetDomainEnabled(f.ctx, nil, f.owner, d.Domain.ID, true, 1); !errors.Is(err, ErrDomainUnverified) {
 		t.Fatalf("unverified domain enabled: %v", err)
 	}
-	if _, err = f.s.VerifyAndActivateDomain(f.ctx, f.owner, d.Domain.ID, nil); !errors.Is(err, ErrVerificationUnavailable) {
+	if _, err = f.s.VerifyDomain(f.ctx, f.owner, d.Domain.ID, nil); !errors.Is(err, ErrVerificationUnavailable) {
 		t.Fatalf("missing verifier silently succeeded: %v", err)
 	}
 	// A deterministic provider double tests persistence. This is deliberately
 	// not an assertion of real public DNS, certificate or Cloudflare readiness.
-	verified, err := f.s.VerifyAndActivateDomain(f.ctx, f.owner, d.Domain.ID, DomainVerifierFunc(func(_ context.Context, host, challenge string) (DomainVerification, error) {
+	verified, err := f.s.VerifyDomain(f.ctx, f.owner, d.Domain.ID, DomainVerifierFunc(func(_ context.Context, host, challenge string) (DomainVerification, error) {
 		if host != "example.test" || challenge != d.Domain.VerificationToken {
 			t.Fatal("wrong verification target")
 		}
@@ -182,9 +183,16 @@ func TestPostgresDomainRequiresOwnershipAndTLSAndUniqueBinding(t *testing.T) {
 	if _, err = f.s.ResolveHost(f.ctx, nil, "example.test"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("TLS pending domain resolved: %v", err)
 	}
-	active, err := f.s.VerifyAndActivateDomain(f.ctx, f.owner, d.Domain.ID, DomainVerifierFunc(func(context.Context, string, string) (DomainVerification, error) {
-		return DomainVerification{OwnershipVerified: true, TLSReady: true, ProviderReference: "test-provider:tls-ready"}, nil
+	active, err := f.s.VerifyDomain(f.ctx, f.owner, d.Domain.ID, DomainVerifierFunc(func(context.Context, string, string) (DomainVerification, error) {
+		return DomainVerification{OwnershipVerified: true, TLSReady: true, RouteReady: true, ProviderReference: "test-provider:tls-ready"}, nil
 	}))
+	if err != nil || active.Status != "verified" {
+		t.Fatalf("verification activated domain: %+v %v", active, err)
+	}
+	if _, err = f.s.ResolveHost(f.ctx, nil, active.Hostname); !errors.Is(err, ErrNotFound) {
+		t.Fatal("unapproved domain resolved", err)
+	}
+	active, err = f.s.SetDomainEnabled(f.ctx, nil, f.owner, active.ID, true, active.Version)
 	if err != nil || active.Status != "active" {
 		t.Fatalf("activation=%+v %v", active, err)
 	}
@@ -208,14 +216,14 @@ func TestPostgresDomainRequiresOwnershipAndTLSAndUniqueBinding(t *testing.T) {
 
 func TestPostgresThemeScopeInheritanceAndHistory(t *testing.T) {
 	f := setup(t)
-	official, _ := f.child(t, f.platform, f.owner, organization.Channel)
+	official, officialOwner := f.child(t, f.platform, f.owner, organization.Channel)
 	o, oOwner := f.child(t, f.platform, f.owner, organization.OEM)
-	oc, _ := f.child(t, o, oOwner, organization.Channel)
+	oc, ocOwner := f.child(t, o, oOwner, organization.Channel)
 	brand, err := f.s.SetBrandTheme(f.ctx, nil, SetThemeInput{ActorStaffID: f.owner, TargetID: f.platform.Brand.ID, Values: ThemeOverrides{PrimaryColor: ptr("#123456"), BackgroundColor: ptr("#abcdef"), LogoURL: ptr("https://assets.example/brand.png")}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	channel, err := f.s.SetChannelTheme(f.ctx, nil, SetThemeInput{ActorStaffID: f.owner, TargetID: official.Operator.ID, Values: ThemeOverrides{PrimaryColor: ptr("#654321"), LogoURL: ptr("")}})
+	channel, err := f.s.SetChannelTheme(f.ctx, nil, SetThemeInput{ActorStaffID: officialOwner, TargetID: official.Operator.ID, Values: ThemeOverrides{PrimaryColor: ptr("#654321"), LogoURL: ptr("")}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +239,7 @@ func TestPostgresThemeScopeInheritanceAndHistory(t *testing.T) {
 	if err != nil || resolved.Theme.PrimaryColor != "#654321" || resolved.Theme.BackgroundColor != "#222222" || resolved.Theme.LogoURL != "" {
 		t.Fatalf("inherited update=%+v %v", resolved, err)
 	}
-	_, err = f.s.SetChannelTheme(f.ctx, nil, SetThemeInput{ActorStaffID: f.owner, TargetID: official.Operator.ID, ExpectedVersion: channel.Version, Values: ThemeOverrides{}})
+	_, err = f.s.SetChannelTheme(f.ctx, nil, SetThemeInput{ActorStaffID: officialOwner, TargetID: official.Operator.ID, ExpectedVersion: channel.Version, Values: ThemeOverrides{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +251,7 @@ func TestPostgresThemeScopeInheritanceAndHistory(t *testing.T) {
 	if !errors.Is(err, organization.ErrForbidden) {
 		t.Fatalf("platform bypassed direct OEM parent: %v", err)
 	}
-	if _, err = f.s.SetChannelTheme(f.ctx, nil, SetThemeInput{ActorStaffID: oOwner, TargetID: oc.Operator.ID, Values: ThemeOverrides{PrimaryColor: ptr("#ffffff")}}); err != nil {
+	if _, err = f.s.SetChannelTheme(f.ctx, nil, SetThemeInput{ActorStaffID: ocOwner, TargetID: oc.Operator.ID, Values: ThemeOverrides{PrimaryColor: ptr("#ffffff")}}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = f.s.ResolveTheme(f.ctx, nil, f.platform.Brand.ID, oc.Operator.ID); !errors.Is(err, organization.ErrForbidden) {
@@ -255,5 +263,48 @@ func TestPostgresThemeScopeInheritanceAndHistory(t *testing.T) {
 	}
 	if _, err = f.s.SetBrandTheme(f.ctx, nil, SetThemeInput{ActorStaffID: f.owner, TargetID: f.platform.Brand.ID, ExpectedVersion: 1, Values: ThemeOverrides{}}); !errors.Is(err, ErrConflict) {
 		t.Fatalf("stale theme update: %v", err)
+	}
+}
+
+func TestPostgresBackgroundDomainChecksNeverApproveAndRoutingIsRequired(t *testing.T) {
+	f := setup(t)
+	o, owner := f.child(t, f.platform, f.owner, organization.OEM)
+	challenge, e := f.s.RequestDomain(f.ctx, nil, owner, o.Brand.ID, "pending.example.test")
+	if e != nil {
+		t.Fatal(e)
+	}
+	ready := DomainVerifierFunc(func(context.Context, string, string) (DomainVerification, error) {
+		return DomainVerification{OwnershipVerified: true, TLSReady: true, ProviderReference: "isolated-cert"}, nil
+	})
+	if e = f.s.CheckPendingDomain(f.ctx, challenge.Domain.ID, ready); e != nil {
+		t.Fatal(e)
+	}
+	domain, e := f.s.GetDomain(f.ctx, nil, owner, challenge.Domain.ID)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if domain.Status != "verified" || domain.RouteReady {
+		t.Fatal("background check approved domain", domain)
+	}
+	if _, e = f.s.SetDomainEnabled(f.ctx, nil, f.owner, domain.ID, true, domain.Version); !errors.Is(e, ErrDomainUnverified) {
+		t.Fatal("TLS certificate alone accepted", e)
+	}
+	ready = DomainVerifierFunc(func(context.Context, string, string) (DomainVerification, error) {
+		return DomainVerification{OwnershipVerified: true, TLSReady: true, RouteReady: true, ProviderReference: "isolated-cert-route"}, nil
+	})
+	if e = f.s.CheckPendingDomain(f.ctx, domain.ID, ready); e != nil {
+		t.Fatal(e)
+	}
+	domain, e = f.s.GetDomain(f.ctx, nil, owner, domain.ID)
+	if e != nil || domain.Status != "verified" {
+		t.Fatal(domain, e)
+	}
+	if _, e = f.s.ResolveHost(f.ctx, nil, domain.Hostname); !errors.Is(e, ErrNotFound) {
+		t.Fatal("automatic approval", e)
+	}
+	now := f.s.now()
+	f.s.now = func() time.Time { return now.Add(11 * time.Minute) }
+	if _, e = f.s.SetDomainEnabled(f.ctx, nil, f.owner, domain.ID, true, domain.Version); !errors.Is(e, ErrDomainUnverified) {
+		t.Fatal("stale evidence accepted", e)
 	}
 }

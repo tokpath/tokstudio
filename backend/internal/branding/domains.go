@@ -8,6 +8,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
@@ -90,27 +91,63 @@ func (s *Service) GetDomain(ctx context.Context, tx *gorm.DB, actorID, domainID 
 	if err := s.dbFor(ctx, tx).First(&r, "id=?", domainID).Error; err != nil {
 		return Domain{}, classify(err)
 	}
-	if err := s.directory.RequireBrandBranding(ctx, tx, actorID, r.BrandID); err != nil {
+	if err := s.directory.RequireBrandDomain(ctx, tx, actorID, r.BrandID, false); err != nil {
 		return Domain{}, err
 	}
 	return Domain(r), nil
 }
 
-// VerifyAndActivateDomain performs provider I/O before opening the database
-// transaction and then checks the observed version under a row lock. The
-// provider must verify both DNS ownership and TLS before host resolution works.
-func (s *Service) VerifyAndActivateDomain(ctx context.Context, actorID, domainID string, verifier DomainVerifier) (out Domain, err error) {
+// Verification never grants business access. Ownership is persisted before TLS
+// provisioning so Caddy may obtain the first certificate for this hostname.
+func (s *Service) VerifyDomain(ctx context.Context, actorID, domainID string, verifier DomainVerifier) (Domain, error) {
+	observed, err := s.GetDomain(ctx, nil, actorID, domainID)
+	if err != nil {
+		return Domain{}, err
+	}
+	return s.verifyDomain(ctx, actorID, observed, verifier)
+}
+func (s *Service) verifyDomain(ctx context.Context, actorID string, observed Domain, verifier DomainVerifier) (out Domain, err error) {
 	if verifier == nil {
 		return out, ErrVerificationUnavailable
 	}
-	observed, err := s.GetDomain(ctx, nil, actorID, domainID)
-	if err != nil {
-		return out, err
+	domainID := observed.ID
+	if v, ok := verifier.(interface {
+		VerifyOwnership(context.Context, string, string) (bool, error)
+	}); ok && observed.VerifiedAt == nil {
+		owned, e := v.VerifyOwnership(ctx, observed.Hostname, observed.VerificationToken)
+		if e != nil {
+			return out, e
+		}
+		if owned {
+			now := s.now()
+			before := observed
+			err = s.withTx(ctx, nil, func(tx *gorm.DB) error {
+				if actorID != uuid.Nil.String() {
+					if e := s.directory.RequireBrandDomain(ctx, tx, actorID, observed.BrandID, false); e != nil {
+						return e
+					}
+				}
+				res := tx.Model(&domainRow{}).Where("id=? AND version=?", observed.ID, observed.Version).Updates(map[string]any{"verified_at": now, "version": observed.Version + 1})
+				if res.Error != nil {
+					return res.Error
+				}
+				if res.RowsAffected != 1 {
+					return ErrConflict
+				}
+				observed.VerifiedAt = &now
+				observed.Version++
+				return s.audit(tx, actorID, observed.BrandID, "domain", observed.ID, "domain.ownership_verified", before, observed)
+			})
+			if err != nil {
+				return out, err
+			}
+		}
 	}
 	result, err := verifier.Verify(ctx, observed.Hostname, observed.VerificationToken)
 	if err != nil {
-		return out, err
+		result = DomainVerification{OwnershipVerified: observed.VerifiedAt != nil, ProviderReference: observed.ProviderReference, FailureReason: "Domain verification service is temporarily unavailable"}
 	}
+
 	err = s.withTx(ctx, nil, func(tx *gorm.DB) error {
 		var r domainRow
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&r, "id=?", domainID).Error; err != nil {
@@ -119,13 +156,16 @@ func (s *Service) VerifyAndActivateDomain(ctx context.Context, actorID, domainID
 		if r.Version != observed.Version || r.VerificationToken != observed.VerificationToken {
 			return ErrConflict
 		}
-		if err := s.directory.RequireBrandBranding(ctx, tx, actorID, r.BrandID); err != nil {
-			return err
+		if actorID != uuid.Nil.String() {
+			if err := s.directory.RequireBrandDomain(ctx, tx, actorID, r.BrandID, false); err != nil {
+				return err
+			}
 		}
 		before := Domain(r)
 		now := s.now()
 		r.CheckedAt = &now
 		r.TLSReady = result.TLSReady
+		r.RouteReady = result.RouteReady
 		r.ProviderReference = result.ProviderReference
 		r.ProviderStatus = result.ProviderStatus
 		r.TLSStatus = result.TLSStatus
@@ -139,16 +179,17 @@ func (s *Service) VerifyAndActivateDomain(ctx context.Context, actorID, domainID
 		}
 		r.FailureReason = result.FailureReason
 		r.Version++
-		if result.OwnershipVerified && strings.TrimSpace(result.ProviderReference) != "" {
+		if result.OwnershipVerified {
 			r.VerifiedAt = &now
 			r.Status = "verified"
-			if result.TLSReady {
+			if before.Status == "active" && result.TLSReady && result.RouteReady {
 				r.Status = "active"
 			}
 		} else {
 			r.VerifiedAt = nil
 			r.Status = "failed"
 			r.TLSReady = false
+			r.RouteReady = false
 			if r.FailureReason == "" {
 				r.FailureReason = "domain ownership verification failed"
 			}
@@ -172,11 +213,19 @@ func (s *Service) SetDomainEnabled(ctx context.Context, tx *gorm.DB, actorID, do
 		return out, ErrInvalidInput
 	}
 	err = s.withTx(ctx, tx, func(tx *gorm.DB) error {
+		// Serialize changes within one brand so replacing a hostname is atomic.
+		var binding domainRow
+		if e := tx.First(&binding, "id=?", domainID).Error; e != nil {
+			return e
+		}
+		if e := tx.Exec("SELECT id FROM organization_brands WHERE id=? FOR UPDATE", binding.BrandID).Error; e != nil {
+			return e
+		}
 		var r domainRow
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&r, "id=?", domainID).Error; err != nil {
 			return err
 		}
-		if err := s.directory.RequireBrandBranding(ctx, tx, actorID, r.BrandID); err != nil {
+		if err := s.directory.RequireBrandDomain(ctx, tx, actorID, r.BrandID, true); err != nil {
 			return err
 		}
 		if r.Version != expectedVersion {
@@ -184,8 +233,23 @@ func (s *Service) SetDomainEnabled(ctx context.Context, tx *gorm.DB, actorID, do
 		}
 		before := Domain(r)
 		if enabled {
-			if r.VerifiedAt == nil || !r.TLSReady || r.ProviderReference == "" {
+			if r.VerifiedAt == nil || !r.TLSReady || !r.RouteReady || r.ProviderReference == "" || r.CheckedAt == nil || s.now().Sub(*r.CheckedAt) > 10*time.Minute {
 				return ErrDomainUnverified
+			}
+			var previous []domainRow
+			if e := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("brand_id=? AND status='active' AND id<>?", r.BrandID, r.ID).Find(&previous).Error; e != nil {
+				return e
+			}
+			for _, old := range previous {
+				beforeOld := Domain(old)
+				old.Status = "disabled"
+				old.Version++
+				if e := tx.Save(&old).Error; e != nil {
+					return e
+				}
+				if e := s.audit(tx, actorID, r.BrandID, "domain", old.ID, "domain.replaced", beforeOld, Domain(old)); e != nil {
+					return e
+				}
 			}
 			r.Status = "active"
 		} else {
@@ -207,7 +271,7 @@ func (s *Service) ResolveHost(ctx context.Context, tx *gorm.DB, host string) (or
 		return organization.Brand{}, err
 	}
 	var r domainRow
-	if err = s.dbFor(ctx, tx).First(&r, "hostname=? AND status='active' AND verified_at IS NOT NULL AND tls_ready=true", host).Error; err != nil {
+	if err = s.dbFor(ctx, tx).First(&r, "hostname=? AND status='active' AND verified_at IS NOT NULL AND tls_ready=true AND route_ready=true", host).Error; err != nil {
 		return organization.Brand{}, classify(err)
 	}
 	b, err := s.directory.GetBrand(ctx, tx, r.BrandID)
@@ -218,4 +282,42 @@ func (s *Service) ResolveHost(ctx context.Context, tx *gorm.DB, host string) (or
 		return organization.Brand{}, ErrNotFound
 	}
 	return b, nil
+}
+
+// TLSBinding is intentionally less restrictive than ResolveHost: it authorizes
+// certificates and a proof response only, never customer or operator requests.
+func (s *Service) TLSBinding(ctx context.Context, host string) (Domain, error) {
+	host, e := NormalizeHost(host)
+	if e != nil {
+		return Domain{}, e
+	}
+	var r domainRow
+	e = s.dbFor(ctx, nil).Where("hostname=? AND verified_at IS NOT NULL", host).First(&r).Error
+	if e != nil {
+		return Domain{}, classify(e)
+	}
+	b, e := s.directory.GetBrand(ctx, nil, r.BrandID)
+	if e != nil {
+		return Domain{}, e
+	}
+	if b.Status != "active" {
+		return Domain{}, ErrNotFound
+	}
+	return Domain(r), nil
+}
+func (s *Service) PendingDomainChecks(ctx context.Context) ([]Domain, error) {
+	var rows []Domain
+	e := s.dbFor(ctx, nil).Table("branding_domains").Where("status IN ('pending','failed','verified') AND (checked_at IS NULL OR checked_at < ?)", s.now().Add(-5*time.Minute)).Order("checked_at ASC NULLS FIRST,id").Limit(20).Find(&rows).Error
+	return rows, e
+}
+func (s *Service) CheckPendingDomain(ctx context.Context, id string, verifier DomainVerifier) error {
+	var r domainRow
+	if e := s.dbFor(ctx, nil).First(&r, "id=?", id).Error; e != nil {
+		return classify(e)
+	}
+	if r.Status == "disabled" || r.Status == "active" {
+		return nil
+	}
+	_, e := s.verifyDomain(ctx, uuid.Nil.String(), Domain(r), verifier)
+	return e
 }

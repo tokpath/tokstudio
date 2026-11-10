@@ -41,7 +41,7 @@ func (f *testApp) seedPlatformSimulation(t *testing.T, lab string) map[string]an
 		return map[string]any{"id": row.ID, "email": email, "password": password}
 	}
 	tech := staff("platform-tech@simulation.test", "技术管理员仿真", []string{"organization.read", "catalog.manage"})
-	brand := staff("platform-brand@simulation.test", "品牌管理员仿真", []string{"organization.read", "branding.manage_oem", "branding.manage_channels"})
+	brand := staff("platform-brand@simulation.test", "品牌管理员仿真", []string{"organization.read", "branding.manage", "domains.manage"})
 	restricted := staff("platform-restricted@simulation.test", "受限员工仿真", []string{"organization.read", "staff.read", "reports.summary"})
 	create := func(kind organization.OperatorKind, name string) organization.Operator {
 		t.Helper()

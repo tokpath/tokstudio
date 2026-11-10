@@ -19,14 +19,14 @@ export const operatorNav: readonly NavigationSection[] = [
   { id: "products", group: "商品与定价", items: [["plans", "套餐与续费"], ["pricing", "模型与定价"]] },
   { id: "marketing", group: "营销与推广", items: [["marketing", "活动管理"], ["commissions", "邀请与分佣"], ["gifts", "赠送与补偿"]] },
   { id: "finance", group: "资金办理", items: [["orders", "订单与交付"], ["payments", "收款办理"], ["balance-withdrawals", "余额提现"], ["refunds", "退款与冲正"], ["disputes", "争议与扣回"], ["invoices", "票据办理"], ["reconciliation", "对账与差额"], ["ledger", "资产与账本"]] },
-  { id: "cooperation", group: "采购与合作", items: [["operators", "下属经营方"], ["procurement", "采购与供货"], ["contracts", "合作合同"], ["coverage", "履约与超卖"], ["alerts", "风险预警"], ["takeovers", "停业与接管"], ["branding", "品牌外观"], ["domains", "品牌域名"], ["channel-themes", "渠道外观"]] },
+  { id: "cooperation", group: "采购与合作", items: [["operators", "下属经营方"], ["procurement", "采购与供货"], ["contracts", "合作合同"], ["coverage", "履约与超卖"], ["alerts", "风险预警"], ["takeovers", "停业与接管"]] },
   { id: "reports", group: "报表", items: [["reports", "经营报表"], ["exports", "数据导出"]] },
-  { id: "settings", group: "设置", items: [["business-status", "营业设置"], ["payment-methods", "支付方式与手续费"], ["payment-quotes", "付款报价来源"], ["staff", "人员与权限"], ["restrictions", "业务限制"], ["notifications", "通知管理"], ["audit", "操作审计"], ["mail", "邮件服务"]] },
+  { id: "settings", group: "设置", items: [["branding", "品牌外观"], ["channel-themes", "渠道外观"], ["domains", "品牌域名"], ["business-status", "营业设置"], ["payment-methods", "支付方式与手续费"], ["payment-quotes", "付款报价来源"], ["staff", "人员与权限"], ["restrictions", "业务限制"], ["notifications", "通知管理"], ["audit", "操作审计"], ["mail", "邮件服务"]] },
   { id: "technology", group: "平台技术", items: [["catalog", "公开模型"], ["providers", "模型供应商"], ["routes", "路由配置"], ["bifrost", "Bifrost 设置"], ["supplier-costs", "真实上游成本"], ["requests", "调用与成本核实"], ["jobs", "任务恢复"], ["payment-assets", "支付资产与网络"]] },
 ];
 export const operatorSections = operatorNav;
 const platformOnly = new Set(["catalog", "providers", "routes", "requests", "jobs", "payment-assets", "bifrost", "supplier-costs"]);
-const parentOnly = new Set(["operators", "channel-themes", "domains"]);
+const parentOnly = new Set(["operators", "branding", "domains"]);
 type Workspace = { operator: { kind: string }; permissions: readonly string[] };
 export function staffNotificationPath(workspaces: readonly (Workspace & { operator: { id: string } })[], pathname: string, activeOperatorID?: string): string | undefined {
   const current = workspaces.find(item => pathname === `/manage/${item.operator.id}` || pathname.startsWith(`/manage/${item.operator.id}/`));
@@ -38,6 +38,7 @@ export function canReadResource(workspace: Workspace | undefined, resource: stri
   if (!workspace) return false;
   const base = resource.split("/")[0];
   if (["alerts", "procurement-invoices"].includes(base) && workspace.operator.kind === "platform") return false;
+  if (base === "channel-themes" && workspace.operator.kind !== "channel") return false;
   if (platformOnly.has(base) && workspace.operator.kind !== "platform") return false;
   if (parentOnly.has(base) && workspace.operator.kind === "channel") return false;
   return workspace.permissions.includes("*") || workspace.permissions.includes(`${base}.read`);

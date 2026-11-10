@@ -19,6 +19,7 @@ async function businessAPI(page: Page, financeOnly = false, uncertainAllocation 
     let data: unknown = resource("业务记录");
     if (path === "/api/v1/public/context") data = { brand, operator, theme: {}, availability: [], payment_methods: [] };
     else if (path === "/api/v1/auth/me") data = { kind: "staff", staff: { id: "staff-one", email: "owner@example.test", display_name: "经营负责人" }, workspaces: [{ operator, permissions: financeOnly ? ["orders.read", "payments.read", "payments.manage"] : ["*"] }], active_operator_id: operator.id, csrf_token: "csrf_operator_test" };
+    else if (path === "/api/v1/auth/language") { expect(req.method()).toBe("POST"); expect(req.postDataJSON()).toEqual({operator_id:operator.id,language:"zh"}); data = {id:"staff-one",status:"saved"}; }
     else if (req.method() === "POST") {
       const body = req.postDataJSON();
       mutations.push({ path, body, key: req.headers()["idempotency-key"] });

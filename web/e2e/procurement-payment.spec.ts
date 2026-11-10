@@ -12,6 +12,7 @@ test("an unknown procurement payment recovers from the original order and releas
     let code = 200;
     if (url.pathname === "/api/v1/public/context") out = { brand: { id: "brand-one", name: "TokenHub", api_base_url: "http://127.0.0.1/v1", theme: {} }, operator, theme: {}, monetary: { currency: "USD", atg_per_unit: "1", status: "locked", version: 1 }, availability: [], payment_methods: [] };
     else if (url.pathname === "/api/v1/auth/me") out = { kind: "staff", staff: { id: "staff-one", email: "oem@tokenhub.local", display_name: "OEM 负责人" }, workspaces: [{ operator, permissions: ["*"] }], active_operator_id: operator.id, csrf_token: "csrf_test" };
+    else if (url.pathname === "/api/v1/auth/language") { expect(req.method()).toBe("POST"); expect(req.postDataJSON()).toEqual({operator_id:operator.id,language:"zh"}); out = {id:"staff-one",status:"saved"}; }
     else if (req.method() === "POST") {
       posts.push(url.pathname);
       code = 409;

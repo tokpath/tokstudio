@@ -13,6 +13,7 @@ test("procurement has real filters, exact purchase previews and a named tier edi
   const operator={id:"operator-one",name:"山海经营方",legal_name:"山海服务主体",kind:"oem",brand_id:"brand-one"};
   if(path==="/api/v1/public/context")out={brand:{id:"brand-one",name:"山海",api_base_url:"http://127.0.0.1/v1",theme:{}},operator,theme:{},monetary:{currency:"CNY",atg_per_unit:"2.5",status:"locked",version:1},availability:[],payment_methods:[]};
   else if(path==="/api/v1/auth/me")out={kind:"staff",staff:{id:"staff-one",email:"admin@tokenhub.local",display_name:"负责人"},workspaces:[{operator,permissions:["*"]}],active_operator_id:operator.id,csrf_token:"csrf_test"};
+  else if(path==="/api/v1/auth/language") {expect(req.method()).toBe("POST");expect(req.postDataJSON()).toEqual({operator_id:operator.id,language:"zh"});out={id:"staff-one",status:"saved"};}
   else if(req.method()==="POST") {writes.push({path,body:req.postDataJSON()});out={id:"created-record",status:"published"};}
   else if(path===`${base}/references/buyers`)out={items:[{value:"buyer-one",label:"直属渠道",defaults:{buyer_id:"buyer-one"}}]};
   else if(path===`${base}/procurement`){

@@ -214,7 +214,7 @@ func TestPostgresDomainRequiresOwnershipAndTLSAndUniqueBinding(t *testing.T) {
 	}
 }
 
-func TestPostgresThemeScopeInheritanceAndHistory(t *testing.T) {
+func TestPostgresThemeScopeInheritanceWithoutPerSaveHistory(t *testing.T) {
 	f := setup(t)
 	official, officialOwner := f.child(t, f.platform, f.owner, organization.Channel)
 	o, oOwner := f.child(t, f.platform, f.owner, organization.OEM)
@@ -258,8 +258,8 @@ func TestPostgresThemeScopeInheritanceAndHistory(t *testing.T) {
 		t.Fatalf("cross brand theme context: %v", err)
 	}
 	var count int64
-	if err = f.db.Table("branding_changes").Count(&count).Error; err != nil || count != 5 {
-		t.Fatalf("configuration history count=%d err=%v", count, err)
+	if err = f.db.Table("branding_changes").Count(&count).Error; err != nil || count != 0 {
+		t.Fatalf("unexpected per-save appearance history count=%d err=%v", count, err)
 	}
 	if _, err = f.s.SetBrandTheme(f.ctx, nil, SetThemeInput{ActorStaffID: f.owner, TargetID: f.platform.Brand.ID, ExpectedVersion: 1, Values: ThemeOverrides{}}); !errors.Is(err, ErrConflict) {
 		t.Fatalf("stale theme update: %v", err)

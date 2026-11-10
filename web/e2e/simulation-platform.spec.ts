@@ -217,63 +217,51 @@ test("technical administrator configures a real provider, verified model and rou
   } finally { await techContext.close(); await ownerContext.close(); await customerContext.close(); }
 });
 
-test("brand administrator edits OEM and channel appearance, uploads a logo and keeps an unverified domain inactive", async ({ browser }, testInfo) => {
+test("brand administrator edits its own appearance and cannot manage child appearance or register OEM domains", async ({ browser }, testInfo) => {
   test.setTimeout(180_000);
   const fixture = JSON.parse(readFileSync(fixturePath!, "utf8")), p = fixture.personas.platform, base = `/api/v1/operators/${p.operator_id}`;
   const context = await browser.newContext(), page = await context.newPage(); page.setDefaultTimeout(20_000);
   try {
     await login(page, p.brand);
     await page.goto(`/manage/${p.operator_id}/branding`);
-    const oem = page.getByRole("row").filter({ hasText: "平台品牌仿真OEM" });
-    let dialog = await panel(page, "编辑网站外观", oem);
-    await control(dialog, "主色（留空继承", false).fill("#3159A8");
-    await control(dialog, "客户支持URL", false).fill("https://support.example.test/platform-simulation");
-    const saved = await submit(page, dialog, "编辑网站外观", `${base}/branding`); await close(dialog);
+    let dialog = await panel(page, "编辑网站外观");
+    await control(dialog, "主色", true).fill("#3159a8");
+    await control(dialog, "客户支持网址（可选）", true).fill("https://support.example.test/platform-simulation");
+    const saved = await submit(page, dialog, "保存外观", `${base}/branding`); await close(dialog);
     expect((await replay(page, saved)).status()).toBe(200); expect((await replay(page, saved, true)).status()).toBe(409);
-    dialog = await panel(page, "编辑网站外观", oem);
-    await expect(control(dialog, "主色（留空继承", false)).toHaveValue("#3159A8");
-    await control(dialog, "背景色（留空继承）", false).fill("#F4F6FB");
-    await submit(page, dialog, "编辑网站外观", `${base}/branding`); await close(dialog);
-    dialog = await panel(page, "上传目标Logo", oem);
+    dialog = await panel(page, "编辑网站外观");
+    await expect(control(dialog, "主色", true)).toHaveValue("#3159a8");
+    await control(dialog, "背景色", true).fill("#f4f6fb");
     const logoBytes = await page.screenshot({ clip: { x: 0, y: 0, width: 32, height: 32 } });
-    await dialog.locator('input[type="file"]').setInputFiles({ name: "simulation-logo.png", mimeType: "image/png", buffer: logoBytes });
-    const logo = await (await submit(page, dialog, "上传目标Logo", `${base}/branding/logo`)).json(); await close(dialog);
-    dialog = await panel(page, "编辑网站外观", oem);
-    await control(dialog, "已上传Logo地址", false).fill(logo.asset.url);
-    await submit(page, dialog, "编辑网站外观", `${base}/branding`); await close(dialog);
-    const brands = await (await page.request.get(`${base}/branding`)).json(), branded = brands.items.find((row: any) => row.id === p.oem_id);
-    expect(branded.values.effective_theme.primary_color).toBe("#3159A8"); expect(branded.values.effective_theme.logo_url).toBe(logo.asset.url);
-
-    await page.goto(`/manage/${p.operator_id}/channel-themes`);
-    const channel = page.getByRole("row").filter({ hasText: "平台品牌仿真渠道" });
-    dialog = await panel(page, "编辑网站外观", channel);
-    await control(dialog, "主色（留空继承", false).fill("#9B3C5C");
-    await submit(page, dialog, "编辑网站外观", `${base}/channel-themes`); await close(dialog);
-    dialog = await panel(page, "编辑网站外观", channel);
-    await expect(control(dialog, "主色（留空继承", false)).toHaveValue("#9B3C5C");
-    await control(dialog, "主色（留空继承", false).fill("");
-    await submit(page, dialog, "编辑网站外观", `${base}/channel-themes`); await close(dialog);
-    const channels = await (await page.request.get(`${base}/channel-themes`)).json(), inherited = channels.items.find((row: any) => row.id === p.channel_id);
-    expect(inherited.values.primary_color).toBeFalsy();
-    const publicContext = await (await page.request.get("/api/v1/public/context")).json();
-    expect(inherited.values.effective_theme.primary_color).toBe(publicContext.theme.primary_color);
+    const uploaded = page.waitForResponse(response => new URL(response.url()).pathname === `${base}/branding/logo` && response.request().method() === "POST");
+    await dialog.getByLabel("网站 Logo", { exact: true }).setInputFiles({ name: "simulation-logo.png", mimeType: "image/png", buffer: logoBytes });
+    const uploadResponse = await uploaded;
+    expect(uploadResponse.status()).toBe(200);
+    const logo = await uploadResponse.json();
+    await expect(dialog.getByRole("button", { name: "保存外观", exact: true })).toBeEnabled();
+    await submit(page, dialog, "保存外观", `${base}/branding`); await close(dialog);
+    const brands = await (await page.request.get(`${base}/branding`)).json();
+    expect(brands.items).toHaveLength(1);
+    const branded = brands.items[0];
+    expect(branded.id).toBe(p.operator_id);
+    expect(branded.values.effective_theme.primary_color).toBe("#3159a8");
+    expect(branded.values.effective_theme.logo_url).toBe(logo.asset.url);
+    expect((await page.request.get(`/api/v1/operators/${p.oem_id}/branding`)).status()).toBe(403);
+    expect((await page.request.get(`/api/v1/operators/${p.channel_id}/channel-themes`)).status()).toBe(403);
+    expect((await page.request.get(`${base}/channel-themes`)).status()).toBe(404);
 
     await page.goto(`/manage/${p.operator_id}/domains`);
-    dialog = await panel(page, "申请域名验证");
-    await chooseControl(dialog.getByRole("combobox", { name: "目标品牌经营方", exact: false }), p.oem_id);
-    const hostname = `simulation-${randomUUID()}.example.test`;
-    await control(dialog, "品牌域名", false).fill(hostname);
-    const domain = await (await submit(page, dialog, "申请域名验证", `${base}/domains`)).json(); await close(dialog);
-    const domainRow = page.getByRole("row").filter({ hasText: hostname });
-    await expect(domainRow.getByRole("button", { name: "启用已验证域名" })).toHaveCount(0);
-    dialog = await panel(page, "检查DNS与TLS", domainRow);
-    const checked = await (await submit(page, dialog, "检查DNS与TLS", `${base}/domains/${domain.id}/verify`)).json();
-    expect(checked.status).toBe("failed"); await close(dialog);
-    await expect(domainRow.getByRole("button", { name: "启用已验证域名" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "品牌域名", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "登记品牌域名", exact: true })).toHaveCount(0);
+    const denied = await page.request.post(`${base}/domains`, {
+      data: { target_operator_id: p.oem_id, hostname: `simulation-${randomUUID()}.example.test` },
+      headers: { "X-CSRF-Token": saved.request().headers()["x-csrf-token"], "Idempotency-Key": randomUUID() },
+    });
+    expect(denied.status()).toBe(403);
     expect((await page.request.get(`/api/v1/operators/${p.oem_id}/customers`)).status()).toBe(403);
     expect((await page.request.get(`${base}/payments`)).status()).toBe(403);
-    await page.screenshot({ path: testInfo.outputPath("platform-brand-domain-pending.png"), fullPage: true });
-    await evidence(testInfo, "platform-brand-facts", { oem: p.oem_id, logo_url: logo.asset.url, channel: p.channel_id, inherits_brand_color: true, domain_id: domain.id, hostname, dns_status: checked.status, denied_child_customers: true, denied_payments: true });
+    await page.screenshot({ path: testInfo.outputPath("platform-own-appearance-and-domain-management.png"), fullPage: true });
+    await evidence(testInfo, "platform-brand-facts", { operator: p.operator_id, logo_url: logo.asset.url, denied_child_appearance: true, denied_register_oem_domain: true, denied_child_customers: true, denied_payments: true });
   } finally { await context.close(); }
 });
 

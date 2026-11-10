@@ -2,7 +2,7 @@
 import { useI18n, LanguageControl } from "@/components/i18n";
 import Link from "next/link";
 import { allowNavigation } from "@/lib/navigation-guard";
-import { createContext, useContext, useEffect, useRef, type ReactNode, type CSSProperties } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeSchema, PublicContextSchema, SessionSchema, CommandResultSchema, type PublicContext, type Session } from "@/lib/contracts";
@@ -47,19 +47,44 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const previousTransitions=useRef(transitions);
   useEffect(()=>{if(previousTransitions.current&&previousTransitions.current!==transitions) void cache.invalidateQueries({predicate:q=>!["session","public-context"].includes(String(q.queryKey[0]))});previousTransitions.current=transitions;},[cache,transitions]);
   const current = session.data;
-  const presentationOperator = current?.kind === "customer" ? current.operator : context.data?.operator;
-  const theme = ThemeSchema.parse(resolveTheme(resolveTheme(context.data?.brand.theme, presentationOperator?.theme), current?.kind === "customer" ? current.operator.theme : context.data?.theme));
-  const style = { ...(theme.primary_color ? { "--oem-brand": theme.primary_color, "--brand": theme.primary_color, "--brand-primary": theme.primary_color, "--on-brand": brandForeground(theme.primary_color), "--on-brand-press": brandForeground(theme.accent_color || "#2452ca"), "--brand-soft": `color-mix(in srgb, ${theme.primary_color} 12%, var(--canvas-raised))` } : {}), ...(theme.accent_color ? { "--oem-brand-press": theme.accent_color, "--brand-press": theme.accent_color, "--on-brand-press": brandForeground(theme.accent_color) } : {}), ...(theme.background_color ? { "--branding-background": theme.background_color } : {}), ...(theme.text_color ? { "--branding-text": theme.text_color } : {}) } as CSSProperties;
-  const rawLogo = safeAssetURL(theme.logo_url);const logo=rawLogo?.startsWith("/v1/branding/assets/")?`/api${rawLogo}?operator_id=${encodeURIComponent(presentationOperator?.id||"")}`:rawLogo;
- const activeStaffWorkspace = current?.kind === "staff" ? current.workspaces.find(item => pathname.startsWith(`/manage/${item.operator.id}/`)) : undefined;
- const actualOperator = current?.kind === "customer" ? current.operator : activeStaffWorkspace?.operator || context.data?.operator;
+  const activeStaffWorkspace = current?.kind === "staff" ? current.workspaces.find(item => pathname === `/manage/${item.operator.id}` || pathname.startsWith(`/manage/${item.operator.id}/`)) : undefined;
+  const presentationOperator = current?.kind === "customer" ? current.operator : activeStaffWorkspace?.operator || context.data?.operator;
+  // Staff may enter another brand's workspace through the shared login host.
+  // Its session already carries that workspace's resolved brand/channel theme.
+  const theme = ThemeSchema.parse(activeStaffWorkspace
+    ? activeStaffWorkspace.operator.theme ?? (activeStaffWorkspace.operator.brand_id === context.data?.brand.id ? context.data?.theme : {})
+    : current?.kind === "customer" ? resolveTheme(current.brand.theme, current.operator.theme)
+    : resolveTheme(context.data?.brand.theme, context.data?.theme));
+  const style = useMemo(() => ({ ...(theme.primary_color ? { "--oem-brand": theme.primary_color, "--brand": theme.primary_color, "--brand-primary": theme.primary_color, "--on-brand": brandForeground(theme.primary_color), "--on-brand-press": brandForeground(theme.accent_color || "#2452ca"), "--brand-soft": `color-mix(in srgb, ${theme.primary_color} 12%, var(--canvas-raised))` } : {}), ...(theme.accent_color ? { "--oem-brand-press": theme.accent_color, "--brand-press": theme.accent_color, "--on-brand-press": brandForeground(theme.accent_color) } : {}), ...(theme.background_color ? { "--branding-background": theme.background_color } : {}), ...(theme.text_color ? { "--branding-text": theme.text_color } : {}) }) as CSSProperties, [theme.primary_color, theme.accent_color, theme.background_color, theme.text_color]);
+  useEffect(() => {
+    // Dialogs render under body, outside the page wrapper. Give them the same
+    // theme, and remove the previous workspace's values when switching/logout.
+    const body = document.body, hadTheme = body.classList.contains("product-theme-root");
+    const previous = Object.keys(style).map(key => [key, body.style.getPropertyValue(key), body.style.getPropertyPriority(key)]);
+    body.classList.add("product-theme-root");
+    for (const [key, value] of Object.entries(style)) body.style.setProperty(key, String(value));
+    return () => {
+      for (const [key, value, priority] of previous) {
+        if (value) body.style.setProperty(key, value, priority); else body.style.removeProperty(key);
+      }
+      if (!hadTheme) body.classList.remove("product-theme-root");
+    };
+  }, [style]);
+  const rawLogo = safeAssetURL(theme.logo_url);
+  const logo = rawLogo?.startsWith("/v1/branding/assets/")
+    ? activeStaffWorkspace
+      ? `/api/v1/operators/${encodeURIComponent(activeStaffWorkspace.operator.id)}/branding/assets/${rawLogo.split("/")[4]}/content`
+      : `/api${rawLogo}?operator_id=${encodeURIComponent(presentationOperator?.id || "")}`
+    : rawLogo;
+  const actualOperator = presentationOperator;
+  const presentationName = activeStaffWorkspace?.operator.name || (current?.kind === "customer" ? current.brand.name : context.data?.brand.name) || "TokenHub";
 
   return <Context.Provider value={{ context: context.data, session: current, sessionError: session.error, reload: () => { void context.refetch(); void session.refetch(); } }}>
     <MonetaryProvider value={context.data?.monetary}><div style={style} className="product-theme min-h-screen bg-canvas text-ink">
       <a href={insideWorkspace ? "#workspace-content" : "#site-content"} className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-canvas-raised focus:px-4 focus:py-3">{t("跳到页面内容")}</a>
       <header className={insideWorkspace ? "th-app-header" : "border-b border-hairline bg-canvas-raised"}>
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3 lg:px-8">
-          <Link href="/" className="flex shrink-0 items-center gap-3 whitespace-nowrap font-semibold tracking-tight">{logo ? <img alt="" src={logo} className="h-8 w-8 object-contain" /> : <span className="grid size-8 place-items-center rounded-[10px] bg-brand text-sm text-on-brand shadow-sm">T</span>}<span>{context.data?.brand.name || "TokenHub"}</span></Link>
+          <Link href="/" className="flex shrink-0 items-center gap-3 whitespace-nowrap font-semibold tracking-tight">{logo ? <img alt="" src={logo} className="h-8 w-8 object-contain" /> : <span className="grid size-8 place-items-center rounded-[10px] bg-brand text-sm text-on-brand shadow-sm">T</span>}<span>{presentationName}</span></Link>
           <nav aria-label={t("网站")} className={`${insideWorkspace ? "hidden xl:flex" : "order-3 flex w-full sm:order-none sm:w-auto"} items-center gap-5 whitespace-nowrap text-sm text-ink-secondary sm:flex-1`}><Link className="th-header-link" href="/models" aria-current={pathname === "/models" ? "page" : undefined}>{t("模型与价格")}</Link><Link className="th-header-link" href="/plans" aria-current={pathname === "/plans" ? "page" : undefined}>{t("通用套餐")}</Link></nav>
           {current?.kind === "customer" ? <div className="ml-auto flex min-w-0 flex-wrap items-center gap-3 text-[13px]"><Link href="/workspace">{t("客户工作台")}</Link><span className="hidden max-w-36 truncate text-ink-secondary md:inline">{current.customer.display_name}</span><Logout /></div> : current?.kind === "staff" ? <div className="ml-auto flex min-w-0 flex-wrap items-center gap-3 text-[13px]"><Link href={current.workspaces.length ? operatorLanding(current.workspaces.find(item => item.operator.id === current.active_operator_id) || current.workspaces[0]) : "/login"}>{t("经营管理")}</Link><span className="hidden max-w-36 truncate text-ink-secondary md:inline">{current.staff.display_name}</span><Logout /></div> : <div className="ml-auto flex shrink-0 items-center gap-4 text-sm"><Link href="/login">{t("登录")}</Link><Button asChild size="sm"><Link href="/register">{t("创建账号")}</Link></Button></div>}
           <LanguageControl /><ThemeControl />

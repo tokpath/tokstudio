@@ -117,6 +117,8 @@ cd web && npm run build && npx playwright test
 
 「设置」中的品牌外观（平台/OEM）和渠道外观（渠道）仅管理自身。Logo 直接在编辑面板上传并随外观保存；上级没有下级外观写入或查询权限。OEM 在自己的品牌域名页登记域名，平台在自己的品牌域名页查看 OEM 接入结果并启停。
 
+从统一登录入口进入管理后台时，整页及办理面板使用当前工作区的外观，保存后立即刷新；切换经营方时同步切换，公开网站仍按访问域名展示。普通员工也能看到本工作区已生效的 Logo，不需要外观编辑权限。
+
 域名接入设施由平台技术人员一次配置：直连 Caddy 使用 `deploy/Caddyfile` 的 on-demand TLS 与 `/.well-known/` 转发；Cloudflare for SaaS 使用现有 `TOKENHUB_CLOUDFLARE_*` 配置并设置正确 fallback origin。`TOKENHUB_DOMAIN_CNAME_TARGET` 指定对 OEM 展示的统一 CNAME 接入地址，缺省沿用 Cloudflare CNAME 配置。不得把未配置的接入地址显示为可用。根域名不支持 CNAME 时，DNS 服务商需提供别名展开或改用子域名。
 
 测试站的共享外层 Caddy 只接入已配置的主机名；新增真实 OEM 域名前，需要平台在外层网关完成相应接入，不能只修改应用内层 Caddy，也不应增加影响其他应用的兜底路由。DNS/TLS/品牌路由验证完成后仍需平台手动启用。后台每五分钟复查待接入域名，页面也可重新检查。验证不产生业务启用授权，停用后的检查不能恢复营业入口。

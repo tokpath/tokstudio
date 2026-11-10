@@ -1,12 +1,20 @@
 package portal
 
 import (
+	"bytes"
 	"context"
-	"github.com/google/uuid"
-	"github.com/tokpath/tokstudio/backend/internal/branding"
+	"image"
+	"image/png"
+	"io"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/branding"
+	"github.com/tokpath/tokstudio/backend/internal/organization"
 )
 
 func TestPostgresOwnAppearanceAndPlatformDomainActivation(t *testing.T) {
@@ -92,6 +100,80 @@ func TestPostgresOwnAppearanceAndPlatformDomainActivation(t *testing.T) {
 	if _, e := f.a.Branding.ResolveHost(ctx, nil, "own.example.test"); e != nil {
 		t.Fatal(e)
 	}
+}
+
+func TestPostgresWorkspaceLogoIsVisibleToMembersWithoutAppearanceEditPermission(t *testing.T) {
+	if os.Getenv("TOKENHUB_TEST_S3_ENDPOINT") == "" {
+		t.Skip("requires isolated S3 for real logo reads")
+	}
+	f := setupPortal(t)
+	ctx := t.Context()
+	roles := f.seedPaymentOperatorRoles(t)
+	oem, e := f.a.Organization.GetOperator(ctx, nil, roles[0]["operator"])
+	if e != nil {
+		t.Fatal(e)
+	}
+	var owner Staff
+	if e = f.a.DB.First(&owner, "email=?", roles[0]["email"]).Error; e != nil {
+		t.Fatal(e)
+	}
+	var data bytes.Buffer
+	if e = png.Encode(&data, image.NewRGBA(image.Rect(0, 0, 2, 2))); e != nil {
+		t.Fatal(e)
+	}
+	logo, e := f.a.Branding.UploadLogo(ctx, branding.UploadLogoInput{ActorStaffID: owner.ID, ScopeType: "brand", ScopeID: oem.BrandID, Filename: "workspace.png", ContentType: "image/png", Data: data.Bytes()})
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { _ = f.a.ObjectStore.Delete(context.Background(), "branding/logos/"+logo.ID) })
+	if _, e = f.a.Branding.SetBrandTheme(ctx, nil, branding.SetThemeInput{ActorStaffID: owner.ID, TargetID: oem.BrandID, Values: branding.ThemeOverrides{LogoURL: &logo.URL}}); e != nil {
+		t.Fatal(e)
+	}
+	reader := Staff{ID: uuid.NewString(), Email: "appearance-reader@example.test", DisplayName: "Reader", PasswordHash: owner.PasswordHash, Version: 1, Status: "active", EmailVerified: true, CreatedAt: time.Now()}
+	if e = f.a.DB.Create(&reader).Error; e != nil {
+		t.Fatal(e)
+	}
+	invitation, e := f.a.Organization.InviteStaff(ctx, nil, owner.ID, oem.ID, reader.Email, "readonly")
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = f.a.Organization.AcceptStaffInvitation(ctx, nil, invitation.Token, organization.VerifiedStaff{ID: reader.ID, Email: reader.Email, EmailVerified: true}); e != nil {
+		t.Fatal(e)
+	}
+	f.login(t, "staff", reader.Email, roles[0]["password"])
+	base := "/v1/operators/" + oem.ID
+	status, out, _ := f.call(t, "GET", "/v1/auth/me", nil, "")
+	mustOK(t, status, out)
+	workspace := out["workspaces"].([]any)[0].(map[string]any)
+	if workspace["operator"].(map[string]any)["theme"].(map[string]any)["logo_url"] != logo.URL {
+		t.Fatal("member session is missing its resolved logo")
+	}
+	read := func(path string, expected int) {
+		t.Helper()
+		r, e := f.client.Get(f.server.URL + path)
+		if e != nil {
+			t.Fatal(e)
+		}
+		defer r.Body.Close()
+		body, e := io.ReadAll(r.Body)
+		if e != nil || r.StatusCode != expected {
+			t.Fatal("logo response", r.StatusCode, expected, e)
+		}
+		if expected == 200 && (!bytes.Equal(body, data.Bytes()) || r.Header.Get("Content-Type") != "image/png") {
+			t.Fatal("logo content was not delivered")
+		}
+	}
+	path := base + "/branding/assets/" + logo.ID + "/content"
+	read(path, 200)
+	status, _, _ = f.call(t, "GET", base+"/branding", nil, "")
+	if status != 403 {
+		t.Fatal("viewing the header granted appearance management", status)
+	}
+	read("/v1/operators/"+f.a.Installation.OperatorID+"/branding/assets/"+logo.ID+"/content", 403)
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	read(path, 403)
+	f.login(t, "staff", roles[1]["email"], roles[1]["password"])
+	read("/v1/operators/"+roles[1]["operator"]+"/branding/assets/"+logo.ID+"/content", 200)
 }
 
 type ownershipVerifier struct {

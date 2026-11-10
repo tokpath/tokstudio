@@ -865,7 +865,7 @@
     "/v1/operators/{operatorId}/branding/assets/{id}/content": {
       "get": {
         "operationId": "get__v1_operators_operatorId_branding_assets_id_content",
-        "summary": "Preview the current logo in the own appearance workspace",
+        "summary": "Read the published logo for an authenticated member of this workspace",
         "tags": [
           "Operator browser API"
         ],
@@ -996,7 +996,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Requires an active staff membership in the exact workspace, including read-only staff. Does not grant appearance editing or access to another operator. Supports OEM and channel headers on a shared login hostname."
       }
     },
     "/v1/auth/login": {

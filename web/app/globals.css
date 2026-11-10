@@ -65,7 +65,8 @@ html.dark {
 
 /* Brand colors apply to the light surface; explicit dark mode keeps readable
    surfaces and retains the brand accent rather than inheriting a white canvas. */
-.product-theme {
+.product-theme,
+.product-theme-root {
   background-color: var(--canvas);
   color: var(--ink);
   --canvas: var(--branding-background, #f5f7fb);
@@ -76,7 +77,8 @@ html.dark {
   --surface-hover: color-mix(in srgb, var(--brand-primary) 5%, var(--canvas-raised));
   --shadow-panel: 0 24px 80px rgba(15, 28, 48, .18);
 }
-html.dark .product-theme {
+html.dark .product-theme,
+html.dark .product-theme-root {
   --canvas: #0e1625;
   --canvas-raised: #152033;
   --ink: #e8eef8;

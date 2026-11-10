@@ -74,8 +74,22 @@ func channelThemeID(op organization.Operator) string {
 }
 
 func (a *Application) ownLogo(c *gin.Context) {
-	op, _, ok := a.staffScope(c, "branding")
-	if !ok {
+	// Every active member may see their workspace's published appearance;
+	// editing permission is not required just to display its header Logo.
+	workspaces, e := a.Organization.MembershipsForStaff(c.Request.Context(), nil, subject(c).Staff.ID)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	var op organization.Operator
+	for _, workspace := range workspaces {
+		if workspace.Operator.ID == c.Param("operatorId") {
+			op = workspace.Operator
+			break
+		}
+	}
+	if op.ID == "" {
+		handleError(c, organization.ErrForbidden)
 		return
 	}
 	asset, data, e := a.Branding.PublicLogo(c.Request.Context(), op.BrandID, channelThemeID(op), c.Param("id"))

@@ -73,6 +73,23 @@ test("operator list, form and help keep keyboard access and mobile containment",
   await page.keyboard.press("Escape"); await expect(dialog).toHaveCount(0);
 });
 
+test("OEM workspace and portalled form use its own palette on the platform login host", async ({ page }) => {
+  const oemOperator = { ...operator, kind: "oem", brand_id: "oem-brand", name: "OEM 自有空间", theme: { primary_color: "#ba39e9", background_color: "#808080", text_color: "#172334" } };
+  await api(page, { ...staff, workspaces: [{ operator: oemOperator, permissions: ["*"] }] });
+  await page.goto(`/manage/${operator.id}/customers`);
+  await page.getByLabel("显示主题").selectOption("light");
+  const surface = page.locator(".product-theme");
+  await expect(page.getByRole("link", { name: oemOperator.name, exact: true })).toBeVisible();
+  await expect(surface).toHaveCSS("background-color", "rgb(128, 128, 128)");
+  await expect(page.getByRole("button", { name: "人工赠送与补偿", exact: true })).toHaveCSS("background-color", "rgb(186, 57, 233)");
+  await page.getByRole("button", { name: "人工赠送与补偿", exact: true }).click();
+  await expect(page.getByRole("dialog").last()).toHaveCSS("background-color", "rgb(128, 128, 128)");
+  await page.keyboard.press("Escape");
+  await page.getByRole("link", { name: "模型与价格", exact: true }).click();
+  await expect(surface).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.getByRole("link", { name: "T TokenHub", exact: true })).toBeVisible();
+});
+
 test("KVoucher clearly separates USD liability from MYR payment without opening a new order", async ({ page }, info) => {
   await api(page, customer); await page.goto("/workspace/orders?record=order-visual");
   await expect(page.getByLabel("80 USD", { exact: true }).first()).toBeVisible();

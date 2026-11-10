@@ -226,7 +226,7 @@ test("brand administrator edits its own appearance and cannot manage child appea
     await page.goto(`/manage/${p.operator_id}/branding`);
     let dialog = await panel(page, "编辑网站外观");
     await control(dialog, "主色", true).fill("#3159a8");
-    await control(dialog, "客户支持网址（可选）", true).fill("https://support.example.test/platform-simulation");
+    await expect(dialog.getByLabel("客户支持网址（可选）")).toHaveCount(0);
     const saved = await submit(page, dialog, "保存外观", `${base}/branding`); await close(dialog);
     expect((await replay(page, saved)).status()).toBe(200); expect((await replay(page, saved, true)).status()).toBe(409);
     dialog = await panel(page, "编辑网站外观");

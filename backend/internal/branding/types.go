@@ -88,14 +88,12 @@ type ThemeOverrides struct {
 	BackgroundColor *string `json:"background_color,omitempty"`
 	TextColor       *string `json:"text_color,omitempty"`
 	LogoURL         *string `json:"logo_url,omitempty"`
-	SupportURL      *string `json:"support_url,omitempty"`
 }
 type Theme struct {
 	PrimaryColor    string `json:"primary_color"`
 	BackgroundColor string `json:"background_color"`
 	TextColor       string `json:"text_color"`
 	LogoURL         string `json:"logo_url"`
-	SupportURL      string `json:"support_url"`
 }
 type ThemeConfig struct {
 	BrandID   string         `json:"brand_id"`
@@ -104,6 +102,7 @@ type ThemeConfig struct {
 	Values    ThemeOverrides `json:"values"`
 	Version   int64          `json:"version"`
 	UpdatedAt time.Time      `json:"updated_at"`
+	UpdatedBy string         `json:"updated_by"`
 }
 type ThemeContext struct {
 	Brand          organization.Brand    `json:"brand"`

@@ -253,6 +253,7 @@ func (a *Application) operatorRoutes(r *gin.RouterGroup) {
 	r.POST("/invoices/:id/files", a.uploadInvoiceFile)
 	r.DELETE("/invoices/:id/files/:fileID", a.deleteInvoiceFile)
 	r.POST("/:resource/:id/replacement", a.replaceInvoice)
+	r.POST("/mail/test", a.testMail)
 	r.POST("/branding/logo", a.uploadLogo)
 	r.GET("/branding/assets/:id/content", a.ownLogo)
 	r.GET("/:resource", a.operatorResource)
@@ -262,7 +263,7 @@ func (a *Application) operatorRoutes(r *gin.RouterGroup) {
 }
 func permissionFor(resource string) string {
 	switch resource {
-	case "overview", "reports", "audit":
+	case "overview", "reports":
 		return "reports.view"
 	case "customers":
 		return "customers.read"
@@ -329,7 +330,7 @@ func (a *Application) staffScope(c *gin.Context, resource string) (organization.
 		fail(c, 404, "not_found", "经营资源不存在", false)
 		return op, actor, false
 	}
-	if strings.HasPrefix(permission, "platform.") || resource == "catalog" || resource == "providers" || resource == "routes" || resource == "payment-assets" || resource == "bifrost" || resource == "supplier-costs" {
+	if strings.HasPrefix(permission, "platform.") || resource == "catalog" || resource == "providers" || resource == "routes" || resource == "payment-assets" || resource == "bifrost" || resource == "supplier-costs" || resource == "payment-quotes" {
 		if op.ID != a.Installation.OperatorID {
 			fail(c, 403, "platform_required", "此能力只由平台维护", false)
 			return op, actor, false
@@ -351,9 +352,6 @@ func (a *Application) staffScope(c *gin.Context, resource string) (organization.
 	// channel execution is likewise a payment action inside the refund workspace.
 	if resource == "takeovers" && c.Request.Method == "GET" {
 		e = a.Organization.RequireTakeoverRead(c.Request.Context(), nil, actor, op.ID)
-	}
-	if e != nil && resource == "audit" {
-		e = a.permitAny(c, actor, op.ID, "ledger.read", "branding.manage")
 	}
 	if e != nil && resource == "refunds" {
 		e = a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, "payments.manage")
@@ -432,9 +430,6 @@ func (a *Application) operatorResource(c *gin.Context) {
 		return
 	case "requests":
 		a.platformRequestsResource(c, op, actor, p)
-		return
-	case "audit":
-		a.auditResource(c, op, actor, p)
 		return
 	case "disputes":
 		a.disputesResource(c, op, actor, p, base)
@@ -681,6 +676,12 @@ func (a *Application) operatorResource(c *gin.Context) {
 			readiness = append(readiness, gin.H{"feature": feature, "requirements": checks})
 		}
 		v["readiness"] = readiness
+		history, e := a.settingHistory(c, op.ID, "business.status_changed", "")
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		v["change_history"] = history
 		items = append(items, entity(op.ID, op.Lifecycle, row.Version, v))
 		p["columns"] = []gin.H{col("registration", "注册", "boolean"), col("new_purchase", "新购", "boolean"), col("renewal", "续费", "boolean"), col("model_usage", "调用", "boolean"), col("activity", "营销", "boolean"), col("settlement", "结算", "boolean")}
 		p["search_supported"], p["status_supported"] = false, false
@@ -714,6 +715,12 @@ func (a *Application) operatorResource(c *gin.Context) {
 			v := values(row)
 			v["display_name"], v["email"] = person.DisplayName, person.Email
 			v["grants"] = strings.Join(grants, ",")
+			history, e := a.settingHistory(c, op.ID, "staff.membership_changed", row.StaffID)
+			if e != nil {
+				handleError(c, e)
+				return
+			}
+			v["change_history"] = history
 			items = append(items, entity(row.ID, row.Status, 1, v))
 		}
 		p["columns"] = []gin.H{col("display_name", "人员", "text"), col("email", "邮箱", "text"), col("role", "角色", "text"), col("status", "状态", "status")}

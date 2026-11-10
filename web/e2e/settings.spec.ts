@@ -65,7 +65,8 @@ test("owner manages business switches, scoped restrictions, staff permissions an
   await panel.getByRole("button", { name: "关闭办理面板", exact: true }).click();
   await expect(page.getByRole("row").filter({ hasText: "Browser readable notice" })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("settings-readable-notifications.png"), fullPage: true });
-  await page.goto(`${root}/audit`);
-  await expect(page.getByRole("heading", { name: "操作审计", exact: true })).toBeVisible();
-  await expect(page.getByText("异步结果暂存", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", {name:"操作审计",exact:true})).toHaveCount(0);
+  await page.goto(`${root}/business-status`);
+  await page.getByText("最近变更",{exact:true}).click();
+  await expect(page.getByText("资金结算 · 暂停",{exact:true})).toBeVisible();
 });

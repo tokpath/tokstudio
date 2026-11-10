@@ -1,4 +1,6 @@
 "use client";
+import {SettingHistory} from "./setting-history";
+import { MailTestButton } from "./mail-test";
 import { payoutRecipientText } from "@/lib/payout-recipient";
 import { canRunOperatorAction } from "@/lib/operator-transition";
 import { RiskSettings } from "./risk-settings";
@@ -319,7 +321,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     {resourceName === "procurement" && <div className="mb-5"><div role="tablist" aria-label={t("采购办理事项")} className="flex flex-wrap gap-2">{[["orders", businessView === "supplier" ? "供货订单" : "采购订单"], ["quotes", businessView === "supplier" ? "供货报价" : "采购报价"], ["automatic", "自动补货"]].filter(([key]) => key !== "automatic" || businessView !== "supplier").map(([key, title]) => <Button key={key} role="tab" aria-selected={procurementTab === key} variant={procurementTab === key ? "default" : "outline"} onClick={() => setProcurementTab(key)}>{t(title)}</Button>)}</div><p className="mt-3 text-xs leading-6 text-ink-mute">{t(businessView === "supplier" ? "供货订单列出每一笔采购占用的库存。未付款订单不限时，直到付清或取消后才释放。" : procurementTab === "quotes" ? "选择已生效报价创建采购订单。创建后即占用供货库存，付款并交付后才增加采购余额。" : procurementTab === "automatic" ? "在此管理有限补货授权和原执行结果。结果未知时只查询原付款。" : "每一行显示这笔订单占用的供货库存。未付款不限时，直到付清或取消。需要新增采购时打开采购报价。")}</p></div>}
     {operatorID && ["procurement", "operators"].includes(resourceName) && workspace?.permissions.some(permission => ["*", "cooperation.manage"].includes(permission)) && <p className="mb-4 text-sm"><Link className="text-brand-emphasis underline" href={`/manage/${encodeURIComponent(operatorID)}/contracts`}>{t("上传或查看可选合作合同")}</Link></p>}
     {resourceName !== "providers" && (toolbar || operations.length > 0 || customerPayout) && <div className="th-toolbar">{customerPayout && <CustomerWithdrawalBar wallet={payoutWallet} minimum={page.summary?.find(item => item.label === "最低提现额度")} />}{toolbar}
-      <div className={`${customerPayout ? "ml-auto " : ""}flex flex-wrap items-center gap-2`}>{primaryOperations.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 && operation.name !== "instructions" ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
+      <div className={`${customerPayout ? "ml-auto " : ""}flex flex-wrap items-center gap-2`}>{primaryOperations.map((operation, index) => resourceName === "mail" && operation.name === "test" ? <MailTestButton key={operation.name} path={operation.path} /> : <Button key={operation.name} type="button" variant={index === 0 && operation.name !== "instructions" ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
       </Button>)}
       {settings.length>0 && <details className="relative"><summary className="cursor-pointer rounded-control border border-hairline bg-canvas-raised px-4 py-3 text-sm">{t("办理设置")}</summary><div className="absolute right-0 z-20 mt-2 min-w-56 space-y-1 rounded-control border border-hairline bg-canvas-raised p-2 shadow-lg">{settings.map(operation => <Button key={operation.name} type="button" variant="ghost" className="w-full justify-start" onClick={() => selectOperation(operation)}>{t(operation.label)}</Button>)}</div></details>}
       </div>
@@ -370,6 +372,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
         </dd>
       </div>)}
       </dl>
+      <SettingHistory value={facts.values.change_history}/>
       {["invoices", "procurement-invoices"].includes(resourceName) && <InvoiceFiles embedded scope={`${scope}/${resourceName}`} invoiceID={facts.id} upload={false} />}
       {resourceName === "refunds" && facts.values.record_kind === "case" && refundSources(facts.id)}
       <details className="mt-7 border-t border-hairline pt-5">
@@ -521,7 +524,7 @@ function recordKindLabel(kind: string, locale: Locale = "zh") { return translate
 const factLabels: Record<string, string> = { customer: "客户", customer_id: "客户编号", order_id: "订单编号", receipt_id: "收款编号", provider: "收款通道", currency: "实际币种", original_amount: "原币金额", amount_money: "金额 结算币种", allocated_money: "已分配 结算币种", gross_money: "收款总额（含支付手续费） 结算币种", payment_fee_money: "已收支付手续费", fee_money: "手续费 结算币种", fee_status: "手续费核实状态", due_money: "应付 结算币种", external_allocated_money: "外部款项已分配 结算币种", internal_money: "结算币种 余额支付", commission_money: "佣金支付", paid_atg: "购买权益 ATG", gift_atg: "赠送权益 ATG", package_gift_atg: "套餐赠送 ATG", merchant_gift_atg: "经营方赠送 ATG", kol_gift_atg: "KOL 赠送 ATG", balance: "余额", held: "占用", purpose: "资产目的", unit: "单位", created_at: "创建时间", paid_at: "真实付款时间", completed_at: "交付时间", expires_at: "到期时间", exception_reason: "异常原因", evidence: "核实依据", verification_evidence: "核实说明或凭证", settlement_amount: "已核实结算金额", recipient_reference: "收款方资料", payer_reference: "付款方资料", status: "业务状态", state: "办理状态", configured: "已配置", customer_money_topup: "客户 结算币种 充值", package_purchase: "套餐购买", package_renewal: "套餐续费", package: "套餐订单", topup: "余额充值", renewal: "套餐续费" };
 
 const editableOperations: Record<string, { name: string; label: string }> = { plans: { name: "publish", label: "编辑套餐" }, marketing: { name: "publish", label: "修订活动" }, catalog: { name: "save", label: "编辑模型" }, routes: { name: "save", label: "编辑路由" }, "payment-methods": { name: "configure", label: "调整配置" } };
-const currentRecordOperations: Record<string, string[]> = { mail: ["configure"], commissions: ["policy"], branding: ["theme"], "channel-themes": ["theme"] };
+const currentRecordOperations: Record<string, string[]> = { commissions: ["policy"], branding: ["theme"], "channel-themes": ["theme"] };
 
 // Only system enum fields are translated; business names and evidence stay verbatim.
 export function resourceValueText(value: JSONValue | undefined, field: string | undefined, locale: Locale): string {
@@ -531,7 +534,7 @@ export function resourceValueText(value: JSONValue | undefined, field: string | 
   if (field === "record_kind") return recordKindLabel(value, locale);
   if (["collection_status","payout_status"].includes(field || "")) return translate(locale,value);
   if (field === "readiness_note") return value.split("、").map(part=>translate(locale,part)).join(locale==="zh"?"、":", ");
-  if (field && ["scope_label", "metric_name", "direction_name", "api_entry_note", "reserved_note", "payment_hold", "applicant_kind"].includes(field)) return translate(locale,value);
+  if (field && ["mode_label", "configuration_note", "scope_label", "metric_name", "direction_name", "api_entry_note", "reserved_note", "payment_hold", "applicant_kind"].includes(field)) return translate(locale,value);
   if (field === "action") return translate(locale, ({registration:"注册",new_purchase:"新购",renewal:"续费",model_usage:"模型调用",activity:"营销活动",withdrawal:"佣金提现",balance_withdrawal:"余额提现",customer_login:"登录",all_new_business:"所有新增业务"} as Record<string,string>)[value] || value);
   if (field && enumLabelsByField[field]?.[value]) return translate(locale, enumLabelsByField[field][value]);
   if (field && ["status", "state", "fee_status"].includes(field)) return translate(locale, statusLabels[value] || value);
@@ -557,7 +560,6 @@ const savedFactLabels: Record<string, string> = {
   "primary_color": "独立主色",
   "background_color": "独立背景",
   "logo_url": "独立Logo",
-  "support_url": "支持入口",
   "file": "Logo PNG/JPEG/WebP（不超过2MiB）",
   "id": "编号",
   "display_name": "显示名称",

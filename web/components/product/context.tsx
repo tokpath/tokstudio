@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode, 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeSchema, PublicContextSchema, SessionSchema, CommandResultSchema, type PublicContext, type Session } from "@/lib/contracts";
-import { request, setCSRFToken, warmConnection } from "@/lib/api-client";
+import { request, setCSRFToken, warmConnection, newActionKey } from "@/lib/api-client";
 import { safeAssetURL } from "@/lib/decimal";
 import { brandForeground, resolveTheme } from "@/lib/theme";
 import { operatorLanding } from "@/lib/navigation";
@@ -19,7 +19,7 @@ import { MonetaryProvider, monetaryRefetchInterval } from "./monetary";
 const Context = createContext<{ context?: PublicContext; session?: Session; sessionError?: unknown; reload: () => void }>({ reload: () => {} });
 export function useProduct() { return useContext(Context); }
 export function ProductProvider({ children }: { children: ReactNode }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const pathname = usePathname();
   const cache = useQueryClient();
   const insideWorkspace = pathname.startsWith("/workspace") || pathname.startsWith("/manage/");
@@ -48,6 +48,14 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   useEffect(()=>{if(previousTransitions.current&&previousTransitions.current!==transitions) void cache.invalidateQueries({predicate:q=>!["session","public-context"].includes(String(q.queryKey[0]))});previousTransitions.current=transitions;},[cache,transitions]);
   const current = session.data;
   const activeStaffWorkspace = current?.kind === "staff" ? current.workspaces.find(item => pathname === `/manage/${item.operator.id}` || pathname.startsWith(`/manage/${item.operator.id}/`)) : undefined;
+  const mailRecipient = current?.kind === "customer" ? current.customer.id : current?.kind === "staff" ? current.staff.id : undefined;
+  const mailOperator = current?.kind === "customer" ? current.operator.id : activeStaffWorkspace?.operator.id;
+  useEffect(() => {
+    if (!mailRecipient || !mailOperator) return;
+    const controller = new AbortController();
+    void request("/api/v1/auth/language", CommandResultSchema, {method:"POST",body:{operator_id:mailOperator,language:locale},actionKey:newActionKey(),signal:controller.signal}).catch(() => {});
+    return () => controller.abort();
+  }, [mailRecipient, mailOperator, locale]);
   const presentationOperator = current?.kind === "customer" ? current.operator : activeStaffWorkspace?.operator || context.data?.operator;
   // Staff may enter another brand's workspace through the shared login host.
   // Its session already carries that workspace's resolved brand/channel theme.

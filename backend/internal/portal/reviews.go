@@ -1,8 +1,6 @@
 package portal
 
 import (
-	"context"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
@@ -10,97 +8,6 @@ import (
 	"time"
 )
 
-func (a *Application) auditResource(c *gin.Context, op organization.Operator, actor string, p gin.H) {
-	ctx := c.Request.Context()
-	choices := []gin.H{}
-	allowed := map[string]bool{}
-	addView := func(key, label string) {
-		allowed[key] = true
-		choices = append(choices, gin.H{"value": key, "label": label})
-	}
-	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "reports.view") == nil {
-		addView("organization", "组织与账号")
-	}
-	brandingAllowed := a.Organization.RequireBrandBranding(ctx, nil, actor, op.BrandID)
-	if op.Kind == organization.Channel {
-		brandingAllowed = a.Organization.RequireChannelBranding(ctx, nil, actor, op.ID)
-	}
-	if brandingAllowed == nil {
-		addView("branding", "品牌外观")
-	}
-	if a.Organization.RequirePermission(ctx, nil, actor, op.ID, "ledger.read") == nil {
-		addView("commerce", "订单与交付")
-		addView("payment-methods", "支付方式与手续费")
-		addView("incentives", "推广与佣金")
-		addView("remediation", "退款、纠错与接管")
-	}
-	view := c.Query("view")
-	if view == "" && len(choices) > 0 {
-		view = choices[0]["value"].(string)
-	}
-	if !allowed[view] {
-		handleError(c, organization.ErrForbidden)
-		return
-	}
-
-	var rows []organization.AuditEvent
-	var next string
-	var e error
-	type query func(context.Context, *gorm.DB, string, string, string, int) ([]organization.AuditEvent, string, error)
-	queries := map[string]query{"organization": a.Organization.ListAuditEvents, "branding": a.Branding.ListAuditEvents, "commerce": a.Commerce.ListAuditEvents, "incentives": a.Incentives.ListAuditEvents}
-	if view == "payment-methods" {
-		at, id, err := organization.ParseAuditCursor(c.Query("cursor"))
-		if err != nil {
-			handleError(c, err)
-			return
-		}
-		q := a.DB.WithContext(ctx).Table("payment_method_versions r").Select("r.id,r.operator_id,r.method_id AS subject_id,'payment_method.rule_changed' AS action,r.created_by AS actor_id,to_jsonb(r) AS after,r.created_at,(SELECT to_jsonb(previous) FROM payment_method_versions previous WHERE previous.method_id=r.method_id AND previous.operator_id=r.operator_id AND previous.version<r.version ORDER BY previous.version DESC LIMIT 1) AS before").Where("r.operator_id=?", op.ID)
-		if at != nil {
-			q = q.Where("(r.created_at,r.id)<(?,?::uuid)", *at, id)
-		}
-		e = q.Order("r.created_at DESC,r.id DESC").Limit(51).Scan(&rows).Error
-		if len(rows) > 50 {
-			rows = rows[:50]
-			next = organization.NextAuditCursor(rows, 50)
-		}
-	} else if view == "remediation" {
-		at, id, err := organization.ParseAuditCursor(c.Query("cursor"))
-		if err != nil {
-			handleError(c, err)
-			return
-		}
-		events, err := a.Remediation.ListEvents(ctx, actor, op.ID, 51, at, id)
-		e = err
-		for _, event := range events {
-			rows = append(rows, organization.AuditEvent{ID: event.ID, OperatorID: event.OperatorID, SubjectID: event.SubjectID, Action: event.Action, ActorID: event.ActorID, Evidence: event.Evidence, Data: event.Data, CreatedAt: event.CreatedAt})
-		}
-		if len(rows) > 50 {
-			rows = rows[:50]
-			next = organization.NextAuditCursor(rows, 50)
-		}
-	} else if q, ok := queries[view]; ok {
-		rows, next, e = q(ctx, nil, actor, op.ID, c.Query("cursor"), 50)
-	} else {
-		handleError(c, organization.ErrInvalidInput)
-		return
-	}
-	if e != nil {
-		handleError(c, e)
-		return
-	}
-	items := []any{}
-	for _, r := range rows {
-		items = append(items, entity(r.ID, "recorded", 0, r))
-	}
-	p["title"] = "操作审计"
-	p["summary"] = []gin.H{{"label": "请求内容", "value": "不长期保存"}, {"label": "异步结果暂存", "value": fmt.Sprint(int64(a.Usage.ResultRetention / time.Hour)), "unit": "小时"}, {"label": "导出文件有效期", "value": "24", "unit": "小时"}}
-	p["description"] = "只显示各领域实际保存的操作主体、依据与前后记录。空白代表原事件未记录此字段。每个领域独立分页。"
-	p["items"] = items
-	p["next_cursor"] = next
-	p["views"] = choices
-	p["columns"] = []gin.H{col("action", "操作事实", "text"), col("subject_id", "关联主体", "text"), col("actor_id", "实际操作者", "text"), col("evidence", "依据", "text"), col("before", "变更前记录", "details"), col("after", "变更后记录", "details"), col("data", "原始业务事实", "details"), col("created_at", "记录时间", "datetime")}
-	a.resourceResponse(c, p)
-}
 func (a *Application) staffMembershipAction(c *gin.Context, op organization.Operator, actor string) {
 	var in struct {
 		Role   string `json:"role"`

@@ -46,17 +46,11 @@ func TestPostgresSettingsSimpleCommandsRetainReadinessVersionAndAudit(t *testing
 	if status != 409 {
 		t.Fatal("readiness bypassed", status, out)
 	}
-	status, page, _ = f.call(t, "GET", base+"/audit", nil, "")
+	status, page, _ = f.call(t, "GET", base+"/business-status", nil, "")
 	mustOK(t, status, page)
-	found := false
-	for _, raw := range page["items"].([]any) {
-		v := raw.(map[string]any)["values"].(map[string]any)
-		if v["evidence"] == "business settings: settlement" && v["actor_id"] == f.a.Installation.OwnerStaffID {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatal("simple toggle lost actor or audit", page)
+	history := page["items"].([]any)[0].(map[string]any)["values"].(map[string]any)["change_history"].([]any)
+	if len(history) != 1 || history[0].(map[string]any)["summary"].([]any)[0] != "资金结算" || history[0].(map[string]any)["actor"] == "" {
+		t.Fatal("simple toggle lost readable actor or history", history)
 	}
 	f.a.Mail.SetSender(nil)
 	status, page, _ = f.call(t, "GET", base+"/staff", nil, "")
@@ -108,20 +102,33 @@ func TestPostgresSettingsAuditAndReviewRespectActualPermissions(t *testing.T) {
 	if err := f.a.Organization.SetMembership(context.Background(), nil, organization.SetMembershipInput{ActorStaffID: owner, OperatorID: op, StaffID: reviewer.ID, Role: "custom", Status: "active", Grants: []string{"ledger.read"}}); err != nil {
 		t.Fatal(err)
 	}
-	status, page, _ := f.call(t, "GET", base+"/audit", nil, "")
+	for _, path := range []string{"/audit", "/audit?view=payment-methods", "/audit?view=organization"} {
+		status, out, _ := f.call(t, "GET", base+path, nil, "")
+		if status != 404 {
+			t.Fatal("removed audit workspace remains exposed", status, out)
+		}
+	}
+	for _, path := range []string{"/business-status", "/staff"} {
+		status, out, _ := f.call(t, "GET", base+path, nil, "")
+		if status != 403 {
+			t.Fatal("setting history escaped permissions", status, out)
+		}
+	}
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	status, page, _ := f.call(t, "GET", base+"/staff", nil, "")
 	mustOK(t, status, page)
-	if len(page["views"].([]any)) != 4 {
-		t.Fatal("unreadable audit tabs", page)
+	found := false
+	for _, raw := range page["items"].([]any) {
+		v := raw.(map[string]any)["values"].(map[string]any)
+		if v["email"] == reviewer.Email {
+			h := v["change_history"].([]any)
+			found = len(h) > 0 && h[0].(map[string]any)["summary"].([]any)[0] == "明确自定义"
+		}
 	}
-	status, page, _ = f.call(t, "GET", base+"/audit?view=payment-methods", nil, "")
-	mustOK(t, status, page)
-	if len(page["operations"].([]any)) != 0 || len(page["row_operations"].([]any)) != 0 {
-		t.Fatal("read-only fee audit exposed mutations", page)
+	if !found {
+		t.Fatal("staff detail lost permission history", page)
 	}
-	status, out, _ := f.call(t, "GET", base+"/audit?view=organization", nil, "")
-	if status != 403 {
-		t.Fatal("audit escaped permissions", status, out)
-	}
+
 }
 
 func TestPostgresSettingsNotificationHasReadableContentAndOptionalReference(t *testing.T) {

@@ -52,6 +52,7 @@ type Preference struct {
 	OperatorID  string    `gorm:"primaryKey" json:"operator_id"`
 	RecipientID string    `gorm:"primaryKey" json:"recipient_id"`
 	Marketing   bool      `json:"marketing"`
+	Language    string    `gorm:"default:zh" json:"language"`
 	UsageEmail  bool      `json:"usage_email"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -106,7 +107,11 @@ func (s *Service) Emit(ctx context.Context, tx *gorm.DB, in Notification) (Notif
 			state = "needs_attention"
 			code = "verified_email_required"
 		} else {
-			cipher, e = s.seal(mail.Message{ID: out.ID, To: recipient.Email, Brand: recipient.Brand, BrandID: recipient.BrandID, Subject: in.Title, Text: in.Body})
+			message, err := s.notificationMail(t, out, recipient)
+			if err != nil {
+				return err
+			}
+			cipher, e = s.seal(message)
 			if e != nil {
 				return e
 			}
@@ -605,7 +610,11 @@ func (s *Service) RetryDelivery(ctx context.Context, actor, operator, id string)
 		if !recipient.EmailVerified || !mail.ValidAddress(recipient.Email) {
 			return ErrNotReady
 		}
-		ciphertext, e := s.seal(mail.Message{ID: n.ID, To: recipient.Email, Brand: recipient.Brand, BrandID: recipient.BrandID, Subject: n.Title, Text: n.Body})
+		message, e := s.notificationMail(t, n, recipient)
+		if e != nil {
+			return e
+		}
+		ciphertext, e := s.seal(message)
 		if e != nil {
 			return e
 		}

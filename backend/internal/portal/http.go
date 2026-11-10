@@ -306,6 +306,7 @@ func (a *Application) Router() *gin.Engine {
 	v.POST("/auth/password-resets", a.originGuard, a.passwordReset)
 	v.POST("/auth/password-resets/complete", a.originGuard, a.passwordResetComplete)
 	v.POST("/auth/staff-password", a.loadIdentity(true), a.requireCSRF, a.changeStaffPassword)
+	v.POST("/auth/language", a.loadIdentity(true), a.requireCSRF, a.mailLanguage)
 	v.POST("/auth/logout", a.loadIdentity(true), a.requireCSRF, a.logout)
 	me := v.Group("/me", a.loadIdentity(true), a.requireCustomer, a.requireCSRF, a.monetaryTransactionGuard)
 	a.customerRoutes(me)

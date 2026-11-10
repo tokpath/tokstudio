@@ -1,4 +1,5 @@
 "use client";
+import {SettingHistory} from "./setting-history";
 
 import { useState } from "react";
 import { useI18n } from "@/components/i18n";
@@ -48,6 +49,7 @@ export function BusinessSettings({ row, operatorID }: { row?: Entity; operatorID
         {!readOnly&&<div className="mt-5 flex items-center justify-between gap-3 border-t border-hairline pt-4"><span className="text-xs text-ink-mute">{t(unavailable ? "完成所需配置后可开启" : enabled ? "暂停前请留意正在使用此服务的客户。" : "所需配置已就绪")}</span><Button variant={enabled ? "outline" : "default"} disabled={command.busy || command.unresolved || unavailable} aria-label={`${t(enabled ? "暂停" : "开启")} ${t(label)}`} onClick={() => void change(feature, !enabled)}>{command.busy && pending === feature ? t("正在保存…") : t(enabled ? "暂停" : "开启")}</Button></div>}
       </Card>;
     })}</div>
+    <SettingHistory value={row.values.change_history}/>
     <p className="text-xs leading-6 text-ink-mute">{t("系统自动检查依赖并记录操作者和变更，无需填写检查编号或证明。")}</p>
   </div>;
 }

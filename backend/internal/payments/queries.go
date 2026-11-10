@@ -107,7 +107,7 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 			}
 			if !fx.Enabled {
 				supported = false
-				reason = "请等待平台启用外币付款报价来源。"
+				reason = "请等待平台启用外币汇率报价来源。"
 			}
 		}
 		if settings.Status != "locked" {

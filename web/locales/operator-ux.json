@@ -708,5 +708,140 @@
     "en": "Domain or HTTPS certificate validation is pending. Follow the DNS instructions and wait for issuance.",
     "ja": "ドメインまたは HTTPS 証明書を検証中です。DNS の案内に従って設定し、発行をお待ちください。",
     "ru": "Проверка домена или сертификата HTTPS ещё выполняется. Настройте DNS по инструкции и дождитесь выпуска."
+  },
+  "汇率报价来源": {
+    "en": "Exchange rate sources",
+    "ja": "為替レートの取得元",
+    "ru": "Источники валютных курсов"
+  },
+  "请由平台配置汇率报价来源": {
+    "en": "The platform must configure exchange rate sources.",
+    "ja": "プラットフォーム側で為替レートの取得元を設定してください。",
+    "ru": "Источники валютных курсов настраивает платформа."
+  },
+  "请等待平台启用外币汇率报价来源。通道自己的报价不受影响。": {
+    "en": "Wait for the platform to enable exchange rate sources. Payment provider quotes are unaffected.",
+    "ja": "プラットフォームが為替レートの取得元を有効にするまでお待ちください。決済サービス独自のレートには影響しません。",
+    "ru": "Дождитесь включения источника валютных курсов платформой. Котировки платёжных провайдеров не затрагиваются."
+  },
+  "管理自己的网站配色和 Logo。未设置的项目使用默认外观。": {
+    "en": "Manage your own website colors and logo. Unset options use the default appearance.",
+    "ja": "自分のサイトの配色とロゴを管理します。未設定の項目には標準の外観を使用します。",
+    "ru": "Настройте цвета и логотип своего сайта. Для незаданных параметров используется стандартное оформление."
+  },
+  "最后修改": {
+    "en": "Last updated",
+    "ja": "最終更新",
+    "ru": "Последнее изменение"
+  },
+  "最近变更": {
+    "en": "Recent changes",
+    "ja": "最近の変更",
+    "ru": "Последние изменения"
+  },
+  "开启": {
+    "en": "Enabled",
+    "ja": "有効",
+    "ru": "Включено"
+  },
+  "暂停": {
+    "en": "Paused",
+    "ja": "一時停止",
+    "ru": "Приостановлено"
+  },
+  "域名归属已验证": {
+    "en": "Domain ownership verified",
+    "ja": "ドメイン所有権を確認済み",
+    "ru": "Владение доменом подтверждено"
+  },
+  "域名接入已验证": {
+    "en": "Domain connection verified",
+    "ja": "ドメイン接続を確認済み",
+    "ru": "Подключение домена проверено"
+  },
+  "域名已替换": {
+    "en": "Domain replaced",
+    "ja": "ドメインを切り替えました",
+    "ru": "Домен заменён"
+  },
+  "使用已保存的配置，向当前登录账号的邮箱发送一封测试邮件。": {
+    "en": "Send a test email to your signed-in account using the saved configuration.",
+    "ja": "保存済みの設定を使って、ログイン中のアカウントのメールアドレスにテストメールを送信します。",
+    "ru": "Отправьте тестовое письмо на адрес текущего аккаунта с сохранёнными настройками."
+  },
+  "发送测试邮件": {
+    "en": "Send test email",
+    "ja": "テストメールを送信",
+    "ru": "Отправить тестовое письмо"
+  },
+  "正在发送测试邮件…": {
+    "en": "Sending test email…",
+    "ja": "テストメールを送信中…",
+    "ru": "Отправка тестового письма…"
+  },
+  "重试本次测试": {
+    "en": "Retry this test",
+    "ja": "このテストを再試行",
+    "ru": "Повторить эту проверку"
+  },
+  "邮件服务尚未就绪，请先保存并启用邮件配置。": {
+    "en": "Email service is not ready. Save and enable the email configuration first.",
+    "ja": "メールサービスが未設定です。先に設定を保存し、有効にしてください。",
+    "ru": "Почтовый сервис не готов. Сначала сохраните и включите настройки."
+  },
+  "无法连接邮件服务器，请核对 SMTP 主机、端口和网络连接。": {
+    "en": "Cannot connect to the mail server. Check the SMTP host, port and network connection.",
+    "ja": "メールサーバーに接続できません。SMTPホスト、ポート、ネットワーク接続を確認してください。",
+    "ru": "Не удалось подключиться к почтовому серверу. Проверьте SMTP-сервер, порт и сеть."
+  },
+  "邮件服务器认证失败，请核对账号和 SMTP 密码或授权码。": {
+    "en": "Mail server authentication failed. Check the account and SMTP password or authorization code.",
+    "ja": "メールサーバーの認証に失敗しました。アカウントとSMTPパスワードまたは認証コードを確認してください。",
+    "ru": "Ошибка авторизации на почтовом сервере. Проверьте аккаунт и SMTP-пароль или код авторизации."
+  },
+  "邮件服务器未接受邮件，请核对已授权发信地址、收件邮箱及服务商的发送限制。": {
+    "en": "The mail server rejected the email. Check the authorized sender, recipient and provider sending limits.",
+    "ja": "メールサーバーがメールを受け付けませんでした。許可された送信元、宛先、サービス側の送信制限を確認してください。",
+    "ru": "Сервер отклонил письмо. Проверьте разрешённый адрес отправителя, получателя и ограничения провайдера."
+  },
+  "测试邮件提交失败，请核对加密方式和邮件配置；如仍失败，请联系邮件服务商。": {
+    "en": "Could not submit the test email. Check encryption and mail settings; contact your mail provider if it still fails.",
+    "ja": "テストメールの送信に失敗しました。暗号化方式とメール設定を確認し、解決しない場合はメールサービスにお問い合わせください。",
+    "ru": "Не удалось отправить тестовое письмо. Проверьте шифрование и настройки; при повторной ошибке обратитесь к почтовому провайдеру."
+  },
+  "邮件服务测试": {
+    "en": "Email service test",
+    "ja": "メールサービスのテスト",
+    "ru": "Проверка почтового сервиса"
+  },
+  "这是一封测试邮件。收到此邮件，说明当前品牌的邮件服务已能向你的邮箱发送邮件。": {
+    "en": "This is a test email. Receiving it confirms that this brand’s email service can send messages to your mailbox.",
+    "ja": "これはテストメールです。このメールが届けば、現在のブランドのメールサービスからあなたのメールアドレスへ送信できています。",
+    "ru": "Это тестовое письмо. Его получение подтверждает, что почтовый сервис этого бренда может отправлять письма на ваш адрес."
+  },
+  "邮件服务器已接受测试邮件，请到当前账号邮箱查收（也请检查垃圾邮件）。": {
+    "en": "The mail server accepted the test email. Check your account mailbox, including spam.",
+    "ja": "メールサーバーがテストメールを受け付けました。現在のアカウントの受信箱と迷惑メールを確認してください。",
+    "ru": "Сервер принял тестовое письмо. Проверьте почту текущего аккаунта, включая папку «Спам»."
+  },
+  "您受邀加入 {name}。请使用此邮箱接受邀请：": {
+    "en": "You have been invited to join {name}. Use this email address to accept the invitation:",
+    "ja": "{name} への招待が届きました。このメールアドレスで招待を承認してください：",
+    "ru": "Вас пригласили в {name}. Примите приглашение с этим адресом электронной почты:"
+  },
+  "拒绝理由：{reason}。": {
+    "en": "Reason for rejection: {reason}.",
+    "ja": "却下理由：{reason}。",
+    "ru": "Причина отказа: {reason}."
+  },
+  "公开模型 {resource} 的价格或使用条件将于 {effective_at} 生效。通知已在提交时发送，生效时间按填写执行。已受理请求继续按原快照结算。": {
+    "en": "The price or terms for public model {resource} take effect at {effective_at}. Notice was sent on submission; the specified effective time applies. Accepted requests keep their original pricing snapshot.",
+    "ja": "公開モデル {resource} の価格または利用条件は {effective_at} に適用されます。通知は送信済みで、指定時刻どおりに適用されます。受理済みのリクエストは元の料金条件で精算します。",
+    "ru": "Цена или условия публичной модели {resource} вступают в силу {effective_at}. Уведомление отправлено при подаче; применяется указанное время. Принятые запросы рассчитываются по исходным условиям."
+  },
+  "请等待平台启用外币汇率报价来源。": {
+    "en": "Wait for the platform to enable exchange rate sources.",
+    "ja": "プラットフォームが為替レートの取得元を有効にするまでお待ちください。",
+    "ru": "Дождитесь включения источника валютных курсов платформой."
   }
 }

@@ -29,9 +29,6 @@ func InheritTheme(base Theme, overrides ThemeOverrides) Theme {
 	if overrides.LogoURL != nil {
 		base.LogoURL = *overrides.LogoURL
 	}
-	if overrides.SupportURL != nil {
-		base.SupportURL = *overrides.SupportURL
-	}
 	return base
 }
 
@@ -43,14 +40,9 @@ func ValidateTheme(v ThemeOverrides) error {
 			return ErrInvalidInput
 		}
 	}
-	for i, p := range []*string{v.LogoURL, v.SupportURL} {
-		if p == nil || *p == "" {
-			continue
-		}
-		if i == 0 {
-			if _, ok := logoURLID(*p); ok {
-				continue
-			}
+	if p := v.LogoURL; p != nil && *p != "" {
+		if _, ok := logoURLID(*p); ok {
+			return nil
 		}
 		u, err := url.Parse(*p)
 		if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil {
@@ -71,7 +63,7 @@ func (themeRow) TableName() string { return "branding_theme_configs" }
 func (r themeRow) DTO() (ThemeConfig, error) {
 	var v ThemeOverrides
 	err := json.Unmarshal([]byte(r.ValuesJSON), &v)
-	return ThemeConfig{BrandID: r.BrandID, ScopeType: r.ScopeType, ScopeID: r.ScopeID, Values: v, Version: r.Version, UpdatedAt: r.UpdatedAt}, err
+	return ThemeConfig{BrandID: r.BrandID, ScopeType: r.ScopeType, ScopeID: r.ScopeID, Values: v, Version: r.Version, UpdatedAt: r.UpdatedAt, UpdatedBy: r.UpdatedBy}, err
 }
 func (s *Service) SetBrandTheme(ctx context.Context, tx *gorm.DB, in SetThemeInput) (ThemeConfig, error) {
 	return s.setTheme(ctx, tx, "brand", in)
@@ -110,16 +102,10 @@ func (s *Service) setTheme(ctx context.Context, tx *gorm.DB, scope string, in Se
 		if q.Error != nil {
 			return q.Error
 		}
-		var before any
 		if q.RowsAffected > 0 {
 			if old.Version != in.ExpectedVersion {
 				return ErrConflict
 			}
-			c, err := old.DTO()
-			if err != nil {
-				return err
-			}
-			before = c
 		} else if in.ExpectedVersion != 0 {
 			return ErrConflict
 		}
@@ -141,7 +127,7 @@ func (s *Service) setTheme(ctx context.Context, tx *gorm.DB, scope string, in Se
 		if err != nil {
 			return err
 		}
-		return s.audit(tx, in.ActorStaffID, brandID, scope, in.TargetID, "theme.changed", before, out)
+		return nil
 	})
 	return
 }

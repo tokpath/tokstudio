@@ -8,12 +8,16 @@ describe("task navigation and organization boundaries", () => {
   });
   it("keeps every established operator capability reachable once without duplicate risk or content storage settings", () => {
     const resources = operatorNav.flatMap(section => section.items.map(([resource]) => resource));
-    expect(resources).toHaveLength(42);
-    expect(new Set(resources).size).toBe(42);
+    expect(resources).toHaveLength(41);
+    expect(new Set(resources).size).toBe(41);
     expect(resources).not.toContain("withdrawals");
     expect(resources).not.toContain("procurement-invoices");
     expect(resources).toContain("routes");
     expect(resources).toContain("payment-quotes");
+    expect(resources).not.toContain("audit");
+    expect(sectionForResource(operatorNav,"payment-quotes")?.id).toBe("technology");
+    for(const kind of ["platform","oem","channel"]) expect(canReadResource({operator:{kind},permissions:["*"]},"audit")).toBe(false);
+    for(const kind of ["oem","channel"]) expect(canReadResource({operator:{kind},permissions:["*"]},"payment-quotes")).toBe(false);
     expect(resources).toContain("pricing");
     expect(resources).not.toContain("risk");
     expect(resources).not.toContain("retention");
@@ -34,7 +38,7 @@ describe("task navigation and organization boundaries", () => {
   it("keeps platform-only and parent-only tasks out of channel navigation even for owners", () => {
     const channel = {operator:{kind:"channel"},permissions:["*"]};
     for (const route of ["catalog","providers","routes","requests","jobs","payment-assets","operators","branding","domains"]) expect(canReadResource(channel, route)).toBe(false);
-    expect(canReadResource(channel,"mail")).toBe(true);
+    expect(canReadResource(channel,"mail")).toBe(false);
     expect(sectionForResource(operatorNav,"mail")?.id).toBe("settings");
     expect(canReadResource({operator:{kind:"oem"},permissions:["mail.read"]},"mail")).toBe(true);
     expect(canReadResource(channel,"procurement")).toBe(true);

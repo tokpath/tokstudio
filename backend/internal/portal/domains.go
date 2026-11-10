@@ -45,6 +45,12 @@ func (a *Application) domainResource(c *gin.Context, op organization.Operator, a
 			row := entity(d.ID, d.Status, d.Version, d)
 			v := row["values"].(gin.H)
 			v["operator_name"] = target.Name
+			history, e := a.domainHistory(c, target.BrandID, d.ID)
+			if e != nil {
+				handleError(c, e)
+				return
+			}
+			v["change_history"] = history
 			v["txt_record_name"] = "_tokenhub." + d.Hostname
 			v["txt_record_value"] = "tokenhub-verification=" + d.VerificationToken
 			v["api_entry_note"] = "待完成验证并启用"

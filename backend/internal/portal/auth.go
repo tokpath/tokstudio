@@ -84,8 +84,14 @@ func navigationPermissions(domain []string, kind organization.OperatorKind) []st
 			return []string{"*"}
 		}
 	}
-	resources := []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "payment-quotes", "evidence", "valuations", "receipt-valuations", "pricing", "gifts", "marketing", "commissions", "ledger", "refunds", "balance-withdrawals", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "contracts", "procurement", "procurement-invoices", "coverage", "alerts", "takeovers", "exits", "branding", "domains", "channel-themes", "staff", "restrictions", "notifications", "business-status", "audit", "payment-assets", "providers", "catalog", "routes", "requests", "jobs", "mail", "bifrost", "supplier-costs"}
+	resources := []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "payment-quotes", "evidence", "valuations", "receipt-valuations", "pricing", "gifts", "marketing", "commissions", "ledger", "refunds", "balance-withdrawals", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "contracts", "procurement", "procurement-invoices", "coverage", "alerts", "takeovers", "exits", "branding", "domains", "channel-themes", "staff", "restrictions", "notifications", "business-status", "payment-assets", "providers", "catalog", "routes", "requests", "jobs", "mail", "bifrost", "supplier-costs"}
 	for _, resource := range resources {
+		if resource == "mail" && kind == organization.Channel {
+			continue
+		}
+		if resource == "payment-quotes" && kind != organization.Platform {
+			continue
+		}
 		if (resource == "alerts" || resource == "procurement-invoices") && kind == organization.Platform {
 			continue
 		}
@@ -94,7 +100,7 @@ func navigationPermissions(domain []string, kind organization.OperatorKind) []st
 			continue
 		}
 
-		if resource == "audit" && (allowed["ledger.read"] || allowed["branding.manage"]) || allowed[permissionFor(resource)] || resource == "orders" && allowed["payments.manage"] || resource == "refunds" && allowed["payments.manage"] || resource == "takeovers" && allowed["ledger.read"] {
+		if allowed[permissionFor(resource)] || resource == "orders" && allowed["payments.manage"] || resource == "refunds" && allowed["payments.manage"] || resource == "takeovers" && allowed["ledger.read"] {
 			out = append(out, resource+".read")
 		}
 	}

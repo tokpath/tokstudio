@@ -81,7 +81,7 @@ func TestWithdrawalMethodFormsAndCustomerChoice(t *testing.T) {
 	}
 }
 
-func TestPaymentQuoteSourceIsVisibleButOnlyPlatformCanConfigureIt(t *testing.T) {
+func TestPaymentQuoteSourceIsOnlyVisibleAndConfigurableAtPlatform(t *testing.T) {
 	f := setupPortal(t)
 	op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
 	oem, err := f.a.Organization.CreateOperator(t.Context(), nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: op, Kind: organization.OEM, Name: "Quote visibility OEM", LegalName: "OEM", BrandName: "OEM"})
@@ -99,6 +99,9 @@ func TestPaymentQuoteSourceIsVisibleButOnlyPlatformCanConfigureIt(t *testing.T) 
 	base := "/v1/operators/" + op + "/payment-quotes"
 	status, page, _ := f.call(t, "GET", base, nil, "")
 	mustOK(t, status, page)
+	if page["title"] != "汇率报价来源" {
+		t.Fatal(page)
+	}
 	fields := operationFields(t, page, "configure")
 	if fields["source"] == nil || fields["enabled"] == nil || fields["rate"] != nil {
 		t.Fatal("source configuration must not expose manual exchange rates", fields)
@@ -107,9 +110,8 @@ func TestPaymentQuoteSourceIsVisibleButOnlyPlatformCanConfigureIt(t *testing.T) 
 	mustOK(t, status, out)
 	base = "/v1/operators/" + oem.Operator.ID + "/payment-quotes"
 	status, page, _ = f.call(t, "GET", base, nil, "")
-	mustOK(t, status, page)
-	if len(page["operations"].([]any)) != 0 {
-		t.Fatal("OEM can configure the platform source", page)
+	if status != 403 {
+		t.Fatal("OEM can access the platform source", status, page)
 	}
 	status, _, _ = f.call(t, "POST", base, map[string]any{"source": "frankfurter", "enabled": true, "expected_version": 2}, uuid.NewString())
 	if status != 403 {

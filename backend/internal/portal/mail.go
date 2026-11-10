@@ -7,6 +7,10 @@ import (
 )
 
 func (a *Application) mailResource(c *gin.Context, op organization.Operator, p gin.H, base string) {
+	if op.Kind == organization.Channel {
+		handleError(c, organization.ErrForbidden)
+		return
+	}
 	settings, e := a.Mail.SettingsForBrand(c.Request.Context(), op.BrandID)
 	if e != nil {
 		handleError(c, e)
@@ -35,16 +39,6 @@ func (a *Application) mailResource(c *gin.Context, op organization.Operator, p g
 		}
 	}
 	p["columns"] = []gin.H{col("mode_label", "发送方式", "text"), col("from", "实际发信地址", "text"), col("available", "通过配置预检", "boolean"), col("configuration_note", "配置说明", "text")}
-	if op.Kind == organization.Channel {
-		v = gin.H{"from": settings.From, "available": settings.Available, "configuration_note": "渠道沿用所属品牌的邮件服务，无需单独配置。"}
-		if !settings.Available {
-			v["configuration_note"] = "等待所属品牌方配置可用的邮件服务。"
-		}
-		p["columns"] = []gin.H{col("from", "实际发信地址", "text"), col("available", "通过配置预检", "boolean"), col("configuration_note", "配置说明", "text")}
-		p["items"] = []any{entity(op.ID, state, 0, v)}
-		a.resourceResponse(c, p)
-		return
-	}
 	if !settings.Inherited {
 		p["columns"] = append(p["columns"].([]gin.H), col("host", "SMTP服务器", "text"), col("port", "端口", "text"), col("from_name", "自定义发信名称", "text"), col("security", "传输安全", "text"), col("password_set", "密码已配置", "boolean"))
 	}
@@ -91,6 +85,7 @@ func (a *Application) mailResource(c *gin.Context, op organization.Operator, p g
 		fields = append([]field{mode}, fields...)
 	}
 	p["operations"] = []operation{{Name: "configure", Label: "保存邮件服务配置", Method: "POST", Path: base, Fields: fields, Description: "未接入邮件时，可用已有测试账号验收其他业务；注册验证、找回密码及真实邮件送达需在接入 SMTP 后验收。Google 登录为可选功能，不影响密码登录。"}}
+	p["operations"] = append(p["operations"].([]operation), operation{Name: "test", Label: "发送测试邮件", Method: "POST", Path: base + "/test", Fields: []field{}, Description: "使用已保存的配置，向当前登录账号的邮箱发送一封测试邮件。"})
 	a.resourceResponse(c, p)
 }
 

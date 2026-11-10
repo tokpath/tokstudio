@@ -137,7 +137,7 @@ func (s *Service) UploadLogo(ctx context.Context, in UploadLogoInput) (LogoAsset
 			return e
 		}
 		r.Status = "ready"
-		return s.audit(tx, in.ActorStaffID, r.BrandID, "logo", id, "logo.uploaded", nil, r.LogoAsset)
+		return nil
 	})
 	if e != nil {
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)

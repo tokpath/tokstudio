@@ -3,6 +3,7 @@ package portal
 import (
 	"encoding/json"
 	"errors"
+	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 	"net/url"
 	"strings"
 	"time"
@@ -106,7 +107,7 @@ func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, acto
 		if e != nil {
 			return nil, e
 		}
-		message := mail.Message{ID: uuid.NewString(), To: inv.Email, BrandID: op.BrandID, Brand: b.Name, Subject: "经营人员邀请", Text: "您受邀加入 " + op.Name + "。请使用此邮箱接受邀请：\n" + link}
+		message := mail.Message{ID: uuid.NewString(), To: inv.Email, BrandID: op.BrandID, Brand: b.Name, Subject: httpx.LocalizedText(httpx.RequestLocale(c.Request), "经营人员邀请"), Text: strings.ReplaceAll(httpx.LocalizedText(httpx.RequestLocale(c.Request), "您受邀加入 {name}。请使用此邮箱接受邀请："), "{name}", op.Name) + "\n" + link}
 		encoded, _ := json.Marshal(message)
 		cipher, e := pc.Seal(a.Config.AppKey, string(encoded))
 		if e != nil {

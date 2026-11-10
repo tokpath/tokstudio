@@ -14,6 +14,9 @@ const body = resource => resolve(operation(resource).requestBody.content['applic
 test('brand mail contracts cover platform SMTP and OEM inheritance with brand-scoped authority', () => {
   const op = operation('mail');
   assert.equal(op['x-required-permission'], 'branding.manage');
+  assert.equal(operation('mail/test')['x-required-permission'], 'branding.manage');
+  assert.deepEqual(body('mail/test').properties, {});
+  assert.deepEqual(resolve(document.paths['/v1/auth/language'].post.requestBody.content['application/json'].schema).properties.language.enum, ['zh','en','ja','ru']);
   assert.match(op.description, /Channels.*cannot configure SMTP/);
   const alternatives = op.requestBody.content['application/json'].schema.oneOf.map(resolve);
   assert.equal(alternatives.length, 2);
@@ -118,7 +121,8 @@ test('theme inheritance accepts null, preserves version and keeps logo uploads m
     const theme = body(resource);
     assert.ok(theme.required.includes('expected_version'));
     const values = theme.properties.values.properties;
-    for (const key of ['primary_color', 'background_color', 'text_color', 'logo_url', 'support_url']) assert.deepEqual(values[key].type, ['string', 'null']);
+    assert.equal(values.support_url, undefined);
+    for (const key of ['primary_color', 'background_color', 'text_color', 'logo_url']) assert.deepEqual(values[key].type, ['string', 'null']);
     assert.equal(values.primary_color.pattern, '^#[0-9a-fA-F]{6}$');
     assert.equal(theme.properties.target_operator_id, undefined);
   }

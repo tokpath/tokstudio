@@ -86,6 +86,7 @@ function matchesVisibility(field: CommandField, values: Record<string, string>, 
 }
 function visible(field: CommandField, values: Record<string, string>, row?: Entity) { return field.kind !== "hidden" && matchesVisibility(field, values, row); }
 function group(field: CommandField): string {
+  if (field.kind === "email") return "办理信息";
   if (field.name.startsWith("credentials.") || field.name === "api_base_url") return "通道接入材料";
   if (/evidence|reference|reason|explanation|terms/.test(field.name) && !field.lookup_url) return "办理说明";
   if (/(_at$|^from$|^to$|timezone|period|seconds|minutes|days)/.test(field.name)) return "时间与有效期";

@@ -36,12 +36,12 @@ func TestDomainNormalization(t *testing.T) {
 	}
 }
 func TestThemeInheritanceIsPerField(t *testing.T) {
-	base := InheritTheme(DefaultTheme(), ThemeOverrides{PrimaryColor: ptr("#123456"), LogoURL: ptr("https://assets.example/brand.png"), SupportURL: ptr("https://support.example")})
+	base := InheritTheme(DefaultTheme(), ThemeOverrides{PrimaryColor: ptr("#123456"), LogoURL: ptr("https://assets.example/brand.png")})
 	got := InheritTheme(base, ThemeOverrides{BackgroundColor: ptr("#112233"), LogoURL: ptr("")})
-	if got.PrimaryColor != "#123456" || got.BackgroundColor != "#112233" || got.LogoURL != "" || got.SupportURL != "https://support.example" {
+	if got.PrimaryColor != "#123456" || got.BackgroundColor != "#112233" || got.LogoURL != "" {
 		t.Fatalf("theme=%+v", got)
 	}
-	for _, v := range []ThemeOverrides{{PrimaryColor: ptr("red")}, {LogoURL: ptr("javascript:alert(1)")}, {SupportURL: ptr("http://example.com")}} {
+	for _, v := range []ThemeOverrides{{PrimaryColor: ptr("red")}, {LogoURL: ptr("javascript:alert(1)")}, {LogoURL: ptr("http://example.com")}} {
 		if err := ValidateTheme(v); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("accepted unsafe theme %+v", v)
 		}

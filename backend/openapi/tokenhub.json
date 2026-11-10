@@ -1360,6 +1360,149 @@
         }
       }
     },
+    "/v1/auth/language": {
+      "post": {
+        "operationId": "post__v1_auth_language",
+        "summary": "Remember the signed-in recipient’s UI language for system emails, without changing notification consent",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operator_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "language": {
+                    "enum": [
+                      "zh",
+                      "en",
+                      "ja",
+                      "ru"
+                    ]
+                  }
+                },
+                "required": [
+                  "operator_id",
+                  "language"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/logout": {
       "post": {
         "operationId": "post__v1_auth_logout",
@@ -12785,7 +12928,7 @@
             }
           }
         },
-        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
+        "description": "Platform only. Configure exchange rate sources used for payment quotes; OEM and channel workspaces have no access."
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_payment_quotes",
@@ -18418,168 +18561,6 @@
         "x-required-permission": "business.manage"
       }
     },
-    "/v1/operators/{operatorId}/audit": {
-      "get": {
-        "operationId": "get__v1_operators_operatorId_audit",
-        "summary": "Read exact operator audit workspace",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "Opaque page cursor",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "view",
-            "in": "query",
-            "required": false,
-            "description": "Only workspace-provided view values are accepted.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "record",
-            "in": "query",
-            "required": false,
-            "description": "Exact refund case context when following an authorized business record.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResourcePage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
-      }
-    },
     "/v1/operators/{operatorId}/refunds": {
       "get": {
         "operationId": "get__v1_operators_operatorId_refunds",
@@ -21759,7 +21740,7 @@
             }
           }
         },
-        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
+        "description": "Platform or OEM only. Channels automatically use their brand’s email service and have no mail workspace."
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_mail",
@@ -31929,6 +31910,140 @@
         "x-required-permission": "payments.manage"
       }
     },
+    "/v1/operators/{operatorId}/mail/test": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_mail_test",
+        "summary": "发送测试邮件",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_mail_test"
+              }
+            }
+          }
+        },
+        "description": "使用已保存的配置，向当前登录账号的邮箱发送一封测试邮件。 Requires branding.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "branding.manage"
+      }
+    },
     "/v1/operators/{operatorId}/takeovers/{id}/refresh": {
       "post": {
         "operationId": "post__v1_operators_operatorId_takeovers_id_refresh",
@@ -33562,16 +33677,6 @@
               }
             ]
           },
-          "support_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "logo_url": {
             "anyOf": [
               {
@@ -33715,16 +33820,6 @@
                   }
                 ]
               },
-              "support_url": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
               "logo_url": {
                 "anyOf": [
                   {
@@ -33819,16 +33914,6 @@
                   {
                     "type": "string",
                     "pattern": "^#[\\da-fA-F]{6}$"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "support_url": {
-                "anyOf": [
-                  {
-                    "type": "string"
                   },
                   {
                     "type": "null"
@@ -34097,16 +34182,6 @@
                       }
                     ]
                   },
-                  "support_url": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
                   "logo_url": {
                     "anyOf": [
                       {
@@ -34207,16 +34282,6 @@
                       }
                     ]
                   },
-                  "support_url": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
                   "logo_url": {
                     "anyOf": [
                       {
@@ -34280,16 +34345,6 @@
                   {
                     "type": "string",
                     "pattern": "^#[\\da-fA-F]{6}$"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "support_url": {
-                "anyOf": [
-                  {
-                    "type": "string"
                   },
                   {
                     "type": "null"
@@ -34403,16 +34458,6 @@
                           {
                             "type": "string",
                             "pattern": "^#[\\da-fA-F]{6}$"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "support_url": {
-                        "anyOf": [
-                          {
-                            "type": "string"
                           },
                           {
                             "type": "null"
@@ -34668,16 +34713,6 @@
                           }
                         ]
                       },
-                      "support_url": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
                       "logo_url": {
                         "anyOf": [
                           {
@@ -34772,16 +34807,6 @@
                           {
                             "type": "string",
                             "pattern": "^#[\\da-fA-F]{6}$"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "support_url": {
-                        "anyOf": [
-                          {
-                            "type": "string"
                           },
                           {
                             "type": "null"
@@ -34930,16 +34955,6 @@
                                 {
                                   "type": "string",
                                   "pattern": "^#[\\da-fA-F]{6}$"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ]
-                            },
-                            "support_url": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
                                 },
                                 {
                                   "type": "null"
@@ -35140,16 +35155,6 @@
                               }
                             ]
                           },
-                          "support_url": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
                           "logo_url": {
                             "anyOf": [
                               {
@@ -35244,16 +35249,6 @@
                               {
                                 "type": "string",
                                 "pattern": "^#[\\da-fA-F]{6}$"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "support_url": {
-                            "anyOf": [
-                              {
-                                "type": "string"
                               },
                               {
                                 "type": "null"
@@ -35402,16 +35397,6 @@
                                     {
                                       "type": "string",
                                       "pattern": "^#[\\da-fA-F]{6}$"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "support_url": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string"
                                     },
                                     {
                                       "type": "null"
@@ -36040,16 +36025,6 @@
                       {
                         "type": "string",
                         "pattern": "^#[\\da-fA-F]{6}$"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "support_url": {
-                    "anyOf": [
-                      {
-                        "type": "string"
                       },
                       {
                         "type": "null"
@@ -48497,13 +48472,6 @@
                   "null"
                 ],
                 "description": "Logo"
-              },
-              "support_url": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "客户支持URL（留空继承）"
               }
             },
             "required": [],
@@ -48622,13 +48590,6 @@
                   "null"
                 ],
                 "description": "Logo"
-              },
-              "support_url": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "客户支持URL（留空继承）"
               }
             },
             "required": [],
@@ -50518,6 +50479,12 @@
           "method_kind",
           "fee_mode"
         ],
+        "additionalProperties": false
+      },
+      "Operator_mail_test": {
+        "type": "object",
+        "properties": {},
+        "required": [],
         "additionalProperties": false
       },
       "ExecutionProof": {

@@ -263,14 +263,14 @@ it("edits the existing theme in place with its saved fields and version", async 
   staff(["branding.read", "branding.manage"]);
   let submitted: unknown;
   vi.stubGlobal("fetch", vi.fn(async (input, init) => { expect(String(input)).toBe("/api/v1/operators/operator-one/branding"); submitted = JSON.parse(String(init?.body)); return response({ id: "operator-one", status: "updated" }); }));
-  show(<ResourceCollection embedded operatorID="operator-one" resource="branding" page={page([{ id: "operator-one", version: 11, values: { target_operator_id: "operator-one", primary_color: "#123456", support_url: "https://support.example.test" } }], { row_operations: [{ name: "theme", label: "编辑网站外观", method: "POST", path: "/api/v1/operators/operator-one/branding", permission: "branding.manage", fields: [{ name: "values.primary_color", label: "主色", kind: "text" }, { name: "values.support_url", label: "支持入口", kind: "text" }, { name: "expected_version", label: "当前版本", kind: "hidden", default_value: 0 }] }] })} />);
+  show(<ResourceCollection embedded operatorID="operator-one" resource="branding" page={page([{ id: "operator-one", version: 11, values: { target_operator_id: "operator-one", primary_color: "#123456" } }], { row_operations: [{ name: "theme", label: "编辑网站外观", method: "POST", path: "/api/v1/operators/operator-one/branding", permission: "branding.manage", fields: [{ name: "values.primary_color", label: "主色", kind: "text" }, { name: "expected_version", label: "当前版本", kind: "hidden", default_value: 0 }] }] })} />);
   fireEvent.click(screen.getByRole("button", { name: "编辑网站外观" }));
   expect((screen.getByLabelText("主色", { exact: true }) as HTMLInputElement).value).toBe("#123456");
   fireEvent.input(screen.getByLabelText("主色", { exact: true }), { target: { value: "#654321" } });
-  fireEvent.change(screen.getByLabelText("客户支持网址（可选）", { exact: true }), { target: { value: "https://support.example.test/help" } });
+  expect(screen.queryByLabelText("客户支持网址（可选）")).toBeNull();
   expect((screen.getByLabelText("主色", { exact: true }) as HTMLInputElement).value).toBe("#654321");
   fireEvent.click(screen.getByRole("button", { name: "保存外观", exact: true }));
-  await waitFor(() => expect(submitted).toEqual({ values: { primary_color: "#654321", support_url: "https://support.example.test/help",background_color:null,text_color:null,logo_url:null }, expected_version: 11 }));
+  await waitFor(() => expect(submitted).toEqual({ values: { primary_color: "#654321",background_color:null,text_color:null,logo_url:null }, expected_version: 11 }));
 });
 
 it("edits a directly managed channel coverage policy with that row's actual version", async () => {
@@ -380,4 +380,21 @@ it("hides stale business actions in a taken-over workspace while retaining histo
  show(<><ResourceCollection operatorID="operator-one" resource="plans" page={page([],{operations:[create]})}/><ResourceCollection operatorID="operator-one" resource="invoices" page={page([{id:"invoice",values:{}}],{row_operations:[invoice]})}/></>);
  expect(screen.queryByRole("button",{name:"新增套餐"})).toBeNull();
  expect(screen.getByRole("button",{name:"登记实际开票结果"})).toBeTruthy();
+});
+
+
+it("opens OEM SMTP with safe form defaults instead of inherited redacted row values", async () => {
+ staff(["branding.manage", "mail.read"]);
+ show(<ResourceCollection operatorID="operator-one" resource="mail" embedded page={page([{id:"operator-one",values:{mode:"platform",enabled:false,port:0,security:""}}],{operations:[{name:"configure",label:"保存邮件服务配置",method:"POST",path:"/api/v1/operators/operator-one/mail",permission:"branding.manage",fields:[
+ {name:"mode",label:"邮件发送方式",kind:"select",default_value:"platform",options:[{value:"platform",label:"使用平台默认服务"},{value:"custom",label:"使用本品牌的 SMTP"}]},
+ {name:"port",label:"端口",kind:"integer",default_value:587,visible_when:{field:"mode",values:["custom"]}},
+ {name:"security",label:"传输方式",kind:"select",default_value:"starttls",options:[{value:"starttls",label:"STARTTLS"},{value:"tls",label:"TLS"}],visible_when:{field:"mode",values:["custom"]}},
+ {name:"from",label:"已授权发信地址",kind:"email",visible_when:{field:"mode",values:["custom"]}}
+ ]}]})}/>);
+ fireEvent.click(screen.getByRole("button",{name:"保存邮件服务配置",exact:true}));
+ fireEvent.change(screen.getByLabelText("邮件发送方式",{exact:true}),{target:{value:"custom"}});
+ expect((screen.getByLabelText("端口",{exact:true}) as HTMLInputElement).value).toBe("587");
+ expect((screen.getByLabelText("传输方式",{exact:true}) as HTMLSelectElement).value).toBe("starttls");
+ expect(screen.getByLabelText("已授权发信地址",{exact:true})).toBeTruthy();
+ expect(screen.queryByRole("heading",{name:"时间与有效期",exact:true})).toBeNull();
 });

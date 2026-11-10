@@ -11,7 +11,6 @@ export const ThemeSchema = z.object({
   accent_color: z.string().regex(/^#[\da-fA-F]{6}$/).nullable().optional(),
   background_color: z.string().regex(/^#[\da-fA-F]{6}$/).nullable().optional(),
   text_color: z.string().regex(/^#[\da-fA-F]{6}$/).nullable().optional(),
-  support_url: z.string().nullable().optional(),
   logo_url: z.string().nullable().optional(),
 });
 export type Theme = z.infer<typeof ThemeSchema>;

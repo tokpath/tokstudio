@@ -37,10 +37,12 @@ func TestPostgresUnifiedFeeRuleFreezesTopupAndBothWithdrawalWallets(t *testing.T
 	if e != nil {
 		t.Fatal(e)
 	}
-	status, audit, _ := f.call(t, "GET", "/v1/operators/"+op+"/audit?view=payment-methods", nil, "")
-	mustOK(t, status, audit)
-	if rule.CreatedBy != owner || len(audit["items"].([]any)) < 2 {
-		t.Fatal("fee rule audit missing", rule, audit)
+	var versionCount int64
+	if err := f.a.DB.Table("payment_method_versions").Where("operator_id=? AND method_id=?", op, m.ID).Count(&versionCount).Error; err != nil {
+		t.Fatal(err)
+	}
+	if rule.CreatedBy != owner || versionCount < 2 {
+		t.Fatal("immutable fee rule versions missing", rule, versionCount)
 	}
 	for _, wallet := range []string{"balance", "commission"} {
 		methods, e := f.a.Incentives.WithdrawalMethods(ctx, nil, op, true, wallet)

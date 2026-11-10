@@ -1648,11 +1648,6 @@
         "name": "values.logo_url",
         "label": "Logo",
         "kind": "hidden"
-      },
-      {
-        "name": "values.support_url",
-        "label": "客户支持URL（留空继承）",
-        "kind": "text"
       }
     ],
     "include_version": false,
@@ -1766,11 +1761,6 @@
         "name": "values.logo_url",
         "label": "Logo",
         "kind": "hidden"
-      },
-      {
-        "name": "values.support_url",
-        "label": "客户支持URL（留空继承）",
-        "kind": "text"
       }
     ],
     "include_version": false,
@@ -4432,5 +4422,17 @@
     ],
     "confirmation": "",
     "include_version": false
+  },
+  {
+    "resource": "mail",
+    "confirmation": "",
+    "description": "使用已保存的配置，向当前登录账号的邮箱发送一封测试邮件。",
+    "fields": [],
+    "include_version": false,
+    "label": "发送测试邮件",
+    "method": "POST",
+    "name": "test",
+    "path": "/v1/operators/{operatorId}/mail/test",
+    "permission": "branding.manage"
   }
 ]

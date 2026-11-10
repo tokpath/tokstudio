@@ -73,6 +73,18 @@ func (a *Application) brandingResource(c *gin.Context, op organization.Operator,
 			return
 		}
 		v["effective_theme"] = resolved.Theme
+		v["updated_at"] = config.UpdatedAt
+		if config.UpdatedBy != "" {
+			var editor Staff
+			if e := a.DB.WithContext(c.Request.Context()).Where("id=?", config.UpdatedBy).Limit(1).Find(&editor).Error; e != nil {
+				handleError(c, e)
+				return
+			}
+			v["updated_by_name"] = editor.DisplayName
+			if editor.DisplayName == "" {
+				v["updated_by_name"] = editor.Email
+			}
+		}
 		v["default_theme"] = branding.DefaultTheme()
 		if target.Kind == organization.Channel {
 			inherited, err := a.Branding.ResolveTheme(c.Request.Context(), nil, target.BrandID, "")
@@ -87,9 +99,9 @@ func (a *Application) brandingResource(c *gin.Context, op organization.Operator,
 		items = append(items, row)
 	}
 	p["items"] = items
-	p["description"] = "管理自己的网站配色、Logo 和客户支持入口。未设置的项目使用默认外观。"
+	p["description"] = "管理自己的网站配色和 Logo。未设置的项目使用默认外观。"
 	p["search_supported"], p["status_supported"] = false, false
-	p["columns"] = []gin.H{col("name", "经营方", "text"), col("primary_color", "主色", "text"), col("background_color", "背景色", "text"), col("support_url", "支持入口", "text")}
+	p["columns"] = []gin.H{col("name", "经营方", "text"), col("primary_color", "主色", "text"), col("background_color", "背景色", "text")}
 	p["row_operations"] = []operation{
 		{Name: "theme", Label: "编辑网站外观", Method: "POST", Path: base, Fields: []field{jsonField("主题覆盖配置")}},
 	}

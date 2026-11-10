@@ -63,17 +63,11 @@ func TestPostgresBrandMailWorkspaceBoundariesAndReadiness(t *testing.T) {
 		t.Fatal("custom form inherited platform identity", fields)
 	}
 	post(oem.ID, map[string]any{"mode": "custom", "enabled": true, "host": "smtp.oem.example", "port": 465, "username": "oem-account", "password": "oem-secret", "from": "oem@example.test", "security": "tls"})
-	page = get(channel.ID, "mail")
-	raw, _ = json.Marshal(page)
-	for _, secret := range []string{"smtp.oem.example", "oem-account", "oem-secret"} {
-		if strings.Contains(string(raw), secret) {
-			t.Fatal("brand settings exposed to channel", string(raw))
-		}
+	status, result, _ := f.call(t, "GET", "/v1/operators/"+channel.ID+"/mail", nil, "")
+	if status != 403 {
+		t.Fatal("channel mail workspace still exposed", status, result)
 	}
-	if len(page["operations"].([]any)) != 0 || first(page)["from"] != "oem@example.test" {
-		t.Fatal(page)
-	}
-	status, _, _ := f.call(t, "POST", "/v1/operators/"+channel.ID+"/mail", map[string]any{"mode": "custom"}, uuid.NewString())
+	status, _, _ = f.call(t, "POST", "/v1/operators/"+channel.ID+"/mail", map[string]any{"mode": "custom"}, uuid.NewString())
 	if status != 403 {
 		t.Fatal("channel configured independent mail", status)
 	}
@@ -93,7 +87,7 @@ func TestPostgresBrandMailWorkspaceBoundariesAndReadiness(t *testing.T) {
 	if !hasEmail {
 		t.Fatal("OEM mail not used for workspace invitation", staffFields)
 	}
-	status, result, _ := f.call(t, "POST", "/v1/operators/"+oem.ID+"/staff", map[string]any{"email": "invited@example.test", "role": "operations", "delivery_mode": "email"}, uuid.NewString())
+	status, result, _ = f.call(t, "POST", "/v1/operators/"+oem.ID+"/staff", map[string]any{"email": "invited@example.test", "role": "operations", "delivery_mode": "email"}, uuid.NewString())
 	mustOK(t, status, result)
 	f.a.Mail.SetSender(f.box)
 	if err := f.a.RunMailJobs(ctx, "brand-mail-test", 1); err != nil {
@@ -128,12 +122,13 @@ func TestPostgresBrandMailWorkspaceBoundariesAndReadiness(t *testing.T) {
 	if f.a.Mail.AvailableForBrand(oem.BrandID) || !f.a.Mail.AvailableForBrand(other.BrandID) {
 		t.Fatal("brand availability isolation")
 	}
-	v = first(get(channel.ID, "mail"))
-	if v["configuration_note"] != "等待所属品牌方配置可用的邮件服务。" {
-		t.Fatal(v)
+	settings, err := f.a.Mail.SettingsForBrand(ctx, channel.BrandID)
+	if err != nil || settings.Available {
+		t.Fatal("channel ignored disabled brand mail", settings, err)
 	}
 	post(oem.ID, map[string]any{"mode": "platform"})
-	if first(get(channel.ID, "mail"))["from"] != "platform@example.test" {
+	settings, err = f.a.Mail.SettingsForBrand(ctx, channel.BrandID)
+	if err != nil || settings.From != "platform@example.test" || !settings.Available {
 		t.Fatal("channel did not follow brand fallback")
 	}
 	// An unrelated staff role still cannot gain access through the new menu.

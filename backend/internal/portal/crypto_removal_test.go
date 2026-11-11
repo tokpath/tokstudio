@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -30,6 +31,7 @@ func TestPostgresCryptoRemovalReleasesOnlyAffectedWithdrawalHolds(t *testing.T) 
 	}
 	accounts := []ledger.Account{}
 	cryptoHolds := []string{}
+	normalEvents := []string{}
 	for _, wallet := range []string{"balance", "commission"} {
 		customer := uuid.NewString()
 		account, e := f.a.Ledger.EnsureAccount(ctx, nil, ledger.Account{OperatorID: op, OwnerID: customer, Purpose: wallet, Unit: ledger.MoneyUnit})
@@ -56,6 +58,13 @@ func TestPostgresCryptoRemovalReleasesOnlyAffectedWithdrawalHolds(t *testing.T) 
 			id := uuid.NewString()
 			if e = db.Exec(`INSERT INTO incentives_withdrawals(id,operator_id,original_operator_id,customer_id,business_key,fingerprint,policy_id,amount_money,fee_money,net_money,fee_remainder,recipient_reference,hold_id,status,created_at,wallet) VALUES(?,?,?,?,?,?,?,15,0,15,'0','test recipient',?,'requested',now(),?)`, id, op, op, customer, id, id, policy, hold.ID, wallet).Error; e != nil {
 				t.Fatal(e)
+			}
+			event := uuid.NewString()
+			if e = db.Exec(`INSERT INTO incentives_events(id,operator_id,aggregate_id,kind,payload,created_at) VALUES(?,?,?,'withdrawal_requested','{}',now())`, event, op, id).Error; e != nil {
+				t.Fatal(e)
+			}
+			if policy == normalPolicy {
+				normalEvents = append(normalEvents, event)
 			}
 		}
 	}
@@ -95,6 +104,14 @@ func TestPostgresCryptoRemovalReleasesOnlyAffectedWithdrawalHolds(t *testing.T) 
 	var count int64
 	if e = db.Table("incentives_withdrawals").Count(&count).Error; e != nil || count != 2 {
 		t.Fatal(count, e)
+	}
+	if e = db.Table("incentives_events").Where("kind = ?", "withdrawal_requested").Count(&count).Error; e != nil || count != 2 {
+		t.Fatal("ordinary withdrawal events must remain", count, e)
+	}
+	for _, event := range normalEvents {
+		if e = db.Exec(`DELETE FROM incentives_events WHERE id=?`, event).Error; e == nil || !strings.Contains(e.Error(), "incentives audit is immutable") {
+			t.Fatal("audit protection must remain enabled after migration", e)
+		}
 	}
 	if e = db.Table("payments_webhook_inbox").Count(&count).Error; e != nil || count != 0 {
 		t.Fatal(count, e)

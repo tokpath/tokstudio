@@ -1,7 +1,7 @@
 -- Crypto payment support is retired before launch. Preserve ordinary balances
 -- and completed ledger facts; remove crypto withdrawal requests and release only
 -- their still-active reservations. No external transfer is initiated here.
-LOCK TABLE incentives_withdrawals, ledger_holds, ledger_accounts IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE incentives_withdrawals, ledger_holds, ledger_accounts, incentives_events IN SHARE ROW EXCLUSIVE MODE;
 
 CREATE TEMP TABLE retired_crypto_methods ON COMMIT DROP AS
 SELECT DISTINCT operator_id, method_id FROM (
@@ -32,7 +32,12 @@ FROM (
 ) x WHERE a.id=x.account_id;
 UPDATE ledger_holds h SET status='released',resolution_key='migration:remove-crypto-payments',resolved_at=clock_timestamp()
 FROM retired_crypto_withdrawals w WHERE h.id=w.hold_id AND h.status='active';
+-- The pre-launch cleanup explicitly includes obsolete withdrawal audit rows.
+-- Suspend only their immutability trigger inside this migration transaction;
+-- ordinary events remain protected once the transaction commits (or rolls back).
+ALTER TABLE incentives_events DISABLE TRIGGER incentives_audit_immutable;
 DELETE FROM incentives_events e USING retired_crypto_withdrawals w WHERE e.aggregate_id=w.id;
+ALTER TABLE incentives_events ENABLE TRIGGER incentives_audit_immutable;
 DELETE FROM incentives_withdrawals w USING retired_crypto_withdrawals r WHERE w.id=r.id;
 
 INSERT INTO payment_method_versions(id,method_id,operator_id,version,name,collection,payout_enabled,payout_kind,flat_fee_money,fee_rate,created_by,method_kind,paused)

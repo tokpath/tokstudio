@@ -1344,5 +1344,437 @@
     "hi": "प्लेटफ़ॉर्म द्वारा विनिमय दर स्रोत सक्षम होने की प्रतीक्षा करें।",
     "ms": "Tunggu platform mengaktifkan sumber kadar pertukaran.",
     "th": "รอแพลตฟอร์มเปิดใช้แหล่งอัตราแลกเปลี่ยน"
+  },
+  "后台任务异常": {
+    "zh": "后台任务异常",
+    "en": "Background task failures",
+    "ja": "バックグラウンドタスクの異常",
+    "ru": "Ошибки фоновых задач",
+    "hi": "पृष्ठभूमि कार्यों की त्रुटियाँ",
+    "ms": "Kegagalan tugas latar belakang",
+    "th": "ข้อผิดพลาดของงานเบื้องหลัง"
+  },
+  "仅显示自动重试耗尽后仍未恢复的任务。同一事项的定时检查合并展示，后续执行成功后自动移除。请先排除故障，再恢复任务。": {
+    "zh": "仅显示自动重试耗尽后仍未恢复的任务。同一事项的定时检查合并展示，后续执行成功后自动移除。请先排除故障，再恢复任务。",
+    "en": "Only tasks that remain unresolved after automatic retries are shown. Recurring checks for the same item are grouped and removed after a successful run. Fix the cause before resuming a task.",
+    "ja": "自動再試行を使い切っても復旧していないタスクのみ表示します。同じ対象の定期確認はまとめて表示し、後続の実行が成功すると自動的に消えます。原因を解消してから再開してください。",
+    "ru": "Показаны только задачи, не восстановленные после исчерпания автоматических повторов. Периодические проверки одного объекта объединяются и исчезают после успешного выполнения. Сначала устраните причину, затем возобновите задачу.",
+    "hi": "केवल वे कार्य दिखते हैं जो स्वचालित पुनः प्रयास समाप्त होने के बाद भी ठीक नहीं हुए हैं। एक ही विषय की नियमित जाँच एक साथ दिखाई जाती है और सफल होने पर हट जाती है। कार्य फिर शुरू करने से पहले कारण ठीक करें।",
+    "ms": "Hanya tugas yang masih gagal selepas percubaan semula automatik habis dipaparkan. Semakan berkala bagi perkara yang sama digabungkan dan dikeluarkan selepas berjaya. Selesaikan punca sebelum menyambung tugas.",
+    "th": "แสดงเฉพาะงานที่ยังไม่สำเร็จหลังใช้การลองใหม่อัตโนมัติครบแล้ว การตรวจสอบเรื่องเดียวกันจะรวมเป็นรายการเดียวและหายไปเมื่อทำงานสำเร็จ โปรดแก้ไขสาเหตุก่อนเริ่มงานต่อ"
+  },
+  "任务名称": {
+    "zh": "任务名称",
+    "en": "Task",
+    "ja": "タスク名",
+    "ru": "Задача",
+    "hi": "कार्य",
+    "ms": "Tugas",
+    "th": "ชื่องาน"
+  },
+  "影响对象": {
+    "zh": "影响对象",
+    "en": "Affected item",
+    "ja": "影響対象",
+    "ru": "Затронутый объект",
+    "hi": "प्रभावित विषय",
+    "ms": "Perkara terjejas",
+    "th": "รายการที่ได้รับผลกระทบ"
+  },
+  "最近失败时间": {
+    "zh": "最近失败时间",
+    "en": "Last failure",
+    "ja": "最終失敗日時",
+    "ru": "Последняя ошибка",
+    "hi": "पिछली विफलता का समय",
+    "ms": "Kegagalan terakhir",
+    "th": "เวลาที่ล้มเหลวล่าสุด"
+  },
+  "恢复任务": {
+    "zh": "恢复任务",
+    "en": "Resume task",
+    "ja": "タスクを再開",
+    "ru": "Возобновить задачу",
+    "hi": "कार्य फिर शुरू करें",
+    "ms": "Sambung tugas",
+    "th": "เริ่มงานต่อ"
+  },
+  "正在自动重试": {
+    "zh": "正在自动重试",
+    "en": "Automatic retry in progress",
+    "ja": "自動再試行中",
+    "ru": "Выполняется автоматический повтор",
+    "hi": "स्वचालित पुनः प्रयास जारी है",
+    "ms": "Percubaan semula automatik sedang berjalan",
+    "th": "กำลังลองใหม่อัตโนมัติ"
+  },
+  "已达到恢复次数上限，请由技术人员排查。": {
+    "zh": "已达到恢复次数上限，请由技术人员排查。",
+    "en": "The retry limit has been reached. Technical investigation is required.",
+    "ja": "再開回数の上限に達しました。技術担当者による調査が必要です。",
+    "ru": "Достигнут предел повторов. Требуется проверка техническим специалистом.",
+    "hi": "पुनः प्रयास की सीमा पूरी हो गई है। तकनीकी जाँच आवश्यक है।",
+    "ms": "Had percubaan semula telah dicapai. Siasatan teknikal diperlukan.",
+    "th": "ลองใหม่ครบจำนวนสูงสุดแล้ว โปรดให้เจ้าหน้าที่เทคนิคตรวจสอบ"
+  },
+  "当前没有后台任务异常": {
+    "zh": "当前没有后台任务异常",
+    "en": "No unresolved background task failures",
+    "ja": "現在、未解決のバックグラウンドタスク異常はありません",
+    "ru": "Нерешённых ошибок фоновых задач нет",
+    "hi": "पृष्ठभूमि कार्यों में कोई अनसुलझी त्रुटि नहीं है",
+    "ms": "Tiada kegagalan tugas latar belakang yang belum selesai",
+    "th": "ไม่มีข้อผิดพลาดของงานเบื้องหลังที่ยังไม่ได้แก้ไข"
+  },
+  "需要人工关注的失败任务会显示在这里，恢复成功后自动移除。": {
+    "zh": "需要人工关注的失败任务会显示在这里，恢复成功后自动移除。",
+    "en": "Failed tasks needing attention appear here and disappear once they recover.",
+    "ja": "対応が必要な失敗タスクがここに表示され、復旧すると自動的に消えます。",
+    "ru": "Здесь появляются задачи, требующие внимания. После восстановления они исчезают.",
+    "hi": "जिन विफल कार्यों पर ध्यान देना आवश्यक है, वे यहाँ दिखेंगे और ठीक होने पर हट जाएँगे।",
+    "ms": "Tugas gagal yang memerlukan perhatian dipaparkan di sini dan dikeluarkan selepas pulih.",
+    "th": "งานที่ล้มเหลวและต้องได้รับการดูแลจะแสดงที่นี่ และหายไปเมื่อแก้ไขสำเร็จ"
+  },
+  "确认已排除故障，继续执行原任务。系统保留原业务编号，避免重复处理。": {
+    "zh": "确认已排除故障，继续执行原任务。系统保留原业务编号，避免重复处理。",
+    "en": "Confirm the cause is fixed and resume the original task. The original business identifier is retained to prevent duplicate processing.",
+    "ja": "原因が解消されたことを確認し、元のタスクを再開します。重複処理を防ぐため、元の業務番号を保持します。",
+    "ru": "Подтвердите устранение причины и возобновите исходную задачу. Исходный идентификатор операции сохраняется для защиты от повторной обработки.",
+    "hi": "पुष्टि करें कि कारण ठीक कर दिया गया है और मूल कार्य फिर शुरू करें। दोहरा संसाधन रोकने के लिए मूल व्यावसायिक पहचान बनी रहती है।",
+    "ms": "Sahkan punca telah diselesaikan dan sambung tugas asal. Pengecam urusan asal dikekalkan untuk mengelakkan pemprosesan berganda.",
+    "th": "ยืนยันว่าแก้ไขสาเหตุแล้วและดำเนินงานเดิมต่อ ระบบคงหมายเลขรายการเดิมไว้เพื่อป้องกันการประมวลผลซ้ำ"
+  },
+  "后台任务": {
+    "zh": "后台任务",
+    "en": "Background task",
+    "ja": "バックグラウンドタスク",
+    "ru": "Фоновая задача",
+    "hi": "पृष्ठभूमि कार्य",
+    "ms": "Tugas latar belakang",
+    "th": "งานเบื้องหลัง"
+  },
+  "全系统": {
+    "zh": "全系统",
+    "en": "Entire system",
+    "ja": "システム全体",
+    "ru": "Вся система",
+    "hi": "पूरा सिस्टम",
+    "ms": "Seluruh sistem",
+    "th": "ทั้งระบบ"
+  },
+  "关联业务": {
+    "zh": "关联业务",
+    "en": "Related business activity",
+    "ja": "関連業務",
+    "ru": "Связанная операция",
+    "hi": "संबंधित व्यावसायिक कार्य",
+    "ms": "Urusan berkaitan",
+    "th": "รายการที่เกี่ยวข้อง"
+  },
+  "相关账号": {
+    "zh": "相关账号",
+    "en": "Related account",
+    "ja": "関連アカウント",
+    "ru": "Связанный аккаунт",
+    "hi": "संबंधित खाता",
+    "ms": "Akaun berkaitan",
+    "th": "บัญชีที่เกี่ยวข้อง"
+  },
+  "品牌域名验证": {
+    "zh": "品牌域名验证",
+    "en": "Brand domain verification",
+    "ja": "ブランドドメインの検証",
+    "ru": "Проверка домена бренда",
+    "hi": "ब्रांड डोमेन सत्यापन",
+    "ms": "Pengesahan domain jenama",
+    "th": "ตรวจสอบโดเมนของแบรนด์"
+  },
+  "模型配置生效检查": {
+    "zh": "模型配置生效检查",
+    "en": "Model configuration activation check",
+    "ja": "モデル設定の反映確認",
+    "ru": "Проверка применения настроек моделей",
+    "hi": "मॉडल कॉन्फ़िगरेशन लागू होने की जाँच",
+    "ms": "Semakan pengaktifan konfigurasi model",
+    "th": "ตรวจสอบการใช้การตั้งค่าโมเดล"
+  },
+  "注册奖励预留清理": {
+    "zh": "注册奖励预留清理",
+    "en": "Registration reward reservation cleanup",
+    "ja": "登録特典の予約枠整理",
+    "ru": "Очистка резервов наград за регистрацию",
+    "hi": "पंजीकरण पुरस्कार के आरक्षण की सफाई",
+    "ms": "Pembersihan rizab ganjaran pendaftaran",
+    "th": "ล้างการสำรองรางวัลสมัครสมาชิก"
+  },
+  "未付款订单检查": {
+    "zh": "未付款订单检查",
+    "en": "Unpaid order check",
+    "ja": "未払い注文の確認",
+    "ru": "Проверка неоплаченных заказов",
+    "hi": "अवैतनिक ऑर्डर की जाँच",
+    "ms": "Semakan pesanan belum dibayar",
+    "th": "ตรวจสอบคำสั่งซื้อที่ยังไม่ชำระเงิน"
+  },
+  "付款报价与 KVoucher 收款核实": {
+    "zh": "付款报价与 KVoucher 收款核实",
+    "en": "Payment quote and KVoucher receipt verification",
+    "ja": "支払見積と KVoucher 入金の確認",
+    "ru": "Проверка платёжных котировок и поступлений KVoucher",
+    "hi": "भुगतान कोट और KVoucher प्राप्ति सत्यापन",
+    "ms": "Pengesahan sebut harga pembayaran dan penerimaan KVoucher",
+    "th": "ตรวจสอบราคาชำระเงินและการรับเงิน KVoucher"
+  },
+  "注册奖励发放": {
+    "zh": "注册奖励发放",
+    "en": "Registration reward delivery",
+    "ja": "登録特典の付与",
+    "ru": "Начисление наград за регистрацию",
+    "hi": "पंजीकरण पुरस्कार वितरण",
+    "ms": "Pemberian ganjaran pendaftaran",
+    "th": "มอบรางวัลสมัครสมาชิก"
+  },
+  "退款与争议通知": {
+    "zh": "退款与争议通知",
+    "en": "Refund and dispute notifications",
+    "ja": "返金・紛争通知",
+    "ru": "Уведомления о возвратах и спорах",
+    "hi": "धनवापसी और विवाद सूचनाएँ",
+    "ms": "Pemberitahuan bayaran balik dan pertikaian",
+    "th": "การแจ้งเตือนเงินคืนและข้อพิพาท"
+  },
+  "邀请与佣金通知": {
+    "zh": "邀请与佣金通知",
+    "en": "Referral and commission notifications",
+    "ja": "招待・コミッション通知",
+    "ru": "Уведомления о приглашениях и комиссиях",
+    "hi": "रेफ़रल और कमीशन सूचनाएँ",
+    "ms": "Pemberitahuan jemputan dan komisen",
+    "th": "การแจ้งเตือนคำเชิญและค่าคอมมิชชัน"
+  },
+  "购买与续费通知": {
+    "zh": "购买与续费通知",
+    "en": "Purchase and renewal notifications",
+    "ja": "購入・更新通知",
+    "ru": "Уведомления о покупках и продлениях",
+    "hi": "खरीद और नवीनीकरण सूचनाएँ",
+    "ms": "Pemberitahuan pembelian dan pembaharuan",
+    "th": "การแจ้งเตือนการซื้อและต่ออายุ"
+  },
+  "消费确认与 KOL 资格检查": {
+    "zh": "消费确认与 KOL 资格检查",
+    "en": "Spending confirmation and KOL eligibility check",
+    "ja": "利用額の確定・KOL 資格確認",
+    "ru": "Подтверждение расходов и проверка статуса KOL",
+    "hi": "खर्च की पुष्टि और KOL पात्रता जाँच",
+    "ms": "Pengesahan perbelanjaan dan semakan kelayakan KOL",
+    "th": "ยืนยันการใช้จ่ายและตรวจสอบคุณสมบัติ KOL"
+  },
+  "到期额度处理": {
+    "zh": "到期额度处理",
+    "en": "Expired allowance processing",
+    "ja": "期限切れ利用枠の処理",
+    "ru": "Обработка истёкших квот",
+    "hi": "समाप्त कोटा का संसाधन",
+    "ms": "Pemprosesan kuota tamat tempoh",
+    "th": "จัดการโควตาที่หมดอายุ"
+  },
+  "套餐自动续费": {
+    "zh": "套餐自动续费",
+    "en": "Automatic package renewal",
+    "ja": "パッケージの自動更新",
+    "ru": "Автоматическое продление пакета",
+    "hi": "पैकेज का स्वचालित नवीनीकरण",
+    "ms": "Pembaharuan pakej automatik",
+    "th": "ต่ออายุแพ็กเกจอัตโนมัติ"
+  },
+  "套餐变更通知": {
+    "zh": "套餐变更通知",
+    "en": "Package change notification",
+    "ja": "パッケージ変更通知",
+    "ru": "Уведомление об изменении пакета",
+    "hi": "पैकेज परिवर्तन सूचना",
+    "ms": "Pemberitahuan perubahan pakej",
+    "th": "การแจ้งเตือนการเปลี่ยนแพ็กเกจ"
+  },
+  "调用结果与用量核实": {
+    "zh": "调用结果与用量核实",
+    "en": "Request result and usage verification",
+    "ja": "リクエスト結果・使用量の確認",
+    "ru": "Проверка результатов запросов и использования",
+    "hi": "अनुरोध परिणाम और उपयोग सत्यापन",
+    "ms": "Pengesahan hasil permintaan dan penggunaan",
+    "th": "ตรวจสอบผลคำขอและปริมาณการใช้งาน"
+  },
+  "套餐额度交付": {
+    "zh": "套餐额度交付",
+    "en": "Package allowance delivery",
+    "ja": "パッケージ利用枠の付与",
+    "ru": "Зачисление квоты пакета",
+    "hi": "पैकेज कोटा वितरण",
+    "ms": "Pemberian kuota pakej",
+    "th": "มอบโควตาแพ็กเกจ"
+  },
+  "到账后的订单交付": {
+    "zh": "到账后的订单交付",
+    "en": "Order fulfillment after payment",
+    "ja": "入金後の注文履行",
+    "ru": "Исполнение заказа после оплаты",
+    "hi": "भुगतान के बाद ऑर्डर की पूर्ति",
+    "ms": "Pemenuhan pesanan selepas bayaran",
+    "th": "ดำเนินการตามคำสั่งซื้อหลังรับชำระเงิน"
+  },
+  "采购余额与销售空间检查": {
+    "zh": "采购余额与销售空间检查",
+    "en": "Procurement balance and sales capacity check",
+    "ja": "仕入残高・販売余力の確認",
+    "ru": "Проверка закупочного остатка и запаса продаж",
+    "hi": "खरीद शेष और बिक्री क्षमता की जाँच",
+    "ms": "Semakan baki perolehan dan kapasiti jualan",
+    "th": "ตรวจสอบยอดคงเหลือจัดซื้อและความสามารถในการขาย"
+  },
+  "账户限制复查": {
+    "zh": "账户限制复查",
+    "en": "Account restriction review",
+    "ja": "アカウント制限の再確認",
+    "ru": "Перепроверка ограничений аккаунтов",
+    "hi": "खाता प्रतिबंधों की समीक्षा",
+    "ms": "Semakan sekatan akaun",
+    "th": "ทบทวนข้อจำกัดของบัญชี"
+  },
+  "发票状态检查": {
+    "zh": "发票状态检查",
+    "en": "Invoice status check",
+    "ja": "請求書ステータスの確認",
+    "ru": "Проверка статуса счетов-фактур",
+    "hi": "इनवॉइस स्थिति की जाँच",
+    "ms": "Semakan status invois",
+    "th": "ตรวจสอบสถานะใบกำกับภาษี"
+  },
+  "过期临时数据清理": {
+    "zh": "过期临时数据清理",
+    "en": "Expired temporary data cleanup",
+    "ja": "期限切れ一時データの削除",
+    "ru": "Очистка устаревших временных данных",
+    "hi": "समाप्त अस्थायी डेटा की सफाई",
+    "ms": "Pembersihan data sementara tamat tempoh",
+    "th": "ล้างข้อมูลชั่วคราวที่หมดอายุ"
+  },
+  "调价后的履约检查": {
+    "zh": "调价后的履约检查",
+    "en": "Fulfillment check after price changes",
+    "ja": "価格変更後の履行能力確認",
+    "ru": "Проверка исполнения обязательств после изменения цен",
+    "hi": "कीमत बदलने के बाद पूर्ति क्षमता की जाँच",
+    "ms": "Semakan pemenuhan selepas perubahan harga",
+    "th": "ตรวจสอบความสามารถในการให้บริการหลังเปลี่ยนราคา"
+  },
+  "账号验证邮件": {
+    "zh": "账号验证邮件",
+    "en": "Account verification email",
+    "ja": "アカウント確認メール",
+    "ru": "Письмо подтверждения аккаунта",
+    "hi": "खाता सत्यापन ईमेल",
+    "ms": "E-mel pengesahan akaun",
+    "th": "อีเมลยืนยันบัญชี"
+  },
+  "人员邀请邮件": {
+    "zh": "人员邀请邮件",
+    "en": "Staff invitation email",
+    "ja": "スタッフ招待メール",
+    "ru": "Письмо с приглашением сотрудника",
+    "hi": "कर्मचारी आमंत्रण ईमेल",
+    "ms": "E-mel jemputan kakitangan",
+    "th": "อีเมลเชิญเจ้าหน้าที่"
+  },
+  "密码重置邮件": {
+    "zh": "密码重置邮件",
+    "en": "Password reset email",
+    "ja": "パスワード再設定メール",
+    "ru": "Письмо для сброса пароля",
+    "hi": "पासवर्ड रीसेट ईमेल",
+    "ms": "E-mel penetapan semula kata laluan",
+    "th": "อีเมลรีเซ็ตรหัสผ่าน"
+  },
+  "相关业务已暂停，请检查经营方的营业状态。": {
+    "zh": "相关业务已暂停，请检查经营方的营业状态。",
+    "en": "The related business activity is paused. Check the operator’s business status.",
+    "ja": "関連業務が停止中です。事業者の営業状態を確認してください。",
+    "ru": "Связанная деятельность приостановлена. Проверьте статус работы оператора.",
+    "hi": "संबंधित व्यावसायिक गतिविधि रुकी हुई है। संचालक की स्थिति जाँचें।",
+    "ms": "Urusan berkaitan dijeda. Semak status perniagaan pengendali.",
+    "th": "กิจกรรมที่เกี่ยวข้องหยุดชั่วคราว โปรดตรวจสอบสถานะการดำเนินงานของผู้ประกอบการ"
+  },
+  "可用资产不足，请检查相关余额或额度。": {
+    "zh": "可用资产不足，请检查相关余额或额度。",
+    "en": "Available assets are insufficient. Check the related balance or allowance.",
+    "ja": "利用可能な資産が不足しています。関連する残高や利用枠を確認してください。",
+    "ru": "Недостаточно доступных средств. Проверьте соответствующий баланс или квоту.",
+    "hi": "उपलब्ध संपत्ति अपर्याप्त है। संबंधित शेष या कोटा जाँचें।",
+    "ms": "Aset tersedia tidak mencukupi. Semak baki atau kuota berkaitan.",
+    "th": "สินทรัพย์ที่ใช้ได้ไม่เพียงพอ โปรดตรวจสอบยอดคงเหลือหรือโควตาที่เกี่ยวข้อง"
+  },
+  "订单尚未足额付款，请在原订单核实收款。": {
+    "zh": "订单尚未足额付款，请在原订单核实收款。",
+    "en": "The order is not fully paid. Verify payment on the original order.",
+    "ja": "注文の支払額が不足しています。元の注文で入金を確認してください。",
+    "ru": "Заказ оплачен не полностью. Проверьте поступление по исходному заказу.",
+    "hi": "ऑर्डर का पूरा भुगतान नहीं हुआ है। मूल ऑर्डर में भुगतान सत्यापित करें।",
+    "ms": "Pesanan belum dibayar penuh. Sahkan bayaran pada pesanan asal.",
+    "th": "คำสั่งซื้อยังชำระไม่ครบ โปรดตรวจสอบการรับเงินในคำสั่งซื้อเดิม"
+  },
+  "业务归属已变化，请核实当前负责的经营方。": {
+    "zh": "业务归属已变化，请核实当前负责的经营方。",
+    "en": "Responsibility has changed. Verify the operator currently responsible.",
+    "ja": "業務の帰属が変わっています。現在の担当事業者を確認してください。",
+    "ru": "Ответственность за операцию изменилась. Уточните текущего ответственного оператора.",
+    "hi": "व्यावसायिक ज़िम्मेदारी बदल गई है। वर्तमान ज़िम्मेदार संचालक जाँचें।",
+    "ms": "Tanggungjawab urusan telah berubah. Sahkan pengendali yang kini bertanggungjawab.",
+    "th": "ผู้รับผิดชอบรายการเปลี่ยนแล้ว โปรดตรวจสอบผู้ประกอบการที่รับผิดชอบปัจจุบัน"
+  },
+  "邮件发送失败，请检查邮件服务配置与连接。": {
+    "zh": "邮件发送失败，请检查邮件服务配置与连接。",
+    "en": "Email delivery failed. Check the mail service configuration and connection.",
+    "ja": "メール送信に失敗しました。メールサービスの設定と接続を確認してください。",
+    "ru": "Не удалось отправить письмо. Проверьте настройки почтовой службы и соединение.",
+    "hi": "ईमेल भेजना विफल रहा। मेल सेवा की सेटिंग और कनेक्शन जाँचें।",
+    "ms": "Penghantaran e-mel gagal. Semak konfigurasi dan sambungan perkhidmatan mel.",
+    "th": "ส่งอีเมลไม่สำเร็จ โปรดตรวจสอบการตั้งค่าและการเชื่อมต่อบริการอีเมล"
+  },
+  "履约检查未完成，请检查供货配置和相关服务。": {
+    "zh": "履约检查未完成，请检查供货配置和相关服务。",
+    "en": "The fulfillment check could not finish. Check supply settings and related services.",
+    "ja": "履行能力の確認を完了できませんでした。供給設定と関連サービスを確認してください。",
+    "ru": "Проверка исполнения обязательств не завершена. Проверьте настройки поставок и связанные службы.",
+    "hi": "पूर्ति क्षमता की जाँच पूरी नहीं हुई। आपूर्ति सेटिंग और संबंधित सेवाएँ जाँचें।",
+    "ms": "Semakan pemenuhan belum selesai. Semak tetapan bekalan dan perkhidmatan berkaitan.",
+    "th": "ตรวจสอบความสามารถในการให้บริการไม่สำเร็จ โปรดตรวจสอบการตั้งค่าการจัดหาและบริการที่เกี่ยวข้อง"
+  },
+  "收款后的订单处理未完成，请核实原订单与交付状态。": {
+    "zh": "收款后的订单处理未完成，请核实原订单与交付状态。",
+    "en": "Order processing after payment is incomplete. Check the original order and fulfillment status.",
+    "ja": "入金後の注文処理が未完了です。元の注文と履行状態を確認してください。",
+    "ru": "Обработка заказа после оплаты не завершена. Проверьте исходный заказ и статус исполнения.",
+    "hi": "भुगतान के बाद ऑर्डर का संसाधन अधूरा है। मूल ऑर्डर और पूर्ति स्थिति जाँचें।",
+    "ms": "Pemprosesan pesanan selepas bayaran belum selesai. Semak pesanan asal dan status pemenuhan.",
+    "th": "ดำเนินการคำสั่งซื้อหลังรับเงินยังไม่เสร็จ โปรดตรวจสอบคำสั่งซื้อเดิมและสถานะการส่งมอบ"
+  },
+  "后台执行超时或中断，请检查任务服务。": {
+    "zh": "后台执行超时或中断，请检查任务服务。",
+    "en": "Background execution timed out or stopped. Check the task service.",
+    "ja": "バックグラウンド実行がタイムアウトまたは中断しました。タスクサービスを確認してください。",
+    "ru": "Фоновое выполнение прервано или превысило время ожидания. Проверьте службу задач.",
+    "hi": "पृष्ठभूमि कार्य का समय समाप्त हुआ या वह रुक गया। कार्य सेवा जाँचें।",
+    "ms": "Pelaksanaan latar belakang tamat masa atau terhenti. Semak perkhidmatan tugas.",
+    "th": "การทำงานเบื้องหลังหมดเวลาหรือหยุดลง โปรดตรวจสอบบริการงาน"
+  },
+  "相关服务或业务状态异常，请由技术人员排查。": {
+    "zh": "相关服务或业务状态异常，请由技术人员排查。",
+    "en": "A related service or business state requires technical investigation.",
+    "ja": "関連サービスまたは業務状態に異常があります。技術担当者による調査が必要です。",
+    "ru": "Требуется техническая проверка связанной службы или состояния операции.",
+    "hi": "संबंधित सेवा या व्यावसायिक स्थिति की तकनीकी जाँच आवश्यक है।",
+    "ms": "Perkhidmatan atau keadaan urusan berkaitan memerlukan siasatan teknikal.",
+    "th": "บริการหรือสถานะรายการที่เกี่ยวข้องผิดปกติ โปรดให้เจ้าหน้าที่เทคนิคตรวจสอบ"
   }
 }

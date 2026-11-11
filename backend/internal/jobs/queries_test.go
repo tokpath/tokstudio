@@ -33,7 +33,7 @@ func TestDeadRedrivePreservesBusinessAndFencesStaleWorker(t *testing.T) {
 		t.Fatal(rows, e)
 	}
 	current := rows[0]
-	if current.ID != original.ID || current.BusinessKey != original.BusinessKey || string(current.Payload) != string(original.Payload) || current.Attempts != 2 || current.MaxAttempts != 3 || current.Fence <= old.Fence {
+	if current.ID != original.ID || current.BusinessKey != original.BusinessKey || string(current.Payload) != string(original.Payload) || current.Attempts != 2 || current.MaxAttempts != 3 || current.Fence <= old.Fence || current.ExhaustedAt == nil {
 		t.Fatal("redrive changed immutable identity or reset history", current)
 	}
 	if e = s.Complete(ctx, current.ID, "new", current.Fence); e != nil {

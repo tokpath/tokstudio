@@ -29929,7 +29929,7 @@
     "/v1/operators/{operatorId}/jobs/{id}/redrive": {
       "post": {
         "operationId": "post__v1_operators_operatorId_jobs_id_redrive",
-        "summary": "恢复原任务",
+        "summary": "恢复任务",
         "tags": [
           "Operator browser API"
         ],
@@ -30064,7 +30064,7 @@
             }
           }
         },
-        "description": " Required explicit review: 只恢复原任务，不创建新支付或模型请求。已产生的外部事实仍按原业务编号去重。 Requires platform.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": " Required explicit review: 确认已排除故障，继续执行原任务。系统保留原业务编号，避免重复处理。 Requires platform.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "platform.manage"
       }
     },
@@ -48000,12 +48000,7 @@
       },
       "Operator_jobs_redrive": {
         "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "description": "备注（可选）"
-          }
-        },
+        "properties": {},
         "required": [],
         "additionalProperties": false
       },

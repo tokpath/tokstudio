@@ -211,7 +211,7 @@ func TestRetrySchedulingAndFinalLeaseExpiry(t *testing.T) {
 		t.Fatalf("exhausted lease reclaimed: %v %v", claims, err)
 	}
 	dead, err := s.DeadLetters(ctx, "default", 10)
-	if err != nil || len(dead) != 1 {
+	if err != nil || len(dead) != 1 || dead[0].ExhaustedAt == nil {
 		t.Fatalf("lost final attempt: %v %v", dead, err)
 	}
 }

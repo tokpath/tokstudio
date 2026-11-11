@@ -69,6 +69,20 @@ function BalanceMinimumSetting({ operation }: { operation: Operation }) {
 }
 
 export type InspectResource = (resource: string, row: Entity) => void;
+
+function TaskRecoveryForm({ operatorID, row, operation, onBlockedChange, onComplete }: { operatorID: string; row: Entity; operation: Operation; onBlockedChange: (blocked: boolean) => void; onComplete: () => void }) {
+  const { t } = useI18n();
+  const command = useCommand(`/api/v1/operators/${encodeURIComponent(operatorID)}/jobs/${encodeURIComponent(row.id)}/redrive`, CommandResultSchema);
+  const locked = command.busy || command.unresolved;
+  useParentPanelLock(locked);
+  useEffect(() => { onBlockedChange(locked); return () => onBlockedChange(false); }, [locked, onBlockedChange]);
+  return <div className="space-y-5">
+    <p className="text-sm leading-7 text-ink-secondary">{t(operation.confirmation || "")}</p>
+    {!!command.error && <ErrorPanel error={command.error} />}
+    <Button type="button" disabled={command.busy} onClick={() => { void command.run({}).then(result => { if (result) onComplete(); }); }}>{command.busy ? t("正在提交，请稍候…") : t("恢复任务")}</Button>
+  </div>;
+}
+
 const PanelLockContext = createContext<((id: string, blocked: boolean) => void) | undefined>(undefined);
 
 // A nested operation must also keep every owning panel mounted while its
@@ -142,7 +156,7 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const canRead = customer ? session?.kind === "customer" : canReadResource(workspace, resourceName);
   const keyFor = (state: typeof filters) => ["resource", scope, resource, state.cursor, state.q, state.view, state.status, state.section, state.include_auxiliary || "", record || ""];
-  const data = useQuery({ queryKey: keyFor(filters), queryFn: ({ signal }) => request(`${scope}/${resource}${parameters.size ? `?${parameters}` : ""}`, ResourcePageSchema, { signal }), enabled: canRead && appliedPath !== "" && appliedPath === loadedPath, refetchInterval: query => resourceName === "pricing" ? pricingRefetchInterval(query.state.data) : resourceName === "domains" ? 15_000 : false });
+  const data = useQuery({ queryKey: keyFor(filters), queryFn: ({ signal }) => request(`${scope}/${resource}${parameters.size ? `?${parameters}` : ""}`, ResourcePageSchema, { signal }), enabled: canRead && appliedPath !== "" && appliedPath === loadedPath, refetchInterval: query => resourceName === "pricing" ? pricingRefetchInterval(query.state.data) : ["domains", "jobs"].includes(resourceName) ? 15_000 : false });
   if (!canRead) return <Empty title={t("没有查看权限")}>{t("此页面需要当前经营方明确授予相应权限。")}</Empty>;
   if (data.isPending) return <Loading />;
   if (data.isError) return <ErrorPanel error={data.error} retry={() => void data.refetch()} />;
@@ -186,7 +200,6 @@ const resourceFilterStatuses: Record<string, readonly string[]> = {
   "procurement-invoices": ["requested", "issued", "rejected", "review_required", "voided"],
   "receipt-valuations": ["awaiting_settlement"],
   assets: ["open"], ledger: ["open"],
-  jobs: ["pending", "running", "completed", "dead"],
 };
 const invoiceStatusLabels: Record<string,string> = {issued:"已开具"};
 function recordStatusLabels(resource: string) {
@@ -280,7 +293,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   }
   const scope = operatorID ? `/api/v1/operators/${encodeURIComponent(operatorID)}` : "/api/v1/me";
   const inspect = (row: Entity) => onInspect && ["customers", "orders"].includes(resourceName) ? onInspect(resourceName, row) : setFacts(row);
-  const showInspect = !["catalog", "providers", "branding", "channel-themes", "domains"].includes(resourceName);
+  const showInspect = !["catalog", "providers", "branding", "channel-themes", "domains", "jobs"].includes(resourceName);
   const inspectLabel = resourceName === "customers" ? t("客户工作台") : resourceName === "orders" ? t("查看并办理") : t("查看详情");
   const kinds = [...new Set(page.items.map(row => row.values.record_kind).filter((value): value is string => typeof value === "string"))];
   const procurementGroups: Record<string, string[]> = { orders: ["order"], quotes: ["quote"], automatic: ["authorization", "replenishment_attempt"] };
@@ -289,7 +302,13 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const populatedColumns = columnsFor(rows);
   const procurementHold = (row: Entity) => resourceName === "procurement" && ["awaiting_payment", "paid"].includes(row.status || "");
   const identity = (row: Entity) => <div className="min-w-32"><p className="font-medium">{recordTitle(row, resourceName, locale)}</p>{row.presentation?.subtitle && <p className="mt-1 text-xs text-ink-mute">{row.presentation.subtitle}</p>}</div>;
-  const renderTable = (items: Entity[]) => resourceName === "procurement" ? <ProcurementCards rows={items} title={row => recordTitle(row, resourceName, locale)} actions={actions} /> : resourceName === "supplier-costs" ? <Table rows={items} getID={row => row.id} columns={[
+  const renderTable = (items: Entity[]) => resourceName === "jobs" ? <Table rows={items} getID={row => row.id} emptyTitle="当前没有后台任务异常" empty={t("需要人工关注的失败任务会显示在这里，恢复成功后自动移除。")} columns={[
+    { label: "任务名称", cell: row => <span className="font-medium">{recordTitle(row, resourceName, locale)}</span> },
+    { label: "影响对象", cell: row => row.values.impact_name ? String(row.values.impact_name) : t(String(row.values.impact_scope || "关联业务")) },
+    { label: "失败原因", cell: row => <p className="min-w-48 max-w-md text-sm leading-6">{t(String(row.values.failure_reason || ""))}</p> },
+    { label: "最近失败时间", cell: row => <When value={String(row.values.last_failed_at)} /> },
+    { label: "操作", cell: row => row.values.recovery_note ? <span className="text-sm text-ink-secondary">{t(String(row.values.recovery_note))}</span> : actions(row) },
+  ]} /> : resourceName === "procurement" ? <ProcurementCards rows={items} title={row => recordTitle(row, resourceName, locale)} actions={actions} /> : resourceName === "supplier-costs" ? <Table rows={items} getID={row => row.id} columns={[
     {label:"供应商与期间",cell:row=><div className="min-w-48 max-w-72"><p className="font-medium">{String(row.values.provider_name || "")}</p><p className="mt-1 text-xs text-ink-secondary">{row.values.model_name === "供应商整体" ? t("供应商整体") : String(row.values.model_name || "")}</p><p className="mt-2 text-xs text-ink-mute"><When value={String(row.values.starts_at)} /> — <When value={String(row.values.ends_at)} /></p>{row.values.note && <p className="mt-2 line-clamp-2 text-xs leading-5 text-ink-secondary">{String(row.values.note)}</p>}</div>},
     {label:t("供应商参考成本"),align:"right",cell:(row:Entity)=><div className="min-w-24"><Money value={String(row.values.reference_amount || "0")} unit={String(row.values.reference_currency || "USD")} />{Number(row.values.pending_count)>0 && <p className="mt-2 text-xs text-hold">{t("{count} 次调用缺少核算金额",{count:Number(row.values.pending_count)})}</p>}</div>},
     {label:t("供应商实际账单"),align:"right",cell:(row:Entity)=><Money value={String(row.values.amount || "0")} unit={String(row.values.currency || "")} />},
@@ -358,7 +377,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     {selection && <OperatorPanel title={t(selection.operation.label)} description={selection.row ? recordTitle(selection.row, resourceName, locale) : customer ? t("在当前客户范围内办理") : t("在当前经营范围内办理")} open blocked={blocked} close={closeOperation}>
       {selection.row?.values.payout_display && selection.operation.name === "verify_paid" && <Notice>{t("请按申请时固定的到账金额完成付款：")} {String(selection.row.values.payout_display)}</Notice>}
       {selection.row && !customer && /\/invoices\/\{id\}\/register$/.test(selection.operation.path) && <InvoiceFiles embedded scope={selection.operation.path.replace(/\/\{id\}\/register$/, "")} invoiceID={selection.row.id} upload={selection.operation.name === "register"} />}
-      {selection.operation.name === "theme" && operatorID && selection.row ? <AppearanceForm key={selection.row.id} operation={selection.operation} row={selection.row} operatorID={operatorID} onBlockedChange={setBlocked} /> : selection.operation.name === "open_method" && operatorID ? <PaymentMethodForm key={selection.row?.id || "new"} operation={selection.operation} row={selection.row} operatorID={operatorID} catalog={page.payment_method_catalog || []} onBlockedChange={setBlocked} /> : <OperationForm key={`${selection.operation.name}:${selection.row?.id || "new"}`} operation={selection.operation.name === "verify_paid" && selection.row?.values.payout_currency ? { ...selection.operation, fields: selection.operation.fields.filter(field => !["currency", "original_amount", "valuation_evidence"].includes(field.name)) } : selection.operation} row={selection.row} operatorID={operatorID} embedded initialValues={{ ...savedValues, ...initialValues }} lockedFields={Object.keys(initialValues || {})} onBlockedChange={setBlocked} onAbandon={() => setSelection(undefined)} />}
+      {resourceName === "jobs" && operatorID && selection.row ? <TaskRecoveryForm operatorID={operatorID} row={selection.row} operation={selection.operation} onBlockedChange={setBlocked} onComplete={() => { setBlocked(false); setSelection(undefined); }} /> : selection.operation.name === "theme" && operatorID && selection.row ? <AppearanceForm key={selection.row.id} operation={selection.operation} row={selection.row} operatorID={operatorID} onBlockedChange={setBlocked} /> : selection.operation.name === "open_method" && operatorID ? <PaymentMethodForm key={selection.row?.id || "new"} operation={selection.operation} row={selection.row} operatorID={operatorID} catalog={page.payment_method_catalog || []} onBlockedChange={setBlocked} /> : <OperationForm key={`${selection.operation.name}:${selection.row?.id || "new"}`} operation={selection.operation.name === "verify_paid" && selection.row?.values.payout_currency ? { ...selection.operation, fields: selection.operation.fields.filter(field => !["currency", "original_amount", "valuation_evidence"].includes(field.name)) } : selection.operation} row={selection.row} operatorID={operatorID} embedded initialValues={{ ...savedValues, ...initialValues }} lockedFields={Object.keys(initialValues || {})} onBlockedChange={setBlocked} onAbandon={() => setSelection(undefined)} />}
     </OperatorPanel>}
     {invoiceID && <InvoiceFiles scope={`${scope}/${resourceName}`} invoiceID={invoiceID} upload={!customer && resourceName === "invoices"} close={() => setInvoiceID("")} />}
     {facts && <OperatorPanel open title={recordTitle(facts, resourceName, locale)} description={t("记录 {id}", { id: facts.id })} close={() => setFacts(undefined)}>
@@ -509,6 +528,7 @@ export function ReadFacts({ value, field }: { value: JSONValue; field?: string }
 }
 
 export function recordTitle(row: Entity, resource: string, locale: Locale = "zh") {
+  if (resource === "jobs" && typeof row.values.name === "string") return translate(locale, row.values.name);
   if(resource==="payment-methods" && typeof row.values.method_label==="string")return translate(locale,row.values.method_label);
   if (row.presentation?.title) {
     const title = row.presentation.title, prefix = row.presentation.title_kind;

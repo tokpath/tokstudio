@@ -3121,18 +3121,11 @@
   },
   {
     "resource": "jobs",
-    "confirmation": "只恢复原任务，不创建新支付或模型请求。已产生的外部事实仍按原业务编号去重。",
+    "confirmation": "确认已排除故障，继续执行原任务。系统保留原业务编号，避免重复处理。",
     "description": "",
-    "fields": [
-      {
-        "name": "reason",
-        "label": "备注（可选）",
-        "kind": "textarea",
-        "required": false
-      }
-    ],
+    "fields": [],
     "include_version": false,
-    "label": "恢复原任务",
+    "label": "恢复任务",
     "method": "POST",
     "name": "redrive",
     "path": "/v1/operators/{operatorId}/jobs/{id}/redrive",

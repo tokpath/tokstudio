@@ -51,6 +51,7 @@ type Job struct {
 	LastError                string
 	CreatedAt, UpdatedAt     time.Time
 	CompletedAt              *time.Time
+	ExhaustedAt              *time.Time
 }
 
 func (Job) TableName() string { return "durable_jobs" }
@@ -168,7 +169,7 @@ func (s *Service) Claim(ctx context.Context, queue, owner string, lease time.Dur
 			AND lease_until <= clock_timestamp() AND attempts >= max_attempts
 			FOR UPDATE SKIP LOCKED)
 			UPDATE durable_jobs j SET status='dead',lease_until=NULL,lease_owner='',
-			last_error='lease expired on final attempt',updated_at=clock_timestamp()
+			last_error='lease expired on final attempt',exhausted_at=clock_timestamp(),updated_at=clock_timestamp()
 			FROM exhausted e WHERE j.id=e.id`, queue).Error; err != nil {
 			return err
 		}
@@ -255,6 +256,7 @@ func (s *Service) Fail(ctx context.Context, jobID, owner string, fence int64, re
 		}
 		return guarded(leaseQuery(tx, jobID, owner, fence).Updates(map[string]any{
 			"status": status, "lease_until": nil, "lease_owner": "", "last_error": reason,
+			"exhausted_at": gorm.Expr("CASE WHEN ? = 'dead' THEN clock_timestamp() ELSE exhausted_at END", status),
 			"available_at": gorm.Expr("clock_timestamp() + (? * interval '1 microsecond')", retryDelay(job.Attempts).Microseconds()),
 			"updated_at":   gorm.Expr("clock_timestamp()"),
 		}))

@@ -3725,6 +3725,15 @@
     "Tindakan perniagaan",
     "การดำเนินการทางธุรกิจ"
   ],
+  "业务归属已变化，请核实当前负责的经营方。": [
+    "业务归属已变化，请核实当前负责的经营方。",
+    "Responsibility has changed. Verify the operator currently responsible.",
+    "業務の帰属が変わっています。現在の担当事業者を確認してください。",
+    "Ответственность за операцию изменилась. Уточните текущего ответственного оператора.",
+    "व्यावसायिक ज़िम्मेदारी बदल गई है। वर्तमान ज़िम्मेदार संचालक जाँचें।",
+    "Tanggungjawab urusan telah berubah. Sahkan pengendali yang kini bertanggungjawab.",
+    "ผู้รับผิดชอบรายการเปลี่ยนแล้ว โปรดตรวจสอบผู้ประกอบการที่รับผิดชอบปัจจุบัน"
+  ],
   "业务操作编号": [
     "业务操作编号",
     "Business operation ID",
@@ -4346,6 +4355,15 @@
     "ID kakitangan",
     "ID พนักงาน"
   ],
+  "人员邀请邮件": [
+    "人员邀请邮件",
+    "Staff invitation email",
+    "スタッフ招待メール",
+    "Письмо с приглашением сотрудника",
+    "कर्मचारी आमंत्रण ईमेल",
+    "E-mel jemputan kakitangan",
+    "อีเมลเชิญเจ้าหน้าที่"
+  ],
   "人工办理": [
     "人工办理",
     "Handled manually",
@@ -4570,6 +4588,15 @@
     "इस कार्यक्षेत्र में केवल अधिकृत व्यावसायिक कार्य दिखते हैं।",
     "Hanya fungsi perniagaan yang dibenarkan dalam ruang kerja ini ditunjukkan.",
     "แสดงเฉพาะหน้าที่ธุรกิจที่ได้รับอนุญาตในพื้นที่ทำงานนี้"
+  ],
+  "仅显示自动重试耗尽后仍未恢复的任务。同一事项的定时检查合并展示，后续执行成功后自动移除。请先排除故障，再恢复任务。": [
+    "仅显示自动重试耗尽后仍未恢复的任务。同一事项的定时检查合并展示，后续执行成功后自动移除。请先排除故障，再恢复任务。",
+    "Only tasks that remain unresolved after automatic retries are shown. Recurring checks for the same item are grouped and removed after a successful run. Fix the cause before resuming a task.",
+    "自動再試行を使い切っても復旧していないタスクのみ表示します。同じ対象の定期確認はまとめて表示し、後続の実行が成功すると自動的に消えます。原因を解消してから再開してください。",
+    "Показаны только задачи, не восстановленные после исчерпания автоматических повторов. Периодические проверки одного объекта объединяются и исчезают после успешного выполнения. Сначала устраните причину, затем возобновите задачу.",
+    "केवल वे कार्य दिखते हैं जो स्वचालित पुनः प्रयास समाप्त होने के बाद भी ठीक नहीं हुए हैं। एक ही विषय की नियमित जाँच एक साथ दिखाई जाती है और सफल होने पर हट जाती है। कार्य फिर शुरू करने से पहले कारण ठीक करें।",
+    "Hanya tugas yang masih gagal selepas percubaan semula automatik habis dipaparkan. Semakan berkala bagi perkara yang sama digabungkan dan dikeluarkan selepas berjaya. Selesaikan punca sebelum menyambung tugas.",
+    "แสดงเฉพาะงานที่ยังไม่สำเร็จหลังใช้การลองใหม่อัตโนมัติครบแล้ว การตรวจสอบเรื่องเดียวกันจะรวมเป็นรายการเดียวและหายไปเมื่อทำงานสำเร็จ โปรดแก้ไขสาเหตุก่อนเริ่มงานต่อ"
   ],
   "仅注销清算中可执行。将真实撤销全部未使用购买与赠送ATG，不触碰结算币种或佣金。该放弃将保留不可变证据。": [
     "仅注销清算中可执行。将真实撤销全部未使用购买与赠送ATG，不触碰结算币种或佣金。该放弃将保留不可变证据。",
@@ -4903,6 +4930,15 @@
     "भुगतान समयसीमा",
     "Tarikh akhir pembayaran",
     "กำหนดชำระ"
+  ],
+  "付款报价与 KVoucher 收款核实": [
+    "付款报价与 KVoucher 收款核实",
+    "Payment quote and KVoucher receipt verification",
+    "支払見積と KVoucher 入金の確認",
+    "Проверка платёжных котировок и поступлений KVoucher",
+    "भुगतान कोट और KVoucher प्राप्ति सत्यापन",
+    "Pengesahan sebut harga pembayaran dan penerimaan KVoucher",
+    "ตรวจสอบราคาชำระเงินและการรับเงิน KVoucher"
   ],
   "付款报价来源": [
     "付款报价来源",
@@ -5308,6 +5344,15 @@
     "मूल्य सूची का उद्देश्य",
     "Tujuan senarai harga",
     "วัตถุประสงค์รายการราคา"
+  ],
+  "任务名称": [
+    "任务名称",
+    "Task",
+    "タスク名",
+    "Задача",
+    "कार्य",
+    "Tugas",
+    "ชื่องาน"
   ],
   "任务恢复": [
     "任务恢复",
@@ -8081,6 +8126,15 @@
     "Lalai semua model",
     "ค่าเริ่มต้นทุกโมเดล"
   ],
+  "全系统": [
+    "全系统",
+    "Entire system",
+    "システム全体",
+    "Вся система",
+    "पूरा सिस्टम",
+    "Seluruh sistem",
+    "ทั้งระบบ"
+  ],
   "全系统使用同一结算币种。每 1 {currency} 对应 {ratio} ATG。": [
     "全系统使用同一结算币种。每 1 {currency} 对应 {ratio} ATG。",
     "The entire system uses one settlement currency. 1 {currency} equals {ratio} ATG.",
@@ -8440,6 +8494,15 @@
     "कुल {count} उपयोग",
     "{count} penggunaan keseluruhan",
     "ใช้ได้ทั้งหมด {count} ครั้ง"
+  ],
+  "关联业务": [
+    "关联业务",
+    "Related business activity",
+    "関連業務",
+    "Связанная операция",
+    "संबंधित व्यावसायिक कार्य",
+    "Urusan berkaitan",
+    "รายการที่เกี่ยวข้อง"
   ],
   "关联业务主体": [
     "关联业务主体",
@@ -9620,6 +9683,15 @@
     "Cara pembaharuan automatik dibayar",
     "วิธีชำระการต่ออายุอัตโนมัติ"
   ],
+  "到期额度处理": [
+    "到期额度处理",
+    "Expired allowance processing",
+    "期限切れ利用枠の処理",
+    "Обработка истёкших квот",
+    "समाप्त कोटा का संसाधन",
+    "Pemprosesan kuota tamat tempoh",
+    "จัดการโควตาที่หมดอายุ"
+  ],
   "到期（空为不限期）": [
     "到期（空为不限期）",
     "Expiry (blank for unlimited)",
@@ -9628,6 +9700,15 @@
     "समाप्ति (असीमित के लिए खाली छोड़ें)",
     "Tamat tempoh (kosong untuk tanpa had)",
     "วันหมดอายุ (เว้นว่างหากไม่จำกัด)"
+  ],
+  "到账后的订单交付": [
+    "到账后的订单交付",
+    "Order fulfillment after payment",
+    "入金後の注文履行",
+    "Исполнение заказа после оплаты",
+    "भुगतान के बाद ऑर्डर की पूर्ति",
+    "Pemenuhan pesanan selepas bayaran",
+    "ดำเนินการตามคำสั่งซื้อหลังรับชำระเงิน"
   ],
   "刷新": [
     "刷新",
@@ -11474,6 +11555,15 @@
     "Nama pada invois",
     "ชื่อบนใบกำกับภาษี"
   ],
+  "发票状态检查": [
+    "发票状态检查",
+    "Invoice status check",
+    "請求書ステータスの確認",
+    "Проверка статуса счетов-фактур",
+    "इनवॉइस स्थिति की जाँच",
+    "Semakan status invois",
+    "ตรวจสอบสถานะใบกำกับภาษี"
+  ],
   "发给你的通知单独显示未读条数。发给其他人的同一次通知合成一组，显示未读人数和总人数。同一事项的两次发送是两组。": [
     "发给你的通知单独显示未读条数。发给其他人的同一次通知合成一组，显示未读人数和总人数。同一事项的两次发送是两组。",
     "Notices to you show only your unread count. One send to other people is one group, with unread and total recipients. Two sends of the same matter are two groups.",
@@ -12563,6 +12653,15 @@
     "Titik akhir alternatif tersedia",
     "ปลายทางสำรองที่ใช้ได้"
   ],
+  "可用资产不足，请检查相关余额或额度。": [
+    "可用资产不足，请检查相关余额或额度。",
+    "Available assets are insufficient. Check the related balance or allowance.",
+    "利用可能な資産が不足しています。関連する残高や利用枠を確認してください。",
+    "Недостаточно доступных средств. Проверьте соответствующий баланс или квоту.",
+    "उपलब्ध संपत्ति अपर्याप्त है। संबंधित शेष या कोटा जाँचें।",
+    "Aset tersedia tidak mencukupi. Semak baki atau kuota berkaitan.",
+    "สินทรัพย์ที่ใช้ได้ไม่เพียงพอ โปรดตรวจสอบยอดคงเหลือหรือโควตาที่เกี่ยวข้อง"
+  ],
   "可用资产不足；占用与各类资产不能互相替代": [
     "可用资产不足；占用与各类资产不能互相替代",
     "Insufficient available assets; held amounts and different asset types are not interchangeable.",
@@ -13202,6 +13301,33 @@
     "Nama dan ID",
     "ชื่อและ ID"
   ],
+  "后台任务": [
+    "后台任务",
+    "Background task",
+    "バックグラウンドタスク",
+    "Фоновая задача",
+    "पृष्ठभूमि कार्य",
+    "Tugas latar belakang",
+    "งานเบื้องหลัง"
+  ],
+  "后台任务异常": [
+    "后台任务异常",
+    "Background task failures",
+    "バックグラウンドタスクの異常",
+    "Ошибки фоновых задач",
+    "पृष्ठभूमि कार्यों की त्रुटियाँ",
+    "Kegagalan tugas latar belakang",
+    "ข้อผิดพลาดของงานเบื้องหลัง"
+  ],
+  "后台执行超时或中断，请检查任务服务。": [
+    "后台执行超时或中断，请检查任务服务。",
+    "Background execution timed out or stopped. Check the task service.",
+    "バックグラウンド実行がタイムアウトまたは中断しました。タスクサービスを確認してください。",
+    "Фоновое выполнение прервано или превысило время ожидания. Проверьте службу задач.",
+    "पृष्ठभूमि कार्य का समय समाप्त हुआ या वह रुक गया। कार्य सेवा जाँचें।",
+    "Pelaksanaan latar belakang tamat masa atau terhenti. Semak perkhidmatan tugas.",
+    "การทำงานเบื้องหลังหมดเวลาหรือหยุดลง โปรดตรวจสอบบริการงาน"
+  ],
   "后续使用此模型；已受理请求按原责任处理。": [
     "后续使用此模型；已受理请求按原责任处理。",
     " future use of this model; accepted requests remain subject to the original obligations.",
@@ -13552,6 +13678,15 @@
     "ब्रांड डोमेन और TLS सत्यापन",
     "Pengesahan domain dan TLS jenama",
     "การตรวจสอบโดเมนแบรนด์และ TLS"
+  ],
+  "品牌域名验证": [
+    "品牌域名验证",
+    "Brand domain verification",
+    "ブランドドメインの検証",
+    "Проверка домена бренда",
+    "ब्रांड डोमेन सत्यापन",
+    "Pengesahan domain jenama",
+    "ตรวจสอบโดเมนของแบรนด์"
   ],
   "品牌外观": [
     "品牌外观",
@@ -15371,6 +15506,15 @@
     "Kandungan pakej",
     "เนื้อหาแพ็กเกจ"
   ],
+  "套餐变更通知": [
+    "套餐变更通知",
+    "Package change notification",
+    "パッケージ変更通知",
+    "Уведомление об изменении пакета",
+    "पैकेज परिवर्तन सूचना",
+    "Pemberitahuan perubahan pakej",
+    "การแจ้งเตือนการเปลี่ยนแพ็กเกจ"
+  ],
   "套餐名称": [
     "套餐名称",
     "Package name",
@@ -15488,6 +15632,15 @@
     "Pesanan pembaharuan pakej",
     "คำสั่งต่ออายุแพ็กเกจ"
   ],
+  "套餐自动续费": [
+    "套餐自动续费",
+    "Automatic package renewal",
+    "パッケージの自動更新",
+    "Автоматическое продление пакета",
+    "पैकेज का स्वचालित नवीनीकरण",
+    "Pembaharuan pakej automatik",
+    "ต่ออายุแพ็กเกจอัตโนมัติ"
+  ],
   "套餐营销活动": [
     "套餐营销活动",
     "Package promotions",
@@ -15577,6 +15730,15 @@
     "योजना पृष्ठ नेविगेशन",
     "Navigasi halaman pelan",
     "เมนูนำทางหน้าแพ็กเกจ"
+  ],
+  "套餐额度交付": [
+    "套餐额度交付",
+    "Package allowance delivery",
+    "パッケージ利用枠の付与",
+    "Зачисление квоты пакета",
+    "पैकेज कोटा वितरण",
+    "Pemberian kuota pakej",
+    "มอบโควตาแพ็กเกจ"
   ],
   "如该账号可找回，验证邮件将发送到对应邮箱。": [
     "如该账号可找回，验证邮件将发送到对应邮箱。",
@@ -17198,6 +17360,15 @@
     "Gunakan sekurang-kurangnya 8 aksara dan tidak lebih daripada 72 bait UTF-8 untuk kata laluan.",
     "ใช้รหัสผ่านอย่างน้อย 8 อักขระและไม่เกิน 72 ไบต์ UTF-8"
   ],
+  "密码重置邮件": [
+    "密码重置邮件",
+    "Password reset email",
+    "パスワード再設定メール",
+    "Письмо для сброса пароля",
+    "पासवर्ड रीसेट ईमेल",
+    "E-mel penetapan semula kata laluan",
+    "อีเมลรีเซ็ตรหัสผ่าน"
+  ],
   "密钥加密保存，页面不再显示原文。更换时留空表示继续用原来的密钥。": [
     "密钥加密保存，页面不再显示原文。更换时留空表示继续用原来的密钥。",
     "The key is stored encrypted and is not shown again. Leave it blank to keep the current key.",
@@ -17881,6 +18052,15 @@
     "पूर्ति लागत की निपटान मुद्रा",
     "Kos pemenuhan dalam mata wang penyelesaian",
     "ต้นทุนการส่งมอบในสกุลเงินที่ใช้ชำระบัญชี"
+  ],
+  "履约检查未完成，请检查供货配置和相关服务。": [
+    "履约检查未完成，请检查供货配置和相关服务。",
+    "The fulfillment check could not finish. Check supply settings and related services.",
+    "履行能力の確認を完了できませんでした。供給設定と関連サービスを確認してください。",
+    "Проверка исполнения обязательств не завершена. Проверьте настройки поставок и связанные службы.",
+    "पूर्ति क्षमता की जाँच पूरी नहीं हुई। आपूर्ति सेटिंग और संबंधित सेवाएँ जाँचें।",
+    "Semakan pemenuhan belum selesai. Semak tetapan bekalan dan perkhidmatan berkaitan.",
+    "ตรวจสอบความสามารถในการให้บริการไม่สำเร็จ โปรดตรวจสอบการตั้งค่าการจัดหาและบริการที่เกี่ยวข้อง"
   ],
   "履约覆盖": [
     "履约覆盖",
@@ -19880,6 +20060,15 @@
     "Selepas memindahkan, hantar butiran untuk mencari pembayaran. Sistem menjalankan semakan baca sahaja terhadap rangkaian, kontrak, alamat penerima, peristiwa Transfer dan pengesahan yang tepat. Hash transaksi bukan bukti pembayaran berjaya; selepas pembayaran penuh disahkan, tunggu penyerahan pesanan asal.",
     "หลังโอนเงิน ให้ส่งรายละเอียดเพื่อค้นหาการชำระเงิน ระบบตรวจสอบเครือข่าย สัญญา ที่อยู่ผู้รับ เหตุการณ์ Transfer และจำนวนการยืนยันที่ถูกต้องแบบอ่านอย่างเดียว แฮชธุรกรรมไม่ใช่หลักฐานการชำระเงินสำเร็จ หลังตรวจสอบยอดเต็มแล้วให้รอการส่งมอบคำสั่งซื้อเดิม"
   ],
+  "已达到恢复次数上限，请由技术人员排查。": [
+    "已达到恢复次数上限，请由技术人员排查。",
+    "The retry limit has been reached. Technical investigation is required.",
+    "再開回数の上限に達しました。技術担当者による調査が必要です。",
+    "Достигнут предел повторов. Требуется проверка техническим специалистом.",
+    "पुनः प्रयास की सीमा पूरी हो गई है। तकनीकी जाँच आवश्यक है।",
+    "Had percubaan semula telah dicapai. Siasatan teknikal diperlukan.",
+    "ลองใหม่ครบจำนวนสูงสุดแล้ว โปรดให้เจ้าหน้าที่เทคนิคตรวจสอบ"
+  ],
   "已过期": [
     "已过期",
     "Expired",
@@ -21005,6 +21194,15 @@
     "Tiada pelan tersedia untuk dibeli sekarang",
     "ขณะนี้ไม่มีแพ็กเกจให้ซื้อ"
   ],
+  "当前没有后台任务异常": [
+    "当前没有后台任务异常",
+    "No unresolved background task failures",
+    "現在、未解決のバックグラウンドタスク異常はありません",
+    "Нерешённых ошибок фоновых задач нет",
+    "पृष्ठभूमि कार्यों में कोई अनसुलझी त्रुटि नहीं है",
+    "Tiada kegagalan tugas latar belakang yang belum selesai",
+    "ไม่มีข้อผิดพลาดของงานเบื้องหลังที่ยังไม่ได้แก้ไข"
+  ],
   "当前没有有效套餐": [
     "当前没有有效套餐",
     "No active packages",
@@ -21355,6 +21553,15 @@
     "सार्वजनिक पहचानकर्ता और आपूर्तिकर्ता मॉडल पहचान दर्ज करें।",
     "Masukkan pengecam awam dan identiti model pembekal.",
     "ระบุตัวระบุสาธารณะและตัวตนโมเดลผู้จัดหา"
+  ],
+  "影响对象": [
+    "影响对象",
+    "Affected item",
+    "影響対象",
+    "Затронутый объект",
+    "प्रभावित विषय",
+    "Perkara terjejas",
+    "รายการที่ได้รับผลกระทบ"
   ],
   "待交付占用": [
     "待交付占用",
@@ -22057,6 +22264,15 @@
     "सक्षम करें",
     "aktifkan",
     "เปิดใช้"
+  ],
+  "恢复任务": [
+    "恢复任务",
+    "Resume task",
+    "タスクを再開",
+    "Возобновить задачу",
+    "कार्य फिर शुरू करें",
+    "Sambung tugas",
+    "เริ่มงานต่อ"
   ],
   "恢复使用": [
     "恢复使用",
@@ -25505,6 +25721,15 @@
     "Protokol pembayaran",
     "โปรโตคอลรับชำระเงิน"
   ],
+  "收款后的订单处理未完成，请核实原订单与交付状态。": [
+    "收款后的订单处理未完成，请核实原订单与交付状态。",
+    "Order processing after payment is incomplete. Check the original order and fulfillment status.",
+    "入金後の注文処理が未完了です。元の注文と履行状態を確認してください。",
+    "Обработка заказа после оплаты не завершена. Проверьте исходный заказ и статус исполнения.",
+    "भुगतान के बाद ऑर्डर का संसाधन अधूरा है। मूल ऑर्डर और पूर्ति स्थिति जाँचें।",
+    "Pemprosesan pesanan selepas bayaran belum selesai. Semak pesanan asal dan status pemenuhan.",
+    "ดำเนินการคำสั่งซื้อหลังรับเงินยังไม่เสร็จ โปรดตรวจสอบคำสั่งซื้อเดิมและสถานะการส่งมอบ"
+  ],
   "收款在本金之外加收，提现从申请总额扣除。内部余额和佣金抵扣不收费；修改不影响已确认的交易。": [
     "收款在本金之外加收，提现从申请总额扣除。内部余额和佣金抵扣不收费；修改不影响已确认的交易。",
     "Collection fees are added to the principal; withdrawal fees are deducted from the requested total. Internal wallet offsets are free. Changes do not alter confirmed transactions.",
@@ -27143,6 +27368,15 @@
     "Perubahan terkini",
     "การเปลี่ยนแปลงล่าสุด"
   ],
+  "最近失败时间": [
+    "最近失败时间",
+    "Last failure",
+    "最終失敗日時",
+    "Последняя ошибка",
+    "पिछली विफलता का समय",
+    "Kegagalan terakhir",
+    "เวลาที่ล้มเหลวล่าสุด"
+  ],
   "最近尝试": [
     "最近尝试",
     "Last attempt",
@@ -27511,6 +27745,15 @@
     "अवैतनिक या भुगतान किए गए लेकिन अभी तक डिलीवर नहीं हुए खरीद ऑर्डरों की संख्या।",
     "Bilangan pesanan perolehan yang belum dibayar atau telah dibayar tetapi belum diserahkan.",
     "จำนวนคำสั่งซื้อจัดซื้อที่ยังไม่ชำระ หรือชำระแล้วแต่ยังไม่ส่งมอบ"
+  ],
+  "未付款订单检查": [
+    "未付款订单检查",
+    "Unpaid order check",
+    "未払い注文の確認",
+    "Проверка неоплаченных заказов",
+    "अवैतनिक ऑर्डर की जाँच",
+    "Semakan pesanan belum dibayar",
+    "ตรวจสอบคำสั่งซื้อที่ยังไม่ชำระเงิน"
   ],
   "未付款，持续占用直到付清或取消": [
     "未付款，持续占用直到付清或取消",
@@ -30914,6 +31157,15 @@
     "Identiti model dan keupayaan awam",
     "ตัวตนโมเดลและความสามารถสาธารณะ"
   ],
+  "模型配置生效检查": [
+    "模型配置生效检查",
+    "Model configuration activation check",
+    "モデル設定の反映確認",
+    "Проверка применения настроек моделей",
+    "मॉडल कॉन्फ़िगरेशन लागू होने की जाँच",
+    "Semakan pengaktifan konfigurasi model",
+    "ตรวจสอบการใช้การตั้งค่าโมเดล"
+  ],
   "次": [
     "次",
     "requests",
@@ -31237,6 +31489,15 @@
     "अनुरोध भेजा जा रहा है…",
     "Memohon…",
     "กำลังขอ…"
+  ],
+  "正在自动重试": [
+    "正在自动重试",
+    "Automatic retry in progress",
+    "自動再試行中",
+    "Выполняется автоматический повтор",
+    "स्वचालित पुनः प्रयास जारी है",
+    "Percubaan semula automatik sedang berjalan",
+    "กำลังลองใหม่อัตโนมัติ"
   ],
   "正在读取 Key 状态": [
     "正在读取 Key 状态",
@@ -32111,6 +32372,15 @@
     "Penyerahan ganjaran pendaftaran tertunda",
     "รอส่งมอบรางวัลลงทะเบียน"
   ],
+  "注册奖励发放": [
+    "注册奖励发放",
+    "Registration reward delivery",
+    "登録特典の付与",
+    "Начисление наград за регистрацию",
+    "पंजीकरण पुरस्कार वितरण",
+    "Pemberian ganjaran pendaftaran",
+    "มอบรางวัลสมัครสมาชิก"
+  ],
   "注册奖励已交付": [
     "注册奖励已交付",
     "Registration reward delivered",
@@ -32155,6 +32425,15 @@
     "पंजीकरण पुरस्कार वैधता सेकंड",
     "Tempoh sah ganjaran pendaftaran dalam saat",
     "อายุรางวัลลงทะเบียนเป็นวินาที"
+  ],
+  "注册奖励预留清理": [
+    "注册奖励预留清理",
+    "Registration reward reservation cleanup",
+    "登録特典の予約枠整理",
+    "Очистка резервов наград за регистрацию",
+    "पंजीकरण पुरस्कार के आरक्षण की सफाई",
+    "Pembersihan rizab ganjaran pendaftaran",
+    "ล้างการสำรองรางวัลสมัครสมาชิก"
   ],
   "注册时间": [
     "注册时间",
@@ -32497,6 +32776,15 @@
     "परीक्षण लिंक का क्रेडेंशियल गायब है। ब्रांड डोमेन सेटिंग से इसे फिर बनाएँ।",
     "Pautan ujian tidak mempunyai kelayakannya. Janakannya semula daripada tetapan domain jenama.",
     "ลิงก์ทดสอบไม่มีข้อมูลรับรอง โปรดสร้างอีกครั้งจากการตั้งค่าโดเมนแบรนด์"
+  ],
+  "消费确认与 KOL 资格检查": [
+    "消费确认与 KOL 资格检查",
+    "Spending confirmation and KOL eligibility check",
+    "利用額の確定・KOL 資格確認",
+    "Подтверждение расходов и проверка статуса KOL",
+    "खर्च की पुष्टि और KOL पात्रता जाँच",
+    "Pengesahan perbelanjaan dan semakan kelayakan KOL",
+    "ยืนยันการใช้จ่ายและตรวจสอบคุณสมบัติ KOL"
   ],
   "消费确认复核状态已变更": [
     "消费确认复核状态已变更",
@@ -34361,6 +34649,15 @@
     "Pelanggan yang dijemput oleh rujukan langsung anda; hanya dua tahap rujukan dikekalkan",
     "ลูกค้าที่ผู้ได้รับเชิญโดยตรงของคุณเชิญต่อ เก็บความสัมพันธ์การแนะนำเพียงสองระดับ"
   ],
+  "相关业务已暂停，请检查经营方的营业状态。": [
+    "相关业务已暂停，请检查经营方的营业状态。",
+    "The related business activity is paused. Check the operator’s business status.",
+    "関連業務が停止中です。事業者の営業状態を確認してください。",
+    "Связанная деятельность приостановлена. Проверьте статус работы оператора.",
+    "संबंधित व्यावसायिक गतिविधि रुकी हुई है। संचालक की स्थिति जाँचें।",
+    "Urusan berkaitan dijeda. Semak status perniagaan pengendali.",
+    "กิจกรรมที่เกี่ยวข้องหยุดชั่วคราว โปรดตรวจสอบสถานะการดำเนินงานของผู้ประกอบการ"
+  ],
   "相关办理": [
     "相关办理",
     "Related actions",
@@ -34378,6 +34675,15 @@
     "ग्राहक या संचालक",
     "Pelanggan atau pengendali",
     "ลูกค้าหรือผู้ดำเนินงาน"
+  ],
+  "相关服务或业务状态异常，请由技术人员排查。": [
+    "相关服务或业务状态异常，请由技术人员排查。",
+    "A related service or business state requires technical investigation.",
+    "関連サービスまたは業務状態に異常があります。技術担当者による調査が必要です。",
+    "Требуется техническая проверка связанной службы или состояния операции.",
+    "संबंधित सेवा या व्यावसायिक स्थिति की तकनीकी जाँच आवश्यक है।",
+    "Perkhidmatan atau keadaan urusan berkaitan memerlukan siasatan teknikal.",
+    "บริการหรือสถานะรายการที่เกี่ยวข้องผิดปกติ โปรดให้เจ้าหน้าที่เทคนิคตรวจสอบ"
   ],
   "相关消费来源正在核实，涉及佣金的释放和使用按当前复核状态处理。": [
     "相关消费来源正在核实，涉及佣金的释放和使用按当前复核状态处理。",
@@ -34405,6 +34711,15 @@
     "इस क्षमता का कॉन्फ़िगरेशन या सत्यापन पूरा नहीं हुआ है। वर्तमान संचालक से संपर्क करें।",
     "Keupayaan ini belum selesai dikonfigurasi atau disahkan. Hubungi pengendali semasa.",
     "ความสามารถนี้ยังตั้งค่าหรือตรวจสอบไม่เสร็จ โปรดติดต่อผู้ดำเนินงานปัจจุบัน"
+  ],
+  "相关账号": [
+    "相关账号",
+    "Related account",
+    "関連アカウント",
+    "Связанный аккаунт",
+    "संबंधित खाता",
+    "Akaun berkaitan",
+    "บัญชีที่เกี่ยวข้อง"
   ],
   "相关金额已进入或完成复核，请查看处理状态。": [
     "相关金额已进入或完成复核，请查看处理状态。",
@@ -34909,6 +35224,15 @@
     "पुष्टि करें कि भुगतान आवेदन सबमिट करते समय तय शुद्ध राशि के लिए किया गया था। सबमिट करने पर आवेदन समाप्त होता है।",
     "Sahkan pembayaran telah dibuat bagi jumlah bersih yang ditetapkan semasa permohonan dihantar. Penyerahan akan menamatkan permohonan.",
     "ยืนยันว่าชำระเงินตามยอดสุทธิที่กำหนดไว้เมื่อยื่นคำขอแล้ว การส่งจะสิ้นสุดคำขอ"
+  ],
+  "确认已排除故障，继续执行原任务。系统保留原业务编号，避免重复处理。": [
+    "确认已排除故障，继续执行原任务。系统保留原业务编号，避免重复处理。",
+    "Confirm the cause is fixed and resume the original task. The original business identifier is retained to prevent duplicate processing.",
+    "原因が解消されたことを確認し、元のタスクを再開します。重複処理を防ぐため、元の業務番号を保持します。",
+    "Подтвердите устранение причины и возобновите исходную задачу. Исходный идентификатор операции сохраняется для защиты от повторной обработки.",
+    "पुष्टि करें कि कारण ठीक कर दिया गया है और मूल कार्य फिर शुरू करें। दोहरा संसाधन रोकने के लिए मूल व्यावसायिक पहचान बनी रहती है।",
+    "Sahkan punca telah diselesaikan dan sambung tugas asal. Pengecam urusan asal dikekalkan untuk mengelakkan pemprosesan berganda.",
+    "ยืนยันว่าแก้ไขสาเหตุแล้วและดำเนินงานเดิมต่อ ระบบคงหมายเลขรายการเดิมไว้เพื่อป้องกันการประมวลผลซ้ำ"
   ],
   "确认归属并注册": [
     "确认归属并注册",
@@ -38807,6 +39131,15 @@
     "Jumlah dibayar untuk pesanan",
     "จำนวนเงินที่ชำระสำหรับคำสั่งซื้อ"
   ],
+  "订单尚未足额付款，请在原订单核实收款。": [
+    "订单尚未足额付款，请在原订单核实收款。",
+    "The order is not fully paid. Verify payment on the original order.",
+    "注文の支払額が不足しています。元の注文で入金を確認してください。",
+    "Заказ оплачен не полностью. Проверьте поступление по исходному заказу.",
+    "ऑर्डर का पूरा भुगतान नहीं हुआ है। मूल ऑर्डर में भुगतान सत्यापित करें।",
+    "Pesanan belum dibayar penuh. Sahkan bayaran pada pesanan asal.",
+    "คำสั่งซื้อยังชำระไม่ครบ โปรดตรวจสอบการรับเงินในคำสั่งซื้อเดิม"
+  ],
   "订单尚未足额核实付款，完成支付后在此查看到账与交付。": [
     "订单尚未足额核实付款，完成支付后在此查看到账与交付。",
     "Full payment has not been verified. Complete payment, then check credit and delivery here.",
@@ -40697,6 +41030,15 @@
     "Tidak dapat memuatkan laluan",
     "โหลดเส้นทางไม่สำเร็จ"
   ],
+  "调价后的履约检查": [
+    "调价后的履约检查",
+    "Fulfillment check after price changes",
+    "価格変更後の履行能力確認",
+    "Проверка исполнения обязательств после изменения цен",
+    "कीमत बदलने के बाद पूर्ति क्षमता की जाँच",
+    "Semakan pemenuhan selepas perubahan harga",
+    "ตรวจสอบความสามารถในการให้บริการหลังเปลี่ยนราคา"
+  ],
   "调价后的责任覆盖需要处理": [
     "调价后的责任覆盖需要处理",
     "Coverage after repricing requires attention",
@@ -40930,6 +41272,15 @@
     "अनुरोध प्रकार",
     "Jenis permintaan",
     "ประเภทคำขอ"
+  ],
+  "调用结果与用量核实": [
+    "调用结果与用量核实",
+    "Request result and usage verification",
+    "リクエスト結果・使用量の確認",
+    "Проверка результатов запросов и использования",
+    "अनुरोध परिणाम और उपयोग सत्यापन",
+    "Pengesahan hasil permintaan dan penggunaan",
+    "ตรวจสอบผลคำขอและปริมาณการใช้งาน"
   ],
   "调用结算": [
     "调用结算",
@@ -41192,6 +41543,15 @@
     "Tetapan akaun",
     "ตั้งค่าบัญชี"
   ],
+  "账号验证邮件": [
+    "账号验证邮件",
+    "Account verification email",
+    "アカウント確認メール",
+    "Письмо подтверждения аккаунта",
+    "खाता सत्यापन ईमेल",
+    "E-mel pengesahan akaun",
+    "อีเมลยืนยันบัญชี"
+  ],
   "账户与业务来源": [
     "账户与业务来源",
     "Account and source",
@@ -41245,6 +41605,15 @@
     "खाता ID",
     "ID akaun",
     "ID บัญชี"
+  ],
+  "账户限制复查": [
+    "账户限制复查",
+    "Account restriction review",
+    "アカウント制限の再確認",
+    "Перепроверка ограничений аккаунтов",
+    "खाता प्रतिबंधों की समीक्षा",
+    "Semakan sekatan akaun",
+    "ทบทวนข้อจำกัดของบัญชี"
   ],
   "账本": [
     "账本",
@@ -41371,6 +41740,15 @@
     "खरीद और डिलीवरी",
     "Pembelian dan penyerahan",
     "การซื้อและการส่งมอบ"
+  ],
+  "购买与续费通知": [
+    "购买与续费通知",
+    "Purchase and renewal notifications",
+    "購入・更新通知",
+    "Уведомления о покупках и продлениях",
+    "खरीद और नवीनीकरण सूचनाएँ",
+    "Pemberitahuan pembelian dan pembaharuan",
+    "การแจ้งเตือนการซื้อและต่ออายุ"
   ],
   "购买与赠送保留各自来源和期限，多个有效套餐可以并存。": [
     "购买与赠送保留各自来源和期限，多个有效套餐可以并存。",
@@ -42668,6 +43046,15 @@
     "Ambang itu sendiri mencetuskan peraturan. Untuk peraturan di bawah ambang, ambang kritikal tidak boleh melebihi ambang amaran; sebaliknya terpakai untuk peraturan di atas ambang.",
     "เมื่อถึงเกณฑ์จะเรียกใช้กฎ สำหรับกฎที่ต่ำกว่าเกณฑ์ เกณฑ์วิกฤตต้องไม่สูงกว่าเกณฑ์เตือน ส่วนกฎที่สูงกว่าเกณฑ์ใช้เงื่อนไขตรงกันข้าม"
   ],
+  "过期临时数据清理": [
+    "过期临时数据清理",
+    "Expired temporary data cleanup",
+    "期限切れ一時データの削除",
+    "Очистка устаревших временных данных",
+    "समाप्त अस्थायी डेटा की सफाई",
+    "Pembersihan data sementara tamat tempoh",
+    "ล้างข้อมูลชั่วคราวที่หมดอายุ"
+  ],
   "运营": [
     "运营",
     "Operations",
@@ -43423,6 +43810,15 @@
     "धनवापसी, सुधार और कार्यभार हस्तांतरण",
     "Bayaran balik, pembetulan dan pengambilalihan",
     "การคืนเงิน การแก้ไข และการรับช่วง"
+  ],
+  "退款与争议通知": [
+    "退款与争议通知",
+    "Refund and dispute notifications",
+    "返金・紛争通知",
+    "Уведомления о возвратах и спорах",
+    "धनवापसी और विवाद सूचनाएँ",
+    "Pemberitahuan bayaran balik dan pertikaian",
+    "การแจ้งเตือนเงินคืนและข้อพิพาท"
   ],
   "退款与冲正": [
     "退款与冲正",
@@ -44684,6 +45080,15 @@
     "Jeda ciri yang terjejas apabila risiko timbul, dan teruskan bayaran balik, komisen dan pengebilan.",
     "เมื่อเกิดความเสี่ยงให้พักคุณสมบัติที่ได้รับผลกระทบ และดำเนินการคืนเงิน ค่าคอมมิชชัน และการเรียกเก็บเงินต่อ"
   ],
+  "邀请与佣金通知": [
+    "邀请与佣金通知",
+    "Referral and commission notifications",
+    "招待・コミッション通知",
+    "Уведомления о приглашениях и комиссиях",
+    "रेफ़रल और कमीशन सूचनाएँ",
+    "Pemberitahuan jemputan dan komisen",
+    "การแจ้งเตือนคำเชิญและค่าคอมมิชชัน"
+  ],
   "邀请与分佣": [
     "邀请与分佣",
     "Invitations & commissions",
@@ -44899,6 +45304,15 @@
     "पहले स्वामी को आमंत्रित करें",
     "Jemput pemilik pertama",
     "เชิญผู้รับผิดชอบคนแรก"
+  ],
+  "邮件发送失败，请检查邮件服务配置与连接。": [
+    "邮件发送失败，请检查邮件服务配置与连接。",
+    "Email delivery failed. Check the mail service configuration and connection.",
+    "メール送信に失敗しました。メールサービスの設定と接続を確認してください。",
+    "Не удалось отправить письмо. Проверьте настройки почтовой службы и соединение.",
+    "ईमेल भेजना विफल रहा। मेल सेवा की सेटिंग और कनेक्शन जाँचें।",
+    "Penghantaran e-mel gagal. Semak konfigurasi dan sambungan perkhidmatan mel.",
+    "ส่งอีเมลไม่สำเร็จ โปรดตรวจสอบการตั้งค่าและการเชื่อมต่อบริการอีเมล"
   ],
   "邮件发送方式": [
     "邮件发送方式",
@@ -45493,6 +45907,15 @@
     "खरीद शेष राशियाँ गैर-वापसी योग्य हैं। बंद करने की सूचना से ग्राहकों के प्रति या अन्य बकाया दायित्व समाप्त नहीं होते।",
     "Baki perolehan tidak boleh dibayar balik. Notis penutupan tidak melepaskan tanggungjawab kepada pelanggan atau tanggungjawab tertunggak.",
     "ยอดคงเหลือการจัดซื้อไม่สามารถคืนเงินได้ ประกาศปิดกิจการไม่ทำให้ภาระต่อลูกค้าหรือภาระคงค้างหมดไป"
+  ],
+  "采购余额与销售空间检查": [
+    "采购余额与销售空间检查",
+    "Procurement balance and sales capacity check",
+    "仕入残高・販売余力の確認",
+    "Проверка закупочного остатка и запаса продаж",
+    "खरीद शेष और बिक्री क्षमता की जाँच",
+    "Semakan baki perolehan dan kapasiti jualan",
+    "ตรวจสอบยอดคงเหลือจัดซื้อและความสามารถในการขาย"
   ],
   "采购余额退出方式": [
     "采购余额退出方式",
@@ -46870,6 +47293,15 @@
     "खुदरा ग्राहक",
     "Pelanggan runcit",
     "ลูกค้ารายย่อย"
+  ],
+  "需要人工关注的失败任务会显示在这里，恢复成功后自动移除。": [
+    "需要人工关注的失败任务会显示在这里，恢复成功后自动移除。",
+    "Failed tasks needing attention appear here and disappear once they recover.",
+    "対応が必要な失敗タスクがここに表示され、復旧すると自動的に消えます。",
+    "Здесь появляются задачи, требующие внимания. После восстановления они исчезают.",
+    "जिन विफल कार्यों पर ध्यान देना आवश्यक है, वे यहाँ दिखेंगे और ठीक होने पर हट जाएँगे।",
+    "Tugas gagal yang memerlukan perhatian dipaparkan di sini dan dikeluarkan selepas pulih.",
+    "งานที่ล้มเหลวและต้องได้รับการดูแลจะแสดงที่นี่ และหายไปเมื่อแก้ไขสำเร็จ"
   ],
   "需要向量化的文本": [
     "需要向量化的文本",

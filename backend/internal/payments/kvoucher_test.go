@@ -1,12 +1,14 @@
 package payments
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -16,6 +18,54 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 )
+
+func TestKVoucherCheckoutMismatchKeepsOriginalOrderAndLogsOnlyMoney(t *testing.T) {
+	for _, tc := range []struct {
+		name, amount, currency, loggedAmount, loggedCurrency string
+	}{
+		{"different amount", "8.40", "MYR", "8.4", "MYR"},
+		{"different currency", "8.33", "USD", "8.33", "USD"},
+		{"missing money", "", "", "missing", "missing"},
+		{"untrusted currency", "8.33", "private-provider-value", "8.33", "unsupported"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var logs bytes.Buffer
+			previous := slog.Default()
+			slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+			t.Cleanup(func() { slog.SetDefault(previous) })
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch r.URL.Path {
+				case "/api/kv/merchant/v1/orders":
+					_, _ = w.Write([]byte(`{"ok":true,"data":{"order":{"id":51,"status":"pending_payment"}}}`))
+				case "/api/kv/merchant/v1/orders/51/gkash-pay":
+					fields := map[string]string{"CID": "private-merchant", "Signature": "private-signature", "email": "private-customer@example.test"}
+					if tc.amount != "" {
+						fields["v_amount"], fields["v_currency"] = tc.amount, tc.currency
+					}
+					_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "data": map[string]any{"payment": map[string]any{"action": "https://pay.example.test/private-url", "method": "POST", "fields": fields}}})
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			t.Cleanup(server.Close)
+			m := Merchant{ID: "merchant", OperatorID: "operator", Driver: "kvoucher", Enabled: true, APIBaseURL: server.URL + "/api/kv/merchant/v1", Credentials: map[string]string{"kvoucher_api_key": "private-key", "kvoucher_api_secret": "private-secret"}}
+			o := paymentTestOrder(m, "MYR")
+			o.Money.Amount = ledger.MustDecimal("8.33")
+			checkout, err := (KVoucher{HTTP: &Transport{Client: server.Client(), AllowTestLoopback: true}}).Create(t.Context(), m, o)
+			if !errors.Is(err, ErrCheckoutMismatch) || errors.Is(err, ErrConflict) || checkout.ProviderID != "51" || checkout.Problem != CheckoutAmountMismatch || checkout.URL != "" || len(checkout.FormFields) != 0 {
+				t.Fatal(checkout, err)
+			}
+			var diagnostic map[string]any
+			if err = json.Unmarshal(logs.Bytes(), &diagnostic); err != nil || diagnostic["msg"] != "payment_checkout_mismatch" || diagnostic["order_id"] != o.ID || diagnostic["expected_currency"] != "MYR" || diagnostic["expected_amount"] != "8.33" || diagnostic["reported_amount"] != tc.loggedAmount || diagnostic["reported_currency"] != tc.loggedCurrency {
+				t.Fatal(logs.String(), err)
+			}
+			if strings.Contains(logs.String(), "private-") || strings.Contains(logs.String(), "Signature") {
+				t.Fatal("provider details leaked into diagnostics")
+			}
+		})
+	}
+}
 
 func TestPaymentQuoteRoundsActualPaymentWithoutAnImplicitFee(t *testing.T) {
 	now := time.Now().UTC()

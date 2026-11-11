@@ -7865,6 +7865,15 @@
     "Tambah nilai baki pembayaran",
     "เติมยอดคงเหลือสำหรับชำระเงิน"
   ],
+  "充值记录": [
+    "充值记录",
+    "Top-up history",
+    "チャージ履歴",
+    "История пополнений",
+    "टॉप-अप इतिहास",
+    "Sejarah tambah nilai",
+    "ประวัติการเติมเงิน"
+  ],
   "充值金额 结算币种": [
     "充值金额 结算币种",
     "Top-up amount settlement currency",
@@ -25487,6 +25496,15 @@
     "Kejayaan penyedia pembayaran tidak bermakna kredit telah diserahkan; rekod pengesahan dan penyerahan pesanan ini menentukan aset anda. Bayaran kurang, bayaran berlebihan, pembayaran lewat dan kes dibayar tetapi belum diserahkan kekal dengan pesanan asal. Semakan semula tidak pernah mencaj lagi.",
     "การชำระเงินสำเร็จกับผู้ให้บริการไม่ได้หมายความว่าส่งมอบเครดิตแล้ว ระเบียนตรวจสอบและส่งมอบของคำสั่งซื้อนี้เป็นตัวกำหนดสินทรัพย์ของคุณ การชำระขาด เกิน ล่าช้า และชำระแล้วแต่ยังไม่ส่งมอบยังจัดการตามคำสั่งซื้อเดิม การตรวจสอบซ้ำไม่เรียกเก็บเงินอีก"
   ],
+  "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。": [
+    "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。",
+    "The payment provider returned a currency or amount that differs from this order's quote. Payment is paused. Keep this order and contact your operator to check it.",
+    "決済サービスから返された通貨または金額が、この注文の見積もりと一致しないため、支払いを停止しました。この注文を保管し、運営事業者に確認してください。",
+    "Валюта или сумма, полученная от платёжного сервиса, не соответствует расчёту по этому заказу. Оплата приостановлена. Сохраните заказ и обратитесь к оператору для проверки.",
+    "भुगतान प्रदाता से प्राप्त मुद्रा या राशि इस ऑर्डर के भुगतान कोट से मेल नहीं खाती। भुगतान रोक दिया गया है। यह ऑर्डर सुरक्षित रखें और जाँच के लिए अपने संचालक से संपर्क करें।",
+    "Mata wang atau amaun daripada penyedia pembayaran berbeza daripada sebut harga pesanan ini. Pembayaran dihentikan sementara. Simpan pesanan ini dan hubungi pengendali untuk semakan.",
+    "สกุลเงินหรือจำนวนเงินที่ผู้ให้บริการชำระเงินส่งกลับมาไม่ตรงกับราคาที่เสนอสำหรับคำสั่งซื้อนี้ จึงระงับการชำระเงินไว้ โปรดเก็บคำสั่งซื้อเดิมและติดต่อผู้ดำเนินการเพื่อตรวจสอบ"
+  ],
   "支付链接暂不可用，请刷新原订单或联系经营方。": [
     "支付链接暂不可用，请刷新原订单或联系经营方。",
     "The payment link is temporarily unavailable. Refresh the original order or contact the operator.",
@@ -39220,6 +39238,15 @@
     "ऑर्डर बनाया गया। भुगतान पूरा करने और डिलीवरी सत्यापित करने के लिए नीचे की स्थिति उपयोग करें।",
     "Pesanan dicipta. Gunakan status di bawah untuk menyelesaikan pembayaran dan mengesahkan penyerahan.",
     "สร้างคำสั่งซื้อแล้ว ใช้สถานะด้านล่างเพื่อชำระเงินและตรวจสอบการส่งมอบ"
+  ],
+  "订单已建立，但付款指引暂时不可用。请保留原订单并联系经营方核实。": [
+    "订单已建立，但付款指引暂时不可用。请保留原订单并联系经营方核实。",
+    "Your order has been created, but payment instructions are temporarily unavailable. Keep this order and contact your operator to check it.",
+    "注文は作成されましたが、現在お支払い方法を案内できません。この注文を保管し、運営事業者に確認してください。",
+    "Заказ создан, но инструкции по оплате временно недоступны. Сохраните заказ и обратитесь к оператору для проверки.",
+    "आपका ऑर्डर बन गया है, लेकिन भुगतान के निर्देश फ़िलहाल उपलब्ध नहीं हैं। यह ऑर्डर सुरक्षित रखें और जाँच के लिए अपने संचालक से संपर्क करें।",
+    "Pesanan telah dicipta, tetapi arahan pembayaran tidak tersedia buat sementara waktu. Simpan pesanan ini dan hubungi pengendali untuk semakan.",
+    "สร้างคำสั่งซื้อแล้ว แต่คำแนะนำการชำระเงินยังไม่พร้อมใช้งานชั่วคราว โปรดเก็บคำสั่งซื้อเดิมและติดต่อผู้ดำเนินการเพื่อตรวจสอบ"
   ],
   "订单已结束，不再等待付款": [
     "订单已结束，不再等待付款",

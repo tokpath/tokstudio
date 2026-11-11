@@ -146,6 +146,7 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 }
 
 type IntentView struct {
+	Problem    string    `json:"problem,omitempty"`
 	Driver     string    `json:"driver"`
 	OrderID    string    `json:"order_id"`
 	MerchantID string    `json:"merchant_id"`
@@ -169,12 +170,17 @@ func (s *Service) PaymentIntent(ctx context.Context, operator, merchant, order s
 	if s.Drivers[view.Driver] == nil || !supportedCurrency {
 		return view, nil
 	}
-	if row.State == "created" && row.CheckoutCiphertext != "" {
+	if (row.State == "created" || row.State == "outcome_unknown" || row.State == "failed") && row.CheckoutCiphertext != "" {
 		var checkout Checkout
 		if e := s.open(row.CheckoutCiphertext, &checkout); e != nil {
 			return view, e
 		}
-		view.Checkout = &checkout
+		if checkout.Problem == CheckoutAmountMismatch {
+			view.Problem = checkout.Problem
+		}
+		if row.State == "created" {
+			view.Checkout = &checkout
+		}
 	}
 	return view, nil
 }

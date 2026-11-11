@@ -85,7 +85,7 @@ func (k KVoucher) Create(ctx context.Context, m Merchant, o Order) (Checkout, er
 		return Checkout{}, e
 	}
 	if form.Money == nil || form.Money.Currency != "MYR" || form.Money.Amount.Cmp(o.Money.Amount) != 0 {
-		return Checkout{ProviderID: order.ID.String()}, ErrConflict
+		return checkoutMismatch(ctx, k.Name(), o, order.ID.String(), form.Money)
 	}
 	checkout := Checkout{ProviderID: order.ID.String(), State: "pending", URL: form.Action, FormFields: form.Fields, Instructions: instructions, PayMoney: form.Money, SettlementMoney: &settlement}
 	return checkout, nil

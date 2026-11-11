@@ -361,8 +361,7 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 		checkout, callErr = d.Create(ctx, m, o)
 	}
 	if o.PaymentQuote != nil && checkout.PayMoney != nil && (checkout.PayMoney.Currency != o.Money.Currency || checkout.PayMoney.Amount.Cmp(o.Money.Amount) != 0) {
-		checkout = Checkout{ProviderID: checkout.ProviderID}
-		callErr = ErrConflict
+		checkout, callErr = checkoutMismatch(ctx, m.Driver, o, checkout.ProviderID, checkout.PayMoney)
 	}
 	checkout.PaymentQuote = o.PaymentQuote
 	checkout.FeeQuote = o.FeeQuote

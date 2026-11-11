@@ -16,15 +16,16 @@ import (
 )
 
 var (
-	ErrNotConfigured  = errors.New("payment merchant configuration incomplete")
-	ErrInvalid        = errors.New("invalid payment input")
-	ErrSignature      = errors.New("payment signature invalid")
-	ErrOutcomeUnknown = errors.New("external payment outcome requires verification")
-	ErrProvider       = errors.New("payment provider rejected request")
-	ErrNotFinal       = errors.New("payment is not verified final")
-	ErrConflict       = errors.New("payment fact conflicts with existing evidence")
-	ErrForbidden      = errors.New("payment action outside operator authority")
-	ErrUnsupported    = errors.New("payment operation unsupported")
+	ErrNotConfigured    = errors.New("payment merchant configuration incomplete")
+	ErrInvalid          = errors.New("invalid payment input")
+	ErrSignature        = errors.New("payment signature invalid")
+	ErrOutcomeUnknown   = errors.New("external payment outcome requires verification")
+	ErrProvider         = errors.New("payment provider rejected request")
+	ErrNotFinal         = errors.New("payment is not verified final")
+	ErrConflict         = errors.New("payment fact conflicts with existing evidence")
+	ErrCheckoutMismatch = errors.New("payment checkout amount does not match the accepted quote")
+	ErrForbidden        = errors.New("payment action outside operator authority")
+	ErrUnsupported      = errors.New("payment operation unsupported")
 )
 
 type Money struct {
@@ -152,6 +153,7 @@ func (o Order) Validate(m Merchant) error {
 }
 
 type Checkout struct {
+	Problem         string                `json:"problem,omitempty"`
 	FeeQuote        *paymentmethods.Quote `json:"fee_quote,omitempty"`
 	PaymentQuote    *PaymentQuote         `json:"payment_quote,omitempty"`
 	ProviderID      string                `json:"provider_id"`

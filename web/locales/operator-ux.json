@@ -1776,5 +1776,32 @@
     "hi": "संबंधित सेवा या व्यावसायिक स्थिति की तकनीकी जाँच आवश्यक है।",
     "ms": "Perkhidmatan atau keadaan urusan berkaitan memerlukan siasatan teknikal.",
     "th": "บริการหรือสถานะรายการที่เกี่ยวข้องผิดปกติ โปรดให้เจ้าหน้าที่เทคนิคตรวจสอบ"
+  },
+  "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。": {
+    "zh": "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。",
+    "en": "The payment provider returned a currency or amount that differs from this order's quote. Payment is paused. Keep this order and contact your operator to check it.",
+    "ja": "決済サービスから返された通貨または金額が、この注文の見積もりと一致しないため、支払いを停止しました。この注文を保管し、運営事業者に確認してください。",
+    "ru": "Валюта или сумма, полученная от платёжного сервиса, не соответствует расчёту по этому заказу. Оплата приостановлена. Сохраните заказ и обратитесь к оператору для проверки.",
+    "hi": "भुगतान प्रदाता से प्राप्त मुद्रा या राशि इस ऑर्डर के भुगतान कोट से मेल नहीं खाती। भुगतान रोक दिया गया है। यह ऑर्डर सुरक्षित रखें और जाँच के लिए अपने संचालक से संपर्क करें।",
+    "ms": "Mata wang atau amaun daripada penyedia pembayaran berbeza daripada sebut harga pesanan ini. Pembayaran dihentikan sementara. Simpan pesanan ini dan hubungi pengendali untuk semakan.",
+    "th": "สกุลเงินหรือจำนวนเงินที่ผู้ให้บริการชำระเงินส่งกลับมาไม่ตรงกับราคาที่เสนอสำหรับคำสั่งซื้อนี้ จึงระงับการชำระเงินไว้ โปรดเก็บคำสั่งซื้อเดิมและติดต่อผู้ดำเนินการเพื่อตรวจสอบ"
+  },
+  "充值记录": {
+    "zh": "充值记录",
+    "en": "Top-up history",
+    "ja": "チャージ履歴",
+    "ru": "История пополнений",
+    "hi": "टॉप-अप इतिहास",
+    "ms": "Sejarah tambah nilai",
+    "th": "ประวัติการเติมเงิน"
+  },
+  "订单已建立，但付款指引暂时不可用。请保留原订单并联系经营方核实。": {
+    "zh": "订单已建立，但付款指引暂时不可用。请保留原订单并联系经营方核实。",
+    "en": "Your order has been created, but payment instructions are temporarily unavailable. Keep this order and contact your operator to check it.",
+    "ja": "注文は作成されましたが、現在お支払い方法を案内できません。この注文を保管し、運営事業者に確認してください。",
+    "ru": "Заказ создан, но инструкции по оплате временно недоступны. Сохраните заказ и обратитесь к оператору для проверки.",
+    "hi": "आपका ऑर्डर बन गया है, लेकिन भुगतान के निर्देश फ़िलहाल उपलब्ध नहीं हैं। यह ऑर्डर सुरक्षित रखें और जाँच के लिए अपने संचालक से संपर्क करें।",
+    "ms": "Pesanan telah dicipta, tetapi arahan pembayaran tidak tersedia buat sementara waktu. Simpan pesanan ini dan hubungi pengendali untuk semakan.",
+    "th": "สร้างคำสั่งซื้อแล้ว แต่คำแนะนำการชำระเงินยังไม่พร้อมใช้งานชั่วคราว โปรดเก็บคำสั่งซื้อเดิมและติดต่อผู้ดำเนินการเพื่อตรวจสอบ"
   }
 }

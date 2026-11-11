@@ -92,6 +92,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 400, "invalid_payment_fee", "请检查支付方式和手续费规则。", false
 	case errors.Is(err, payments.ErrQuoteUnavailable):
 		status, code, msg, retry = 409, "payment_quote_unavailable", "暂时无法取得有效付款报价，请稍后重试或选择其他付款方式；报价来源由平台配置。", true
+	case errors.Is(err, payments.ErrCheckoutMismatch):
+		status, code, msg, retry = 409, "payment_checkout_mismatch", "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。", false
 	case errors.Is(err, mail.ErrSettings):
 		status, code, msg, retry = 400, "invalid_mail_settings", "邮件配置不完整或格式不正确，请核对 SMTP 主机、端口、发信地址及认证信息。", false
 	case errors.Is(err, mail.ErrUnavailable):

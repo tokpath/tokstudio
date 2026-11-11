@@ -206,11 +206,7 @@ func (a *Application) createOrder(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	if e = a.ensureCheckout(ctx, order); e != nil {
-		handleError(c, e)
-		return
-	}
-	dto, e := a.orderDTO(ctx, order)
+	dto, e := a.customerCheckoutDTO(ctx, order)
 	if e != nil {
 		handleError(c, e)
 		return
@@ -340,7 +336,11 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 		if e == nil {
 			dto["payment_state"] = intent.State
 			dto["method_change_allowed"] = intent.State == "failed" && o.Status == "pending" && o.ExternalAllocatedMoney.IsZero()
-			if intent.State == "awaiting_settlement" {
+			if intent.Problem == payments.CheckoutAmountMismatch {
+				dto["payment_notice"] = "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。"
+			} else if intent.State == "executing" || intent.State == "outcome_unknown" || intent.State == "failed" {
+				dto["payment_notice"] = "订单已建立，但付款指引暂时不可用。请保留原订单并联系经营方核实。"
+			} else if intent.State == "awaiting_settlement" {
 				dto["payment_notice"] = "原币实际款已保留，等待收款方核实本笔交易对应的订单清算金额，请勿重复付款。"
 			}
 		}
@@ -376,6 +376,28 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 				return nil, err
 			}
 			dto["payment_action"] = action
+		}
+	}
+	return dto, nil
+}
+
+// The business order is already committed. A durable checkout failure must
+// return that order so the caller keeps its identity instead of creating a new
+// order after an apparent creation failure. Unexpected persistence errors still
+// fail normally, and no unverified payment form is returned.
+func (a *Application) customerCheckoutDTO(ctx context.Context, o commerce.Order) (gin.H, error) {
+	checkoutErr := a.ensureCheckout(ctx, o)
+	dto, err := a.orderDTO(ctx, o)
+	if err != nil {
+		return nil, err
+	}
+	if checkoutErr != nil {
+		if !errors.Is(checkoutErr, payments.ErrCheckoutMismatch) && !errors.Is(checkoutErr, payments.ErrOutcomeUnknown) && !errors.Is(checkoutErr, payments.ErrProvider) && !errors.Is(checkoutErr, payments.ErrQuoteUnavailable) {
+			return nil, checkoutErr
+		}
+		state, _ := dto["payment_state"].(string)
+		if state != "executing" && state != "outcome_unknown" && state != "failed" {
+			return nil, checkoutErr
 		}
 	}
 	return dto, nil
@@ -488,14 +510,11 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 	var result struct{ ID string }
 	_ = json.Unmarshal(raw, &result)
 	o, e := a.Commerce.GetOrder(ctx, nil, id.Customer.Customer.ID, result.ID)
-	if e == nil {
-		e = a.ensureCheckout(ctx, o)
-	}
 	if e != nil {
 		handleError(c, e)
 		return
 	}
-	dto, e := a.orderDTO(ctx, o)
+	dto, e := a.customerCheckoutDTO(ctx, o)
 	if e != nil {
 		handleError(c, e)
 		return
@@ -745,19 +764,20 @@ func (a *Application) topup(c *gin.Context) {
 	var result struct{ ID string }
 	_ = json.Unmarshal(raw, &result)
 	o, e := a.Commerce.GetOrder(ctx, nil, id.Customer.Customer.ID, result.ID)
-	if e == nil {
-		e = a.ensureCheckout(ctx, o)
-	}
 	if e != nil {
 		handleError(c, e)
 		return
 	}
-	dto, e := a.orderDTO(ctx, o)
+	dto, e := a.customerCheckoutDTO(ctx, o)
 	if e != nil {
 		handleError(c, e)
 		return
 	}
-	c.JSON(200, gin.H{"id": o.ID, "status": o.Status, "order": dto})
+	response := gin.H{"id": o.ID, "status": o.Status, "order": dto}
+	if notice, ok := dto["payment_notice"].(string); ok {
+		response["message"] = notice
+	}
+	c.JSON(200, response)
 }
 func (a *Application) subscriptions(c *gin.Context) {
 	id := subject(c)

@@ -647,42 +647,6 @@
     "Pengesahan domain tidak tersedia buat sementara waktu. Sila cuba lagi kemudian.",
     "บริการตรวจสอบโดเมนไม่พร้อมใช้งานชั่วคราว โปรดลองอีกครั้งภายหลัง"
   ],
-  "ERC20 Transfer日志索引": [
-    "ERC20 Transfer日志索引",
-    "ERC20 Transfer log index",
-    "ERC20 Transfer ログインデックス",
-    "Индекс журнала ERC20 Transfer",
-    "ERC20 Transfer लॉग इंडेक्स",
-    "Indeks log ERC20 Transfer",
-    "ดัชนีบันทึก ERC20 Transfer"
-  ],
-  "EVM只读节点RPC URL": [
-    "EVM只读节点RPC URL",
-    "Read-only EVM node RPC URL",
-    "EVM 読取専用ノード RPC URL",
-    "RPC URL узла EVM только для чтения",
-    "केवल-पठन EVM नोड RPC URL",
-    "URL RPC nod EVM baca sahaja",
-    "RPC URL โหนด EVM แบบอ่านอย่างเดียว"
-  ],
-  "EVM实际交易Hash（链上必填）": [
-    "EVM实际交易Hash（链上必填）",
-    "Actual EVM transaction hash (required for on-chain payments)",
-    "実際の EVM 取引ハッシュ（オンチェーンでは必須）",
-    "Хеш фактической EVM-транзакции (обязателен в блокчейне)",
-    "वास्तविक EVM लेनदेन हैश (ऑन-चेन भुगतान के लिए आवश्यक)",
-    "Hash transaksi EVM sebenar (wajib untuk pembayaran pada rantaian)",
-    "Hash ธุรกรรม EVM จริง (จำเป็นสำหรับการชำระเงินบนเชน)"
-  ],
-  "EVM真实日志索引（0x）": [
-    "EVM真实日志索引（0x）",
-    "Actual EVM log index (0x)",
-    "実際の EVM ログインデックス（0x）",
-    "Фактический индекс журнала EVM (0x)",
-    "वास्तविक EVM लॉग इंडेक्स (0x)",
-    "Indeks log EVM sebenar (0x)",
-    "ดัชนีบันทึก EVM จริง (0x)"
-  ],
   "Eligible credit is insufficient. Add credit or purchase a valid plan.": [
     "可用额度不足，请补充额度或购买有效套餐。",
     "Eligible credit is insufficient. Add credit or purchase a valid plan.",
@@ -997,60 +961,6 @@
     "मॉडल",
     "MODEL",
     "โมเดล"
-  ],
-  "NOWPayments API密钥": [
-    "NOWPayments API密钥",
-    "NOWPayments API key",
-    "NOWPayments API キー",
-    "API-ключ NOWPayments",
-    "NOWPayments API key",
-    "API Key NOWPayments",
-    "คีย์ API ของ NOWPayments"
-  ],
-  "NOWPayments IPN签名密钥": [
-    "NOWPayments IPN签名密钥",
-    "NOWPayments IPN signing secret",
-    "NOWPayments IPN 署名シークレット",
-    "Секрет подписи IPN NOWPayments",
-    "NOWPayments IPN हस्ताक्षर गुप्त कुंजी",
-    "Rahsia tandatangan IPN NOWPayments",
-    "ข้อมูลลับลงนาม IPN ของ NOWPayments"
-  ],
-  "NOWPayments准确收款网络（须已核实）": [
-    "NOWPayments准确收款网络（须已核实）",
-    "Exact NOWPayments receiving network (must be verified)",
-    "NOWPayments の正確な入金ネットワーク（確認必須）",
-    "Точная сеть получения NOWPayments (должна быть проверена)",
-    "सटीक NOWPayments प्राप्ति नेटवर्क (सत्यापित होना चाहिए)",
-    "Rangkaian penerimaan NOWPayments yang tepat (mesti disahkan)",
-    "เครือข่ายรับเงิน NOWPayments ที่แน่นอน (ต้องตรวจสอบแล้ว)"
-  ],
-  "NOWPayments收款资产代码": [
-    "NOWPayments收款资产代码",
-    "NOWPayments receiving asset code",
-    "NOWPayments 受取資産コード",
-    "Код актива поступления NOWPayments",
-    "NOWPayments प्राप्ति परिसंपत्ति कोड",
-    "Kod aset penerimaan NOWPayments",
-    "รหัสสินทรัพย์รับเงิน NOWPayments"
-  ],
-  "NOWPayments该网络代币合约": [
-    "NOWPayments该网络代币合约",
-    "NOWPayments token contract on this network",
-    "NOWPayments のこのネットワークのトークンコントラクト",
-    "Контракт токена NOWPayments в этой сети",
-    "इस नेटवर्क पर NOWPayments टोकन अनुबंध",
-    "Kontrak token NOWPayments pada rangkaian ini",
-    "สัญญาโทเคน NOWPayments บนเครือข่ายนี้"
-  ],
-  "NOWPayments资产网络合约核实证据": [
-    "NOWPayments资产网络合约核实证据",
-    "NOWPayments asset, network, and contract verification evidence",
-    "NOWPayments の資産・ネットワーク・コントラクト確認証拠",
-    "Подтверждение проверки актива, сети и контракта NOWPayments",
-    "NOWPayments परिसंपत्ति, नेटवर्क और अनुबंध सत्यापन प्रमाण",
-    "Bukti pengesahan aset, rangkaian dan kontrak NOWPayments",
-    "หลักฐานตรวจสอบสินทรัพย์ เครือข่าย และสัญญาของ NOWPayments"
   ],
   "OEM API入口": [
     "OEM API入口",
@@ -1943,24 +1853,6 @@
     "Terlalu banyak permintaan. Cuba semula kemudian.",
     "มีคำขอมากเกินไป โปรดลองอีกครั้งภายหลัง"
   ],
-  "USDT · 网络、钱包地址": [
-    "USDT · 网络、钱包地址",
-    "USDT · network, wallet address",
-    "USDT · ネットワーク、ウォレットアドレス",
-    "USDT · сеть, адрес кошелька",
-    "USDT · नेटवर्क, वॉलेट पता",
-    "USDT · rangkaian, alamat dompet",
-    "USDT · เครือข่าย ที่อยู่กระเป๋า"
-  ],
-  "USDT 钱包地址无效或与所选网络不匹配，请核对钱包地址和网络后重新提交。": [
-    "USDT 钱包地址无效或与所选网络不匹配，请核对钱包地址和网络后重新提交。",
-    "The USDT wallet address is invalid or does not match the selected network. Check the wallet address and network before submitting again.",
-    "USDTウォレットアドレスが無効、または選択したネットワークと一致していません。アドレスとネットワークを確認して再送信してください。",
-    "Адрес кошелька USDT недействителен или не соответствует выбранной сети. Проверьте адрес и сеть, затем отправьте заявку ещё раз.",
-    "USDT वॉलेट पता अमान्य है या चुने गए नेटवर्क से मेल नहीं खाता। फिर सबमिट करने से पहले वॉलेट पता और नेटवर्क जाँचें।",
-    "Alamat dompet USDT tidak sah atau tidak sepadan dengan rangkaian yang dipilih. Semak alamat dompet dan rangkaian sebelum menghantar lagi.",
-    "ที่อยู่กระเป๋า USDT ไม่ถูกต้องหรือไม่ตรงกับเครือข่ายที่เลือก โปรดตรวจสอบที่อยู่และเครือข่ายก่อนส่งอีกครั้ง"
-  ],
   "UTC自然周期": [
     "UTC自然周期",
     "UTC calendar period",
@@ -2176,15 +2068,6 @@
     "फ़्रीज़ कमीशन की निपटान मुद्रा: {amount}",
     "komisen dibekukan dalam mata wang penyelesaian: {amount}",
     "ค่าคอมมิชชันที่ระงับในสกุลเงินที่ใช้ชำระบัญชี: {amount}"
-  ],
-  "id(UUID)、driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual)、enabled、credentials（按协议必填材料）、expected_version；不回显密钥。": [
-    "id(UUID)、driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual)、enabled、credentials（按协议必填材料）、expected_version；不回显密钥。",
-    "id(UUID), driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual), enabled, credentials (required by protocol), expected_version; secrets are never displayed back.",
-    "id(UUID)、driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual)、enabled、credentials（プロトコルごとの必須情報）、expected_version。秘密情報は再表示しません。",
-    "id(UUID), driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual), enabled, credentials (обязательные по протоколу), expected_version; секреты обратно не отображаются.",
-    "id(UUID), driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual), enabled, credentials (प्रोटोकॉल के अनुसार आवश्यक), expected_version; गुप्त कुंजियाँ कभी दोबारा प्रदर्शित नहीं होतीं।",
-    "id(UUID), driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual), enabled, credentials (diperlukan mengikut protokol), expected_version; rahsia tidak pernah dipaparkan semula.",
-    "id(UUID), driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual), enabled, credentials (จำเป็นตามโปรโตคอล), expected_version; ข้อมูลลับจะไม่แสดง"
   ],
   "kind(ledger/requests/procurement)、owner_id(可选)、from、to；选择有限时间范围。": [
     "kind(ledger/requests/procurement)、owner_id(可选)、from、to；选择有限时间范围。",
@@ -4238,24 +4121,6 @@
     "Cadangan asal pembeli",
     "ข้อเสนอเดิมของผู้ซื้อ"
   ],
-  "买方已核对准确资产、网络、代币合约和接收地址，并取得原付款人授权；供方须另由不同人员独立核实。": [
-    "买方已核对准确资产、网络、代币合约和接收地址，并取得原付款人授权；供方须另由不同人员独立核实。",
-    "The buyer verified the exact asset, network, token contract, and recipient address and obtained the original payer's authorization. The supplier must use a different person for independent verification.",
-    "買い手は正確な資産、ネットワーク、トークンコントラクト、受取先を確認し、元の支払者の承認を取得済みです。供給側は別の担当者が独立して検証する必要があります。",
-    "Покупатель проверил актив, сеть, контракт токена и адрес получателя и получил разрешение исходного плательщика. Поставщик должен провести независимую проверку другим сотрудником.",
-    "खरीदार ने सटीक परिसंपत्ति, नेटवर्क, टोकन अनुबंध और प्राप्तकर्ता पता सत्यापित करके मूल भुगतानकर्ता का प्राधिकरण प्राप्त किया है। आपूर्तिकर्ता को स्वतंत्र सत्यापन के लिए दूसरे व्यक्ति का उपयोग करना होगा।",
-    "Pembeli telah mengesahkan aset, rangkaian, kontrak token dan alamat penerima yang tepat serta memperoleh kebenaran pembayar asal. Pembekal mesti menggunakan orang lain untuk pengesahan bebas.",
-    "ผู้ซื้อได้ตรวจสอบสินทรัพย์ เครือข่าย สัญญาโทเคน และที่อยู่ผู้รับที่แน่นอน และได้รับอนุญาตจากผู้ชำระเงินเดิม ผู้จัดหาต้องให้บุคคลอื่นตรวจสอบโดยอิสระ"
-  ],
-  "买方明确授权稳定币退款地址": [
-    "买方明确授权稳定币退款地址",
-    "Buyer explicitly authorizes stablecoin refund address",
-    "買い手がステーブルコイン返金先を明示許可",
-    "Покупатель явно разрешает адрес возврата стейблкоина",
-    "खरीदार स्टेबलकॉइन धनवापसी पता स्पष्ट रूप से अधिकृत करता है",
-    "Pembeli secara jelas membenarkan alamat bayaran balik stablecoin",
-    "ผู้ซื้ออนุญาตที่อยู่คืนเงิน Stablecoin อย่างชัดเจน"
-  ],
   "买方经营方 / 上游路由": [
     "买方经营方 / 上游路由",
     "Buying operator / upstream route",
@@ -4714,15 +4579,6 @@
     "केवल खाता बंद करने के निपटान के दौरान उपलब्ध। निपटान मुद्रा या कमीशन छुए बिना सभी अप्रयुक्त खरीदे गए और बोनस ATG निरस्त करता है। परित्याग का अपरिवर्तनीय रिकॉर्ड सुरक्षित रहता है।",
     "Hanya tersedia semasa penyelesaian penutupan akaun. Membatalkan semua ATG yang dibeli dan bonus yang belum digunakan tanpa menyentuh mata wang penyelesaian atau komisen. Rekod pelepasan yang tidak boleh diubah dikekalkan.",
     "ใช้ได้เฉพาะระหว่างชำระบัญชีเพื่อปิดบัญชี เพิกถอน ATG ที่ซื้อและได้รับเป็นของแถมที่ยังไม่ใช้ทั้งหมดโดยไม่แตะสกุลเงินที่ใช้ชำระบัญชีหรือค่าคอมมิชชัน เก็บระเบียนการสละที่แก้ไขไม่ได้ไว้"
-  ],
-  "仅用于原路必须先锁定执行编号的稳定币或外部通道。普通线下退款直接登记付款。": [
-    "仅用于原路必须先锁定执行编号的稳定币或外部通道。普通线下退款直接登记付款。",
-    "Only when the original route must lock an execution number first, such as stablecoin or an external channel. An ordinary offline refund records the payment directly.",
-    "元の経路で実行番号を先に固定する必要がある場合だけ使います。通常のオフライン返金は支払いを直接登録します。",
-    "Только если исходный маршрут должен сначала зафиксировать номер исполнения, например стейблкоин или внешний канал. Обычный офлайн-возврат регистрирует платёж сразу.",
-    "केवल तब जब मूल मार्ग में पहले निष्पादन संख्या लॉक करना आवश्यक हो, जैसे स्टेबलकॉइन या बाहरी चैनल में। सामान्य ऑफ़लाइन धनवापसी में सीधे भुगतान दर्ज किया जाता है।",
-    "Hanya apabila laluan asal mesti mengunci nombor pelaksanaan terlebih dahulu, seperti stablecoin atau saluran luaran. Bayaran balik luar talian biasa merekodkan pembayaran secara langsung.",
-    "ใช้เฉพาะกรณีที่ช่องทางเดิมต้องล็อกเลขดำเนินการก่อน เช่น Stablecoin หรือช่องทางภายนอก การคืนเงินออฟไลน์ทั่วไปให้บันทึกการชำระเงินโดยตรง"
   ],
   "仅用于已取得外部终态证明。超时、查不到或结果未知不能认定失败；本操作不释放剩余退款责任。": [
     "仅用于已取得外部终态证明。超时、查不到或结果未知不能认定失败；本操作不释放剩余退款责任。",
@@ -5245,33 +5101,6 @@
     "भुगतान पृष्ठ वास्तविक प्राप्ति मुद्रा दिखाता है। यह ऑर्डर सत्यापित निपटान राशि से दर्ज होता है।",
     "Halaman pembayaran menunjukkan mata wang penerimaan sebenar. Pesanan ini direkodkan menggunakan jumlah penyelesaian yang disahkan.",
     "หน้าชำระเงินแสดงสกุลเงินที่รับจริง คำสั่งซื้อนี้บันทึกตามยอดชำระบัญชีที่ตรวจสอบแล้ว"
-  ],
-  "代币合约": [
-    "代币合约",
-    "Token contract",
-    "トークンコントラクト",
-    "Контракт токена",
-    "टोकन अनुबंध",
-    "Kontrak token",
-    "สัญญาโทเคน"
-  ],
-  "代币合约地址": [
-    "代币合约地址",
-    "Token contract address",
-    "トークンコントラクトアドレス",
-    "Адрес контракта токена",
-    "टोकन अनुबंध पता",
-    "Alamat kontrak token",
-    "ที่อยู่สัญญาโทเคน"
-  ],
-  "代币合约（银行留空）": [
-    "代币合约（银行留空）",
-    "Token contract (leave blank for bank)",
-    "トークンコントラクト（銀行の場合は空欄）",
-    "Контракт токена (для банка оставить пустым)",
-    "टोकन अनुबंध (बैंक के लिए खाली छोड़ें)",
-    "Kontrak token (biarkan kosong untuk bank)",
-    "สัญญาโทเคน (เว้นว่างสำหรับธนาคาร)"
   ],
   "代币小数位数": [
     "代币小数位数",
@@ -7424,15 +7253,6 @@
     "Kekalkan versi kempen dan kelayakan sejarah; jeda komisen masa depan secara berasingan.",
     "เก็บเวอร์ชันแคมเปญและคุณสมบัติในอดีต การระงับค่าคอมมิชชันในอนาคตดำเนินการแยก"
   ],
-  "保留真实收款币种与金额；付款人另付的发送费或链上手续费不计入。": [
-    "保留真实收款币种与金额；付款人另付的发送费或链上手续费不计入。",
-    "Keep the actual receipt currency and amount. Exclude sending or blockchain fees paid separately by the payer.",
-    "実際の入金通貨と金額を保持します。支払者が別途負担する送金手数料やチェーン手数料は含めません。",
-    "Сохраните фактическую валюту и сумму поступления. Отдельно оплаченные отправителем комиссии перевода или блокчейна не включаются.",
-    "वास्तविक प्राप्ति मुद्रा और राशि रखें। भुगतानकर्ता द्वारा अलग दिए प्रेषण या ब्लॉकचेन शुल्क शामिल न करें।",
-    "Kekalkan mata wang dan jumlah penerimaan sebenar. Kecualikan fi penghantaran atau blockchain yang dibayar secara berasingan oleh pembayar.",
-    "เก็บสกุลเงินและยอดรับจริง ไม่รวมค่าธรรมเนียมการส่งหรือบล็อกเชนที่ผู้ชำระจ่ายแยกต่างหาก"
-  ],
   "保留至": [
     "保留至",
     "Available until ",
@@ -9098,15 +8918,6 @@
     "Sediakan kredit dan Key untuk panggilan pertama anda.",
     "เตรียมเครดิตและ Key สำหรับการเรียกใช้ครั้งแรก"
   ],
-  "准确代币合约": [
-    "准确代币合约",
-    "Exact token contract",
-    "正確なトークンコントラクト",
-    "Точный контракт токена",
-    "सटीक टोकन अनुबंध",
-    "Kontrak token tepat",
-    "สัญญาโทเคนที่แน่นอน"
-  ],
   "准确网络": [
     "准确网络",
     "Exact network",
@@ -9142,15 +8953,6 @@
     "सटीक परिसंपत्ति कोड (NOW के लिए पूरा प्रदाता कोड आवश्यक)",
     "Kod aset tepat (NOW memerlukan kod penuh penyedia)",
     "รหัสสินทรัพย์ที่แน่นอน (NOW ต้องใช้รหัส provider แบบเต็ม)"
-  ],
-  "准确退款网络（银行填bank，EVM填十进制Chain ID）": [
-    "准确退款网络（银行填bank，EVM填十进制Chain ID）",
-    "Exact refund network (bank for banks; decimal Chain ID for EVM)",
-    "正確な返金ネットワーク（銀行は bank、EVM は十進数 Chain ID）",
-    "Точная сеть возврата (bank для банка, десятичный Chain ID для EVM)",
-    "सटीक धनवापसी नेटवर्क (बैंकों के लिए bank; EVM के लिए दशमलव Chain ID)",
-    "Rangkaian bayaran balik tepat (bank untuk bank; Chain ID perpuluhan untuk EVM)",
-    "เครือข่ายคืนเงินที่แน่นอน (ระบุ bank สำหรับธนาคาร; Chain ID ฐานสิบสำหรับ EVM)"
   ],
   "凭据": [
     "凭据",
@@ -11114,24 +10916,6 @@
     "Dokumen asal dibatalkan secara sah",
     "เอกสารเดิมถูกยกเลิกตามกฎหมายแล้ว"
   ],
-  "原网络（链上收款必填）": [
-    "原网络（链上收款必填）",
-    "Original network (required for on-chain receipt)",
-    "元のネットワーク（オンチェーン入金は必須）",
-    "Исходная сеть (обязательна для поступления в блокчейне)",
-    "मूल नेटवर्क (ऑन-चेन प्राप्ति के लिए आवश्यक)",
-    "Rangkaian asal (wajib untuk penerimaan pada rantaian)",
-    "เครือข่ายเดิม (จำเป็นสำหรับการรับเงินบนเชน)"
-  ],
-  "原网络（链上收款时填写）": [
-    "原网络（链上收款时填写）",
-    "Network (for on-chain receipts)",
-    "ネットワーク（オンチェーン入金のみ）",
-    "Сеть (для поступлений в блокчейне)",
-    "नेटवर्क (ऑन-चेन प्राप्तियों के लिए)",
-    "Rangkaian (untuk penerimaan pada rantaian)",
-    "เครือข่าย (สำหรับรายการรับเงินบนเชน)"
-  ],
   "原范围主体": [
     "原范围主体",
     "Original scope entity",
@@ -12239,15 +12023,6 @@
     "Masukkan hanya parameter yang disahkan pembekal boleh dihantar, contohnya max_completion_tokens.",
     "ระบุเฉพาะพารามิเตอร์ที่ผู้จัดหายืนยันว่าส่งได้ เช่น max_completion_tokens"
   ],
-  "只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。": [
-    "只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。",
-    "Enter only the receipt fee borne by the current receiving operator. Exclude transfer or blockchain fees paid separately by the payer. Enter 0 if there is no fee. The system subtracts our fee from the gross receipt to calculate the net amount; order credits are unchanged.",
-    "現在の受取事業者が負担する入金手数料のみ入力します。支払人が別途支払う振込・ブロックチェーン手数料は含めません。当方の手数料がない場合は0を入力してください。総額から手数料を差し引いて差引入金額を計算し、注文の提供残高は減らしません。",
-    "Укажите только комиссию, которую несёт текущий получающий оператор. Отдельно оплаченные отправителем комиссии за перевод или блокчейн не включаются. Если нашей комиссии нет, введите 0. Система вычитает её из общей суммы; кредиты по заказу не уменьшаются.",
-    "केवल वर्तमान प्राप्तकर्ता संचालक द्वारा वहन किया प्राप्ति शुल्क दर्ज करें। भुगतानकर्ता द्वारा अलग दिए हस्तांतरण या ब्लॉकचेन शुल्क शामिल न करें। शुल्क न हो तो 0 दर्ज करें। सिस्टम शुद्ध राशि गणना के लिए सकल प्राप्ति से हमारा शुल्क घटाता है; ऑर्डर क्रेडिट अपरिवर्तित हैं।",
-    "Masukkan hanya fi penerimaan yang ditanggung oleh pengendali penerima semasa. Kecualikan fi pemindahan atau blockchain yang dibayar secara berasingan oleh pembayar. Masukkan 0 jika tiada fi. Sistem menolak fi kami daripada penerimaan kasar untuk mengira jumlah bersih; kredit pesanan tidak berubah.",
-    "ป้อนเฉพาะค่าธรรมเนียมรับเงินที่ผู้ดำเนินงานผู้รับปัจจุบันรับผิดชอบ ไม่นับค่าธรรมเนียมโอนหรือบล็อกเชนที่ผู้ชำระเงินจ่ายแยก หากไม่มีค่าธรรมเนียมให้ป้อน 0 ระบบหักค่าธรรมเนียมของเราจากยอดรับรวมเพื่อคำนวณยอดสุทธิ เครดิตคำสั่งซื้อไม่เปลี่ยนแปลง"
-  ],
   "只对明确范围与动作生效，不转移或删除客户资产。设置限制必须有复核到期。": [
     "只对明确范围与动作生效，不转移或删除客户资产。设置限制必须有复核到期。",
     "Applies only to the specified scope and actions, without transferring or deleting customer assets. Every restriction must have a review expiry.",
@@ -12509,33 +12284,6 @@
     "Carian baca sahaja transaksi sebenar daripada dompet pengendali yang bertanggungjawab sekarang. Tiada tandatangan, penghantaran atau akses kepada akaun pedagang pengendali asal.",
     "ค้นหาธุรกรรมจริงจากกระเป๋าของผู้ดำเนินงานผู้รับผิดชอบปัจจุบันแบบอ่านอย่างเดียว ไม่ลงนาม ส่ง หรือเข้าถึงบัญชีผู้ค้าของผู้ดำเนินงานเดิม"
   ],
-  "只读查询真实链上执行；不签名、不发送、不按原sender猜目的地。": [
-    "只读查询真实链上执行；不签名、不发送、不按原sender猜目的地。",
-    "Read-only checks of actual on-chain execution; no signing, sending, or inferring a destination from the original sender.",
-    "実際のオンチェーン実行を読み取り照会します。署名・送信は行わず、元の sender から送付先を推定しません。",
-    "Только чтение фактического исполнения в блокчейне; без подписи, отправки и определения адреса по исходному sender.",
-    "वास्तविक ऑन-चेन निष्पादन की केवल-पठन जाँच; मूल प्रेषक से गंतव्य का हस्ताक्षर, प्रेषण या अनुमान नहीं।",
-    "Semakan baca sahaja bagi pelaksanaan sebenar pada rantaian; tiada tandatangan, penghantaran atau penentuan destinasi daripada pengirim asal.",
-    "ตรวจสอบการดำเนินการจริงบนเชนแบบอ่านอย่างเดียว โดยไม่ลงนาม ส่ง หรืออนุมานปลายทางจากผู้ส่งเดิม"
-  ],
-  "只读核实已执行采购链上退款": [
-    "只读核实已执行采购链上退款",
-    "Read-only verification of executed on-chain procurement refund",
-    "実行済み調達オンチェーン返金を読み取り専用で確認",
-    "Проверить исполненный закупочный возврат в блокчейне только для чтения",
-    "निष्पादित ऑन-चेन खरीद धनवापसी का केवल-पठन सत्यापन",
-    "Pengesahan baca sahaja bagi bayaran balik perolehan pada rantaian yang telah dilaksanakan",
-    "ตรวจสอบการคืนเงินจัดซื้อบนเชนที่ดำเนินการแล้วแบบอ่านอย่างเดียว"
-  ],
-  "只读核实已执行链上退款": [
-    "只读核实已执行链上退款",
-    "Read-only verification of executed on-chain refund",
-    "実行済みオンチェーン返金を読取専用で確認",
-    "Проверить исполненный возврат в блокчейне без записи",
-    "निष्पादित ऑन-चेन धनवापसी का केवल-पठन सत्यापन",
-    "Pengesahan baca sahaja bagi bayaran balik pada rantaian yang telah dilaksanakan",
-    "ตรวจสอบการคืนเงินบนเชนที่ดำเนินการแล้วแบบอ่านอย่างเดียว"
-  ],
   "只调整目标经营方的销售承载授权和预警。采购余额不足时不能继续模型调用。": [
     "只调整目标经营方的销售承载授权和预警。采购余额不足时不能继续模型调用。",
     "Only adjusts the target operator's sales capacity authorization and alerts. Calls cannot continue with insufficient prepaid procurement balance.",
@@ -12544,15 +12292,6 @@
     "केवल लक्षित संचालक के बिक्री क्षमता प्राधिकरण और अलर्ट बदलता है। पर्याप्त प्रीपेड खरीद शेष राशि न होने पर कॉल जारी नहीं रह सकते।",
     "Hanya melaraskan kebenaran kapasiti jualan dan amaran pengendali sasaran. Panggilan tidak boleh diteruskan jika baki perolehan prabayar tidak mencukupi.",
     "ปรับเฉพาะการอนุญาตความสามารถในการขายและการแจ้งเตือนของผู้ดำเนินงานเป้าหมาย ไม่สามารถเรียกใช้ต่อได้หากยอดคงเหลือสำหรับการจัดซื้อแบบชำระล่วงหน้าไม่เพียงพอ"
-  ],
-  "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。": [
-    "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。",
-    "Only for the original EVM wallet checkout. The server independently verifies the network, contract, address and confirmations. Submitting lookup details does not mean payment succeeded.",
-    "元の EVM ウォレット決済にのみ対応します。サーバーがネットワーク、コントラクト、アドレス、確認数を独立に検証します。照会情報の送信は支払成功を意味しません。",
-    "Только для исходной оплаты EVM-кошельком. Сервер независимо проверяет сеть, контракт, адрес и подтверждения. Передача данных поиска не означает успешную оплату.",
-    "केवल मूल EVM वॉलेट चेकआउट के लिए। सर्वर नेटवर्क, अनुबंध, पता और पुष्टिकरण स्वतंत्र रूप से सत्यापित करता है। खोज विवरण सबमिट करने का अर्थ भुगतान सफल होना नहीं है।",
-    "Hanya untuk checkout dompet EVM asal. Pelayan mengesahkan rangkaian, kontrak, alamat dan pengesahan secara bebas. Penyerahan butiran carian tidak bermakna pembayaran berjaya.",
-    "ใช้เฉพาะการชำระเงินด้วยกระเป๋า EVM เดิม เซิร์ฟเวอร์ตรวจสอบเครือข่าย สัญญา ที่อยู่ และจำนวนการยืนยันโดยอิสระ การส่งรายละเอียดค้นหาไม่ได้หมายความว่าชำระเงินสำเร็จ"
   ],
   "只配置需要计价的输出。语音合成按输入字符计价时，可以不再单列输出费用。图片和视频可以按分辨率分档。": [
     "只配置需要计价的输出。语音合成按输入字符计价时，可以不再单列输出费用。图片和视频可以按分辨率分档。",
@@ -12905,14 +12644,14 @@
     "Anda boleh menambah skop atau aturan penyelesaian yang dipersetujui. Sistem menyimpan pelan ini secara automatik; tiada nombor kontrak diperlukan.",
     "คุณอาจเพิ่มขอบเขตที่ตกลงกันหรือข้อตกลงการชำระบัญชี ระบบบันทึกแผนนี้โดยอัตโนมัติ ไม่ต้องระบุเลขสัญญา"
   ],
-  "可补充现金收据、转账记录或经办说明；人工收款时没有材料可留空，系统仍记录经办人和登记时间。涉及链上或第三方通道核验时，按该通道的要求提供资料。": [
-    "可补充现金收据、转账记录或经办说明；人工收款时没有材料可留空，系统仍记录经办人和登记时间。涉及链上或第三方通道核验时，按该通道的要求提供资料。",
-    "You may add a cash receipt, transfer record, or staff notes. Manual receipts can leave this blank; the system still records the staff member and time. Blockchain and third-party verification follow their own requirements.",
-    "現金領収書、振込記録、担当者の説明を任意で追加できます。手動入金登録では空欄でも担当者と登録時刻が記録されます。ブロックチェーン・外部決済の確認では各方式の要件に従ってください。",
-    "Можно добавить кассовую квитанцию, запись о переводе или пояснение сотрудника. При ручной регистрации поле можно оставить пустым: сотрудник и время всё равно записываются. Для блокчейна и сторонних сервисов действуют их требования.",
-    "आप नकद रसीद, हस्तांतरण रिकॉर्ड या कर्मचारी टिप्पणियाँ जोड़ सकते हैं। मैन्युअल प्राप्तियों में यह खाली छोड़ा जा सकता है; सिस्टम कर्मचारी और समय फिर भी दर्ज करता है। ब्लॉकचेन और तीसरे पक्ष का सत्यापन अपनी आवश्यकताओं का पालन करता है।",
-    "Anda boleh menambah resit tunai, rekod pemindahan atau catatan kakitangan. Penerimaan manual boleh membiarkan ini kosong; sistem masih merekodkan kakitangan dan masa. Pengesahan blockchain dan pihak ketiga mengikut keperluan masing-masing.",
-    "คุณอาจเพิ่มใบเสร็จเงินสด บันทึกการโอน หรือหมายเหตุพนักงาน รายการรับเงินที่บันทึกด้วยตนเองสามารถเว้นว่างได้ ระบบยังคงบันทึกพนักงานและเวลา การตรวจสอบบล็อกเชนและบุคคลภายนอกเป็นไปตามข้อกำหนดของแต่ละวิธี"
+  "可补充现金收据、转账记录或经办说明；人工收款时没有材料可留空，系统仍记录经办人和登记时间。涉及第三方通道核验时，按该通道的要求提供资料。": [
+    "可补充现金收据、转账记录或经办说明；人工收款时没有材料可留空，系统仍记录经办人和登记时间。涉及第三方通道核验时，按该通道的要求提供资料。",
+    "You may add a cash receipt, transfer record or handling note. For manual receipts, leave this blank if unavailable; the handler and registration time are still recorded. For third-party verification, provide the materials required by that payment provider.",
+    "現金領収書、振込記録、処理メモを追加できます。手動入金で資料がない場合は空欄にできます。担当者と登録日時は記録されます。外部決済サービスによる確認には、そのサービスが求める資料を提出してください。",
+    "Можно приложить кассовый чек, запись о переводе или пояснение. Для ручного приёма оплаты поле можно оставить пустым: сотрудник и время регистрации сохраняются. Для проверки через сторонний сервис предоставьте требуемые им документы.",
+    "नकद रसीद, ट्रांसफ़र रिकॉर्ड या प्रक्रिया संबंधी नोट जोड़ा जा सकता है। मैन्युअल प्राप्ति के लिए सामग्री उपलब्ध न हो तो खाली छोड़ें; कर्मचारी और दर्ज करने का समय फिर भी रिकॉर्ड होंगे। तृतीय-पक्ष सत्यापन के लिए उस भुगतान प्रदाता की आवश्यक सामग्री दें।",
+    "Anda boleh menambah resit tunai, rekod pindahan atau nota pengendalian. Untuk penerimaan manual, biarkan kosong jika tiada bahan; petugas dan masa pendaftaran tetap direkodkan. Bagi pengesahan pihak ketiga, sediakan bahan yang diperlukan oleh penyedia pembayaran tersebut.",
+    "สามารถเพิ่มใบเสร็จเงินสด หลักฐานการโอน หรือหมายเหตุการดำเนินการได้ หากเป็นการรับเงินด้วยตนเองและไม่มีเอกสาร สามารถเว้นว่างได้ ระบบยังบันทึกผู้ดำเนินการและเวลาลงทะเบียน สำหรับการตรวจสอบโดยผู้ให้บริการภายนอก ให้ส่งเอกสารตามข้อกำหนดของผู้ให้บริการนั้น"
   ],
   "可补充银行要求的当地清算代码或中转行信息。": [
     "可补充银行要求的当地清算代码或中转行信息。",
@@ -14705,15 +14444,6 @@
     "Masukkan pemegang akaun, bank dan nombor akaun. Tambah cawangan hanya apabila diperlukan untuk pemindahan.",
     "กรอกชื่อเจ้าของบัญชี ธนาคาร และเลขบัญชี เพิ่มสาขาเฉพาะเมื่อจำเป็นต่อการโอน"
   ],
-  "填写所选网络上的 USDT 地址。选错网络可能导致无法到账。": [
-    "填写所选网络上的 USDT 地址。选错网络可能导致无法到账。",
-    "Enter the USDT address on the selected network. The wrong network can make the funds unrecoverable.",
-    "選択したネットワークの USDT アドレスを入力してください。ネットワークを誤ると着金できないことがあります。",
-    "Укажите адрес USDT в выбранной сети. Неверная сеть может сделать перевод недоступным.",
-    "चुने गए नेटवर्क का USDT पता दर्ज करें। गलत नेटवर्क से निधि वापस न मिल सके।",
-    "Masukkan alamat USDT pada rangkaian yang dipilih. Rangkaian yang salah boleh menyebabkan dana tidak dapat dipulihkan.",
-    "ระบุที่อยู่ USDT บนเครือข่ายที่เลือก เครือข่ายที่ผิดอาจทำให้เรียกเงินคืนไม่ได้"
-  ],
   "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合结算币种的收款总额与本次估值依据分别填写。": [
     "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合结算币种的收款总额与本次估值依据分别填写。",
     "Enter the gross amount in the original currency before our receipt fee, excluding sending fees paid separately by the payer. Enter the settlement currency gross receipt and the current valuation evidence separately.",
@@ -14821,15 +14551,6 @@
     "नकद प्राप्त करने वाले व्यक्ति का नाम दर्ज करें।",
     "Masukkan nama orang yang mengambil tunai.",
     "กรอกชื่อผู้มารับเงินสด"
-  ],
-  "填写用于支付订单的收款总额，尚未扣除己方收款手续费。例如订单1000 结算币种、己方手续费10 结算币种、净到账990 结算币种，此处填1000；订单仍按1000 结算币种交付。付款人另付的转账费或链上手续费不计入。": [
-    "填写用于支付订单的收款总额，尚未扣除己方收款手续费。例如订单1000 结算币种、己方手续费10 结算币种、净到账990 结算币种，此处填1000；订单仍按1000 结算币种交付。付款人另付的转账费或链上手续费不计入。",
-    "Enter the gross receipt used to pay the order, before our receipt fee. For a 1000 settlement currency order with a 10 settlement currency fee and 990 settlement currency net receipt, enter 1000; delivery remains 1000 settlement currency. Exclude transfer or blockchain fees paid separately by the payer.",
-    "注文の支払いに充当する、当方の入金手数料控除前の総額を入力します。注文1000 決済通貨、当方手数料10 決済通貨、差引入金990 決済通貨なら1000を入力し、1000 決済通貨分を提供します。支払人が別途支払う振込・ブロックチェーン手数料は含めません。",
-    "Укажите сумму в оплату заказа до нашей комиссии. Для заказа на 1000 валюта расчётов с комиссией 10 валюта расчётов и чистым поступлением 990 валюта расчётов введите 1000; исполнение останется на 1000 валюта расчётов. Отдельные комиссии отправителя не включаются.",
-    "हमारे प्राप्ति शुल्क से पहले ऑर्डर भुगतान में उपयोग सकल प्राप्ति दर्ज करें। 10 निपटान मुद्रा शुल्क और 990 निपटान मुद्रा शुद्ध प्राप्ति वाले 1000 निपटान मुद्रा ऑर्डर के लिए 1000 दर्ज करें; डिलीवरी 1000 निपटान मुद्रा रहती है। भुगतानकर्ता द्वारा अलग दिए हस्तांतरण या ब्लॉकचेन शुल्क शामिल न करें।",
-    "Masukkan penerimaan kasar yang digunakan untuk membayar pesanan, sebelum fi penerimaan kami. Untuk pesanan 1000 mata wang penyelesaian dengan fi 10 mata wang penyelesaian dan penerimaan bersih 990 mata wang penyelesaian, masukkan 1000; penyerahan kekal 1000 mata wang penyelesaian. Kecualikan fi pemindahan atau blockchain yang dibayar secara berasingan oleh pembayar.",
-    "ป้อนยอดรับรวมที่ใช้ชำระคำสั่งซื้อก่อนหักค่าธรรมเนียมรับเงินของเรา สำหรับคำสั่งซื้อ 1000 สกุลเงินที่ใช้ชำระบัญชี ค่าธรรมเนียม 10 สกุลเงินที่ใช้ชำระบัญชี และยอดรับสุทธิ 990 สกุลเงินที่ใช้ชำระบัญชี ให้ป้อน 1000 การส่งมอบยังคงเป็น 1000 สกุลเงินที่ใช้ชำระบัญชี ไม่นับค่าธรรมเนียมโอนหรือบล็อกเชนที่ผู้ชำระเงินจ่ายแยก"
   ],
   "填写百分数，例如 15 表示 15%。佣金按受邀客户实际有偿调用对应的已确认实付金额计算，不按充值或赠送计算。": [
     "填写百分数，例如 15 表示 15%。佣金按受邀客户实际有偿调用对应的已确认实付金额计算，不按充值或赠送计算。",
@@ -15037,15 +14758,6 @@
     "ID कॉपी करें",
     "Salin ID",
     "คัดลอก ID"
-  ],
-  "复制代币合约": [
-    "复制代币合约",
-    "Copy token contract",
-    "トークンコントラクトをコピー",
-    "Скопировать контракт токена",
-    "टोकन अनुबंध कॉपी करें",
-    "Salin kontrak token",
-    "คัดลอกสัญญาโทเคน"
   ],
   "复制代码": [
     "复制代码",
@@ -17423,15 +17135,6 @@
     "Pelanggan mesti memasukkan nama akaun, bank, nombor kad dan cawangan yang sepadan dengan kad. Pemindahan antara bank atau perniagaan biasanya bergantung pada nama cawangan.",
     "ลูกค้าต้องระบุชื่อบัญชี ธนาคาร หมายเลขบัตร และสาขาที่ตรงกับบัตร การโอนข้ามธนาคารหรือโอนธุรกิจมักอาศัยชื่อสาขา"
   ],
-  "客户需选择 USDT 网络并填写该网络上的钱包地址。网络和地址不一致可能导致无法到账。": [
-    "客户需选择 USDT 网络并填写该网络上的钱包地址。网络和地址不一致可能导致无法到账。",
-    "The customer chooses the USDT network and enters a wallet address on that network. A mismatch can make the funds unrecoverable.",
-    "顧客は USDT のネットワークを選び、そのアドレスを入力します。不一致だと着金できないことがあります。",
-    "Клиент выбирает сеть USDT и адрес в этой сети. Несовпадение может сделать перевод недоступным.",
-    "ग्राहक USDT नेटवर्क चुनकर उसी नेटवर्क का वॉलेट पता दर्ज करता है। मेल न होने पर निधि वापस न मिल सके।",
-    "Pelanggan memilih rangkaian USDT dan memasukkan alamat dompet pada rangkaian itu. Ketidakpadanan boleh menyebabkan dana tidak dapat dipulihkan.",
-    "ลูกค้าเลือกเครือข่าย USDT และระบุที่อยู่กระเป๋าบนเครือข่ายนั้น หากไม่ตรงกันอาจทำให้เรียกเงินคืนไม่ได้"
-  ],
   "客户默认入口": [
     "客户默认入口",
     "Default customer endpoint",
@@ -19276,15 +18979,6 @@
     "भुगतान सत्यापित",
     "Pembayaran disahkan",
     "ตรวจสอบการชำระเงินแล้ว"
-  ],
-  "已核实代币合约": [
-    "已核实代币合约",
-    "Verified token contract",
-    "確認済みトークンコントラクト",
-    "Проверенный контракт токена",
-    "सत्यापित टोकन अनुबंध",
-    "Kontrak token yang disahkan",
-    "สัญญาโทเคนที่ตรวจสอบแล้ว"
   ],
   "已核实供应成本结算币种": [
     "已核实供应成本结算币种",
@@ -22229,15 +21923,6 @@
     "Notis pembayaran, aset, keselamatan dan pemenuhan yang penting masih akan dihantar. Perubahan terpakai serta-merta kepada e-mel yang belum dihantar.",
     "ยังคงส่งประกาศที่จำเป็นเกี่ยวกับการชำระเงิน สินทรัพย์ ความปลอดภัย และการส่งมอบ การเปลี่ยนแปลงมีผลทันทีต่ออีเมลที่ยังไม่ได้ส่ง"
   ],
-  "必须与钱包地址的网络一致。": [
-    "必须与钱包地址的网络一致。",
-    "Must match the wallet address network.",
-    "ウォレットアドレスのネットワークと一致させてください。",
-    "Должна совпадать с сетью адреса кошелька.",
-    "वॉलेट पते के नेटवर्क से मेल खाना चाहिए।",
-    "Mesti sepadan dengan rangkaian alamat dompet.",
-    "ต้องตรงกับเครือข่ายของที่อยู่กระเป๋า"
-  ],
   "必须双人审批付款": [
     "必须双人审批付款",
     "Two-person payment approval required",
@@ -22642,15 +22327,6 @@
     "मैंने स्थायी लॉक और रूपांतरण नियमों की समीक्षा की है और उन्हें समझता/समझती हूँ",
     "Saya telah menyemak dan memahami peraturan penguncian kekal dan penukaran",
     "ฉันตรวจสอบและเข้าใจกฎการล็อกถาวรและการแปลงแล้ว"
-  ],
-  "我已核对网络、准确资产、代币合约和接收地址，并明确授权本次退款退到该目的地。该地址不会从原转账发送方推定；经财务核实锁定后不可更改。": [
-    "我已核对网络、准确资产、代币合约和接收地址，并明确授权本次退款退到该目的地。该地址不会从原转账发送方推定；经财务核实锁定后不可更改。",
-    "I have checked the network, exact asset, token contract and receiving address, and explicitly authorize this refund to that destination. The address is not inferred from the original sender. Once verified and locked by finance, it cannot change.",
-    "ネットワーク、正確な資産、トークンコントラクト、受取アドレスを確認し、今回の返金先として明示的に許可します。元の送金者からアドレスを推定せず、財務が確認・ロックした後は変更できません。",
-    "Я проверил сеть, точный актив, контракт токена и адрес и явно разрешаю возврат на этот адрес. Адрес не определяется по исходному отправителю. После проверки и фиксации финансовым сотрудником изменить его нельзя.",
-    "मैंने नेटवर्क, सटीक परिसंपत्ति, टोकन अनुबंध और प्राप्ति पता जाँच लिया है और स्पष्ट रूप से इस गंतव्य पर धनवापसी अधिकृत करता/करती हूँ। पता मूल प्रेषक से अनुमानित नहीं है। वित्त विभाग द्वारा सत्यापित और लॉक होने पर इसे बदला नहीं जा सकता।",
-    "Saya telah menyemak rangkaian, aset tepat, kontrak token dan alamat penerima, dan secara jelas membenarkan bayaran balik ini ke destinasi tersebut. Alamat tidak disimpulkan daripada pengirim asal. Setelah disahkan dan dikunci oleh kewangan, ia tidak boleh diubah.",
-    "ข้าพเจ้าได้ตรวจสอบเครือข่าย สินทรัพย์ที่แน่นอน สัญญาโทเคน และที่อยู่รับเงิน และอนุญาตอย่างชัดเจนให้คืนเงินครั้งนี้ไปยังปลายทางดังกล่าว ที่อยู่นี้ไม่ได้อนุมานจากผู้ส่งเดิม เมื่อตรวจสอบและล็อกโดยฝ่ายการเงินแล้วจะเปลี่ยนไม่ได้"
   ],
   "我已确认每次采购金额、触发条件、阶梯赠送及周期总上限，并授权所选补货方式。付款结果未知时只核实原交易。": [
     "我已确认每次采购金额、触发条件、阶梯赠送及周期总上限，并授权所选补货方式。付款结果未知时只核实原交易。",
@@ -24830,24 +24506,6 @@
     "Penyerahan belum disahkan. Cuba semula permintaan asal untuk mengelakkan pendua.",
     "ยังไม่ยืนยันการส่งข้อมูล ลองอีกครั้งกับคำขอเดิมเพื่อหลีกเลี่ยงการทำซ้ำ"
   ],
-  "提交链上付款查找线索": [
-    "提交链上付款查找线索",
-    "Submit on-chain payment lookup details",
-    "オンチェーン支払の照会情報を送信",
-    "Передать данные для поиска оплаты в блокчейне",
-    "ऑन-चेन भुगतान खोज विवरण सबमिट करें",
-    "Hantar butiran carian pembayaran pada rantaian",
-    "ส่งรายละเอียดค้นหาการชำระเงินบนเชน"
-  ],
-  "提交链上查找线索": [
-    "提交链上查找线索",
-    "Submit on-chain payment details",
-    "オンチェーン検索情報を送信",
-    "Отправить данные для поиска в блокчейне",
-    "ऑन-चेन भुगतान विवरण सबमिट करें",
-    "Hantar butiran pembayaran pada rantaian",
-    "ส่งรายละเอียดการชำระเงินบนเชน"
-  ],
   "提前用完不会提前续费，当前套餐到期余量不结转；续费条件变差时须重新确认。": [
     "提前用完不会提前续费，当前套餐到期余量不结转；续费条件变差时须重新确认。",
     "Using all credits early does not trigger early renewal. Unused credits expire with the plan, and less favorable renewal terms require your confirmation again.",
@@ -25603,15 +25261,6 @@
     "भुगतान घटक तैयार नहीं है। संचालक से सेटअप जाँचने को कहें; दोहरे ऑर्डर न बनाएँ।",
     "Komponen pembayaran belum sedia. Minta pengendali menyemak persediaan; jangan cipta pesanan berulang.",
     "องค์ประกอบชำระเงินยังไม่พร้อม โปรดขอให้ผู้ดำเนินงานตรวจสอบการตั้งค่า อย่าสร้างคำสั่งซื้อซ้ำ"
-  ],
-  "支付资产与网络": [
-    "支付资产与网络",
-    "Payment assets & networks",
-    "決済資産とネットワーク",
-    "Платёжные активы и сети",
-    "भुगतान परिसंपत्तियाँ और नेटवर्क",
-    "Aset & rangkaian pembayaran",
-    "สินทรัพย์และเครือข่ายชำระเงิน"
   ],
   "支付通道成功不等于权益已交付，资产以本订单的核实与交付记录为准。少付、多付、迟付和已收款未交付均处理原订单；重复查询不会再扣款。": [
     "支付通道成功不等于权益已交付，资产以本订单的核实与交付记录为准。少付、多付、迟付和已收款未交付均处理原订单；重复查询不会再扣款。",
@@ -26936,15 +26585,6 @@
     "Gantung secara jelas komisen masa depan saya",
     "ระงับค่าคอมมิชชันในอนาคตของข้าพเจ้าอย่างชัดเจน"
   ],
-  "明确网络（EVM为十进制Chain ID）": [
-    "明确网络（EVM为十进制Chain ID）",
-    "Exact network (decimal Chain ID for EVM)",
-    "明確なネットワーク（EVM は十進数 Chain ID）",
-    "Точная сеть (десятичный Chain ID для EVM)",
-    "सटीक नेटवर्क (EVM के लिए दशमलव Chain ID)",
-    "Rangkaian tepat (Chain ID perpuluhan untuk EVM)",
-    "เครือข่ายที่แน่นอน (Chain ID รูปทศนิยมสำหรับ EVM)"
-  ],
   "明确自定义": [
     "明确自定义",
     "Explicit custom settings",
@@ -27448,15 +27088,6 @@
     "न्यूनतम पुष्टिकरण",
     "Pengesahan minimum",
     "จำนวนการยืนยันขั้นต่ำ"
-  ],
-  "最少链上确认数": [
-    "最少链上确认数",
-    "Minimum on-chain confirmations",
-    "最小オンチェーン確認数",
-    "Минимум подтверждений в блокчейне",
-    "न्यूनतम ऑन-चेन पुष्टिकरण",
-    "Pengesahan minimum pada rantaian",
-    "จำนวนการยืนยันบนเชนขั้นต่ำ"
   ],
   "最终应付": [
     "最终应付",
@@ -28403,15 +28034,6 @@
     "Saya mengesahkan penyelesaian telah selesai",
     "ข้าพเจ้ายืนยันว่าชำระบัญชีครบแล้ว"
   ],
-  "本人确认稳定币退款目的地": [
-    "本人确认稳定币退款目的地",
-    "Personally confirm stablecoin refund destination",
-    "本人がステーブルコイン返金先を確認",
-    "Лично подтвердить назначение возврата стейблкоина",
-    "स्टेबलकॉइन धनवापसी गंतव्य की स्वयं पुष्टि करें",
-    "Sahkan sendiri destinasi bayaran balik stablecoin",
-    "ยืนยันปลายทางรับการคืนเงิน Stablecoin ด้วยตนเอง"
-  ],
   "本人让利百分点": [
     "本人让利百分点",
     "Percentage points you give up",
@@ -28466,15 +28088,6 @@
     "Jenama ini (pemilik jenama sahaja)",
     "แบรนด์นี้ (เฉพาะเจ้าของแบรนด์)"
   ],
-  "本商户收款钱包地址": [
-    "本商户收款钱包地址",
-    "This merchant's receiving wallet address",
-    "この加盟店の受取ウォレットアドレス",
-    "Адрес кошелька получения этого продавца",
-    "इस व्यापारी का प्राप्ति वॉलेट पता",
-    "Alamat dompet penerimaan pedagang ini",
-    "ที่อยู่กระเป๋ารับเงินของผู้ค้ารายนี้"
-  ],
   "本套餐已到期，可选择当前在售套餐重新购买。": [
     "本套餐已到期，可选择当前在售套餐重新购买。",
     "This package has expired. You can purchase a currently available package.",
@@ -28483,15 +28096,6 @@
     "यह पैकेज समाप्त हो गया है। आप वर्तमान उपलब्ध पैकेज खरीद सकते हैं।",
     "Pakej ini telah tamat tempoh. Anda boleh membeli pakej yang tersedia sekarang.",
     "แพ็กเกจนี้หมดอายุแล้ว คุณสามารถซื้อแพ็กเกจที่พร้อมใช้งานในปัจจุบัน"
-  ],
-  "本操作只读查询实际链上交易，不会签名或发送交易；准确接收地址由已锁定授权取值。": [
-    "本操作只读查询实际链上交易，不会签名或发送交易；准确接收地址由已锁定授权取值。",
-    "This action only reads the actual on-chain transaction; it does not sign or send transactions. The exact recipient address comes from the locked authorization.",
-    "この操作は実際のオンチェーン取引を読み取るだけで、署名・送信は行いません。正確な受取先は固定済みの承認から取得します。",
-    "Действие только читает фактическую транзакцию в блокчейне, без подписи и отправки. Точный адрес берётся из зафиксированного разрешения.",
-    "यह कार्रवाई केवल वास्तविक ऑन-चेन लेनदेन पढ़ती है; यह लेनदेन पर हस्ताक्षर नहीं करती या उन्हें भेजती नहीं है। सटीक प्राप्तकर्ता पता लॉक किए गए प्राधिकरण से मिलता है।",
-    "Tindakan ini hanya membaca transaksi sebenar pada rantaian; ia tidak menandatangani atau menghantar transaksi. Alamat penerima yang tepat diperoleh daripada kebenaran yang dikunci.",
-    "การดำเนินการนี้อ่านเฉพาะธุรกรรมจริงบนเชน ไม่ลงนามหรือส่งธุรกรรม ที่อยู่ผู้รับที่แน่นอนใช้จากการอนุญาตที่ล็อกไว้"
   ],
   "本方向的所有模态合并按 Token 计费，不再叠加图片张数或媒体时长。": [
     "本方向的所有模态合并按 Token 计费，不再叠加图片张数或媒体时长。",
@@ -29212,33 +28816,6 @@
     "खरीद राशि निपटान मुद्रा में",
     "Jumlah pembelian dalam mata wang penyelesaian",
     "ยอดซื้อในสกุลเงินที่ใช้ชำระบัญชี"
-  ],
-  "本次链上事实已核实并保留，请刷新原订单核对收款和交付。状态：": [
-    "本次链上事实已核实并保留，请刷新原订单核对收款和交付。状态：",
-    "On-chain facts have been verified and saved. Refresh the original order to check payment and delivery. Status: ",
-    "オンチェーン情報を確認・保存しました。元の注文を更新し、入金と提供状況を確認してください。状態：",
-    "Данные блокчейна проверены и сохранены. Обновите исходный заказ для проверки оплаты и исполнения. Статус: ",
-    "ऑन-चेन तथ्य सत्यापित और सहेजे गए हैं। भुगतान और डिलीवरी जाँचने के लिए मूल ऑर्डर रीफ़्रेश करें। स्थिति: ",
-    "Fakta pada rantaian telah disahkan dan disimpan. Muat semula pesanan asal untuk menyemak pembayaran dan penyerahan. Status: ",
-    "ตรวจสอบและบันทึกข้อเท็จจริงบนเชนแล้ว รีเฟรชคำสั่งซื้อเดิมเพื่อตรวจสอบการชำระเงินและการส่งมอบ สถานะ: "
-  ],
-  "本次链上查验依据": [
-    "本次链上查验依据",
-    "Evidence for this on-chain check",
-    "今回のチェーン確認の根拠",
-    "Основание этой проверки в блокчейне",
-    "इस ऑन-चेन जाँच का प्रमाण",
-    "Bukti semakan pada rantaian ini",
-    "หลักฐานการตรวจสอบบนเชนครั้งนี้"
-  ],
-  "本次链上核实依据": [
-    "本次链上核实依据",
-    "Evidence for this on-chain verification",
-    "今回のオンチェーン検証の根拠",
-    "Подтверждение этой проверки в блокчейне",
-    "इस ऑन-चेन सत्यापन का प्रमाण",
-    "Bukti pengesahan pada rantaian ini",
-    "หลักฐานการตรวจสอบบนเชนครั้งนี้"
   ],
   "本次预警持续达到此时长后升为严重并通知升级负责人，按分钟填写；至少1分钟，最多43200分钟（30天）。1440分钟为1天；达到严重阈值时会直接通知。": [
     "本次预警持续达到此时长后升为严重并通知升级负责人，按分钟填写；至少1分钟，最多43200分钟（30天）。1440分钟为1天；达到严重阈值时会直接通知。",
@@ -31498,15 +31075,6 @@
     "ऑर्डर रद्द हो रहा है…",
     "Membatalkan pesanan…",
     "กำลังยกเลิกคำสั่งซื้อ…"
-  ],
-  "正在只读核实链上事实…": [
-    "正在只读核实链上事实…",
-    "Verifying on-chain facts (read-only)…",
-    "オンチェーン情報を読み取り検証中…",
-    "Проверка данных блокчейна (только чтение)…",
-    "ऑन-चेन तथ्य सत्यापित हो रहे हैं (केवल-पठन)…",
-    "Mengesahkan fakta pada rantaian (baca sahaja)…",
-    "กำลังตรวจสอบข้อเท็จจริงบนเชน (อ่านอย่างเดียว)…"
   ],
   "正在处理…": [
     "正在处理…",
@@ -33875,6 +33443,15 @@
     "Aktifkan pengeluaran baki dan komisen",
     "เปิดการถอนเงินจากยอดคงเหลือและค่าคอมมิชชัน"
   ],
+  "用于已授权的外部退款，确认付款后登记完成。": [
+    "用于已授权的外部退款，确认付款后登记完成。",
+    "For an authorized external refund. Record completion after confirming payment.",
+    "承認済みの外部返金に使用します。支払いを確認後、完了を記録してください。",
+    "Для согласованного внешнего возврата. После подтверждения платежа зарегистрируйте завершение.",
+    "अधिकृत बाहरी रिफंड के लिए। भुगतान की पुष्टि के बाद पूर्णता दर्ज करें।",
+    "Untuk bayaran balik luaran yang telah diluluskan. Rekodkan penyelesaian selepas mengesahkan pembayaran.",
+    "ใช้สำหรับการคืนเงินภายนอกที่ได้รับอนุญาตแล้ว บันทึกว่าเสร็จสิ้นหลังจากยืนยันการชำระเงิน"
+  ],
   "用于收款": [
     "用于收款",
     "Accept payments",
@@ -34360,15 +33937,6 @@
     "लॉगिन ईमेल",
     "E-mel log masuk",
     "อีเมลเข้าสู่ระบบ"
-  ],
-  "登记NOWPayments外部已核实退款": [
-    "登记NOWPayments外部已核实退款",
-    "Record an externally verified NOWPayments refund",
-    "外部で確認済みの NOWPayments 返金を登録",
-    "Зарегистрировать подтверждённый извне возврат NOWPayments",
-    "बाहरी रूप से सत्यापित NOWPayments धनवापसी दर्ज करें",
-    "Rekodkan bayaran balik NOWPayments yang disahkan secara luaran",
-    "บันทึกการคืนเงิน NOWPayments ที่ตรวจสอบภายนอกแล้ว"
   ],
   "登记人": [
     "登记人",
@@ -34864,15 +34432,6 @@
     "बिक्री दायित्व समझें और जल्दी पुनःपूर्ति की योजना बनाएँ",
     "Fahami tanggungjawab jualan dan rancang pengisian semula lebih awal",
     "เข้าใจภาระการขายและวางแผนเติมสินค้าล่วงหน้า"
-  ],
-  "真实ERC20 Transfer日志索引（0x）": [
-    "真实ERC20 Transfer日志索引（0x）",
-    "Actual ERC20 Transfer log index (0x)",
-    "実際の ERC20 Transfer ログインデックス（0x）",
-    "Фактический индекс журнала ERC20 Transfer (0x)",
-    "वास्तविक ERC20 Transfer लॉग इंडेक्स (0x)",
-    "Indeks log ERC20 Transfer sebenar (0x)",
-    "ดัชนีบันทึก ERC20 Transfer จริง (0x)"
   ],
   "真实Transfer日志索引（0x）": [
     "真实Transfer日志索引（0x）",
@@ -38033,15 +37592,6 @@
     "Rangkaian",
     "เครือข่าย"
   ],
-  "网络/Chain ID": [
-    "网络/Chain ID",
-    "Network / Chain ID",
-    "ネットワーク / Chain ID",
-    "Сеть / Chain ID",
-    "नेटवर्क / Chain ID",
-    "Rangkaian / Chain ID",
-    "เครือข่าย / Chain ID"
-  ],
   "网页仅保留当前体验所需的上下文，离开后不建立长期历史。异步结果保留期限由任务记录返回，请及时获取。": [
     "网页仅保留当前体验所需的上下文，离开后不建立长期历史。异步结果保留期限由任务记录返回，请及时获取。",
     "The page keeps only the context needed for the current request and creates no long-term history after you leave. Retention deadlines for asynchronous results come from the task record; retrieve them promptly.",
@@ -38356,33 +37906,6 @@
     "कस्टम अनुमतियाँ",
     "Kebenaran tersuai",
     "สิทธิ์ที่กำหนดเอง"
-  ],
-  "自有EVM钱包": [
-    "自有EVM钱包",
-    "Own EVM wallet",
-    "自己所有の EVM ウォレット",
-    "Собственный кошелёк EVM",
-    "अपना EVM वॉलेट",
-    "Dompet EVM sendiri",
-    "กระเป๋า EVM ของตนเอง"
-  ],
-  "自有EVM钱包只读验证": [
-    "自有EVM钱包只读验证",
-    "Read-only verification of owned EVM wallet",
-    "自社 EVM ウォレットの読み取り専用検証",
-    "Проверка собственного EVM-кошелька только для чтения",
-    "स्वामित्व वाले EVM वॉलेट का केवल-पठन सत्यापन",
-    "Pengesahan baca sahaja dompet EVM sendiri",
-    "ตรวจสอบกระเป๋า EVM ของตนแบบอ่านอย่างเดียว"
-  ],
-  "自有链上钱包": [
-    "自有链上钱包",
-    "Own on-chain wallet",
-    "自己管理のオンチェーンウォレット",
-    "Собственный блокчейн-кошелёк",
-    "अपना ऑन-चेन वॉलेट",
-    "Dompet pada rantaian sendiri",
-    "กระเป๋าบนเชนของตนเอง"
   ],
   "自然周期以经营方配置的时区为准，创建后可查看。": [
     "自然周期以经营方配置的时区为准，创建后可查看。",
@@ -39608,14 +39131,14 @@
     "Direkodkan pada",
     "เวลาบันทึก"
   ],
-  "记录真实收款币种与金额；付款人在外部自行支付的发送费或链上手续费不计入。": [
-    "记录真实收款币种与金额；付款人在外部自行支付的发送费或链上手续费不计入。",
-    "Record the actual receipt currency and amount. Exclude transfer or blockchain fees paid separately outside the system.",
-    "実際の入金通貨と金額を記録します。支払者が外部で別途負担した送金手数料やチェーン手数料は含めません。",
-    "Укажите фактическую валюту и сумму поступления. Отдельно оплаченные внешние комиссии перевода или блокчейна не включаются.",
-    "वास्तविक प्राप्ति मुद्रा और राशि दर्ज करें। सिस्टम से बाहर अलग दिए हस्तांतरण या ब्लॉकचेन शुल्क शामिल न करें।",
-    "Rekodkan mata wang dan jumlah penerimaan sebenar. Kecualikan fi pemindahan atau blockchain yang dibayar secara berasingan di luar sistem.",
-    "บันทึกสกุลเงินและยอดรับจริง ไม่รวมค่าธรรมเนียมโอนหรือบล็อกเชนที่ผู้ชำระจ่ายแยกต่างหากนอกระบบ"
+  "记录真实收款币种与金额；付款人在外部自行支付的转账手续费不计入。": [
+    "记录真实收款币种与金额；付款人在外部自行支付的转账手续费不计入。",
+    "Record the actual currency and amount received; exclude transfer fees paid separately by the payer.",
+    "実際の受取通貨と金額を記録してください。支払者が別途負担した振込手数料は含めません。",
+    "Укажите фактически полученные валюту и сумму, без комиссии за перевод, отдельно уплаченной плательщиком.",
+    "वास्तव में प्राप्त मुद्रा और राशि दर्ज करें; भुगतानकर्ता द्वारा अलग से दिए गए ट्रांसफ़र शुल्क को शामिल न करें।",
+    "Rekodkan mata wang dan jumlah sebenar yang diterima; tidak termasuk fi pindahan yang dibayar berasingan oleh pembayar.",
+    "บันทึกสกุลเงินและยอดที่ได้รับจริง โดยไม่รวมค่าธรรมเนียมการโอนที่ผู้ชำระจ่ายแยกต่างหาก"
   ],
   "记录类型": [
     "记录类型",
@@ -40589,6 +40112,15 @@
     "Semak input anda",
     "ตรวจสอบข้อมูลที่ป้อน"
   ],
+  "请检查输入内容。": [
+    "请检查输入内容。",
+    "Please check your input.",
+    "入力内容を確認してください。",
+    "Проверьте введённые данные.",
+    "कृपया दर्ज की गई जानकारी जाँचें।",
+    "Sila semak maklumat yang dimasukkan.",
+    "โปรดตรวจสอบข้อมูลที่กรอก"
+  ],
   "请检查预算金额；请求和并发上限须为正整数，留空表示不额外限制。": [
     "请检查预算金额；请求和并发上限须为正整数，留空表示不额外限制。",
     "Check the budget amount. Request and concurrency limits must be positive integers; leave blank for no extra limit.",
@@ -41488,15 +41020,6 @@
     "जिम्मेदार संचालक का अपना NOW: वास्तविक बाहरी धनवापसी दर्ज करें",
     "NOW milik pengendali yang bertanggungjawab: rekodkan bayaran balik luaran sebenar",
     "NOW ของผู้ดำเนินงานผู้รับผิดชอบ: บันทึกการคืนเงินจริงจากภายนอก"
-  ],
-  "责任方自身钱包：只读核实实际链上退款": [
-    "责任方自身钱包：只读核实实际链上退款",
-    "Responsible party's own wallet: read-only verification of actual on-chain refunds",
-    "責任者の自己ウォレット：実際のオンチェーン返金を読み取り検証",
-    "Собственный кошелёк ответственной стороны: проверка реального возврата в блокчейне только для чтения",
-    "जिम्मेदार पक्ष का अपना वॉलेट: वास्तविक ऑन-चेन धनवापसी का केवल-पठन सत्यापन",
-    "Dompet pihak bertanggungjawab sendiri: pengesahan baca sahaja bagi bayaran balik sebenar pada rantaian",
-    "กระเป๋าของผู้รับผิดชอบ: ตรวจสอบการคืนเงินจริงบนเชนแบบอ่านอย่างเดียว"
   ],
   "责任方自身银行：登记已核实实际退款": [
     "责任方自身银行：登记已核实实际退款",
@@ -46808,15 +46331,6 @@
     "Jumlah mesti berupa rentetan perpuluhan tepat.",
     "จำนวนเงินต้องเป็นสตริงทศนิยมที่แน่นอน"
   ],
-  "钱包地址": [
-    "钱包地址",
-    "Wallet address",
-    "ウォレットアドレス",
-    "Адрес кошелька",
-    "वॉलेट पता",
-    "Alamat dompet",
-    "ที่อยู่กระเป๋า"
-  ],
   "银行/NOW实际付款流水": [
     "银行/NOW实际付款流水",
     "Actual bank/NOW payment reference",
@@ -46969,15 +46483,6 @@
     "बैंक हस्तांतरण",
     "Pindahan bank",
     "โอนผ่านธนาคาร"
-  ],
-  "链上钱包付款": [
-    "链上钱包付款",
-    "On-chain wallet payment",
-    "オンチェーンウォレット決済",
-    "Оплата кошельком в блокчейне",
-    "ऑन-चेन वॉलेट भुगतान",
-    "Pembayaran dompet pada rantaian",
-    "ชำระด้วยกระเป๋าบนเชน"
   ],
   "链接中的套餐当前不可购买，请选择目录中的可用套餐。": [
     "链接中的套餐当前不可购买，请选择目录中的可用套餐。",

@@ -15,7 +15,6 @@ import (
 type Transport struct {
 	Client            *http.Client
 	AllowTestLoopback bool
-	AllowedRPCHosts   []string
 }
 
 func NewTransport(allowTestLoopback bool) *Transport {

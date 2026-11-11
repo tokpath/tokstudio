@@ -385,7 +385,6 @@ function ReferenceField({ field, value, disabled, invalid, change, choose, onLab
     if (fieldName(field) === "receipt_id" && /\/receipts$/.test(path)) ["amount_money", "currency", "issuer_id"].forEach(key => permitted.add(key));
     if (field.name === "lines.0.order_id" && /\/invoice-orders$/.test(path)) ["issuer_id", "supplier_id"].forEach(key => permitted.add(key));
     if (field.name === "scope_id" && /\/scope-subjects$/.test(path)) permitted.add("scope_kind");
-    if (field.name === "asset_network_version_id" && /\/payment-assets$/.test(path)) permitted.add("driver");
     choose(Object.fromEntries(Object.entries(defaults).filter(([key]) => permitted.has(key) && !["id", "version", "expected_version"].includes(key))));
   }
   const options: RecordChoice[] = (data.data?.items || []).map(item => ({ value: item.value, label: translateLabel(item.label), defaults: item.defaults }));

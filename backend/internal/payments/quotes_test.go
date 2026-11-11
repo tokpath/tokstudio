@@ -174,60 +174,6 @@ func TestQuoteExpiryAndNativeCurrencyMinorUnits(t *testing.T) {
 	}
 }
 
-func TestStablecoinPaymentPinsBothReferenceInvoiceAndProviderQuote(t *testing.T) {
-	db := paymentDB(t, "CNY")
-	s := NewService(db, "stablecoin-quote", testPaymentAuth{}, NewTransport(true), &sqlReceiptSink{})
-	orderID := uuid.NewString()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		switch r.URL.Path {
-		case "/v2/rate/cny/usd":
-			_ = json.NewEncoder(w).Encode(map[string]any{"base": "CNY", "quote": "USD", "date": time.Now().UTC().Format("2006-01-02"), "rate": 0.14})
-		case "/v1/payment":
-			var in struct {
-				Amount   json.Number `json:"price_amount"`
-				Currency string      `json:"price_currency"`
-			}
-			if json.NewDecoder(r.Body).Decode(&in) != nil || in.Amount.String() != "14" || in.Currency != "usd" {
-				t.Error("provider invoice did not use the reference quote", in)
-			}
-			_, _ = w.Write([]byte(`{"payment_id":123,"pay_address":"synthetic-wallet","pay_amount":14.2,"pay_currency":"usdt"}`))
-		case "/v1/payment/123":
-			_ = json.NewEncoder(w).Encode(map[string]any{"payment_id": 123, "order_id": orderID, "payment_status": "finished", "pay_currency": "usdt", "actually_paid": 14.2, "price_currency": "usd", "price_amount": 14, "pay_amount": 14.2})
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
-	s.FXBaseURL = server.URL
-	now := time.Now().UTC()
-	asset := AssetNetwork{ID: uuid.NewString(), VersionID: uuid.NewString(), Version: 1, Driver: "nowpayments", Asset: "USDT", Network: "eth", TokenContract: "synthetic-token", TokenDecimals: 6, MinimumConfirmations: 12, Enabled: true, EffectiveAt: now.Add(-time.Hour), EvidenceReference: "explicit synthetic asset fixture", PublishedBy: "test:fixture", PublishedAt: now.Add(-time.Hour)}
-	if err := db.Create(&asset).Error; err != nil {
-		t.Fatal(err)
-	}
-	m := Merchant{ID: uuid.NewString(), OperatorID: uuid.NewString(), Driver: "nowpayments", Enabled: true, AssetNetworkVersionID: asset.VersionID, APIBaseURL: server.URL, Credentials: map[string]string{"api_key": "fixture", "ipn_secret": "fixture"}}
-	if _, err := s.SaveMerchant(t.Context(), "finance", m, 0); err != nil {
-		t.Fatal(err)
-	}
-	o := Order{ID: orderID, OperatorID: m.OperatorID, MerchantID: m.ID, Money: Money{Currency: "USDT"}, SettlementMoney: Money{Currency: "CNY", Amount: ledger.FromInt64(100)}, AcceptedAt: now, ExpiresAt: now.Add(time.Hour), NotifyURL: "https://example.test/webhook"}
-	ch, err := s.Create(t.Context(), m.OperatorID, m.ID, o)
-	if err != nil || ch.PaymentQuote == nil {
-		t.Fatal("stablecoin checkout failed", ch, err)
-	}
-	q := ch.PaymentQuote
-	if q.Source != "NOWPayments + Frankfurter" || q.InvoiceMoney == nil || q.InvoiceMoney.Currency != "USD" || q.InvoiceMoney.Amount.String() != "14" || q.PayMoney.Currency != "USDT" || q.PayMoney.Amount.String() != "14.2" || q.Rate.String() != "0.142" || q.RateNumerator != "71" || q.RateDenominator != "500" {
-		t.Fatal("invoice, payable token and quote relation must remain distinct", q)
-	}
-	fact, err := s.Reconcile(t.Context(), m.OperatorID, m.ID, o.ID)
-	if err != nil || fact.Money.Currency != "USDT" || fact.Money.Amount.String() != "14.2" {
-		t.Fatal("actual token payment was lost", fact.Money, err)
-	}
-	var amount ledger.Decimal
-	if err = db.Table("payment_test_receipts").Select("amount").Scan(&amount).Error; err != nil || amount.String() != "100" {
-		t.Fatal("quote did not discharge the original CNY obligation", amount, err)
-	}
-}
-
 func TestUnavailableQuoteDoesNotLeaveAnUnresolvedOnlinePayment(t *testing.T) {
 	db := paymentDB(t)
 	s := NewService(db, "quote-failure-proof", testPaymentAuth{}, NewTransport(true), nil)

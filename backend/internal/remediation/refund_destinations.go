@@ -293,34 +293,14 @@ func (s *Service) externalDestinationRequired(ctx context.Context, t *gorm.DB, l
 	if routes > 0 {
 		return true, nil
 	}
-	r, e := s.Commerce.GetReceipt(ctx, t, l.SourceOperatorID, l.ReceiptID)
-	if e != nil {
-		return false, e
-	}
-	return l.SourceOperatorID != l.OperatorID || r.Provider == "evm_wallet" || strings.HasPrefix(r.Provider, "evm_wallet:") || r.Provider == "nowpayments" || strings.HasPrefix(r.Provider, "nowpayments:"), nil
+	return l.SourceOperatorID != l.OperatorID, nil
 }
 
 func (s *Service) validateDestinationSource(ctx context.Context, t *gorm.DB, l RefundLeg, d RefundDestination) error {
 	if l.SourceOperatorID != l.OperatorID {
 		return s.validateAssumedDestination(ctx, t, l, d)
 	}
-	if s.Payments == nil {
-		return ErrNotReady
-	}
-	adapter := *s.Payments
-	adapter.DB = t
-	source, e := adapter.PaymentSourceForReceipt(ctx, l.SourceOperatorID, l.ReceiptID)
-	if e != nil {
-		return e
-	}
-	if source.Driver != "evm_wallet" && source.Driver != "nowpayments" {
-		return ErrScope
-	}
-	m, e := adapter.Merchant(ctx, l.SourceOperatorID, source.MerchantID)
-	if e != nil {
-		return e
-	}
-	return payments.ValidateExternalRefundDestinationForSource(m, source, payments.ExternalRefundDestination{Network: d.Network, Asset: d.Asset, TokenContract: d.TokenContract, Address: d.Address, AuthorizationReference: "source-validation", VerificationEvidence: "source-validation"})
+	return ErrScope
 }
 
 func (s *Service) requireAuthorizedDestination(ctx context.Context, t *gorm.DB, l RefundLeg) (RefundDestinationAuthorization, error) {

@@ -79,14 +79,6 @@
     "ms": "Rekodkan hanya jumlah penyelesaian pesanan yang disahkan untuk penerimaan mata wang asal ini. Fi yang dibayar penerima tidak mengurangkan penyerahan pesanan.",
     "th": "บันทึกเฉพาะยอดชำระบัญชีคำสั่งซื้อที่ตรวจสอบแล้วสำหรับยอดรับในสกุลเงินเดิมนี้ ค่าธรรมเนียมที่ผู้รับจ่ายไม่ลดจำนวนที่ส่งมอบตามคำสั่งซื้อ"
   },
-  "保留真实收款币种与金额；付款人另付的发送费或链上手续费不计入。": {
-    "en": "Keep the actual receipt currency and amount. Exclude sending or blockchain fees paid separately by the payer.",
-    "ja": "実際の入金通貨と金額を保持します。支払者が別途負担する送金手数料やチェーン手数料は含めません。",
-    "ru": "Сохраните фактическую валюту и сумму поступления. Отдельно оплаченные отправителем комиссии перевода или блокчейна не включаются.",
-    "hi": "वास्तविक प्राप्ति मुद्रा और राशि रखें। भुगतानकर्ता द्वारा अलग दिए प्रेषण या ब्लॉकचेन शुल्क शामिल न करें।",
-    "ms": "Kekalkan mata wang dan jumlah penerimaan sebenar. Kecualikan fi penghantaran atau blockchain yang dibayar secara berasingan oleh pembayar.",
-    "th": "เก็บสกุลเงินและยอดรับจริง ไม่รวมค่าธรรมเนียมการส่งหรือบล็อกเชนที่ผู้ชำระจ่ายแยกต่างหาก"
-  },
   "只记录收款方承担的真实原币费用。未核实时留空，确实没有时填0。": {
     "en": "Record only actual original currency fees paid by the recipient. Leave blank until verified; enter 0 only when no fee was incurred.",
     "ja": "受取人が負担した実際の元通貨手数料のみを記録します。未確認時は空欄にし、手数料がないと確認した場合のみ 0 を入力してください。",
@@ -1247,14 +1239,6 @@
     "ms": "Prinsipal pesanan",
     "th": "เงินต้นคำสั่งซื้อ"
   },
-  "记录真实收款币种与金额；付款人在外部自行支付的发送费或链上手续费不计入。": {
-    "en": "Record the actual receipt currency and amount. Exclude transfer or blockchain fees paid separately outside the system.",
-    "ja": "実際の入金通貨と金額を記録します。支払者が外部で別途負担した送金手数料やチェーン手数料は含めません。",
-    "ru": "Укажите фактическую валюту и сумму поступления. Отдельно оплаченные внешние комиссии перевода или блокчейна не включаются.",
-    "hi": "वास्तविक प्राप्ति मुद्रा और राशि दर्ज करें। सिस्टम से बाहर अलग दिए हस्तांतरण या ब्लॉकचेन शुल्क शामिल न करें।",
-    "ms": "Rekodkan mata wang dan jumlah penerimaan sebenar. Kecualikan fi pemindahan atau blockchain yang dibayar secara berasingan di luar sistem.",
-    "th": "บันทึกสกุลเงินและยอดรับจริง ไม่รวมค่าธรรมเนียมโอนหรือบล็อกเชนที่ผู้ชำระจ่ายแยกต่างหากนอกระบบ"
-  },
   "设置方式与费用": {
     "en": "Edit method and fees",
     "ja": "方法と手数料を設定",
@@ -1574,14 +1558,6 @@
     "hi": "WeChat ऑनलाइन संग्रह",
     "ms": "Penerimaan dalam talian WeChat",
     "th": "รับเงินออนไลน์ WeChat"
-  },
-  "自有链上钱包": {
-    "en": "Own on-chain wallet",
-    "ja": "自己管理のオンチェーンウォレット",
-    "ru": "Собственный блокчейн-кошелёк",
-    "hi": "अपना ऑन-चेन वॉलेट",
-    "ms": "Dompet pada rantaian sendiri",
-    "th": "กระเป๋าบนเชนของตนเอง"
   },
   "现金 · 收款人姓名": {
     "en": "Cash · recipient name",
@@ -2046,5 +2022,37 @@
     "hi": "निकासी संचालक के न्यूनतम के अनुरूप होनी चाहिए। आवेदन करते समय कुल, शुल्क और शुद्ध राशि की समीक्षा करें।",
     "ms": "Pengeluaran mesti memenuhi minimum pengendali. Semak jumlah keseluruhan, fi dan jumlah bersih semasa memohon.",
     "th": "การถอนเงินต้องถึงขั้นต่ำของผู้ดำเนินงาน ตรวจสอบยอดรวม ค่าธรรมเนียม และยอดสุทธิเมื่อยื่นคำขอ"
+  },
+  "用于已授权的外部退款，确认付款后登记完成。": {
+    "en": "For an authorized external refund. Record completion after confirming payment.",
+    "ja": "承認済みの外部返金に使用します。支払いを確認後、完了を記録してください。",
+    "ru": "Для согласованного внешнего возврата. После подтверждения платежа зарегистрируйте завершение.",
+    "hi": "अधिकृत बाहरी रिफंड के लिए। भुगतान की पुष्टि के बाद पूर्णता दर्ज करें।",
+    "ms": "Untuk bayaran balik luaran yang telah diluluskan. Rekodkan penyelesaian selepas mengesahkan pembayaran.",
+    "th": "ใช้สำหรับการคืนเงินภายนอกที่ได้รับอนุญาตแล้ว บันทึกว่าเสร็จสิ้นหลังจากยืนยันการชำระเงิน"
+  },
+  "记录真实收款币种与金额；付款人在外部自行支付的转账手续费不计入。": {
+    "en": "Record the actual currency and amount received; exclude transfer fees paid separately by the payer.",
+    "ja": "実際の受取通貨と金額を記録してください。支払者が別途負担した振込手数料は含めません。",
+    "ru": "Укажите фактически полученные валюту и сумму, без комиссии за перевод, отдельно уплаченной плательщиком.",
+    "hi": "वास्तव में प्राप्त मुद्रा और राशि दर्ज करें; भुगतानकर्ता द्वारा अलग से दिए गए ट्रांसफ़र शुल्क को शामिल न करें।",
+    "ms": "Rekodkan mata wang dan jumlah sebenar yang diterima; tidak termasuk fi pindahan yang dibayar berasingan oleh pembayar.",
+    "th": "บันทึกสกุลเงินและยอดที่ได้รับจริง โดยไม่รวมค่าธรรมเนียมการโอนที่ผู้ชำระจ่ายแยกต่างหาก"
+  },
+  "可补充现金收据、转账记录或经办说明；人工收款时没有材料可留空，系统仍记录经办人和登记时间。涉及第三方通道核验时，按该通道的要求提供资料。": {
+    "en": "You may add a cash receipt, transfer record or handling note. For manual receipts, leave this blank if unavailable; the handler and registration time are still recorded. For third-party verification, provide the materials required by that payment provider.",
+    "ja": "現金領収書、振込記録、処理メモを追加できます。手動入金で資料がない場合は空欄にできます。担当者と登録日時は記録されます。外部決済サービスによる確認には、そのサービスが求める資料を提出してください。",
+    "ru": "Можно приложить кассовый чек, запись о переводе или пояснение. Для ручного приёма оплаты поле можно оставить пустым: сотрудник и время регистрации сохраняются. Для проверки через сторонний сервис предоставьте требуемые им документы.",
+    "hi": "नकद रसीद, ट्रांसफ़र रिकॉर्ड या प्रक्रिया संबंधी नोट जोड़ा जा सकता है। मैन्युअल प्राप्ति के लिए सामग्री उपलब्ध न हो तो खाली छोड़ें; कर्मचारी और दर्ज करने का समय फिर भी रिकॉर्ड होंगे। तृतीय-पक्ष सत्यापन के लिए उस भुगतान प्रदाता की आवश्यक सामग्री दें।",
+    "ms": "Anda boleh menambah resit tunai, rekod pindahan atau nota pengendalian. Untuk penerimaan manual, biarkan kosong jika tiada bahan; petugas dan masa pendaftaran tetap direkodkan. Bagi pengesahan pihak ketiga, sediakan bahan yang diperlukan oleh penyedia pembayaran tersebut.",
+    "th": "สามารถเพิ่มใบเสร็จเงินสด หลักฐานการโอน หรือหมายเหตุการดำเนินการได้ หากเป็นการรับเงินด้วยตนเองและไม่มีเอกสาร สามารถเว้นว่างได้ ระบบยังบันทึกผู้ดำเนินการและเวลาลงทะเบียน สำหรับการตรวจสอบโดยผู้ให้บริการภายนอก ให้ส่งเอกสารตามข้อกำหนดของผู้ให้บริการนั้น"
+  },
+  "请检查输入内容。": {
+    "en": "Please check your input.",
+    "ja": "入力内容を確認してください。",
+    "ru": "Проверьте введённые данные.",
+    "hi": "कृपया दर्ज की गई जानकारी जाँचें।",
+    "ms": "Sila semak maklumat yang dimasukkan.",
+    "th": "โปรดตรวจสอบข้อมูลที่กรอก"
   }
 }

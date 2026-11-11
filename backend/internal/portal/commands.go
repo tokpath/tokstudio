@@ -48,10 +48,6 @@ func (a *Application) operatorCommand(c *gin.Context) {
 		return
 	}
 	ctx := c.Request.Context()
-	if resource == "payment-assets" {
-		a.paymentAssetsCommand(c, op, actor)
-		return
-	}
 	if resource == "gifts" {
 		a.issueManualGift(c, op, actor)
 		return

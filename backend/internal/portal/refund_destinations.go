@@ -52,7 +52,7 @@ func (a *Application) staffRefundDestination(c *gin.Context) {
 	c.JSON(200, out)
 }
 func refundDestinationFields() []field {
-	return []field{f("destination.network", "准确退款网络（银行填bank，EVM填十进制Chain ID）", "text"), f("destination.asset", "原收款准确币种或资产代码", "text"), optional("destination.token_contract", "代币合约（银行留空）", "text"), f("destination.address", "本人明确指定接收地址或银行账户凭证", "text")}
+	return []field{defaultField("destination.network", "网络", "hidden", "bank"), f("destination.asset", "付款币种", "text"), f("destination.address", "收款信息", "text")}
 }
 func (a *Application) refundLegForStaff(ctx context.Context, op, id string) (remediation.RefundLeg, error) {
 	cases, e := a.Remediation.Cases(ctx, op, "")
@@ -124,10 +124,9 @@ func (a *Application) externalRefundAction(c *gin.Context, actor, operator, acti
 		}
 		c.JSON(200, commandResult(out.ID, "destination_authorized"))
 		return true
-	case "verify_evm", "verify_external", "verify_responsible_evm", "verify_responsible_external", "verify_responsible_bank":
+	case "verify_responsible_bank":
 		var in struct {
 			MerchantID           string                              `json:"merchant_id"`
-			EVM                  payments.EVMRefundVerification      `json:"evm"`
 			External             payments.ExternalRefundVerification `json:"external"`
 			Valuation            payments.Valuation                  `json:"-"`
 			SettlementAmount     ledger.Decimal                      `json:"settlement_amount"`
@@ -154,52 +153,18 @@ func (a *Application) externalRefundAction(c *gin.Context, actor, operator, acti
 		}
 		d := status.AuthorizedDestination
 		destination := payments.ExternalRefundDestination{Network: d.Network, Asset: d.Asset, TokenContract: d.TokenContract, Address: d.Address, AuthorizationReference: status.AuthorizationID, VerificationEvidence: in.VerificationEvidence}
-		in.Valuation, e = a.refundSettlementConfirmation(ctx, "retail-external:"+operator+":"+leg.ID+":"+in.External.ExternalReference+":"+in.EVM.TransactionHash+":"+in.EVM.LogIndex, in.SettlementAmount, in.SettlementEvidence)
+		in.Valuation, e = a.refundSettlementConfirmation(ctx, "retail-external:"+operator+":"+leg.ID+":"+in.External.ExternalReference, in.SettlementAmount, in.SettlementEvidence)
 		if e != nil {
 			handleError(c, e)
 			return true
 		}
 		refund := payments.Refund{ID: leg.ID, MoneyAmount: leg.AmountMoney, RefundValuation: in.Valuation}
-		in.EVM.ReceiptID, in.EVM.Destination = leg.ReceiptID, destination
 		in.External.ReceiptID, in.External.Destination = leg.ReceiptID, destination
-		var out payments.RefundStatus
-		if status.ResponsibleExecution {
-			if in.MerchantID == "" {
-				handleError(c, payments.ErrInvalid)
-				return true
-			}
-			switch action {
-			case "verify_responsible_evm":
-				out, e = a.Payments.RecordResponsibleEVMRefund(ctx, actor, operator, in.MerchantID, refund, in.EVM)
-			case "verify_responsible_external":
-				out, e = a.Payments.RecordResponsibleExternalRefund(ctx, actor, operator, in.MerchantID, refund, in.External)
-			case "verify_responsible_bank":
-				out, e = a.Payments.RecordResponsibleBankRefund(ctx, actor, operator, in.MerchantID, refund, in.External)
-			default:
-				handleError(c, remediation.ErrState)
-				return true
-			}
-		} else {
-			if leg.SourceOperatorID != operator {
-				handleError(c, remediation.ErrScope)
-				return true
-			}
-			source, err := a.Payments.PaymentSourceForReceipt(ctx, operator, leg.ReceiptID)
-			if err != nil {
-				handleError(c, err)
-				return true
-			}
-			refund.Order = source.OriginalOrder
-			switch action {
-			case "verify_evm":
-				out, e = a.Payments.RecordEVMRefund(ctx, actor, operator, source.MerchantID, refund, in.EVM)
-			case "verify_external":
-				out, e = a.Payments.RecordExternalRefund(ctx, actor, operator, source.MerchantID, refund, in.External)
-			default:
-				handleError(c, remediation.ErrState)
-				return true
-			}
+		if !status.ResponsibleExecution || in.MerchantID == "" {
+			handleError(c, remediation.ErrState)
+			return true
 		}
+		out, e := a.Payments.RecordResponsibleBankRefund(ctx, actor, operator, in.MerchantID, refund, in.External)
 		if e != nil {
 			handleError(c, e)
 			return true

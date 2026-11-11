@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { request } from "@/lib/api-client";
 import { compareDecimal } from "@/lib/decimal";
 import { useNavigationBlock } from "@/lib/navigation-guard";
 import { useI18n } from "@/components/i18n";
@@ -25,7 +23,6 @@ export function PaymentMethodForm({ operation, row, operatorID, catalog, onBlock
   const [fixed, setFixed] = useState(String(row?.values.flat_fee_money || "0"));
   const [percent, setPercent] = useState(String(row?.values.fee_percent || "0"));
   const [credentials, setCredentials] = useState<Record<string, string>>((row?.values.credentials as Record<string, string>) || { currency: monetary.currency });
-  const [asset, setAsset] = useState(String(row?.values.asset_network_version_id || ""));
   const [validation, setValidation] = useState("");
   const command = useCommand(operation.path.replace("{id}", encodeURIComponent(row?.id || "")), CommandResultSchema);
   const navigationBlocked = useNavigationBlock(command.busy || command.unresolved);
@@ -35,19 +32,17 @@ export function PaymentMethodForm({ operation, row, operatorID, catalog, onBlock
   const onlineDrivers = selected?.drivers.filter(item => item.value !== "manual") || [];
   const effectiveDriver = selected?.drivers.some(item => item.value === driver) ? driver : onlineDrivers[0]?.value || "manual";
   const connection = selected?.drivers.find(item => item.value === effectiveDriver);
-  const needsAsset = ["nowpayments", "evm_wallet"].includes(effectiveDriver);
-  const assets = useQuery({ queryKey: ["method-assets", operatorID, effectiveDriver, kind], enabled: collection && needsAsset, queryFn: ({ signal }) => request(`/api/v1/operators/${encodeURIComponent(operatorID)}/references/payment-assets?driver=${encodeURIComponent(effectiveDriver)}&method_kind=${encodeURIComponent(kind)}`, z.object({ items: z.array(z.object({ value: z.string(), label: z.string() })) }), { signal }) });
   function choose(value: string) {
     const next = catalog.find(item => item.kind === value);
     setKind(value); setDriver(next?.drivers.find(item => item.value !== "manual")?.value || next?.drivers[0]?.value || ""); setCollection(value === "offline" || !next?.payout); setPayout(false);
-    setCredentials({ currency: monetary.currency }); setAsset(""); setValidation("");
+    setCredentials({ currency: monetary.currency }); setValidation("");
   }
   async function submit(event: React.FormEvent) {
     event.preventDefault(); if (!selected || command.busy) return;
     if (enabled && !collection && !(selected.payout && payout)) { setValidation("请选择至少一项用途，或停用此支付方式。"); return; }
     if (!Decimal.safeParse(fixed).success || !Decimal.safeParse(percent).success || mode === "percent" && compareDecimal(percent, "100") >= 0) { setValidation("请检查支付方式和手续费规则。"); return; }
     setValidation("");
-    await command.run({ action: "open_method", method_kind: kind, enabled, collection, payout_enabled: selected.payout && payout, driver: collection ? effectiveDriver : "", asset_network_version_id: asset, credentials, fee_mode: mode, flat_fee_money: fixed, fee_percent: percent, expected_version: row?.version || 0 });
+    await command.run({ action: "open_method", method_kind: kind, enabled, collection, payout_enabled: selected.payout && payout, driver: collection ? effectiveDriver : "", credentials, fee_mode: mode, flat_fee_money: fixed, fee_percent: percent, expected_version: row?.version || 0 });
   }
   const fieldClass = "mt-2 h-11 w-full rounded-control border border-hairline bg-canvas-raised px-3";
   return <form onSubmit={submit} className="space-y-6">
@@ -61,9 +56,8 @@ export function PaymentMethodForm({ operation, row, operatorID, catalog, onBlock
           {selected.payout ? <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={payout} onChange={e => setPayout(e.target.checked)} />{t("用于余额和佣金提现")}</label> : <p className="text-xs text-ink-mute">{t("此方式仅用于收款。")}</p>}
         </div>
         {collection && effectiveDriver !== "manual" && <section className="space-y-4"><h3 className="font-medium text-sm">{t("线上收款接入")}</h3>
-          {onlineDrivers.length > 1 && <label className="block text-sm">{t("收款办理方式")}<select aria-label={t("收款办理方式")} value={effectiveDriver} onChange={e => { setDriver(e.target.value); setCredentials({ currency: monetary.currency }); setAsset(""); }} className={fieldClass}>{onlineDrivers.map(item => <option key={item.value} value={item.value}>{t(item.label)}</option>)}</select></label>}
+          {onlineDrivers.length > 1 && <label className="block text-sm">{t("收款办理方式")}<select aria-label={t("收款办理方式")} value={effectiveDriver} onChange={e => { setDriver(e.target.value); setCredentials({ currency: monetary.currency }); }} className={fieldClass}>{onlineDrivers.map(item => <option key={item.value} value={item.value}>{t(item.label)}</option>)}</select></label>}
             <p className="text-xs leading-6 text-ink-secondary">{t("资料未齐可先保存，收款尚不开放，不影响已启用的人工提现。")}</p>
-            {needsAsset && <label className="block text-sm">{t("收款资产与网络")}<select aria-label={t("收款资产与网络")} value={asset} onChange={e => setAsset(e.target.value)} className={fieldClass}><option value="">{t("请选择")}</option>{assets.data?.items.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>{assets.data?.items.length === 0 && <p className="mt-2 text-xs">{t("等待平台配置可用的资产与网络。")}</p>}</label>}
             {connection?.fields.map(field => <label key={field.name} className="block text-sm">{t(field.label)}<Input className="mt-2" type={field.secret ? "password" : "text"} autoComplete="off" value={credentials[field.name] || ""} placeholder={field.secret && row ? t("留空保留已保存的密钥") : undefined} onChange={e => setCredentials(previous => ({ ...previous, [field.name]: e.target.value }))} /></label>)}
         </section>}
         <section className="space-y-4 border-t border-hairline pt-5"><h3 className="font-medium text-sm">{t("手续费规则")}</h3>

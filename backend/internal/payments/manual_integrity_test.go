@@ -79,19 +79,6 @@ func TestActualRefundFactCannotSettleDifferentBusinessLeg(t *testing.T) {
 	}
 }
 
-func TestEVMPrivateKeysAreRejectedEvenForDisabledConfiguration(t *testing.T) {
-	db := paymentDB(t)
-	s := NewService(db, "test-key", testPaymentAuth{}, NewTransport(true), nil)
-	m := Merchant{ID: uuid.NewString(), OperatorID: uuid.NewString(), Driver: "evm_wallet", Credentials: map[string]string{"private_key": "synthetic-never-store"}}
-	if _, e := s.SaveMerchant(context.Background(), "finance", m, 0); !errors.Is(e, ErrForbidden) {
-		t.Fatal("wallet private key accepted", e)
-	}
-	var n int64
-	if e := db.Table("payments_merchants").Count(&n).Error; e != nil || n != 0 {
-		t.Fatal("private key persisted", n, e)
-	}
-}
-
 func TestManualBankTransferCannotBeCreditedThroughMerchantAliases(t *testing.T) {
 	db := paymentDB(t)
 	s := NewService(db, "test-key", testPaymentAuth{}, NewTransport(true), &sqlReceiptSink{})

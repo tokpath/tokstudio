@@ -51,12 +51,8 @@ type RefundExternalObservation struct {
 	ObservationID      string `json:"observation_id"`
 	AuthorizationID    string `json:"authorization_id"`
 	RefundDestination  `gorm:"embedded"`
-	TransactionHash    string    `json:"transaction_hash"`
-	LogIndex           string    `json:"log_index"`
-	BlockHash          string    `json:"block_hash"`
 	SenderAddress      string    `json:"sender_address"`
 	RecipientAddress   string    `json:"recipient_address"`
-	Confirmations      string    `json:"confirmations"`
 	VerificationMethod string    `json:"verification_method"`
 	VerifiedBy         string    `json:"verified_by"`
 	CreatedAt          time.Time `json:"created_at"`

@@ -220,31 +220,12 @@ func quoteMoneyRat(o Order, ratio *big.Rat, source, sourceURL string, date time.
 }
 
 func (s *Service) preparePaymentQuote(ctx context.Context, m Merchant, o Order) (Order, error) {
-	if o.Money.Currency == o.Settlement().Currency || m.Driver == "evm_wallet" {
+	if o.Money.Currency == o.Settlement().Currency {
 		return o, nil
 	}
 	// A manually agreed original amount remains a manual receipt fact; it is
 	// not evidence that those funds already discharge a different currency.
 	if m.Driver == "manual" && o.Money.Amount.Sign() > 0 {
-		return o, nil
-	}
-	if m.Driver == "nowpayments" {
-		currency := o.Settlement().Currency
-		if currency != "USD" && currency != "EUR" && currency != "GBP" && currency != "JPY" {
-			rate, err := s.referenceRate(ctx, currency, "USD", false)
-			if err != nil {
-				return o, err
-			}
-			invoice := o
-			invoice.Money.Currency = "USD"
-			q, err := quoteMoney(invoice, rate.Rate, "Frankfurter", "https://frankfurter.dev/", rate.RateDate)
-			if err != nil {
-				return o, err
-			}
-			invoiceMoney := q.PayMoney
-			o.ProviderPriceMoney = &invoiceMoney
-			o.PaymentQuote = &q
-		}
 		return o, nil
 	}
 	if _, fiat := fiatMinorDigits(o.Money.Currency); !fiat {

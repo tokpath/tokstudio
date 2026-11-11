@@ -7,7 +7,7 @@ export function businessFieldHelp(name: string, existing?: string, lookup?: stri
   if (name === "upstream.identity" || name === "model.identity") return "填写已经核实的模型身份和修订版本，例如 vendor-model-2026-01。上游路由须与对应公开模型身份一致，避免把不同模型或版本混在同一个公开模型下。";
   if (name === "upstream.provider_id") return "选择已保存的供应商凭据后，系统会带入对应供应商引用。它必须指向真实供应商主体，与供应商协议名称和模型名称分别记录。";
 
-  if (key === "verification_evidence") return "可补充现金收据、转账记录或经办说明；人工收款时没有材料可留空，系统仍记录经办人和登记时间。涉及链上或第三方通道核验时，按该通道的要求提供资料。";
+  if (key === "verification_evidence") return "可补充现金收据、转账记录或经办说明；人工收款时没有材料可留空，系统仍记录经办人和登记时间。涉及第三方通道核验时，按该通道的要求提供资料。";
   if (["recipient_reference", "payer_reference"].includes(key)) return "按实际情况填写收付款方姓名、收款地点或账号；现金收款没有账号时可留空，无需编造银行资料。";
   if (["evidence", "evidence_reference", "consent_reference"].includes(key)) return "按实际情况填写说明；有相关资料时可补充。无需编写依据编号，系统自动记录经办人和时间。";
   if (["direct_rate", "indirect_rate"].includes(key)) return "例如 15% 填写 0.15。购买时固定订单的直接、间接比例及 KOL 让利，直接佣金比例须减去订单让利。实际有偿消费发生时分别判断两跳邀请人的有效分佣资格，之后取得资格不追溯；不合资格的份额不转给其他跳。";

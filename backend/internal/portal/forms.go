@@ -55,20 +55,7 @@ func businessFields(o operation) []field {
 	case "payments":
 		return manualReceiptFields()
 	case "payment-methods":
-		fields := []field{optional("id", "现有商户配置ID（首次留空）", "text"), selectField("driver", "真实通道协议", "stripe|Stripe", "alipay|支付宝", "wechat|微信支付", "nowpayments|NOWPayments", "evm_wallet|自有EVM钱包只读验证", "manual|线下人工核实", "kvoucher|KVoucher"), defaultField("enabled", "材料齐全后启用", "boolean", false), version}
-		asset := optional("asset_network_version_id", "平台已发布的准确资产与网络", "text")
-		asset.VisibleWhen = &fieldVisibility{Field: "driver", Values: []string{"evm_wallet", "nowpayments"}}
-		fields = append(fields, asset)
-		for _, key := range []string{"currency", "recipient_reference", "instructions", "secret_key", "publishable_key", "webhook_secret", "app_id", "mch_id", "merchant_api_private_key", "cert_serial", "api_v3_key", "wechat_public_key", "public_key_id", "app_private_key", "alipay_public_key", "seller_id", "api_key", "kvoucher_api_key", "kvoucher_api_secret", "ipn_secret", "rpc_url", "wallet_address"} {
-			v := optional("credentials."+key, "通道材料 · "+key, "text")
-			if strings.Contains(key, "private_key") || strings.Contains(key, "public_key") {
-				v.Kind = "textarea"
-			} else if strings.Contains(key, "secret") || key == "api_key" || key == "api_v3_key" {
-				v.Kind = "password"
-			}
-			fields = append(fields, v)
-		}
-		return fields
+		return methodOpenFields()
 	case "invoices":
 		return []field{optional("issuer_id", "原始开票经营方", "hidden"), field{Name: "lines.0.order_id", Label: "购买订单", Kind: "text", Required: true, Help: "开票金额为订单实付金额，由系统确定，无需填写。"}, f("details.title", "发票抬头", "text"), f("details.tax_id", "纳税识别号", "text"), f("details.email", "接收邮箱", "email"), optional("details.address", "发票地址", "text")}
 	case "refunds":

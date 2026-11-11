@@ -2,7 +2,6 @@ package payments
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
 	"strings"
@@ -31,9 +30,6 @@ func (s *Service) responsibleRefundContext(ctx context.Context, actor, op, merch
 		return m, r, basis, ErrUnsupported
 	}
 	m.Enabled = true // This records an independently authorized transfer already executed.
-	if e = s.applyAssetNetwork(ctx, s.DB, &m, false); e != nil {
-		return m, r, basis, e
-	}
 	if d, e = NormalizeExternalRefundDestination(d); e != nil {
 		return m, r, basis, e
 	}
@@ -56,10 +52,7 @@ func (s *Service) responsibleRefundContext(ctx context.Context, actor, op, merch
 			return m, r, basis, ErrConflict
 		}
 	} else {
-		source := PaymentSource{MerchantID: m.ID, Driver: m.Driver, OriginalOrder: Order{OperatorID: op, Money: Money{Currency: basis.Currency}}}
-		if e = ValidateExternalRefundDestinationForSource(m, source, d); e != nil {
-			return m, r, basis, e
-		}
+		return m, r, basis, ErrUnsupported
 	}
 	at := r.ValuedAt
 	if at.IsZero() {
@@ -84,62 +77,6 @@ func (s *Service) responsibleRefundContext(ctx context.Context, actor, op, merch
 	return m, r, basis, nil
 }
 
-func (s *Service) RecordResponsibleEVMRefund(ctx context.Context, actor, op, merchant string, r Refund, v EVMRefundVerification) (RefundStatus, error) {
-	d, e := NormalizeExternalRefundDestination(v.Destination)
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	if !validHex(v.TransactionHash, 32) {
-		return RefundStatus{}, ErrInvalid
-	}
-	index, e := hexInt(v.LogIndex)
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	m, r, basis, e := s.responsibleRefundContext(ctx, actor, op, merchant, "evm_wallet", r, d)
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	if v.ReceiptID != "" && v.ReceiptID != basis.ReceiptID {
-		return RefundStatus{}, ErrConflict
-	}
-	driver, ok := s.Drivers["evm_wallet"].(EVMWallet)
-	if !ok {
-		return RefundStatus{}, ErrNotConfigured
-	}
-	q := r.Order
-	q.ProviderID = strings.ToLower(v.TransactionHash) + "#0x" + index.Text(16)
-	transfer, e := driver.lookupTransfer(ctx, m, q, m.Credentials["wallet_address"], false)
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	r.Money = transfer.Money
-	r.ExecutionID = "external:" + fingerprint([]string{r.ID, "evm", d.Network, strings.ToLower(v.TransactionHash), index.Text(16)})
-	if e = externalValuationAt(r, transfer.OccurredAt); e != nil {
-		return RefundStatus{}, e
-	}
-	f, e := refundFact(m, r, q.ProviderID, transfer.Money, transfer.OccurredAt, map[string]any{"chain_verification": json.RawMessage(transfer.Evidence), "responsibility_reference": r.ID, "original_receipt_id": basis.ReceiptID, "source_operator_id": basis.SourceOperatorID})
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	var proof struct {
-		BlockHash     string `json:"block_hash"`
-		Confirmations string `json:"confirmations"`
-		Sender        string `json:"sender"`
-		Recipient     string `json:"recipient"`
-	}
-	if json.Unmarshal(transfer.Evidence, &proof) != nil {
-		return RefundStatus{}, ErrProvider
-	}
-	f.ID = "evm:refund:" + d.Network + ":" + strings.ToLower(v.TransactionHash) + ":" + index.Text(16)
-	f.RefundSource = &RefundSource{SourceOperatorID: basis.SourceOperatorID, ReceiptID: basis.ReceiptID, ResponsibilityReference: r.ID}
-	f.ExternalRefund = &ExternalRefundExecution{Destination: d, TransactionHash: strings.ToLower(v.TransactionHash), LogIndex: "0x" + index.Text(16), BlockHash: proof.BlockHash, Confirmations: proof.Confirmations, SenderAddress: proof.Sender, RecipientAddress: proof.Recipient, VerificationMethod: "read_only_rpc_erc20_transfer", VerifiedBy: "rpc:" + m.ID}
-	return s.recordExternalRefund(ctx, actor, m, r, f, d, fingerprint(v), nil)
-}
-
-func (s *Service) RecordResponsibleExternalRefund(ctx context.Context, actor, op, merchant string, r Refund, v ExternalRefundVerification) (RefundStatus, error) {
-	return s.recordResponsibleExternal(ctx, actor, op, merchant, "nowpayments", r, v)
-}
 func (s *Service) RecordResponsibleBankRefund(ctx context.Context, actor, op, merchant string, r Refund, v ExternalRefundVerification) (RefundStatus, error) {
 	return s.recordResponsibleExternal(ctx, actor, op, merchant, "manual", r, v)
 }

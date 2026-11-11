@@ -7,14 +7,6 @@
     "ms": "Platform mengesahkan setiap aset, rangkaian, kontrak dan ambang pengesahan sebelum menerbitkannya. Pengendali hanya boleh memilih gabungan yang telah berkuat kuasa. Penyahaktifan menghalang pembayaran baharu; transaksi sedia ada masih disahkan berdasarkan rekod sejarahnya.",
     "th": "แพลตฟอร์มตรวจสอบสินทรัพย์ เครือข่าย สัญญา และเกณฑ์การยืนยันแต่ละรายการก่อนเผยแพร่ ผู้ดำเนินงานเลือกได้เฉพาะชุดที่มีผลแล้ว การปิดใช้งานจะป้องกันการชำระเงินใหม่ ส่วนธุรกรรมเดิมยังตรวจสอบตามข้อมูลที่บันทึกไว้ในอดีต"
   },
-  "网络/Chain ID": {
-    "en": "Network / Chain ID",
-    "ja": "ネットワーク / Chain ID",
-    "ru": "Сеть / Chain ID",
-    "hi": "नेटवर्क / Chain ID",
-    "ms": "Rangkaian / Chain ID",
-    "th": "เครือข่าย / Chain ID"
-  },
   "最少确认数": {
     "en": "Minimum confirmations",
     "ja": "最小確認数",
@@ -30,22 +22,6 @@
     "hi": "भुगतान प्रोटोकॉल",
     "ms": "Protokol pembayaran",
     "th": "โปรโตคอลรับชำระเงิน"
-  },
-  "明确网络（EVM为十进制Chain ID）": {
-    "en": "Exact network (decimal Chain ID for EVM)",
-    "ja": "明確なネットワーク（EVM は十進数 Chain ID）",
-    "ru": "Точная сеть (десятичный Chain ID для EVM)",
-    "hi": "सटीक नेटवर्क (EVM के लिए दशमलव Chain ID)",
-    "ms": "Rangkaian tepat (Chain ID perpuluhan untuk EVM)",
-    "th": "เครือข่ายที่แน่นอน (Chain ID รูปทศนิยมสำหรับ EVM)"
-  },
-  "最少链上确认数": {
-    "en": "Minimum on-chain confirmations",
-    "ja": "最小オンチェーン確認数",
-    "ru": "Минимум подтверждений в блокчейне",
-    "hi": "न्यूनतम ऑन-चेन पुष्टिकरण",
-    "ms": "Pengesahan minimum pada rantaian",
-    "th": "จำนวนการยืนยันบนเชนขั้นต่ำ"
   },
   "资产/网络/合约官方核实依据": {
     "en": "Official verification evidence for asset, network, and contract",
@@ -751,14 +727,6 @@
     "ms": "Rekodkan pembayaran",
     "th": "บันทึกการชำระเงิน"
   },
-  "仅用于原路必须先锁定执行编号的稳定币或外部通道。普通线下退款直接登记付款。": {
-    "en": "Only when the original route must lock an execution number first, such as stablecoin or an external channel. An ordinary offline refund records the payment directly.",
-    "ja": "元の経路で実行番号を先に固定する必要がある場合だけ使います。通常のオフライン返金は支払いを直接登録します。",
-    "ru": "Только если исходный маршрут должен сначала зафиксировать номер исполнения, например стейблкоин или внешний канал. Обычный офлайн-возврат регистрирует платёж сразу.",
-    "hi": "केवल तब जब मूल मार्ग में पहले निष्पादन संख्या लॉक करना आवश्यक हो, जैसे स्टेबलकॉइन या बाहरी चैनल में। सामान्य ऑफ़लाइन धनवापसी में सीधे भुगतान दर्ज किया जाता है।",
-    "ms": "Hanya apabila laluan asal mesti mengunci nombor pelaksanaan terlebih dahulu, seperti stablecoin atau saluran luaran. Bayaran balik luar talian biasa merekodkan pembayaran secara langsung.",
-    "th": "ใช้เฉพาะกรณีที่ช่องทางเดิมต้องล็อกเลขดำเนินการก่อน เช่น Stablecoin หรือช่องทางภายนอก การคืนเงินออฟไลน์ทั่วไปให้บันทึกการชำระเงินโดยตรง"
-  },
   "确认已按应退金额完成付款，并填写本次手续费。提交后申请结束。没有手续费填 0。": {
     "en": "Confirm the refund amount has been paid and enter this fee. Submitting ends the application. Enter 0 when there is no fee.",
     "ja": "返金すべき金額の支払いを確認し、今回の手数料を記入してください。送信すると申請は終了します。手数料がなければ 0 と記入します。",
@@ -1255,14 +1223,6 @@
     "ms": "Kebenaran yang disahkan kewangan",
     "th": "การอนุญาตที่ฝ่ายการเงินตรวจสอบแล้ว"
   },
-  "本人确认稳定币退款目的地": {
-    "en": "Personally confirm stablecoin refund destination",
-    "ja": "本人がステーブルコイン返金先を確認",
-    "ru": "Лично подтвердить назначение возврата стейблкоина",
-    "hi": "स्टेबलकॉइन धनवापसी गंतव्य की स्वयं पुष्टि करें",
-    "ms": "Sahkan sendiri destinasi bayaran balik stablecoin",
-    "th": "ยืนยันปลายทางรับการคืนเงิน Stablecoin ด้วยตนเอง"
-  },
   "原路受限时明确选择责任方替代付款": {
     "en": "Explicitly choose responsible-party payment when the original route is restricted",
     "ja": "元経路が制限された場合、責任者による代替支払いを明示選択",
@@ -1382,14 +1342,6 @@
     "hi": "वास्तविक धनवापसी लेनदेन हैश",
     "ms": "Hash transaksi bayaran balik sebenar",
     "th": "Hash ธุรกรรมคืนเงินจริง"
-  },
-  "本操作只读查询实际链上交易，不会签名或发送交易；准确接收地址由已锁定授权取值。": {
-    "en": "This action only reads the actual on-chain transaction; it does not sign or send transactions. The exact recipient address comes from the locked authorization.",
-    "ja": "この操作は実際のオンチェーン取引を読み取るだけで、署名・送信は行いません。正確な受取先は固定済みの承認から取得します。",
-    "ru": "Действие только читает фактическую транзакцию в блокчейне, без подписи и отправки. Точный адрес берётся из зафиксированного разрешения.",
-    "hi": "यह कार्रवाई केवल वास्तविक ऑन-चेन लेनदेन पढ़ती है; यह लेनदेन पर हस्ताक्षर नहीं करती या उन्हें भेजती नहीं है। सटीक प्राप्तकर्ता पता लॉक किए गए प्राधिकरण से मिलता है।",
-    "ms": "Tindakan ini hanya membaca transaksi sebenar pada rantaian; ia tidak menandatangani atau menghantar transaksi. Alamat penerima yang tepat diperoleh daripada kebenaran yang dikunci.",
-    "th": "การดำเนินการนี้อ่านเฉพาะธุรกรรมจริงบนเชน ไม่ลงนามหรือส่งธุรกรรม ที่อยู่ผู้รับที่แน่นอนใช้จากการอนุญาตที่ล็อกไว้"
   },
   "原准确资产代码": {
     "en": "Original exact asset code",
@@ -2039,14 +1991,6 @@
     "ms": "Pedagang pembayaran baharu yang dikonfigurasi secara berasingan oleh pembekal ini",
     "th": "บัญชีผู้ค้าสำหรับชำระเงินใหม่ที่ผู้จัดหารายนี้ตั้งค่าเอง"
   },
-  "EVM实际交易Hash（链上必填）": {
-    "en": "Actual EVM transaction hash (required for on-chain payments)",
-    "ja": "実際の EVM 取引ハッシュ（オンチェーンでは必須）",
-    "ru": "Хеш фактической EVM-транзакции (обязателен в блокчейне)",
-    "hi": "वास्तविक EVM लेनदेन हैश (ऑन-चेन भुगतान के लिए आवश्यक)",
-    "ms": "Hash transaksi EVM sebenar (wajib untuk pembayaran pada rantaian)",
-    "th": "Hash ธุรกรรม EVM จริง (จำเป็นสำหรับการชำระเงินบนเชน)"
-  },
   "银行/NOW实际准确币种": {
     "en": "Actual exact currency for bank / NOW",
     "ja": "銀行 / NOW の実際の正確な通貨",
@@ -2078,14 +2022,6 @@
     "hi": "खरीदार का मूल प्रस्ताव",
     "ms": "Cadangan asal pembeli",
     "th": "ข้อเสนอเดิมของผู้ซื้อ"
-  },
-  "只读核实已执行采购链上退款": {
-    "en": "Read-only verification of executed on-chain procurement refund",
-    "ja": "実行済み調達オンチェーン返金を読み取り専用で確認",
-    "ru": "Проверить исполненный закупочный возврат в блокчейне только для чтения",
-    "hi": "निष्पादित ऑन-चेन खरीद धनवापसी का केवल-पठन सत्यापन",
-    "ms": "Pengesahan baca sahaja bagi bayaran balik perolehan pada rantaian yang telah dilaksanakan",
-    "th": "ตรวจสอบการคืนเงินจัดซื้อบนเชนที่ดำเนินการแล้วแบบอ่านอย่างเดียว"
   },
   "外部退款唯一流水": {
     "en": "Unique external refund reference",
@@ -2951,14 +2887,6 @@
     "ms": "Jumlah bersih disahkan yang dikreditkan dalam mata wang penyelesaian",
     "th": "ยอดสุทธิที่ลงบัญชีและตรวจสอบแล้วในสกุลเงินที่ใช้ชำระบัญชี"
   },
-  "原网络（链上收款必填）": {
-    "en": "Original network (required for on-chain receipt)",
-    "ja": "元のネットワーク（オンチェーン入金は必須）",
-    "ru": "Исходная сеть (обязательна для поступления в блокчейне)",
-    "hi": "मूल नेटवर्क (ऑन-चेन प्राप्ति के लिए आवश्यक)",
-    "ms": "Rangkaian asal (wajib untuk penerimaan pada rantaian)",
-    "th": "เครือข่ายเดิม (จำเป็นสำหรับการรับเงินบนเชน)"
-  },
   "本次结算币种估值依据": {
     "en": "Current settlement currency valuation evidence",
     "ja": "今回の 決済通貨 評価根拠",
@@ -2982,14 +2910,6 @@
     "hi": "वास्तविक भुगतान चैनल प्रोटोकॉल",
     "ms": "Protokol saluran pembayaran sebenar",
     "th": "โปรโตคอลช่องทางชำระเงินจริง"
-  },
-  "自有EVM钱包只读验证": {
-    "en": "Read-only verification of owned EVM wallet",
-    "ja": "自社 EVM ウォレットの読み取り専用検証",
-    "ru": "Проверка собственного EVM-кошелька только для чтения",
-    "hi": "स्वामित्व वाले EVM वॉलेट का केवल-पठन सत्यापन",
-    "ms": "Pengesahan baca sahaja dompet EVM sendiri",
-    "th": "ตรวจสอบกระเป๋า EVM ของตนแบบอ่านอย่างเดียว"
   },
   "平台已发布的准确资产与网络": {
     "en": "Exact asset and network published by the platform",
@@ -3094,30 +3014,6 @@
     "hi": "WeChat प्लेटफ़ॉर्म हस्ताक्षर सत्यापन सार्वजनिक कुंजी PEM",
     "ms": "PEM kunci awam pengesahan tandatangan platform WeChat",
     "th": "คีย์สาธารณะ PEM สำหรับตรวจสอบลายเซ็นแพลตฟอร์ม WeChat"
-  },
-  "NOWPayments IPN签名密钥": {
-    "en": "NOWPayments IPN signing secret",
-    "ja": "NOWPayments IPN 署名シークレット",
-    "ru": "Секрет подписи IPN NOWPayments",
-    "hi": "NOWPayments IPN हस्ताक्षर गुप्त कुंजी",
-    "ms": "Rahsia tandatangan IPN NOWPayments",
-    "th": "ข้อมูลลับลงนาม IPN ของ NOWPayments"
-  },
-  "NOWPayments该网络代币合约": {
-    "en": "NOWPayments token contract on this network",
-    "ja": "NOWPayments のこのネットワークのトークンコントラクト",
-    "ru": "Контракт токена NOWPayments в этой сети",
-    "hi": "इस नेटवर्क पर NOWPayments टोकन अनुबंध",
-    "ms": "Kontrak token NOWPayments pada rangkaian ini",
-    "th": "สัญญาโทเคน NOWPayments บนเครือข่ายนี้"
-  },
-  "代币合约地址": {
-    "en": "Token contract address",
-    "ja": "トークンコントラクトアドレス",
-    "ru": "Адрес контракта токена",
-    "hi": "टोकन अनुबंध पता",
-    "ms": "Alamat kontrak token",
-    "th": "ที่อยู่สัญญาโทเคน"
   },
   "接管操作不存在": {
     "en": "Takeover operation not found",
@@ -3567,22 +3463,6 @@
     "ms": "Kontrak",
     "th": "สัญญา"
   },
-  "自有EVM钱包": {
-    "en": "Own EVM wallet",
-    "ja": "自己所有の EVM ウォレット",
-    "ru": "Собственный кошелёк EVM",
-    "hi": "अपना EVM वॉलेट",
-    "ms": "Dompet EVM sendiri",
-    "th": "กระเป๋า EVM ของตนเอง"
-  },
-  "已核实代币合约": {
-    "en": "Verified token contract",
-    "ja": "確認済みトークンコントラクト",
-    "ru": "Проверенный контракт токена",
-    "hi": "सत्यापित टोकन अनुबंध",
-    "ms": "Kontrak token yang disahkan",
-    "th": "สัญญาโทเคนที่ตรวจสอบแล้ว"
-  },
   "允许新的收款": {
     "en": "Allow new payments",
     "ja": "新規入金を許可",
@@ -3710,14 +3590,6 @@
     "hi": "वेब प्लेग्राउंड",
     "ms": "Ruang ujian web",
     "th": "พื้นที่ทดลองบนเว็บ"
-  },
-  "代币合约（银行留空）": {
-    "en": "Token contract (leave blank for bank)",
-    "ja": "トークンコントラクト（銀行の場合は空欄）",
-    "ru": "Контракт токена (для банка оставить пустым)",
-    "hi": "टोकन अनुबंध (बैंक के लिए खाली छोड़ें)",
-    "ms": "Kontrak token (biarkan kosong untuk bank)",
-    "th": "สัญญาโทเคน (เว้นว่างสำหรับธนาคาร)"
   },
   "权益来源 ": {
     "en": "Entitlement source ",
@@ -4455,22 +4327,6 @@
     "ms": "Masa pelaksanaan sebenar",
     "th": "เวลาดำเนินการจริง"
   },
-  "责任方自身钱包：只读核实实际链上退款": {
-    "en": "Responsible party's own wallet: read-only verification of actual on-chain refunds",
-    "ja": "責任者の自己ウォレット：実際のオンチェーン返金を読み取り検証",
-    "ru": "Собственный кошелёк ответственной стороны: проверка реального возврата в блокчейне только для чтения",
-    "hi": "जिम्मेदार पक्ष का अपना वॉलेट: वास्तविक ऑन-चेन धनवापसी का केवल-पठन सत्यापन",
-    "ms": "Dompet pihak bertanggungjawab sendiri: pengesahan baca sahaja bagi bayaran balik sebenar pada rantaian",
-    "th": "กระเป๋าของผู้รับผิดชอบ: ตรวจสอบการคืนเงินจริงบนเชนแบบอ่านอย่างเดียว"
-  },
-  "本次链上核实依据": {
-    "en": "Evidence for this on-chain verification",
-    "ja": "今回のオンチェーン検証の根拠",
-    "ru": "Подтверждение этой проверки в блокчейне",
-    "hi": "इस ऑन-चेन सत्यापन का प्रमाण",
-    "ms": "Bukti pengesahan pada rantaian ini",
-    "th": "หลักฐานการตรวจสอบบนเชนครั้งนี้"
-  },
   "已核实当前责任经营方的实际外部付款，系统不假称自动退款。": {
     "en": "The current responsible operator's actual external payment was verified. The system does not claim to have issued an automatic refund.",
     "ja": "現在責任を負う事業者の実際の外部支払いを確認しました。システムが自動返金したとは表示しません。",
@@ -4639,14 +4495,6 @@
     "ms": "Hanya permohonan asal yang belum dilaksanakan boleh dibatalkan. Permohonan yang telah dibayar atau hasil yang tidak diketahui memerlukan pengesahan lanjut.",
     "th": "ยกเลิกได้เฉพาะคำขอเดิมที่ยังไม่ดำเนินการ คำขอที่ชำระแล้วหรือไม่ทราบผลต้องตรวจสอบต่อ"
   },
-  "代币合约": {
-    "en": "Token contract",
-    "ja": "トークンコントラクト",
-    "ru": "Контракт токена",
-    "hi": "टोकन अनुबंध",
-    "ms": "Kontrak token",
-    "th": "สัญญาโทเคน"
-  },
   "剩余款授权版本": {
     "en": "Remaining payment authorization version",
     "ja": "残額支払承認のバージョン",
@@ -4774,22 +4622,6 @@
     "hi": "मूल भुगतानकर्ता का स्पष्ट प्राधिकरण सत्यापित है; धनवापसी पता मूल लेनदेन के प्रेषक से अनुमानित नहीं किया गया।",
     "ms": "Kebenaran jelas pembayar asal telah disahkan; alamat bayaran balik tidak disimpulkan daripada pengirim transaksi asal.",
     "th": "ตรวจสอบการอนุญาตอย่างชัดเจนของผู้ชำระเงินเดิมแล้ว ไม่ได้อนุมานที่อยู่คืนเงินจากผู้ส่งธุรกรรมเดิม"
-  },
-  "真实ERC20 Transfer日志索引（0x）": {
-    "en": "Actual ERC20 Transfer log index (0x)",
-    "ja": "実際の ERC20 Transfer ログインデックス（0x）",
-    "ru": "Фактический индекс журнала ERC20 Transfer (0x)",
-    "hi": "वास्तविक ERC20 Transfer लॉग इंडेक्स (0x)",
-    "ms": "Indeks log ERC20 Transfer sebenar (0x)",
-    "th": "ดัชนีบันทึก ERC20 Transfer จริง (0x)"
-  },
-  "登记NOWPayments外部已核实退款": {
-    "en": "Record an externally verified NOWPayments refund",
-    "ja": "外部で確認済みの NOWPayments 返金を登録",
-    "ru": "Зарегистрировать подтверждённый извне возврат NOWPayments",
-    "hi": "बाहरी रूप से सत्यापित NOWPayments धनवापसी दर्ज करें",
-    "ms": "Rekodkan bayaran balik NOWPayments yang disahkan secara luaran",
-    "th": "บันทึกการคืนเงิน NOWPayments ที่ตรวจสอบภายนอกแล้ว"
   },
   "实际退回原币种金额": {
     "en": "Actual refund amount in original currency",
@@ -5127,14 +4959,6 @@
     "ms": "Kelayakan untuk dikonfigurasi",
     "th": "ข้อมูลรับรองที่ต้องตั้งค่า"
   },
-  "id(UUID)、driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual)、enabled、credentials（按协议必填材料）、expected_version；不回显密钥。": {
-    "en": "id(UUID), driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual), enabled, credentials (required by protocol), expected_version; secrets are never displayed back.",
-    "ja": "id(UUID)、driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual)、enabled、credentials（プロトコルごとの必須情報）、expected_version。秘密情報は再表示しません。",
-    "ru": "id(UUID), driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual), enabled, credentials (обязательные по протоколу), expected_version; секреты обратно не отображаются.",
-    "hi": "id(UUID), driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual), enabled, credentials (प्रोटोकॉल के अनुसार आवश्यक), expected_version; गुप्त कुंजियाँ कभी दोबारा प्रदर्शित नहीं होतीं।",
-    "ms": "id(UUID), driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual), enabled, credentials (diperlukan mengikut protokol), expected_version; rahsia tidak pernah dipaparkan semula.",
-    "th": "id(UUID), driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual), enabled, credentials (จำเป็นตามโปรโตคอล), expected_version; ข้อมูลลับจะไม่แสดง"
-  },
   "通道": {
     "en": "Channel",
     "ja": "チャネル",
@@ -5375,14 +5199,6 @@
     "ms": "Bukti pengesahan kebenaran pembayar asal, alamat dan laluan pembayaran kami",
     "th": "หลักฐานตรวจสอบการอนุญาตของผู้ชำระเงินเดิม ที่อยู่ และเส้นทางชำระเงินของเรา"
   },
-  "EVM真实日志索引（0x）": {
-    "en": "Actual EVM log index (0x)",
-    "ja": "実際の EVM ログインデックス（0x）",
-    "ru": "Фактический индекс журнала EVM (0x)",
-    "hi": "वास्तविक EVM लॉग इंडेक्स (0x)",
-    "ms": "Indeks log EVM sebenar (0x)",
-    "th": "ดัชนีบันทึก EVM จริง (0x)"
-  },
   "银行/NOW实际原币金额": {
     "en": "Actual bank/NOW original-currency amount",
     "ja": "銀行 / NOW の実際の元通貨額",
@@ -5399,14 +5215,6 @@
     "ms": "Sahkan pembayaran sebenar secara baca sahaja berdasarkan pedagang baharu dan destinasi yang dikunci bagi percubaan ini. Jangan tandatangani atau hantar transaksi atau ubah fakta sejarah.",
     "th": "ตรวจสอบการชำระเงินจริงแบบอ่านอย่างเดียวตามบัญชีผู้ค้าใหม่และปลายทางที่ล็อกไว้สำหรับครั้งนี้ ห้ามลงนามหรือส่งธุรกรรมหรือเปลี่ยนข้อเท็จจริงในอดีต"
   },
-  "买方已核对准确资产、网络、代币合约和接收地址，并取得原付款人授权；供方须另由不同人员独立核实。": {
-    "en": "The buyer verified the exact asset, network, token contract, and recipient address and obtained the original payer's authorization. The supplier must use a different person for independent verification.",
-    "ja": "買い手は正確な資産、ネットワーク、トークンコントラクト、受取先を確認し、元の支払者の承認を取得済みです。供給側は別の担当者が独立して検証する必要があります。",
-    "ru": "Покупатель проверил актив, сеть, контракт токена и адрес получателя и получил разрешение исходного плательщика. Поставщик должен провести независимую проверку другим сотрудником.",
-    "hi": "खरीदार ने सटीक परिसंपत्ति, नेटवर्क, टोकन अनुबंध और प्राप्तकर्ता पता सत्यापित करके मूल भुगतानकर्ता का प्राधिकरण प्राप्त किया है। आपूर्तिकर्ता को स्वतंत्र सत्यापन के लिए दूसरे व्यक्ति का उपयोग करना होगा।",
-    "ms": "Pembeli telah mengesahkan aset, rangkaian, kontrak token dan alamat penerima yang tepat serta memperoleh kebenaran pembayar asal. Pembekal mesti menggunakan orang lain untuk pengesahan bebas.",
-    "th": "ผู้ซื้อได้ตรวจสอบสินทรัพย์ เครือข่าย สัญญาโทเคน และที่อยู่ผู้รับที่แน่นอน และได้รับอนุญาตจากผู้ชำระเงินเดิม ผู้จัดหาต้องให้บุคคลอื่นตรวจสอบโดยอิสระ"
-  },
   "独立核实付款人授权和接收地址证据": {
     "en": "Independent verification evidence of payer authorization and recipient address",
     "ja": "支払者承認と受取先アドレスの独立確認証拠",
@@ -5414,14 +5222,6 @@
     "hi": "भुगतानकर्ता के प्राधिकरण और प्राप्तकर्ता पते का स्वतंत्र सत्यापन प्रमाण",
     "ms": "Bukti pengesahan bebas kebenaran pembayar dan alamat penerima",
     "th": "หลักฐานตรวจสอบการอนุญาตของผู้ชำระเงินและที่อยู่ผู้รับโดยอิสระ"
-  },
-  "只读查询真实链上执行；不签名、不发送、不按原sender猜目的地。": {
-    "en": "Read-only checks of actual on-chain execution; no signing, sending, or inferring a destination from the original sender.",
-    "ja": "実際のオンチェーン実行を読み取り照会します。署名・送信は行わず、元の sender から送付先を推定しません。",
-    "ru": "Только чтение фактического исполнения в блокчейне; без подписи, отправки и определения адреса по исходному sender.",
-    "hi": "वास्तविक ऑन-चेन निष्पादन की केवल-पठन जाँच; मूल प्रेषक से गंतव्य का हस्ताक्षर, प्रेषण या अनुमान नहीं।",
-    "ms": "Semakan baca sahaja bagi pelaksanaan sebenar pada rantaian; tiada tandatangan, penghantaran atau penentuan destinasi daripada pengirim asal.",
-    "th": "ตรวจสอบการดำเนินการจริงบนเชนแบบอ่านอย่างเดียว โดยไม่ลงนาม ส่ง หรืออนุมานปลายทางจากผู้ส่งเดิม"
   },
   "外部核实凭证": {
     "en": "External verification evidence",
@@ -6495,30 +6295,6 @@
     "ms": "ID kunci awam platform WeChat",
     "th": "ID คีย์สาธารณะแพลตฟอร์ม WeChat"
   },
-  "NOWPayments收款资产代码": {
-    "en": "NOWPayments receiving asset code",
-    "ja": "NOWPayments 受取資産コード",
-    "ru": "Код актива поступления NOWPayments",
-    "hi": "NOWPayments प्राप्ति परिसंपत्ति कोड",
-    "ms": "Kod aset penerimaan NOWPayments",
-    "th": "รหัสสินทรัพย์รับเงิน NOWPayments"
-  },
-  "NOWPayments资产网络合约核实证据": {
-    "en": "NOWPayments asset, network, and contract verification evidence",
-    "ja": "NOWPayments の資産・ネットワーク・コントラクト確認証拠",
-    "ru": "Подтверждение проверки актива, сети и контракта NOWPayments",
-    "hi": "NOWPayments परिसंपत्ति, नेटवर्क और अनुबंध सत्यापन प्रमाण",
-    "ms": "Bukti pengesahan aset, rangkaian dan kontrak NOWPayments",
-    "th": "หลักฐานตรวจสอบสินทรัพย์ เครือข่าย และสัญญาของ NOWPayments"
-  },
-  "本商户收款钱包地址": {
-    "en": "This merchant's receiving wallet address",
-    "ja": "この加盟店の受取ウォレットアドレス",
-    "ru": "Адрес кошелька получения этого продавца",
-    "hi": "इस व्यापारी का प्राप्ति वॉलेट पता",
-    "ms": "Alamat dompet penerimaan pedagang ini",
-    "th": "ที่อยู่กระเป๋ารับเงินของผู้ค้ารายนี้"
-  },
   "账号与业务范围限制": {
     "en": "Account and business scope restrictions",
     "ja": "アカウントと業務範囲の制限",
@@ -7095,14 +6871,6 @@
     "ms": "ID permintaan terlalu panjang",
     "th": "ID คำขอยาวเกินไป"
   },
-  "准确退款网络（银行填bank，EVM填十进制Chain ID）": {
-    "en": "Exact refund network (bank for banks; decimal Chain ID for EVM)",
-    "ja": "正確な返金ネットワーク（銀行は bank、EVM は十進数 Chain ID）",
-    "ru": "Точная сеть возврата (bank для банка, десятичный Chain ID для EVM)",
-    "hi": "सटीक धनवापसी नेटवर्क (बैंकों के लिए bank; EVM के लिए दशमलव Chain ID)",
-    "ms": "Rangkaian bayaran balik tepat (bank untuk bank; Chain ID perpuluhan untuk EVM)",
-    "th": "เครือข่ายคืนเงินที่แน่นอน (ระบุ bank สำหรับธนาคาร; Chain ID ฐานสิบสำหรับ EVM)"
-  },
   "本人明确指定接收地址或银行账户凭证": {
     "en": "Evidence of my explicitly designated receiving address or bank account",
     "ja": "本人が明示指定した受取先アドレス・銀行口座の証明",
@@ -7334,22 +7102,6 @@
     "hi": "आपूर्तिकर्ता भुगतान कॉन्फ़िगरेशन ID",
     "ms": "ID konfigurasi pembayaran pembekal",
     "th": "ID การตั้งค่ารับชำระเงินของผู้จัดหา"
-  },
-  "提交链上付款查找线索": {
-    "en": "Submit on-chain payment lookup details",
-    "ja": "オンチェーン支払の照会情報を送信",
-    "ru": "Передать данные для поиска оплаты в блокчейне",
-    "hi": "ऑन-चेन भुगतान खोज विवरण सबमिट करें",
-    "ms": "Hantar butiran carian pembayaran pada rantaian",
-    "th": "ส่งรายละเอียดค้นหาการชำระเงินบนเชน"
-  },
-  "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。": {
-    "en": "Only for the original EVM wallet checkout. The server independently verifies the network, contract, address and confirmations. Submitting lookup details does not mean payment succeeded.",
-    "ja": "元の EVM ウォレット決済にのみ対応します。サーバーがネットワーク、コントラクト、アドレス、確認数を独立に検証します。照会情報の送信は支払成功を意味しません。",
-    "ru": "Только для исходной оплаты EVM-кошельком. Сервер независимо проверяет сеть, контракт, адрес и подтверждения. Передача данных поиска не означает успешную оплату.",
-    "hi": "केवल मूल EVM वॉलेट चेकआउट के लिए। सर्वर नेटवर्क, अनुबंध, पता और पुष्टिकरण स्वतंत्र रूप से सत्यापित करता है। खोज विवरण सबमिट करने का अर्थ भुगतान सफल होना नहीं है।",
-    "ms": "Hanya untuk checkout dompet EVM asal. Pelayan mengesahkan rangkaian, kontrak, alamat dan pengesahan secara bebas. Penyerahan butiran carian tidak bermakna pembayaran berjaya.",
-    "th": "ใช้เฉพาะการชำระเงินด้วยกระเป๋า EVM เดิม เซิร์ฟเวอร์ตรวจสอบเครือข่าย สัญญา ที่อยู่ และจำนวนการยืนยันโดยอิสระ การส่งรายละเอียดค้นหาไม่ได้หมายความว่าชำระเงินสำเร็จ"
   },
   "本次分配结算币种": {
     "en": "settlement currency allocated this time",
@@ -7983,14 +7735,6 @@
     "ms": "Sejarah kebenaran yang diarkibkan",
     "th": "ประวัติการอนุญาตที่เก็บถาวร"
   },
-  "我已核对网络、准确资产、代币合约和接收地址，并明确授权本次退款退到该目的地。该地址不会从原转账发送方推定；经财务核实锁定后不可更改。": {
-    "en": "I have checked the network, exact asset, token contract and receiving address, and explicitly authorize this refund to that destination. The address is not inferred from the original sender. Once verified and locked by finance, it cannot change.",
-    "ja": "ネットワーク、正確な資産、トークンコントラクト、受取アドレスを確認し、今回の返金先として明示的に許可します。元の送金者からアドレスを推定せず、財務が確認・ロックした後は変更できません。",
-    "ru": "Я проверил сеть, точный актив, контракт токена и адрес и явно разрешаю возврат на этот адрес. Адрес не определяется по исходному отправителю. После проверки и фиксации финансовым сотрудником изменить его нельзя.",
-    "hi": "मैंने नेटवर्क, सटीक परिसंपत्ति, टोकन अनुबंध और प्राप्ति पता जाँच लिया है और स्पष्ट रूप से इस गंतव्य पर धनवापसी अधिकृत करता/करती हूँ। पता मूल प्रेषक से अनुमानित नहीं है। वित्त विभाग द्वारा सत्यापित और लॉक होने पर इसे बदला नहीं जा सकता।",
-    "ms": "Saya telah menyemak rangkaian, aset tepat, kontrak token dan alamat penerima, dan secara jelas membenarkan bayaran balik ini ke destinasi tersebut. Alamat tidak disimpulkan daripada pengirim asal. Setelah disahkan dan dikunci oleh kewangan, ia tidak boleh diubah.",
-    "th": "ข้าพเจ้าได้ตรวจสอบเครือข่าย สินทรัพย์ที่แน่นอน สัญญาโทเคน และที่อยู่รับเงิน และอนุญาตอย่างชัดเจนให้คืนเงินครั้งนี้ไปยังปลายทางดังกล่าว ที่อยู่นี้ไม่ได้อนุมานจากผู้ส่งเดิม เมื่อตรวจสอบและล็อกโดยฝ่ายการเงินแล้วจะเปลี่ยนไม่ได้"
-  },
   "本人明确授权与接收地址依据": {
     "en": "Evidence of my explicit authorization and receiving address",
     "ja": "本人の明示的な許可・受取アドレスの根拠",
@@ -8086,22 +7830,6 @@
     "hi": "इस पंक्ति का नवीनतम प्रस्ताव, मूल भुगतानकर्ता का प्राधिकरण और प्राप्ति पता सत्यापित हैं। लॉक होने पर अन्य पता उपयोग नहीं किया जा सकता।",
     "ms": "Cadangan terkini dalam baris ini, kebenaran pembayar asal dan alamat penerima telah disahkan. Setelah dikunci, tiada alamat lain boleh digunakan.",
     "th": "ตรวจสอบข้อเสนอล่าสุดในแถวนี้ การอนุญาตผู้ชำระเงินเดิม และที่อยู่รับเงินแล้ว เมื่อล็อกแล้วห้ามใช้ที่อยู่อื่น"
-  },
-  "只读核实已执行链上退款": {
-    "en": "Read-only verification of executed on-chain refund",
-    "ja": "実行済みオンチェーン返金を読取専用で確認",
-    "ru": "Проверить исполненный возврат в блокчейне без записи",
-    "hi": "निष्पादित ऑन-चेन धनवापसी का केवल-पठन सत्यापन",
-    "ms": "Pengesahan baca sahaja bagi bayaran balik pada rantaian yang telah dilaksanakan",
-    "th": "ตรวจสอบการคืนเงินบนเชนที่ดำเนินการแล้วแบบอ่านอย่างเดียว"
-  },
-  "本次链上查验依据": {
-    "en": "Evidence for this on-chain check",
-    "ja": "今回のチェーン確認の根拠",
-    "ru": "Основание этой проверки в блокчейне",
-    "hi": "इस ऑन-चेन जाँच का प्रमाण",
-    "ms": "Bukti semakan pada rantaian ini",
-    "th": "หลักฐานการตรวจสอบบนเชนครั้งนี้"
   },
   "实际外部退款唯一流水": {
     "en": "Unique actual external refund reference",
@@ -8782,14 +8510,6 @@
     "hi": "वास्तविक बैंक/NOW निष्पादन समय",
     "ms": "Masa pelaksanaan sebenar bank/NOW",
     "th": "เวลาดำเนินการจริงของธนาคาร/NOW"
-  },
-  "买方明确授权稳定币退款地址": {
-    "en": "Buyer explicitly authorizes stablecoin refund address",
-    "ja": "買い手がステーブルコイン返金先を明示許可",
-    "ru": "Покупатель явно разрешает адрес возврата стейблкоина",
-    "hi": "खरीदार स्टेबलकॉइन धनवापसी पता स्पष्ट रूप से अधिकृत करता है",
-    "ms": "Pembeli secara jelas membenarkan alamat bayaran balik stablecoin",
-    "th": "ผู้ซื้ออนุญาตที่อยู่คืนเงิน Stablecoin อย่างชัดเจน"
   },
   "供方独立核实买方退款地址": {
     "en": "Supplier independently verifies buyer's refund address",
@@ -9830,30 +9550,6 @@
     "hi": "WeChat API v3 एन्क्रिप्शन कुंजी",
     "ms": "Kunci penyulitan API v3 WeChat",
     "th": "คีย์เข้ารหัส WeChat API v3"
-  },
-  "NOWPayments API密钥": {
-    "en": "NOWPayments API key",
-    "ja": "NOWPayments API キー",
-    "ru": "API-ключ NOWPayments",
-    "hi": "NOWPayments API key",
-    "ms": "API Key NOWPayments",
-    "th": "คีย์ API ของ NOWPayments"
-  },
-  "NOWPayments准确收款网络（须已核实）": {
-    "en": "Exact NOWPayments receiving network (must be verified)",
-    "ja": "NOWPayments の正確な入金ネットワーク（確認必須）",
-    "ru": "Точная сеть получения NOWPayments (должна быть проверена)",
-    "hi": "सटीक NOWPayments प्राप्ति नेटवर्क (सत्यापित होना चाहिए)",
-    "ms": "Rangkaian penerimaan NOWPayments yang tepat (mesti disahkan)",
-    "th": "เครือข่ายรับเงิน NOWPayments ที่แน่นอน (ต้องตรวจสอบแล้ว)"
-  },
-  "EVM只读节点RPC URL": {
-    "en": "Read-only EVM node RPC URL",
-    "ja": "EVM 読取専用ノード RPC URL",
-    "ru": "RPC URL узла EVM только для чтения",
-    "hi": "केवल-पठन EVM नोड RPC URL",
-    "ms": "URL RPC nod EVM baca sahaja",
-    "th": "RPC URL โหนด EVM แบบอ่านอย่างเดียว"
   },
   "收款资产符号": {
     "en": "Receiving asset symbol",
@@ -11938,14 +11634,6 @@
     "hi": "निकासी विधि या शुल्क बदल गया है। फिर सबमिट करने से पहले ताज़ा शुल्क की समीक्षा करें।",
     "ms": "Kaedah pengeluaran atau fi telah berubah. Semak fi yang dimuat semula sebelum menghantar lagi.",
     "th": "วิธีถอนเงินหรือค่าธรรมเนียมเปลี่ยนแปลง โปรดตรวจสอบค่าธรรมเนียมที่รีเฟรชแล้วก่อนส่งอีกครั้ง"
-  },
-  "USDT 钱包地址无效或与所选网络不匹配，请核对钱包地址和网络后重新提交。": {
-    "en": "The USDT wallet address is invalid or does not match the selected network. Check the wallet address and network before submitting again.",
-    "ja": "USDTウォレットアドレスが無効、または選択したネットワークと一致していません。アドレスとネットワークを確認して再送信してください。",
-    "ru": "Адрес кошелька USDT недействителен или не соответствует выбранной сети. Проверьте адрес и сеть, затем отправьте заявку ещё раз.",
-    "hi": "USDT वॉलेट पता अमान्य है या चुने गए नेटवर्क से मेल नहीं खाता। फिर सबमिट करने से पहले वॉलेट पता और नेटवर्क जाँचें।",
-    "ms": "Alamat dompet USDT tidak sah atau tidak sepadan dengan rangkaian yang dipilih. Semak alamat dompet dan rangkaian sebelum menghantar lagi.",
-    "th": "ที่อยู่กระเป๋า USDT ไม่ถูกต้องหรือไม่ตรงกับเครือข่ายที่เลือก โปรดตรวจสอบที่อยู่และเครือข่ายก่อนส่งอีกครั้ง"
   },
   "请按已批准的应退金额一次足额付款。用结算币种付款时无需另填金额，跨币付款只登记实际原币金额。": {
     "en": "Pay the full approved refund in one payment. No amount entry is needed in the settlement currency; for another currency, record the amount actually paid.",

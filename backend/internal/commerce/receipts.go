@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"golang.org/x/text/currency"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -31,6 +32,9 @@ func (s *Service) RecordManualReceipt(ctx context.Context, tx *gorm.DB, actorID 
 // once; fees never reduce the customer's agreed order entitlement.
 func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedReceipt) (out Receipt, err error) {
 	f.Currency = strings.ToUpper(strings.TrimSpace(f.Currency))
+	if _, e := currency.ParseISO(f.Currency); e != nil || f.Currency == "XXX" || f.Currency == "XTS" {
+		return out, ErrInvalidInput
+	}
 	if f.PaidAt != nil {
 		value := f.PaidAt.UTC()
 		f.PaidAt = &value

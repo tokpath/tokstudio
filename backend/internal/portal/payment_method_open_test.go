@@ -3,7 +3,6 @@ package portal
 import (
 	"errors"
 	"github.com/google/uuid"
-	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
@@ -182,18 +181,18 @@ func TestPostgresManualPaymentCapabilitiesAcrossOperatorRoles(t *testing.T) {
 			t.Fatal("Stripe became manual bank payouts", out)
 		}
 		status, out, _ = f.call(t, "POST", base, map[string]any{"action": "open_method", "method_kind": "usdt", "enabled": true, "collection": false, "payout_enabled": true, "fee_mode": "none"}, uuid.NewString())
-		mustOK(t, status, out)
-		payouts, e = f.a.Incentives.WithdrawalMethods(ctx, nil, op, true, "commission")
-		if e != nil || len(payouts) != 2 {
-			t.Fatal(payouts, e)
+		if status != 400 {
+			t.Fatal("removed USDT method accepted", status, out)
 		}
-		for _, p := range customerPayoutMethods(payouts) {
-			if p["kind"] == "usdt" {
-				fields := p["fields"].([]incentives.PayoutField)
-				if len(fields[0].Options) != 2 || fields[0].Options[0].Value != "TRC20" {
-					t.Fatal(fields)
-				}
+		for _, wallet := range []string{"balance", "commission"} {
+			payouts, e = f.a.Incentives.WithdrawalMethods(ctx, nil, op, true, wallet)
+			if e != nil || len(payouts) != 1 || payouts[0].PayoutKind != "offline" {
+				t.Fatal(payouts, e)
 			}
+		}
+		status, out, _ = f.call(t, "GET", "/v1/operators/"+op+"/payment-assets", nil, "")
+		if status == 200 {
+			t.Fatal("removed asset management page still available", out)
 		}
 		if op != f.a.Installation.OperatorID {
 			status, out, _ = f.call(t, "GET", "/v1/operators/"+f.a.Installation.OperatorID+"/payment-methods", nil, "")

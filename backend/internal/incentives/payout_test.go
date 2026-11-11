@@ -18,8 +18,8 @@ func TestPayoutProfilesKeepRecipientMaterialsWithThePaymentMethod(t *testing.T) 
 	if _, err = FormatPayoutRecipient("alipay", map[string]string{"payee_name": "张三"}); !errors.Is(err, ErrInvalidInput) {
 		t.Fatal("missing alipay account was accepted", err)
 	}
-	if _, err = FormatPayoutRecipient("usdt", map[string]string{"network": "SOL", "address": "TXYZ1234567890abcd"}); !errors.Is(err, ErrInvalidInput) {
-		t.Fatal("unknown network was accepted", err)
+	if _, err = FormatPayoutRecipient("usdt", map[string]string{"network": "TRC20", "address": "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7"}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatal("removed USDT payout was accepted", err)
 	}
 	wire, err := FormatPayoutRecipient("wire", map[string]string{"payee_name": "Ada Lovelace", "bank_name": "Example Bank", "account_number": "GB29 NWBK 6016 1331 9268 19", "swift": "nwbk gb2l", "country": "United Kingdom", "address": "1 Example Street"})
 	if err != nil || !strings.Contains(wire, "SWIFT/BIC：NWBKGB2L") || !strings.Contains(wire, "GB29NWBK60161331926819") {
@@ -37,52 +37,17 @@ func TestWithdrawalPreviewUsesPayableCurrencyUnits(t *testing.T) {
 	}
 }
 
-func TestPayoutMaterialsAreManualAndNetworkSpecific(t *testing.T) {
+func TestPayoutMaterialsAreManual(t *testing.T) {
 	for kind, values := range map[string]map[string]string{
 		"offline": {"payee_name": "张三"},
 		"bank_cn": {"payee_name": "张三", "bank_name": "Example Bank", "account_number": "1234567890"},
 		"paypal":  {"email": "payee@example.test"},
-		"usdt":    {"network": "TRC20", "address": "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7"},
 	} {
 		if _, e := FormatPayoutRecipient(kind, values); e != nil {
 			t.Fatalf("%s: %v", kind, e)
 		}
 	}
-	for _, tc := range []struct {
-		network, address string
-		valid            bool
-	}{
-		{"ERC20", "0x1234567890123456789012345678901234567890", true},
-		{"ERC20", "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7", false},
-		{"TRC20", "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU8", false},
-		{"ERC20", "0x123456789012345678901234567890123456789z", false},
-	} {
-		if got := validPayoutAddress(tc.network, tc.address); got != tc.valid {
-			t.Fatal(tc, got)
-		}
-	}
 	if _, e := FormatPayoutRecipient("paypal", map[string]string{"email": "Name <payee@example.test>"}); e == nil {
 		t.Fatal("display name accepted as an email")
-	}
-}
-
-func TestUSDTRecipientReportsInvalidAddressAndNormalizesOuterWhitespace(t *testing.T) {
-	for _, recipient := range []map[string]string{
-		{"network": "TRC20", "address": "test"},
-		{"network": "TRC20", "address": "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU8"},
-		{"network": "TRC20", "address": "0x1234567890123456789012345678901234567890"},
-		{"network": "ERC20", "address": "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7"},
-		{"network": "ERC20", "address": "0x123456789012345678901234567890123456789z"},
-		{"network": "TRC20", "address": "TLa2f6VPqDgRE67v1 736s7bJ8Ray5wYjU7"},
-		{"network": "TRC20"},
-		{"network": "SOL", "address": "test"},
-	} {
-		if _, err := FormatPayoutRecipient("usdt", recipient); !errors.Is(err, ErrPayoutUSDTAddress) || !errors.Is(err, ErrInvalidInput) {
-			t.Fatalf("invalid USDT recipient lost its actionable error: %v", err)
-		}
-	}
-	text, err := FormatPayoutRecipient("usdt", map[string]string{"network": " TRC20 ", "address": " TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7\n"})
-	if err != nil || text != "网络：TRC20\n钱包地址：TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7" {
-		t.Fatal("outer whitespace changed the recipient", text, err)
 	}
 }

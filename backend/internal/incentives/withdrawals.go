@@ -371,7 +371,8 @@ func (s *Service) ApproveWithdrawal(ctx context.Context, tx *gorm.DB, actor, ope
 }
 func completeWithdrawalProof(proof *WithdrawalPaymentProof, net ledger.Decimal, settlement string) error {
 	proof.Currency = strings.ToUpper(strings.TrimSpace(proof.Currency))
-	if proof.Currency == "" || proof.PaidAt.IsZero() || !net.Valid() || net.Sign() <= 0 {
+	_, currencyErr := currency.ParseISO(proof.Currency)
+	if currencyErr != nil || proof.Currency == "XXX" || proof.Currency == "XTS" || proof.PaidAt.IsZero() || !net.Valid() || net.Sign() <= 0 {
 		return ErrInvalidInput
 	}
 	// The settlement amount was fixed when the customer applied. Recording

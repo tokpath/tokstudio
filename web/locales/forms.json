@@ -4003,22 +4003,6 @@
     "ms": "Hash transaksi pemindahan sebenar",
     "th": "แฮชธุรกรรมการโอนจริง"
   },
-  "ERC20 Transfer日志索引": {
-    "en": "ERC20 Transfer log index",
-    "ja": "ERC20 Transfer ログインデックス",
-    "ru": "Индекс журнала ERC20 Transfer",
-    "hi": "ERC20 Transfer लॉग इंडेक्स",
-    "ms": "Indeks log ERC20 Transfer",
-    "th": "ดัชนีบันทึก ERC20 Transfer"
-  },
-  "正在只读核实链上事实…": {
-    "en": "Verifying on-chain facts (read-only)…",
-    "ja": "オンチェーン情報を読み取り検証中…",
-    "ru": "Проверка данных блокчейна (только чтение)…",
-    "hi": "ऑन-चेन तथ्य सत्यापित हो रहे हैं (केवल-पठन)…",
-    "ms": "Mengesahkan fakta pada rantaian (baca sahaja)…",
-    "th": "กำลังตรวจสอบข้อเท็จจริงบนเชน (อ่านอย่างเดียว)…"
-  },
   "重试原查找线索": {
     "en": "Retry the original payment lookup",
     "ja": "元の入金検索を再試行",
@@ -4026,22 +4010,6 @@
     "hi": "मूल भुगतान खोज का फिर प्रयास करें",
     "ms": "Cuba semula carian pembayaran asal",
     "th": "ลองค้นหาการชำระเงินเดิมอีกครั้ง"
-  },
-  "提交链上查找线索": {
-    "en": "Submit on-chain payment details",
-    "ja": "オンチェーン検索情報を送信",
-    "ru": "Отправить данные для поиска в блокчейне",
-    "hi": "ऑन-चेन भुगतान विवरण सबमिट करें",
-    "ms": "Hantar butiran pembayaran pada rantaian",
-    "th": "ส่งรายละเอียดการชำระเงินบนเชน"
-  },
-  "本次链上事实已核实并保留，请刷新原订单核对收款和交付。状态：": {
-    "en": "On-chain facts have been verified and saved. Refresh the original order to check payment and delivery. Status: ",
-    "ja": "オンチェーン情報を確認・保存しました。元の注文を更新し、入金と提供状況を確認してください。状態：",
-    "ru": "Данные блокчейна проверены и сохранены. Обновите исходный заказ для проверки оплаты и исполнения. Статус: ",
-    "hi": "ऑन-चेन तथ्य सत्यापित और सहेजे गए हैं। भुगतान और डिलीवरी जाँचने के लिए मूल ऑर्डर रीफ़्रेश करें। स्थिति: ",
-    "ms": "Fakta pada rantaian telah disahkan dan disimpan. Muat semula pesanan asal untuk menyemak pembayaran dan penyerahan. Status: ",
-    "th": "ตรวจสอบและบันทึกข้อเท็จจริงบนเชนแล้ว รีเฟรชคำสั่งซื้อเดิมเพื่อตรวจสอบการชำระเงินและการส่งมอบ สถานะ: "
   },
   "{label}（{context}）": {
     "en": "{label} ({context})",

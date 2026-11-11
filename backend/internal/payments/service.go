@@ -7,9 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
 	"io/fs"
-	"math/big"
 	"sort"
 	"time"
 
@@ -96,7 +94,7 @@ type Service struct {
 }
 
 func NewService(db *gorm.DB, key string, auth Authorizer, http *Transport, sink ReceiptSink) *Service {
-	return &Service{FXTransport: http, DB: db, EncryptionKey: key, Authorize: auth, Drivers: map[string]Driver{"stripe": Stripe{http}, "alipay": Alipay{http}, "wechat": Wechat{http}, "nowpayments": NOWPayments{http}, "evm_wallet": EVMWallet{http}, "manual": Manual{}, "kvoucher": KVoucher{http}}, Sink: sink}
+	return &Service{FXTransport: http, DB: db, EncryptionKey: key, Authorize: auth, Drivers: map[string]Driver{"stripe": Stripe{http}, "alipay": Alipay{http}, "wechat": Wechat{http}, "manual": Manual{}, "kvoucher": KVoucher{http}}, Sink: sink}
 }
 
 type MerchantView struct {
@@ -113,9 +111,6 @@ type merchantRow struct {
 }
 
 func (s *Service) SaveMerchant(ctx context.Context, actor string, m Merchant, expected uint64) (MerchantView, error) {
-	if m.Driver == "evm_wallet" && forbiddenWalletSecret(m.Credentials) {
-		return MerchantView{}, ErrForbidden
-	}
 	if s.Authorize == nil || s.EncryptionKey == "" || m.ID == "" || m.OperatorID == "" {
 		return MerchantView{}, ErrForbidden
 	}
@@ -130,11 +125,6 @@ func (s *Service) SaveMerchant(ctx context.Context, actor string, m Merchant, ex
 	e := s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if e := s.Authorize.RequirePermission(ctx, tx, actor, m.OperatorID, "payments.manage"); e != nil {
 			return e
-		}
-		if m.Enabled {
-			if e := s.applyAssetNetwork(ctx, tx, &m, true); e != nil {
-				return e
-			}
 		}
 		view = MerchantView{Merchant: m, MissingFields: d.Validate(m)}
 		for k, v := range m.Credentials {
@@ -180,13 +170,8 @@ func (s *Service) SaveMerchant(ctx context.Context, actor string, m Merchant, ex
 			if methodIdentity(old) != m.PaymentMethodID {
 				return ErrForbidden
 			}
-			for _, key := range []string{"app_id", "seller_id", "mch_id", "account_id", "recipient_reference", "wallet_address", "chain_id", "token_contract", "asset", "pay_currency"} {
+			for _, key := range []string{"app_id", "seller_id", "mch_id", "account_id", "recipient_reference"} {
 				if old.Credentials[key] != m.Credentials[key] {
-					return ErrForbidden
-				}
-			}
-			for _, key := range []string{"pay_network", "pay_token_contract"} {
-				if old.Credentials[key] != "" && old.Credentials[key] != m.Credentials[key] {
 					return ErrForbidden
 				}
 			}
@@ -302,14 +287,6 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 		return Checkout{}, ErrInvalid
 	}
 	o.PaymentDriver = m.Driver
-	o.AssetNetworkVersionID = m.AssetNetworkVersionID
-	o.Network, o.TokenContract, o.MinimumConfirmations = "", "", ""
-	if m.Driver == "evm_wallet" {
-		o.Network, o.TokenContract, o.MinimumConfirmations = m.Credentials["chain_id"], m.Credentials["token_contract"], m.Credentials["min_confirmations"]
-	}
-	if m.Driver == "nowpayments" {
-		o.Network, o.TokenContract = m.Credentials["pay_network"], m.Credentials["pay_token_contract"]
-	}
 	hash := fingerprint(struct {
 		Order                      Order
 		PaymentMethod, CustomerRef string
@@ -344,9 +321,6 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 				return ErrConflict
 			}
 			return nil
-		}
-		if e := s.applyAssetNetwork(ctx, tx, &m, true); e != nil {
-			return e
 		}
 		now, e := databaseTime(ctx, tx)
 		if e != nil {
@@ -385,23 +359,6 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	callErr := quoteErr
 	if callErr == nil {
 		checkout, callErr = d.Create(ctx, m, o)
-	}
-	if m.Driver == "nowpayments" && callErr == nil && checkout.PayMoney != nil {
-		q := o.PaymentQuote
-		if q == nil {
-			q = &PaymentQuote{ID: uuid.NewString(), SettlementMoney: o.Settlement(), Source: "NOWPayments", SourceURL: "https://nowpayments.io/", RateDate: time.Now().UTC(), QuotedAt: time.Now().UTC(), ExpiresAt: o.ExpiresAt}
-		}
-		if o.ProviderPriceMoney != nil {
-			invoiceMoney := *o.ProviderPriceMoney
-			q.InvoiceMoney = &invoiceMoney
-			q.Source = "NOWPayments + Frankfurter"
-		}
-		q.PayMoney = *checkout.PayMoney
-		ratio := new(big.Rat).Quo(q.PayMoney.Amount.Rat(), q.SettlementMoney.Amount.Rat())
-		q.Rate, _ = ledger.Quantize(ratio)
-		q.RateNumerator, q.RateDenominator = ratio.Num().String(), ratio.Denom().String()
-		o.PaymentQuote = q
-		o.Money = q.PayMoney
 	}
 	if o.PaymentQuote != nil && checkout.PayMoney != nil && (checkout.PayMoney.Currency != o.Money.Currency || checkout.PayMoney.Amount.Cmp(o.Money.Amount) != 0) {
 		checkout = Checkout{ProviderID: checkout.ProviderID}
@@ -754,4 +711,13 @@ func (s *Service) attachReceipt(ctx context.Context, tx *gorm.DB, m Merchant, o 
 		return e
 	}
 	return tx.Table("payments_verified_facts").Where("id=?", f.ID).Updates(map[string]any{"receipt_id": id, "state": "recorded"}).Error
+}
+
+// Existing payments remain queryable after an operator stops accepting new payments.
+func (s *Service) historicalMerchant(_ context.Context, m Merchant, _ Order) (Merchant, error) {
+	if s.Drivers[m.Driver] == nil {
+		return m, ErrUnsupported
+	}
+	m.Enabled = true
+	return m, nil
 }

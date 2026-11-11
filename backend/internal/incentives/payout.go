@@ -1,9 +1,6 @@
 package incentives
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"math/big"
 	"net/mail"
 	"strings"
 	"unicode/utf8"
@@ -89,14 +86,6 @@ func PayoutProfiles() []PayoutProfile {
 				{Name: "instructions", Label: "补充汇款资料", Kind: "text", Help: "可补充银行要求的当地清算代码或中转行信息。", Optional: true},
 			},
 		},
-		{
-			Kind: "usdt", Label: "USDT", OptionLabel: "USDT · 网络、钱包地址",
-			Summary: "客户需选择 USDT 网络并填写该网络上的钱包地址。网络和地址不一致可能导致无法到账。",
-			Fields: []PayoutField{
-				{Name: "network", Label: "网络", Kind: "select", Help: "必须与钱包地址的网络一致。", Options: []PayoutChoice{{Value: "TRC20", Label: "TRC20"}, {Value: "ERC20", Label: "ERC20"}}},
-				{Name: "address", Label: "钱包地址", Kind: "text", Help: "填写所选网络上的 USDT 地址。选错网络可能导致无法到账。"},
-			},
-		},
 	}
 }
 
@@ -139,9 +128,6 @@ func FormatPayoutRecipient(kind string, values map[string]string) (string, error
 		if _, ok := allowed[key]; !ok {
 			return "", ErrInvalidInput
 		}
-	}
-	if kind == "usdt" && !validPayoutAddress(strings.TrimSpace(values["network"]), strings.TrimSpace(values["address"])) {
-		return "", ErrPayoutUSDTAddress
 	}
 	lines := make([]string, 0, len(profile.Fields))
 	for _, field := range profile.Fields {
@@ -206,11 +192,6 @@ func normalizePayoutValue(kind, name, value string) (string, error) {
 			return "", ErrInvalidInput
 		}
 		return value, nil
-	case kind == "usdt" && name == "address":
-		if strings.ContainsAny(value, " \t\n") || len(value) < 16 || len(value) > 128 {
-			return "", ErrInvalidInput
-		}
-		return value, nil
 	default:
 		if utf8.RuneCountInString(value) < 2 {
 			return "", ErrInvalidInput
@@ -227,36 +208,4 @@ func QuoteDigits(code string, amount, flat, rate, minimum ledger.Decimal) (payab
 		return ledger.Decimal{}, ledger.Decimal{}, ledger.Decimal{}, err
 	}
 	return quote.AmountMoney, quote.FeeMoney, quote.NetMoney, nil
-}
-
-// Validate network-specific syntax; ownership and exchange deposit support still
-// require the recipient to supply their own destination.
-func validPayoutAddress(network, address string) bool {
-	if network == "ERC20" {
-		if len(address) != 42 || !strings.HasPrefix(address, "0x") {
-			return false
-		}
-		_, e := hex.DecodeString(address[2:])
-		return e == nil
-	}
-	if network != "TRC20" || len(address) != 34 || !strings.HasPrefix(address, "T") {
-		return false
-	}
-	n := new(big.Int)
-	alphabet := "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-	for _, c := range address {
-		v := strings.IndexRune(alphabet, c)
-		if v < 0 {
-			return false
-		}
-		n.Mul(n, big.NewInt(58))
-		n.Add(n, big.NewInt(int64(v)))
-	}
-	b := n.Bytes()
-	if len(b) != 25 || b[0] != 0x41 {
-		return false
-	}
-	a := sha256.Sum256(b[:21])
-	check := sha256.Sum256(a[:])
-	return string(check[:4]) == string(b[21:])
 }

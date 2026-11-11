@@ -2,10 +2,8 @@ package payments
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
-	"math/big"
 	"strings"
 	"time"
 	"unicode"
@@ -23,20 +21,10 @@ type ExternalRefundDestination struct {
 }
 type ExternalRefundExecution struct {
 	Destination        ExternalRefundDestination `json:"destination"`
-	TransactionHash    string                    `json:"transaction_hash,omitempty"`
-	LogIndex           string                    `json:"log_index,omitempty"`
-	BlockHash          string                    `json:"block_hash,omitempty"`
-	Confirmations      string                    `json:"confirmations,omitempty"`
 	SenderAddress      string                    `json:"sender_address,omitempty"`
 	RecipientAddress   string                    `json:"recipient_address"`
 	VerificationMethod string                    `json:"verification_method"`
 	VerifiedBy         string                    `json:"verified_by"`
-}
-type EVMRefundVerification struct {
-	ReceiptID       string                    `json:"receipt_id"`
-	TransactionHash string                    `json:"transaction_hash"`
-	LogIndex        string                    `json:"log_index"`
-	Destination     ExternalRefundDestination `json:"destination"`
 }
 type ExternalRefundVerification struct {
 	ReceiptID         string                    `json:"receipt_id"`
@@ -80,176 +68,12 @@ func NormalizeExternalRefundDestination(d ExternalRefundDestination) (ExternalRe
 			}
 		}
 	}
-	if n, ok := new(big.Int).SetString(d.Network, 10); ok {
-		if n.Sign() <= 0 || !validHex(d.Address, 20) || !validHex(d.TokenContract, 20) {
-			return d, ErrInvalid
-		}
-		d.Network = n.String()
-		d.Address = strings.ToLower(d.Address)
-		d.TokenContract = strings.ToLower(d.TokenContract)
+	if _, ok := fiatMinorDigits(d.Asset); !ok || d.Network != "bank" || d.TokenContract != "" {
+		return d, ErrInvalid
 	}
 	return d, nil
 }
 
-// ValidateExternalRefundDestinationForSource binds an authorization to the
-// original asset and network. NOWPayments currency tickers are provider codes
-// (e.g. USDTTRC20), not a guessed base symbol; operators must separately record
-// verified provider asset metadata before enabling external returns.
-func ValidateExternalRefundDestinationForSource(m Merchant, source PaymentSource, d ExternalRefundDestination) error {
-	var e error
-	d, e = NormalizeExternalRefundDestination(d)
-	if e != nil {
-		return e
-	}
-	if m.ID != source.MerchantID || m.OperatorID != source.OriginalOrder.OperatorID || m.Driver != source.Driver || d.Asset != strings.ToUpper(source.OriginalOrder.Money.Currency) {
-		return ErrConflict
-	}
-	switch m.Driver {
-	case "evm_wallet":
-		if d.Network != m.Credentials["chain_id"] || !strings.EqualFold(d.TokenContract, m.Credentials["token_contract"]) || d.Asset != strings.ToUpper(m.Credentials["asset"]) {
-			return ErrConflict
-		}
-	case "nowpayments":
-		if m.Credentials["pay_network"] == "" || m.Credentials["pay_token_contract"] == "" || m.Credentials["pay_asset_verification_reference"] == "" {
-			return ErrNotConfigured
-		}
-		if d.Asset != strings.ToUpper(m.Credentials["pay_currency"]) || d.Network != strings.ToLower(m.Credentials["pay_network"]) || d.TokenContract != m.Credentials["pay_token_contract"] {
-			return ErrConflict
-		}
-	default:
-		return ErrUnsupported
-	}
-	return nil
-}
-
-// externalRefundContext verifies the original merchant/source and durable
-// destination instruction before any RPC work. The caller never supplies keys.
-func (s *Service) externalRefundContext(ctx context.Context, actor, op, merchant, receipt string, r Refund, d ExternalRefundDestination, driver string) (Merchant, Refund, error) {
-	var m Merchant
-	approval, ok := s.RefundApproval.(ExternalRefundApproval)
-	if s.Authorize == nil || !ok || s.RefundSink == nil {
-		return m, r, ErrNotConfigured
-	}
-	if e := s.Authorize.RequirePermission(ctx, s.DB, actor, op, "payments.manage"); e != nil {
-		return m, r, e
-	}
-	var e error
-	m, e = s.Merchant(ctx, op, merchant)
-	if e != nil {
-		return m, r, e
-	}
-	if m.Driver != driver {
-		return m, r, ErrUnsupported
-	}
-	source, e := s.PaymentSourceForReceipt(ctx, op, receipt)
-	if e != nil {
-		return m, r, e
-	}
-	if source.MerchantID != merchant || source.Driver != driver || source.OriginalOrder.ID != r.Order.ID {
-		return m, r, ErrConflict
-	}
-	r.Order = source.OriginalOrder
-	m, e = s.historicalMerchant(ctx, m, r.Order)
-	if e != nil {
-		return m, r, e
-	}
-	if e := ValidateExternalRefundDestinationForSource(m, source, d); e != nil {
-		return m, r, e
-	}
-	if d.Asset != strings.ToUpper(r.Order.Money.Currency) || r.MoneyAmount.Sign() <= 0 || !r.MoneyAmount.Valid() {
-		return m, r, ErrInvalid
-	}
-	e = s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return approval.RequireExternalRefundFact(ctx, tx, actor, r, d) })
-	return m, r, e
-}
-
-// RecordEVMRefund only reads chain state. It never asks a wallet to sign or send.
-// The authorized destination is distinct from the original transfer's sender.
-func (s *Service) RecordEVMRefund(ctx context.Context, actor, op, merchant string, r Refund, v EVMRefundVerification) (RefundStatus, error) {
-	d, e := NormalizeExternalRefundDestination(v.Destination)
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	if !validHex(v.TransactionHash, 32) {
-		return RefundStatus{}, ErrInvalid
-	}
-	index, e := hexInt(v.LogIndex)
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	m, r, e := s.externalRefundContext(ctx, actor, op, merchant, v.ReceiptID, r, d, "evm_wallet")
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	if d.Network != m.Credentials["chain_id"] || !strings.EqualFold(d.TokenContract, m.Credentials["token_contract"]) || d.Asset != strings.ToUpper(m.Credentials["asset"]) {
-		return RefundStatus{}, ErrConflict
-	}
-	driver, ok := s.Drivers["evm_wallet"].(EVMWallet)
-	if !ok {
-		return RefundStatus{}, ErrNotConfigured
-	}
-	query := r.Order
-	query.ProviderID = strings.ToLower(v.TransactionHash) + "#0x" + index.Text(16)
-	transfer, e := driver.lookupTransfer(ctx, m, query, m.Credentials["wallet_address"], false)
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	var proof struct {
-		BlockHash     string `json:"block_hash"`
-		Confirmations string `json:"confirmations"`
-		Sender        string `json:"sender"`
-		Recipient     string `json:"recipient"`
-	}
-	if json.Unmarshal(transfer.Evidence, &proof) != nil {
-		return RefundStatus{}, ErrProvider
-	}
-	r.Money = transfer.Money
-	r.ExecutionID = "external:" + fingerprint([]string{r.ID, "evm", d.Network, strings.ToLower(v.TransactionHash), index.Text(16)})
-	if e = externalValuationAt(r, transfer.OccurredAt); e != nil {
-		return RefundStatus{}, e
-	}
-	f, e := refundFact(m, r, query.ProviderID, transfer.Money, transfer.OccurredAt, map[string]any{"original_receipt_id": v.ReceiptID, "chain_verification": json.RawMessage(transfer.Evidence), "destination": d})
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	f.ID = "evm:refund:" + d.Network + ":" + strings.ToLower(v.TransactionHash) + ":" + index.Text(16)
-	f.ExternalRefund = &ExternalRefundExecution{Destination: d, TransactionHash: strings.ToLower(v.TransactionHash), LogIndex: "0x" + index.Text(16), BlockHash: proof.BlockHash, Confirmations: proof.Confirmations, SenderAddress: proof.Sender, RecipientAddress: proof.Recipient, VerificationMethod: "read_only_rpc_erc20_transfer", VerifiedBy: "rpc:" + m.ID}
-	return s.recordExternalRefund(ctx, actor, m, r, f, d, fingerprint(v), nil)
-}
-
-// RecordExternalRefund is the explicitly reviewed external NOWPayments return
-// path. It records finance-verified actual execution evidence; the provider's
-// create/refund API is never called and this capability is not advertised as an
-// automatic refund. Destination authorization is enforced by the business owner.
-func (s *Service) RecordExternalRefund(ctx context.Context, actor, op, merchant string, r Refund, v ExternalRefundVerification) (RefundStatus, error) {
-	d, e := NormalizeExternalRefundDestination(v.Destination)
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	m, r, e := s.externalRefundContext(ctx, actor, op, merchant, v.ReceiptID, r, d, "nowpayments")
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	now, e := databaseTime(ctx, s.DB)
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	if strings.TrimSpace(v.ExternalReference) == "" || v.EvidenceReference == "" || v.ExecutedAt.IsZero() || v.ExecutedAt.After(now.Add(5*time.Minute)) || v.Money.Validate() != nil || v.Money.Currency != r.Order.Money.Currency {
-		return RefundStatus{}, ErrInvalid
-	}
-	r.Money = v.Money
-	r.ExecutionID = "external:" + fingerprint([]string{r.ID, "nowpayments", d.Network, v.ExternalReference})
-	if e = externalValuationAt(r, &v.ExecutedAt); e != nil {
-		return RefundStatus{}, e
-	}
-	f, e := refundFact(m, r, v.ExternalReference, v.Money, &v.ExecutedAt, map[string]any{"original_receipt_id": v.ReceiptID, "actual_execution_evidence": v.EvidenceReference, "destination": d, "verified_by": "staff:" + actor})
-	if e != nil {
-		return RefundStatus{}, e
-	}
-	f.ID = "external:refund:" + fingerprint([]string{m.Driver, m.Credentials["account_id"], d.Network, d.Asset, strings.ToLower(v.ExternalReference)})
-	f.ExternalRefund = &ExternalRefundExecution{Destination: d, RecipientAddress: d.Address, VerificationMethod: "finance_verified_external_record", VerifiedBy: "staff:" + actor}
-	return s.recordExternalRefund(ctx, actor, m, r, f, d, fingerprint(v), nil)
-}
 func externalValuationAt(r Refund, at *time.Time) error {
 	if r.Money.Validate() != nil || at == nil || at.IsZero() {
 		return ErrInvalid
@@ -268,14 +92,11 @@ func validateExternalExecution(f Fact) error {
 		return nil
 	}
 	x := f.ExternalRefund
-	d, e := NormalizeExternalRefundDestination(x.Destination)
+	_, e := NormalizeExternalRefundDestination(x.Destination)
 	if e != nil {
 		return e
 	}
 	if x.VerifiedBy == "" || x.RecipientAddress == "" {
-		return ErrInvalid
-	}
-	if _, numeric := new(big.Int).SetString(d.Network, 10); numeric && !validHex(x.RecipientAddress, 20) {
 		return ErrInvalid
 	}
 	return nil

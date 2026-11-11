@@ -22,10 +22,10 @@ export const operatorNav: readonly NavigationSection[] = [
   { id: "cooperation", group: "采购与合作", items: [["operators", "下属经营方"], ["procurement", "采购与供货"], ["contracts", "合作合同"], ["coverage", "履约与超卖"], ["alerts", "风险预警"], ["takeovers", "停业与接管"]] },
   { id: "reports", group: "报表", items: [["reports", "经营报表"], ["exports", "数据导出"]] },
   { id: "settings", group: "设置", items: [["branding", "品牌外观"], ["channel-themes", "渠道外观"], ["domains", "品牌域名"], ["business-status", "营业设置"], ["payment-methods", "支付方式与手续费"], ["staff", "人员与权限"], ["restrictions", "业务限制"], ["notifications", "通知管理"], ["mail", "邮件服务"]] },
-  { id: "technology", group: "平台技术", items: [["payment-quotes", "汇率报价来源"], ["catalog", "公开模型"], ["providers", "模型供应商"], ["routes", "路由配置"], ["bifrost", "Bifrost 设置"], ["supplier-costs", "真实上游成本"], ["requests", "调用与成本核实"], ["jobs", "任务恢复"], ["payment-assets", "支付资产与网络"]] },
+  { id: "technology", group: "平台技术", items: [["payment-quotes", "汇率报价来源"], ["catalog", "公开模型"], ["providers", "模型供应商"], ["routes", "路由配置"], ["bifrost", "Bifrost 设置"], ["supplier-costs", "真实上游成本"], ["requests", "调用与成本核实"], ["jobs", "任务恢复"]] },
 ];
 export const operatorSections = operatorNav;
-const platformOnly = new Set(["payment-quotes", "catalog", "providers", "routes", "requests", "jobs", "payment-assets", "bifrost", "supplier-costs"]);
+const platformOnly = new Set(["payment-quotes", "catalog", "providers", "routes", "requests", "jobs", "bifrost", "supplier-costs"]);
 const parentOnly = new Set(["operators", "branding", "domains", "mail"]);
 type Workspace = { operator: { kind: string }; permissions: readonly string[] };
 export function staffNotificationPath(workspaces: readonly (Workspace & { operator: { id: string } })[], pathname: string, activeOperatorID?: string): string | undefined {
@@ -35,7 +35,7 @@ export function staffNotificationPath(workspaces: readonly (Workspace & { operat
   return workspace ? `/manage/${encodeURIComponent(workspace.operator.id)}/notifications` : undefined;
 }
 export function canReadResource(workspace: Workspace | undefined, resource: string): boolean {
-  if (!workspace || resource.split("/")[0] === "audit") return false;
+  if (!workspace || ["audit", "payment-assets"].includes(resource.split("/")[0])) return false;
   const base = resource.split("/")[0];
   if (["alerts", "procurement-invoices"].includes(base) && workspace.operator.kind === "platform") return false;
   if (base === "channel-themes" && workspace.operator.kind !== "channel") return false;

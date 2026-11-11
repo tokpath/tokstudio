@@ -33,8 +33,6 @@ type PublicMethod struct {
 	RequiresSettlementConfirmation bool           `json:"requires_settlement_confirmation"`
 	Driver                         string         `json:"driver"`
 	Currency                       string         `json:"currency"`
-	Network                        string         `json:"network,omitempty"`
-	TokenContract                  string         `json:"token_contract,omitempty"`
 	Instructions                   string         `json:"instructions,omitempty"`
 	Configured                     bool           `json:"configured"`
 	RefundAPI                      bool           `json:"refund_api"`
@@ -54,18 +52,18 @@ func (s *Service) ListMerchantConfigs(ctx context.Context, actor, operator strin
 	}
 	out := []MerchantView{}
 	for _, row := range rows {
+		if s.Drivers[row.Driver] == nil {
+			continue
+		}
 		m, e := s.openMerchant(row)
 		if e != nil {
 			return nil, e
 		}
 		d := s.Drivers[m.Driver]
 		if d == nil {
-			return nil, ErrUnsupported
+			continue
 		}
 		view := MerchantView{Merchant: m, MissingFields: d.Validate(m), FieldsSet: []string{}}
-		if e := s.applyAssetNetwork(ctx, s.DB, &m, true); e != nil {
-			view.MissingFields = append(view.MissingFields, "active_platform_asset_version")
-		}
 		for k, v := range m.Credentials {
 			if v != "" {
 				view.FieldsSet = append(view.FieldsSet, k)
@@ -86,12 +84,12 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 	}
 	out := []PublicMethod{}
 	for _, row := range rows {
+		if s.Drivers[row.Driver] == nil {
+			continue
+		}
 		m, e := s.openMerchant(row)
 		if e != nil {
 			return nil, e
-		}
-		if e := s.applyAssetNetwork(ctx, s.DB, &m, true); e != nil {
-			continue
 		}
 		d := s.Drivers[m.Driver]
 		if d == nil || ready(m, d) != nil {
@@ -100,7 +98,7 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 		currency := merchantCurrency(m)
 		supported, reason := SettlementSupport(m, settings.Currency)
 		_, fiatPayment := fiatMinorDigits(currency)
-		if currency != settings.Currency && fiatPayment && m.Driver != "kvoucher" && m.Driver != "nowpayments" {
+		if currency != settings.Currency && fiatPayment && m.Driver != "kvoucher" {
 			fx, err := s.FXSettings(ctx)
 			if err != nil {
 				return nil, err
@@ -114,15 +112,7 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 			supported = false
 			reason = "系统清算设置尚未正式生效，暂不可付款。"
 		}
-		view := PublicMethod{ID: m.ID, Driver: m.Driver, Currency: currency, Configured: true, SettlementCurrency: settings.Currency, SettlementSupported: supported, UnsupportedReason: reason, RequiresSettlementConfirmation: (m.Driver == "manual" || m.Driver == "evm_wallet") && currency != settings.Currency && !fiatPayment, RefundAPI: m.Driver == "stripe" || m.Driver == "alipay" || m.Driver == "wechat", AutoCharge: m.Driver == "stripe"}
-		if m.Driver == "evm_wallet" {
-			view.Network = m.Credentials["chain_id"]
-			view.TokenContract = m.Credentials["token_contract"]
-		}
-		if m.Driver == "nowpayments" {
-			view.Network = m.Credentials["pay_network"]
-			view.TokenContract = m.Credentials["pay_token_contract"]
-		}
+		view := PublicMethod{ID: m.ID, Driver: m.Driver, Currency: currency, Configured: true, SettlementCurrency: settings.Currency, SettlementSupported: supported, UnsupportedReason: reason, RequiresSettlementConfirmation: m.Driver == "manual" && currency != settings.Currency && !fiatPayment, RefundAPI: m.Driver == "stripe" || m.Driver == "alipay" || m.Driver == "wechat", AutoCharge: m.Driver == "stripe"}
 		if m.Driver == "manual" {
 			view.Instructions = m.Credentials["instructions"]
 		}
@@ -156,14 +146,12 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 }
 
 type IntentView struct {
-	Driver        string    `json:"driver"`
-	Network       string    `json:"network,omitempty"`
-	TokenContract string    `json:"token_contract,omitempty"`
-	OrderID       string    `json:"order_id"`
-	MerchantID    string    `json:"merchant_id"`
-	ProviderID    string    `json:"provider_id,omitempty"`
-	State         string    `json:"state"`
-	Checkout      *Checkout `json:"checkout,omitempty"`
+	Driver     string    `json:"driver"`
+	OrderID    string    `json:"order_id"`
+	MerchantID string    `json:"merchant_id"`
+	ProviderID string    `json:"provider_id,omitempty"`
+	State      string    `json:"state"`
+	Checkout   *Checkout `json:"checkout,omitempty"`
 }
 
 func (s *Service) PaymentIntent(ctx context.Context, operator, merchant, order string) (IntentView, error) {
@@ -176,7 +164,11 @@ func (s *Service) PaymentIntent(ctx context.Context, operator, merchant, order s
 	if e := s.open(row.OrderCiphertext, &snapshot); e != nil {
 		return view, e
 	}
-	view.Driver, view.Network, view.TokenContract = snapshot.PaymentDriver, snapshot.Network, snapshot.TokenContract
+	view.Driver = snapshot.PaymentDriver
+	_, supportedCurrency := fiatMinorDigits(snapshot.Money.Currency)
+	if s.Drivers[view.Driver] == nil || !supportedCurrency {
+		return view, nil
+	}
 	if row.State == "created" && row.CheckoutCiphertext != "" {
 		var checkout Checkout
 		if e := s.open(row.CheckoutCiphertext, &checkout); e != nil {

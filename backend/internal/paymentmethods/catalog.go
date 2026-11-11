@@ -18,7 +18,6 @@ func Catalog() []Method {
 		{"wechat", "微信支付", "wechat", []string{"manual", "wechat"}},
 		{"paypal", "PayPal", "paypal", []string{"manual"}},
 		{"wire", "国际电汇", "wire", []string{"manual"}},
-		{"usdt", "USDT", "usdt", []string{"manual", "nowpayments", "evm_wallet"}},
 		{"kvoucher", "KVoucher", "", []string{"kvoucher"}},
 	}
 }
@@ -47,3 +46,12 @@ type Identity struct {
 }
 
 func (Identity) TableName() string { return "payment_method_identities" }
+
+func supportedPayout(kind string) bool {
+	for _, m := range Catalog() {
+		if m.PayoutKind != "" && m.PayoutKind == kind {
+			return true
+		}
+	}
+	return false
+}

@@ -3367,22 +3367,6 @@
     "ms": "Salin alamat",
     "th": "คัดลอกที่อยู่"
   },
-  "准确代币合约": {
-    "en": "Exact token contract",
-    "ja": "正確なトークンコントラクト",
-    "ru": "Точный контракт токена",
-    "hi": "सटीक टोकन अनुबंध",
-    "ms": "Kontrak token tepat",
-    "th": "สัญญาโทเคนที่แน่นอน"
-  },
-  "复制代币合约": {
-    "en": "Copy token contract",
-    "ja": "トークンコントラクトをコピー",
-    "ru": "Скопировать контракт токена",
-    "hi": "टोकन अनुबंध कॉपी करें",
-    "ms": "Salin kontrak token",
-    "th": "คัดลอกสัญญาโทเคน"
-  },
   "核对币种、网络、地址及足额要求后再转账；发送手续费由付款方承担。交易哈希只作核实线索，错币、错网或确认不足不会自动记账。": {
     "en": "Verify the currency, network, address and full amount before transferring. The payer covers transfer fees. A transaction hash is only a verification clue; incorrect currency, network or insufficient confirmations do not credit automatically.",
     "ja": "通貨、ネットワーク、アドレス、必要全額を確認して送金してください。送金手数料は支払者負担です。取引ハッシュは確認の手掛かりにすぎず、通貨・ネットワークの誤りや確認不足では自動反映されません。",
@@ -5319,14 +5303,6 @@
     "ms": "WeChat Pay",
     "th": "WeChat Pay"
   },
-  "链上钱包付款": {
-    "en": "On-chain wallet payment",
-    "ja": "オンチェーンウォレット決済",
-    "ru": "Оплата кошельком в блокчейне",
-    "hi": "ऑन-चेन वॉलेट भुगतान",
-    "ms": "Pembayaran dompet pada rantaian",
-    "th": "ชำระด้วยกระเป๋าบนเชน"
-  },
   "人工核实付款": {
     "en": "Manually verified payment",
     "ja": "手動確認の支払",
@@ -5823,30 +5799,6 @@
     "ms": "Rangkaian",
     "th": "เครือข่าย"
   },
-  "必须与钱包地址的网络一致。": {
-    "en": "Must match the wallet address network.",
-    "ja": "ウォレットアドレスのネットワークと一致させてください。",
-    "ru": "Должна совпадать с сетью адреса кошелька.",
-    "hi": "वॉलेट पते के नेटवर्क से मेल खाना चाहिए।",
-    "ms": "Mesti sepadan dengan rangkaian alamat dompet.",
-    "th": "ต้องตรงกับเครือข่ายของที่อยู่กระเป๋า"
-  },
-  "钱包地址": {
-    "en": "Wallet address",
-    "ja": "ウォレットアドレス",
-    "ru": "Адрес кошелька",
-    "hi": "वॉलेट पता",
-    "ms": "Alamat dompet",
-    "th": "ที่อยู่กระเป๋า"
-  },
-  "填写所选网络上的 USDT 地址。选错网络可能导致无法到账。": {
-    "en": "Enter the USDT address on the selected network. The wrong network can make the funds unrecoverable.",
-    "ja": "選択したネットワークの USDT アドレスを入力してください。ネットワークを誤ると着金できないことがあります。",
-    "ru": "Укажите адрес USDT в выбранной сети. Неверная сеть может сделать перевод недоступным.",
-    "hi": "चुने गए नेटवर्क का USDT पता दर्ज करें। गलत नेटवर्क से निधि वापस न मिल सके।",
-    "ms": "Masukkan alamat USDT pada rangkaian yang dipilih. Rangkaian yang salah boleh menyebabkan dana tidak dapat dipulihkan.",
-    "th": "ระบุที่อยู่ USDT บนเครือข่ายที่เลือก เครือข่ายที่ผิดอาจทำให้เรียกเงินคืนไม่ได้"
-  },
   "客户需填写与银行卡一致的户名、开户银行、卡号和开户支行。跨行或对公转账通常要靠支行名称入账。": {
     "en": "The customer must enter the account name, bank, card number, and branch that match the card. Cross-bank or business transfers usually rely on the branch name.",
     "ja": "顧客はカードと一致する名義、銀行、カード番号、支店を入力します。他行または法人口座への送金では通常、支店名が必要です。",
@@ -5886,13 +5838,5 @@
     "hi": "अंतरराष्ट्रीय वायर के लिए प्राप्तकर्ता का अंग्रेज़ी नाम, बैंक, खाता संख्या या IBAN, SWIFT/BIC, बैंक स्थान और पता आवश्यक हैं।",
     "ms": "Pindahan kawat antarabangsa memerlukan nama bahasa Inggeris penerima, bank, nombor akaun atau IBAN, SWIFT/BIC, lokasi bank dan alamat.",
     "th": "การโอนเงินระหว่างประเทศต้องใช้ชื่อภาษาอังกฤษของผู้รับ ธนาคาร หมายเลขบัญชีหรือ IBAN, SWIFT/BIC ที่ตั้งธนาคาร และที่อยู่"
-  },
-  "客户需选择 USDT 网络并填写该网络上的钱包地址。网络和地址不一致可能导致无法到账。": {
-    "en": "The customer chooses the USDT network and enters a wallet address on that network. A mismatch can make the funds unrecoverable.",
-    "ja": "顧客は USDT のネットワークを選び、そのアドレスを入力します。不一致だと着金できないことがあります。",
-    "ru": "Клиент выбирает сеть USDT и адрес в этой сети. Несовпадение может сделать перевод недоступным.",
-    "hi": "ग्राहक USDT नेटवर्क चुनकर उसी नेटवर्क का वॉलेट पता दर्ज करता है। मेल न होने पर निधि वापस न मिल सके।",
-    "ms": "Pelanggan memilih rangkaian USDT dan memasukkan alamat dompet pada rangkaian itu. Ketidakpadanan boleh menyebabkan dana tidak dapat dipulihkan.",
-    "th": "ลูกค้าเลือกเครือข่าย USDT และระบุที่อยู่กระเป๋าบนเครือข่ายนั้น หากไม่ตรงกันอาจทำให้เรียกเงินคืนไม่ได้"
   }
 }

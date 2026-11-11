@@ -33,7 +33,8 @@ type Money struct {
 }
 
 func (m Money) Validate() error {
-	if m.Currency == "" || m.Currency != strings.ToUpper(m.Currency) || m.Amount.Sign() <= 0 || !m.Amount.Valid() {
+	_, supported := fiatMinorDigits(m.Currency)
+	if !supported || m.Currency != strings.ToUpper(m.Currency) || m.Amount.Sign() <= 0 || !m.Amount.Valid() {
 		return ErrInvalid
 	}
 	return nil
@@ -101,39 +102,33 @@ func nativeValue(m Money, evidence string) MoneyValue {
 }
 
 type Merchant struct {
-	PaymentMethodID       string            `json:"payment_method_id,omitempty"`
-	ID                    string            `json:"id"`
-	OperatorID            string            `json:"operator_id"`
-	Driver                string            `json:"driver"`
-	Enabled               bool              `json:"enabled"`
-	Version               uint64            `json:"version"`
-	AssetNetworkVersionID string            `json:"asset_network_version_id,omitempty"`
-	Credentials           map[string]string `json:"-"`
+	PaymentMethodID string            `json:"payment_method_id,omitempty"`
+	ID              string            `json:"id"`
+	OperatorID      string            `json:"operator_id"`
+	Driver          string            `json:"driver"`
+	Enabled         bool              `json:"enabled"`
+	Version         uint64            `json:"version"`
+	Credentials     map[string]string `json:"-"`
 	// APIBaseURL is platform-controlled. Production accepts official endpoints;
 	// the transport's explicit test option permits isolated loopback mocks.
 	APIBaseURL string `json:"api_base_url,omitempty"`
 }
 type Order struct {
-	FeeQuote              *paymentmethods.Quote `json:"fee_quote,omitempty"`
-	ProviderPriceMoney    *Money                `json:"provider_price_money,omitempty"`
-	PaymentQuote          *PaymentQuote         `json:"payment_quote,omitempty"`
-	ID                    string                `json:"id"`
-	ContextKind           string                `json:"context_kind,omitempty"`
-	OperatorID            string                `json:"operator_id"`
-	MerchantID            string                `json:"merchant_id"`
-	Money                 Money                 `json:"money"`
-	SettlementMoney       Money                 `json:"settlement_money"`
-	Valuation             Valuation             `json:"settlement_confirmation,omitempty"`
-	AcceptedAt            time.Time             `json:"accepted_at"`
-	ExpiresAt             time.Time             `json:"expires_at"`
-	NotifyURL             string                `json:"notify_url"`
-	Description           string                `json:"description"`
-	ProviderID            string                `json:"provider_id,omitempty"`
-	PaymentDriver         string                `json:"payment_driver,omitempty"`
-	AssetNetworkVersionID string                `json:"asset_network_version_id,omitempty"`
-	Network               string                `json:"network,omitempty"`
-	TokenContract         string                `json:"token_contract,omitempty"`
-	MinimumConfirmations  string                `json:"minimum_confirmations,omitempty"`
+	FeeQuote        *paymentmethods.Quote `json:"fee_quote,omitempty"`
+	PaymentQuote    *PaymentQuote         `json:"payment_quote,omitempty"`
+	ID              string                `json:"id"`
+	ContextKind     string                `json:"context_kind,omitempty"`
+	OperatorID      string                `json:"operator_id"`
+	MerchantID      string                `json:"merchant_id"`
+	Money           Money                 `json:"money"`
+	SettlementMoney Money                 `json:"settlement_money"`
+	Valuation       Valuation             `json:"settlement_confirmation,omitempty"`
+	AcceptedAt      time.Time             `json:"accepted_at"`
+	ExpiresAt       time.Time             `json:"expires_at"`
+	NotifyURL       string                `json:"notify_url"`
+	Description     string                `json:"description"`
+	ProviderID      string                `json:"provider_id,omitempty"`
+	PaymentDriver   string                `json:"payment_driver,omitempty"`
 	// Stripe off-session execution additionally requires a separately saved
 	// business authorization reference. It is never implied by a saved method.
 	PaymentMethod   string `json:"-"`

@@ -35,184 +35,6 @@
     "permission": "payments.manage"
   },
   {
-    "resource": "payment-assets",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "name": "asset_id",
-        "label": "已有组合（首次留空）",
-        "kind": "text"
-      },
-      {
-        "name": "driver",
-        "label": "收款协议",
-        "kind": "select",
-        "required": true,
-        "options": [
-          {
-            "label": "自有EVM钱包",
-            "value": "evm_wallet"
-          },
-          {
-            "label": "NOWPayments",
-            "value": "nowpayments"
-          }
-        ]
-      },
-      {
-        "name": "asset",
-        "label": "准确资产代码（NOW须用完整provider代码）",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "network",
-        "label": "明确网络（EVM为十进制Chain ID）",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "token_contract",
-        "label": "已核实代币合约",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "token_decimals",
-        "label": "代币小数位数",
-        "kind": "integer",
-        "required": true
-      },
-      {
-        "name": "minimum_confirmations",
-        "label": "最少链上确认数",
-        "kind": "integer",
-        "required": true
-      },
-      {
-        "name": "enabled",
-        "label": "允许新的收款",
-        "kind": "boolean",
-        "required": true,
-        "default_value": true
-      },
-      {
-        "name": "effective_at",
-        "label": "本版本生效时间",
-        "kind": "datetime",
-        "required": true
-      },
-      {
-        "name": "evidence_reference",
-        "label": "资产/网络/合约官方核实依据",
-        "kind": "textarea",
-        "required": true
-      },
-      {
-        "name": "expected_version",
-        "label": "当前版本",
-        "kind": "hidden",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "发布支持的资产与网络",
-    "method": "POST",
-    "name": "publish",
-    "path": "/v1/operators/{operatorId}/payment-assets",
-    "permission": "providers.manage"
-  },
-  {
-    "resource": "payment-assets",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "name": "asset_id",
-        "label": "已有组合（首次留空）",
-        "kind": "hidden"
-      },
-      {
-        "name": "driver",
-        "label": "收款协议",
-        "kind": "select",
-        "required": true,
-        "options": [
-          {
-            "label": "自有EVM钱包",
-            "value": "evm_wallet"
-          },
-          {
-            "label": "NOWPayments",
-            "value": "nowpayments"
-          }
-        ]
-      },
-      {
-        "name": "asset",
-        "label": "准确资产代码（NOW须用完整provider代码）",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "network",
-        "label": "明确网络（EVM为十进制Chain ID）",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "token_contract",
-        "label": "已核实代币合约",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "token_decimals",
-        "label": "代币小数位数",
-        "kind": "integer",
-        "required": true
-      },
-      {
-        "name": "minimum_confirmations",
-        "label": "最少链上确认数",
-        "kind": "integer",
-        "required": true
-      },
-      {
-        "name": "enabled",
-        "label": "允许新的收款",
-        "kind": "boolean",
-        "required": true,
-        "default_value": true
-      },
-      {
-        "name": "effective_at",
-        "label": "本版本生效时间",
-        "kind": "datetime",
-        "required": true
-      },
-      {
-        "name": "evidence_reference",
-        "label": "资产/网络/合约官方核实依据",
-        "kind": "textarea",
-        "required": true
-      },
-      {
-        "name": "expected_version",
-        "label": "当前版本",
-        "kind": "hidden",
-        "required": true
-      }
-    ],
-    "include_version": true,
-    "label": "发布此组合新版本",
-    "method": "POST",
-    "name": "publish_version",
-    "path": "/v1/operators/{operatorId}/payment-assets",
-    "permission": "providers.manage"
-  },
-  {
     "resource": "gifts",
     "confirmation": "确认向所选客户发放这笔赠送额度？",
     "description": "",
@@ -453,11 +275,6 @@
         "name": "verification_evidence",
         "label": "收款说明或凭证（可选）",
         "kind": "textarea"
-      },
-      {
-        "name": "network",
-        "label": "原网络（链上收款时填写）",
-        "kind": "text"
       }
     ],
     "include_version": false,
@@ -1398,31 +1215,6 @@
     "method": "POST",
     "name": "query_payment",
     "path": "/v1/operators/{operatorId}/procurement/{id}/query_payment",
-    "permission": "cooperation.manage"
-  },
-  {
-    "resource": "procurement",
-    "confirmation": "",
-    "description": "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。",
-    "fields": [
-      {
-        "name": "transaction_hash",
-        "label": "实际交易Hash（仅查找线索）",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "log_index",
-        "label": "目标Transfer事件索引（十六进制）",
-        "kind": "text",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "提交链上付款查找线索",
-    "method": "POST",
-    "name": "wallet_receipt",
-    "path": "/v1/operators/{operatorId}/procurement/{id}/wallet_receipt",
     "permission": "cooperation.manage"
   },
   {
@@ -2654,25 +2446,21 @@
     "description": "",
     "fields": [
       {
-        "kind": "text",
-        "label": "准确退款网络（银行填bank，EVM填十进制Chain ID）",
+        "kind": "hidden",
+        "label": "网络",
         "name": "destination.network",
-        "required": true
+        "required": true,
+        "default_value": "bank"
       },
       {
         "kind": "text",
-        "label": "原收款准确币种或资产代码",
+        "label": "付款币种",
         "name": "destination.asset",
         "required": true
       },
       {
         "kind": "text",
-        "label": "代币合约（银行留空）",
-        "name": "destination.token_contract"
-      },
-      {
-        "kind": "text",
-        "label": "本人明确指定接收地址或银行账户凭证",
+        "label": "收款信息",
         "name": "destination.address",
         "required": true
       },
@@ -2715,157 +2503,6 @@
     "fields": [
       {
         "kind": "text",
-        "label": "实际退款交易哈希",
-        "name": "evm.transaction_hash",
-        "required": true
-      },
-      {
-        "kind": "text",
-        "label": "真实ERC20 Transfer日志索引（0x）",
-        "name": "evm.log_index",
-        "required": true
-      },
-      {
-        "kind": "textarea",
-        "label": "本次链上查验依据",
-        "name": "verification_evidence",
-        "required": true
-      },
-      {
-        "name": "settlement_amount",
-        "label": "本次已核实清偿金额（结算币种，跨币必填）",
-        "kind": "decimal",
-        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
-      },
-      {
-        "name": "settlement_evidence",
-        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
-        "kind": "textarea"
-      }
-    ],
-    "include_version": false,
-    "label": "只读核实已执行链上退款",
-    "method": "POST",
-    "name": "verify_evm",
-    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_evm",
-    "permission": "refunds.manage"
-  },
-  {
-    "resource": "refunds",
-    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
-    "description": "",
-    "fields": [
-      {
-        "kind": "text",
-        "label": "实际外部退款唯一流水",
-        "name": "external.external_reference",
-        "required": true
-      },
-      {
-        "kind": "text",
-        "label": "原准确资产代码",
-        "name": "external.money.currency",
-        "required": true
-      },
-      {
-        "kind": "decimal",
-        "label": "实际退回原币种金额",
-        "name": "external.money.amount",
-        "required": true
-      },
-      {
-        "kind": "datetime",
-        "label": "实际执行时刻",
-        "name": "external.executed_at",
-        "required": true
-      },
-      {
-        "kind": "textarea",
-        "label": "外部执行真实凭据",
-        "name": "external.evidence_reference",
-        "required": true
-      },
-      {
-        "kind": "textarea",
-        "label": "本次收款地址及事实查验依据",
-        "name": "verification_evidence",
-        "required": true
-      },
-      {
-        "name": "settlement_amount",
-        "label": "本次已核实清偿金额（结算币种，跨币必填）",
-        "kind": "decimal",
-        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
-      },
-      {
-        "name": "settlement_evidence",
-        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
-        "kind": "textarea"
-      }
-    ],
-    "include_version": false,
-    "label": "登记NOWPayments外部已核实退款",
-    "method": "POST",
-    "name": "verify_external",
-    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_external",
-    "permission": "refunds.manage"
-  },
-  {
-    "resource": "refunds",
-    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
-    "description": "",
-    "fields": [
-      {
-        "kind": "text",
-        "label": "当前责任经营方独立配置的付款商户",
-        "lookup_url": "/api/v1/operators/{operatorId}/references/merchants",
-        "name": "merchant_id",
-        "required": true
-      },
-      {
-        "kind": "text",
-        "label": "本责任方实际退款交易哈希",
-        "name": "evm.transaction_hash",
-        "required": true
-      },
-      {
-        "kind": "text",
-        "label": "真实Transfer日志索引（0x）",
-        "name": "evm.log_index",
-        "required": true
-      },
-      {
-        "kind": "textarea",
-        "label": "本次链上核实依据",
-        "name": "verification_evidence",
-        "required": true
-      },
-      {
-        "name": "settlement_amount",
-        "label": "本次已核实清偿金额（结算币种，跨币必填）",
-        "kind": "decimal",
-        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
-      },
-      {
-        "name": "settlement_evidence",
-        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
-        "kind": "textarea"
-      }
-    ],
-    "include_version": false,
-    "label": "责任方自身钱包：只读核实实际链上退款",
-    "method": "POST",
-    "name": "verify_responsible_evm",
-    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_responsible_evm",
-    "permission": "refunds.manage"
-  },
-  {
-    "resource": "refunds",
-    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
-    "description": "",
-    "fields": [
-      {
-        "kind": "text",
         "label": "当前责任经营方独立配置的付款商户",
         "lookup_url": "/api/v1/operators/{operatorId}/references/merchants",
         "name": "merchant_id",
@@ -2879,74 +2516,7 @@
       },
       {
         "kind": "text",
-        "label": "实际原币种或准确资产代码",
-        "name": "external.money.currency",
-        "required": true
-      },
-      {
-        "kind": "decimal",
-        "label": "本次实际原币金额",
-        "name": "external.money.amount",
-        "required": true
-      },
-      {
-        "kind": "datetime",
-        "label": "真实执行时刻",
-        "name": "external.executed_at",
-        "required": true
-      },
-      {
-        "kind": "textarea",
-        "label": "实际已执行凭据",
-        "name": "external.evidence_reference",
-        "required": true
-      },
-      {
-        "kind": "textarea",
-        "label": "本次接收目的地与执行事实核实依据",
-        "name": "verification_evidence",
-        "required": true
-      },
-      {
-        "name": "settlement_amount",
-        "label": "本次已核实清偿金额（结算币种，跨币必填）",
-        "kind": "decimal",
-        "help": "只确认这笔真实付款对应的清偿金额。同币直接按实际付款金额清偿；跨币不能按1:1自动入账。"
-      },
-      {
-        "name": "settlement_evidence",
-        "label": "本笔付款与清偿金额关联凭证（跨币必填）",
-        "kind": "textarea"
-      }
-    ],
-    "include_version": false,
-    "label": "责任方自身NOW：登记外部实际退款",
-    "method": "POST",
-    "name": "verify_responsible_external",
-    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_responsible_external",
-    "permission": "refunds.manage"
-  },
-  {
-    "resource": "refunds",
-    "confirmation": "核实本次原币真实付款与清偿金额依据；原退款责任保持不变，未知结果只查询原交易，不重复付款。",
-    "description": "",
-    "fields": [
-      {
-        "kind": "text",
-        "label": "当前责任经营方独立配置的付款商户",
-        "lookup_url": "/api/v1/operators/{operatorId}/references/merchants",
-        "name": "merchant_id",
-        "required": true
-      },
-      {
-        "kind": "text",
-        "label": "实际付款唯一流水",
-        "name": "external.external_reference",
-        "required": true
-      },
-      {
-        "kind": "text",
-        "label": "实际原币种或准确资产代码",
+        "label": "付款币种",
         "name": "external.money.currency",
         "required": true
       },
@@ -4205,10 +3775,6 @@
             "label": "国际电汇"
           },
           {
-            "value": "usdt",
-            "label": "USDT"
-          },
-          {
             "value": "kvoucher",
             "label": "KVoucher"
           }
@@ -4241,11 +3807,6 @@
         "name": "credentials",
         "label": "接入资料",
         "kind": "json"
-      },
-      {
-        "name": "asset_network_version_id",
-        "label": "收款资产与网络",
-        "kind": "text"
       },
       {
         "name": "fee_mode",
@@ -4339,10 +3900,6 @@
             "label": "国际电汇"
           },
           {
-            "value": "usdt",
-            "label": "USDT"
-          },
-          {
             "value": "kvoucher",
             "label": "KVoucher"
           }
@@ -4375,11 +3932,6 @@
         "name": "credentials",
         "label": "接入资料",
         "kind": "json"
-      },
-      {
-        "name": "asset_network_version_id",
-        "label": "收款资产与网络",
-        "kind": "text"
       },
       {
         "name": "fee_mode",

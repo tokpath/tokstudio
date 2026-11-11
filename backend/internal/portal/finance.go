@@ -23,7 +23,6 @@ type manualReceiptInput struct {
 	SettlementAmount     ledger.Decimal  `json:"settlement_amount"`
 	Currency             string          `json:"currency"`
 	OriginalAmount       string          `json:"original_amount"`
-	Network              string          `json:"network"`
 	RecipientReference   string          `json:"recipient_reference"`
 	PayerReference       string          `json:"payer_reference"`
 	SettlementEvidence   string          `json:"settlement_evidence"`
@@ -72,7 +71,7 @@ func (in manualReceiptInput) verified(operator, settlementCurrency string) (comm
 	if e != nil || amount.Sign() <= 0 || evidence == "" {
 		return commerce.VerifiedReceipt{}, commerce.ErrInvalidInput
 	}
-	fact := commerce.VerifiedReceipt{OperatorID: operator, ProviderReceiptID: in.ProviderReceiptID, GrossMoney: gross, Currency: currency, OriginalAmount: original, Network: in.Network, RecipientReference: in.RecipientReference, PayerReference: in.PayerReference, ValuationEvidence: evidence, VerificationEvidence: in.VerificationEvidence, PaidAt: in.PaidAt, FeeStatus: "pending", OriginalFeeAmount: in.OriginalFeeAmount}
+	fact := commerce.VerifiedReceipt{OperatorID: operator, ProviderReceiptID: in.ProviderReceiptID, GrossMoney: gross, Currency: currency, OriginalAmount: original, RecipientReference: in.RecipientReference, PayerReference: in.PayerReference, ValuationEvidence: evidence, VerificationEvidence: in.VerificationEvidence, PaidAt: in.PaidAt, FeeStatus: "pending", OriginalFeeAmount: in.OriginalFeeAmount}
 	if in.OriginalFeeAmount != nil {
 		if in.OriginalFeeAmount.Sign() < 0 || !in.OriginalFeeAmount.Valid() || in.OriginalFeeAmount.Cmp(amount) > 0 {
 			return fact, commerce.ErrInvalidInput
@@ -105,8 +104,8 @@ func manualReceiptFields() []field {
 	gross := f("settlement_amount", "已核实收款总额（结算币种，含支付手续费）", "decimal")
 	gross.Help = "填写付款人本次实际支付的总额。关联订单后，系统按付款时固定的规则区分订单本金和支付手续费，套餐、采购或充值权益只按本金交付。"
 	original := f("original_amount", "实际原币收款总额", "decimal")
-	original.Help = "记录真实收款币种与金额；付款人在外部自行支付的发送费或链上手续费不计入。"
-	return []field{optional("order_id", "关联订单（可选）", "text"), optional("provider_receipt_id", "收款流水或收据号（可选）", "text"), f("currency", "真实收款币种", "text"), original, gross, f("settlement_evidence", "本笔交易与订单清算金额的核实依据", "textarea"), optional("recipient_reference", "收款方资料（可选）", "text"), optional("payer_reference", "付款方资料（可选）", "text"), f("paid_at", "真实付款时刻", "datetime"), optional("verification_evidence", "收款说明或凭证（可选）", "textarea"), optional("network", "原网络（链上收款时填写）", "text")}
+	original.Help = "记录真实收款币种与金额；付款人在外部自行支付的转账手续费不计入。"
+	return []field{optional("order_id", "关联订单（可选）", "text"), optional("provider_receipt_id", "收款流水或收据号（可选）", "text"), f("currency", "真实收款币种", "text"), original, gross, f("settlement_evidence", "本笔交易与订单清算金额的核实依据", "textarea"), optional("recipient_reference", "收款方资料（可选）", "text"), optional("payer_reference", "付款方资料（可选）", "text"), f("paid_at", "真实付款时刻", "datetime"), optional("verification_evidence", "收款说明或凭证（可选）", "textarea")}
 }
 
 func (a *Application) allocateWholeRetailReceipt(ctx context.Context, tx *gorm.DB, actor, operator, receiptID, orderID, businessKey string) (commerce.Allocation, error) {

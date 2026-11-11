@@ -66,7 +66,6 @@ func (a *Application) customerRoutes(r *gin.RouterGroup) {
 	r.POST("/orders/:id/reconcile", a.reconcileOrder)
 	r.POST("/orders/:id/cancel", a.cancelOrder)
 	r.POST("/orders/:id/payment-method", a.replacePaymentMethod)
-	r.POST("/orders/:id/wallet-receipts", a.customerWalletReceipt)
 	r.GET("/requests", a.requests)
 	r.GET("/requests/:id", a.requestDetail)
 	r.GET("/requests/:id/result", a.requestResult)
@@ -165,9 +164,6 @@ func (a *Application) publicContext(c *gin.Context) {
 		kind := "online"
 		if m.Driver == "manual" {
 			kind = "offline"
-		}
-		if m.Driver == "nowpayments" || m.Driver == "evm_wallet" {
-			kind = "stablecoin"
 		}
 		pm = append(pm, gin.H{"id": m.ID, "name": m.Driver, "display_name": paymentMethodName(c, m), "fee_rule_id": m.FeeRuleID, "flat_fee_money": m.FlatFeeMoney, "fee_rate": m.FeeRate, "settlement_supported": m.SettlementSupported, "unsupported_reason": m.UnsupportedReason, "kind": kind, "status": "ready", "currency": m.Currency, "instructions": m.Instructions})
 	}

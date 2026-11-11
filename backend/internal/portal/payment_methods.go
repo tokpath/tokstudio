@@ -52,13 +52,12 @@ func (a *Application) paymentMethodRules(c *gin.Context, op organization.Operato
 			m, err := a.Payments.Merchant(c.Request.Context(), op.ID, merchantID)
 			if err == nil {
 				v["driver"] = m.Driver
-				v["asset_network_version_id"] = m.AssetNetworkVersionID
 				if r.Kind == "" {
 					v["method_kind"] = inferredMethodKind(m.Driver, r.PayoutKind)
 				}
 				safe := gin.H{}
 				for _, material := range paymentMaterials {
-					if contains(material.Drivers, m.Driver) && !contains([]string{"secret_key", "webhook_secret", "app_private_key", "merchant_api_private_key", "api_v3_key", "api_key", "ipn_secret", "kvoucher_api_key", "kvoucher_api_secret"}, material.Key) {
+					if contains(material.Drivers, m.Driver) && !contains([]string{"secret_key", "webhook_secret", "app_private_key", "merchant_api_private_key", "api_v3_key", "kvoucher_api_key", "kvoucher_api_secret"}, material.Key) {
 						safe[material.Key] = m.Credentials[material.Key]
 					}
 				}
@@ -174,8 +173,6 @@ func inferredMethodKind(driver, payout string) string {
 		return "stripe"
 	case "alipay", "wechat", "kvoucher":
 		return driver
-	case "nowpayments", "evm_wallet":
-		return "usdt"
 	}
 	if payout == "bank_cn" {
 		return "bank_transfer"

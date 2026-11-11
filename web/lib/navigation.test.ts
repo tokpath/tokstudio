@@ -8,13 +8,15 @@ describe("task navigation and organization boundaries", () => {
   });
   it("keeps every established operator capability reachable once without duplicate risk or content storage settings", () => {
     const resources = operatorNav.flatMap(section => section.items.map(([resource]) => resource));
-    expect(resources).toHaveLength(41);
-    expect(new Set(resources).size).toBe(41);
+    expect(resources).toHaveLength(40);
+    expect(new Set(resources).size).toBe(40);
     expect(resources).not.toContain("withdrawals");
     expect(resources).not.toContain("procurement-invoices");
     expect(resources).toContain("routes");
     expect(resources).toContain("payment-quotes");
     expect(resources).not.toContain("audit");
+    expect(resources).not.toContain("payment-assets");
+    for(const kind of ["platform","oem","channel"]) expect(canReadResource({operator:{kind},permissions:["*"]},"payment-assets")).toBe(false);
     expect(sectionForResource(operatorNav,"payment-quotes")?.id).toBe("technology");
     for(const kind of ["platform","oem","channel"]) expect(canReadResource({operator:{kind},permissions:["*"]},"audit")).toBe(false);
     for(const kind of ["oem","channel"]) expect(canReadResource({operator:{kind},permissions:["*"]},"payment-quotes")).toBe(false);

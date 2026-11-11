@@ -2,15 +2,14 @@ package payments
 
 import (
 	"fmt"
-	"strings"
 )
 
 // SettlementSupport describes the implemented provider capability. Cross-currency
-// manual/wallet payments need an independently confirmed amount after receipt.
+// manual payments need an independently confirmed amount after receipt.
 func SettlementSupport(m Merchant, currency string) (bool, string) {
 	supported := false
 	switch m.Driver {
-	case "manual", "evm_wallet":
+	case "manual":
 		supported = true
 	case "stripe":
 		_, supported = fiatMinorDigits(currency)
@@ -21,9 +20,6 @@ func SettlementSupport(m Merchant, currency string) (bool, string) {
 	case "kvoucher":
 		// Gkash collects MYR; foreign settlement obligations use a pinned
 		// per-payment quote without changing the verified receipt currency.
-		_, supported = fiatMinorDigits(currency)
-	case "nowpayments":
-		// Other fiat obligations use a reference-priced provider invoice.
 		_, supported = fiatMinorDigits(currency)
 	}
 	if supported {
@@ -36,10 +32,6 @@ func merchantCurrency(m Merchant) string {
 	switch m.Driver {
 	case "stripe", "manual":
 		return m.Credentials["currency"]
-	case "evm_wallet":
-		return m.Credentials["asset"]
-	case "nowpayments":
-		return strings.ToUpper(m.Credentials["pay_currency"])
 	case "kvoucher":
 		return "MYR"
 	case "alipay", "wechat":

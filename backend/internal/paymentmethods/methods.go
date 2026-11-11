@@ -62,7 +62,22 @@ func Version(ctx context.Context, db *gorm.DB, op, id string) (Rule, error) {
 func List(ctx context.Context, db *gorm.DB, op string) ([]Rule, error) {
 	rows := []Rule{}
 	e := db.WithContext(ctx).Raw("SELECT * FROM (SELECT DISTINCT ON(method_id) * FROM payment_method_versions WHERE operator_id=? ORDER BY method_id,version DESC) m ORDER BY name,method_id", op).Scan(&rows).Error
-	return rows, e
+	if e != nil {
+		return rows, e
+	}
+	active := make([]Rule, 0, len(rows))
+	for _, r := range rows {
+		if r.Kind != "" {
+			if _, ok := Find(r.Kind); !ok {
+				continue
+			}
+		}
+		if r.PayoutKind != "" && !supportedPayout(r.PayoutKind) {
+			continue
+		}
+		active = append(active, r)
+	}
+	return active, nil
 }
 
 // Save requires the caller's authorization and transaction. The lock protects
@@ -80,6 +95,9 @@ func Save(ctx context.Context, tx *gorm.DB, r Rule, expected int64) (Rule, error
 	old, e := Current(ctx, tx, r.OperatorID, r.MethodID)
 	if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
 		return r, e
+	}
+	if r.PayoutKind != "" && !supportedPayout(r.PayoutKind) {
+		return r, ErrInvalid
 	}
 	if r.Kind != "" {
 		m, ok := Find(r.Kind)

@@ -257,24 +257,6 @@ func (a *Application) references(c *gin.Context) {
 			}
 			add(model.ID, model.ID, defaults)
 		}
-	case "payment-assets":
-		if customer || !require("payments.manage") {
-			return
-		}
-		rows, e := a.Payments.ListSupportedAssets(ctx)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		for _, r := range rows {
-			if c.Query("method_kind") == "usdt" && !payments.IsUSDTAsset(r.Asset) {
-				continue
-			}
-			if d := c.Query("driver"); d != "" && d != r.Driver {
-				continue
-			}
-			add(r.VersionID, r.Driver+" · "+r.Asset+" · 网络 "+r.Network+" · 合约 "+r.TokenContract, gin.H{"asset_network_version_id": r.VersionID, "driver": r.Driver})
-		}
 	case "scope-subjects":
 		if customer || !require("security.manage") {
 			return
@@ -539,7 +521,7 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		for _, r := range rows {
-			add(r.ID, humanJoin(r.Driver, map[bool]string{true: "已启用", false: "未启用"}[r.Enabled]), gin.H{"id": r.ID, "driver": r.Driver, "enabled": r.Enabled, "asset_network_version_id": r.AssetNetworkVersionID, "expected_version": r.Version})
+			add(r.ID, humanJoin(r.Driver, map[bool]string{true: "已启用", false: "未启用"}[r.Enabled]), gin.H{"id": r.ID, "driver": r.Driver, "enabled": r.Enabled, "expected_version": r.Version})
 		}
 	case "supplier-methods":
 		if customer {

@@ -212,8 +212,7 @@ func (s *Service) RecordManualRefund(ctx context.Context, actor, op, legID strin
 		if l.ExecutionMode != "manual" && !verifiedClosed {
 			return ErrState
 		}
-		// Chain/third-party stablecoin facts must come through the dedicated
-		// payment verifier. A staff JSON payload cannot assert RPC verification.
+		// Assumed obligations use the authorized responsible-payer verification path.
 		if required, e := s.externalDestinationRequired(ctx, t, l); e != nil {
 			return e
 		} else if required && !verifiedClosed {
@@ -341,6 +340,9 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 		}
 	}
 	amount, e := ledger.ParseDecimal(p.Amount)
+	if e == nil && (payments.Money{Currency: p.Currency, Amount: amount}).Validate() != nil {
+		return false, ErrInvalid
+	}
 	if e != nil || amount.Sign() <= 0 || p.BusinessKey == "" || len(p.BusinessKey) > 150 || p.Reference == "" || p.Evidence == "" || !validAmount(p.ActualMoney) || !p.FeeMoney.Valid() || p.FeeMoney.Sign() < 0 || (p.FeeStatus != "pending" && p.FeeStatus != "confirmed") || (p.FeeStatus == "pending" && !p.FeeMoney.IsZero()) || p.Currency == "" || p.Currency != strings.ToUpper(p.Currency) || p.OccurredAt.IsZero() {
 		return false, ErrInvalid
 	}
@@ -412,7 +414,7 @@ func (s *Service) recordPayment(ctx context.Context, t *gorm.DB, c *Case, l *Ref
 	}
 	if p.ExternalRefund != nil {
 		x := p.ExternalRefund
-		if e = t.Exec("INSERT INTO remediation_external_refund_observations(observation_id,authorization_id,network,asset,token_contract,address,transaction_hash,log_index,block_hash,sender_address,recipient_address,confirmations,verification_method,verified_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", observationID, x.Destination.AuthorizationReference, x.Destination.Network, x.Destination.Asset, x.Destination.TokenContract, x.Destination.Address, x.TransactionHash, x.LogIndex, x.BlockHash, x.SenderAddress, x.RecipientAddress, x.Confirmations, x.VerificationMethod, x.VerifiedBy, at).Error; e != nil {
+		if e = t.Exec("INSERT INTO remediation_external_refund_observations(observation_id,authorization_id,network,asset,token_contract,address,transaction_hash,log_index,block_hash,sender_address,recipient_address,confirmations,verification_method,verified_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", observationID, x.Destination.AuthorizationReference, x.Destination.Network, x.Destination.Asset, x.Destination.TokenContract, x.Destination.Address, "", "", "", x.SenderAddress, x.RecipientAddress, "", x.VerificationMethod, x.VerifiedBy, at).Error; e != nil {
 			return false, e
 		}
 	}

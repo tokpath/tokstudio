@@ -358,7 +358,7 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 			case ch.URL != "":
 				action = gin.H{"kind": "redirect", "url": ch.URL}
 			case ch.PaymentAddress != "":
-				action = gin.H{"kind": "stablecoin", "address": ch.PaymentAddress}
+				action = gin.H{"kind": "offline", "address": ch.PaymentAddress}
 			default:
 				action = gin.H{"kind": "offline"}
 			}
@@ -374,11 +374,6 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 			}
 			if err := a.simplifyOfflineAction(ctx, o.OperatorID, intent.Driver, ch.FeeQuote, action); err != nil {
 				return nil, err
-			}
-
-			action["network"], action["token_contract"] = intent.Network, intent.TokenContract
-			if intent.Driver == "evm_wallet" {
-				action["wallet_receipt_path"] = "/api/v1/me/orders/" + o.ID + "/wallet-receipts"
 			}
 			dto["payment_action"] = action
 		}

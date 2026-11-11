@@ -2,8 +2,6 @@ package remediation
 
 import (
 	"context"
-	"encoding/json"
-	"strings"
 
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
@@ -124,26 +122,7 @@ func (s *Service) validateAssumedDestination(ctx context.Context, t *gorm.DB, l 
 	if d.Asset != r.Currency {
 		return ErrConflict
 	}
-	if r.Provider == "evm_wallet" || strings.HasPrefix(r.Provider, "evm_wallet:") {
-		var evidence struct {
-			Network       string `json:"chain_id"`
-			TokenContract string `json:"token_contract"`
-		}
-		if json.Unmarshal([]byte(r.VerificationEvidence), &evidence) != nil || evidence.Network == "" || evidence.TokenContract == "" {
-			return ErrReview
-		}
-		expected, e := normalizeRefundDestination(RefundDestination{Network: evidence.Network, Asset: r.Currency, TokenContract: evidence.TokenContract, Address: d.Address})
-		if e != nil || d != expected {
-			return ErrConflict
-		}
-	} else if r.Provider == "nowpayments" || strings.HasPrefix(r.Provider, "nowpayments:") {
-		// Provider currency codes are preserved. The new payer's independently
-		// verified network/contract metadata and explicit consent must match;
-		// the old merchant is never decrypted to infer it.
-		if d.Network == "" || d.TokenContract == "" {
-			return ErrReview
-		}
-	} else if d.Network != "bank" || d.TokenContract != "" {
+	if d.Network != "bank" || d.TokenContract != "" {
 		return ErrConflict
 	}
 	return nil

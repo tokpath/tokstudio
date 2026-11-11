@@ -3599,14 +3599,6 @@
     "ms": "Jumlah disahkan",
     "th": "ตรวจสอบจำนวนแล้ว"
   },
-  "原网络（链上收款时填写）": {
-    "en": "Network (for on-chain receipts)",
-    "ja": "ネットワーク（オンチェーン入金のみ）",
-    "ru": "Сеть (для поступлений в блокчейне)",
-    "hi": "नेटवर्क (ऑन-चेन प्राप्तियों के लिए)",
-    "ms": "Rangkaian (untuk penerimaan pada rantaian)",
-    "th": "เครือข่าย (สำหรับรายการรับเงินบนเชน)"
-  },
   "关联原订单": {
     "en": "Link original order",
     "ja": "元の注文を関連付け",
@@ -4855,14 +4847,6 @@
     "ms": "Catatan pengesahan dan penilaian pembayaran",
     "th": "หมายเหตุการตรวจสอบการชำระเงินและการประเมินมูลค่า"
   },
-  "可补充现金收据、转账记录或经办说明；人工收款时没有材料可留空，系统仍记录经办人和登记时间。涉及链上或第三方通道核验时，按该通道的要求提供资料。": {
-    "en": "You may add a cash receipt, transfer record, or staff notes. Manual receipts can leave this blank; the system still records the staff member and time. Blockchain and third-party verification follow their own requirements.",
-    "ja": "現金領収書、振込記録、担当者の説明を任意で追加できます。手動入金登録では空欄でも担当者と登録時刻が記録されます。ブロックチェーン・外部決済の確認では各方式の要件に従ってください。",
-    "ru": "Можно добавить кассовую квитанцию, запись о переводе или пояснение сотрудника. При ручной регистрации поле можно оставить пустым: сотрудник и время всё равно записываются. Для блокчейна и сторонних сервисов действуют их требования.",
-    "hi": "आप नकद रसीद, हस्तांतरण रिकॉर्ड या कर्मचारी टिप्पणियाँ जोड़ सकते हैं। मैन्युअल प्राप्तियों में यह खाली छोड़ा जा सकता है; सिस्टम कर्मचारी और समय फिर भी दर्ज करता है। ब्लॉकचेन और तीसरे पक्ष का सत्यापन अपनी आवश्यकताओं का पालन करता है।",
-    "ms": "Anda boleh menambah resit tunai, rekod pemindahan atau catatan kakitangan. Penerimaan manual boleh membiarkan ini kosong; sistem masih merekodkan kakitangan dan masa. Pengesahan blockchain dan pihak ketiga mengikut keperluan masing-masing.",
-    "th": "คุณอาจเพิ่มใบเสร็จเงินสด บันทึกการโอน หรือหมายเหตุพนักงาน รายการรับเงินที่บันทึกด้วยตนเองสามารถเว้นว่างได้ ระบบยังคงบันทึกพนักงานและเวลา การตรวจสอบบล็อกเชนและบุคคลภายนอกเป็นไปตามข้อกำหนดของแต่ละวิธี"
-  },
   "按实际情况填写收付款方姓名、收款地点或账号；现金收款没有账号时可留空，无需编造银行资料。": {
     "en": "Enter the payer or recipient name, collection location, or account as applicable. Cash payments without an account can leave this blank; do not invent bank details.",
     "ja": "必要に応じて支払者・受取人名、受取場所、口座を入力してください。口座のない現金入金では空欄にでき、架空の銀行情報は不要です。",
@@ -5902,22 +5886,6 @@
     "hi": "हमारा प्राप्ति शुल्क अज्ञात हो तो “बाद में सत्यापित करें” चुनें; शुद्ध प्राप्ति अज्ञात रहेगी। शुल्क न हो तो “राशि सत्यापित” चुनें और 0 दर्ज करें।",
     "ms": "Pilih “Sahkan kemudian” jika fi penerimaan kami tidak diketahui; penerimaan bersih kekal tidak diketahui. Jika tiada fi, pilih “Jumlah disahkan” dan masukkan 0.",
     "th": "เลือก “ตรวจสอบภายหลัง” หากยังไม่ทราบค่าธรรมเนียมรับเงินของเรา ยอดรับสุทธิจะยังไม่ทราบ หากไม่มีค่าธรรมเนียมให้เลือก “ตรวจสอบจำนวนแล้ว” และป้อน 0"
-  },
-  "只填写当前收款经营方承担的收款手续费。付款人另付的转账费、链上手续费不填这里。确实没有己方手续费时填0；系统用收款总额减去此费用计算净到账金额，不减少订单交付额度。": {
-    "en": "Enter only the receipt fee borne by the current receiving operator. Exclude transfer or blockchain fees paid separately by the payer. Enter 0 if there is no fee. The system subtracts our fee from the gross receipt to calculate the net amount; order credits are unchanged.",
-    "ja": "現在の受取事業者が負担する入金手数料のみ入力します。支払人が別途支払う振込・ブロックチェーン手数料は含めません。当方の手数料がない場合は0を入力してください。総額から手数料を差し引いて差引入金額を計算し、注文の提供残高は減らしません。",
-    "ru": "Укажите только комиссию, которую несёт текущий получающий оператор. Отдельно оплаченные отправителем комиссии за перевод или блокчейн не включаются. Если нашей комиссии нет, введите 0. Система вычитает её из общей суммы; кредиты по заказу не уменьшаются.",
-    "hi": "केवल वर्तमान प्राप्तकर्ता संचालक द्वारा वहन किया प्राप्ति शुल्क दर्ज करें। भुगतानकर्ता द्वारा अलग दिए हस्तांतरण या ब्लॉकचेन शुल्क शामिल न करें। शुल्क न हो तो 0 दर्ज करें। सिस्टम शुद्ध राशि गणना के लिए सकल प्राप्ति से हमारा शुल्क घटाता है; ऑर्डर क्रेडिट अपरिवर्तित हैं।",
-    "ms": "Masukkan hanya fi penerimaan yang ditanggung oleh pengendali penerima semasa. Kecualikan fi pemindahan atau blockchain yang dibayar secara berasingan oleh pembayar. Masukkan 0 jika tiada fi. Sistem menolak fi kami daripada penerimaan kasar untuk mengira jumlah bersih; kredit pesanan tidak berubah.",
-    "th": "ป้อนเฉพาะค่าธรรมเนียมรับเงินที่ผู้ดำเนินงานผู้รับปัจจุบันรับผิดชอบ ไม่นับค่าธรรมเนียมโอนหรือบล็อกเชนที่ผู้ชำระเงินจ่ายแยก หากไม่มีค่าธรรมเนียมให้ป้อน 0 ระบบหักค่าธรรมเนียมของเราจากยอดรับรวมเพื่อคำนวณยอดสุทธิ เครดิตคำสั่งซื้อไม่เปลี่ยนแปลง"
-  },
-  "填写用于支付订单的收款总额，尚未扣除己方收款手续费。例如订单1000 结算币种、己方手续费10 结算币种、净到账990 结算币种，此处填1000；订单仍按1000 结算币种交付。付款人另付的转账费或链上手续费不计入。": {
-    "en": "Enter the gross receipt used to pay the order, before our receipt fee. For a 1000 settlement currency order with a 10 settlement currency fee and 990 settlement currency net receipt, enter 1000; delivery remains 1000 settlement currency. Exclude transfer or blockchain fees paid separately by the payer.",
-    "ja": "注文の支払いに充当する、当方の入金手数料控除前の総額を入力します。注文1000 決済通貨、当方手数料10 決済通貨、差引入金990 決済通貨なら1000を入力し、1000 決済通貨分を提供します。支払人が別途支払う振込・ブロックチェーン手数料は含めません。",
-    "ru": "Укажите сумму в оплату заказа до нашей комиссии. Для заказа на 1000 валюта расчётов с комиссией 10 валюта расчётов и чистым поступлением 990 валюта расчётов введите 1000; исполнение останется на 1000 валюта расчётов. Отдельные комиссии отправителя не включаются.",
-    "hi": "हमारे प्राप्ति शुल्क से पहले ऑर्डर भुगतान में उपयोग सकल प्राप्ति दर्ज करें। 10 निपटान मुद्रा शुल्क और 990 निपटान मुद्रा शुद्ध प्राप्ति वाले 1000 निपटान मुद्रा ऑर्डर के लिए 1000 दर्ज करें; डिलीवरी 1000 निपटान मुद्रा रहती है। भुगतानकर्ता द्वारा अलग दिए हस्तांतरण या ब्लॉकचेन शुल्क शामिल न करें।",
-    "ms": "Masukkan penerimaan kasar yang digunakan untuk membayar pesanan, sebelum fi penerimaan kami. Untuk pesanan 1000 mata wang penyelesaian dengan fi 10 mata wang penyelesaian dan penerimaan bersih 990 mata wang penyelesaian, masukkan 1000; penyerahan kekal 1000 mata wang penyelesaian. Kecualikan fi pemindahan atau blockchain yang dibayar secara berasingan oleh pembayar.",
-    "th": "ป้อนยอดรับรวมที่ใช้ชำระคำสั่งซื้อก่อนหักค่าธรรมเนียมรับเงินของเรา สำหรับคำสั่งซื้อ 1000 สกุลเงินที่ใช้ชำระบัญชี ค่าธรรมเนียม 10 สกุลเงินที่ใช้ชำระบัญชี และยอดรับสุทธิ 990 สกุลเงินที่ใช้ชำระบัญชี ให้ป้อน 1000 การส่งมอบยังคงเป็น 1000 สกุลเงินที่ใช้ชำระบัญชี ไม่นับค่าธรรมเนียมโอนหรือบล็อกเชนที่ผู้ชำระเงินจ่ายแยก"
   },
   "填写扣除己方收款手续费前的原币金额，不包含付款人另付的发送费用；折合结算币种的收款总额与本次估值依据分别填写。": {
     "en": "Enter the gross amount in the original currency before our receipt fee, excluding sending fees paid separately by the payer. Enter the settlement currency gross receipt and the current valuation evidence separately.",

@@ -208,7 +208,7 @@ function recordStatusLabels(resource: string) {
   if (resource === "withdrawals" || resource === "balance-withdrawals") return withdrawalStatusLabels;
   return undefined;
 }
-function resourceFilterStatusLabel(resource: string, status: string): string {
+export function resourceFilterStatusLabel(resource: string, status: string): string {
   if (["invoices","procurement-invoices"].includes(resource) && invoiceStatusLabels[status]) return invoiceStatusLabels[status];
   if ((resource === "withdrawals" || resource === "balance-withdrawals") && withdrawalStatusLabels[status]) return withdrawalStatusLabels[status];
   if (resource === "refunds" && refundStatusLabels[status]) return refundStatusLabels[status];

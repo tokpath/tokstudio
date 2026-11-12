@@ -10119,7 +10119,7 @@
             "name": "section",
             "in": "query",
             "required": false,
-            "description": "One returned section to paginate",
+            "description": "One returned section to paginate or filter. Required with cursor or filters.",
             "schema": {
               "type": "string"
             }
@@ -10128,9 +10128,56 @@
             "name": "cursor",
             "in": "query",
             "required": false,
-            "description": "Previous next_cursor",
+            "description": "Previous next_cursor for this section with the same filters",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Case-insensitive literal search of visible section fields, up to 200 characters",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Status value offered by the section",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "unit",
+            "in": "query",
+            "required": false,
+            "description": "Asset unit offered by the assets section",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive lower bound on the section date",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Exclusive upper bound on the section date",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
             }
           }
         ],
@@ -10270,7 +10317,7 @@
             "name": "cursor",
             "in": "query",
             "required": false,
-            "description": "Previous next_cursor",
+            "description": "Previous next_cursor for this section with the same filters",
             "schema": {
               "type": "string"
             }
@@ -45149,12 +45196,32 @@
                 },
                 "page": {
                   "$ref": "#/components/schemas/ResourcePage"
+                },
+                "filters": {
+                  "type": "object",
+                  "properties": {
+                    "statuses": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "units": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [],
+                  "additionalProperties": false
                 }
               },
               "required": [
                 "resource",
                 "title",
-                "page"
+                "page",
+                "filters"
               ],
               "additionalProperties": false
             }

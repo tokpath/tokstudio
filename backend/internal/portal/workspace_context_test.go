@@ -2,14 +2,23 @@ package portal
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/url"
+	"slices"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
+	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/remediation"
+	"github.com/tokpath/tokstudio/backend/internal/usage"
 )
 
 func TestPostgresStaffEditorPreservesCurrentCustomPermissions(t *testing.T) {
@@ -58,7 +67,10 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 	if err := f.a.DB.Exec("UPDATE organization_operator_statuses SET new_purchase=true WHERE operator_id=?", op).Error; err != nil {
 		t.Fatal(err)
 	}
+	oldest := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+	latest := oldest.Add(24 * time.Hour)
 	var order commerce.Order
+	var ownOrders []commerce.Order
 	for i := 0; i < 52; i++ {
 		cid := customer
 		if i == 51 {
@@ -72,13 +84,35 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		row.CreatedAt = latest
+		if i == 0 || i == 50 {
+			row.CreatedAt = oldest // Equal timestamps split across the two pages.
+		}
+		if err = f.a.DB.Exec("UPDATE commerce_orders SET created_at=? WHERE id=?", row.CreatedAt, row.ID).Error; err != nil {
+			t.Fatal(err)
+		}
+		if cid == customer {
+			ownOrders = append(ownOrders, row)
+		}
 		if i == 0 {
 			order = row
 		}
 	}
+	sort.Slice(ownOrders, func(i, j int) bool {
+		if ownOrders[i].CreatedAt.Equal(ownOrders[j].CreatedAt) {
+			return ownOrders[i].ID > ownOrders[j].ID
+		}
+		return ownOrders[i].CreatedAt.After(ownOrders[j].CreatedAt)
+	})
+	wantIDs := make([]string, len(ownOrders))
+	for i := range ownOrders {
+		wantIDs[i] = ownOrders[i].ID
+	}
+	fixtures := seedCustomerContextFilters(t, f, order, other, oldest)
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	scope := "/v1/operators/" + op
-	status, out, _ := f.call(t, "GET", scope+"/customer-context/"+customer, nil, "")
+	endpoint := scope + "/customer-context/" + customer
+	status, out, _ := f.call(t, "GET", endpoint, nil, "")
 	mustOK(t, status, out)
 	find := func(out map[string]any, resource string) map[string]any {
 		t.Helper()
@@ -92,20 +126,47 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 		return nil
 	}
 	orders := find(out, "orders")
-	items := orders["items"].([]any)
-	if len(items) != 50 {
-		t.Fatal("unbounded or short page", len(items))
-	}
-	for _, item := range items {
-		if item.(map[string]any)["values"].(map[string]any)["customer_id"] != customer {
-			t.Fatal("other customer record leaked")
+	ids := func(p map[string]any) []string {
+		var found []string
+		for _, item := range p["items"].([]any) {
+			found = append(found, item.(map[string]any)["id"].(string))
 		}
+		return found
+	}
+	if got := ids(orders); !slices.Equal(got, wantIDs[:50]) {
+		t.Fatalf("first page lost newest-first order or customer scope: %v", got)
 	}
 	cursor := orders["next_cursor"].(string)
-	status, out, _ = f.call(t, "GET", scope+"/customer-context/"+customer+"?section=orders&cursor="+cursor, nil, "")
+	status, out, _ = f.call(t, "GET", endpoint+"?section=orders&cursor="+cursor, nil, "")
 	mustOK(t, status, out)
-	if len(out["sections"].([]any)) != 1 || len(find(out, "orders")["items"].([]any)) != 1 {
-		t.Fatal("section pagination lost exact scope", out)
+	if len(out["sections"].([]any)) != 1 || !slices.Equal(ids(find(out, "orders")), wantIDs[50:]) {
+		t.Fatal("timestamp tie lost or repeated a row across pages", out)
+	}
+	dateFilters := url.Values{"section": {"orders"}, "q": {strings.ToUpper(wantIDs[50])}, "status": {"pending"}, "from": {oldest.Format(time.RFC3339)}, "to": {latest.Format(time.RFC3339)}}
+	status, out, _ = f.call(t, "GET", endpoint+"?"+dateFilters.Encode(), nil, "")
+	mustOK(t, status, out)
+	if !slices.Equal(ids(find(out, "orders")), wantIDs[50:]) {
+		t.Fatal("combined search did not find a record beyond the first page", out)
+	}
+	dateFilters.Set("q", "余额充值")
+	status, out, _ = f.call(t, "GET", endpoint+"?"+dateFilters.Encode(), nil, "")
+	mustOK(t, status, out)
+	if !slices.Equal(ids(find(out, "orders")), wantIDs[49:]) {
+		t.Fatal("date bounds did not include the start and exclude the end", out)
+	}
+	for _, fixture := range fixtures {
+		t.Run(fixture.query.Get("section"), func(t *testing.T) {
+			status, out, _ := f.call(t, "GET", endpoint+"?"+fixture.query.Encode(), nil, "")
+			mustOK(t, status, out)
+			if len(out["sections"].([]any)) != 1 || !slices.Equal(ids(find(out, fixture.query.Get("section"))), []string{fixture.id}) {
+				t.Fatalf("expected one matching record %s, got %v", fixture.id, out["sections"])
+			}
+		})
+	}
+	for _, query := range []string{"q=unscoped", "section=commissions&q=no", "section=orders&status=issued", "section=assets&unit=unsupported", "section=requests&to=invalid", "section=invoices&cursor=" + uuid.NewString(), "section=orders&from=2026-10-02T00:00:00Z&to=2026-10-01T00:00:00Z"} {
+		if status, _, _ := f.call(t, "GET", endpoint+"?"+query, nil, ""); status != 400 {
+			t.Fatalf("invalid filter accepted: %s: %d", query, status)
+		}
 	}
 	status, out, _ = f.call(t, "GET", scope+"/customers?q=context-b", nil, "")
 	mustOK(t, status, out)
@@ -148,6 +209,11 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 			t.Fatal("finance section leaked to support", s)
 		}
 	}
+	status, out, _ = f.call(t, "GET", endpoint+"?section=invoices&q=doc_100", nil, "")
+	mustOK(t, status, out)
+	if len(out["sections"].([]any)) != 0 {
+		t.Fatal("filtered request widened invoice read permission", out)
+	}
 	status, _, _ = f.call(t, "GET", scope+"/order-context/"+order.ID, nil, "")
 	if status == 200 {
 		t.Fatal("read-only customer permission opened financial order")
@@ -188,5 +254,71 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 	status, _, _ = f.call(t, "POST", scope+"/orders/"+order.ID+"/fulfill", map[string]any{}, uuid.NewString())
 	if status != 403 {
 		t.Fatal("finance acquired sales mutation authority", status)
+	}
+}
+
+type customerContextFilterFixture struct {
+	query url.Values
+	id    string
+}
+
+// These rows are read-only fixtures in the disposable test schema. The
+// workbench test is about exact relationships and filters, not creating funds.
+func seedCustomerContextFilters(t *testing.T, f *testApp, order commerce.Order, other string, at time.Time) []customerContextFilterFixture {
+	t.Helper()
+	db := f.a.DB
+	op, customer, brand := order.OperatorID, order.CustomerID, order.BrandID
+	insert := func(row any) {
+		t.Helper()
+		if err := db.Create(row).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	asset := ledger.Account{ID: uuid.NewString(), OperatorID: op, OwnerID: customer, Purpose: "customer:atg:synthetic-filter", Unit: "ATG", CreatedAt: at}
+	insert(&asset)
+	insert(&ledger.Account{ID: uuid.NewString(), OperatorID: op, OwnerID: customer, Purpose: "synthetic-filter-cash", Unit: ledger.MoneyUnit, CreatedAt: at})
+
+	key := usage.Key{ID: uuid.NewString(), CustomerID: customer, BrandID: brand, Kind: "api", Name: "synthetic fixture", Prefix: "synthetic", TokenHash: uuid.NewString(), Status: "active", Period: "lifetime", Timezone: "UTC", Version: 1, CreatedAt: at, UpdatedAt: at}
+	insert(&key)
+	request := usage.Request{ID: uuid.NewString(), CustomerID: customer, OperatorID: op, BrandID: brand, OwnershipVersion: order.OwnershipVersion, KeyID: key.ID, BusinessKey: "request-filter", Fingerprint: "synthetic", ModelID: "public-chat-filter", Operation: "chat", Status: "accepted", AcceptedAt: at, UsageDeadline: at.Add(time.Hour), WindowStart: at, SupplyHolds: json.RawMessage(`[]`), PriceSnapshot: json.RawMessage(`{}`), Candidates: json.RawMessage(`[]`)}
+	insert(&request)
+	oldRequest := request
+	oldRequest.ID, oldRequest.BusinessKey, oldRequest.AcceptedAt = uuid.NewString(), "older-request-filter", at.Add(-time.Minute)
+	insert(&oldRequest)
+
+	amount := ledger.FromInt64(1)
+	policy, err := f.a.Incentives.SetWithdrawalPolicy(t.Context(), nil, f.a.Installation.OwnerStaffID, op, incentives.WithdrawalPolicy{PayoutKind: "bank_cn", MinimumMoney: amount, MethodReference: "synthetic bank rules"}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hold := ledger.Hold{ID: uuid.NewString(), OperatorID: op, BusinessKey: "withdrawal-filter", Fingerprint: "synthetic", Purpose: "commission_withdrawal", Status: "active", ExpiresAt: at.Add(time.Hour), CreatedAt: at}
+	insert(&hold)
+	withdrawal := incentives.Withdrawal{ID: uuid.NewString(), OperatorID: op, CustomerID: customer, MethodID: policy.MethodID, MethodName: policy.MethodName, PolicyID: policy.ID, BusinessKey: "withdrawal-filter", Fingerprint: "synthetic", AmountMoney: amount, NetMoney: amount, FeeRemainder: "0", RecipientReference: "synthetic recipient filter", HoldID: hold.ID, Status: "requested", CreatedAt: at}
+	if err := db.Table("incentives_withdrawals").Create(&withdrawal).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	invoice := operations.Invoice{ID: uuid.NewString(), OperatorID: op, CustomerID: customer, PartyKind: "customer", BusinessKey: "invoice-filter", Fingerprint: "synthetic", AmountMoney: amount, State: "issued", DetailsCiphertext: "synthetic encrypted details", InvoiceReference: "Doc_100%", CreatedAt: at}
+	insert(&invoice)
+	decoyInvoice := invoice
+	decoyInvoice.ID, decoyInvoice.BusinessKey, decoyInvoice.InvoiceReference = uuid.NewString(), "invoice-decoy", "DocX1000"
+	insert(&decoyInvoice)
+	otherInvoice := invoice
+	otherInvoice.ID, otherInvoice.CustomerID = uuid.NewString(), other
+	insert(&otherInvoice)
+	if err := db.Table("operations_invoice_orders").Create(map[string]any{"invoice_id": invoice.ID, "order_id": order.ID, "amount_money": "1"}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	refund := remediation.Case{ID: uuid.NewString(), OperatorID: op, CustomerID: &customer, BusinessKey: "refund-filter", Fingerprint: "synthetic", Kind: "wallet", OrderID: &order.ID, AmountMoney: amount, State: "paying", Reason: "synthetic refund reason", Evidence: "synthetic", RequestedBy: "test:fixture", CreatedAt: at}
+	insert(&refund)
+
+	return []customerContextFilterFixture{
+		{url.Values{"section": {"assets"}, "q": {"synthetic-filter"}, "unit": {"ATG"}}, asset.ID},
+		{url.Values{"section": {"requests"}, "q": {"public-chat"}, "status": {"accepted"}, "from": {at.Format(time.RFC3339)}}, request.ID},
+		{url.Values{"section": {"withdrawals"}, "q": {"recipient filter"}, "status": {"requested"}}, withdrawal.ID},
+		{url.Values{"section": {"invoices"}, "q": {"DOC_100%"}, "status": {"issued"}}, invoice.ID},
+		{url.Values{"section": {"invoices"}, "q": {order.ID}}, invoice.ID},
+		{url.Values{"section": {"refunds"}, "q": {"refund reason"}, "status": {"approved"}}, refund.ID},
 	}
 }

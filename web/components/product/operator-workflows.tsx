@@ -20,6 +20,7 @@ import { ChannelInvitationCard } from "./channel-invitation";
 import { OperatorInvoicesScreen } from "./operator-invoices";
 import { OperatorCommissionsScreen } from "./operator-commissions";
 import { ReadinessAction, ReadinessSchema } from "./readiness";
+import { CustomerContextFilters, emptyCustomerContextFilters, type CustomerContextFilterValues } from "./customer-context-filters";
 
 export function OperatorWorkflowScreen({ operatorID, resource, record }: { operatorID: string; resource: string; record?: string }) {
   const { t } = useI18n();
@@ -153,21 +154,36 @@ function OpeningChecklist({ operatorID, row }: { operatorID: string; row: Entity
   return <Card className="mb-6 border-brand/30"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">{t("开业前，先完成这些准备")}</h2><p className="mt-2 text-sm text-ink-secondary">{t("按真实检查结果补齐配置，再逐项开放营业。")}</p></div><Button asChild variant="outline"><Link href={`/manage/${encodeURIComponent(operatorID)}/business-status`}>{t("进入营业设置")}</Link></Button></div>{missing.length > 0 ? <ul className="divide-y divide-hairline">{missing.map(requirement => <li key={requirement.code} className="flex flex-wrap items-center justify-between gap-3 py-3"><span className="text-sm">{t(requirement.description)}</span><ReadinessAction requirement={requirement} workspace={workspace} operatorID={operatorID} label="去完成" /></li>)}</ul> : <p className="text-sm leading-7 text-ink-secondary">{t(checks.success ? "已读取的配置检查已通过，请到营业设置选择要开放的项目。" : "配置检查尚未返回，请到营业设置核实具体依赖。")}</p>}</Card>;
 }
 
-const SubjectContextSchema = z.object({ subject: EntitySchema, sections: z.array(z.object({ resource: z.string(), title: z.string(), page: ResourcePageSchema })), next_actions: z.array(z.string()).optional(), subject_operations: z.array(OperationSchema).optional() });
+const SubjectContextSchema = z.object({ subject: EntitySchema, sections: z.array(z.object({
+  resource: z.string(), title: z.string(), page: ResourcePageSchema,
+  filters: z.object({ statuses: z.array(z.string()).optional(), units: z.array(z.string()).optional() }).optional(),
+})), next_actions: z.array(z.string()).optional(), subject_operations: z.array(OperationSchema).optional() });
+type SectionListState = { filters: CustomerContextFilterValues; query: string; cursor: string; history: string[] };
+const emptySectionList: SectionListState = { filters: emptyCustomerContextFilters, query: "", cursor: "", history: [] };
+
 export function OperatorSubjectPanel(props: { operatorID: string; resource: "customers" | "orders"; row: Entity; close: () => void }) { return <OperatorSubjectContent {...props} />; }
 function OperatorSubjectContent({ operatorID, resource, row, close, fullPage = false }: { operatorID: string; resource: "customers" | "orders"; row: Entity; close: () => void; fullPage?: boolean }) {
   const { t } = useI18n();
-  const [active, setActive] = useState(""), [cursor, setCursor] = useState(""), [history, setHistory] = useState<string[]>([]);
+  const [active, setActive] = useState("");
+  const [lists, setLists] = useState<Record<string, SectionListState>>({});
   const [nestedOrder, setNestedOrder] = useState<Entity>();
   const [blocked, setBlocked] = useState(false);
   const endpoint = `/api/v1/operators/${encodeURIComponent(operatorID)}/${resource === "customers" ? "customer-context" : "order-context"}/${encodeURIComponent(row.id)}`;
   const data = useQuery({ queryKey: ["operator-subject", endpoint], queryFn: ({ signal }) => request(endpoint, SubjectContextSchema, { signal }) });
-  const params = new URLSearchParams({ section: active, cursor });
-  const paged = useQuery({ queryKey: ["operator-subject-page", endpoint, active, cursor], queryFn: ({ signal }) => request(`${endpoint}?${params}`, SubjectContextSchema, { signal }), enabled: !!active && !!cursor });
   const subject = data.data?.subject || row;
   const sections = data.data?.sections || [];
   const currentSection = sections.find(item => item.resource === active) || sections[0];
-  const section = cursor ? paged.data?.sections.find(item => item.resource === active) || currentSection : currentSection;
+  const currentResource = currentSection?.resource || "";
+  const list = lists[currentResource] || emptySectionList;
+  const params = new URLSearchParams(list.query);
+  params.set("section", currentResource);
+  if (list.cursor) params.set("cursor", list.cursor);
+  const hasSectionQuery = !!currentResource && !!(list.query || list.cursor);
+  const paged = useQuery({ queryKey: ["operator-subject-page", endpoint, params.toString()], queryFn: ({ signal }) => request(`${endpoint}?${params}`, SubjectContextSchema, { signal }), enabled: hasSectionQuery });
+  const section = hasSectionQuery ? paged.data?.sections.find(item => item.resource === currentResource) : currentSection;
+  const updateList = (update: (previous: SectionListState) => SectionListState) => {
+    setLists(previous => ({ ...previous, [currentResource]: update(previous[currentResource] || emptySectionList) }));
+  };
   const profile = resource === "customers";
   const title = profile ? String(subject.values.name || subject.values.display_name || t("客户工作台")) : t("订单与收款办理");
   const Container = (fullPage ? OperatorPage : OperatorPanel) as ComponentType<{ open?: boolean; title: string; description: string; close: () => void; onBlockedChange: (blocked: boolean) => void; children: ReactNode }>;
@@ -211,16 +227,26 @@ function OperatorSubjectContent({ operatorID, resource, row, close, fullPage = f
         </Notice>
       </div>}
       {sections.length ? <>
-        <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label={profile ? t("客户关联业务") : t("订单关联业务")}>{sections.map(item => <button key={item.resource} type="button" role="tab" disabled={blocked} aria-selected={section?.resource === item.resource} onClick={() => { setActive(item.resource); setCursor(""); setHistory([]); }} className={`rounded-control border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60 ${section?.resource === item.resource ? "border-brand bg-brand-soft text-brand-emphasis" : "border-hairline bg-canvas-raised text-ink-secondary"}`}>{t(item.title)}
+        <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label={profile ? t("客户关联业务") : t("订单关联业务")}>{sections.map(item => <button key={item.resource} type="button" role="tab" disabled={blocked} aria-selected={currentResource === item.resource} onClick={() => {
+          setActive(item.resource);
+          if (!item.filters) setLists(previous => ({ ...previous, [item.resource]: emptySectionList }));
+        }} className={`rounded-control border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60 ${currentResource === item.resource ? "border-brand bg-brand-soft text-brand-emphasis" : "border-hairline bg-canvas-raised text-ink-secondary"}`}>{t(item.title)}
         </button>)}
-        </div>{section && <div role="tabpanel" aria-label={t(section.title)}>
+        </div>{currentSection && <div role="tabpanel" aria-label={t(currentSection.title)}>
           <div className="mb-4">
-            <h3 className="font-semibold">{t(section.title)}
+            <h3 className="font-semibold">{t(currentSection.title)}
             </h3>
-            <p className="mt-1 text-xs leading-6 text-ink-mute">{t(section.page.description)}
+            <p className="mt-1 text-xs leading-6 text-ink-mute">{t(currentSection.page.description)}
             </p>
-          </div>{cursor && paged.isPending ? <Loading /> : cursor && paged.isError ? <ErrorPanel error={paged.error} retry={() => void paged.refetch()} /> : <ResourceCollection key={`${row.id}:${section.resource}`} page={section.page} operatorID={operatorID} resource={section.resource} embedded initialValues={resource === "orders" ? { order_id: row.id } : undefined} inspectionLinks={fullPage} onInspect={fullPage ? undefined : (name, item) => { if (name === "orders" && resource === "customers") setNestedOrder(item); }} />}
-          <div className="mt-5 flex justify-end gap-2">{!!history.length && <Button variant="outline" size="sm" disabled={blocked} onClick={() => { const previous = [...history]; setCursor(previous.pop() || ""); setHistory(previous); }}>{t("上一页关联记录")}</Button>}{section.page.next_cursor && <Button variant="outline" size="sm" disabled={blocked} onClick={() => { setActive(section.resource); setHistory(previous => [...previous, cursor]); setCursor(section.page.next_cursor!); }}>{t("下一页关联记录")}</Button>}
+          </div>
+          {currentSection.filters && <CustomerContextFilters key={`${endpoint}:${currentResource}`} resource={currentResource} choices={currentSection.filters} value={list.filters} disabled={blocked} fetching={hasSectionQuery && paged.isFetching} onApply={(filters, query) => {
+            if (query === list.query && !list.cursor) {
+              void (query ? paged.refetch() : data.refetch());
+            }
+            updateList(() => ({ ...emptySectionList, filters, query }));
+          }} />}
+          {hasSectionQuery && paged.isPending ? <Loading /> : hasSectionQuery && paged.isError ? <ErrorPanel error={paged.error} retry={() => void paged.refetch()} /> : section ? <ResourceCollection key={`${row.id}:${section.resource}`} page={section.page} operatorID={operatorID} resource={section.resource} embedded initialValues={resource === "orders" ? { order_id: row.id } : undefined} inspectionLinks={fullPage} onInspect={fullPage ? undefined : (name, item) => { if (name === "orders" && resource === "customers") setNestedOrder(item); }} /> : <Empty title={t("暂无可查看的关联业务")}>{t("当前授权范围内没有其他业务记录。")}</Empty>}
+          <div className="mt-5 flex justify-end gap-2">{!!list.history.length && <Button variant="outline" size="sm" disabled={blocked} onClick={() => updateList(previous => ({ ...previous, cursor: previous.history.at(-1) || "", history: previous.history.slice(0, -1) }))}>{t("上一页关联记录")}</Button>}{section?.page.next_cursor && <Button variant="outline" size="sm" disabled={blocked} onClick={() => updateList(previous => ({ ...previous, history: [...previous.history, previous.cursor], cursor: section.page.next_cursor || "" }))}>{t("下一页关联记录")}</Button>}
           </div>
         </div>}</> : <Empty title={t("暂无可查看的关联业务")}>{t("当前授权范围内没有其他业务记录。")}</Empty>}
     </>}

@@ -182,7 +182,11 @@ test('technical capability names match actual runtime operations and output DTOs
   assert.equal(binding.priority, undefined);
   assert.ok(binding.supplier_model_id);
   assert.ok(document.components.schemas.OperatorContext.properties.subject_operations);
-  assert.ok(document.paths['/v1/operators/{operatorId}/customer-context/{id}']);
+  const customerContext = document.paths['/v1/operators/{operatorId}/customer-context/{id}'].get;
+  const orderContext = document.paths['/v1/operators/{operatorId}/order-context/{id}'].get;
+  assert.deepEqual(customerContext.parameters.filter(p => p.in === 'query').map(p => p.name), ['section', 'cursor', 'q', 'status', 'unit', 'from', 'to']);
+  assert.deepEqual(orderContext.parameters.filter(p => p.in === 'query').map(p => p.name), ['section', 'cursor']);
+  assert.ok(document.components.schemas.OperatorContext.properties.sections.items.properties.filters);
   assert.ok(document.paths['/v1/operators/{operatorId}/order-context/{id}/allocate']);
 });
 

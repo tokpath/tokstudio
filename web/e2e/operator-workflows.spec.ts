@@ -50,6 +50,94 @@ async function businessAPI(page: Page, financeOnly = false, uncertainAllocation 
   return { mutations, exactRecords };
 }
 
+test("customer workbench filters each list independently and keeps filters across pages", async ({ page }) => {
+  await businessAPI(page);
+  const sections = [
+    { resource: "orders", title: "购买与交付", filters: { statuses: ["pending", "completed"] } },
+    { resource: "assets", title: "客户资产", filters: { units: ["ATG", "MONEY"] } },
+    { resource: "requests", title: "模型调用", filters: { statuses: ["accepted", "completed"] } },
+    { resource: "withdrawals", title: "佣金提现", filters: { statuses: ["requested", "paid"] } },
+    { resource: "invoices", title: "客户票据", filters: { statuses: ["requested", "issued"] } },
+    { resource: "refunds", title: "退款与异常", filters: { statuses: ["pending_review", "completed"] } },
+    { resource: "commissions", title: "推广收益" },
+  ];
+  const requests: Record<string, string>[] = [];
+  const displayRow = (id: string, title: string) => ({ id, presentation: { title, labels: {} }, values: {} });
+  await page.route(`**${base}/customer-context/${customer.id}*`, async route => {
+    const query = Object.fromEntries(new URL(route.request().url()).searchParams);
+    requests.push(query);
+    const list = sections.filter(section => !query.section || section.resource === query.section).map(section => {
+      let rows = [displayRow(`${section.resource}-recent`, section.resource === "orders" ? "最新购买订单" : `${section.title}样例`)];
+      let extra: Record<string, string> = {};
+      if (section.resource === "orders" && query.q) {
+        rows = query.cursor ? [displayRow("old-match-2", "更早匹配的订单")] : [displayRow("old-match-1", "历史匹配订单")];
+        if (!query.cursor) extra = { next_cursor: "order-page-2" };
+      }
+      if (section.resource === "assets" && query.unit) rows = [];
+      return { ...section, page: resource(section.title, rows, extra) };
+    });
+    await route.fulfill({ json: { subject: customer, sections: list, next_actions: [] } });
+  });
+
+  await page.goto(`/manage/${operator.id}/customers?record=${customer.id}`);
+  const panel = page.getByRole("tabpanel");
+  const search = panel.getByRole("searchbox", { name: "搜索记录" });
+  const from = panel.getByLabel("开始日期"), to = panel.getByLabel("结束日期");
+  const status = panel.getByRole("combobox", { name: "筛选状态" });
+  const unit = panel.getByRole("combobox", { name: "单位" });
+  const apply = panel.getByRole("button", { name: "查询", exact: true });
+  const tab = (name: string) => page.getByRole("tab", { name, exact: true });
+  await expect(panel.getByText("最新购买订单", { exact: true })).toBeVisible();
+
+  for (const section of sections.filter(section => section.filters)) {
+    await tab(section.title).click();
+    await expect(search).toBeVisible();
+    await expect(from).toBeVisible();
+    await expect(to).toBeVisible();
+    await expect(section.resource === "assets" ? unit : status).toBeVisible();
+  }
+  await tab("推广收益").click();
+  await expect(search).toHaveCount(0);
+  await tab("购买与交付").click();
+  await search.fill("old-ref");
+  await status.selectOption("completed");
+  await from.fill("2026-10-02");
+  await to.fill("2026-10-01");
+  await apply.click();
+  await expect(panel.getByRole("alert")).toHaveText("请选择有效日期范围。");
+  expect(requests.filter(query => query.q)).toHaveLength(0);
+  await from.fill("2026-10-01");
+  await apply.click();
+  await expect(panel.getByText("历史匹配订单", { exact: true })).toBeVisible();
+  await expect(panel.getByText("最新购买订单", { exact: true })).toHaveCount(0);
+  const localBounds = await page.evaluate(() => [new Date(2026, 9, 1).toISOString(), new Date(2026, 9, 2).toISOString()]);
+  const orderQuery = { section: "orders", q: "old-ref", status: "completed", from: localBounds[0], to: localBounds[1] };
+  expect(requests.at(-1)).toEqual(orderQuery);
+
+  await panel.getByRole("button", { name: "下一页关联记录" }).click();
+  await expect(panel.getByText("更早匹配的订单", { exact: true })).toBeVisible();
+  expect(requests.at(-1)).toEqual({ ...orderQuery, cursor: "order-page-2" });
+
+  await tab("客户资产").click();
+  await expect(search).toHaveValue("");
+  await unit.selectOption("ATG");
+  await apply.click();
+  await expect(panel.getByText("暂无记录", { exact: true })).toBeVisible();
+  expect(requests.at(-1)).toEqual({ section: "assets", unit: "ATG" });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await tab("购买与交付").click();
+  await expect(search).toHaveValue("old-ref");
+  await expect(status).toHaveValue("completed");
+  await expect(panel.getByText("更早匹配的订单", { exact: true })).toBeVisible();
+  await panel.getByRole("button", { name: "上一页关联记录" }).click();
+  await expect(panel.getByText("历史匹配订单", { exact: true })).toBeVisible();
+  await panel.getByRole("button", { name: "清除", exact: true }).click();
+  await expect(panel.getByText("最新购买订单", { exact: true })).toBeVisible();
+  await expect(from).toHaveValue("");
+  await expect(status).toHaveValue("");
+});
+
 test("operator handles customer, original receipt, delivery and precise refund context in one flow", async ({ page }) => {
   const { mutations, exactRecords } = await businessAPI(page);
   await page.goto("/manage/operator-one/customers");

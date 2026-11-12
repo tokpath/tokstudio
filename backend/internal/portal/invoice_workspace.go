@@ -49,6 +49,38 @@ func (a *Application) invoiceEntity(c *gin.Context, invoice operations.Invoice) 
 	return entity(invoice.ID, invoice.State, 0, v), nil
 }
 
+func invoiceIssuanceActions(state string) []string {
+	switch state {
+	case "requested":
+		return []string{"register", "reject"}
+	case "issued", "review_required":
+		return []string{"void"}
+	default:
+		return []string{}
+	}
+}
+
+func invoiceIssuanceOperations(base string) []operation {
+	path := base + "/{id}/register"
+	return []operation{
+		{
+			Name: "register", Label: "开具发票", Method: "POST", Path: path,
+			Fields: []field{
+				defaultField("state", "实际办理状态", "hidden", "issued"),
+				f("invoice_reference", "发票凭证编号", "text"), optional("reason", "说明", "textarea"),
+			},
+		},
+		{
+			Name: "reject", Label: "拒绝申请", Method: "POST", Path: path,
+			Fields: []field{defaultField("state", "实际办理状态", "hidden", "rejected"), f("reason", "拒绝原因", "textarea")},
+		},
+		{
+			Name: "void", Label: "登记作废", Method: "POST", Path: path,
+			Fields: []field{defaultField("state", "实际办理状态", "hidden", "voided"), f("reason", "作废原因", "textarea")},
+		},
+	}
+}
+
 func (a *Application) invoiceApplicationOrders(c *gin.Context, application operations.InvoiceApplication) ([]gin.H, error) {
 	orders := []gin.H{}
 	for _, line := range application.Orders {

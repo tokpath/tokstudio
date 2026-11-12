@@ -23,6 +23,12 @@ type customerSectionSearch struct {
 	filters      customerSectionFilters
 }
 
+var withdrawalContextSearch = customerSectionSearch{
+	dateColumn: "created_at", statusColumn: "status",
+	keywordSQL: "id::text, method_name, recipient_reference, payment_reference",
+	filters:    customerSectionFilters{Statuses: []string{"requested", "approved", "paid", "cancelled", "failed"}},
+}
+
 var customerSectionSearches = map[string]customerSectionSearch{
 	"orders": {
 		dateColumn: "created_at", statusColumn: "status",
@@ -45,11 +51,8 @@ var customerSectionSearches = map[string]customerSectionSearch{
 		keywordSQL: "id::text, model_id, operation",
 		filters:    customerSectionFilters{Statuses: []string{"accepted", "executing", "submitted", "awaiting_usage", "completed", "failed", "free", "cancelled"}},
 	},
-	"withdrawals": {
-		dateColumn: "created_at", statusColumn: "status",
-		keywordSQL: "id::text, method_name, recipient_reference, payment_reference",
-		filters:    customerSectionFilters{Statuses: []string{"requested", "approved", "paid", "cancelled", "failed"}},
-	},
+	"withdrawals":         withdrawalContextSearch,
+	"balance-withdrawals": withdrawalContextSearch,
 	"invoices": {
 		dateColumn: "created_at", statusColumn: "state",
 		keywordSQL: `id::text, invoice_reference,

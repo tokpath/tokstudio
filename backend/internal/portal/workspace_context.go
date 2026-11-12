@@ -157,7 +157,8 @@ func (a *Application) customerContext(c *gin.Context) {
 			a.appendCustomerContextSection(c, &out, "orders", "购买与交付", p, next)
 		}
 		if a.contextSection(c, tx, actor, op.ID, "assets") {
-			rows, next, err := customerContextRows(tx.Where("operator_id=? AND owner_id=?", op.ID, customerID), "assets", filters, func(r ledger.Account) (time.Time, string) { return r.CreatedAt, r.ID })
+			accounts := tx.Scopes(ledger.BusinessAccountScope).Where("operator_id=? AND owner_id=?", op.ID, customerID)
+			rows, next, err := customerContextRows(accounts, "assets", filters, func(r ledger.Account) (time.Time, string) { return r.CreatedAt, r.ID })
 			if err != nil {
 				return err
 			}
@@ -212,26 +213,39 @@ func (a *Application) customerContext(c *gin.Context) {
 			p["summary"] = append(p["summary"].([]gin.H), gin.H{"label": "推广功能", "value": map[string]string{"active": "正常应计", "suspended": "暂停应计（可恢复）", "terminated": "永久停止（不可恢复）"}[promotion.Status]})
 			a.appendContextSection(c, &out, "commissions", "推广收益", p)
 		}
-		if a.contextSection(c, tx, actor, op.ID, "withdrawals") {
-			rows, next, err := customerContextRows(tx.Table("incentives_withdrawals").Where("operator_id=? AND customer_id=?", op.ID, customerID), "withdrawals", filters, func(r incentives.Withdrawal) (time.Time, string) { return r.CreatedAt, r.ID })
+		for _, section := range []struct {
+			resource, wallet, title, holdLabel string
+		}{
+			{"withdrawals", "commission", "佣金提现", "佣金占用"},
+			{"balance-withdrawals", "balance", "余额提现", "支付余额占用"},
+		} {
+			if !a.contextSection(c, tx, actor, op.ID, section.resource) {
+				continue
+			}
+			query := tx.Table("incentives_withdrawals").Where("operator_id=? AND customer_id=? AND wallet=?", op.ID, customerID, section.wallet)
+			rows, next, err := customerContextRows(query, section.resource, filters, func(r incentives.Withdrawal) (time.Time, string) { return r.CreatedAt, r.ID })
 			if err != nil {
 				return err
 			}
-			p := contextPage("佣金提现", rows, []gin.H{col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status"), col("created_at", "申请时间", "datetime")}, func(r incentives.Withdrawal) gin.H {
+			p := contextPage(section.title, rows, []gin.H{col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status"), col("created_at", "申请时间", "datetime")}, func(r incentives.Withdrawal) gin.H {
 				row := entity(r.ID, r.Status, 1, r)
 				row["allowed_actions"] = withdrawalAllowedActions(r.Status)
 				return row
 			})
-			p["row_operations"] = withdrawalRowOperations("/api/v1/operators/"+op.ID+"/withdrawals", "佣金占用")
-			a.appendCustomerContextSection(c, &out, "withdrawals", "佣金提现", p, next)
+			p["row_operations"] = withdrawalRowOperations("/api/v1/operators/"+op.ID+"/"+section.resource, section.holdLabel)
+			a.appendCustomerContextSection(c, &out, section.resource, section.title, p, next)
 		}
 		if a.contextSection(c, tx, actor, op.ID, "invoices") {
 			rows, next, err := customerContextRows(tx.Where("operator_id=? AND customer_id=?", op.ID, customerID), "invoices", filters, func(r operations.Invoice) (time.Time, string) { return r.CreatedAt, r.ID })
 			if err != nil {
 				return err
 			}
-			p := contextPage("客户票据", rows, []gin.H{col("amount_money", "金额", "money"), col("state", "状态", "status"), col("invoice_reference", "凭证编号", "text"), col("created_at", "申请时间", "datetime")}, func(r operations.Invoice) gin.H { return entity(r.ID, r.State, 1, r) })
-			p["row_operations"] = []operation{{Name: "register", Label: "登记实际开票结果", Method: "POST", Path: "/api/v1/operators/" + op.ID + "/invoices/{id}/register", Fields: []field{selectField("state", "实际办理状态", "issued|已开具", "rejected|不予办理", "voided|已作废"), f("invoice_reference", "发票凭证编号", "text"), f("evidence", "证据引用", "text"), f("reason", "说明", "textarea")}}}
+			p := contextPage("客户票据", rows, []gin.H{col("amount_money", "金额", "money"), col("state", "状态", "status"), col("invoice_reference", "凭证编号", "text"), col("created_at", "申请时间", "datetime")}, func(r operations.Invoice) gin.H {
+				row := entity(r.ID, r.State, 1, r)
+				row["allowed_actions"] = invoiceIssuanceActions(r.State)
+				return row
+			})
+			p["row_operations"] = invoiceIssuanceOperations("/api/v1/operators/" + op.ID + "/invoices")
 			a.appendCustomerContextSection(c, &out, "invoices", "客户票据", p, next)
 		}
 		if a.contextSection(c, tx, actor, op.ID, "refunds") {

@@ -510,7 +510,7 @@ func humanRecordTitle(v gin.H, resource string, labels map[string]string) string
 	kinds := map[string]string{"case": "退款事项", "leg": "退款分项", "actual_refund_payment": "实际退款付款", "exit": "采购退出事项", "refund_leg": "退出退款分项", "buyer_refund_leg": "采购方退款分项", "quote": "采购报价", "order": "采购订单", "authorization": "自动补货授权", "replenishment_attempt": "自动补货执行", "topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费"}
 	kind := kinds[humanString(v, "record_kind", "kind")]
 	if kind == "" {
-		kind = map[string]string{"orders": "订单", "payments": "收款", "assets": "资产账户", "ledger": "资产账户", "marketing": "营销活动", "activities": "KOL 活动", "withdrawals": "佣金提现", "commissions": "佣金规则", "payment-methods": "收款方式", "providers": "供应商凭据", "coverage": "履约覆盖", "credit-sources": "ATG 来源", "staff": "经营人员", "invoices": "客户发票", "procurement-invoices": "采购发票", "evidence": "证据文件"}[resource]
+		kind = map[string]string{"orders": "订单", "payments": "收款", "assets": "资产账户", "ledger": "资产账户", "marketing": "营销活动", "activities": "KOL 活动", "withdrawals": "佣金提现", "balance-withdrawals": "余额提现", "commissions": "佣金规则", "payment-methods": "收款方式", "providers": "供应商凭据", "coverage": "履约覆盖", "credit-sources": "ATG 来源", "staff": "经营人员", "invoices": "客户发票", "procurement-invoices": "采购发票", "evidence": "证据文件"}[resource]
 	}
 	if kind == "" {
 		kind = "业务记录"

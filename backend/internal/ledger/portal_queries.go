@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -78,10 +79,19 @@ func (s *Service) ListOperatorAccounts(ctx context.Context, tx *gorm.DB, operato
 	return s.listOperatorAccounts(ctx, tx, operator, owner, cursor, query, limit, false, false, statuses...)
 }
 
-// Business accounts hold spendable customer assets or the operator's stock.
+var businessAccountPurposes = []string{"customer:money", "commission:available", "commission:frozen", "procurement:atg"}
+
+const customerGrantAccountPrefix = "customer:atg:"
+
+// Business accounts hold customer assets or the operator's stock.
 // Control, receipt and order accounts remain available in the complete ledger.
 func IsBusinessAccount(purpose string) bool {
-	return purpose == "customer:money" || strings.HasPrefix(purpose, "customer:atg:") || purpose == "commission:available" || purpose == "commission:frozen" || purpose == "procurement:atg"
+	return slices.Contains(businessAccountPurposes, purpose) || strings.HasPrefix(purpose, customerGrantAccountPrefix)
+}
+
+// BusinessAccountScope applies the same classification to a ledger account query.
+func BusinessAccountScope(q *gorm.DB) *gorm.DB {
+	return q.Where("(purpose IN ? OR purpose LIKE ?)", businessAccountPurposes, customerGrantAccountPrefix+"%")
 }
 
 func (s *Service) ListAssetAccounts(ctx context.Context, operator, cursor, query string, limit int, includeAuxiliary bool) ([]Account, error) {
@@ -101,7 +111,7 @@ func (s *Service) listOperatorAccounts(ctx context.Context, tx *gorm.DB, operato
 	err := s.within(ctx, tx, func(t *gorm.DB) error {
 		q := t.Where("operator_id=?", operator).Order("id").Limit(limit)
 		if businessOnly {
-			q = q.Where("purpose IN ? OR purpose LIKE ?", []string{"customer:money", "commission:available", "commission:frozen", "procurement:atg"}, "customer:atg:%")
+			q = BusinessAccountScope(q)
 		}
 		if len(statuses) > 0 && statuses[0] != "" && statuses[0] != "open" {
 			q = q.Where("1=0")

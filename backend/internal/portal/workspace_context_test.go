@@ -136,6 +136,30 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 	if got := ids(orders); !slices.Equal(got, wantIDs[:50]) {
 		t.Fatalf("first page lost newest-first order or customer scope: %v", got)
 	}
+	for _, item := range find(out, "assets")["items"].([]any) {
+		purpose := item.(map[string]any)["values"].(map[string]any)["purpose"].(string)
+		if purpose == "control:rounding:retail" {
+			t.Fatal("customer assets include an internal accounting account")
+		}
+	}
+	for _, resource := range []string{"withdrawals", "balance-withdrawals"} {
+		for _, raw := range find(out, resource)["row_operations"].([]any) {
+			action := raw.(map[string]any)
+			prefix := "/api" + scope + "/" + resource + "/{id}/"
+			if !strings.HasPrefix(action["path"].(string), prefix) {
+				t.Fatalf("%s uses the wrong payout workflow: %v", resource, action["path"])
+			}
+		}
+	}
+	wantInvoiceActions := map[string][]any{"issued": {"void"}, "rejected": {}, "requested": {"register", "reject"}}
+	for _, raw := range find(out, "invoices")["items"].([]any) {
+		row := raw.(map[string]any)
+		state := row["status"].(string)
+		actions, ok := row["allowed_actions"].([]any)
+		if !ok || !slices.Equal(actions, wantInvoiceActions[state]) {
+			t.Fatalf("%s invoice has incorrect actions: %v", state, row["allowed_actions"])
+		}
+	}
 	cursor := orders["next_cursor"].(string)
 	status, out, _ = f.call(t, "GET", endpoint+"?section=orders&cursor="+cursor, nil, "")
 	mustOK(t, status, out)
@@ -158,8 +182,8 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 		t.Run(fixture.query.Get("section"), func(t *testing.T) {
 			status, out, _ := f.call(t, "GET", endpoint+"?"+fixture.query.Encode(), nil, "")
 			mustOK(t, status, out)
-			if len(out["sections"].([]any)) != 1 || !slices.Equal(ids(find(out, fixture.query.Get("section"))), []string{fixture.id}) {
-				t.Fatalf("expected one matching record %s, got %v", fixture.id, out["sections"])
+			if len(out["sections"].([]any)) != 1 || !slices.Equal(ids(find(out, fixture.query.Get("section"))), fixture.ids) {
+				t.Fatalf("expected matching records %v, got %v", fixture.ids, out["sections"])
 			}
 		})
 	}
@@ -259,7 +283,7 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 
 type customerContextFilterFixture struct {
 	query url.Values
-	id    string
+	ids   []string
 }
 
 // These rows are read-only fixtures in the disposable test schema. The
@@ -276,7 +300,10 @@ func seedCustomerContextFilters(t *testing.T, f *testApp, order commerce.Order, 
 	}
 	asset := ledger.Account{ID: uuid.NewString(), OperatorID: op, OwnerID: customer, Purpose: "customer:atg:synthetic-filter", Unit: "ATG", CreatedAt: at}
 	insert(&asset)
-	insert(&ledger.Account{ID: uuid.NewString(), OperatorID: op, OwnerID: customer, Purpose: "synthetic-filter-cash", Unit: ledger.MoneyUnit, CreatedAt: at})
+	if _, err := f.a.Ledger.EnsureAccount(t.Context(), nil, ledger.Account{OperatorID: op, OwnerID: customer, Purpose: "customer:money", Unit: ledger.MoneyUnit}); err != nil {
+		t.Fatal(err)
+	}
+	insert(&ledger.Account{ID: uuid.NewString(), OperatorID: op, OwnerID: customer, Purpose: "control:rounding:retail", Unit: "ATG", AllowNegative: true, CreatedAt: at})
 
 	key := usage.Key{ID: uuid.NewString(), CustomerID: customer, BrandID: brand, Kind: "api", Name: "synthetic fixture", Prefix: "synthetic", TokenHash: uuid.NewString(), Status: "active", Period: "lifetime", Timezone: "UTC", Version: 1, CreatedAt: at, UpdatedAt: at}
 	insert(&key)
@@ -293,8 +320,13 @@ func seedCustomerContextFilters(t *testing.T, f *testApp, order commerce.Order, 
 	}
 	hold := ledger.Hold{ID: uuid.NewString(), OperatorID: op, BusinessKey: "withdrawal-filter", Fingerprint: "synthetic", Purpose: "commission_withdrawal", Status: "active", ExpiresAt: at.Add(time.Hour), CreatedAt: at}
 	insert(&hold)
-	withdrawal := incentives.Withdrawal{ID: uuid.NewString(), OperatorID: op, CustomerID: customer, MethodID: policy.MethodID, MethodName: policy.MethodName, PolicyID: policy.ID, BusinessKey: "withdrawal-filter", Fingerprint: "synthetic", AmountMoney: amount, NetMoney: amount, FeeRemainder: "0", RecipientReference: "synthetic recipient filter", HoldID: hold.ID, Status: "requested", CreatedAt: at}
-	if err := db.Table("incentives_withdrawals").Create(&withdrawal).Error; err != nil {
+	withdrawal := incentives.Withdrawal{ID: uuid.NewString(), OperatorID: op, CustomerID: customer, Wallet: "commission", MethodID: policy.MethodID, MethodName: policy.MethodName, PolicyID: policy.ID, BusinessKey: "withdrawal-filter", Fingerprint: "synthetic", AmountMoney: amount, NetMoney: amount, FeeRemainder: "0", RecipientReference: "synthetic recipient filter", HoldID: hold.ID, Status: "requested", CreatedAt: at}
+	// Both wallets match the keyword. Order the balance UUIDs opposite to their
+	// timestamps so the default section must use the application date.
+	newBalance, oldBalance := withdrawal, withdrawal
+	newBalance.ID, newBalance.Wallet, newBalance.BusinessKey, newBalance.CreatedAt = "00000000-0000-4000-8000-000000000001", "balance", "balance-filter-new", at.Add(time.Hour)
+	oldBalance.ID, oldBalance.Wallet, oldBalance.BusinessKey, oldBalance.Status = "00000000-0000-4000-8000-000000000002", "balance", "balance-filter-old", "failed"
+	if err := db.Table("incentives_withdrawals").Create([]incentives.Withdrawal{withdrawal, newBalance, oldBalance}).Error; err != nil {
 		t.Fatal(err)
 	}
 
@@ -303,6 +335,11 @@ func seedCustomerContextFilters(t *testing.T, f *testApp, order commerce.Order, 
 	decoyInvoice := invoice
 	decoyInvoice.ID, decoyInvoice.BusinessKey, decoyInvoice.InvoiceReference = uuid.NewString(), "invoice-decoy", "DocX1000"
 	insert(&decoyInvoice)
+	for _, state := range []string{"rejected", "requested"} {
+		row := invoice
+		row.ID, row.BusinessKey, row.State, row.InvoiceReference = uuid.NewString(), "invoice-"+state, state, ""
+		insert(&row)
+	}
 	otherInvoice := invoice
 	otherInvoice.ID, otherInvoice.CustomerID = uuid.NewString(), other
 	insert(&otherInvoice)
@@ -314,11 +351,14 @@ func seedCustomerContextFilters(t *testing.T, f *testApp, order commerce.Order, 
 	insert(&refund)
 
 	return []customerContextFilterFixture{
-		{url.Values{"section": {"assets"}, "q": {"synthetic-filter"}, "unit": {"ATG"}}, asset.ID},
-		{url.Values{"section": {"requests"}, "q": {"public-chat"}, "status": {"accepted"}, "from": {at.Format(time.RFC3339)}}, request.ID},
-		{url.Values{"section": {"withdrawals"}, "q": {"recipient filter"}, "status": {"requested"}}, withdrawal.ID},
-		{url.Values{"section": {"invoices"}, "q": {"DOC_100%"}, "status": {"issued"}}, invoice.ID},
-		{url.Values{"section": {"invoices"}, "q": {order.ID}}, invoice.ID},
-		{url.Values{"section": {"refunds"}, "q": {"refund reason"}, "status": {"approved"}}, refund.ID},
+		{url.Values{"section": {"assets"}, "q": {"customer"}, "unit": {"ATG"}}, []string{asset.ID}},
+		{url.Values{"section": {"assets"}, "q": {"control:rounding:retail"}}, nil},
+		{url.Values{"section": {"requests"}, "q": {"public-chat"}, "status": {"accepted"}, "from": {at.Format(time.RFC3339)}}, []string{request.ID}},
+		{url.Values{"section": {"withdrawals"}, "q": {"recipient filter"}, "status": {"requested"}}, []string{withdrawal.ID}},
+		{url.Values{"section": {"balance-withdrawals"}}, []string{newBalance.ID, oldBalance.ID}},
+		{url.Values{"section": {"balance-withdrawals"}, "q": {"recipient filter"}, "status": {"requested"}, "from": {at.Format(time.RFC3339)}}, []string{newBalance.ID}},
+		{url.Values{"section": {"invoices"}, "q": {"DOC_100%"}, "status": {"issued"}}, []string{invoice.ID}},
+		{url.Values{"section": {"invoices"}, "q": {order.ID}}, []string{invoice.ID}},
+		{url.Values{"section": {"refunds"}, "q": {"refund reason"}, "status": {"approved"}}, []string{refund.ID}},
 	}
 }

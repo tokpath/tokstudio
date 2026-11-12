@@ -279,13 +279,7 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 				handleError(c, err)
 				return true
 			}
-			item["allowed_actions"] = []string{}
-			if row.State == "requested" {
-				item["allowed_actions"] = []string{"register", "reject"}
-			}
-			if row.State == "issued" || row.State == "review_required" {
-				item["allowed_actions"] = []string{"void"}
-			}
+			item["allowed_actions"] = invoiceIssuanceActions(row.State)
 			items = append(items, item)
 		}
 		p["title"] = "我方开票"
@@ -303,11 +297,7 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		note.Default = instructions.Instructions
 		note.Help = "可说明办理时间或联系办法，申请人可在申请页面查看。留空不影响申请，无需填写条款编号。"
 		p["operations"] = []operation{{Name: "instructions", Label: "编辑开票说明", Method: "POST", Path: base, Fields: []field{note, defaultField("expected_version", "版本", "hidden", instructions.Version)}}}
-		p["row_operations"] = []operation{
-			{Name: "register", Label: "开具发票", Method: "POST", Path: base + "/{id}/register", Fields: []field{defaultField("state", "实际办理状态", "hidden", "issued"), f("invoice_reference", "发票凭证编号", "text"), optional("reason", "说明", "textarea")}},
-			{Name: "reject", Label: "拒绝申请", Method: "POST", Path: base + "/{id}/register", Fields: []field{defaultField("state", "实际办理状态", "hidden", "rejected"), f("reason", "拒绝原因", "textarea")}},
-			{Name: "void", Label: "登记作废", Method: "POST", Path: base + "/{id}/register", Fields: []field{defaultField("state", "实际办理状态", "hidden", "voided"), f("reason", "作废原因", "textarea")}},
-		}
+		p["row_operations"] = invoiceIssuanceOperations(base)
 	default:
 		return false
 	}

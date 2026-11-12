@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { expect, it, vi } from "vitest";
-import { markPaymentOpened, paymentWasOpened, reservePaymentWindow, submitPaymentForm } from "./payment-window";
+import type { Order } from "./contracts";
+import { markPaymentOpened, paymentWasOpened, reservePaymentWindow, shouldRefreshPayment, submitPaymentForm } from "./payment-window";
 
 it("posts the Gkash form into the window opened by the confirmation click", () => {
   const opened = { closed: false } as Window;
@@ -22,4 +23,16 @@ it("remembers which order already opened the payment page", () => {
   markPaymentOpened("order-one");
   expect(paymentWasOpened("order-one")).toBe(true);
   expect(paymentWasOpened("order-two")).toBe(false);
+});
+
+it("stops refreshing unusable, unopened, expired and completed checkouts", () => {
+  const now = Date.now();
+  const order: Order = { id: "one", kind: "topup", status: "pending", payment_state: "created", operator_name: "Test", amount_money: "2", paid_money: "0", created_at: new Date(now).toISOString(), expires_at: new Date(now + 60000).toISOString(), payment_action: { kind: "form", url: "https://pay.example.test", fields: {v_amount:"8.26"} } };
+  expect(shouldRefreshPayment(order, false, now)).toBe(false);
+  expect(shouldRefreshPayment(order, true, now)).toBe(true);
+  for (const payment_state of ["executing", "outcome_unknown", "failed", "awaiting_settlement"]) expect(shouldRefreshPayment({ ...order, payment_state }, true, now)).toBe(false);
+  expect(shouldRefreshPayment({ ...order, payment_action: undefined }, true, now)).toBe(false);
+  expect(shouldRefreshPayment(order, true, now + 60000)).toBe(false);
+  expect(shouldRefreshPayment({ ...order, status: "completed" }, true, now)).toBe(false);
+  expect(shouldRefreshPayment({ ...order, paid_money: "2" }, false, now + 60000)).toBe(true);
 });

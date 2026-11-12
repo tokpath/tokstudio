@@ -224,6 +224,10 @@ func composeFinancial(op string, l ledger.FinancialSnapshot, c commerce.Financia
 	out.Liabilities.WholesalePrepaymentMoney = p.ClosingWholesalePrepaymentMoney
 	for _, f := range l.Flows {
 		if f.Unit != ledger.MoneyUnit {
+			if f.Unit == out.SettlementCurrency && f.Purpose == "control:external_cash" {
+				out.Cash.RecordedInMoney = out.Cash.RecordedInMoney.Add(f.Decrease)
+				out.Cash.RecordedOutMoney = out.Cash.RecordedOutMoney.Add(f.Increase)
+			}
 			continue
 		}
 		takeover := strings.HasPrefix(f.Kind, "takeover_") || strings.Contains(f.Purpose, "takeover")
@@ -267,6 +271,9 @@ func composeFinancial(op string, l ledger.FinancialSnapshot, c commerce.Financia
 			continue
 		}
 		if b.Unit != ledger.MoneyUnit {
+			if b.Unit == out.SettlementCurrency && b.Purpose == "control:external_cash" {
+				out.Cash.ClosingRecordedNetMoney = out.Cash.ClosingRecordedNetMoney.Sub(b.Balance)
+			}
 			continue
 		}
 		switch b.Purpose {

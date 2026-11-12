@@ -154,7 +154,7 @@ func TestFinancialOriginalReceiptsAndFeesKeepTheirCurrencyAcrossSettlementAndExp
 	}
 	pending := f.report(t, f.operator)
 	total := nativeTotal(t, pending, "EUR")
-	if total.Income.String() != "12.5" || !total.Expense.IsZero() || total.PendingReceiptFees != 1 || pending.SettlementCurrency != "CNY" || len(pending.OriginalCurrencyTotals) != 1 {
+	if !total.Income.IsZero() || !total.Expense.IsZero() || total.PendingReceiptFees != 1 || pending.SettlementCurrency != "CNY" || len(pending.OriginalCurrencyTotals) != 1 {
 		t.Fatalf("pending original transfer lost or relabeled: %+v", pending)
 	}
 	confirmed, err := f.pay.ConfirmReceiptValuation(f.ctx, f.owner, f.operator, fact.ID, payments.ReceiptValuationConfirmation{BusinessKey: "eur-explicit-settlement", SettlementAmount: ledger.FromInt64(100), EvidenceReference: "agreed settlement amount"})
@@ -167,7 +167,7 @@ func TestFinancialOriginalReceiptsAndFeesKeepTheirCurrencyAcrossSettlementAndExp
 	}
 	report := f.report(t, f.operator)
 	total = nativeTotal(t, report, "EUR")
-	if total.Income.String() != "12.5" || total.Expense.String() != "0.5" || total.ReceiptFees.String() != "0.5" || total.NetReceipts.String() != "12" || total.PendingReceiptFees != 0 || !report.Costs.PaymentFeesMoney.IsZero() || len(report.OriginalCurrencyTotals) != 1 {
+	if total.Income.String() != "12" || !total.Expense.IsZero() || total.ReceiptFees.String() != "0.5" || total.NetReceipts.String() != "12" || total.PendingReceiptFees != 0 || !report.Costs.PaymentFeesMoney.IsZero() || len(report.OriginalCurrencyTotals) != 1 {
 		t.Fatalf("receipt was counted twice, original fee converted, or settlement fee invented: %+v", report)
 	}
 	financialCSV := f.export(t, "financial")
@@ -175,7 +175,7 @@ func TestFinancialOriginalReceiptsAndFeesKeepTheirCurrencyAcrossSettlementAndExp
 	for _, row := range financialCSV[1:] {
 		found[row[1]+":"+row[3]] = row[2]
 	}
-	if found["已核实原币流入:EUR"] != "12.5" || found["已知原币收款手续费:EUR"] != "0.5" || found["已知原币净到账:EUR"] != "12" {
+	if found["已核实原币流入:EUR"] != "12" || found["已知原币收款手续费:EUR"] != "0.5" || found["已知原币净到账:EUR"] != "12" {
 		t.Fatal("financial CSV lost original money", financialCSV)
 	}
 	paymentCSV := f.export(t, "payments")
@@ -186,7 +186,7 @@ func TestFinancialOriginalReceiptsAndFeesKeepTheirCurrencyAcrossSettlementAndExp
 	for i, key := range paymentCSV[0] {
 		cells[key] = paymentCSV[1][i]
 	}
-	if cells["实际币种"] != "EUR" || cells["原币收款总额（扣手续费前）"] != "12.5" || cells["原币己方手续费"] != "0.500000000000000000" || cells["原币净到账"] != "12.000000000000000000" || cells["己方收款手续费 清算币种"] != "" || cells["清算币种"] != "CNY" {
+	if cells["实际币种"] != "EUR" || cells["原币收款总额（扣手续费前）"] != "12.5" || cells["原币己方手续费"] != "0.500000000000000000" || cells["实际到账金额"] != "12.000000000000000000" || cells["实际到账币种"] != "EUR" || cells["清算币种"] != "CNY" {
 		t.Fatal("payment CSV mixed original and settlement amounts", cells)
 	}
 }

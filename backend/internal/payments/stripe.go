@@ -47,7 +47,7 @@ func (d Stripe) Create(ctx context.Context, m Merchant, o Order) (Checkout, erro
 		return Checkout{}, e
 	}
 	digits, supported := stripeMinorDigits(o.Money.Currency)
-	if o.Validate(m) != nil || !supported || o.Money.Currency != m.Credentials["currency"] {
+	if o.Validate(m) != nil || !supported {
 		return Checkout{}, ErrInvalid
 	}
 	minor, e := o.Money.Minor(digits)
@@ -102,6 +102,9 @@ func (d Stripe) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 		return Fact{}, ErrConflict
 	}
 	if pi.Status != "succeeded" {
+		if pi.AmountReceived == 0 && (pi.Status == "requires_payment_method" || pi.Status == "requires_confirmation") {
+			return Fact{}, ErrUnpaid
+		}
 		return Fact{}, ErrNotFinal
 	}
 	digits, ok := stripeMinorDigits(strings.ToUpper(pi.Currency))
@@ -121,7 +124,7 @@ func (d Stripe) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 		ID, Currency, Source string
 		Amount, Fee, Net     *int64
 	}
-	var merchantFee *Money
+	var merchantFee, merchantNet *Money
 	if json.Unmarshal(pi.LatestCharge, &charge) == nil && json.Unmarshal(charge.Balance, &balance) == nil && charge.ID != "" && balance.ID != "" && balance.Source == charge.ID && balance.Amount != nil && balance.Fee != nil && balance.Net != nil && *balance.Fee >= 0 && *balance.Amount-*balance.Fee == *balance.Net && (!strings.EqualFold(balance.Currency, pi.Currency) || *balance.Amount == pi.AmountReceived) {
 		if precision, ok := stripeMinorDigits(strings.ToUpper(balance.Currency)); ok {
 			fee := Money{Currency: strings.ToUpper(balance.Currency), Amount: ledger.Zero()}
@@ -133,6 +136,14 @@ func (d Stripe) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 			}
 			if valid {
 				merchantFee = &fee
+				if *balance.Net >= 0 {
+					net := Money{Currency: strings.ToUpper(balance.Currency), Amount: ledger.Zero()}
+					if *balance.Net == 0 {
+						merchantNet = &net
+					} else if parsed, err := fromMinor(balance.Currency, *balance.Net, precision); err == nil {
+						merchantNet = &parsed
+					}
+				}
 				evidence["merchant_fee"] = fee
 				evidence["balance_transaction"] = balance.ID
 			}
@@ -140,6 +151,7 @@ func (d Stripe) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 	}
 	fact, e := receiptFact(m, o, pi.ID, money, nil, evidence)
 	fact.MerchantFee = merchantFee
+	fact.MerchantNet = merchantNet
 	return fact, e
 }
 func (d Stripe) Refund(ctx context.Context, m Merchant, r Refund) (RefundStatus, error) {

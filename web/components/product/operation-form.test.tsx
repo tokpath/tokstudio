@@ -8,6 +8,22 @@ import type {Operation,Entity,JSONValue} from "@/lib/contracts";
 afterEach(()=>{cleanup();vi.unstubAllGlobals();vi.restoreAllMocks();vi.useRealTimers()});
 function show(operation:Operation,row?:Entity){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><MonetaryProvider value={{currency:"USD",atg_per_unit:"1",status:"locked",version:1}}><OperationForm operatorID={operation.path.startsWith("/api/v1/me/")?undefined:"operator-one"} operation={operation} row={row}/></MonetaryProvider></QueryClientProvider>)}
 
+it.each(["created", "outcome_unknown"])("reserves a payment tab on submit and preserves the %s order", async payment_state => {
+  const open = vi.spyOn(window, "open").mockReturnValue(null);
+  const notice = "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。";
+  const order = { id: "topup-window-test", kind: "topup", status: "pending", payment_state, operator_name: "Test", amount_money: "2", paid_money: "0", created_at: new Date().toISOString(), ...(payment_state === "created" ? {payment_action:{kind:"form",url:"https://pay.example.test",currency:"MYR",amount:"8.26",fields:{v_amount:"8.26",v_currency:"MYR"}}} : {payment_notice:notice}) };
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({id:order.id,status:order.status,order,...(payment_state === "outcome_unknown" ? {message:notice} : {})}),{status:200})));
+  show({name:"topup",label:"创建充值订单",method:"POST",path:"/api/v1/me/topups",fields:[{name:"amount_money",label:"充值金额",kind:"decimal",required:true,default_value:"2"},{name:"external_method_id",label:"收款方式",kind:"select",required:true,default_value:"kvoucher",options:[{value:"kvoucher",label:"KVoucher"}]}]});
+  fireEvent.click(screen.getByRole("button",{name:"创建充值订单",exact:true}));
+  expect(await screen.findByText(order.id)).toBeTruthy();
+  expect(open).toHaveBeenCalledTimes(1);
+  if (payment_state === "created") expect(screen.getByRole("button",{name:"前往 Gkash 付款",exact:true})).toBeTruthy();
+  else {
+    expect(screen.getAllByText(notice).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button",{name:"前往 Gkash 付款",exact:true})).toBeNull();
+  }
+});
+
 const receiptOperation: Operation = {name:"receipt",label:"登记人工核实收款",method:"POST",path:"/api/v1/operators/operator-one/payments",fields:[
   {name:"gross_money",label:"收款总额（扣手续费前） 结算币种",kind:"decimal",required:true},
   {name:"fee_status",label:"收款手续费核实状态",kind:"select",required:true,default_value:"pending",options:[{value:"pending",label:"稍后核实"},{value:"confirmed",label:"金额已核实"}]},
@@ -255,6 +271,19 @@ function purchasePage(status: string) {
 function paymentUnknown() {
   return new Response(JSON.stringify({ error: { code: "payment_outcome_unknown", message: "原支付结果尚待核实，请查询原交易，重试将沿用原业务编号", request_id: "request-one", retryable: true } }), { status: 409 });
 }
+
+it("returns an unpaid procurement to its existing method selector without creating another order", async () => {
+  vi.spyOn(window, "open").mockReturnValue(null);
+  const fetch = vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => new Response(JSON.stringify(init?.method === "POST"
+    ? { id: "purchase-one", status: "pending", order: { id: "purchase-one", kind: "procurement", status: "pending", operator_name: "Supplier", created_at: "2026-11-12T00:00:00Z", method_change_allowed: true, amount_money: "2", paid_money: "0", payment_action: { kind: "form", url: "https://payment.example.test", fields: { token: "synthetic" } } } }
+    : { ...purchasePage("awaiting_payment"), items: [{ id: "purchase-one", status: "awaiting_payment", values: {}, allowed_actions: ["checkout", "query_payment"] }] })));
+  vi.stubGlobal("fetch", fetch);
+  mount(procurementCheckout, { row: { id: "purchase-one", values: {} } });
+  fireEvent.click(screen.getByRole("button", { name: "发起真实付款", exact: true }));
+  fireEvent.click(await screen.findByRole("button", { name: "改用其它付款方式", exact: true }));
+  expect(screen.getByRole("combobox", { name: "付款方式" })).toBeTruthy();
+  expect(fetch.mock.calls.filter(call => call[1]?.method === "POST")).toHaveLength(1);
+});
 
 it("recovers a completed procurement after an ambiguous checkout without posting another payment", async () => {
   const close = vi.fn(), blocked = vi.fn(), popupClose = vi.fn();

@@ -59,6 +59,14 @@ func (s CommerceSink) RecordVerifiedReceipt(ctx context.Context, tx *gorm.DB, m 
 
 // A provider fee is an independent fact, never the configured customer charge.
 func (s CommerceSink) ConfirmVerifiedReceiptFee(ctx context.Context, tx *gorm.DB, id string, f Fact) error {
+	if !f.Verified() {
+		return ErrInvalid
+	}
+	if f.MerchantNet != nil {
+		if e := s.Commerce.RecordReceiptSettlement(ctx, tx, id, f.MerchantNet.Currency, f.MerchantNet.Amount, "adapter:"+f.Driver); e != nil {
+			return e
+		}
+	}
 	if f.MerchantFee == nil || !f.Verified() {
 		return nil
 	}

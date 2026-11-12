@@ -142,11 +142,17 @@ func (d Wechat) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 		return Fact{}, e
 	}
 	var response wechatTransaction
-	if json.Unmarshal(raw, &response) != nil || response.AppID != m.Credentials["app_id"] || response.MerchantID != m.Credentials["mch_id"] || response.OutTradeNo != o.ID || response.TransactionID == "" {
+	if json.Unmarshal(raw, &response) != nil || response.AppID != m.Credentials["app_id"] || response.MerchantID != m.Credentials["mch_id"] || response.OutTradeNo != o.ID {
 		return Fact{}, ErrConflict
 	}
 	if response.State != "SUCCESS" {
+		if response.State == "NOTPAY" {
+			return Fact{}, ErrUnpaid
+		}
 		return Fact{}, ErrNotFinal
+	}
+	if response.TransactionID == "" {
+		return Fact{}, ErrConflict
 	}
 	money, e := fromMinor(response.Amount.Currency, response.Amount.Total, 2)
 	if e != nil {

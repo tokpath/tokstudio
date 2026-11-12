@@ -1,3 +1,6 @@
+import type { Order } from "./contracts";
+import { compareDecimal } from "./decimal";
+
 // The named window must be opened during the click that confirms KVoucher.
 // The form is submitted from this page into that window after checkout returns,
 // so the current page stays in place.
@@ -34,13 +37,24 @@ export function closePaymentWindow(target: Window | null) {
 
 const openedPrefix = "tokpath-gkash-opened:";
 
-// Remember that this browser already opened the provider page. The order page
-// can then ask the server to read the original channel. Sandbox records the
-// test payment there; a live payment stays unpaid until the channel confirms it.
+// Remember that this browser opened the provider page, so the order page can
+// refresh saved payment status. The server worker checks the original channel.
 export function markPaymentOpened(orderID: string) {
   try { sessionStorage.setItem(openedPrefix + orderID, "1"); } catch { /* private browsing can block storage */ }
 }
 
 export function paymentWasOpened(orderID: string) {
   try { return sessionStorage.getItem(openedPrefix + orderID) === "1"; } catch { return false; }
+}
+
+// Refresh our saved order only while it can progress here. The worker already
+// checks the provider; a browser must not run a second recurring channel query.
+export function shouldRefreshPayment(order: Order, paymentOpened: boolean, now = Date.now()) {
+  if (order.delivered_at || ["fulfilled", "completed", "closed", "cancelled", "canceled", "refunded", "expired"].includes(order.status)) return false;
+  if (["executing", "outcome_unknown", "failed", "awaiting_settlement"].includes(order.payment_state || "")) return false;
+  if (compareDecimal(order.paid_money, order.amount_money) >= 0) return true;
+  if (order.expires_at && new Date(order.expires_at).getTime() <= now) return false;
+  const action = order.payment_action;
+  if (!action || action.payment_quote && new Date(action.payment_quote.expires_at).getTime() <= now) return false;
+  return action.kind !== "form" || paymentOpened;
 }

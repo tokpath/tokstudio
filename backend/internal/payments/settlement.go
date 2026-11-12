@@ -28,11 +28,21 @@ func SettlementSupport(m Merchant, currency string) (bool, string) {
 	return false, fmt.Sprintf("该付款通道当前不支持 %s 订单清算，请选择其他付款方式。", currency)
 }
 
-func merchantCurrency(m Merchant) string {
+func merchantCurrency(m Merchant, orderCurrency ...string) string {
+	if len(orderCurrency) > 0 {
+		currency := orderCurrency[0]
+		if m.Driver == "stripe" {
+			if _, ok := stripeMinorDigits(currency); ok {
+				return currency
+			}
+		}
+	}
 	switch m.Driver {
 	case "stripe", "manual":
 		return m.Credentials["currency"]
 	case "kvoucher":
+		// The order API lists multiple currencies, but the actual Gkash
+		// checkout rejects non-MYR orders (verified in the official sandbox).
 		return "MYR"
 	case "alipay", "wechat":
 		return "CNY"

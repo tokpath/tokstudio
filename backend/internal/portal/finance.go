@@ -97,6 +97,13 @@ func (in manualReceiptInput) verified(operator, settlementCurrency string) (comm
 		fact.FeeStatus = "confirmed"
 		fact.SettledAt = in.SettledAt
 	}
+	// The normal offline form records money actually received in person.
+	// Existing explicit fee evidence, when supplied, determines its net amount.
+	fact.SettlementCurrency = currency
+	fact.SettlementNetAmount = &amount
+	if fact.OriginalNetAmount != nil {
+		fact.SettlementNetAmount = fact.OriginalNetAmount
+	}
 	return fact, nil
 }
 

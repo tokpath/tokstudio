@@ -64,6 +64,8 @@ export function PaymentMethodForm({ operation, row, operatorID, catalog, onBlock
           <label className="block text-sm">{t("手续费规则")}<select aria-label={t("手续费规则")} value={mode} onChange={e => setMode(e.target.value)} className={fieldClass}><option value="none">{t("不收费")}</option><option value="fixed">{t("固定金额")}</option><option value="percent">{t("按比例")}</option></select></label>
           {mode === "fixed" && <label className="block text-sm">{t("固定手续费")} {monetary.currency}<Input className="mt-2" inputMode="decimal" value={fixed} onChange={e => setFixed(e.target.value)} /></label>}
           {mode === "percent" && <label className="block text-sm">{t("手续费率 %")}<Input className="mt-2" inputMode="decimal" value={percent} onChange={e => setPercent(e.target.value)} /></label>}
+          <p className="text-xs leading-6 text-ink-secondary">{t("这里设置的是本经营方向用户收取的手续费，不是支付商向用户收取的手续费。可按预计成本设置，无需额外收费时设为 0；支付商可能另行收费，其收费不受此设置控制。")}</p>
+          <p className="text-xs leading-6 text-ink-secondary">{t("本项设置不保证实际到账金额。实际到账按核实的金额和币种登记。")}</p>
           <p className="text-xs leading-6 text-ink-secondary">{t("收款在本金之外加收，提现从申请总额扣除。内部余额和佣金抵扣不收费；修改不影响已确认的交易。")}</p>
         </section>
       </>}

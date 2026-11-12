@@ -8639,6 +8639,15 @@
     "Pesanan terpaut",
     "คำสั่งซื้อที่เชื่อมโยง"
   ],
+  "关联订单金额（含经营方手续费）": [
+    "关联订单金额（含经营方手续费）",
+    "Linked order amount including operator fee",
+    "関連注文金額（運営者手数料込み）",
+    "Сумма заказа с комиссией оператора",
+    "संबंधित ऑर्डर राशि, संचालक शुल्क सहित",
+    "Amaun pesanan termasuk fi pengendali",
+    "ยอดคำสั่งซื้อรวมค่าธรรมเนียมผู้ให้บริการ"
+  ],
   "关联订单（可选）": [
     "关联订单（可选）",
     "Link order (optional)",
@@ -9748,12 +9757,12 @@
   ],
   "前往 Gkash 付款": [
     "前往 Gkash 付款",
-    "Continue to Gkash",
+    "Pay with Gkash",
     "Gkash で支払う",
-    "Перейти к оплате в Gkash",
-    "Gkash पर जारी रखें",
-    "Teruskan ke Gkash",
-    "ดำเนินการต่อไปยัง Gkash"
+    "Оплатить через Gkash",
+    "Gkash से भुगतान करें",
+    "Bayar dengan Gkash",
+    "ชำระเงินผ่าน Gkash"
   ],
   "前往支付通道": [
     "前往支付通道",
@@ -10700,6 +10709,15 @@
     "Penerimaan bersih mata wang asal = penerimaan kasar tolak fi mata wang asal. Penyerahan pesanan menggunakan jumlah penyelesaian yang disahkan.",
     "ยอดรับสุทธิสกุลเงินเดิม = ยอดรับรวมลบค่าธรรมเนียมสกุลเงินเดิม การส่งมอบตามคำสั่งซื้อใช้ยอดชำระบัญชีที่ตรวจสอบแล้ว"
   ],
+  "原币到账对应记录": [
+    "原币到账对应记录",
+    "Receipt counterpart in original currency",
+    "入金通貨の対応記録",
+    "Корреспондирующая запись поступления в исходной валюте",
+    "मूल मुद्रा में प्राप्ति की समकक्ष प्रविष्टि",
+    "Catatan pasangan penerimaan mata wang asal",
+    "รายการคู่บัญชีเงินรับตามสกุลเดิม"
+  ],
   "原币实收": [
     "原币实收",
     "Actual receipt in original currency",
@@ -11131,6 +11149,15 @@
     "मूल धनवापसी दायित्व",
     "Tanggungjawab bayaran balik asal",
     "ภาระคืนเงินเดิม"
+  ],
+  "原通道尚未确认收款。未付款可继续原订单付款；已经付款请稍后刷新原订单，无须再次付款。": [
+    "原通道尚未确认收款。未付款可继续原订单付款；已经付款请稍后刷新原订单，无须再次付款。",
+    "The provider has not confirmed payment yet. If you have not paid, continue with this order. If you have paid, refresh this order later without paying again.",
+    "決済サービスではまだ入金が確認されていません。未払いの場合はこの注文で支払いを続けてください。支払い済みの場合は、再度支払わず、後ほどこの注文を更新してください。",
+    "Платёжный сервис ещё не подтвердил оплату. Если вы не платили, продолжите оплату этого заказа. Если уже заплатили, обновите заказ позже, не оплачивая повторно.",
+    "प्रदाता ने अभी भुगतान की पुष्टि नहीं की है। भुगतान नहीं किया है तो इसी ऑर्डर का भुगतान करें। भुगतान कर चुके हैं तो दोबारा भुगतान न करें और कुछ समय बाद इसी ऑर्डर को रीफ़्रेश करें।",
+    "Penyedia belum mengesahkan bayaran. Jika belum membayar, teruskan pembayaran pesanan ini. Jika sudah membayar, muat semula pesanan ini kemudian tanpa membayar sekali lagi.",
+    "ผู้ให้บริการยังไม่ยืนยันการรับเงิน หากยังไม่ได้ชำระ ให้ดำเนินการชำระคำสั่งซื้อเดิม หากชำระแล้ว ให้รีเฟรชคำสั่งซื้อนี้ภายหลังโดยไม่ต้องชำระซ้ำ"
   ],
   "原通道尚未确认这笔收款。请稍后再查询，不要另付一笔。": [
     "原通道尚未确认这笔收款。请稍后再查询，不要另付一笔。",
@@ -15245,6 +15272,15 @@
     "Bukti pelaksanaan luaran sebenar",
     "หลักฐานการดำเนินการจริงภายนอก"
   ],
+  "外部收付款": [
+    "外部收付款",
+    "External receipts and payments",
+    "外部入出金",
+    "Внешние поступления и платежи",
+    "बाहरी प्राप्तियाँ और भुगतान",
+    "Penerimaan dan pembayaran luar",
+    "การรับและจ่ายเงินภายนอก"
+  ],
   "外部收款 结算币种": [
     "外部收款 结算币种",
     "External payment settlement currency",
@@ -16270,6 +16306,24 @@
     "प्राप्त राशि",
     "Jumlah diterima",
     "ยอดที่ได้รับ"
+  ],
+  "实际到账币种": [
+    "实际到账币种",
+    "Actual receipt currency",
+    "実際の入金通貨",
+    "Валюта фактического поступления",
+    "वास्तविक प्राप्ति की मुद्रा",
+    "Mata wang penerimaan sebenar",
+    "สกุลเงินที่ได้รับจริง"
+  ],
+  "实际到账金额": [
+    "实际到账金额",
+    "Actual amount received",
+    "実際の入金額",
+    "Фактически полученная сумма",
+    "वास्तविक प्राप्त राशि",
+    "Amaun sebenar diterima",
+    "ยอดที่ได้รับจริง"
   ],
   "实际办理状态": [
     "实际办理状态",
@@ -25937,6 +25991,15 @@
     "Pengesahan fi penerimaan",
     "ตรวจสอบค่าธรรมเนียมรับเงิน"
   ],
+  "收款手续费由本经营方向用户收取，支付商的费用另计。本金 100、手续费 2 时，向支付商提交 102，客户权益按 100 交付；实际到账按核实结果记录。": [
+    "收款手续费由本经营方向用户收取，支付商的费用另计。本金 100、手续费 2 时，向支付商提交 102，客户权益按 100 交付；实际到账按核实结果记录。",
+    "Your business charges this collection fee; the provider may charge separately. For principal 100 and fee 2, submit 102 to the provider and deliver entitlements for 100. Record the actual amount received once verified.",
+    "この入金手数料は運営者がユーザーに請求し、決済事業者の手数料は別途発生します。元本100、手数料2なら事業者へ102を送信し、顧客には100相当の権利を付与します。入金は実際に確認した額で記録します。",
+    "Эту комиссию взимает оператор; комиссия провайдера отдельная. При основной сумме 100 и комиссии 2 провайдеру передаётся 102, а клиент получает права на 100. Поступление записывается по фактически подтверждённой сумме.",
+    "यह संग्रह शुल्क आपका व्यवसाय उपयोगकर्ता से लेता है; प्रदाता का शुल्क अलग हो सकता है। मूल राशि 100 और शुल्क 2 होने पर प्रदाता को 102 भेजें और ग्राहक को 100 के अधिकार दें। वास्तविक प्राप्त राशि सत्यापन के बाद दर्ज करें।",
+    "Perniagaan anda mengenakan fi penerimaan ini; caj penyedia adalah berasingan. Untuk prinsipal 100 dan fi 2, hantar 102 kepada penyedia dan berikan hak bernilai 100. Rekod amaun sebenar diterima selepas disahkan.",
+    "ธุรกิจของคุณเรียกเก็บค่าธรรมเนียมรับเงินนี้ ส่วนค่าธรรมเนียมผู้ให้บริการอาจเรียกเก็บแยก เงินต้น 100 กับค่าธรรมเนียม 2 ให้ส่งยอด 102 ไปยังผู้ให้บริการและมอบสิทธิ์ให้ลูกค้าตามยอด 100 บันทึกยอดรับจริงหลังตรวจสอบแล้ว"
+  ],
   "收款手续费记账": [
     "收款手续费记账",
     "Receipt processing fee",
@@ -29365,6 +29428,24 @@
     "इस पृष्ठ के प्रकार",
     "Jenis pada halaman ini",
     "ประเภทในหน้านี้"
+  ],
+  "本项设置不保证实际到账金额。实际到账按核实的金额和币种登记。": [
+    "本项设置不保证实际到账金额。实际到账按核实的金额和币种登记。",
+    "This setting does not guarantee the amount received. Record receipts using the verified amount and currency.",
+    "この設定は実際の入金額を保証しません。入金は確認済みの金額と通貨で記録します。",
+    "Эта настройка не гарантирует сумму поступления. Записывайте фактически подтверждённые сумму и валюту.",
+    "यह सेटिंग वास्तविक प्राप्त राशि की गारंटी नहीं देती। प्राप्ति को सत्यापित राशि और मुद्रा में दर्ज करें।",
+    "Tetapan ini tidak menjamin amaun diterima. Rekod penerimaan mengikut amaun dan mata wang yang disahkan.",
+    "การตั้งค่านี้ไม่รับประกันยอดรับจริง ให้บันทึกตามยอดและสกุลเงินที่ตรวจสอบแล้ว"
+  ],
+  "本项设置不保证实际到账金额。资金入账按支付商实际结算的金额和币种登记。": [
+    "本项设置不保证实际到账金额。资金入账按支付商实际结算的金额和币种登记。",
+    "This setting does not guarantee the amount your business receives. Record funds using the amount and currency actually settled by the payment provider.",
+    "この設定は実際の入金額を保証しません。入金は決済事業者が実際に精算した金額と通貨で記録します。",
+    "Эта настройка не гарантирует сумму поступления. Средства учитываются в сумме и валюте фактического расчёта платёжного провайдера.",
+    "यह सेटिंग वास्तव में मिलने वाली राशि की गारंटी नहीं देती। धन का रिकॉर्ड भुगतान प्रदाता द्वारा वास्तव में निपटाई गई राशि और मुद्रा में रखें।",
+    "Tetapan ini tidak menjamin jumlah yang diterima. Rekod dana mengikut jumlah dan mata wang yang benar-benar diselesaikan oleh penyedia pembayaran.",
+    "การตั้งค่านี้ไม่รับประกันยอดที่ได้รับจริง ให้บันทึกเงินตามจำนวนและสกุลเงินที่ผู้ให้บริการชำระเงินชำระให้จริง"
   ],
   "权益到期": [
     "权益到期",
@@ -39113,6 +39194,15 @@
     "Pesanan dan penerimaan",
     "คำสั่งซื้อและเงินรับ"
   ],
+  "订单付款对应权益": [
+    "订单付款对应权益",
+    "Entitlements funded by order payments",
+    "注文支払いに対応する権利",
+    "Права по оплате заказов",
+    "ऑर्डर भुगतान से प्राप्त अधिकार",
+    "Hak daripada bayaran pesanan",
+    "สิทธิ์จากการชำระคำสั่งซื้อ"
+  ],
   "订单关联业务": [
     "订单关联业务",
     "Order related records",
@@ -40165,6 +40255,24 @@
     "इसे सेटिंग → भुगतान विधियाँ और शुल्क में कॉन्फ़िगर करें।",
     "Konfigurasikan ini di bawah Tetapan → Kaedah pembayaran dan fi.",
     "ตั้งค่าใน การตั้งค่า → วิธีชำระเงินและค่าธรรมเนียม"
+  ],
+  "请在 Gkash 付款页确认最终金额。未付款可更换付款方式；已经付款请等待核实，勿重复付款。": [
+    "请在 Gkash 付款页确认最终金额。未付款可更换付款方式；已经付款请等待核实，勿重复付款。",
+    "Confirm the final amount on Gkash. You can change methods before paying. If already paid, wait for verification and do not pay again.",
+    "最終金額は Gkash で確認してください。未払いなら支払方法を変更できます。支払い済みの場合は確認を待ち、重複して支払わないでください。",
+    "Уточните итоговую сумму на Gkash. До оплаты можно сменить способ. Если уже оплатили, дождитесь проверки и не платите повторно.",
+    "Gkash पर अंतिम राशि जाँचें। भुगतान से पहले तरीका बदल सकते हैं। भुगतान कर चुके हों तो सत्यापन की प्रतीक्षा करें, दोबारा भुगतान न करें।",
+    "Sahkan amaun akhir di Gkash. Tukar kaedah sebelum membayar. Jika sudah membayar, tunggu pengesahan dan jangan bayar semula.",
+    "ตรวจสอบยอดสุดท้ายที่ Gkash หากยังไม่ชำระสามารถเปลี่ยนวิธีได้ หากชำระแล้วให้รอตรวจสอบและอย่าชำระซ้ำ"
+  ],
+  "请在 Gkash 付款页确认金额并完成付款，付款后返回核实原订单。": [
+    "请在 Gkash 付款页确认金额并完成付款，付款后返回核实原订单。",
+    "Confirm the amount and pay on the Gkash page, then return to verify this order.",
+    "Gkash の支払い画面で金額を確認して支払い、戻って元の注文を照会してください。",
+    "Проверьте сумму и оплатите на странице Gkash, затем вернитесь для проверки заказа.",
+    "Gkash भुगतान पृष्ठ पर राशि की पुष्टि करके भुगतान करें, फिर इस ऑर्डर की जाँच के लिए लौटें।",
+    "Sahkan amaun dan bayar pada halaman Gkash, kemudian kembali untuk menyemak pesanan ini.",
+    "ตรวจสอบยอดและชำระเงินในหน้า Gkash แล้วกลับมาตรวจสอบคำสั่งซื้อเดิม"
   ],
   "请在停业与接管页面查看并办理客户权益承接。双方资金交接在线下处理。": [
     "请在停业与接管页面查看并办理客户权益承接。双方资金交接在线下处理。",
@@ -43585,6 +43693,15 @@
     "यहाँ प्रत्येक मद स्वीकार पैरामीटर में भी होनी चाहिए।",
     "Setiap item di sini juga mesti muncul dalam Parameter yang diterima.",
     "ทุกรายการที่นี่ต้องปรากฏในพารามิเตอร์ที่รับด้วย"
+  ],
+  "这里设置的是本经营方向用户收取的手续费，不是支付商向用户收取的手续费。可按预计成本设置，无需额外收费时设为 0；支付商可能另行收费，其收费不受此设置控制。": [
+    "这里设置的是本经营方向用户收取的手续费，不是支付商向用户收取的手续费。可按预计成本设置，无需额外收费时设为 0；支付商可能另行收费，其收费不受此设置控制。",
+    "This is the fee your business charges users, not the payment provider’s fee. Set it to cover estimated costs, or to 0 if no extra charge is needed. The provider may charge users separately; this setting does not control its fees.",
+    "ここで設定するのは運営者がユーザーに請求する手数料であり、決済事業者の手数料ではありません。予想費用に合わせて設定し、追加請求が不要なら 0 にします。決済事業者が別途請求する手数料には、この設定は適用されません。",
+    "Это комиссия, которую ваша компания взимает с пользователей, а не комиссия платёжного провайдера. Укажите её с учётом ожидаемых затрат или 0, если доплата не нужна. Провайдер может взимать отдельную комиссию; эта настройка на неё не влияет.",
+    "यह आपके व्यवसाय द्वारा उपयोगकर्ताओं से लिया जाने वाला शुल्क है, भुगतान प्रदाता का शुल्क नहीं। अनुमानित लागत के अनुसार इसे तय करें, या अतिरिक्त शुल्क न लेना हो तो 0 रखें। प्रदाता अलग से शुल्क ले सकता है; यह सेटिंग उसके शुल्क को नियंत्रित नहीं करती।",
+    "Ini ialah caj yang perniagaan anda kenakan kepada pengguna, bukan caj penyedia pembayaran. Tetapkan berdasarkan anggaran kos, atau 0 jika tiada caj tambahan diperlukan. Penyedia mungkin mengenakan caj berasingan; tetapan ini tidak mengawal cajnya.",
+    "นี่คือค่าธรรมเนียมที่ธุรกิจของคุณเรียกเก็บจากผู้ใช้ ไม่ใช่ค่าธรรมเนียมของผู้ให้บริการชำระเงิน กำหนดตามต้นทุนที่คาดการณ์ หรือกำหนดเป็น 0 หากไม่ต้องการเรียกเก็บเพิ่ม ผู้ให้บริการอาจเรียกเก็บแยกต่างหาก ซึ่งการตั้งค่านี้ไม่มีผลต่อค่าธรรมเนียมนั้น"
   ],
   "进入业务办理": [
     "进入业务办理",

@@ -16,7 +16,12 @@ func TestExternalCheckoutFailureAcceptanceServer(t *testing.T) {
 	if ready == "" {
 		t.Skip("opt-in isolated checkout acceptance server")
 	}
-	f, _, _, _ := setupCheckoutApp(t, "mismatch")
+	scenario := "mismatch"
+	if os.Getenv("TOKENHUB_CHECKOUT_ACCEPTANCE_SCENARIO") == "success" {
+		scenario = "success"
+	}
+	f, _, _, _ := setupCheckoutApp(t, scenario)
+	roles := f.seedPaymentOperatorRoles(t)
 	f.server.Close()
 	f.a.Config.TrustedProxies = []string{"127.0.0.1", "::1"}
 	f.a.Config.WebOrigin = "http://127.0.0.1:13003"
@@ -30,7 +35,7 @@ func TestExternalCheckoutFailureAcceptanceServer(t *testing.T) {
 	server.Listener = listener
 	server.Start()
 	t.Cleanup(server.Close)
-	raw, _ := json.Marshal(map[string]string{"email": "checkout@example.test", "password": "customer-password-test"})
+	raw, _ := json.Marshal(map[string]any{"email": "checkout@example.test", "password": "customer-password-test", "roles": roles, "operator": f.a.Installation.OperatorID})
 	if err = os.WriteFile(ready, raw, 0600); err != nil {
 		t.Fatal(err)
 	}

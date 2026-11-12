@@ -198,8 +198,8 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 					row["allowed_actions"] = []string{"query_payment"}
 					v["merchant_id"] = checkout.MerchantID
 					intent, err := a.Payments.PaymentIntent(ctx, o.SupplierID, checkout.MerchantID, o.ID)
-					if err == nil && intent.State == "created" {
-						row["allowed_actions"] = append(row["allowed_actions"].([]string), "resume_payment")
+					if err == nil && (intent.State == "created" || intent.State == "failed") {
+						row["allowed_actions"] = append(row["allowed_actions"].([]string), "checkout")
 					}
 					if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 						handleError(c, err)
@@ -287,7 +287,6 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 	p["columns"] = []gin.H{col("record_kind", "记录类型", "text"), col("name", "报价或订单名称", "text"), col("buyer_name", "采购方", "text"), col("supplier_name", "供货方", "text"), col("reserved_atg", "占用供货库存", "atg"), col("reserved_note", "占用说明", "text"), col("payment_hold", "付款期限", "text"), col("price_money", "成交结算币种", "money"), col("allocated_money", "已收款结算币种", "money"), col("gift_tiers", "分段赠送规则", "details"), col("paid_atg", "购买库存", "atg"), col("gift_atg", "赠送库存", "atg"), col("exit_policy_summary", "成交时的退出规则", "text"), col("terms_summary", "合作约定", "text"), col("contract_url", "合作合同", "link"), col("state", "执行状态", "status")}
 	p["operations"] = []operation{{Name: "quote", Label: "向直属采购方发布供货报价", Description: "OEM 和渠道的剩余采购余额均不退。", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "quote"), f("buyer_id", "直属采购方", "text"), optional("name", "报价名称（留空自动命名）", "text"), defaultField("gift_tiers", "阶梯赠送", "json", []cooperation.PurchaseGiftTier{{FromMoney: ledger.Zero(), GiftPercent: ledger.Zero()}}), optional("terms_summary", "补充合作约定（可选）", "textarea"), supplyExitPolicyField(), optional("contract_attachment_id", "已上传合作合同（可选）", "text"), optional("valid_until", "报价截止时间", "datetime")}}, {Name: "authorization", Label: "设定有限自动补货授权", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "authorization"), f("quote_id", "已确认的供货报价", "text"), optional("supplier_id", "报价供货方", "hidden"), f("amount_money", "每次采购结算币种", "decimal"), f("trigger_available_atg", "采购可用库存低于ATG时触发", "decimal"), f("period_limit_money", "周期付款上限（含支付手续费）", "decimal"), selectField("period", "UTC自然周期", "month|月", "quarter|季", "year|年"), selectField("mode", "执行方式", "offline|仅建立待付订单", "automatic|已获授权Stripe自动扣款"), optional("merchant_id", "真实供货收款商户配置编号", "text"), optional("payment.payment_method", "Stripe已授权pm_编号", "password"), optional("payment.customer_ref", "Stripe已授权cus_编号", "password"), defaultField("consent_confirmed", "确认本次补货授权", "hidden", true), defaultField("enabled", "启用授权", "boolean", true), defaultField("expected_version", "当前授权版本", "hidden", 0)}, Confirmation: "我已确认每次采购金额、触发条件、阶梯赠送及周期总上限，并授权所选补货方式。付款结果未知时只核实原交易。"}}
 	p["row_operations"] = []operation{{Name: "purchase", Label: "按金额采购", Method: "POST", Path: base + "/{id}/purchase", Fields: []field{f("amount_money", "本次采购结算币种", "decimal")}, Confirmation: "确认本次金额、分段赠送数量与退出条款。每单一笔足额付款。创建后按购买加赠送数量占用供货库存，直到付清交付或取消，不增加可用采购库存。"}, {Name: "disable_quote", Label: "停止按此报价下单", Method: "POST", Path: base + "/{id}/disable_quote", Fields: []field{}, Confirmation: "停止后，采购方不能再按这条报价创建新订单。已经创建的订单仍按原条款办理。"}, {Name: "enable_quote", Label: "恢复按此报价下单", Method: "POST", Path: base + "/{id}/enable_quote", Fields: []field{}, Confirmation: "恢复后，采购方可以继续按这条报价创建新订单。"}, {Name: "checkout", Label: "发起真实付款", Method: "POST", Path: base + "/{id}/checkout", Fields: []field{f("merchant_id", "付款方式", "text")}, Description: "每单使用一个付款方式和一笔足额付款。付款结果未知时查询原交易，不能另付一笔。足额核实后自动交付。"}, {Name: "query_payment", Label: "查询原付款与交付", Method: "POST", Path: base + "/{id}/query_payment", Fields: []field{}}, {Name: "fund", Label: "关联线下收款并交付", Permission: "payments.manage", Method: "POST", Path: base + "/{id}/fund", Fields: []field{f("receipt_id", "本方已核实的整笔收款", "text")}, Description: "只能关联一笔未分配且金额与订单完全一致的收款，核实后自动交付。"}, {Name: "fulfill", Label: "重试实际库存交付", Method: "POST", Path: base + "/{id}/fulfill", Fields: []field{}}, {Name: "cancel", Label: "取消未付款订单", Method: "POST", Path: base + "/{id}/cancel", Fields: []field{}, Confirmation: "确认取消这笔尚未分配收款的订单？取消后立即释放它占用的供货库存。"}, {Name: "cancel_authorization", Label: "停止未来自动补货", Method: "POST", Path: base + "/{id}/cancel_authorization", IncludeVersion: true, Fields: []field{}}}
-	p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "resume_payment", Label: "继续原付款", Method: "POST", Path: base + "/{id}/checkout", Fields: []field{f("merchant_id", "付款方式", "hidden")}, Description: "继续原订单的付款页面或收款说明，保持原付款方式和同一笔交易。"})
 	p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "offline_purchase", Label: "登记线下采购", Permission: "payments.manage", Method: "POST", Path: base + "/{id}/offline_purchase", Fields: []field{f("receipt_id", "本方已核实的整笔收款", "text"), f("amount_money", "采购本金 结算币种", "decimal"), f("external_method_id", "本次线下收款方式", "select")}, Description: "选择实际收款方式并填写采购本金。本金加支付手续费必须等于这笔实际收款总额，仅本金计算购买和赠送 ATG。"})
 	methods, err := a.Payments.PublicMethods(ctx, op.ID)
 	if err != nil {
@@ -664,6 +663,23 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		handleError(c, organization.ErrForbidden)
 		return
 	}
+	unpaidMerchant := ""
+	var previous procurementCheckout
+	if err := a.DB.WithContext(ctx).Where("order_id=?", id).Limit(1).Find(&previous).Error; err != nil {
+		handleError(c, err)
+		return
+	}
+	if previous.MerchantID != "" && previous.MerchantID != in.MerchantID {
+		intent, err := a.Payments.PaymentIntent(ctx, o.SupplierID, previous.MerchantID, id)
+		if err == nil && intent.State == "created" {
+			if _, err = a.Payments.Reconcile(ctx, o.SupplierID, previous.MerchantID, id); errors.Is(err, payments.ErrUnpaid) {
+				unpaidMerchant = previous.MerchantID
+			} else {
+				handleError(c, commerce.ErrPaymentUnknown)
+				return
+			}
+		}
+	}
 	var saved procurementCheckout
 	e = a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if e := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "procurement-checkout:"+id).Error; e != nil {
@@ -687,7 +703,17 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 			return nil
 		}
 		if q.RowsAffected > 0 {
-			return payments.ErrConflict
+			intent, err := a.Payments.PaymentIntent(ctx, o.SupplierID, saved.MerchantID, id)
+			if err != nil || (intent.State != "failed" && !(intent.State == "created" && unpaidMerchant == saved.MerchantID)) {
+				return commerce.ErrPaymentUnknown
+			}
+			var received int64
+			if err = tx.Table("payments_verified_facts").Where("operator_id=? AND order_id=? AND kind='receipt'", o.SupplierID, id).Count(&received).Error; err != nil {
+				return err
+			}
+			if received > 0 {
+				return commerce.ErrPaymentUnknown
+			}
 		}
 		if o.Status != "awaiting_payment" || !o.AllocatedMoney.IsZero() {
 			return commerce.ErrOrderState
@@ -714,9 +740,17 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		if e != nil {
 			return e
 		}
+		if original, err := a.Payments.PaymentIntent(ctx, o.SupplierID, in.MerchantID, id); err == nil {
+			fee = original.FeeQuote
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
 		po.FeeQuote = fee
 		encoded, _ := json.Marshal(po)
 		saved = procurementCheckout{OrderID: id, BuyerID: op.ID, ActorID: actor, MerchantID: in.MerchantID, PaymentOrder: encoded, CreatedAt: time.Now().UTC()}
+		if q.RowsAffected > 0 {
+			return tx.Model(&procurementCheckout{}).Where("order_id=?", id).Updates(map[string]any{"merchant_id": saved.MerchantID, "payment_order": saved.PaymentOrder, "actor_id": actor}).Error
+		}
 		return tx.Create(&saved).Error
 	})
 	if e != nil {
@@ -725,7 +759,12 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 	}
 	var po payments.Order
 	_ = json.Unmarshal(saved.PaymentOrder, &po)
-	checkout, e := a.Payments.Create(ctx, po.OperatorID, po.MerchantID, po)
+	var checkout payments.Checkout
+	if original, err := a.Payments.PaymentIntent(ctx, po.OperatorID, po.MerchantID, id); err == nil && original.Checkout != nil {
+		checkout = *original.Checkout
+	} else {
+		checkout, e = a.Payments.Create(ctx, po.OperatorID, po.MerchantID, po)
+	}
 	if e != nil {
 		handleError(c, e)
 		return
@@ -743,7 +782,7 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		handleError(c, e)
 		return
 	}
-	c.JSON(200, gin.H{"id": id, "status": checkout.State, "message": "Pay the original checkout, then verify actual receipt and delivery.", "order": gin.H{"monetary_snapshot": o.MonetarySnapshot, "id": id, "status": checkout.State, "kind": "procurement", "operator_name": po.OperatorID, "amount_money": o.DueMoney, "paid_money": o.AllocatedMoney, "created_at": o.CreatedAt, "fee_quote": checkout.FeeQuote, "payment_action": action}})
+	c.JSON(200, gin.H{"id": id, "status": checkout.State, "message": "Pay the original checkout, then verify actual receipt and delivery.", "order": gin.H{"monetary_snapshot": o.MonetarySnapshot, "id": id, "status": checkout.State, "kind": "procurement", "method_change_allowed": intent.State == "created" && o.Status == "awaiting_payment" && o.AllocatedMoney.IsZero(), "operator_name": po.OperatorID, "amount_money": o.DueMoney, "paid_money": o.AllocatedMoney, "created_at": o.CreatedAt, "fee_quote": checkout.FeeQuote, "payment_action": action}})
 }
 func (a *Application) deliverProcurementReceipt(ctx context.Context, cr procurementCheckout, receiptID string) error {
 	return a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

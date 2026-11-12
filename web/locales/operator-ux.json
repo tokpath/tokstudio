@@ -1786,6 +1786,24 @@
     "ms": "Mata wang atau amaun daripada penyedia pembayaran berbeza daripada sebut harga pesanan ini. Pembayaran dihentikan sementara. Simpan pesanan ini dan hubungi pengendali untuk semakan.",
     "th": "สกุลเงินหรือจำนวนเงินที่ผู้ให้บริการชำระเงินส่งกลับมาไม่ตรงกับราคาที่เสนอสำหรับคำสั่งซื้อนี้ จึงระงับการชำระเงินไว้ โปรดเก็บคำสั่งซื้อเดิมและติดต่อผู้ดำเนินการเพื่อตรวจสอบ"
   },
+  "前往 Gkash 付款": {
+    "zh": "前往 Gkash 付款",
+    "en": "Pay with Gkash",
+    "ja": "Gkash で支払う",
+    "ru": "Оплатить через Gkash",
+    "hi": "Gkash से भुगतान करें",
+    "ms": "Bayar dengan Gkash",
+    "th": "ชำระเงินผ่าน Gkash"
+  },
+  "原通道尚未确认收款。未付款可继续原订单付款；已经付款请稍后刷新原订单，无须再次付款。": {
+    "zh": "原通道尚未确认收款。未付款可继续原订单付款；已经付款请稍后刷新原订单，无须再次付款。",
+    "en": "The provider has not confirmed payment yet. If you have not paid, continue with this order. If you have paid, refresh this order later without paying again.",
+    "ja": "決済サービスではまだ入金が確認されていません。未払いの場合はこの注文で支払いを続けてください。支払い済みの場合は、再度支払わず、後ほどこの注文を更新してください。",
+    "ru": "Платёжный сервис ещё не подтвердил оплату. Если вы не платили, продолжите оплату этого заказа. Если уже заплатили, обновите заказ позже, не оплачивая повторно.",
+    "hi": "प्रदाता ने अभी भुगतान की पुष्टि नहीं की है। भुगतान नहीं किया है तो इसी ऑर्डर का भुगतान करें। भुगतान कर चुके हैं तो दोबारा भुगतान न करें और कुछ समय बाद इसी ऑर्डर को रीफ़्रेश करें।",
+    "ms": "Penyedia belum mengesahkan bayaran. Jika belum membayar, teruskan pembayaran pesanan ini. Jika sudah membayar, muat semula pesanan ini kemudian tanpa membayar sekali lagi.",
+    "th": "ผู้ให้บริการยังไม่ยืนยันการรับเงิน หากยังไม่ได้ชำระ ให้ดำเนินการชำระคำสั่งซื้อเดิม หากชำระแล้ว ให้รีเฟรชคำสั่งซื้อนี้ภายหลังโดยไม่ต้องชำระซ้ำ"
+  },
   "充值记录": {
     "zh": "充值记录",
     "en": "Top-up history",
@@ -1803,5 +1821,101 @@
     "hi": "आपका ऑर्डर बन गया है, लेकिन भुगतान के निर्देश फ़िलहाल उपलब्ध नहीं हैं। यह ऑर्डर सुरक्षित रखें और जाँच के लिए अपने संचालक से संपर्क करें।",
     "ms": "Pesanan telah dicipta, tetapi arahan pembayaran tidak tersedia buat sementara waktu. Simpan pesanan ini dan hubungi pengendali untuk semakan.",
     "th": "สร้างคำสั่งซื้อแล้ว แต่คำแนะนำการชำระเงินยังไม่พร้อมใช้งานชั่วคราว โปรดเก็บคำสั่งซื้อเดิมและติดต่อผู้ดำเนินการเพื่อตรวจสอบ"
+  },
+  "这里设置的是本经营方向用户收取的手续费，不是支付商向用户收取的手续费。可按预计成本设置，无需额外收费时设为 0；支付商可能另行收费，其收费不受此设置控制。": {
+    "en": "This is the fee your business charges users, not the payment provider’s fee. Set it to cover estimated costs, or to 0 if no extra charge is needed. The provider may charge users separately; this setting does not control its fees.",
+    "ja": "ここで設定するのは運営者がユーザーに請求する手数料であり、決済事業者の手数料ではありません。予想費用に合わせて設定し、追加請求が不要なら 0 にします。決済事業者が別途請求する手数料には、この設定は適用されません。",
+    "ru": "Это комиссия, которую ваша компания взимает с пользователей, а не комиссия платёжного провайдера. Укажите её с учётом ожидаемых затрат или 0, если доплата не нужна. Провайдер может взимать отдельную комиссию; эта настройка на неё не влияет.",
+    "hi": "यह आपके व्यवसाय द्वारा उपयोगकर्ताओं से लिया जाने वाला शुल्क है, भुगतान प्रदाता का शुल्क नहीं। अनुमानित लागत के अनुसार इसे तय करें, या अतिरिक्त शुल्क न लेना हो तो 0 रखें। प्रदाता अलग से शुल्क ले सकता है; यह सेटिंग उसके शुल्क को नियंत्रित नहीं करती।",
+    "ms": "Ini ialah caj yang perniagaan anda kenakan kepada pengguna, bukan caj penyedia pembayaran. Tetapkan berdasarkan anggaran kos, atau 0 jika tiada caj tambahan diperlukan. Penyedia mungkin mengenakan caj berasingan; tetapan ini tidak mengawal cajnya.",
+    "th": "นี่คือค่าธรรมเนียมที่ธุรกิจของคุณเรียกเก็บจากผู้ใช้ ไม่ใช่ค่าธรรมเนียมของผู้ให้บริการชำระเงิน กำหนดตามต้นทุนที่คาดการณ์ หรือกำหนดเป็น 0 หากไม่ต้องการเรียกเก็บเพิ่ม ผู้ให้บริการอาจเรียกเก็บแยกต่างหาก ซึ่งการตั้งค่านี้ไม่มีผลต่อค่าธรรมเนียมนั้น"
+  },
+  "本项设置不保证实际到账金额。资金入账按支付商实际结算的金额和币种登记。": {
+    "en": "This setting does not guarantee the amount your business receives. Record funds using the amount and currency actually settled by the payment provider.",
+    "ja": "この設定は実際の入金額を保証しません。入金は決済事業者が実際に精算した金額と通貨で記録します。",
+    "ru": "Эта настройка не гарантирует сумму поступления. Средства учитываются в сумме и валюте фактического расчёта платёжного провайдера.",
+    "hi": "यह सेटिंग वास्तव में मिलने वाली राशि की गारंटी नहीं देती। धन का रिकॉर्ड भुगतान प्रदाता द्वारा वास्तव में निपटाई गई राशि और मुद्रा में रखें।",
+    "ms": "Tetapan ini tidak menjamin jumlah yang diterima. Rekod dana mengikut jumlah dan mata wang yang benar-benar diselesaikan oleh penyedia pembayaran.",
+    "th": "การตั้งค่านี้ไม่รับประกันยอดที่ได้รับจริง ให้บันทึกเงินตามจำนวนและสกุลเงินที่ผู้ให้บริการชำระเงินชำระให้จริง"
+  },
+  "订单付款对应权益": {
+    "en": "Entitlements funded by order payments",
+    "ja": "注文支払いに対応する権利",
+    "ru": "Права по оплате заказов",
+    "hi": "ऑर्डर भुगतान से प्राप्त अधिकार",
+    "ms": "Hak daripada bayaran pesanan",
+    "th": "สิทธิ์จากการชำระคำสั่งซื้อ"
+  },
+  "原币到账对应记录": {
+    "en": "Receipt counterpart in original currency",
+    "ja": "入金通貨の対応記録",
+    "ru": "Корреспондирующая запись поступления в исходной валюте",
+    "hi": "मूल मुद्रा में प्राप्ति की समकक्ष प्रविष्टि",
+    "ms": "Catatan pasangan penerimaan mata wang asal",
+    "th": "รายการคู่บัญชีเงินรับตามสกุลเดิม"
+  },
+  "关联订单金额（含经营方手续费）": {
+    "en": "Linked order amount including operator fee",
+    "ja": "関連注文金額（運営者手数料込み）",
+    "ru": "Сумма заказа с комиссией оператора",
+    "hi": "संबंधित ऑर्डर राशि, संचालक शुल्क सहित",
+    "ms": "Amaun pesanan termasuk fi pengendali",
+    "th": "ยอดคำสั่งซื้อรวมค่าธรรมเนียมผู้ให้บริการ"
+  },
+  "实际到账金额": {
+    "en": "Actual amount received",
+    "ja": "実際の入金額",
+    "ru": "Фактически полученная сумма",
+    "hi": "वास्तविक प्राप्त राशि",
+    "ms": "Amaun sebenar diterima",
+    "th": "ยอดที่ได้รับจริง"
+  },
+  "实际到账币种": {
+    "en": "Actual receipt currency",
+    "ja": "実際の入金通貨",
+    "ru": "Валюта фактического поступления",
+    "hi": "वास्तविक प्राप्ति की मुद्रा",
+    "ms": "Mata wang penerimaan sebenar",
+    "th": "สกุลเงินที่ได้รับจริง"
+  },
+  "请在 Gkash 付款页确认金额并完成付款，付款后返回核实原订单。": {
+    "en": "Confirm the amount and pay on the Gkash page, then return to verify this order.",
+    "ja": "Gkash の支払い画面で金額を確認して支払い、戻って元の注文を照会してください。",
+    "ru": "Проверьте сумму и оплатите на странице Gkash, затем вернитесь для проверки заказа.",
+    "hi": "Gkash भुगतान पृष्ठ पर राशि की पुष्टि करके भुगतान करें, फिर इस ऑर्डर की जाँच के लिए लौटें।",
+    "ms": "Sahkan amaun dan bayar pada halaman Gkash, kemudian kembali untuk menyemak pesanan ini.",
+    "th": "ตรวจสอบยอดและชำระเงินในหน้า Gkash แล้วกลับมาตรวจสอบคำสั่งซื้อเดิม"
+  },
+  "请在 Gkash 付款页确认最终金额。未付款可更换付款方式；已经付款请等待核实，勿重复付款。": {
+    "en": "Confirm the final amount on Gkash. You can change methods before paying. If already paid, wait for verification and do not pay again.",
+    "ja": "最終金額は Gkash で確認してください。未払いなら支払方法を変更できます。支払い済みの場合は確認を待ち、重複して支払わないでください。",
+    "ru": "Уточните итоговую сумму на Gkash. До оплаты можно сменить способ. Если уже оплатили, дождитесь проверки и не платите повторно.",
+    "hi": "Gkash पर अंतिम राशि जाँचें। भुगतान से पहले तरीका बदल सकते हैं। भुगतान कर चुके हों तो सत्यापन की प्रतीक्षा करें, दोबारा भुगतान न करें।",
+    "ms": "Sahkan amaun akhir di Gkash. Tukar kaedah sebelum membayar. Jika sudah membayar, tunggu pengesahan dan jangan bayar semula.",
+    "th": "ตรวจสอบยอดสุดท้ายที่ Gkash หากยังไม่ชำระสามารถเปลี่ยนวิธีได้ หากชำระแล้วให้รอตรวจสอบและอย่าชำระซ้ำ"
+  },
+  "外部收付款": {
+    "en": "External receipts and payments",
+    "ja": "外部入出金",
+    "ru": "Внешние поступления и платежи",
+    "hi": "बाहरी प्राप्तियाँ और भुगतान",
+    "ms": "Penerimaan dan pembayaran luar",
+    "th": "การรับและจ่ายเงินภายนอก"
+  },
+  "收款手续费由本经营方向用户收取，支付商的费用另计。本金 100、手续费 2 时，向支付商提交 102，客户权益按 100 交付；实际到账按核实结果记录。": {
+    "en": "Your business charges this collection fee; the provider may charge separately. For principal 100 and fee 2, submit 102 to the provider and deliver entitlements for 100. Record the actual amount received once verified.",
+    "ja": "この入金手数料は運営者がユーザーに請求し、決済事業者の手数料は別途発生します。元本100、手数料2なら事業者へ102を送信し、顧客には100相当の権利を付与します。入金は実際に確認した額で記録します。",
+    "ru": "Эту комиссию взимает оператор; комиссия провайдера отдельная. При основной сумме 100 и комиссии 2 провайдеру передаётся 102, а клиент получает права на 100. Поступление записывается по фактически подтверждённой сумме.",
+    "hi": "यह संग्रह शुल्क आपका व्यवसाय उपयोगकर्ता से लेता है; प्रदाता का शुल्क अलग हो सकता है। मूल राशि 100 और शुल्क 2 होने पर प्रदाता को 102 भेजें और ग्राहक को 100 के अधिकार दें। वास्तविक प्राप्त राशि सत्यापन के बाद दर्ज करें।",
+    "ms": "Perniagaan anda mengenakan fi penerimaan ini; caj penyedia adalah berasingan. Untuk prinsipal 100 dan fi 2, hantar 102 kepada penyedia dan berikan hak bernilai 100. Rekod amaun sebenar diterima selepas disahkan.",
+    "th": "ธุรกิจของคุณเรียกเก็บค่าธรรมเนียมรับเงินนี้ ส่วนค่าธรรมเนียมผู้ให้บริการอาจเรียกเก็บแยก เงินต้น 100 กับค่าธรรมเนียม 2 ให้ส่งยอด 102 ไปยังผู้ให้บริการและมอบสิทธิ์ให้ลูกค้าตามยอด 100 บันทึกยอดรับจริงหลังตรวจสอบแล้ว"
+  },
+  "本项设置不保证实际到账金额。实际到账按核实的金额和币种登记。": {
+    "en": "This setting does not guarantee the amount received. Record receipts using the verified amount and currency.",
+    "ja": "この設定は実際の入金額を保証しません。入金は確認済みの金額と通貨で記録します。",
+    "ru": "Эта настройка не гарантирует сумму поступления. Записывайте фактически подтверждённые сумму и валюту.",
+    "hi": "यह सेटिंग वास्तविक प्राप्त राशि की गारंटी नहीं देती। प्राप्ति को सत्यापित राशि और मुद्रा में दर्ज करें।",
+    "ms": "Tetapan ini tidak menjamin amaun diterima. Rekod penerimaan mengikut amaun dan mata wang yang disahkan.",
+    "th": "การตั้งค่านี้ไม่รับประกันยอดรับจริง ให้บันทึกตามยอดและสกุลเงินที่ตรวจสอบแล้ว"
   }
 }

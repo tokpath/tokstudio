@@ -23,7 +23,6 @@ func TestKVoucherCheckoutMismatchKeepsOriginalOrderAndLogsOnlyMoney(t *testing.T
 	for _, tc := range []struct {
 		name, amount, currency, loggedAmount, loggedCurrency string
 	}{
-		{"different amount", "8.40", "MYR", "8.4", "MYR"},
 		{"different currency", "8.33", "USD", "8.33", "USD"},
 		{"missing money", "", "", "missing", "missing"},
 		{"untrusted currency", "8.33", "private-provider-value", "8.33", "unsupported"},

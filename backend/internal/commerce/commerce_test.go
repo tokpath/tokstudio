@@ -602,8 +602,8 @@ func TestPostgresPendingFeeAndObservedPaymentUpperBound(t *testing.T) {
 		t.Fatal(err)
 	}
 	var feeJournals int64
-	if err = f.db.Table("ledger_journals").Where("business_key=?", "receipt-fees:"+r.ID).Count(&feeJournals).Error; err != nil || feeJournals != 1 {
-		t.Fatalf("late fee charged repeatedly: %d %v", feeJournals, err)
+	if err = f.db.Table("ledger_journals").Where("business_key=?", "receipt-native:"+r.ID).Count(&feeJournals).Error; err != nil || feeJournals != 1 {
+		t.Fatalf("late settlement posted repeatedly: %d %v", feeJournals, err)
 	}
 	receivable, err := f.s.account(f.ctx, nil, f.operator, f.operator, "control:provider_receivable")
 	if err != nil || !receivable.Balance.IsZero() {

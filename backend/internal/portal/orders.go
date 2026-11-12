@@ -238,6 +238,7 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 	}
 	var cr checkoutRow
 	var paymentOrder payments.Order
+	reuse := false
 	e := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if e := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "checkout:"+o.ID).Error; e != nil {
 			return e
@@ -247,6 +248,14 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 		}
 		if cr.MerchantID == nil {
 			return nil
+		}
+		// Returning to a previously selected method reuses its original
+		// checkout, amount and quote rather than issuing another payment.
+		if _, err := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID); err == nil {
+			reuse = true
+			return nil
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
 		}
 		if len(cr.PaymentOrder) > 0 {
 			return json.Unmarshal(cr.PaymentOrder, &paymentOrder)
@@ -284,7 +293,7 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 	if e != nil {
 		return e
 	}
-	if cr.MerchantID == nil {
+	if cr.MerchantID == nil || reuse {
 		return nil
 	}
 	_, e = a.Payments.Create(ctx, o.OperatorID, *cr.MerchantID, paymentOrder)
@@ -335,7 +344,7 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 		}
 		if e == nil {
 			dto["payment_state"] = intent.State
-			dto["method_change_allowed"] = intent.State == "failed" && o.Status == "pending" && o.ExternalAllocatedMoney.IsZero()
+			dto["method_change_allowed"] = (intent.State == "failed" || intent.State == "created") && o.Status == "pending" && o.ExternalAllocatedMoney.IsZero()
 			if intent.Problem == payments.CheckoutAmountMismatch {
 				dto["payment_notice"] = "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。"
 			} else if intent.State == "executing" || intent.State == "outcome_unknown" || intent.State == "failed" {
@@ -345,7 +354,7 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 			}
 		}
 		if e == nil && intent.Checkout != nil {
-			dto["method_change_allowed"] = intent.State == "failed" && o.Status == "pending" && o.ExternalAllocatedMoney.IsZero()
+			dto["method_change_allowed"] = (intent.State == "failed" || intent.State == "created") && o.Status == "pending" && o.ExternalAllocatedMoney.IsZero()
 			ch := intent.Checkout
 			action := gin.H{}
 			switch {
@@ -447,6 +456,30 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 	}
 	id := subject(c)
 	ctx := c.Request.Context()
+	// Query an existing open payment before replacing its instructions. Keep
+	// the original intent for callbacks and late receipts; never mark it failed.
+	unpaidMerchant := ""
+	previous, err := a.Commerce.GetOrder(ctx, nil, id.Customer.Customer.ID, c.Param("id"))
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+	var previousCheckout checkoutRow
+	if err = a.DB.WithContext(ctx).First(&previousCheckout, "order_id=? AND customer_id=?", previous.ID, previous.CustomerID).Error; err != nil {
+		handleError(c, err)
+		return
+	}
+	if previousCheckout.MerchantID != nil && *previousCheckout.MerchantID != in.Method {
+		intent, intentErr := a.Payments.PaymentIntent(ctx, previous.OperatorID, *previousCheckout.MerchantID, previous.ID)
+		if intentErr == nil && intent.State == "created" {
+			if _, checkErr := a.Payments.Reconcile(ctx, previous.OperatorID, *previousCheckout.MerchantID, previous.ID); errors.Is(checkErr, payments.ErrUnpaid) {
+				unpaidMerchant = *previousCheckout.MerchantID
+			} else {
+				handleError(c, commerce.ErrPaymentUnknown)
+				return
+			}
+		}
+	}
 	raw, e := a.command(c, "payment-method:"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
 		if e := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "checkout:"+c.Param("id")).Error; e != nil {
 			return nil, e
@@ -456,7 +489,7 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 			return nil, e
 		}
 		due := o.DueMoney.Sub(o.InternalMoney).Sub(o.CommissionMoney)
-		if due.Sign() <= 0 || o.ExternalAllocatedMoney.Sign() > 0 || o.Status == "completed" {
+		if due.Sign() <= 0 || o.ExternalAllocatedMoney.Sign() > 0 || o.Status != "pending" || !o.ExpiresAt.After(time.Now()) {
 			return nil, commerce.ErrOrderState
 		}
 		m, e := a.Payments.Merchant(ctx, o.OperatorID, in.Method)
@@ -479,7 +512,7 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		}
 		if cr.MerchantID != nil && *cr.MerchantID != m.ID {
 			intent, err := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
-			if err != nil || intent.State != "failed" {
+			if err != nil || (intent.State != "failed" && !(intent.State == "created" && unpaidMerchant == *cr.MerchantID)) {
 				return nil, commerce.ErrPaymentUnknown
 			}
 			var facts int64
@@ -496,6 +529,11 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		fee, e := payments.CollectionFee(ctx, tx, o.OperatorID, m.ID, in.FeeRuleID, due, settings.Currency)
 		if e != nil {
 			return nil, e
+		}
+		if original, err := a.Payments.PaymentIntent(ctx, o.OperatorID, m.ID, o.ID); err == nil {
+			fee = original.FeeQuote
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
 		}
 		encodedFee, _ := json.Marshal(fee)
 		if e = tx.Exec("UPDATE portal_order_checkout SET merchant_id=?, payment_order=NULL, fee_quote=? WHERE order_id=? AND customer_id=?", m.ID, string(encodedFee), o.ID, o.CustomerID).Error; e != nil {
@@ -674,8 +712,8 @@ func (a *Application) openKVoucherChecks(ctx context.Context, limit int) ([]kvou
  JOIN payments_merchants m ON m.id=i.merchant_id AND m.driver='kvoucher'
  WHERE i.state IN ('created','outcome_unknown') AND COALESCE(i.provider_id,'')<>''
  AND i.updated_at<=clock_timestamp()-interval '15 seconds'
- AND (EXISTS(SELECT 1 FROM commerce_orders o WHERE o.id::text=i.order_id AND o.status='pending' AND o.external_allocated_money=0)
- OR EXISTS(SELECT 1 FROM cooperation_purchase_orders p WHERE p.id::text=i.order_id AND p.status='awaiting_payment' AND p.allocated_money=0))
+ AND (EXISTS(SELECT 1 FROM commerce_orders o LEFT JOIN portal_order_checkout c ON c.order_id=o.id WHERE o.id::text=i.order_id AND ((o.status='pending' AND o.external_allocated_money=0) OR c.merchant_id::text<>i.merchant_id))
+ OR EXISTS(SELECT 1 FROM cooperation_purchase_orders p LEFT JOIN portal_procurement_checkouts c ON c.order_id=p.id WHERE p.id::text=i.order_id AND ((p.status='awaiting_payment' AND p.allocated_money=0) OR c.merchant_id::text<>i.merchant_id)))
  ORDER BY i.updated_at,i.order_id LIMIT ? FOR UPDATE OF i SKIP LOCKED
 ) UPDATE payments_intents i SET updated_at=clock_timestamp() FROM due
  WHERE i.merchant_id=due.merchant_id AND i.order_id=due.order_id
@@ -713,6 +751,10 @@ func (a *Application) reconcileOrder(c *gin.Context) {
 		return
 	}
 	if _, e = a.Payments.Reconcile(ctx, o.OperatorID, *cr.MerchantID, o.ID); e != nil {
+		if errors.Is(e, payments.ErrNotFinal) {
+			c.JSON(200, gin.H{"id": o.ID, "status": "pending_payment", "message": "原通道尚未确认收款。未付款可继续原订单付款；已经付款请稍后刷新原订单，无须再次付款。"})
+			return
+		}
 		handleError(c, e)
 		return
 	}

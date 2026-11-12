@@ -2,6 +2,8 @@ package portal
 
 import (
 	"encoding/json"
+	"fmt"
+	"html"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,7 +13,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
+	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 )
@@ -19,6 +23,12 @@ import (
 // Uses the real quote, merchant adapter, command and PostgreSQL paths. All
 // merchant credentials and HTTP responses belong to this isolated fixture.
 func setupCheckoutApp(t *testing.T, scenario string) (*testApp, string, string, *atomic.Int32) {
+	paid := &atomic.Bool{}
+	paid.Store(scenario == "paid")
+	return setupCheckoutWithPaymentState(t, scenario, paid)
+}
+
+func setupCheckoutWithPaymentState(t *testing.T, scenario string, paid *atomic.Bool) (*testApp, string, string, *atomic.Int32) {
 	t.Helper()
 	f := setupPortal(t)
 	op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
@@ -31,7 +41,8 @@ func setupCheckoutApp(t *testing.T, scenario string) (*testApp, string, string, 
 		t.Fatal(err)
 	}
 	calls := &atomic.Int32{}
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	var upstream *httptest.Server
+	upstream = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/kv/merchant/v1/webhooks":
@@ -46,11 +57,30 @@ func setupCheckoutApp(t *testing.T, scenario string) (*testApp, string, string, 
 			calls.Add(1)
 			_, _ = w.Write([]byte(`{"ok":true,"data":{"order":{"id":51,"status":"pending_payment"}}}`))
 		case "/api/kv/merchant/v1/orders/51/gkash-pay":
-			amount := "8.40"
-			if scenario == "success" {
-				amount = "8.33"
+			amount, currency := "8.71", "MYR"
+			if scenario == "mismatch" {
+				currency = "USD"
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "data": map[string]any{"payment": map[string]any{"action": "https://pay.example.test/form", "method": "POST", "fields": map[string]string{"v_amount": amount, "v_currency": "MYR", "Signature": "synthetic-private-signature"}}}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "data": map[string]any{"payment": map[string]any{"action": upstream.URL + "/test-payment", "method": "POST", "fields": map[string]string{"v_amount": amount, "v_currency": currency, "Signature": "synthetic-private-signature"}}}})
+		case "/api/kv/merchant/v1/orders/51":
+			status := "pending_payment"
+			if scenario == "submitted" {
+				status = "payment_submitted"
+			}
+			if paid.Load() {
+				status = "pins_loaded"
+			}
+			_, _ = fmt.Fprintf(w, `{"ok":true,"data":{"order":{"id":51,"status":%q,"items":[{"denomination":8.33,"qty":1}]}}}`, status)
+		case "/api/kv/merchant/v1/stock/redeemed":
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"items":[]}}`))
+		case "/api/kv/merchant/v1/stock/retrieve":
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"retrieved":[{"pin_code":"SYNTHETIC-ONLY","denomination":8.33}]}}`))
+		case "/api/kv/merchant/v1/account":
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"is_test_mode":false}}`))
+		case "/test-payment":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_ = r.ParseForm()
+			_, _ = fmt.Fprintf(w, "<!doctype html><title>模拟付款页面</title><h1>模拟付款页面</h1><p>应付 %s MYR</p><p>未付款。仅供隔离测试，不发生真实转账。</p>", html.EscapeString(r.Form.Get("v_amount")))
 		default:
 			http.NotFound(w, r)
 		}
@@ -171,5 +201,191 @@ func TestCheckoutMismatchIsNotAVersionConflict(t *testing.T) {
 	handleError(c, payments.ErrCheckoutMismatch)
 	if w.Code != http.StatusConflict || !strings.Contains(w.Body.String(), "payment_checkout_mismatch") || strings.Contains(w.Body.String(), "version_conflict") || strings.Contains(w.Body.String(), `"retryable":true`) {
 		t.Fatal(w.Code, w.Body.String())
+	}
+}
+
+func TestPostgresUnpaidKVoucherCheckIsANormalPendingResult(t *testing.T) {
+	f, merchantID, ruleID, calls := setupCheckoutApp(t, "success")
+	status, result, _ := f.call(t, "POST", "/v1/me/topups", map[string]any{"amount_money": "2", "external_method_id": merchantID, "fee_rule_id": ruleID}, uuid.NewString())
+	mustOK(t, status, result)
+	id := result["id"].(string)
+	if order := result["order"].(map[string]any); order["payment_state"] != "created" || order["payment_action"] == nil {
+		t.Fatal(order)
+	}
+	status, pending, _ := f.call(t, "POST", "/v1/me/orders/"+id+"/reconcile", map[string]any{}, uuid.NewString())
+	mustOK(t, status, pending)
+	if pending["status"] != "pending_payment" || !strings.Contains(pending["message"].(string), "尚未确认收款") || calls.Load() != 1 {
+		t.Fatal(pending, calls.Load())
+	}
+	status, detail, _ := f.call(t, "GET", "/v1/me/orders/"+id, nil, "")
+	mustOK(t, status, detail)
+	if detail["paid_money"] != "0" || detail["status"] != "pending" || detail["payment_action"] == nil {
+		t.Fatal("unpaid check removed the original payment or credited money", detail)
+	}
+}
+
+func TestPostgresKVoucherProviderFeesAndVoucherReceiptDoNotChangeWalletCredit(t *testing.T) {
+	f, merchant, rule, _ := setupCheckoutApp(t, "paid")
+	status, result, _ := f.call(t, "POST", "/v1/me/topups", map[string]any{"amount_money": "2", "external_method_id": merchant, "fee_rule_id": rule}, uuid.NewString())
+	mustOK(t, status, result)
+	id := result["id"].(string)
+	intent, err := f.a.Payments.PaymentIntent(t.Context(), f.a.Installation.OperatorID, merchant, id)
+	if err != nil || intent.Checkout == nil || intent.Checkout.PayMoney.Amount.String() != "8.71" || intent.FeeQuote.TotalMoney.String() != "2.04" {
+		t.Fatal("provider surcharge changed submitted amount", intent, err)
+	}
+	for i := 0; i < 2; i++ {
+		if _, err = f.a.Payments.Reconcile(t.Context(), f.a.Installation.OperatorID, merchant, id); err != nil {
+			t.Fatal(err)
+		}
+		if err = f.a.RunDeliveryJobs(t.Context(), "checkout-regression", 10); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var order commerce.Order
+	if err = f.a.DB.Table("commerce_orders").First(&order, "id=?", id).Error; err != nil || order.Status != "completed" {
+		t.Fatal(order, err)
+	}
+	var wallet ledger.Account
+	if err = f.a.DB.Where("owner_id=? AND purpose='customer:money'", order.CustomerID).First(&wallet).Error; err != nil || wallet.Balance.String() != "2" {
+		t.Fatal(wallet, err)
+	}
+	var receipt commerce.Receipt
+	if err = f.a.DB.Table("commerce_receipts").Where("operator_id=?", order.OperatorID).First(&receipt).Error; err != nil || receipt.SettlementCurrency != "MYR" || receipt.SettlementNetAmount == nil || receipt.SettlementNetAmount.String() != "8.33" || receipt.GrossMoney.String() != "2.04" {
+		t.Fatal(receipt, err)
+	}
+	var count int64
+	f.a.DB.Table("ledger_journals").Where("business_key=?", "receipt-native:"+receipt.ID).Count(&count)
+	if count != 1 {
+		t.Fatal("duplicate voucher receipt", count)
+	}
+}
+
+func TestPostgresUnpaidCheckoutCanChangeMethodButPaidCheckoutCannot(t *testing.T) {
+	for _, scenario := range []string{"success", "paid", "submitted"} {
+		t.Run(scenario, func(t *testing.T) {
+			paid := &atomic.Bool{}
+			paid.Store(scenario == "paid")
+			f, merchant, rule, _ := setupCheckoutWithPaymentState(t, scenario, paid)
+			op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
+			offline, err := f.a.Payments.SaveMerchant(t.Context(), owner, payments.Merchant{ID: uuid.NewString(), OperatorID: op, Driver: "manual", Enabled: true, Credentials: map[string]string{"currency": "USD", "instructions": "offline fixture"}}, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			nextRule, err := paymentmethods.Current(t.Context(), f.a.DB, op, offline.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			status, result, _ := f.call(t, "POST", "/v1/me/topups", map[string]any{"amount_money": "2", "external_method_id": merchant, "fee_rule_id": rule}, uuid.NewString())
+			mustOK(t, status, result)
+			id := result["id"].(string)
+			status, result, _ = f.call(t, "POST", "/v1/me/orders/"+id+"/payment-method", map[string]any{"external_method_id": offline.ID, "fee_rule_id": nextRule.ID}, uuid.NewString())
+			if scenario != "success" {
+				if status < 400 {
+					t.Fatal("paid order switched", result)
+				}
+				return
+			}
+			mustOK(t, status, result)
+			intent, err := f.a.Payments.PaymentIntent(t.Context(), op, merchant, id)
+			if err != nil || intent.State != "created" {
+				t.Fatal("original attempt was falsified", intent, err)
+			}
+			for _, selected := range []struct{ method, fee string }{{merchant, rule}, {offline.ID, nextRule.ID}} {
+				status, result, _ = f.call(t, "POST", "/v1/me/orders/"+id+"/payment-method", map[string]any{"external_method_id": selected.method, "fee_rule_id": selected.fee}, uuid.NewString())
+				mustOK(t, status, result)
+				if result["payment_action"] == nil {
+					t.Fatal("returning to previous method lost original checkout", result)
+				}
+			}
+			paid.Store(true)
+			if _, err = f.a.Payments.Reconcile(t.Context(), op, merchant, id); err != nil {
+				t.Fatal(err)
+			}
+			if err = f.a.RunDeliveryJobs(t.Context(), "late-payment", 10); err != nil {
+				t.Fatal(err)
+			}
+			var order commerce.Order
+			if err = f.a.DB.Table("commerce_orders").First(&order, "id=?", id).Error; err != nil || order.Status != "completed" {
+				t.Fatal("old fee snapshot no longer funds order", order, err)
+			}
+		})
+	}
+}
+
+func TestPostgresProcurementPaymentSwitchRequiresConfirmedUnpaid(t *testing.T) {
+	for _, scenario := range []string{"success", "paid", "submitted"} {
+		t.Run(scenario, func(t *testing.T) {
+			f, merchant, rule, _ := setupCheckoutApp(t, scenario)
+			ctx := t.Context()
+			op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
+			child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: op, Kind: organization.Channel, Name: "Payment buyer"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			invite, err := f.a.Organization.InviteStaff(ctx, nil, owner, child.Operator.ID, "owner@example.test", "owner")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = f.a.Organization.AcceptStaffInvitation(ctx, nil, invite.Token, organization.VerifiedStaff{ID: owner, Email: "owner@example.test", EmailVerified: true}); err != nil {
+				t.Fatal(err)
+			}
+			quote, err := f.a.Cooperation.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: op, BuyerID: child.Operator.ID, GiftTiers: []cooperation.PurchaseGiftTier{{}}, Enabled: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			order, err := f.a.Cooperation.CreatePurchaseOrder(ctx, nil, owner, child.Operator.ID, quote.ID, uuid.NewString(), ledger.FromInt64(2))
+			if err != nil {
+				t.Fatal(err)
+			}
+			offline, err := f.a.Payments.SaveMerchant(ctx, owner, payments.Merchant{ID: uuid.NewString(), OperatorID: op, Driver: "manual", Enabled: true, Credentials: map[string]string{"currency": "USD", "instructions": "offline fixture"}}, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			nextRule, err := paymentmethods.Current(ctx, f.a.DB, op, offline.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.login(t, "staff", "owner@example.test", "owner-password-test")
+			base := "/v1/operators/" + child.Operator.ID + "/procurement"
+			status, result, _ := f.call(t, "POST", base+"/"+order.ID+"/checkout", map[string]any{"merchant_id": merchant, "fee_rule_id": rule}, uuid.NewString())
+			mustOK(t, status, result)
+			status, page, _ := f.call(t, "GET", base+"?view=buyer&section=orders&record="+order.ID, nil, "")
+			mustOK(t, status, page)
+			found := false
+			for _, raw := range page["items"].([]any) {
+				row := raw.(map[string]any)
+				if row["id"] == order.ID {
+					for _, action := range row["allowed_actions"].([]any) {
+						if action == "checkout" {
+							found = true
+						}
+					}
+				}
+			}
+			if !found {
+				t.Fatal("existing payment has no usable method selector", page)
+			}
+			status, result, _ = f.call(t, "POST", base+"/"+order.ID+"/checkout", map[string]any{"merchant_id": offline.ID, "fee_rule_id": nextRule.ID}, uuid.NewString())
+			if scenario != "success" {
+				if status < 400 {
+					t.Fatal("unconfirmed payment switched", result)
+				}
+				return
+			}
+			mustOK(t, status, result)
+			var saved procurementCheckout
+			if err = f.a.DB.First(&saved, "order_id=?", order.ID).Error; err != nil || saved.MerchantID != offline.ID {
+				t.Fatal(saved, err)
+			}
+			original, err := f.a.Payments.PaymentIntent(ctx, op, merchant, order.ID)
+			if err != nil || original.State != "created" {
+				t.Fatal("old payment was not retained", original, err)
+			}
+			status, result, _ = f.call(t, "POST", base+"/"+order.ID+"/checkout", map[string]any{"merchant_id": merchant, "fee_rule_id": rule}, uuid.NewString())
+			mustOK(t, status, result)
+			if result["order"].(map[string]any)["payment_action"] == nil {
+				t.Fatal("returning to procurement method lost original checkout", result)
+			}
+		})
 	}
 }

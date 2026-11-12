@@ -20,6 +20,15 @@ func (s *Service) RecordManualReceipt(ctx context.Context, tx *gorm.DB, actorID 
 		}
 		fact.Provider = "manual"
 		fact.VerifiedBy = "staff:" + actorID
+		if fact.SettlementNetAmount == nil && fact.OriginalFeeAmount == nil && fact.OriginalNetAmount == nil {
+			// Staff register the funds actually received offline. There is no
+			// provider settlement to infer from the order amount.
+			amount, err := ledger.ParseDecimal(fact.OriginalAmount)
+			if err != nil {
+				return err
+			}
+			fact.SettlementCurrency, fact.SettlementNetAmount = fact.Currency, &amount
+		}
 		var err error
 		out, err = s.RecordReceipt(ctx, tx, fact)
 		return err
@@ -84,10 +93,10 @@ func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedRece
 			return e
 		}
 		if f.Currency == base.Currency {
-			if original.Cmp(f.GrossMoney) != 0 {
+			if manual && original.Cmp(f.GrossMoney) != 0 {
 				return ErrInvalidInput
 			}
-			if f.FeeMoney != nil {
+			if f.FeeMoney != nil && original.Cmp(f.GrossMoney) == 0 {
 				if f.OriginalFeeAmount != nil && f.OriginalFeeAmount.Cmp(*f.FeeMoney) != 0 {
 					return ErrInvalidInput
 				}
@@ -129,26 +138,14 @@ func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedRece
 		if err != nil {
 			return err
 		}
-		sourcePurpose := "control:provider_receivable"
-		if f.SettledAt != nil {
-			sourcePurpose = "control:external_cash"
-		}
-		cash, err := s.account(ctx, tx, f.OperatorID, f.OperatorID, sourcePurpose)
+		// The order obligation funds customer entitlements. It is not a
+		// cash receipt or a promise of settlement in the order currency.
+		counter, err := s.account(ctx, tx, f.OperatorID, f.OperatorID, "control:receipt_obligation")
 		if err != nil {
 			return err
 		}
-		net := f.GrossMoney
-		if f.NetMoney != nil {
-			net = *f.NetMoney
-		}
-		lines := []ledger.Line{{AccountID: unallocated.ID, Amount: f.GrossMoney}, {AccountID: cash.ID, Amount: net.Neg()}}
-		if f.FeeMoney != nil && f.FeeMoney.Sign() > 0 {
-			fees, err := s.account(ctx, tx, f.OperatorID, f.OperatorID, "control:merchant_fees")
-			if err != nil {
-				return err
-			}
-			lines = append(lines, ledger.Line{AccountID: fees.ID, Amount: f.FeeMoney.Neg()})
-		}
+		lines := []ledger.Line{{AccountID: unallocated.ID, Amount: f.GrossMoney}, {AccountID: counter.ID, Amount: f.GrossMoney.Neg()}}
+
 		reason := strings.TrimSpace(f.VerificationEvidence)
 		if reason == "" {
 			reason = "Staff confirmed offline receipt"
@@ -157,6 +154,17 @@ func (s *Service) RecordReceipt(ctx context.Context, tx *gorm.DB, f VerifiedRece
 		}
 		if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: f.OperatorID, BusinessKey: "receipt:" + r.ID, Kind: "external_receipt", SourceID: r.ID, ActorID: f.VerifiedBy, Reason: reason, Lines: lines}); err != nil {
 			return err
+		}
+		if f.SettlementNetAmount != nil {
+			if err = s.RecordReceiptSettlement(ctx, tx, r.ID, f.SettlementCurrency, *f.SettlementNetAmount, f.VerifiedBy); err != nil {
+				return err
+			}
+			r.SettlementCurrency, r.SettlementNetAmount = f.SettlementCurrency, f.SettlementNetAmount
+		} else if f.OriginalNetAmount != nil {
+			if err = s.RecordReceiptSettlement(ctx, tx, r.ID, f.Currency, *f.OriginalNetAmount, f.VerifiedBy); err != nil {
+				return err
+			}
+			r.SettlementCurrency, r.SettlementNetAmount = f.Currency, f.OriginalNetAmount
 		}
 		out = Receipt(r)
 		return s.event(tx, f.OperatorID, r.ID, "receipt.verified", map[string]any{"actor_id": f.VerifiedBy, "evidence": f.VerificationEvidence, "before": nil, "after": out})

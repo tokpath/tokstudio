@@ -33,7 +33,7 @@ func (d Manual) Create(_ context.Context, m Merchant, o Order) (Checkout, error)
 	}
 	return checkout, nil
 }
-func (Manual) Lookup(context.Context, Merchant, Order) (Fact, error) { return Fact{}, ErrNotFinal }
+func (Manual) Lookup(context.Context, Merchant, Order) (Fact, error) { return Fact{}, ErrUnpaid }
 func (Manual) Refund(context.Context, Merchant, Refund) (RefundStatus, error) {
 	return RefundStatus{}, ErrUnsupported
 }

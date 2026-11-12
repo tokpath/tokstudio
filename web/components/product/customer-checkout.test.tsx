@@ -126,8 +126,8 @@ it("keeps the order page and posts Gkash into a separate window", () => {
   expect(form?.getAttribute("target")).toBe("tokpath-gkash");
   expect(form?.getAttribute("method")?.toLowerCase()).toBe("post");
   expect(form?.getAttribute("action")).toBe("https://api.gkash.my/api/PaymentForm.aspx");
-  expect(screen.getByRole("button", { name: "重新打开 Gkash 付款" })).toBeTruthy();
-  expect(screen.getByText("付款页金额")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "前往 Gkash 付款" })).toBeTruthy();
+  expect(screen.queryByText("付款页金额")).toBeNull();
   expect(screen.queryByText("merchant")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "改用其它付款方式" }));
   expect(change).toHaveBeenCalledTimes(1);

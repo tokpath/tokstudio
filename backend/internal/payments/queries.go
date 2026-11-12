@@ -95,7 +95,7 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 		if d == nil || ready(m, d) != nil {
 			continue
 		}
-		currency := merchantCurrency(m)
+		currency := merchantCurrency(m, settings.Currency)
 		supported, reason := SettlementSupport(m, settings.Currency)
 		_, fiatPayment := fiatMinorDigits(currency)
 		if currency != settings.Currency && fiatPayment && m.Driver != "kvoucher" {
@@ -146,13 +146,14 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 }
 
 type IntentView struct {
-	Problem    string    `json:"problem,omitempty"`
-	Driver     string    `json:"driver"`
-	OrderID    string    `json:"order_id"`
-	MerchantID string    `json:"merchant_id"`
-	ProviderID string    `json:"provider_id,omitempty"`
-	State      string    `json:"state"`
-	Checkout   *Checkout `json:"checkout,omitempty"`
+	FeeQuote   *paymentmethods.Quote `json:"-"`
+	Problem    string                `json:"problem,omitempty"`
+	Driver     string                `json:"driver"`
+	OrderID    string                `json:"order_id"`
+	MerchantID string                `json:"merchant_id"`
+	ProviderID string                `json:"provider_id,omitempty"`
+	State      string                `json:"state"`
+	Checkout   *Checkout             `json:"checkout,omitempty"`
 }
 
 func (s *Service) PaymentIntent(ctx context.Context, operator, merchant, order string) (IntentView, error) {
@@ -166,6 +167,7 @@ func (s *Service) PaymentIntent(ctx context.Context, operator, merchant, order s
 		return view, e
 	}
 	view.Driver = snapshot.PaymentDriver
+	view.FeeQuote = snapshot.FeeQuote
 	_, supportedCurrency := fiatMinorDigits(snapshot.Money.Currency)
 	if s.Drivers[view.Driver] == nil || !supportedCurrency {
 		return view, nil

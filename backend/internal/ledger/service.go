@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/text/currency"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -110,7 +111,9 @@ func (s *Service) EnsureAccount(ctx context.Context, tx *gorm.DB, a Account) (Ac
 	if _, e := uuid.Parse(a.OwnerID); e != nil {
 		return Account{}, ErrScope
 	}
-	if a.Purpose == "" || (a.Unit != MoneyUnit && a.Unit != "ATG") || a.AllowNegative != strings.HasPrefix(a.Purpose, "control:") {
+	_, currencyErr := currency.ParseISO(a.Unit)
+	nativeReceipt := currencyErr == nil && a.Unit != "XXX" && a.Unit != "XTS" && a.Unit == strings.ToUpper(a.Unit) && (a.Purpose == "control:external_cash" || a.Purpose == "control:receipt_settlement")
+	if a.Purpose == "" || (a.Unit != MoneyUnit && a.Unit != "ATG" && !nativeReceipt) || a.AllowNegative != strings.HasPrefix(a.Purpose, "control:") {
 		return Account{}, ErrScope
 	}
 	a.ID = uuid.NewString()

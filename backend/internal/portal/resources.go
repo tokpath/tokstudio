@@ -526,7 +526,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 			item["allowed_actions"] = actions
 			items = append(items, item)
 		}
-		p["columns"] = []gin.H{col("id", "收款", "text"), col("provider", "通道", "text"), col("gross_money", "收款总额（含支付手续费）", "money"), col("payment_fee_money", "已收支付手续费", "money"), col("fee_money", "己方收款手续费", "money"), col("net_money", "净到账金额", "money"), col("allocated_money", "已分配", "money"), col("paid_at", "实际付款时间", "datetime")}
+		p["columns"] = []gin.H{col("id", "收款", "text"), col("provider", "通道", "text"), col("gross_money", "关联订单金额（含经营方手续费）", "money"), col("payment_fee_money", "已收支付手续费", "money"), col("fee_money", "己方收款手续费", "money"), col("received_amount", "实际到账金额", "text"), col("received_currency", "实际到账币种", "text"), col("allocated_money", "已分配", "money"), col("paid_at", "实际付款时间", "datetime")}
 		p["operations"] = []operation{{Name: "receipt", Label: "登记人工核实收款", Method: "POST", Path: base, Fields: []field{jsonField("provider、provider_receipt_id、gross_money、currency、original_amount、recipient_reference、payer_reference、verification_evidence、paid_at 等原始事实。")}}}
 		p["row_operations"] = []operation{{Name: "allocate", Label: "关联原订单", Method: "POST", Path: base + "/{id}/allocate", Fields: []field{f("order_id", "原订单", "text")}, Description: "整笔收款关联一个金额一致的订单，足额后自动交付。"}}
 	case "valuations":

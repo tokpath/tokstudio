@@ -11,12 +11,13 @@ import { ErrorPanel, Notice, Status, useCommand } from "./shared";
 // The purchase and its checkout are durable before contacting the provider.
 // Read that exact purchase after an ambiguous response; never create another
 // checkout merely to discover whether the original payment finished.
-export function ProcurementPayment({ path, orderID, initialOrder, error, onClose }: {
+export function ProcurementPayment({ path, orderID, initialOrder, error, onClose, onChangeMethod }: {
   path: string;
   orderID: string;
   initialOrder?: Order;
   error?: unknown;
   onClose?: () => void;
+  onChangeMethod?: () => void;
 }) {
   const { t } = useI18n();
   const cache = useQueryClient();
@@ -52,7 +53,7 @@ export function ProcurementPayment({ path, orderID, initialOrder, error, onClose
     {!!error && !paid && !ended && <ErrorPanel error={error} />}
     {original.isError && <ErrorPanel error={original.error} retry={() => void original.refetch()} />}
     {/* A current server read must still permit payment before showing a saved form. */}
-    {status === "awaiting_payment" && original.data?.allowed_actions?.includes("resume_payment") && initialOrder?.payment_action && <PaymentAction order={initialOrder} />}
+    {status === "awaiting_payment" && original.data?.allowed_actions?.includes("checkout") && initialOrder?.payment_action && <PaymentAction order={initialOrder} onChangeMethod={onChangeMethod} />}
     {!ended && <Notice>{t("查询只核实原付款，不会发起新的扣款。")}</Notice>}
     {!!reconcile.error && !paid && !ended && <ErrorPanel error={reconcile.error} />}
     <div className="flex flex-wrap gap-3">

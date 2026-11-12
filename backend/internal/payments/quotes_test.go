@@ -144,7 +144,7 @@ func TestKVoucherUnderpaymentCannotDischargeTheOrderObligation(t *testing.T) {
 		t.Fatal("channel quote was not preferred", err)
 	}
 	fact, err := s.Reconcile(t.Context(), m.OperatorID, m.ID, o.ID)
-	if !errors.Is(err, ErrAwaitingSettlement) || fact.Money.Currency != "MYR" || fact.Money.Amount.String() != "0.01" {
+	if !errors.Is(err, ErrConflict) || fact.Verified() {
 		t.Fatal("small MYR receipt became the USD amount due", fact.Money, err)
 	}
 	var n int64
@@ -186,7 +186,7 @@ func TestUnavailableQuoteDoesNotLeaveAnUnresolvedOnlinePayment(t *testing.T) {
 	}))
 	defer server.Close()
 	s.FXBaseURL = server.URL
-	m := Merchant{ID: uuid.NewString(), OperatorID: uuid.NewString(), Driver: "stripe", Enabled: true, APIBaseURL: server.URL, Credentials: map[string]string{"currency": "CNY", "secret_key": "sk_test_fixture", "publishable_key": "pk_test_fixture", "webhook_secret": "whsec_fixture"}}
+	m := Merchant{ID: uuid.NewString(), OperatorID: uuid.NewString(), Driver: "manual", Enabled: true, APIBaseURL: server.URL, Credentials: map[string]string{"currency": "CNY", "instructions": "isolated receipt"}}
 	if _, err := s.SaveMerchant(t.Context(), "finance", m, 0); err != nil {
 		t.Fatal(err)
 	}

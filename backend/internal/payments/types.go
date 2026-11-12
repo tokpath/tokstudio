@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"net/http"
 	"strings"
@@ -22,6 +23,7 @@ var (
 	ErrOutcomeUnknown   = errors.New("external payment outcome requires verification")
 	ErrProvider         = errors.New("payment provider rejected request")
 	ErrNotFinal         = errors.New("payment is not verified final")
+	ErrUnpaid           = fmt.Errorf("provider confirms payment has not been made: %w", ErrNotFinal)
 	ErrConflict         = errors.New("payment fact conflicts with existing evidence")
 	ErrCheckoutMismatch = errors.New("payment checkout amount does not match the accepted quote")
 	ErrForbidden        = errors.New("payment action outside operator authority")
@@ -216,6 +218,9 @@ type Hint struct {
 // Public fields are persisted evidence; construct facts only in a real driver or
 // the explicitly authorized manual verification service.
 type Fact struct {
+	// MerchantNet is the actual asset received by the operator, independently
+	// of the payer amount and of the customer's order entitlement.
+	MerchantNet    *Money                   `json:"merchant_net,omitempty"`
 	MerchantFee    *Money                   `json:"merchant_fee,omitempty"`
 	ID             string                   `json:"id"`
 	Kind           string                   `json:"kind"` // receipt | refund | chargeback
@@ -235,6 +240,15 @@ type Fact struct {
 }
 
 func (f Fact) Verified() bool {
+	for _, money := range []*Money{f.MerchantFee, f.MerchantNet} {
+		if money == nil {
+			continue
+		}
+		_, supported := fiatMinorDigits(money.Currency)
+		if !supported || money.Currency != strings.ToUpper(money.Currency) || !money.Amount.Valid() || money.Amount.Sign() < 0 {
+			return false
+		}
+	}
 	return f.proof && f.ID != "" && f.ProviderID != "" && f.OperatorID != "" && f.MerchantID != "" && f.Money.Validate() == nil && !f.ObservedAt.IsZero() && len(f.Evidence) > 0
 }
 func receiptFact(m Merchant, o Order, providerID string, money Money, at *time.Time, evidence any) (Fact, error) {

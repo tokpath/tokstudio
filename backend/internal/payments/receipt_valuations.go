@@ -80,7 +80,8 @@ func receiptExecutionValue(o Order, f Fact) (MoneyValue, string) {
 		return v, ""
 	}
 	if q := o.PaymentQuote; q != nil {
-		if q.SettlementMoney.Currency != settlement.Currency || q.SettlementMoney.Amount.Cmp(settlement.Amount) != 0 || q.PayMoney.Currency != f.Money.Currency || q.PayMoney.Amount.Cmp(f.Money.Amount) != 0 {
+		amountMatches := q.PayMoney.Amount.Cmp(f.Money.Amount) == 0 || (f.Driver != "manual" && f.Money.Amount.Cmp(q.PayMoney.Amount) > 0)
+		if q.SettlementMoney.Currency != settlement.Currency || q.SettlementMoney.Amount.Cmp(settlement.Amount) != 0 || q.PayMoney.Currency != f.Money.Currency || !amountMatches {
 			return MoneyValue{}, "quoted_payment_amount_mismatch"
 		}
 		if f.OccurredAt != nil && f.OccurredAt.After(q.ExpiresAt) {
@@ -93,6 +94,13 @@ func receiptExecutionValue(o Order, f Fact) (MoneyValue, string) {
 		return value, ""
 	}
 	if f.Money.Currency == settlement.Currency {
+		if f.Driver != "manual" && o.Money.Amount.Sign() > 0 && f.Money.Amount.Cmp(o.Money.Amount) >= 0 {
+			// Provider payer surcharges are not extra customer entitlement.
+			// This value funds the order; actual net receipt is recorded separately.
+			value := nativeValue(f.Money, "Verified payment for the submitted order")
+			value.Amount, value.Valuation.Amount = settlement.Amount, settlement.Amount
+			return value, ""
+		}
 		return nativeValue(f.Money, "Verified receipt in the order settlement currency"), ""
 	}
 	return MoneyValue{}, "settlement_amount_unconfirmed"

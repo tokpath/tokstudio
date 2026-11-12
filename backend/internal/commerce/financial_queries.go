@@ -54,7 +54,7 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 		for _, q := range []struct {
 			Where  string
 			Target *int64
-		}{{"settled_at IS NULL", &out.PendingProviderSettlements}, {"paid_at IS NULL", &out.UnknownPaymentTimes}} {
+		}{{"settlement_net_amount IS NULL", &out.PendingProviderSettlements}, {"paid_at IS NULL", &out.UnknownPaymentTimes}} {
 			if e := t.Model(&receiptRow{}).Where("operator_id=?", operator).Where(q.Where).Count(q.Target).Error; e != nil {
 				return e
 			}

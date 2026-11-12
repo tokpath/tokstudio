@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
@@ -19,7 +19,7 @@ function mount(value: Order = order) {
   return render(<PaymentAction order={value} />, { wrapper });
 }
 
-afterEach(() => { cleanup(); sessionStorage.clear(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 it("leaves a KVoucher order unpaid until the payment page has been opened", async () => {
   const fetch = vi.fn(async () => response(order));
@@ -30,20 +30,22 @@ it("leaves a KVoucher order unpaid until the payment page has been opened", asyn
   expect(fetch.mock.calls.some(call => call[1]?.method === "POST")).toBe(false);
 });
 
-it("asks the original channel again after the payment page was opened", async () => {
+it("refreshes the saved order after payment opens without polling the provider from the browser", async () => {
+  vi.useFakeTimers();
   markPaymentOpened(order.id);
-  let asked = false;
+  let reads = 0;
   const fetch = vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {
-    if (init?.method === "POST") {
-      asked = true;
-      expect(String(path)).toBe("/api/v1/me/orders/order-one/reconcile");
-      return response({ id: order.id, status: "reconciliation_queued" });
-    }
-    return response(asked ? paid : order);
+    expect(String(path)).toBe("/api/v1/me/orders/order-one");
+    expect(init?.method).toBe("GET");
+    return response(++reads > 1 ? paid : order);
   });
   vi.stubGlobal("fetch", fetch);
-  mount();
-  await screen.findByText("服务额度已到账，可以开始使用。");
+  await act(async () => { mount(); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+  expect(screen.getByText("服务额度已到账，可以开始使用。")).toBeTruthy();
+  const completedReads = reads;
+  await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+  expect(reads).toBe(completedReads);
 });
 
 it("shows the original unpaid order and checkout failure without inviting payment", async () => {
@@ -56,9 +58,21 @@ it("shows the original unpaid order and checkout failure without inviting paymen
   expect(screen.queryByText("完成本订单付款")).toBeNull();
   expect(screen.getByRole("link", { name: "充值记录", exact: true }).getAttribute("href")).toBe("/workspace/topups");
   expect(screen.queryByRole("button", { name: "取消订单", exact: true })).toBeNull();
+  expect(screen.queryByRole("button", { name: "我已付款，核实原通道", exact: true })).toBeNull();
   expect(document.querySelector("form[action]" )).toBeNull();
   await waitFor(() => expect(fetch).toHaveBeenCalled());
   expect(fetch.mock.calls.some(call => call[1]?.method === "POST")).toBe(false);
+});
+
+it("shows an unpaid channel result as a normal status after an explicit check", async () => {
+  const message = "原通道尚未确认收款。未付款可继续原订单付款；已经付款请稍后刷新原订单，无须再次付款。";
+  const fetch = vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => response(init?.method === "POST" ? { id: order.id, status: "pending_payment", message } : order));
+  vi.stubGlobal("fetch", fetch);
+  mount();
+  fireEvent.click(screen.getByRole("button", { name: "我已付款，核实原通道", exact: true }));
+  expect(await screen.findByText(message)).toBeTruthy();
+  expect(fetch.mock.calls.filter(call => call[1]?.method === "POST")).toHaveLength(1);
+  expect(screen.queryByText(/payment_not_final/)).toBeNull();
 });
 
 it("keeps cancellation available when the provider definitively failed before payment", async () => {

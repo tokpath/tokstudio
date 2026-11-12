@@ -55,7 +55,11 @@ func (s *Service) RecordReceiptAccounting(ctx context.Context, tx *gorm.DB, in R
 				in.OriginalFeeAmount, in.OriginalNetAmount = &fee, &net
 			} else if in.OriginalFeeAmount != nil {
 				in.FeeMoney = *in.OriginalFeeAmount
-				in.NetMoney = r.GrossMoney.Sub(in.FeeMoney)
+				original, err := ledger.ParseDecimal(r.OriginalAmount)
+				if err != nil {
+					return err
+				}
+				in.NetMoney = original.Sub(in.FeeMoney)
 				in.SettlementFeeConfirmed = true
 			}
 		}
@@ -78,34 +82,32 @@ func (s *Service) RecordReceiptAccounting(ctx context.Context, tx *gorm.DB, in R
 			}
 		}
 		if !in.SettlementFeeConfirmed {
+			if r.OriginalNetAmount != nil {
+				if err := s.RecordReceiptSettlement(ctx, tx, r.ID, r.Currency, *r.OriginalNetAmount, in.VerifiedBy); err != nil {
+					return err
+				}
+				r.SettlementCurrency, r.SettlementNetAmount = r.Currency, r.OriginalNetAmount
+			}
 			out = Receipt(r)
 			return s.event(tx, r.OperatorID, r.ID, "receipt.original_fee_confirmed", in)
 		}
-		if in.NetMoney.Add(in.FeeMoney).Cmp(r.GrossMoney) != 0 {
+		original, parseErr := ledger.ParseDecimal(r.OriginalAmount)
+		if parseErr != nil {
+			return parseErr
+		}
+		if r.Currency == base.Currency && in.NetMoney.Add(in.FeeMoney).Cmp(original) != 0 {
 			return ErrInvalidInput
 		}
 		if in.SettledAt != nil && r.PaidAt != nil && in.SettledAt.Before(*r.PaidAt) {
 			return ErrInvalidInput
 		}
-		receivable, err := s.account(ctx, tx, r.OperatorID, r.OperatorID, "control:provider_receivable")
-		if err != nil {
-			return err
-		}
+
 		changed := false
 		if r.FeeStatus == "confirmed" {
 			if r.NetMoney == nil || r.FeeMoney == nil || r.NetMoney.Cmp(in.NetMoney) != 0 || r.FeeMoney.Cmp(in.FeeMoney) != 0 {
 				return ErrConflict
 			}
 		} else {
-			if in.FeeMoney.Sign() > 0 {
-				fees, err := s.account(ctx, tx, r.OperatorID, r.OperatorID, "control:merchant_fees")
-				if err != nil {
-					return err
-				}
-				if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: r.OperatorID, BusinessKey: "receipt-fees:" + r.ID, Kind: "merchant_fee", SourceID: r.ID, ActorID: in.VerifiedBy, Reason: in.Evidence, Lines: []ledger.Line{{AccountID: receivable.ID, Amount: in.FeeMoney}, {AccountID: fees.ID, Amount: in.FeeMoney.Neg()}}}); err != nil {
-					return err
-				}
-			}
 			net, fee := in.NetMoney, in.FeeMoney
 			r.NetMoney = &net
 			r.FeeMoney = &fee
@@ -118,15 +120,6 @@ func (s *Service) RecordReceiptAccounting(ctx context.Context, tx *gorm.DB, in R
 					return ErrConflict
 				}
 			} else {
-				if in.NetMoney.Sign() > 0 {
-					cash, err := s.account(ctx, tx, r.OperatorID, r.OperatorID, "control:external_cash")
-					if err != nil {
-						return err
-					}
-					if _, err = s.ledger.Post(ctx, tx, ledger.Posting{OperatorID: r.OperatorID, BusinessKey: "receipt-settlement:" + r.ID, Kind: "provider_settlement", SourceID: r.ID, ActorID: in.VerifiedBy, Reason: in.Evidence, Lines: []ledger.Line{{AccountID: receivable.ID, Amount: in.NetMoney}, {AccountID: cash.ID, Amount: in.NetMoney.Neg()}}}); err != nil {
-						return err
-					}
-				}
 				r.SettledAt = in.SettledAt
 				changed = true
 			}
@@ -138,6 +131,12 @@ func (s *Service) RecordReceiptAccounting(ctx context.Context, tx *gorm.DB, in R
 			if err = s.event(tx, r.OperatorID, r.ID, "receipt.accounting_confirmed", in); err != nil {
 				return err
 			}
+		}
+		if r.OriginalNetAmount != nil {
+			if err := s.RecordReceiptSettlement(ctx, tx, r.ID, r.Currency, *r.OriginalNetAmount, in.VerifiedBy); err != nil {
+				return err
+			}
+			r.SettlementCurrency, r.SettlementNetAmount = r.Currency, r.OriginalNetAmount
 		}
 		out = Receipt(r)
 		return nil

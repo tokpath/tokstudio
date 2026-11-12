@@ -50,7 +50,7 @@ func TestStripeNativeCurrenciesPreserveAmountsAcrossChargeAndRefund(t *testing.T
 			transport := NewTransport(true)
 			defer transport.Client.CloseIdleConnections()
 			driver := Stripe{HTTP: transport}
-			merchant := Merchant{ID: "merchant", OperatorID: "operator", Driver: "stripe", Enabled: true, APIBaseURL: server.URL, Credentials: map[string]string{"secret_key": "synthetic_secret", "publishable_key": "synthetic_publishable", "webhook_secret": "synthetic_webhook", "currency": tc.currency}}
+			merchant := Merchant{ID: "merchant", OperatorID: "operator", Driver: "stripe", Enabled: true, APIBaseURL: server.URL, Credentials: map[string]string{"secret_key": "synthetic_secret", "publishable_key": "synthetic_publishable", "webhook_secret": "synthetic_webhook", "currency": "USD"}}
 			if ok, _ := SettlementSupport(merchant, tc.currency); !ok {
 				t.Fatal("native currency incorrectly blocked")
 			}
@@ -81,7 +81,7 @@ func TestStripeVerifiedMerchantFeeUsesOriginalBalanceFacts(t *testing.T) {
 		amount int
 		net    int
 		want   string
-	}{{"known", 250, 10200, 9950, "2.5"}, {"free", 0, 10200, 10200, "0"}, {"wrong payment", 250, 10000, 9750, ""}, {"inconsistent", 250, 10200, 9999, ""}} {
+	}{{"operator estimate differs", 198, 10200, 10002, "1.98"}, {"known", 250, 10200, 9950, "2.5"}, {"free", 0, 10200, 10200, "0"}, {"wrong payment", 250, 10000, 9750, ""}, {"inconsistent", 250, 10200, 9999, ""}} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Query().Get("expand[]") != "latest_charge.balance_transaction" {
@@ -98,11 +98,17 @@ func TestStripeVerifiedMerchantFeeUsesOriginalBalanceFacts(t *testing.T) {
 				t.Fatal(e)
 			}
 			if tc.want == "" {
-				if fact.MerchantFee != nil {
+				if fact.MerchantFee != nil || fact.MerchantNet != nil {
 					t.Fatal("invented fee", fact.MerchantFee)
 				}
 			} else if fact.MerchantFee == nil || fact.MerchantFee.Currency != "USD" || fact.MerchantFee.Amount.String() != tc.want {
 				t.Fatal(fact.MerchantFee)
+			}
+			if tc.want != "" {
+				expected, err := fromMinor("USD", int64(tc.net), 2)
+				if err != nil || fact.MerchantNet == nil || fact.MerchantNet.Currency != "USD" || fact.MerchantNet.Amount.Cmp(expected.Amount) != 0 {
+					t.Fatal("net receipt lost", fact.MerchantNet, err)
+				}
 			}
 		})
 	}

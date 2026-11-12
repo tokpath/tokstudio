@@ -131,11 +131,17 @@ func (d Alipay) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 		TotalAmount string `json:"total_amount"`
 		SendPayDate string `json:"send_pay_date"`
 	}
-	if json.Unmarshal(raw, &body) != nil || body.OutTradeNo != o.ID || body.TradeNo == "" {
+	if json.Unmarshal(raw, &body) != nil || body.OutTradeNo != o.ID {
 		return Fact{}, ErrConflict
 	}
 	if body.TradeStatus != "TRADE_SUCCESS" && body.TradeStatus != "TRADE_FINISHED" {
+		if body.TradeStatus == "WAIT_BUYER_PAY" {
+			return Fact{}, ErrUnpaid
+		}
 		return Fact{}, ErrNotFinal
+	}
+	if body.TradeNo == "" {
+		return Fact{}, ErrConflict
 	}
 	amount, e := ledger.ParseDecimal(body.TotalAmount)
 	if e != nil {

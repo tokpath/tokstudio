@@ -37,8 +37,8 @@ func originalCurrencyFacts(ctx context.Context, tx *gorm.DB, op string, from, to
 	// and never income for its intended buyer. Unknown payment times use the
 	// original observation time, so later data entry does not move the flow.
 	err := tx.WithContext(ctx).Raw(`SELECT currency,sum(income)::text AS income,sum(expense)::text AS expense FROM (
- SELECT currency,original_amount::numeric AS income,0::numeric AS expense FROM commerce_receipts WHERE operator_id=? AND COALESCE(paid_at,observed_at)>=? AND COALESCE(paid_at,observed_at)<?
- UNION ALL SELECT fact->'money'->>'currency',(fact->'money'->>'amount')::numeric,0::numeric FROM payments_verified_facts f WHERE f.operator_id=? AND f.kind='receipt' AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)>=? AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)<? AND NOT EXISTS(SELECT 1 FROM commerce_receipts r WHERE r.id::text=f.receipt_id)
+ SELECT settlement_currency AS currency,settlement_net_amount AS income,0::numeric AS expense FROM commerce_receipts WHERE settlement_net_amount IS NOT NULL AND operator_id=? AND COALESCE(paid_at,observed_at)>=? AND COALESCE(paid_at,observed_at)<?
+ UNION ALL SELECT fact->'merchant_net'->>'currency',(fact->'merchant_net'->>'amount')::numeric,0::numeric FROM payments_verified_facts f WHERE fact->'merchant_net'->>'currency' IS NOT NULL AND f.operator_id=? AND f.kind='receipt' AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)>=? AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)<? AND NOT EXISTS(SELECT 1 FROM commerce_receipts r WHERE r.id::text=f.receipt_id)
  UNION ALL SELECT p.currency,0::numeric,p.amount::numeric FROM remediation_payment_observations p JOIN remediation_refund_legs l ON l.id=p.leg_id WHERE l.operator_id=? AND p.occurred_at>=? AND p.occurred_at<?
  UNION ALL SELECT p.currency,p.amount::numeric,0::numeric FROM remediation_payment_observations p JOIN remediation_refund_legs l ON l.id=p.leg_id JOIN remediation_cases c ON c.id=l.case_id JOIN cooperation_purchase_orders o ON o.id=c.order_id WHERE c.kind='procurement_nondelivery' AND o.buyer_id=? AND p.occurred_at>=? AND p.occurred_at<? AND NOT EXISTS(SELECT 1 FROM remediation_external_refund_observations x WHERE x.observation_id=p.id AND lower(x.address)<>lower(x.recipient_address))
  UNION ALL SELECT fact->'money'->>'currency',0::numeric,(fact->'money'->>'amount')::numeric FROM payments_verified_facts f WHERE f.operator_id=? AND f.kind='refund' AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)>=? AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)<? AND NOT EXISTS(SELECT 1 FROM remediation_payment_observations o WHERE o.business_key='provider:'||f.id)
@@ -57,8 +57,8 @@ func originalCurrencyFacts(ctx context.Context, tx *gorm.DB, op string, from, to
 		PendingReceiptFees       int64
 	}
 	err = tx.WithContext(ctx).Raw(`SELECT currency,COALESCE(sum(fee),0)::text AS receipt_fees,COALESCE(sum(net),0)::text AS net_receipts,count(*) FILTER(WHERE fee IS NULL) AS pending_receipt_fees FROM (
- SELECT currency,original_fee_amount AS fee,original_net_amount AS net FROM commerce_receipts WHERE operator_id=? AND COALESCE(paid_at,observed_at)>=? AND COALESCE(paid_at,observed_at)<?
- UNION ALL SELECT fact->'money'->>'currency',NULL::numeric,NULL::numeric FROM payments_verified_facts f WHERE f.operator_id=? AND f.kind='receipt' AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)>=? AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)<? AND NOT EXISTS(SELECT 1 FROM commerce_receipts r WHERE r.id::text=f.receipt_id)
+ SELECT COALESCE(NULLIF(r.settlement_currency,''),r.currency) AS currency,CASE WHEN f.fact->'merchant_fee'->>'currency'=r.settlement_currency THEN (f.fact->'merchant_fee'->>'amount')::numeric WHEN r.settlement_currency=r.currency THEN r.original_fee_amount ELSE NULL END AS fee,r.settlement_net_amount AS net FROM commerce_receipts r LEFT JOIN payments_verified_facts f ON f.receipt_id=r.id::text AND f.kind='receipt' WHERE r.operator_id=? AND COALESCE(r.paid_at,r.observed_at)>=? AND COALESCE(r.paid_at,r.observed_at)<?
+ UNION ALL SELECT COALESCE(fact->'merchant_net'->>'currency',fact->'money'->>'currency'),CASE WHEN fact->'merchant_fee'->>'currency'=COALESCE(fact->'merchant_net'->>'currency',fact->'money'->>'currency') THEN (fact->'merchant_fee'->>'amount')::numeric ELSE NULL END,(fact->'merchant_net'->>'amount')::numeric FROM payments_verified_facts f WHERE f.operator_id=? AND f.kind='receipt' AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)>=? AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)<? AND NOT EXISTS(SELECT 1 FROM commerce_receipts r WHERE r.id::text=f.receipt_id)
  ) receipts GROUP BY currency`, op, from, to, op, from, to).Scan(&feeRows).Error
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func originalCurrencyFacts(ctx context.Context, tx *gorm.DB, op string, from, to
 		r.ReceiptFees = f.ReceiptFees
 		r.NetReceipts = f.NetReceipts
 		r.PendingReceiptFees = f.PendingReceiptFees
-		r.Expense = r.Expense.Add(f.ReceiptFees)
+		// Income is already the actual net received; do not deduct fees again.
 		totals[f.Currency] = r
 	}
 	if platform {

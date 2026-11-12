@@ -283,7 +283,7 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	if supported, _ := SettlementSupport(m, settings.Currency); !supported {
 		return Checkout{}, ErrUnsupported
 	}
-	if o.Money.Currency != merchantCurrency(m) {
+	if o.Money.Currency != merchantCurrency(m, settings.Currency) {
 		return Checkout{}, ErrInvalid
 	}
 	o.PaymentDriver = m.Driver
@@ -360,7 +360,9 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	if callErr == nil {
 		checkout, callErr = d.Create(ctx, m, o)
 	}
-	if o.PaymentQuote != nil && checkout.PayMoney != nil && (checkout.PayMoney.Currency != o.Money.Currency || checkout.PayMoney.Amount.Cmp(o.Money.Amount) != 0) {
+	// Provider checkout includes its own payer charges and may convert currency.
+	// The submitted order amount is not a promise of the final checkout amount.
+	if checkout.PayMoney != nil && checkout.PayMoney.Validate() != nil {
 		checkout, callErr = checkoutMismatch(ctx, m.Driver, o, checkout.ProviderID, checkout.PayMoney)
 	}
 	checkout.PaymentQuote = o.PaymentQuote
@@ -622,11 +624,19 @@ func (s *Service) RecordFact(ctx context.Context, m Merchant, o Order, incoming 
 					}
 				}
 			}
-			if incoming.MerchantFee != nil {
-				if f.MerchantFee != nil && (f.MerchantFee.Currency != incoming.MerchantFee.Currency || f.MerchantFee.Amount.Cmp(incoming.MerchantFee.Amount) != 0) {
+			if incoming.MerchantFee != nil || incoming.MerchantNet != nil {
+				if incoming.MerchantFee != nil && f.MerchantFee != nil && (f.MerchantFee.Currency != incoming.MerchantFee.Currency || f.MerchantFee.Amount.Cmp(incoming.MerchantFee.Amount) != 0) {
 					return ErrConflict
 				}
-				f.MerchantFee = incoming.MerchantFee
+				if incoming.MerchantFee != nil {
+					f.MerchantFee = incoming.MerchantFee
+				}
+				if incoming.MerchantNet != nil {
+					if f.MerchantNet != nil && (f.MerchantNet.Currency != incoming.MerchantNet.Currency || f.MerchantNet.Amount.Cmp(incoming.MerchantNet.Amount) != 0) {
+						return ErrConflict
+					}
+					f.MerchantNet = incoming.MerchantNet
+				}
 				f.Evidence = incoming.Evidence
 				raw, _ := json.Marshal(f)
 				if e := tx.Table("payments_verified_facts").Where("id=?", f.ID).Update("fact", string(raw)).Error; e != nil {

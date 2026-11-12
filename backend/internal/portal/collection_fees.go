@@ -57,6 +57,19 @@ func (a *Application) validateCollectionReceipt(ctx context.Context, tx *gorm.DB
 	if e != nil {
 		return e
 	}
+	// A replaced payment can still complete. Validate it against the fee
+	// snapshot used to create that payment, not the currently selected method.
+	var fact struct{ MerchantID string }
+	if e = tx.Table("payments_verified_facts").Select("merchant_id").Where("operator_id=? AND order_id=? AND receipt_id=? AND kind='receipt'", op, order, r.ID).Limit(1).Find(&fact).Error; e != nil {
+		return e
+	}
+	if fact.MerchantID != "" {
+		intent, err := a.Payments.PaymentIntent(ctx, op, fact.MerchantID, order)
+		if err != nil {
+			return err
+		}
+		q = intent.FeeQuote
+	}
 	if q == nil {
 		return nil
 	}

@@ -59,10 +59,10 @@ func (k KVoucher) Create(ctx context.Context, m Merchant, o Order) (Checkout, er
 		return Checkout{}, err
 	}
 	face := o.Money.Amount.String()
-	instructions := "请按本单显示的 MYR 金额在 Gkash 完成付款，付款后返回核实原订单。"
+	instructions := "请在 Gkash 付款页确认金额并完成付款，付款后返回核实原订单。"
 	created, e := k.order(ctx, m, http.MethodPost, "/orders", map[string]any{
 		"custom_items":    []map[string]any{{"denomination": json.Number(face), "quantity": 1, "description": "Order " + o.ID}},
-		"currency":        "MYR",
+		"currency":        o.Money.Currency,
 		"metadata":        map[string]string{"order_ref": o.ID},
 		"idempotency_key": "tokpath:" + o.ID,
 	})
@@ -84,7 +84,7 @@ func (k KVoucher) Create(ctx context.Context, m Merchant, o Order) (Checkout, er
 	if e != nil {
 		return Checkout{}, e
 	}
-	if form.Money == nil || form.Money.Currency != "MYR" || form.Money.Amount.Cmp(o.Money.Amount) != 0 {
+	if form.Money == nil || form.Money.Currency != "MYR" || form.Money.Validate() != nil {
 		return checkoutMismatch(ctx, k.Name(), o, order.ID.String(), form.Money)
 	}
 	checkout := Checkout{ProviderID: order.ID.String(), State: "pending", URL: form.Action, FormFields: form.Fields, Instructions: instructions, PayMoney: form.Money, SettlementMoney: &settlement}
@@ -121,6 +121,9 @@ func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error)
 			return Fact{}, e
 		}
 		if !sandbox {
+			if order.Status == "pending_payment" {
+				return Fact{}, ErrUnpaid
+			}
 			return Fact{}, ErrNotFinal
 		}
 	}
@@ -130,6 +133,10 @@ func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error)
 	if len(order.Items) != 1 || order.Items[0].Qty != 1 || order.Items[0].Denomination == "" {
 		return Fact{}, ErrProvider
 	}
+	amount, e := ledger.ParseDecimal(order.Items[0].Denomination.String())
+	if e != nil || o.Money.Currency != "MYR" || amount.Cmp(o.Money.Amount) != 0 {
+		return Fact{}, ErrConflict
+	}
 	pins, e := k.pins(ctx, m, o.ID, order.Items[0].Denomination.String(), order.Items[0].Qty)
 	if e != nil {
 		return Fact{}, e
@@ -137,15 +144,29 @@ func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error)
 	if len(pins) == 0 {
 		return Fact{}, ErrNotFinal
 	}
-	now := time.Now().UTC()
-	evidence := map[string]any{"kvoucher_order_id": order.ID.String(), "kvoucher_order_no": order.OrderNo, "status": order.Status, "pin_count": len(pins)}
-	amount, e := ledger.ParseDecimal(order.Items[0].Denomination.String())
-	if e != nil {
+	if len(pins) != 1 {
+		return Fact{}, ErrConflict
+	}
+	var delivered struct {
+		Denomination json.Number `json:"denomination"`
+	}
+	encoded, e := json.Marshal(pins[0])
+	if e != nil || json.Unmarshal(encoded, &delivered) != nil {
 		return Fact{}, ErrProvider
 	}
+	face, e := ledger.ParseDecimal(delivered.Denomination.String())
+	if e != nil || face.Cmp(amount) != 0 {
+		return Fact{}, ErrConflict
+	}
+	now := time.Now().UTC()
+	evidence := map[string]any{"kvoucher_order_id": order.ID.String(), "kvoucher_order_no": order.OrderNo, "status": order.Status, "pin_count": len(pins)}
 	gross := Money{Currency: "MYR", Amount: amount}
 
-	return receiptFact(m, o, order.ID.String(), gross, &now, evidence)
+	fact, err := receiptFact(m, o, order.ID.String(), gross, &now, evidence)
+	// KVoucher is an agreed exception: receipt is the voucher asset itself.
+	// Its later redemption is outside this system, not an inferred cash payout.
+	fact.MerchantNet = &gross
+	return fact, err
 }
 func (KVoucher) Refund(context.Context, Merchant, Refund) (RefundStatus, error) {
 	return RefundStatus{}, ErrUnsupported

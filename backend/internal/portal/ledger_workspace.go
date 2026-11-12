@@ -37,7 +37,7 @@ type ledgerAccountDisplay struct {
 func ledgerPurpose(p string) string {
 	labels := map[string]string{
 		"customer:money": "支付余额", "commission:available": "可用佣金", "commission:frozen": "冻结佣金", "procurement:atg": "采购额度",
-		"order:funds": "订单已分配款", "receipt:unallocated": "未分配收款", "control:provider_receivable": "通道未结应收", "control:external_cash": "外部现金往来", "control:payment_fees": "已收支付手续费", "control:merchant_fees": "经营方收款手续费", "control:refund_fees": "经营方退款手续费", "control:sales": "套餐销售记账", "control:wholesale_sales": "供货销售记账", "control:credits": "客户权益平衡", "control:cancelled": "权益收回记账", "control:commissions": "佣金计提记账", "control:commission_payouts": "佣金付款记账", "control:withdrawal_fees": "提现手续费", "control:procurement": "采购额度平衡", "control:procurement_removal": "采购退出额度记账", "control:takeover": "接管权益对账", "control:takeover_settlement": "接管结清对账", "procurement_exit:payable": "采购退出应付款", "procurement_exit:receivable": "采购退出应收款", "control:procurement_exit_obligation": "采购退出结算记账", "control:external_receipt": "外部收款往来", "control:procurement_refund_excess": "采购退款差额记账",
+		"order:funds": "订单已分配款", "receipt:unallocated": "未分配收款", "control:receipt_obligation": "订单付款对应权益", "control:receipt_settlement": "原币到账对应记录", "control:provider_receivable": "通道未结应收", "control:external_cash": "外部收付款", "control:payment_fees": "已收支付手续费", "control:merchant_fees": "经营方收款手续费", "control:refund_fees": "经营方退款手续费", "control:sales": "套餐销售记账", "control:wholesale_sales": "供货销售记账", "control:credits": "客户权益平衡", "control:cancelled": "权益收回记账", "control:commissions": "佣金计提记账", "control:commission_payouts": "佣金付款记账", "control:withdrawal_fees": "提现手续费", "control:procurement": "采购额度平衡", "control:procurement_removal": "采购退出额度记账", "control:takeover": "接管权益对账", "control:takeover_settlement": "接管结清对账", "procurement_exit:payable": "采购退出应付款", "procurement_exit:receivable": "采购退出应收款", "control:procurement_exit_obligation": "采购退出结算记账", "control:external_receipt": "外部收款往来", "control:procurement_refund_excess": "采购退款差额记账",
 	}
 	if label := labels[p]; label != "" {
 		return label
@@ -115,7 +115,7 @@ func (a *Application) ledgerSources(c *gin.Context, op string, ids []string) (ma
 		ID, CustomerID, BuyerID, Amount, Currency string
 		CreatedAt                                 time.Time
 	}
-	err = db.Table("commerce_receipts r").Select(`r.id,r.original_amount AS amount,r.currency,r.created_at,
+	err = db.Table("commerce_receipts r").Select(`r.id,COALESCE(r.settlement_net_amount::text,r.original_amount) AS amount,COALESCE(NULLIF(r.settlement_currency,''),r.currency) AS currency,r.created_at,
  (SELECT o.customer_id FROM commerce_receipt_allocations al JOIN commerce_orders o ON o.id=al.order_id AND o.operator_id=r.operator_id WHERE al.receipt_id=r.id LIMIT 1) AS customer_id,
  (SELECT o.buyer_id FROM cooperation_purchase_allocations al JOIN cooperation_purchase_orders o ON o.id=al.order_id AND o.supplier_id=r.operator_id WHERE al.receipt_id=r.id LIMIT 1) AS buyer_id`).Where("r.operator_id=? AND r.id IN ?", op, ids).Scan(&receipts).Error
 	if err != nil {

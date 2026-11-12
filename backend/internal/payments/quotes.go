@@ -39,15 +39,16 @@ type PaymentQuote struct {
 }
 
 type FXSettings struct {
-	LastAttemptAt *time.Time `json:"last_attempt_at,omitempty"`
-	ErrorCode     string     `json:"error_code,omitempty"`
-	Source        string     `json:"source"`
-	Enabled       bool       `json:"enabled"`
-	Version       int64      `json:"version"`
-	UpdatedAt     time.Time  `json:"updated_at"`
-	LastSuccessAt *time.Time `json:"last_success_at" gorm:"-"`
-	RateDate      *time.Time `json:"rate_date" gorm:"-"`
-	Status        string     `json:"status" gorm:"-"`
+	RefreshIntervalHours int        `json:"refresh_interval_hours"`
+	LastAttemptAt        *time.Time `json:"last_attempt_at,omitempty"`
+	ErrorCode            string     `json:"error_code,omitempty"`
+	Source               string     `json:"source"`
+	Enabled              bool       `json:"enabled"`
+	Version              int64      `json:"version"`
+	UpdatedAt            time.Time  `json:"updated_at"`
+	LastSuccessAt        *time.Time `json:"last_success_at" gorm:"-"`
+	RateDate             *time.Time `json:"rate_date" gorm:"-"`
+	Status               string     `json:"status" gorm:"-"`
 }
 
 func (s *Service) FXSettings(ctx context.Context) (FXSettings, error) {
@@ -78,13 +79,13 @@ func (s *Service) FXSettings(ctx context.Context) (FXSettings, error) {
 }
 
 func (s *Service) SetFXSettings(ctx context.Context, actor, platform string, in FXSettings, expected int64) (FXSettings, error) {
-	if s.Authorize == nil || in.Source != "frankfurter" {
+	if s.Authorize == nil || in.Source != "frankfurter" || in.RefreshIntervalHours < 1 || in.RefreshIntervalHours > 24 {
 		return FXSettings{}, ErrInvalid
 	}
 	if err := s.Authorize.RequirePermission(ctx, s.DB, actor, platform, "payments.manage"); err != nil {
 		return FXSettings{}, err
 	}
-	r := s.DB.WithContext(ctx).Table("payments_fx_settings").Where("id=true AND version=?", expected).Updates(map[string]any{"source": in.Source, "enabled": in.Enabled, "version": expected + 1, "updated_at": gorm.Expr("clock_timestamp()")})
+	r := s.DB.WithContext(ctx).Table("payments_fx_settings").Where("id=true AND version=?", expected).Updates(map[string]any{"source": in.Source, "enabled": in.Enabled, "refresh_interval_hours": in.RefreshIntervalHours, "version": expected + 1, "updated_at": gorm.Expr("clock_timestamp()")})
 	if r.Error != nil {
 		return FXSettings{}, r.Error
 	}
@@ -115,7 +116,7 @@ func (s *Service) referenceRate(ctx context.Context, base, quote string, force b
 	}
 	now := time.Now().UTC()
 	usable := cached.Rate.Sign() > 0 && now.Sub(cached.FetchedAt) < 24*time.Hour && now.Sub(cached.RateDate) < 7*24*time.Hour
-	if !force && usable && now.Sub(cached.AttemptedAt) < time.Hour {
+	if !force && usable && now.Sub(cached.AttemptedAt) < time.Duration(settings.RefreshIntervalHours)*time.Hour {
 		return cached, nil
 	}
 	if s.FXTransport == nil {
@@ -169,8 +170,12 @@ func (s *Service) referenceRate(ctx context.Context, base, quote string, force b
 // Refresh only currency pairs already used by the service. No background
 // Internet dependency is introduced for native-currency installations.
 func (s *Service) RefreshQuoteRates(ctx context.Context) error {
+	settings, err := s.FXSettings(ctx)
+	if err != nil || !settings.Enabled {
+		return err
+	}
 	var rows []fxRateRow
-	if err := s.DB.WithContext(ctx).Table("payments_fx_rates").Where("attempted_at<clock_timestamp()-interval '1 hour'").Order("attempted_at").Limit(5).Find(&rows).Error; err != nil {
+	if err := s.DB.WithContext(ctx).Table("payments_fx_rates").Where("attempted_at <= ?", time.Now().UTC().Add(-time.Duration(settings.RefreshIntervalHours)*time.Hour)).Order("attempted_at").Limit(5).Find(&rows).Error; err != nil {
 		return err
 	}
 	for _, row := range rows {

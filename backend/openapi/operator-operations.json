@@ -3548,7 +3548,7 @@
     "path": "/v1/operators/{operatorId}/payment-quotes",
     "permission": "payments.manage",
     "label": "设置报价来源",
-    "description": "Only the platform can configure the payment reference quote source; OEM and channel operators can inspect it. No manual exchange rate is accepted.",
+    "description": "Platform-only reference exchange rate source. Refresh used currency pairs every 1–24 hours (default 1); no manual exchange rate is accepted.",
     "confirmation": "",
     "include_version": false,
     "fields": [
@@ -3569,6 +3569,13 @@
         "label": "启用参考报价",
         "kind": "boolean",
         "required": true
+      },
+      {
+        "name": "refresh_interval_hours",
+        "label": "自动更新间隔（小时）",
+        "kind": "integer",
+        "required": true,
+        "default_value": 1
       },
       {
         "name": "expected_version",

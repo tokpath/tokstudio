@@ -43,7 +43,7 @@ func TestForeignPaymentQuoteIsCachedPinnedAndNeverReplacesActualMoney(t *testing
 			if err != nil || ch.PaymentQuote == nil || ch.PayMoney.Currency != "CNY" || ch.PayMoney.Amount.String() != "70" || ch.PaymentQuote.Source != "Frankfurter" {
 				t.Fatal("missing real quoted payable", ch, err)
 			}
-			if _, err = s.SetFXSettings(t.Context(), "finance", m.OperatorID, FXSettings{Source: "frankfurter", Enabled: false}, 1); err != nil {
+			if _, err = s.SetFXSettings(t.Context(), "finance", m.OperatorID, FXSettings{Source: "frankfurter", Enabled: false, RefreshIntervalHours: 1}, 1); err != nil {
 				t.Fatal(err)
 			}
 			replayed, err := s.Create(t.Context(), m.OperatorID, m.ID, o)
@@ -106,6 +106,92 @@ func TestFrankfurterStaleFailedOrMismatchedDataDoesNotProduceAQuote(t *testing.T
 	broken.Store(false)
 	if _, err := s.referenceRate(t.Context(), "EUR", "JPY", false); !errors.Is(err, ErrQuoteUnavailable) {
 		t.Fatal("mismatched rate response accepted", err)
+	}
+}
+
+func TestReferenceRateRefreshUsesConfiguredHours(t *testing.T) {
+	db := paymentDB(t)
+	s := NewService(db, "quote-interval", testPaymentAuth{}, NewTransport(true), nil)
+	var calls atomic.Int32
+	var broken atomic.Bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		if broken.Load() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"base": "USD", "quote": "CNY", "date": time.Now().UTC().Format("2006-01-02"), "rate": 7})
+	}))
+	defer server.Close()
+	s.FXBaseURL = server.URL
+	settings, err := s.FXSettings(t.Context())
+	if err != nil || settings.RefreshIntervalHours != 1 {
+		t.Fatal(settings, err)
+	}
+	for _, hours := range []int{0, -1, 25} {
+		if _, err = s.SetFXSettings(t.Context(), "finance", "platform", FXSettings{Source: "frankfurter", Enabled: true, RefreshIntervalHours: hours}, 1); !errors.Is(err, ErrInvalid) {
+			t.Fatal(hours, err)
+		}
+	}
+	settings, err = s.SetFXSettings(t.Context(), "finance", "platform", FXSettings{Source: "frankfurter", Enabled: true, RefreshIntervalHours: 6}, 1)
+	if err != nil || settings.RefreshIntervalHours != 6 {
+		t.Fatal(settings, err)
+	}
+	if err = s.RefreshQuoteRates(t.Context()); err != nil || calls.Load() != 0 {
+		t.Fatal("unused currency pairs were fetched", err, calls.Load())
+	}
+	if _, err = s.referenceRate(t.Context(), "USD", "CNY", false); err != nil || calls.Load() != 1 {
+		t.Fatal("first use did not fetch", err, calls.Load())
+	}
+	age := func(hours int) {
+		t.Helper()
+		at := time.Now().UTC().Add(-time.Duration(hours) * time.Hour)
+		if err := db.Exec("UPDATE payments_fx_rates SET fetched_at=?,attempted_at=?", at, at).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	age(2)
+	if _, err = s.referenceRate(t.Context(), "USD", "CNY", false); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.RefreshQuoteRates(t.Context()); err != nil || calls.Load() != 1 {
+		t.Fatal("configured interval ignored", err, calls.Load())
+	}
+	age(7)
+	if err = s.RefreshQuoteRates(t.Context()); err != nil || calls.Load() != 2 {
+		t.Fatal("due rate was not refreshed", err, calls.Load())
+	}
+	settings.Enabled = false
+	settings, err = s.SetFXSettings(t.Context(), "finance", "platform", settings, settings.Version)
+	if err != nil {
+		t.Fatal(err)
+	}
+	age(7)
+	if err = s.RefreshQuoteRates(t.Context()); err != nil || calls.Load() != 2 {
+		t.Fatal("disabled source was refreshed", err, calls.Load())
+	}
+	settings.Enabled = true
+	settings, err = s.SetFXSettings(t.Context(), "finance", "platform", settings, settings.Version)
+	if err != nil {
+		t.Fatal(err)
+	}
+	broken.Store(true)
+	if err = s.RefreshQuoteRates(t.Context()); err != nil || calls.Load() != 3 {
+		t.Fatal("failed refresh should preserve usable rate", err, calls.Load())
+	}
+	if rate, err := s.referenceRate(t.Context(), "USD", "CNY", false); err != nil || rate.Rate.String() != "7" || calls.Load() != 3 {
+		t.Fatal("usable rate was lost or retried before interval", rate, err)
+	}
+	settings.RefreshIntervalHours = 24
+	if _, err = s.SetFXSettings(t.Context(), "finance", "platform", settings, settings.Version); err != nil {
+		t.Fatal(err)
+	}
+	age(25)
+	if _, err = s.referenceRate(t.Context(), "USD", "CNY", false); !errors.Is(err, ErrQuoteUnavailable) {
+		t.Fatal("expired cached rate was reused", err)
+	}
+	if _, err = s.SetFXSettings(t.Context(), "finance", "platform", settings, settings.Version); !errors.Is(err, ErrConflict) {
+		t.Fatal("stale configuration replaced current settings", err)
 	}
 }
 

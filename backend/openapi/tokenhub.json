@@ -12759,7 +12759,7 @@
             }
           }
         },
-        "description": "Only the platform can configure the payment reference quote source; OEM and channel operators can inspect it. No manual exchange rate is accepted. Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "Platform-only reference exchange rate source. Refresh used currency pairs every 1–24 hours (default 1); no manual exchange rate is accepted. Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "payments.manage"
       }
     },
@@ -48436,6 +48436,11 @@
             "type": "boolean",
             "description": "启用参考报价"
           },
+          "refresh_interval_hours": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "自动更新间隔（小时）"
+          },
           "expected_version": {
             "type": "integer",
             "minimum": 0,
@@ -48445,6 +48450,7 @@
         "required": [
           "source",
           "enabled",
+          "refresh_interval_hours",
           "expected_version"
         ],
         "additionalProperties": false

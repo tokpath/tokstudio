@@ -103,17 +103,28 @@ func TestPaymentQuoteSourceIsOnlyVisibleAndConfigurableAtPlatform(t *testing.T) 
 		t.Fatal(page)
 	}
 	fields := operationFields(t, page, "configure")
-	if fields["source"] == nil || fields["enabled"] == nil || fields["rate"] != nil {
+	if fields["source"] == nil || fields["enabled"] == nil || fields["refresh_interval_hours"] == nil || fields["rate"] != nil {
 		t.Fatal("source configuration must not expose manual exchange rates", fields)
 	}
-	status, out, _ := f.call(t, "POST", base, map[string]any{"source": "frankfurter", "enabled": false, "expected_version": 1}, uuid.NewString())
+	status, out, _ := f.call(t, "POST", base, map[string]any{"source": "frankfurter", "enabled": false, "refresh_interval_hours": 6, "expected_version": 1}, uuid.NewString())
 	mustOK(t, status, out)
+	status, page, _ = f.call(t, "GET", base, nil, "")
+	mustOK(t, status, page)
+	if operationFields(t, page, "configure")["refresh_interval_hours"]["default_value"] != float64(6) {
+		t.Fatal("saved interval was not restored", page)
+	}
+	for _, invalid := range []any{0, 25, 1.5} {
+		status, out, _ = f.call(t, "POST", base, map[string]any{"source": "frankfurter", "enabled": true, "refresh_interval_hours": invalid, "expected_version": 2}, uuid.NewString())
+		if status != 400 {
+			t.Fatal("invalid interval accepted", invalid, status, out)
+		}
+	}
 	base = "/v1/operators/" + oem.Operator.ID + "/payment-quotes"
 	status, page, _ = f.call(t, "GET", base, nil, "")
 	if status != 403 {
 		t.Fatal("OEM can access the platform source", status, page)
 	}
-	status, _, _ = f.call(t, "POST", base, map[string]any{"source": "frankfurter", "enabled": true, "expected_version": 2}, uuid.NewString())
+	status, _, _ = f.call(t, "POST", base, map[string]any{"source": "frankfurter", "enabled": true, "refresh_interval_hours": 2, "expected_version": 2}, uuid.NewString())
 	if status != 403 {
 		t.Fatal("OEM changed the platform source", status)
 	}

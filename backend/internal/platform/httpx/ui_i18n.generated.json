@@ -5372,6 +5372,15 @@
     "Jenis tugas",
     "ประเภทงาน"
   ],
+  "优先使用支付通道报价，通道无报价时使用 Frankfurter 参考汇率。首次外币付款时获取并缓存，之后按设置的间隔自动更新。报价只确定本单付款金额，不换算资产、供应商成本或利润。": [
+    "优先使用支付通道报价，通道无报价时使用 Frankfurter 参考汇率。首次外币付款时获取并缓存，之后按设置的间隔自动更新。报价只确定本单付款金额，不换算资产、供应商成本或利润。",
+    "Payment provider quotes take priority; Frankfurter reference rates are used when the provider has no quote. Rates are fetched and cached on first foreign-currency use, then refreshed at the configured interval. Quotes determine only this order’s payment amount, not the value of assets, supplier costs or profit.",
+    "決済事業者の見積もりを優先し、見積もりがない場合はFrankfurterの参考レートを使用します。初回の外貨支払い時に取得・キャッシュし、以後は設定した間隔で自動更新します。見積もりは当該注文の支払額のみを決定し、資産、仕入先コスト、利益の換算には使用しません。",
+    "Приоритет имеют котировки платёжного провайдера; если их нет, используются справочные курсы Frankfurter. Курсы загружаются и кэшируются при первом платеже в иностранной валюте, затем обновляются с заданным интервалом. Котировка определяет только сумму платежа по заказу и не пересчитывает активы, затраты поставщиков или прибыль.",
+    "भुगतान प्रदाता के कोटेशन को प्राथमिकता दी जाती है; कोटेशन न होने पर Frankfurter की संदर्भ दरें ली जाती हैं। पहली बार विदेशी मुद्रा में भुगतान पर दर ली और कैश की जाती है, फिर तय अंतराल पर अपडेट होती है। कोटेशन केवल इस ऑर्डर की भुगतान राशि तय करता है; परिसंपत्तियों, आपूर्तिकर्ता लागत या लाभ का रूपांतरण नहीं करता।",
+    "Sebut harga penyedia pembayaran diutamakan; kadar rujukan Frankfurter digunakan jika tiada sebut harga daripada penyedia. Kadar diambil dan dicache pada penggunaan mata wang asing pertama, kemudian dikemas kini mengikut selang yang ditetapkan. Sebut harga hanya menentukan amaun pembayaran pesanan ini, tanpa menukar nilai aset, kos pembekal atau keuntungan.",
+    "ใช้ราคาจากผู้ให้บริการชำระเงินก่อน หากไม่มีจึงใช้อัตราอ้างอิง Frankfurter ระบบจะดึงและแคชอัตราเมื่อชำระด้วยสกุลเงินต่างประเทศครั้งแรก แล้วอัปเดตอัตโนมัติตามช่วงเวลาที่ตั้งไว้ ราคาใช้กำหนดยอดชำระของคำสั่งซื้อนี้เท่านั้น ไม่ใช้แปลงมูลค่าสินทรัพย์ ต้นทุนผู้ให้บริการ หรือกำไร"
+  ],
   "优先使用支付通道报价，通道无报价时使用 Frankfurter 参考汇率。首次外币付款时获取并缓存，之后自动更新。报价只确定本单付款金额，不换算资产、供应商成本或利润。": [
     "优先使用支付通道报价，通道无报价时使用 Frankfurter 参考汇率。首次外币付款时获取并缓存，之后自动更新。报价只确定本单付款金额，不换算资产、供应商成本或利润。",
     "Use the payment provider’s quote first, with Frankfurter reference rates as a fallback. Rates are cached on the first foreign-currency payment and refreshed automatically. Quotes price this payment only; they do not convert assets, supplier costs, or profit.",
@@ -12805,6 +12814,15 @@
     "आप अपनी वर्तमान प्रत्यक्ष कमीशन दर तक छूट दे सकते हैं। अतिरिक्त क्रेडिट पैकेज के मूल खरीदे गए क्रेडिट और शामिल बोनस से गणना होते हैं; संचालक अभियान बोनस शामिल नहीं हैं।",
     "Anda boleh menawarkan sehingga kadar komisen langsung semasa anda. Kredit tambahan dikira daripada kredit asal yang dibeli dalam pakej serta bonus yang disertakan; bonus kempen pengendali tidak termasuk.",
     "คุณให้ส่วนลดได้สูงสุดเท่ากับอัตราค่าคอมมิชชันโดยตรงปัจจุบัน เครดิตเพิ่มเติมคำนวณจากเครดิตที่ซื้อเดิมของแพ็กเกจรวมของแถมในแพ็กเกจ โดยไม่รวมของแถมจากแคมเปญผู้ดำเนินงาน"
+  ],
+  "可设为 1–24 小时，默认 1 小时。启用后定时更新已使用的币种组合；关闭后停止获取参考汇率。更新失败保留最近有效数据，超过 24 小时不再用于新付款报价。": [
+    "可设为 1–24 小时，默认 1 小时。启用后定时更新已使用的币种组合；关闭后停止获取参考汇率。更新失败保留最近有效数据，超过 24 小时不再用于新付款报价。",
+    "Set 1–24 hours; the default is 1 hour. When enabled, previously used currency pairs refresh on this schedule. Disabling stops reference-rate requests. Failed updates retain the last valid data; data older than 24 hours is not used for new payment quotes.",
+    "1～24時間で設定でき、初期値は1時間です。有効時は利用済みの通貨ペアを定期更新し、無効時は参考レートの取得を停止します。更新失敗時は直近の有効なデータを保持しますが、取得から24時間を過ぎたデータは新しい支払い見積もりに使用しません。",
+    "Укажите от 1 до 24 часов; по умолчанию — 1 час. При включении использованные валютные пары обновляются с этим интервалом. При отключении запросы справочных курсов прекращаются. Если обновление не удалось, сохраняются последние действительные данные; данные старше 24 часов не используются для новых платёжных котировок.",
+    "1–24 घंटे सेट करें; डिफ़ॉल्ट 1 घंटा है। सक्षम होने पर पहले इस्तेमाल किए गए मुद्रा जोड़ों को इस अंतराल पर अपडेट किया जाता है। बंद करने पर संदर्भ दरें लेना बंद हो जाता है। अपडेट विफल होने पर अंतिम मान्य डेटा बना रहता है; 24 घंटे से पुराना डेटा नए भुगतान कोटेशन में इस्तेमाल नहीं होता।",
+    "Tetapkan 1–24 jam; lalai ialah 1 jam. Apabila didayakan, pasangan mata wang yang pernah digunakan dikemas kini mengikut selang ini. Menyahdayakannya menghentikan permintaan kadar rujukan. Jika kemas kini gagal, data sah terakhir dikekalkan; data melebihi 24 jam tidak digunakan untuk sebut harga pembayaran baharu.",
+    "ตั้งค่าได้ 1–24 ชั่วโมง ค่าเริ่มต้นคือ 1 ชั่วโมง เมื่อเปิดใช้งาน ระบบจะอัปเดตคู่สกุลเงินที่เคยใช้ตามช่วงเวลานี้ เมื่อปิดใช้งาน ระบบจะหยุดดึงอัตราอ้างอิง หากอัปเดตไม่สำเร็จจะเก็บข้อมูลล่าสุดที่ใช้ได้ไว้ แต่จะไม่ใช้ข้อมูลที่เก่ากว่า 24 ชั่วโมงสำหรับการเสนอราคาชำระเงินใหม่"
   ],
   "可说明办理时间或联系办法，申请人可在申请页面查看。留空不影响申请，无需填写条款编号。": [
     "可说明办理时间或联系办法，申请人可在申请页面查看。留空不影响申请，无需填写条款编号。",
@@ -38158,6 +38176,15 @@
     "स्वचालित ऑर्डर बनाएँ; मैन्युअल भुगतान करें",
     "Cipta pesanan secara automatik; bayar secara manual",
     "สร้างคำสั่งซื้ออัตโนมัติ ชำระเงินด้วยตนเอง"
+  ],
+  "自动更新间隔（小时）": [
+    "自动更新间隔（小时）",
+    "Automatic refresh interval (hours)",
+    "自動更新間隔（時間）",
+    "Интервал автоматического обновления (часы)",
+    "स्वचालित अपडेट का अंतराल (घंटे)",
+    "Selang kemas kini automatik (jam)",
+    "ช่วงเวลาอัปเดตอัตโนมัติ (ชั่วโมง)"
   ],
   "自动续费": [
     "自动续费",

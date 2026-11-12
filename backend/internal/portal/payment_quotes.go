@@ -24,9 +24,9 @@ func (a *Application) paymentQuoteSettingsResource(c *gin.Context, op organizati
 	}
 	v["source_url"] = "https://frankfurter.dev/"
 	p["title"] = "汇率报价来源"
-	p["description"] = "优先使用支付通道报价，通道无报价时使用 Frankfurter 参考汇率。首次外币付款时获取并缓存，之后自动更新。报价只确定本单付款金额，不换算资产、供应商成本或利润。"
+	p["description"] = "优先使用支付通道报价，通道无报价时使用 Frankfurter 参考汇率。首次外币付款时获取并缓存，之后按设置的间隔自动更新。报价只确定本单付款金额，不换算资产、供应商成本或利润。"
 	p["items"] = []any{entity("fx-settings", settings.Status, settings.Version, v)}
-	p["columns"] = []gin.H{col("source_name", "参考汇率来源", "text"), col("source_url", "来源说明", "link"), col("enabled", "启用参考报价", "boolean"), col("last_success_at", "最近成功同步", "datetime"), col("rate_date", "汇率数据日期", "text")}
+	p["columns"] = []gin.H{col("source_name", "参考汇率来源", "text"), col("source_url", "来源说明", "link"), col("enabled", "启用参考报价", "boolean"), col("refresh_interval_hours", "自动更新间隔（小时）", "text"), col("last_success_at", "最近成功同步", "datetime"), col("rate_date", "汇率数据日期", "text")}
 	p["operations"] = []operation{}
 	p["row_operations"] = []operation{}
 	source := selectField("source", "参考汇率来源", "frankfurter|Frankfurter")
@@ -34,7 +34,9 @@ func (a *Application) paymentQuoteSettingsResource(c *gin.Context, op organizati
 	enabled := f("enabled", "启用参考报价", "boolean")
 	enabled.Default = settings.Enabled
 	enabled.Help = "无需人工填写汇率。没有有效报价时暂停该方式的跨币种付款；通道自己的报价仍优先使用。"
-	p["operations"] = []operation{{Name: "configure", Label: "设置报价来源", Method: "POST", Path: base, Fields: []field{source, enabled, defaultField("expected_version", "配置版本", "hidden", settings.Version)}}}
+	interval := defaultField("refresh_interval_hours", "自动更新间隔（小时）", "integer", settings.RefreshIntervalHours)
+	interval.Help = "可设为 1–24 小时，默认 1 小时。启用后定时更新已使用的币种组合；关闭后停止获取参考汇率。更新失败保留最近有效数据，超过 24 小时不再用于新付款报价。"
+	p["operations"] = []operation{{Name: "configure", Label: "设置报价来源", Method: "POST", Path: base, Fields: []field{source, enabled, interval, defaultField("expected_version", "配置版本", "hidden", settings.Version)}}}
 	a.resourceResponse(c, p)
 }
 func (a *Application) paymentQuoteSettingsCommand(c *gin.Context, op organization.Operator, actor string) {
@@ -43,9 +45,10 @@ func (a *Application) paymentQuoteSettingsCommand(c *gin.Context, op organizatio
 		return
 	}
 	var in struct {
-		Source   string `json:"source"`
-		Enabled  bool   `json:"enabled"`
-		Expected int64  `json:"expected_version"`
+		Source               string `json:"source"`
+		Enabled              bool   `json:"enabled"`
+		RefreshIntervalHours int    `json:"refresh_interval_hours"`
+		Expected             int64  `json:"expected_version"`
 	}
 	if !body(c, &in) {
 		return
@@ -53,7 +56,7 @@ func (a *Application) paymentQuoteSettingsCommand(c *gin.Context, op organizatio
 	raw, err := a.command(c, "payment-quote-settings", in, func(tx *gorm.DB) (any, error) {
 		svc := *a.Payments
 		svc.DB = tx
-		out, err := svc.SetFXSettings(c.Request.Context(), actor, op.ID, payments.FXSettings{Source: in.Source, Enabled: in.Enabled}, in.Expected)
+		out, err := svc.SetFXSettings(c.Request.Context(), actor, op.ID, payments.FXSettings{Source: in.Source, Enabled: in.Enabled, RefreshIntervalHours: in.RefreshIntervalHours}, in.Expected)
 		return commandResult("fx-settings", out.Status), err
 	})
 	jsonResponse(c, raw, err)

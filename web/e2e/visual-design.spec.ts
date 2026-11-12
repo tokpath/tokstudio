@@ -97,10 +97,11 @@ test("OEM workspace and portalled form use its own palette on the platform login
   await expect(page.locator("header").getByRole("link", { name: brand.name })).toBeVisible();
 });
 
-test("KVoucher clearly separates USD liability from MYR payment without opening a new order", async ({ page }, info) => {
+test("KVoucher keeps the order principal and delegates the final payable amount to its payment page", async ({ page }, info) => {
   await api(page, customer); await page.goto("/workspace/orders?record=order-visual");
   await expect(page.getByLabel("80 USD", { exact: true }).first()).toBeVisible();
-  await expect(page.getByLabel("352.80 MYR", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("352.80 MYR", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("请在 Gkash 付款页确认最终金额。未付款可更换付款方式；已经付款请等待核实，勿重复付款。", { exact: true })).toBeVisible();
   const form = page.locator('form[target="tokpath-gkash"]'); await expect(form).toHaveAttribute("action", order.payment_action.url);
   await expect(page.getByRole("button", { name: "我已付款，核实原通道" })).toBeVisible();
   await page.screenshot({ path: info.outputPath("kvoucher-order.png"), fullPage: true });

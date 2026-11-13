@@ -429,3 +429,49 @@ func TestUnmeasurableInputReleasesAllHoldsWithoutBreakingSupplierCircuit(t *test
 		}
 	}
 }
+
+func TestPostgresKeyBudgetFollowsCurrentTimezoneAndOriginalUsage(t *testing.T) {
+	f := setup(t, "0.01", nil)
+	key := f.key.Key
+	accepted := time.Date(2026, 6, 30, 18, 30, 0, 0, time.UTC)
+	// July starts at 18:30 UTC in Kolkata and 18:15 UTC in Kathmandu.
+	// These fixture requests deliberately share one UTC hour across both edges.
+	for i, sample := range []struct {
+		minutes                             int
+		status, actual, corrected, estimate string
+	}{
+		{-16, "completed", "9", "1", "10"},
+		{-10, "completed", "5", "2", "10"},
+		{0, "accepted", "0", "0", "4"},
+		{10, "completed", "8", "3", "10"},
+	} {
+		at := accepted.Add(time.Duration(sample.minutes) * time.Minute)
+		row := Request{ID: uuid.NewString(), CustomerID: key.CustomerID, OperatorID: f.operator, BrandID: key.BrandID, OwnershipVersion: 1, KeyID: key.ID, BusinessKey: fmt.Sprintf("timezone-edge-%d", i), Fingerprint: "budget-fixture", ModelID: "test", Operation: modelruntime.Chat, Status: sample.status, AcceptedAt: at, UsageDeadline: at.Add(time.Hour), WindowStart: at, EstimateATG: d(sample.estimate), ActualATG: d(sample.actual), CorrectedATG: d(sample.corrected), SupplyHolds: []byte("[]"), PriceSnapshot: []byte("{}"), Candidates: []byte("[]")}
+		if err := f.db.Create(&row).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	key.CreatedAt = accepted.AddDate(-1, 0, 0)
+	queryAt := accepted.Add(time.Hour)
+	for _, sample := range []struct {
+		period            ledger.Period
+		zone, spent, held string
+	}{
+		{ledger.Month, "Asia/Kolkata", "5", "4"},
+		{ledger.Month, "Asia/Kathmandu", "8", "4"},
+		{ledger.Lifetime, "UTC", "16", "4"},
+	} {
+		key.Period, key.Timezone = sample.period, sample.zone
+		totals, err := f.s.KeyBudget(f.ctx, nil, key, queryAt)
+		if err != nil || totals.SpentATG.String() != sample.spent || totals.HeldATG.String() != sample.held {
+			t.Fatal(sample, totals, err)
+		}
+	}
+	if err := f.db.Model(&Request{}).Where("key_id=? AND business_key=?", key.ID, "timezone-edge-2").Updates(map[string]any{"status": "free"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	total, err := f.s.KeyBudget(f.ctx, nil, key, queryAt)
+	if err != nil || !total.HeldATG.IsZero() || total.SpentATG.String() != "16" {
+		t.Fatal(total, err)
+	}
+}

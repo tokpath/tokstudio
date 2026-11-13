@@ -445,7 +445,10 @@ func (r *Replenisher) process(ctx context.Context, j ReplenishmentAttempt) (stat
 				return "outcome_unknown", provider, "payment_requires_verification"
 			}
 		} else {
-			_, _ = r.Payments.Reconcile(ctx, a.SupplierID, *a.MerchantID, order.ID)
+			_, e := r.Payments.Reconcile(ctx, a.SupplierID, *a.MerchantID, order.ID)
+			if errors.Is(e, payments.ErrPaymentClosed) {
+				return "needs_attention", j.ProviderID, "payment_closed_without_receipt"
+			}
 		}
 		links, e := r.Payments.ReceiptsForOrder(ctx, a.SupplierID, *a.MerchantID, order.ID)
 		if e != nil {
@@ -454,6 +457,9 @@ func (r *Replenisher) process(ctx context.Context, j ReplenishmentAttempt) (stat
 		for _, link := range links {
 			if e = r.applyReceipt(ctx, order, link.ReceiptID, snapshot.Payment.FeeQuote); e != nil {
 				return "needs_attention", provider, "receipt_requires_review"
+			}
+			if _, e = r.Cooperation.FulfillPurchase(ctx, nil, order.ID, "system:automatic-procurement"); e != nil {
+				return "needs_attention", provider, "verified_payment_delivery_pending"
 			}
 		}
 	} else {
@@ -469,6 +475,9 @@ func (r *Replenisher) process(ctx context.Context, j ReplenishmentAttempt) (stat
 }
 func (r *Replenisher) applyReceipt(ctx context.Context, o PurchaseOrder, receiptID string, fee *paymentmethods.Quote) error {
 	return r.Cooperation.within(ctx, nil, func(t *gorm.DB) error {
+		if e := payments.LockOrderPayment(t, o.ID); e != nil {
+			return e
+		}
 		if e := t.Clauses(clause.Locking{Strength: "UPDATE"}).First(&o, "id=?", o.ID).Error; e != nil {
 			return e
 		}
@@ -482,13 +491,7 @@ func (r *Replenisher) applyReceipt(ctx context.Context, o PurchaseOrder, receipt
 		if fee != nil && (receipt.GrossMoney.Cmp(fee.TotalMoney) != 0 || receipt.PaymentFeeMoney.Cmp(fee.FeeMoney) != 0) {
 			return commerce.ErrWholePayment
 		}
-		o, e = r.Cooperation.ApplyVerifiedPurchaseReceipt(ctx, t, r.Collector, o.ID, receiptID, "auto:"+receiptID, receipt.GrossMoney.Sub(receipt.PaymentFeeMoney))
-		if e != nil {
-			return e
-		}
-		if o.Status == "paid" {
-			_, e = r.Cooperation.FulfillPurchase(ctx, t, o.ID, "system:automatic-procurement")
-		}
+		_, e = r.Cooperation.ApplyVerifiedPurchaseReceipt(ctx, t, r.Collector, o.ID, receiptID, "auto:"+receiptID, receipt.GrossMoney.Sub(receipt.PaymentFeeMoney))
 		return e
 	})
 }

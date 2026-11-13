@@ -40,7 +40,7 @@ func (n Notification) SystemGenerated() bool {
 }
 
 func systemNotificationNamespace(key string) string {
-	for _, prefix := range []string{"commerce:", "incentive:", "catalog:", "renewal-notice:", "replenishment:", "risk:", restrictionReviewKey, "remediation:", "price-check:"} {
+	for _, prefix := range []string{"commerce:", "incentive:", "catalog:", "renewal-notice:", "renewal-pause:", "replenishment:", "risk:", restrictionReviewKey, "remediation:", "price-check:"} {
 		if strings.HasPrefix(key, prefix) {
 			return prefix
 		}

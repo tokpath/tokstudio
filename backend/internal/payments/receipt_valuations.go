@@ -22,7 +22,15 @@ type ReceiptAcceptanceFence interface {
 	LockReceiptAcceptance(context.Context, *gorm.DB, string, string) error
 }
 
+// LockOrderPayment serializes checkout changes and closure against receipt recording.
+func LockOrderPayment(tx *gorm.DB, orderID string) error {
+	return tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "order-payment:"+orderID).Error
+}
+
 func (s *Service) lockReceiptAcceptance(ctx context.Context, tx *gorm.DB, operator, orderID string) error {
+	if e := LockOrderPayment(tx, orderID); e != nil {
+		return e
+	}
 	fence, ok := s.Authorize.(interface {
 		LockOperatorResponsibility(context.Context, *gorm.DB, string) error
 	})

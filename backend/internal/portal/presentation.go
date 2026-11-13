@@ -65,6 +65,10 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				if f.Name == "currency" && f.Default == nil && settlementCurrency != "" {
 					f.Default = settlementCurrency
 				}
+				if ops[i].Name == "receipt" && strings.HasSuffix(ops[i].Path, "/payments") && settlementCurrency != "" &&
+					(f.Name == "original_amount" || f.Name == "settlement_evidence") {
+					f.VisibleWhen = &fieldVisibility{Not: true, Field: "currency", Values: []string{settlementCurrency}}
+				}
 				// The application already fixed the settlement net. Paying in that
 				// currency records the net itself, so both payout wallets hide the
 				// amount and its link until the operator changes the currency.

@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type roundingResult struct {
@@ -48,10 +47,10 @@ func (s *Service) AccumulateCharge(ctx context.Context, tx *gorm.DB, account, so
 			return e
 		}
 		row := carryRow{AccountID: account, SourceKey: source, Numerator: "0", Denominator: "1"}
-		if e = t.Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; e != nil {
-			return e
-		}
-		if e = t.First(&row, "account_id=? AND source_key=?", account, source).Error; e != nil {
+		// The account row above serializes all writes to its carry. A new
+		// carry can use zero in memory until its first result is recorded.
+		e = t.First(&row, "account_id=? AND source_key=?", account, source).Error
+		if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
 			return e
 		}
 		carry, ok := new(big.Rat).SetString(row.Numerator + "/" + row.Denominator)
@@ -66,8 +65,12 @@ func (s *Service) AccumulateCharge(ctx context.Context, tx *gorm.DB, account, so
 		if e = t.Create(&result).Error; e != nil {
 			return e
 		}
-		if e = t.Model(&carryRow{}).Where("account_id=? AND source_key=?", account, source).Updates(map[string]any{"numerator": result.RemainderNumerator, "denominator": result.RemainderDenominator, "version": gorm.Expr("version+1")}).Error; e != nil {
-			return e
+		if row.Numerator != result.RemainderNumerator || row.Denominator != result.RemainderDenominator {
+			if e = t.Exec(`INSERT INTO ledger_carries(account_id,source_key,numerator,denominator,version) VALUES(?,?,?,?,1)
+ ON CONFLICT(account_id,source_key) DO UPDATE SET numerator=EXCLUDED.numerator,denominator=EXCLUDED.denominator,version=ledger_carries.version+1`,
+				account, source, result.RemainderNumerator, result.RemainderDenominator).Error; e != nil {
+				return e
+			}
 		}
 		out = amount
 		return nil

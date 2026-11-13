@@ -8342,5 +8342,77 @@
     "hi": "भाषा लोड नहीं हुई। फिर से कोशिश करें।",
     "ms": "Bahasa gagal dimuatkan. Cuba lagi.",
     "th": "โหลดภาษาไม่สำเร็จ โปรดลองอีกครั้ง"
+  },
+  "调价或限时促销须填写生效时间。": {
+    "en": "Enter an effective time for a price change or limited-time promotion.",
+    "ja": "価格改定や期間限定プロモーションには、適用開始日時を入力してください。",
+    "ru": "Укажите время вступления в силу изменения цены или временной акции.",
+    "hi": "मूल्य बदलने या सीमित अवधि के ऑफ़र के लिए लागू होने का समय दर्ज करें।",
+    "ms": "Masukkan masa berkuat kuasa untuk perubahan harga atau promosi terhad.",
+    "th": "ระบุเวลาที่มีผลสำหรับการเปลี่ยนราคาหรือโปรโมชันแบบจำกัดเวลา"
+  },
+  "选择模型，设置客户零售价或直属下级供货价。首次常规定价立即发布，调价和限时促销需要填写生效时间。": {
+    "en": "Choose a model and set its retail price or its supply price for a direct buyer. The first regular price publishes immediately. Price changes and promotions require an effective time.",
+    "ja": "モデルを選び、顧客向け小売価格または直属の仕入先向け供給価格を設定します。初回の通常価格は即時公開され、価格改定や期間限定価格には適用開始日時が必要です。",
+    "ru": "Выберите модель и задайте розничную или оптовую цену для прямого покупателя. Первая обычная цена публикуется сразу. Для изменений и акций укажите время вступления в силу.",
+    "hi": "मॉडल चुनें और उसकी खुदरा कीमत या सीधे खरीदार के लिए आपूर्ति कीमत तय करें। पहली सामान्य कीमत तुरंत प्रकाशित होती है। बदलाव और ऑफ़र के लिए लागू होने का समय दर्ज करें।",
+    "ms": "Pilih model dan tetapkan harga runcit atau harga bekalan untuk pembeli langsung. Harga biasa pertama diterbitkan serta-merta. Perubahan harga dan promosi memerlukan masa berkuat kuasa.",
+    "th": "เลือกรุ่นและกำหนดราคาขายปลีกหรือราคาจัดหาให้ผู้ซื้อโดยตรง ราคาปกติครั้งแรกเผยแพร่ทันที การเปลี่ยนราคาและโปรโมชันต้องระบุเวลาที่มีผล"
+  },
+  "首次常规定价立即发布。已有价格的调整提交后立即通知，到点生效。": {
+    "en": "The first regular price publishes immediately. Revisions are announced on submission and take effect at the scheduled time.",
+    "ja": "初回の通常価格は即時公開されます。既存価格の改定は送信時に通知され、指定日時に適用されます。",
+    "ru": "Первая обычная цена публикуется сразу. Об изменениях сообщается при отправке, и они вступают в силу в назначенное время.",
+    "hi": "पहली सामान्य कीमत तुरंत प्रकाशित होती है। मौजूदा कीमत में बदलाव की सूचना सबमिट करते ही जाती है और बदलाव तय समय पर लागू होता है।",
+    "ms": "Harga biasa pertama diterbitkan serta-merta. Semakan diumumkan ketika dihantar dan berkuat kuasa pada masa yang ditetapkan.",
+    "th": "ราคาปกติครั้งแรกเผยแพร่ทันที การปรับราคาที่มีอยู่จะแจ้งเมื่อส่งและมีผลตามเวลาที่กำหนด"
+  },
+  "原通道已关闭本次付款，未收到款项。": {
+    "en": "The original payment provider closed this payment without collecting funds.",
+    "ja": "元の決済サービスが入金なしでこの支払いを終了しました。",
+    "ru": "Исходный платёжный сервис закрыл платёж без списания средств.",
+    "hi": "मूल भुगतान सेवा ने राशि प्राप्त किए बिना इस भुगतान को बंद कर दिया।",
+    "ms": "Penyedia pembayaran asal menutup pembayaran ini tanpa menerima dana.",
+    "th": "ผู้ให้บริการชำระเงินเดิมปิดรายการนี้โดยยังไม่ได้รับเงิน"
+  },
+  "原通道已关闭本次付款，未收到款项。请刷新订单查看可用操作。": {
+    "en": "The original payment provider closed this payment without collecting funds. Refresh the order to see the available actions.",
+    "ja": "元の決済サービスが入金なしでこの支払いを終了しました。注文を更新して利用できる操作を確認してください。",
+    "ru": "Исходный платёжный сервис закрыл платёж без списания средств. Обновите заказ, чтобы увидеть доступные действия.",
+    "hi": "मूल भुगतान सेवा ने राशि प्राप्त किए बिना भुगतान बंद कर दिया। उपलब्ध विकल्प देखने के लिए ऑर्डर रीफ़्रेश करें।",
+    "ms": "Penyedia asal menutup pembayaran tanpa menerima dana. Muat semula pesanan untuk melihat tindakan yang tersedia.",
+    "th": "ผู้ให้บริการเดิมปิดรายการโดยยังไม่ได้รับเงิน รีเฟรชคำสั่งซื้อเพื่อดูการดำเนินการที่ทำได้"
+  },
+  "经营方已暂停自动续费。暂停期间不会续费扣款，你仍可关闭已有授权。": {
+    "en": "The merchant paused automatic renewal. You will not be charged for renewal during the pause and can still revoke your authorization.",
+    "ja": "運営事業者が自動更新を一時停止しました。停止中に更新料金は請求されず、既存の承認は取り消せます。",
+    "ru": "Продавец приостановил автопродление. Пока действует пауза, списаний за продление не будет. Разрешение можно отозвать.",
+    "hi": "व्यापारी ने अपने आप नवीनीकरण रोक दिया है। इस दौरान नवीनीकरण का शुल्क नहीं कटेगा और आप मौजूदा अनुमति रद्द कर सकते हैं।",
+    "ms": "Peniaga menjeda pembaharuan automatik. Tiada caj pembaharuan sepanjang jeda dan anda masih boleh menarik balik kebenaran.",
+    "th": "ผู้ขายพักการต่ออายุอัตโนมัติ จะไม่มีการเรียกเก็บค่าต่ออายุระหว่างที่พัก และคุณยังยกเลิกการอนุญาตเดิมได้"
+  },
+  "自动续费已暂停": {
+    "en": "Automatic renewal paused",
+    "ja": "自動更新を一時停止しました",
+    "ru": "Автопродление приостановлено",
+    "hi": "अपने आप नवीनीकरण रुका है",
+    "ms": "Pembaharuan automatik dijeda",
+    "th": "พักการต่ออายุอัตโนมัติแล้ว"
+  },
+  "经营方已暂停自动续费。暂停期间不会续费扣款，已购额度和有效期照常。你可以在套餐页面关闭已有续费授权。": {
+    "en": "The merchant paused automatic renewal. No renewal charges will be made during the pause. Your purchased credits and expiry dates still apply. You can revoke renewal authorization on the Plans page.",
+    "ja": "運営事業者が自動更新を一時停止しました。停止中に更新料金は請求されず、購入済みのクレジットと有効期限はそのままです。プランページで更新の承認を取り消せます。",
+    "ru": "Продавец приостановил автопродление. Списаний за продление пока не будет. Купленные кредиты и сроки их действия сохраняются. Разрешение можно отозвать на странице тарифов.",
+    "hi": "व्यापारी ने अपने आप नवीनीकरण रोक दिया है। इस दौरान नवीनीकरण का शुल्क नहीं कटेगा। खरीदे गए क्रेडिट और उनकी समाप्ति तिथियाँ लागू रहेंगी। आप प्लान पेज पर अनुमति रद्द कर सकते हैं।",
+    "ms": "Peniaga menjeda pembaharuan automatik. Tiada caj pembaharuan sepanjang jeda. Kredit yang dibeli dan tarikh luputnya masih terpakai. Tarik balik kebenaran pada halaman Pelan.",
+    "th": "ผู้ขายพักการต่ออายุอัตโนมัติ ระหว่างที่พักจะไม่มีการเรียกเก็บค่าต่ออายุ เครดิตที่ซื้อและวันหมดอายุยังใช้ตามเดิม คุณยกเลิกการอนุญาตต่ออายุได้ในหน้าแพ็กเกจ"
+  },
+  "通道已确认收到款项，系统正在核实并关联原订单。请勿重复付款。": {
+    "en": "The payment provider confirmed receipt. We are verifying and linking it to the original order. Please do not pay again.",
+    "ja": "決済サービスが入金を確認しました。確認のうえ元の注文に関連付けています。再度のお支払いは不要です。",
+    "ru": "Платёжный сервис подтвердил поступление средств. Платёж проверяется и привязывается к исходному заказу. Не платите повторно.",
+    "hi": "भुगतान सेवा ने राशि मिलने की पुष्टि की है। हम भुगतान सत्यापित कर उसे मूल ऑर्डर से जोड़ रहे हैं। दोबारा भुगतान न करें।",
+    "ms": "Penyedia pembayaran mengesahkan dana diterima. Kami sedang mengesahkan dan memadankannya dengan pesanan asal. Jangan bayar lagi.",
+    "th": "ผู้ให้บริการยืนยันว่าได้รับเงินแล้ว ระบบกำลังตรวจสอบและเชื่อมกับคำสั่งซื้อเดิม กรุณาอย่าชำระซ้ำ"
   }
 }

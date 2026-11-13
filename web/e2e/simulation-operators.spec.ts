@@ -215,7 +215,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.receipt) {
       await oem.goto(`/manage/${f.oem_id}/payments`);
-      save("receipt", await operation(oem, "登记人工核实收款", { provider_receipt_id: "synthetic-operator-ui-" + randomUUID(), original_amount: "80", settlement_amount: "80", settlement_evidence: "Same-currency synthetic receipt", currency: "USD", recipient_reference: "synthetic OEM recipient", payer_reference: "synthetic channel payer", verification_evidence: "SYNTHETIC bank fact for actual browser simulation", paid_at: localTime() }, `${oemBase}/payments`));
+      save("receipt", await operation(oem, "登记人工核实收款", { provider_receipt_id: "synthetic-operator-ui-" + randomUUID(), settlement_amount: "80", currency: "USD", recipient_reference: "synthetic OEM recipient", payer_reference: "synthetic channel payer", verification_evidence: "SYNTHETIC bank fact for actual browser simulation", paid_at: localTime() }, `${oemBase}/payments`));
     }
     if (!journal.funded) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
@@ -307,7 +307,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.topup_receipt) {
       await channel.goto(`/manage/${f.channel_id}/payments`);
-      save("topup_receipt", await operation(channel, "登记人工核实收款", { provider_receipt_id: "synthetic-channel-topup-" + randomUUID(), original_amount: "50", settlement_amount: "50", settlement_evidence: "Same-currency synthetic receipt", currency: "USD", recipient_reference: "synthetic channel recipient", payer_reference: "synthetic customer original payer", verification_evidence: "SYNTHETIC customer topup bank fact", paid_at: localTime() }, `${channelBase}/payments`));
+      save("topup_receipt", await operation(channel, "登记人工核实收款", { provider_receipt_id: "synthetic-channel-topup-" + randomUUID(), settlement_amount: "50", currency: "USD", recipient_reference: "synthetic channel recipient", payer_reference: "synthetic customer original payer", verification_evidence: "SYNTHETIC customer topup bank fact", paid_at: localTime() }, `${channelBase}/payments`));
     }
     if (!journal.topup_allocated) {
       await channel.goto(`/manage/${f.channel_id}/orders`);

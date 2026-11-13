@@ -186,14 +186,11 @@ func (s *Service) Settle(ctx context.Context, tx *gorm.DB, requestID string, usa
 		// Use the original window, not the window at completion time. Other settled
 		// requests are counted once while this request still has zero actual charge.
 		if out.BudgetLimit != nil {
-			var spent ledger.Decimal
-			query := t.Model(&Request{}).Where("key_id=? AND accepted_at>=?", key.ID, out.WindowStart)
-			if out.WindowEnd != nil {
-				query = query.Where("accepted_at<?", *out.WindowEnd)
+			totals, err := keyBudgetTotals(t, []keyWindow{{key.ID, out.WindowStart, out.WindowEnd}})
+			if err != nil {
+				return err
 			}
-			if e = query.Select("COALESCE(sum(actual_atg-corrected_atg),0)::text").Row().Scan(&spent); e != nil {
-				return e
-			}
+			spent := totals[key.ID].Spent
 			over := spent.Add(actual).Sub(*out.BudgetLimit)
 			previous := spent.Sub(*out.BudgetLimit)
 			if previous.Sign() < 0 {

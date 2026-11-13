@@ -2635,7 +2635,17 @@
             "BrowserSession": []
           }
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque cursor returned by next_cursor.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -22635,6 +22645,15 @@
                 },
                 "example": "data: {\"choices\":[{\"delta\":{\"content\":\"...\"}}]}\n\ndata: [DONE]\n\n"
               }
+            },
+            "headers": {
+              "X-TokenHub-Request-ID": {
+                "description": "Platform request ID used by the customer usage and billing records.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
             }
           },
           "400": {
@@ -22798,6 +22817,15 @@
                 },
                 "example": "data: {\"choices\":[{\"delta\":{\"content\":\"...\"}}]}\n\ndata: [DONE]\n\n"
               }
+            },
+            "headers": {
+              "X-TokenHub-Request-ID": {
+                "description": "Platform request ID used by the customer usage and billing records.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
             }
           },
           "400": {
@@ -22947,6 +22975,15 @@
                   "type": "string"
                 },
                 "example": "data: {\"choices\":[{\"delta\":{\"content\":\"...\"}}]}\n\ndata: [DONE]\n\n"
+              }
+            },
+            "headers": {
+              "X-TokenHub-Request-ID": {
+                "description": "Platform request ID used by the customer usage and billing records.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
               }
             }
           },
@@ -23109,6 +23146,15 @@
                 },
                 "example": "data: {\"choices\":[{\"delta\":{\"content\":\"...\"}}]}\n\ndata: [DONE]\n\n"
               }
+            },
+            "headers": {
+              "X-TokenHub-Request-ID": {
+                "description": "Platform request ID used by the customer usage and billing records.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
             }
           },
           "400": {
@@ -23270,6 +23316,15 @@
                   "contentEncoding": "binary"
                 }
               }
+            },
+            "headers": {
+              "X-TokenHub-Request-ID": {
+                "description": "Platform request ID used by the customer usage and billing records.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
             }
           },
           "400": {
@@ -23424,6 +23479,15 @@
                   "type": "string"
                 },
                 "example": "data: {\"choices\":[{\"delta\":{\"content\":\"...\"}}]}\n\ndata: [DONE]\n\n"
+              }
+            },
+            "headers": {
+              "X-TokenHub-Request-ID": {
+                "description": "Platform request ID used by the customer usage and billing records.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
               }
             }
           },
@@ -23606,6 +23670,15 @@
                 "schema": {
                   "type": "string",
                   "contentEncoding": "binary"
+                }
+              }
+            },
+            "headers": {
+              "X-TokenHub-Request-ID": {
+                "description": "Platform request ID used by the customer usage and billing records.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
                 }
               }
             }

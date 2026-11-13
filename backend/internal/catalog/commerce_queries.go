@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"strings"
 	"time"
 )
 
@@ -12,18 +13,26 @@ import (
 // requires its own listing; a wholesale obligation includes authorized models
 // even when the buyer has temporarily taken them off its retail shelf.
 func (s CommerceCatalog) AvailableModels(ctx context.Context, operator string, retail bool) ([]PublicModel, error) {
-	return s.availableModels(ctx, operator, retail, true)
+	return s.availableModels(ctx, operator, retail, true, "")
 }
 
 // PricingModels also includes unlisted and globally disabled models so an
 // operator can prepare prices before opening sales or inspect a paused model.
-func (s CommerceCatalog) PricingModels(ctx context.Context, operator string) ([]PublicModel, error) {
-	return s.availableModels(ctx, operator, false, false)
+func (s CommerceCatalog) PricingModels(ctx context.Context, operator string, search ...string) ([]PublicModel, error) {
+	query := ""
+	if len(search) > 0 {
+		query = strings.ToLower(strings.TrimSpace(search[0]))
+	}
+	return s.availableModels(ctx, operator, false, false, query)
 }
 
-func (s CommerceCatalog) availableModels(ctx context.Context, operator string, retail, requireEnabled bool) ([]PublicModel, error) {
+func (s CommerceCatalog) availableModels(ctx context.Context, operator string, retail, requireEnabled bool, query string) ([]PublicModel, error) {
 	var rows []catalogJSONRow
-	if e := s.DB.WithContext(ctx).Table("tokenhub_public_models").Order("id").Find(&rows).Error; e != nil {
+	q := s.DB.WithContext(ctx).Table("tokenhub_public_models")
+	if query != "" {
+		q = q.Where("strpos(lower(id),?)>0", query)
+	}
+	if e := q.Order("id").Find(&rows).Error; e != nil {
 		return nil, e
 	}
 	out := []PublicModel{}
@@ -32,7 +41,7 @@ func (s CommerceCatalog) availableModels(ctx context.Context, operator string, r
 		if e := json.Unmarshal(row.Definition, &m); e != nil {
 			return nil, e
 		}
-		e := s.requireAuthorization(ctx, operator, m.ID, requireEnabled)
+		e := s.requireModelAuthorization(ctx, operator, m, requireEnabled)
 		if errors.Is(e, ErrModelNotVisible) {
 			continue
 		}

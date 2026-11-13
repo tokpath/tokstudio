@@ -3,9 +3,11 @@ package payments
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/paymentmethods"
-	"time"
+	"gorm.io/gorm"
 )
 
 type MerchantInput struct {
@@ -154,6 +156,24 @@ type IntentView struct {
 	ProviderID string                `json:"provider_id,omitempty"`
 	State      string                `json:"state"`
 	Checkout   *Checkout             `json:"checkout,omitempty"`
+}
+
+func (i IntentView) AllowsMethodChange() bool {
+	return i.State == "created" || i.State == "failed" || i.State == "closed"
+}
+
+// HasOrderReceipt includes verified facts still awaiting settlement or receipt creation.
+func HasOrderReceipt(ctx context.Context, tx *gorm.DB, operator, order string) (bool, error) {
+	var found bool
+	err := tx.WithContext(ctx).Raw("SELECT EXISTS (SELECT 1 FROM payments_verified_facts WHERE operator_id=? AND order_id=? AND kind='receipt')", operator, order).Scan(&found).Error
+	return found, err
+}
+
+func HasOpenOnlinePayment(ctx context.Context, tx *gorm.DB, operator, order string) (bool, error) {
+	var found bool
+	err := tx.WithContext(ctx).Raw(`SELECT EXISTS (SELECT 1 FROM payments_intents i JOIN payments_merchants m ON m.id=i.merchant_id
+ WHERE i.operator_id=? AND i.order_id=? AND m.driver<>'manual' AND i.state NOT IN ('failed','closed'))`, operator, order).Scan(&found).Error
+	return found, err
 }
 
 func (s *Service) PaymentIntent(ctx context.Context, operator, merchant, order string) (IntentView, error) {

@@ -91,7 +91,7 @@ func (d Stripe) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 	}
 	var pi struct {
 		ID, Status, Currency string
-		AmountReceived       int64           `json:"amount_received"`
+		AmountReceived       *int64          `json:"amount_received"`
 		LatestCharge         json.RawMessage `json:"latest_charge"`
 		Metadata             struct {
 			OrderID    string `json:"order_id"`
@@ -101,21 +101,26 @@ func (d Stripe) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 	if json.Unmarshal(raw, &pi) != nil || pi.ID != o.ProviderID || pi.Metadata.OrderID != o.ID || (pi.Metadata.OperatorID != "" && pi.Metadata.OperatorID != m.OperatorID) {
 		return Fact{}, ErrConflict
 	}
-	if pi.Status != "succeeded" {
-		if pi.AmountReceived == 0 && (pi.Status == "requires_payment_method" || pi.Status == "requires_confirmation") {
+	if pi.AmountReceived != nil && *pi.AmountReceived == 0 {
+		switch pi.Status {
+		case "canceled":
+			return Fact{}, ErrPaymentClosed
+		case "requires_payment_method", "requires_confirmation":
 			return Fact{}, ErrUnpaid
 		}
+	}
+	if pi.Status != "succeeded" || pi.AmountReceived == nil {
 		return Fact{}, ErrNotFinal
 	}
 	digits, ok := stripeMinorDigits(strings.ToUpper(pi.Currency))
 	if !ok {
 		return Fact{}, ErrUnsupported
 	}
-	money, e := fromMinor(pi.Currency, pi.AmountReceived, digits)
+	money, e := fromMinor(pi.Currency, *pi.AmountReceived, digits)
 	if e != nil {
 		return Fact{}, e
 	}
-	evidence := map[string]any{"payment_intent": pi.ID, "status": pi.Status, "amount_received": pi.AmountReceived, "currency": pi.Currency}
+	evidence := map[string]any{"payment_intent": pi.ID, "status": pi.Status, "amount_received": *pi.AmountReceived, "currency": pi.Currency}
 	var charge struct {
 		ID      string
 		Balance json.RawMessage `json:"balance_transaction"`
@@ -125,7 +130,7 @@ func (d Stripe) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 		Amount, Fee, Net     *int64
 	}
 	var merchantFee, merchantNet *Money
-	if json.Unmarshal(pi.LatestCharge, &charge) == nil && json.Unmarshal(charge.Balance, &balance) == nil && charge.ID != "" && balance.ID != "" && balance.Source == charge.ID && balance.Amount != nil && balance.Fee != nil && balance.Net != nil && *balance.Fee >= 0 && *balance.Amount-*balance.Fee == *balance.Net && (!strings.EqualFold(balance.Currency, pi.Currency) || *balance.Amount == pi.AmountReceived) {
+	if json.Unmarshal(pi.LatestCharge, &charge) == nil && json.Unmarshal(charge.Balance, &balance) == nil && charge.ID != "" && balance.ID != "" && balance.Source == charge.ID && balance.Amount != nil && balance.Fee != nil && balance.Net != nil && *balance.Fee >= 0 && *balance.Amount-*balance.Fee == *balance.Net && (!strings.EqualFold(balance.Currency, pi.Currency) || *balance.Amount == *pi.AmountReceived) {
 		if precision, ok := stripeMinorDigits(strings.ToUpper(balance.Currency)); ok {
 			fee := Money{Currency: strings.ToUpper(balance.Currency), Amount: ledger.Zero()}
 			valid := *balance.Fee == 0
@@ -285,6 +290,8 @@ func (d Stripe) VerifyWebhook(_ context.Context, m Merchant, w Webhook) (Hint, e
 	switch event.Type {
 	case "payment_intent.succeeded":
 		kind = "receipt"
+	case "payment_intent.canceled":
+		kind = "payment_closed"
 	case "refund.created", "refund.updated", "refund.failed":
 		kind = "refund"
 	default:

@@ -3,11 +3,14 @@ package portal
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"strconv"
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/jobs"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
+	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -22,6 +25,7 @@ type renewalNotice struct {
 func (renewalNotice) TableName() string { return "portal_renewal_notices" }
 func (a *Application) runRenewal(ctx context.Context, p workerPayload) error {
 	var subscription commerce.Subscription
+	ready := false
 	e := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		s, e := a.Commerce.GetSubscription(ctx, tx, p.CustomerID, p.ID)
 		if e != nil {
@@ -31,6 +35,22 @@ func (a *Application) runRenewal(ctx context.Context, p workerPayload) error {
 		if s.Status == "cancelled" || s.Status == "needs_confirmation" {
 			return nil
 		}
+		ownership, e := a.Organization.CurrentOwnership(ctx, tx, s.CustomerID)
+		if e != nil {
+			return e
+		}
+		if ownership.OperatorID != s.OperatorID {
+			return nil
+		}
+		if _, e = a.Organization.LockOwnership(ctx, tx, s.CustomerID, s.OperatorID, ownership.Version); e != nil {
+			return e
+		}
+		if e = a.Organization.RequireBusiness(ctx, tx, s.OperatorID, organization.Renewal); e != nil {
+			if businessUnavailable(e) {
+				return nil
+			}
+			return e
+		}
 		pkg, e := a.Commerce.GetPackage(ctx, tx, s.OperatorID, s.PackageID)
 		if e != nil {
 			return e
@@ -38,6 +58,7 @@ func (a *Application) runRenewal(ctx context.Context, p workerPayload) error {
 		if pkg.CurrentQuoteID == nil || !pkg.RenewalEnabled {
 			return nil
 		}
+		ready = true
 		quote, e := a.Commerce.GetQuote(ctx, tx, *pkg.CurrentQuoteID)
 		if e != nil {
 			return e
@@ -74,11 +95,58 @@ func (a *Application) runRenewal(ctx context.Context, p workerPayload) error {
 	if e != nil {
 		return e
 	}
-	if subscription.Status == "cancelled" || subscription.Status == "needs_confirmation" || time.Now().Before(subscription.NextDueAt) {
+	if !ready || time.Now().Before(subscription.NextDueAt) {
 		return nil
 	}
 	_, e = a.Commerce.RenewSubscription(ctx, nil, subscription.ID)
+	if businessUnavailable(e) || errors.Is(e, commerce.ErrRenewalNotDue) {
+		return nil
+	}
 	return e
+}
+
+func (a *Application) enqueueRenewalPause(ctx context.Context, tx *gorm.DB, operator string, version int64, cursor string) error {
+	payload, _ := json.Marshal(workerPayload{OperatorID: operator, Version: version, Cursor: cursor})
+	key := "renewal-pause:" + operator + ":" + strconv.FormatInt(version, 10) + ":" + cursor
+	_, err := a.Jobs.EnqueueTx(tx, jobs.Input{Queue: "portal-maintenance", Kind: "renewal_pause", BusinessKey: key, Payload: payload, MaxAttempts: 12})
+	return err
+}
+
+func (a *Application) runRenewalPause(ctx context.Context, p workerPayload) error {
+	return a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := a.Organization.LockOperatorResponsibility(ctx, tx, p.OperatorID); err != nil {
+			return err
+		}
+		state, err := a.Organization.GetBusinessStatus(ctx, tx, p.OperatorID)
+		if err != nil || state.Renewal {
+			return err
+		}
+		const batchSize = 100
+		var customers []string
+		q := tx.Table("commerce_subscriptions AS s").
+			Joins("JOIN organization_service_ownerships o ON o.customer_id=s.customer_id AND o.operator_id=s.operator_id AND o.ended_at IS NULL").
+			Where("s.operator_id=? AND s.status<>'cancelled'", p.OperatorID)
+		if p.Cursor != "" {
+			q = q.Where("s.customer_id>?", p.Cursor)
+		}
+		if err = q.Distinct("s.customer_id").Order("s.customer_id").Limit(batchSize).Pluck("s.customer_id", &customers).Error; err != nil {
+			return err
+		}
+		for _, customer := range customers {
+			_, err = a.Operations.Emit(ctx, tx, operations.Notification{
+				OperatorID: p.OperatorID, RecipientID: customer, BusinessKey: "renewal-pause:" + p.OperatorID + ":" + strconv.FormatInt(p.Version, 10),
+				Category: "mandatory", Severity: "info", Title: "自动续费已暂停",
+				Body: "经营方已暂停自动续费。暂停期间不会续费扣款，已购额度和有效期照常。你可以在套餐页面关闭已有续费授权。",
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if len(customers) == batchSize {
+			return a.enqueueRenewalPause(ctx, tx, p.OperatorID, p.Version, customers[len(customers)-1])
+		}
+		return nil
+	})
 }
 
 func (a *Application) enqueuePackageChange(ctx context.Context, tx *gorm.DB, quote commerce.PackageQuote, cursor string) error {

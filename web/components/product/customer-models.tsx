@@ -17,6 +17,22 @@ import { ContextHelp, CopyButton } from "./customer-ui";
 import { FieldHelp } from "./field-help";
 import { KeyEditor } from "./customer-keys";
 
+export function usePublicModels() {
+  return useQuery({
+    queryKey: ["public-models"],
+    queryFn: ({ signal }) => request("/api/v1/public/models", collection(ModelSchema), { signal }),
+    refetchOnWindowFocus: "always",
+    refetchInterval: query => {
+      const now = Date.now();
+      const times = query.state.data?.items.flatMap(model =>
+        (model.upcoming_changes || []).map(change => new Date(change.effective_at).getTime())
+      ) || [];
+      const next = times.reduce((soonest, time) => time > now ? Math.min(soonest, time) : soonest, Infinity);
+      return Math.min(60_000, Math.max(1000, next - now + 250));
+    },
+  });
+}
+
 export const capabilityLabels: Record<string, string> = { chat: "文本对话", responses: "Responses", embedding: "向量", image: "图像生成", speech: "语音合成", transcription: "语音转写", video: "视频生成" };
 const modelTerms: Record<string, string> = {
  "普通输入":"普通输入","输入文本":"输入文本","输入图片":"输入图片","输入音频":"输入音频","输入视频":"输入视频","输出文本":"输出文本","输出图片":"输出图片","输出音频":"输出音频","输出视频":"输出视频","缓存读取":"缓存读取","全部模态":"全部模态","文本":"文本","图片":"图片","音频":"音频","视频":"视频",
@@ -73,7 +89,7 @@ export function ModelCatalog({ models, onSelect, selectedModel, locked = false }
 }
 export function CustomerModels() {
   const { t } = useI18n();
-  const data = useQuery({ queryKey: ["public-models"], queryFn: () => request("/api/v1/public/models", collection(ModelSchema)) });
+  const data = usePublicModels();
   const [selected, setSelected] = useState<string>(), [locked, setLocked] = useState(false), [keyOpen, setKeyOpen] = useState(false);
   useEffect(() => { setSelected(new URLSearchParams(window.location.search).get("model") || undefined); }, []);
   function selectModel(id: string) { if (locked || keyOpen) return; setSelected(id); const url = new URL(window.location.href); url.searchParams.set("model", id); window.history.replaceState(window.history.state, "", url); }

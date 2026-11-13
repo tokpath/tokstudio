@@ -3,7 +3,6 @@ package portal
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,14 +12,14 @@ import (
 
 // The workspace shows the operator's own retail and direct supply books. It
 // never exposes the parent's other prices, supplier costs or credentials.
-func (a *Application) pricingBooks(ctx context.Context, operator string, at time.Time) ([]catalog.PriceVersion, error) {
+func (a *Application) pricingBooks(ctx context.Context, operator string, modelIDs []string, at time.Time) ([]catalog.PriceVersion, error) {
 	var rows []struct{ Definition json.RawMessage }
 	e := a.DB.WithContext(ctx).Raw(`SELECT definition FROM tokenhub_model_price_versions
-WHERE definition->'scope'->>'seller_id'=? AND (effective_at>? OR id IN (
+WHERE definition->'scope'->>'seller_id'=? AND public_model_id IN ? AND (effective_at>? OR id IN (
  SELECT DISTINCT ON (scope_key,public_model_id,layer) id FROM tokenhub_model_price_versions
- WHERE definition->'scope'->>'seller_id'=? AND effective_at<=?
+ WHERE definition->'scope'->>'seller_id'=? AND public_model_id IN ? AND effective_at<=?
  ORDER BY scope_key,public_model_id,layer,effective_at DESC,id DESC))
-ORDER BY effective_at DESC,id DESC`, operator, at, operator, at).Scan(&rows).Error
+ORDER BY effective_at DESC,id DESC`, operator, modelIDs, at, operator, modelIDs, at).Scan(&rows).Error
 	if e != nil {
 		return nil, e
 	}
@@ -30,9 +29,6 @@ ORDER BY effective_at DESC,id DESC`, operator, at, operator, at).Scan(&rows).Err
 		if e := json.Unmarshal(row.Definition, &price); e != nil {
 			return nil, e
 		}
-		if price.EndsAt != nil && !at.Before(*price.EndsAt) {
-			continue
-		}
 		out = append(out, price)
 	}
 	return out, nil
@@ -40,11 +36,18 @@ ORDER BY effective_at DESC,id DESC`, operator, at, operator, at).Scan(&rows).Err
 
 func (a *Application) pricingWorkspaceItems(ctx context.Context, op organization.Operator, query string) ([]any, error) {
 	now := time.Now().UTC()
-	views, e := a.Catalog.PublicCatalog(ctx, op.ID, now)
+	models, e := a.Catalog.PricingModels(ctx, op.ID, query)
 	if e != nil {
 		return nil, e
 	}
-	models, e := a.Catalog.PricingModels(ctx, op.ID)
+	if len(models) == 0 {
+		return []any{}, nil
+	}
+	modelIDs := make([]string, 0, len(models))
+	for _, model := range models {
+		modelIDs = append(modelIDs, model.ID)
+	}
+	views, e := a.Catalog.PublicCatalog(ctx, op.ID, now, modelIDs...)
 	if e != nil {
 		return nil, e
 	}
@@ -52,7 +55,7 @@ func (a *Application) pricingWorkspaceItems(ctx context.Context, op organization
 	for _, view := range views {
 		byModel[view.ID] = view
 	}
-	books, e := a.pricingBooks(ctx, op.ID, now)
+	books, e := a.pricingBooks(ctx, op.ID, append(modelIDs, "*"), now)
 	if e != nil {
 		return nil, e
 	}
@@ -69,11 +72,7 @@ func (a *Application) pricingWorkspaceItems(ctx context.Context, op organization
 		names[child.ID] = child.Name
 	}
 	items := []any{}
-	query = strings.ToLower(strings.TrimSpace(query))
 	for _, model := range models {
-		if query != "" && !strings.Contains(strings.ToLower(model.ID), query) {
-			continue
-		}
 		view, listed := byModel[model.ID]
 		if !listed {
 			view = catalog.PublicCatalogModel{ID: model.ID, Name: model.ID, Status: "not_listed"}
@@ -94,8 +93,13 @@ func (a *Application) pricingWorkspaceItems(ctx context.Context, op organization
 		v["model_version"] = model.Version
 		v["capabilities"] = model.Capabilities
 		entries, pending := []gin.H{}, []gin.H{}
+		pricedScopes := map[string]bool{}
 		for _, price := range books {
 			if price.ModelID != model.ID && price.ModelID != "*" {
+				continue
+			}
+			pricedScopes[price.Scope.Key()] = true
+			if price.EndsAt != nil && !now.Before(*price.EndsAt) {
 				continue
 			}
 			name := "客户零售价"
@@ -131,6 +135,7 @@ func (a *Application) pricingWorkspaceItems(ctx context.Context, op organization
 			pending = append(pending, entry)
 		}
 		v["price_books"], v["pending_changes"] = entries, pending
+		v["priced_scopes"] = pricedScopes
 		items = append(items, entity(model.ID, view.Status, int64(model.Version), v))
 	}
 	return items, nil

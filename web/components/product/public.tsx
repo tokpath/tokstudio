@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ArrowUpRight, Code2, KeyRound, Layers3, ReceiptText, ShieldCheck } from "lucide-react";
 import { request } from "@/lib/api-client";
-import { collection, ModelSchema, PlanSchema, PublicContextSchema, type Plan } from "@/lib/contracts";
+import { collection, PlanSchema, PublicContextSchema, type Plan } from "@/lib/contracts";
 import { useProduct } from "./context";
 import { Empty, ErrorPanel, Heading, Loading, Money, Notice } from "./shared";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ContextHelp, CopyButton } from "./customer-ui";
-import { capabilityLabels, ModelCatalog } from "./customer-models";
+import { capabilityLabels, ModelCatalog, usePublicModels } from "./customer-models";
 import { planPeriods, totalCredits } from "./customer-finance";
 import { FieldHelp } from "./field-help";
 
@@ -41,7 +41,7 @@ function PublicPlanCard({ plan, campaign }: { plan: Plan; campaign?: CampaignLin
 export function PublicHome() {
   const { t } = useI18n();
   const { context, session } = useProduct();
-  const models = useQuery({ queryKey: ["public-models"], queryFn: () => request("/api/v1/public/models", collection(ModelSchema)) });
+  const models = usePublicModels();
   const plans = useQuery({ queryKey: ["public-plans"], queryFn: () => request("/api/v1/public/plans", collection(PlanSchema)) });
   return <main className="mx-auto max-w-[1360px] px-5 pb-16 pt-10 lg:px-8 lg:pt-12">
     <section className="th-hero">
@@ -62,7 +62,7 @@ export function PublicHome() {
 export function ModelsPage() {
   const { t } = useI18n();
   const { context } = useProduct();
-  const data = useQuery({ queryKey: ["public-models"], queryFn: () => request("/api/v1/public/models", collection(ModelSchema)) });
+  const data = usePublicModels();
   return <main className="mx-auto max-w-[1400px] px-5 py-12 lg:px-8"><Heading eyebrow={context?.operator.name} title={t("模型与价格")} description={t("查看当前经营方开放的模型、能力与计量价格，选择后即可前往接入。")} actions={<Button asChild><Link href="/workspace/models">{t("接入指南")}<ArrowRight /></Link></Button>} />{data.isPending ? <Loading /> : data.isError ? <ErrorPanel error={data.error} retry={() => void data.refetch()} /> : <ModelCatalog models={data.data.items} />}<div className="mt-7"><ContextHelp title={t("调用价格与服务范围")}><p>{t("调用按受理时的价格快照结算，始终使用你指定的公开模型。可调用范围同时受经营方上架状态、有效权益与 Key 范围约束。")}</p><Link href="/plans" className="text-brand-emphasis underline">{t("选择通用 ATG 套餐")}</Link></ContextHelp></div></main>;
 }
 export function PlansPage() {

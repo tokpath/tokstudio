@@ -22,6 +22,7 @@ import (
 var schema string
 
 //go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql zzzzzz_payment_quotes.sql zzzzzzz_shared_payment_methods.sql zzzzzzzz_method_catalog.sql zzzzzzzzz_method_capabilities.sql zzzzzzzzzz_simple_withdrawals.sql zzzzzzzzzzz_fx_refresh_interval.sql
+//go:embed zzzzzzzzzzzz_order_payment_indexes.sql
 var migrationFS embed.FS
 
 //go:embed zz_refund_executions.sql
@@ -63,10 +64,13 @@ var simpleWithdrawalsSchema string
 //go:embed zzzzzzzzzzz_fx_refresh_interval.sql
 var fxRefreshIntervalSchema string
 
+//go:embed zzzzzzzzzzzz_order_payment_indexes.sql
+var orderPaymentIndexesSchema string
+
 func Migrations() (string, fs.FS) { return "payments", migrationFS }
 
 func Schema() string {
-	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema + "\n" + sharedMethodsSchema + "\n" + methodCatalogSchema + "\n" + methodCapabilitiesSchema + "\n" + simpleWithdrawalsSchema + "\n" + fxRefreshIntervalSchema
+	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema + "\n" + sharedMethodsSchema + "\n" + methodCatalogSchema + "\n" + methodCapabilitiesSchema + "\n" + simpleWithdrawalsSchema + "\n" + fxRefreshIntervalSchema + "\n" + orderPaymentIndexesSchema
 }
 
 type Authorizer interface {
@@ -346,6 +350,9 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 		if saved.State == "verified" {
 			return Checkout{ProviderID: saved.ProviderID, State: "verified"}, nil
 		}
+		if saved.State == "closed" {
+			return Checkout{ProviderID: saved.ProviderID, State: "closed"}, ErrPaymentClosed
+		}
 		if saved.State == "failed" {
 			return Checkout{ProviderID: saved.ProviderID, State: "failed"}, ErrProvider
 		}
@@ -398,9 +405,21 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	}
 	persistCtx, cancelPersist := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancelPersist()
-	updateErr := s.DB.WithContext(persistCtx).Table("payments_intents").Where("merchant_id=? AND order_id=?", merchant, o.ID).Updates(map[string]any{"state": state, "order_ciphertext": orderCipher, "checkout_ciphertext": cipher, "provider_id": checkout.ProviderID, "updated_at": time.Now().UTC()}).Error
-	if updateErr != nil {
+	update := s.DB.WithContext(persistCtx).Table("payments_intents").Where("merchant_id=? AND order_id=? AND state='executing'", merchant, o.ID).Updates(map[string]any{"state": state, "order_ciphertext": orderCipher, "checkout_ciphertext": cipher, "provider_id": checkout.ProviderID, "updated_at": time.Now().UTC()})
+	if update.Error != nil {
 		return checkout, ErrOutcomeUnknown
+	}
+	if update.RowsAffected == 0 {
+		intent, err := s.PaymentIntent(persistCtx, operator, merchant, o.ID)
+		if err == nil {
+			switch intent.State {
+			case "closed":
+				return Checkout{ProviderID: intent.ProviderID, State: "closed"}, ErrPaymentClosed
+			case "verified":
+				return Checkout{ProviderID: intent.ProviderID, State: "verified"}, nil
+			}
+		}
+		return Checkout{}, ErrOutcomeUnknown
 	}
 	return checkout, callErr
 }
@@ -479,12 +498,48 @@ func (s *Service) Reconcile(ctx context.Context, operator, merchant, orderID str
 		return Fact{}, e
 	}
 	d := s.Drivers[m.Driver]
+	if d == nil {
+		return Fact{}, ErrUnsupported
+	}
 	fact, e := d.Lookup(ctx, m, o)
+	if errors.Is(e, ErrPaymentClosed) {
+		if err := s.recordClosedPayment(ctx, m, o); err != nil {
+			return Fact{}, err
+		}
+	}
 	if e != nil {
 		return Fact{}, e
 	}
 	e = s.RecordFact(ctx, m, o, fact)
 	return fact, e
+}
+
+func (s *Service) recordClosedPayment(ctx context.Context, m Merchant, o Order) error {
+	return s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := s.lockReceiptAcceptance(ctx, tx, m.OperatorID, o.ID); err != nil {
+			return err
+		}
+		var receipts int64
+		if err := tx.Table("payments_verified_facts").Where("merchant_id=? AND order_id=? AND kind='receipt'", m.ID, o.ID).Count(&receipts).Error; err != nil {
+			return err
+		}
+		if receipts > 0 {
+			return ErrConflict
+		}
+		// A delayed create response or a stale callback cannot overwrite a
+		// verified receipt or bind this result to a different provider order.
+		result := tx.Table("payments_intents").
+			Where("merchant_id=? AND operator_id=? AND order_id=? AND state IN ('executing','outcome_unknown','created','closed')", m.ID, m.OperatorID, o.ID).
+			Where("(COALESCE(provider_id,'')='' OR provider_id=?)", o.ProviderID).
+			Updates(map[string]any{"state": "closed", "provider_id": o.ProviderID, "updated_at": gorm.Expr("clock_timestamp()")})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return ErrConflict
+		}
+		return nil
+	})
 }
 func (s *Service) ProcessInbox(ctx context.Context, merchant, eventID string) (Fact, error) {
 	m, e := s.merchantByID(ctx, merchant)
@@ -525,7 +580,7 @@ func (s *Service) ProcessInbox(ctx context.Context, merchant, eventID string) (F
 		e = s.DB.WithContext(ctx).Table("payments_webhook_inbox").Where("merchant_id=? AND event_id=?", merchant, eventID).Updates(map[string]any{"state": "processed", "processed_at": time.Now().UTC(), "error_code": nil, "lease_until": nil}).Error
 		return *result.Fact, e
 	}
-	if hint.Kind != "receipt" {
+	if hint.Kind != "receipt" && hint.Kind != "payment_closed" {
 		return Fact{}, ErrUnsupported
 	}
 	o, e := s.loadOrder(ctx, m, hint.OrderID)
@@ -535,14 +590,29 @@ func (s *Service) ProcessInbox(ctx context.Context, merchant, eventID string) (F
 	if o.ProviderID == "" {
 		o.ProviderID = hint.ProviderID
 	}
+	if hint.Kind == "payment_closed" && o.ProviderID != hint.ProviderID {
+		return Fact{}, ErrConflict
+	}
 	m, e = s.historicalMerchant(ctx, m, o)
 	if e != nil {
 		return Fact{}, e
 	}
 	d := s.Drivers[m.Driver]
+	if d == nil {
+		return Fact{}, ErrUnsupported
+	}
 	fact, e := d.Lookup(ctx, m, o)
+	if errors.Is(e, ErrPaymentClosed) && hint.Kind == "payment_closed" {
+		if e = s.recordClosedPayment(ctx, m, o); e != nil {
+			return Fact{}, e
+		}
+		return Fact{}, s.finishPaymentInbox(ctx, merchant, eventID)
+	}
 	if e != nil {
 		return Fact{}, e
+	}
+	if hint.Kind == "payment_closed" {
+		return Fact{}, ErrConflict
 	}
 	if fact.ProviderID != hint.ProviderID {
 		return Fact{}, ErrConflict
@@ -558,8 +628,11 @@ func (s *Service) ProcessInbox(ctx context.Context, merchant, eventID string) (F
 	if e != nil {
 		return fact, e
 	}
-	e = s.DB.WithContext(ctx).Table("payments_webhook_inbox").Where("merchant_id=? AND event_id=?", merchant, eventID).Updates(map[string]any{"state": "processed", "processed_at": time.Now().UTC(), "error_code": nil, "lease_until": nil}).Error
-	return fact, e
+	return fact, s.finishPaymentInbox(ctx, merchant, eventID)
+}
+
+func (s *Service) finishPaymentInbox(ctx context.Context, merchant, eventID string) error {
+	return s.DB.WithContext(ctx).Table("payments_webhook_inbox").Where("merchant_id=? AND event_id=?", merchant, eventID).Updates(map[string]any{"state": "processed", "processed_at": time.Now().UTC(), "error_code": nil, "lease_until": nil}).Error
 }
 func (s *Service) RecordFact(ctx context.Context, m Merchant, o Order, incoming Fact) error {
 	if !incoming.Verified() || incoming.MerchantID != m.ID || incoming.OperatorID != m.OperatorID || incoming.OrderID != o.ID || o.Validate(m) != nil {

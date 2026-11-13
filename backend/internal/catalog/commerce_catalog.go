@@ -29,6 +29,7 @@ var credentialNameSchema string
 //go:embed commerce_schema_04_capability_fields.sql
 //go:embed commerce_schema_05_drop_notice_policies.sql
 //go:embed commerce_schema_06_automatic_circuit.sql
+//go:embed commerce_schema_07_effective_prices.sql
 var commerceMigrationFS embed.FS
 
 //go:embed commerce_schema_03_supplier_models.sql
@@ -43,10 +44,13 @@ var dropNoticePolicySchema string
 //go:embed commerce_schema_06_automatic_circuit.sql
 var automaticCircuitSchema string
 
+//go:embed commerce_schema_07_effective_prices.sql
+var effectivePricesSchema string
+
 func CommerceMigrations() (string, fs.FS) { return "catalog_v2", commerceMigrationFS }
 
 func CommerceSchema() string {
-	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema + "\n" + automaticCircuitSchema
+	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema + "\n" + automaticCircuitSchema + "\n" + effectivePricesSchema
 }
 
 var ErrCatalogForbidden = errors.New("catalog action outside operator authority")
@@ -481,13 +485,14 @@ func (s CommerceCatalog) setFlag(ctx context.Context, table string, keys map[str
 	return nil
 }
 func (s CommerceCatalog) authorized(ctx context.Context, operator, model string) error {
-	return s.requireAuthorization(ctx, operator, model, true)
-}
-func (s CommerceCatalog) requireAuthorization(ctx context.Context, operator, model string, requireEnabled bool) error {
 	m, e := s.PublicModel(ctx, model)
 	if e != nil {
 		return e
 	}
+	return s.requireModelAuthorization(ctx, operator, m, true)
+}
+
+func (s CommerceCatalog) requireModelAuthorization(ctx context.Context, operator string, m PublicModel, requireEnabled bool) error {
 	if requireEnabled && !m.Enabled {
 		return ErrModelNotVisible
 	}
@@ -502,7 +507,7 @@ func (s CommerceCatalog) requireAuthorization(ctx context.Context, operator, mod
 			return e
 		}
 		var count int64
-		e = s.DB.WithContext(ctx).Table("tokenhub_model_authorizations").Where("seller_id=? AND buyer_id=? AND public_model_id=? AND enabled=true", o.ParentID, operator, model).Count(&count).Error
+		e = s.DB.WithContext(ctx).Table("tokenhub_model_authorizations").Where("seller_id=? AND buyer_id=? AND public_model_id=? AND enabled=true", o.ParentID, operator, m.ID).Count(&count).Error
 		if e != nil {
 			return e
 		}
@@ -528,7 +533,11 @@ func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r m
 	if o.BrandID != brand {
 		return nil, ErrCatalogForbidden
 	}
-	if e = s.authorized(ctx, operator, r.PublicModel); e != nil {
+	m, e := s.PublicModel(ctx, r.PublicModel)
+	if e != nil {
+		return nil, e
+	}
+	if e = s.requireModelAuthorization(ctx, operator, m, true); e != nil {
 		return nil, e
 	}
 	var count int64
@@ -538,10 +547,6 @@ func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r m
 	}
 	if count != 1 {
 		return nil, ErrModelNotVisible
-	}
-	m, e := s.PublicModel(ctx, r.PublicModel)
-	if e != nil {
-		return nil, e
 	}
 	if !operationOffered(m.Capabilities, r) {
 		return nil, modelruntime.ErrUnsupported
@@ -614,9 +619,22 @@ func requestSupported(capabilities []modelruntime.Capability, r modelruntime.Req
 	}
 	return false
 }
-func (s CommerceCatalog) PriceVersions(ctx context.Context, scope PriceScope, model string) ([]PriceVersion, error) {
+func (s CommerceCatalog) EffectivePriceVersions(ctx context.Context, scope PriceScope, model string, at time.Time) ([]PriceVersion, error) {
 	var rows []catalogJSONRow
-	e := s.DB.WithContext(ctx).Table("tokenhub_model_price_versions").Select("id,definition").Where("scope_key=? AND public_model_id IN ?", scope.Key(), []string{model, "*"}).Order("effective_at DESC").Find(&rows).Error
+	// Keep the newest active regular version for each applicable model, plus
+	// active promotions so the resolver can still detect an overlap.
+	e := s.DB.WithContext(ctx).Raw(`SELECT regular.id,regular.definition
+FROM (SELECT DISTINCT public_model_id FROM (VALUES (?::text), ('*')) AS inputs(public_model_id)) models
+CROSS JOIN LATERAL (
+ SELECT p.id,p.definition FROM tokenhub_model_price_versions p
+ WHERE p.scope_key=? AND p.public_model_id=models.public_model_id AND p.layer='regular' AND p.effective_at<=?
+ AND (p.ends_at IS NULL OR p.ends_at>?) AND p.definition->>'published'='true'
+ ORDER BY p.effective_at DESC LIMIT 1
+) regular
+UNION ALL
+SELECT id,definition FROM tokenhub_model_price_versions
+ WHERE scope_key=? AND public_model_id IN ? AND layer='promotion' AND effective_at<=?
+ AND ends_at>? AND definition->>'published'='true'`, model, scope.Key(), at, at, scope.Key(), []string{model, "*"}, at, at).Scan(&rows).Error
 	if e != nil {
 		return nil, e
 	}
@@ -629,6 +647,13 @@ func (s CommerceCatalog) PriceVersions(ctx context.Context, scope PriceScope, mo
 		out = append(out, v)
 	}
 	return out, nil
+}
+
+func (s CommerceCatalog) HasPriceHistory(ctx context.Context, scope PriceScope, model string) (bool, error) {
+	var exists bool
+	err := s.DB.WithContext(ctx).Raw(`SELECT EXISTS (SELECT 1 FROM tokenhub_model_price_versions
+ WHERE scope_key=? AND (public_model_id=? OR public_model_id='*' OR ?='*'))`, scope.Key(), model, model).Scan(&exists).Error
+	return exists, err
 }
 
 type ModelQuote struct {
@@ -775,15 +800,13 @@ func (s CommerceCatalog) publishPrice(ctx context.Context, actor string, v Price
 	if !v.Published {
 		return ErrChangeNotice
 	}
-	{
-		var existing int64
-		if e := s.DB.WithContext(ctx).Table("tokenhub_model_price_versions").Where("scope_key=? AND (public_model_id=? OR public_model_id='*' OR ?='*')", v.Scope.Key(), v.ModelID, v.ModelID).Count(&existing).Error; e != nil {
+	exists, e := s.HasPriceHistory(ctx, v.Scope, v.ModelID)
+	if e != nil {
+		return e
+	}
+	if exists {
+		if e = s.requirePriceNotice(ctx, v); e != nil {
 			return e
-		}
-		if existing > 0 {
-			if e := s.requirePriceNotice(ctx, v); e != nil {
-				return e
-			}
 		}
 	}
 	// Verify the exact announced request before adding system-derived bridge

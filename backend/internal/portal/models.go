@@ -100,6 +100,7 @@ func (a *Application) executeModel(op modelruntime.Operation) gin.HandlerFunc {
 					c.Header("Content-Type", "text/event-stream")
 					c.Header("Cache-Control", "no-cache, no-transform")
 					c.Header("X-Accel-Buffering", "no")
+					c.Header("X-TokenHub-Request-ID", event.RequestID)
 					c.Status(200)
 					streamed = true
 				}

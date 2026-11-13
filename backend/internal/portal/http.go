@@ -198,6 +198,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 409, "receipt_restricted", "原收款存在限制，真实收款事实已保留，不能继续新分配或重复支付", false
 	case errors.Is(err, payments.ErrNotFinal):
 		status, code, msg, retry = 409, "payment_not_final", "原通道尚未确认这笔收款。请稍后再查询，不要另付一笔。", true
+	case errors.Is(err, payments.ErrPaymentClosed):
+		status, code, msg, retry = 409, "payment_closed", "原通道已关闭本次付款，未收到款项。", false
 	case errors.Is(err, payments.ErrOutcomeUnknown):
 		status, code, msg, retry = 409, "payment_outcome_unknown", "原支付结果尚待核实，请查询原交易，重试将沿用原业务编号", true
 	case errors.Is(err, commerce.ErrPaymentUnknown):

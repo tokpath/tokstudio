@@ -205,16 +205,15 @@ it("prices an image resolution from the component card and leaves audio unchange
   ]);
 });
 
-it("requires the price effective time and scrolls its error into view", async () => {
+it("requires an effective time for a price revision and scrolls its error into view", async () => {
   const previous = HTMLElement.prototype.scrollIntoView;
   const scroll = vi.fn();
   HTMLElement.prototype.scrollIntoView = scroll;
   try {
     const fetch = referenceFetch();
     vi.stubGlobal("fetch", fetch);
-    mount(priceOperation(priceConfig()));
+    mount(priceOperation(priceConfig()), { row: { id: "model-one", values: { priced_scopes: { "retail:operator-one:": true } } } });
     const time = screen.getByLabelText("生效时间");
-    expect(time.closest("[data-config-path]")?.textContent).toContain("*");
     fireEvent.change(time, { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "发布价格版本", exact: true }));
     const alert = screen.getByRole("alert");
@@ -283,6 +282,20 @@ it("returns an unpaid procurement to its existing method selector without creati
   fireEvent.click(await screen.findByRole("button", { name: "改用其它付款方式", exact: true }));
   expect(screen.getByRole("combobox", { name: "付款方式" })).toBeTruthy();
   expect(fetch.mock.calls.filter(call => call[1]?.method === "POST")).toHaveLength(1);
+});
+
+it("offers another method while hiding an already closed procurement checkout", async () => {
+  vi.spyOn(window, "open").mockReturnValue(null);
+  const fetch = vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => new Response(JSON.stringify(init?.method === "POST"
+    ? { id: "purchase-one", status: "pending", order: { id: "purchase-one", kind: "procurement", status: "pending", operator_name: "Supplier", created_at: "2026-11-12T00:00:00Z", method_change_allowed: true, amount_money: "2", paid_money: "0", payment_action: { kind: "form", url: "https://payment.example.test", fields: { token: "synthetic" } } } }
+    : { ...purchasePage("awaiting_payment"), items: [{ id: "purchase-one", status: "awaiting_payment", values: { payment_state: "closed" }, allowed_actions: ["checkout", "query_payment", "cancel"] }] })));
+  vi.stubGlobal("fetch", fetch);
+  mount(procurementCheckout, { row: { id: "purchase-one", values: {} } });
+  fireEvent.click(screen.getByRole("button", { name: "发起真实付款", exact: true }));
+  await screen.findByText("原通道已关闭本次付款，未收到款项。");
+  expect(screen.queryByText("完成本订单付款")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "改用其它付款方式" }));
+  expect(screen.getByRole("combobox", { name: "付款方式" })).toBeTruthy();
 });
 
 it("recovers a completed procurement after an ambiguous checkout without posting another payment", async () => {

@@ -85,7 +85,7 @@ type PriceVersion struct {
 	Published   bool       `json:"published"`
 }
 type PriceVersionSource interface {
-	PriceVersions(context.Context, PriceScope, string) ([]PriceVersion, error)
+	EffectivePriceVersions(context.Context, PriceScope, string, time.Time) ([]PriceVersion, error)
 }
 type PriceLineage struct {
 	VersionID  string     `json:"version_id"`
@@ -121,7 +121,7 @@ func (r PriceResolver) resolve(ctx context.Context, scope PriceScope, model stri
 	}
 	seen[key] = true
 	defer delete(seen, key)
-	versions, err := r.Source.PriceVersions(ctx, scope, model)
+	versions, err := r.Source.EffectivePriceVersions(ctx, scope, model, at)
 	if err != nil {
 		return ResolvedPrice{}, err
 	}

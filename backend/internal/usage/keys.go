@@ -271,37 +271,125 @@ type Budget struct {
 }
 
 func (s *Service) KeyBudget(ctx context.Context, tx *gorm.DB, k Key, at time.Time) (Budget, error) {
+	if tx == nil {
+		tx = s.DB
+	}
+	tx = tx.WithContext(ctx)
 	if at.IsZero() {
-		t := tx
-		if t == nil {
-			t = s.DB.WithContext(ctx)
+		var err error
+		at, err = s.businessTime(tx)
+		if err != nil {
+			return Budget{}, err
 		}
+	}
+	window, err := ledger.BudgetWindow(at, k.CreatedAt, k.Period, k.Timezone)
+	if err != nil {
+		return Budget{}, err
+	}
+	totals, err := keyBudgetTotals(tx, []keyWindow{{k.ID, window.Start, window.End}})
+	if err != nil {
+		return Budget{}, err
+	}
+	return budgetForKey(k, window, totals[k.ID]), nil
+}
+
+type keyWindow struct {
+	KeyID string     `json:"key_id"`
+	Start time.Time  `json:"start_at"`
+	End   *time.Time `json:"end_at"`
+}
+
+type keyBudgetTotal struct {
+	KeyID       string
+	Spent, Held ledger.Decimal
+}
+
+func budgetForKey(key Key, window ledger.Window, total keyBudgetTotal) Budget {
+	budget := Budget{LimitATG: key.BudgetLimit, Period: key.Period, Timezone: key.Timezone, WindowStart: window.Start, WindowEnd: window.End, SpentATG: total.Spent, HeldATG: total.Held}
+	if key.BudgetLimit != nil && total.Spent.Cmp(*key.BudgetLimit) > 0 {
+		budget.OverageATG = total.Spent.Sub(*key.BudgetLimit)
+	}
+	return budget
+}
+
+// KeyBudgets reads all requested keys in one snapshot. Hourly totals keep
+// history out of the hot path while preserving arbitrary timezone changes.
+func (s *Service) KeyBudgets(ctx context.Context, tx *gorm.DB, keys []Key, at time.Time) (map[string]Budget, error) {
+	budgets := make(map[string]Budget, len(keys))
+	if len(keys) == 0 {
+		return budgets, nil
+	}
+	if tx == nil {
+		tx = s.DB
+	}
+	tx = tx.WithContext(ctx)
+	if at.IsZero() {
 		var e error
-		at, e = s.businessTime(t)
+		at, e = s.businessTime(tx)
 		if e != nil {
-			return Budget{}, e
+			return nil, e
 		}
 	}
-	w, e := ledger.BudgetWindow(at, k.CreatedAt, k.Period, k.Timezone)
-	if e != nil {
-		return Budget{}, e
+	windows := make([]keyWindow, 0, len(keys))
+	for _, k := range keys {
+		window, err := ledger.BudgetWindow(at, k.CreatedAt, k.Period, k.Timezone)
+		if err != nil {
+			return nil, err
+		}
+		windows = append(windows, keyWindow{KeyID: k.ID, Start: window.Start, End: window.End})
 	}
-	out := Budget{LimitATG: k.BudgetLimit, Period: k.Period, Timezone: k.Timezone, WindowStart: w.Start, WindowEnd: w.End}
-	e = s.within(ctx, tx, func(t *gorm.DB) error {
-		q := t.Model(&Request{}).Where("key_id=? AND accepted_at>=?", k.ID, w.Start)
-		if w.End != nil {
-			q = q.Where("accepted_at<?", *w.End)
-		}
-		var sums struct{ Spent, Held ledger.Decimal }
-		if e := q.Select("COALESCE(sum(actual_atg-corrected_atg),0)::text AS spent, COALESCE(sum(CASE WHEN status IN ('accepted','executing','submitted','awaiting_usage') THEN estimate_atg ELSE 0 END),0)::text AS held").Scan(&sums).Error; e != nil {
-			return e
-		}
-		out.SpentATG = sums.Spent
-		out.HeldATG = sums.Held
-		if k.BudgetLimit != nil && sums.Spent.Cmp(*k.BudgetLimit) > 0 {
-			out.OverageATG = sums.Spent.Sub(*k.BudgetLimit)
-		}
-		return nil
-	})
-	return out, e
+	totals, err := keyBudgetTotals(tx, windows)
+	if err != nil {
+		return nil, err
+	}
+	for i, k := range keys {
+		budgets[k.ID] = budgetForKey(k, ledger.Window{Start: windows[i].Start, End: windows[i].End}, totals[k.ID])
+	}
+	return budgets, nil
+}
+
+func keyBudgetTotals(tx *gorm.DB, windows []keyWindow) (map[string]keyBudgetTotal, error) {
+	raw, err := json.Marshal(windows)
+	if err != nil {
+		return nil, err
+	}
+	var rows []keyBudgetTotal
+	err = tx.Raw(`WITH bounds AS (
+ SELECT *, date_bin(interval '1 hour', start_at, timestamptz '2000-01-01 UTC') AS first_hour,
+ date_bin(interval '1 hour', end_at, timestamptz '2000-01-01 UTC') AS last_hour
+ FROM jsonb_to_recordset(?::jsonb) AS w(key_id uuid, start_at timestamptz, end_at timestamptz)
+), windows AS (
+ SELECT *, CASE WHEN start_at=first_hour THEN first_hour ELSE first_hour+interval '1 hour' END AS first_full_hour
+ FROM bounds
+)
+SELECT w.key_id, (totals.spent + edges.spent)::text AS spent, (totals.held + edges.held)::text AS held
+FROM windows w
+CROSS JOIN LATERAL (
+ SELECT COALESCE(sum(b.spent_atg),0) AS spent, COALESCE(sum(b.held_atg),0) AS held
+ FROM (
+  SELECT spent_atg,held_atg FROM usage_key_budget_totals
+  WHERE w.end_at IS NULL AND key_id=w.key_id AND bucket_start='-infinity'
+  UNION ALL
+  SELECT spent_atg,held_atg FROM usage_key_budget_totals
+  WHERE w.end_at IS NOT NULL AND key_id=w.key_id AND bucket_start>=w.first_full_hour AND bucket_start<w.last_hour
+ ) b
+) totals
+CROSS JOIN LATERAL (
+ SELECT COALESCE(sum(r.actual_atg-r.corrected_atg),0) AS spent, COALESCE(sum(usage_budget_held(r.status,r.estimate_atg)),0) AS held
+ FROM (
+  SELECT actual_atg,corrected_atg,status,estimate_atg FROM usage_requests
+  WHERE w.end_at IS NOT NULL AND key_id=w.key_id AND accepted_at>=w.start_at AND accepted_at<LEAST(w.first_full_hour,w.end_at)
+  UNION ALL
+  SELECT actual_atg,corrected_atg,status,estimate_atg FROM usage_requests
+  WHERE w.end_at IS NOT NULL AND key_id=w.key_id AND accepted_at>=GREATEST(w.first_full_hour,w.last_hour) AND accepted_at<w.end_at
+ ) r
+) edges`, string(raw)).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	totals := make(map[string]keyBudgetTotal, len(rows))
+	for _, row := range rows {
+		totals[row.KeyID] = row
+	}
+	return totals, nil
 }

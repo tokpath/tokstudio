@@ -35,6 +35,9 @@ export function ProcurementPayment({ path, orderID, initialOrder, error, onClose
   });
   const reconcile = useCommand(`${base}/${encodeURIComponent(orderID)}/query_payment`, CommandResultSchema);
   const status = original.data?.status;
+  const paymentState = original.data?.values.payment_state;
+  const checkoutUnavailable = paymentState === "closed" || paymentState === "failed";
+  const canSelectMethod = status === "awaiting_payment" && original.data?.allowed_actions?.includes("checkout");
   const completed = status === "completed";
   const paid = status === "paid";
   const ended = completed || status === "closed" || status === "exception";
@@ -53,11 +56,13 @@ export function ProcurementPayment({ path, orderID, initialOrder, error, onClose
     {!!error && !paid && !ended && <ErrorPanel error={error} />}
     {original.isError && <ErrorPanel error={original.error} retry={() => void original.refetch()} />}
     {/* A current server read must still permit payment before showing a saved form. */}
-    {status === "awaiting_payment" && original.data?.allowed_actions?.includes("checkout") && initialOrder?.payment_action && <PaymentAction order={initialOrder} onChangeMethod={onChangeMethod} />}
+    {canSelectMethod && !checkoutUnavailable && initialOrder?.payment_action && <PaymentAction order={initialOrder} onChangeMethod={onChangeMethod} />}
+    {paymentState === "closed" && <Notice>{t("原通道已关闭本次付款，未收到款项。")}</Notice>}
+    {canSelectMethod && checkoutUnavailable && onChangeMethod && <Button type="button" variant="outline" onClick={onChangeMethod}>{t("改用其它付款方式")}</Button>}
     {!ended && <Notice>{t("查询只核实原付款，不会发起新的扣款。")}</Notice>}
     {!!reconcile.error && !paid && !ended && <ErrorPanel error={reconcile.error} />}
     <div className="flex flex-wrap gap-3">
-      {!ended && <Button type="button" variant="outline" disabled={reconcile.busy} onClick={async () => { await reconcile.run({}); await original.refetch(); }}>{reconcile.busy ? t("正在核实原交易…") : t("查询原付款与交付")}</Button>}
+      {!ended && paymentState !== "closed" && <Button type="button" variant="outline" disabled={reconcile.busy} onClick={async () => { await reconcile.run({}); await original.refetch(); }}>{reconcile.busy ? t("正在核实原交易…") : t("查询原付款与交付")}</Button>}
       {onClose && <Button type="button" onClick={close}>{t("返回采购订单")}</Button>}
     </div>
   </div>;

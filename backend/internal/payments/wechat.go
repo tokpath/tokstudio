@@ -146,6 +146,9 @@ func (d Wechat) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
 		return Fact{}, ErrConflict
 	}
 	if response.State != "SUCCESS" {
+		if response.State == "CLOSED" {
+			return Fact{}, ErrPaymentClosed
+		}
 		if response.State == "NOTPAY" {
 			return Fact{}, ErrUnpaid
 		}

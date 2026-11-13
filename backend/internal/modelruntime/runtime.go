@@ -162,8 +162,9 @@ type CostMeter interface {
 	Observe(context.Context, Attempt, any) *CostObservation
 }
 type Event struct {
-	Data  json.RawMessage
-	Usage *Usage
+	Data      json.RawMessage
+	Usage     *Usage
+	RequestID string
 }
 
 // Emit returns only after the downstream consumes the event. A non-nil error

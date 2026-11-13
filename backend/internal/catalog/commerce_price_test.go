@@ -11,7 +11,7 @@ import (
 
 type priceFacts []PriceVersion
 
-func (p priceFacts) PriceVersions(_ context.Context, s PriceScope, m string) ([]PriceVersion, error) {
+func (p priceFacts) EffectivePriceVersions(_ context.Context, s PriceScope, m string, _ time.Time) ([]PriceVersion, error) {
 	out := []PriceVersion{}
 	for _, v := range p {
 		if v.Scope == s && (v.ModelID == m || v.ModelID == "*") {

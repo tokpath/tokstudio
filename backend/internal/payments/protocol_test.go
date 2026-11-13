@@ -67,6 +67,14 @@ func TestStripeAuthenticatesRawBodyAndRejectsReplay(t *testing.T) {
 	if _, e = (Stripe{}).VerifyWebhook(context.Background(), m, Webhook{Headers: header, Body: bytes.TrimSpace(body), ReceivedAt: at.Add(6 * time.Minute)}); !errors.Is(e, ErrSignature) {
 		t.Fatal("expired callback authenticated")
 	}
+	closed := bytes.Replace(bytes.TrimSpace(body), []byte("payment_intent.succeeded"), []byte("payment_intent.canceled"), 1)
+	mac.Reset()
+	_, _ = fmt.Fprintf(mac, "%s.%s", timestamp, closed)
+	header.Set("Stripe-Signature", "t="+timestamp+",v1="+hex.EncodeToString(mac.Sum(nil)))
+	hint, e = (Stripe{}).VerifyWebhook(context.Background(), m, Webhook{Headers: header, Body: closed, ReceivedAt: at})
+	if e != nil || hint.Kind != "payment_closed" || hint.OrderID != "order" || hint.ProviderID != "pi_1" {
+		t.Fatal(hint, e)
+	}
 }
 
 func externalPaymentLab(t *testing.T) (string, map[string]string) {

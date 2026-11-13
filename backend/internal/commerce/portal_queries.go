@@ -105,16 +105,19 @@ type DeliveredPackage struct {
 	RenewalManagedElsewhere bool
 }
 
-// ListCustomerDeliveries includes packages without auto-renewal. Five bounded
-// queries load a complete page; delivery history is not confused with renewal
-// authorizations and no per-order query is required.
-func (s *Service) ListCustomerDeliveries(ctx context.Context, tx *gorm.DB, customer string, limit int) ([]DeliveredPackage, error) {
+// ListCustomerDeliveries includes packages without auto-renewal. A subscription
+// is managed from its latest delivered cycle, wherever that cycle is paginated.
+func (s *Service) ListCustomerDeliveries(ctx context.Context, tx *gorm.DB, customer, cursor string, limit int) ([]DeliveredPackage, error) {
 	if !validID(customer) || limit < 1 || limit > 100 {
 		return nil, ErrInvalidInput
 	}
 	gdb := s.dbFor(ctx, tx)
+	page, err := cursorQuery(gdb.Where("customer_id=? AND kind IN ('package','renewal') AND status='completed'", customer), cursor)
+	if err != nil {
+		return nil, err
+	}
 	var orders []orderRow
-	if err := gdb.Where("customer_id=? AND kind IN ('package','renewal') AND status='completed'", customer).Order("created_at DESC,id DESC").Limit(limit).Find(&orders).Error; err != nil {
+	if err := page.Order("created_at DESC,id DESC").Limit(limit).Find(&orders).Error; err != nil {
 		return nil, err
 	}
 	result := make([]DeliveredPackage, 0, len(orders))
@@ -165,11 +168,26 @@ func (s *Service) ListCustomerDeliveries(ctx context.Context, tx *gorm.DB, custo
 	}
 	bySubscription := map[string]Subscription{}
 	bySource := map[string]string{}
+	latestOrder := map[string]string{}
+	ids := make([]string, 0, len(subscriptions))
 	for _, subscription := range subscriptions {
 		bySubscription[subscription.ID] = Subscription(subscription)
 		bySource[subscription.SourceOrderID] = subscription.ID
+		latestOrder[subscription.ID] = subscription.SourceOrderID
+		ids = append(ids, subscription.ID)
 	}
-	shown := map[string]bool{}
+	if len(ids) > 0 {
+		var latest []struct{ SubscriptionID, ID string }
+		err := gdb.Raw(`SELECT DISTINCT ON (subscription_id) subscription_id,id FROM commerce_orders
+ WHERE subscription_id IN ? AND customer_id=? AND kind='renewal' AND status='completed'
+ ORDER BY subscription_id,created_at DESC,id DESC`, ids, customer).Scan(&latest).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, cycle := range latest {
+			latestOrder[cycle.SubscriptionID] = cycle.ID
+		}
+	}
 	for _, row := range orders {
 		item := DeliveredPackage{Order: Order(row), Delivery: byOrder[row.ID]}
 		if row.QuoteID != nil {
@@ -180,10 +198,9 @@ func (s *Service) ListCustomerDeliveries(ctx context.Context, tx *gorm.DB, custo
 			subscriptionID = *row.SubscriptionID
 		}
 		if subscription, ok := bySubscription[subscriptionID]; ok {
-			if !shown[subscription.ID] {
+			if latestOrder[subscription.ID] == row.ID {
 				copy := subscription
 				item.Subscription = &copy
-				shown[subscription.ID] = true
 			} else {
 				item.RenewalManagedElsewhere = true
 			}

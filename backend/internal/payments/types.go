@@ -24,6 +24,7 @@ var (
 	ErrProvider         = errors.New("payment provider rejected request")
 	ErrNotFinal         = errors.New("payment is not verified final")
 	ErrUnpaid           = fmt.Errorf("provider confirms payment has not been made: %w", ErrNotFinal)
+	ErrPaymentClosed    = errors.New("provider confirmed the payment was closed without collection")
 	ErrConflict         = errors.New("payment fact conflicts with existing evidence")
 	ErrCheckoutMismatch = errors.New("payment checkout amount does not match the accepted quote")
 	ErrForbidden        = errors.New("payment action outside operator authority")

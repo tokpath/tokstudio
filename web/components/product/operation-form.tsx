@@ -215,7 +215,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
         else if (field.kind === "json") {
           try { parsed = JSONValueSchema.parse(JSON.parse(value)); } catch { throw new ConfigurationError("{label}格式无效，请检查上方填写的内容。", "", { label: field.label }); }
           if (field.name === "gift_tiers") purchaseTiers(parsed);
-          if (schema) { parsed = prepareConfiguration(parsed, schema); if (/\/pricing$/.test(operation.path) && !["listing", "template"].includes(operation.name)) validatePriceConfiguration(parsed); else if (operation.name === "template" || /\/(catalog|routes)$/.test(operation.path) || (/\/providers$/.test(operation.path) && operation.name === "model")) validateModelConfiguration(parsed); }
+          if (schema) { parsed = prepareConfiguration(parsed, schema); if (/\/pricing$/.test(operation.path) && !["listing", "template"].includes(operation.name)) validatePriceConfiguration(parsed, row?.values.priced_scopes); else if (operation.name === "template" || /\/(catalog|routes)$/.test(operation.path) || (/\/providers$/.test(operation.path) && operation.name === "model")) validateModelConfiguration(parsed); }
         }
         else if (field.kind === "datetime") { const date = new Date(value); if (Number.isNaN(date.getTime())) throw new ConfigurationError("{label}时间无效", "", { label: field.label }); parsed = date.toISOString(); }
         else { if (field.kind === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) throw new ConfigurationError("请填写有效的{label}", "", { label: field.label }); parsed = value; }

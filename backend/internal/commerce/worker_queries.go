@@ -34,7 +34,9 @@ func (s *Service) DueRenewalsPage(ctx context.Context, tx *gorm.DB, at time.Time
 	if limit < 1 || limit > 200 || noticeBefore < 0 || noticeBefore > 30*24*time.Hour || (cursor != "" && !validID(cursor)) {
 		return nil, ErrInvalidInput
 	}
-	q := s.dbFor(ctx, tx).Where("status IN ('active','needs_funds') AND next_due_at<=?", at.Add(noticeBefore))
+	q := s.dbFor(ctx, tx).Where(`status IN ('active','needs_funds') AND next_due_at<=?
+ AND EXISTS (SELECT 1 FROM organization_operator_statuses st WHERE st.operator_id=commerce_subscriptions.operator_id AND st.renewal)
+ AND EXISTS (SELECT 1 FROM commerce_packages p WHERE p.id=commerce_subscriptions.package_id AND p.renewal_enabled)`, at.Add(noticeBefore))
 	if cursor != "" {
 		q = q.Where("id>?", cursor)
 	}

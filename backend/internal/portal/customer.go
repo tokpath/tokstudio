@@ -371,9 +371,13 @@ func (a *Application) keyDTOIn(ctx context.Context, tx *gorm.DB, k usage.Key) (g
 	if e != nil {
 		return nil, e
 	}
+	return keyDTO(k, budget), nil
+}
+
+func keyDTO(k usage.Key, budget usage.Budget) gin.H {
 	var models []string
 	_ = json.Unmarshal(k.ModelIDs, &models)
-	return gin.H{"id": k.ID, "name": k.Name, "prefix": k.Prefix, "status": k.Status, "model_ids": models, "budget": budget, "rate_limit_rpm": k.RateLimitRPM, "concurrency_limit": k.ConcurrencyLimit, "version": k.Version, "created_at": k.CreatedAt}, nil
+	return gin.H{"id": k.ID, "name": k.Name, "prefix": k.Prefix, "status": k.Status, "model_ids": models, "budget": budget, "rate_limit_rpm": k.RateLimitRPM, "concurrency_limit": k.ConcurrencyLimit, "version": k.Version, "created_at": k.CreatedAt}
 }
 func (a *Application) keySecret(c *gin.Context) {
 	customer := subject(c).Customer.Customer.ID
@@ -400,14 +404,14 @@ func (a *Application) listKeys(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	items := []any{}
+	budgets, e := a.Usage.KeyBudgets(c.Request.Context(), nil, rows, time.Time{})
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	items := make([]any, 0, len(rows))
 	for _, k := range rows {
-		dto, e := a.keyDTO(c.Request.Context(), k)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		items = append(items, dto)
+		items = append(items, keyDTO(k, budgets[k.ID]))
 	}
 	c.JSON(200, gin.H{"items": items})
 }

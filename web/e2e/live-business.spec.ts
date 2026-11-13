@@ -47,7 +47,8 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     const receiptPanel = staff.getByRole("dialog").last();
     for (const details of await receiptPanel.locator("details:not([open]) > summary").all()) await details.click();
     const reference = "synthetic-browser-" + randomUUID();
-    const receiptFields = { provider_receipt_id: reference, settlement_amount: "100", original_amount: "100", currency: "USD", settlement_evidence: "Same-currency synthetic receipt", recipient_reference: "isolated synthetic recipient", payer_reference: "isolated synthetic payer", verification_evidence: "SYNTHETIC ACCEPTANCE FACT ONLY: " + reference };
+    await expect(receiptPanel.locator('[data-command-field="original_amount"],[data-command-field="settlement_evidence"]')).toHaveCount(0);
+    const receiptFields = { provider_receipt_id: reference, settlement_amount: "100", currency: "USD", recipient_reference: "isolated synthetic recipient", payer_reference: "isolated synthetic payer", verification_evidence: "SYNTHETIC ACCEPTANCE FACT ONLY: " + reference };
     for (const [field, value] of Object.entries(receiptFields)) {
       await receiptPanel.locator(`[data-command-field="${field}"]`).locator("input,textarea").fill(value);
     }

@@ -147,7 +147,7 @@ func TestPostgresCatalogPriceRequiresActualAdvanceNotice(t *testing.T) {
 	if e = s.DB.First(&stored, "id=?", change.ID).Error; e != nil || stored.AnnouncedAt == nil || stored.State != "applied" {
 		t.Fatalf("announced future price %+v %v", stored, e)
 	}
-	versions, e := s.PriceVersions(context.Background(), scope, "model")
+	versions, e := s.EffectivePriceVersions(context.Background(), scope, "model", next.EffectiveAt)
 	if e != nil {
 		t.Fatal(e)
 	}

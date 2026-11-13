@@ -74,11 +74,13 @@ func (s *Service) Admit(ctx context.Context, authenticated Key, businessKey stri
 		if _, e = cat.LockRevision(ctx); e != nil {
 			return e
 		}
-		if e = s.Cooperation.Lock(ctx, t, ownership.OperatorID); e != nil {
-			return e
-		}
-		if e = s.GrantObserver.LockBusiness(ctx, t, ownership.OperatorID); e != nil {
-			return e
+		// Platform calls have no wholesale inventory to reserve. Their key
+		// and customer balances already serialize admissions, independently
+		// of other customers and package sales.
+		if ownership.OperatorID != cat.PlatformOperatorID {
+			if e = s.Cooperation.Lock(ctx, t, ownership.OperatorID); e != nil {
+				return e
+			}
 		}
 		var k Key
 		if e = t.Clauses(clause.Locking{Strength: "UPDATE"}).First(&k, "id=? AND customer_id=?", authenticated.ID, authenticated.CustomerID).Error; e != nil {

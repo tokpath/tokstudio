@@ -33,6 +33,7 @@ type workerPayload struct {
 	CustomerID string `json:"customer_id,omitempty"`
 	ID         string `json:"id,omitempty"`
 	Cursor     string `json:"cursor,omitempty"`
+	Version    int64  `json:"version,omitempty"`
 }
 
 func (a *Application) schedule(ctx context.Context, kind, subject string, p workerPayload, interval time.Duration) error {
@@ -262,7 +263,8 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 		_, e := a.Incentives.ReleaseExpiredRegistrationPromises(ctx, nil, 100)
 		return e
 	case "unpaid_orders":
-		return a.expireUnpaidOrders(ctx, 50)
+		reconcileErr := a.reconcileExpiredPayments(ctx)
+		return errors.Join(reconcileErr, a.expireUnpaidOrders(ctx, 50))
 	case "kvoucher_payments":
 		if err := a.Payments.RefreshQuoteRates(ctx); err != nil {
 			return err
@@ -299,6 +301,8 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 		return a.Usage.ExpireCustomerCredits(ctx, p.OperatorID, p.CustomerID)
 	case "renewal":
 		return a.runRenewal(ctx, p)
+	case "renewal_pause":
+		return a.runRenewalPause(ctx, p)
 	case "package_change":
 		return a.runPackageChange(ctx, p)
 	case "usage":
@@ -324,22 +328,8 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 		if e != nil {
 			return e
 		}
-		if o.Status == "completed" {
-			return nil
-		}
 		return a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			if _, e := a.Commerce.Fulfill(ctx, tx, o.ID, "system:delivery-recovery"); e != nil {
-				return e
-			}
-			var cr checkoutRow
-			q := tx.Where("order_id=?", o.ID).Limit(1).Find(&cr)
-			if q.Error != nil {
-				return q.Error
-			}
-			if q.RowsAffected > 0 {
-				return a.authorizeRenewal(ctx, tx, o, cr)
-			}
-			return nil
+			return a.fulfillCustomerOrder(ctx, tx, o, "system:delivery-recovery")
 		})
 	case "risks":
 		_, e := a.Operations.RunRisks(ctx, p.OperatorID)

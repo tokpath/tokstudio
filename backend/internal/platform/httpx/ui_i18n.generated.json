@@ -11195,6 +11195,24 @@
     "Saluran asal belum mengesahkan pembayaran ini. Semak semula sebentar lagi, dan jangan bayar kali kedua.",
     "ช่องทางเดิมยังไม่ยืนยันการชำระเงินนี้ โปรดตรวจสอบอีกครั้งในภายหลังและอย่าชำระซ้ำ"
   ],
+  "原通道已关闭本次付款，未收到款项。": [
+    "原通道已关闭本次付款，未收到款项。",
+    "The original payment provider closed this payment without collecting funds.",
+    "元の決済サービスが入金なしでこの支払いを終了しました。",
+    "Исходный платёжный сервис закрыл платёж без списания средств.",
+    "मूल भुगतान सेवा ने राशि प्राप्त किए बिना इस भुगतान को बंद कर दिया।",
+    "Penyedia pembayaran asal menutup pembayaran ini tanpa menerima dana.",
+    "ผู้ให้บริการชำระเงินเดิมปิดรายการนี้โดยยังไม่ได้รับเงิน"
+  ],
+  "原通道已关闭本次付款，未收到款项。请刷新订单查看可用操作。": [
+    "原通道已关闭本次付款，未收到款项。请刷新订单查看可用操作。",
+    "The original payment provider closed this payment without collecting funds. Refresh the order to see the available actions.",
+    "元の決済サービスが入金なしでこの支払いを終了しました。注文を更新して利用できる操作を確認してください。",
+    "Исходный платёжный сервис закрыл платёж без списания средств. Обновите заказ, чтобы увидеть доступные действия.",
+    "मूल भुगतान सेवा ने राशि प्राप्त किए बिना भुगतान बंद कर दिया। उपलब्ध विकल्प देखने के लिए ऑर्डर रीफ़्रेश करें।",
+    "Penyedia asal menutup pembayaran tanpa menerima dana. Muat semula pesanan untuk melihat tindakan yang tersedia.",
+    "ผู้ให้บริการเดิมปิดรายการโดยยังไม่ได้รับเงิน รีเฟรชคำสั่งซื้อเพื่อดูการดำเนินการที่ทำได้"
+  ],
   "原采购付款或交付尚未核实，系统持续核对原记录，不会重复发起收款。原因：": [
     "原采购付款或交付尚未核实，系统持续核对原记录，不会重复发起收款。原因：",
     "The original procurement payment or delivery is unverified. The system keeps checking the original record without requesting another payment. Reason: ",
@@ -37079,6 +37097,24 @@
     "Pengendali dicipta. Hubungan bekalan sudah aktif. Jemput pemilik, kemudian konfigurasikan harga, pembayaran dan semakan pelancaran.",
     "สร้างผู้ดำเนินงานแล้ว ความสัมพันธ์การจัดหามีผลแล้ว โปรดเชิญผู้รับผิดชอบ จากนั้นตั้งค่าราคา การชำระเงิน และการตรวจสอบก่อนเปิดบริการ"
   ],
+  "经营方已暂停自动续费。暂停期间不会续费扣款，你仍可关闭已有授权。": [
+    "经营方已暂停自动续费。暂停期间不会续费扣款，你仍可关闭已有授权。",
+    "The merchant paused automatic renewal. You will not be charged for renewal during the pause and can still revoke your authorization.",
+    "運営事業者が自動更新を一時停止しました。停止中に更新料金は請求されず、既存の承認は取り消せます。",
+    "Продавец приостановил автопродление. Пока действует пауза, списаний за продление не будет. Разрешение можно отозвать.",
+    "व्यापारी ने अपने आप नवीनीकरण रोक दिया है। इस दौरान नवीनीकरण का शुल्क नहीं कटेगा और आप मौजूदा अनुमति रद्द कर सकते हैं।",
+    "Peniaga menjeda pembaharuan automatik. Tiada caj pembaharuan sepanjang jeda dan anda masih boleh menarik balik kebenaran.",
+    "ผู้ขายพักการต่ออายุอัตโนมัติ จะไม่มีการเรียกเก็บค่าต่ออายุระหว่างที่พัก และคุณยังยกเลิกการอนุญาตเดิมได้"
+  ],
+  "经营方已暂停自动续费。暂停期间不会续费扣款，已购额度和有效期照常。你可以在套餐页面关闭已有续费授权。": [
+    "经营方已暂停自动续费。暂停期间不会续费扣款，已购额度和有效期照常。你可以在套餐页面关闭已有续费授权。",
+    "The merchant paused automatic renewal. No renewal charges will be made during the pause. Your purchased credits and expiry dates still apply. You can revoke renewal authorization on the Plans page.",
+    "運営事業者が自動更新を一時停止しました。停止中に更新料金は請求されず、購入済みのクレジットと有効期限はそのままです。プランページで更新の承認を取り消せます。",
+    "Продавец приостановил автопродление. Списаний за продление пока не будет. Купленные кредиты и сроки их действия сохраняются. Разрешение можно отозвать на странице тарифов.",
+    "व्यापारी ने अपने आप नवीनीकरण रोक दिया है। इस दौरान नवीनीकरण का शुल्क नहीं कटेगा। खरीदे गए क्रेडिट और उनकी समाप्ति तिथियाँ लागू रहेंगी। आप प्लान पेज पर अनुमति रद्द कर सकते हैं।",
+    "Peniaga menjeda pembaharuan automatik. Tiada caj pembaharuan sepanjang jeda. Kredit yang dibeli dan tarikh luputnya masih terpakai. Tarik balik kebenaran pada halaman Pelan.",
+    "ผู้ขายพักการต่ออายุอัตโนมัติ ระหว่างที่พักจะไม่มีการเรียกเก็บค่าต่ออายุ เครดิตที่ซื้อและวันหมดอายุยังใช้ตามเดิม คุณยกเลิกการอนุญาตต่ออายุได้ในหน้าแพ็กเกจ"
+  ],
   "经营方开放模型后可在此体验。": [
     "经营方开放模型后可在此体验。",
     "Try models here once the operator enables them.",
@@ -38329,6 +38365,15 @@
     "स्वचालित नवीनीकरण अधिकृत",
     "Pembaharuan automatik dibenarkan",
     "อนุญาตการต่ออายุอัตโนมัติแล้ว"
+  ],
+  "自动续费已暂停": [
+    "自动续费已暂停",
+    "Automatic renewal paused",
+    "自動更新を一時停止しました",
+    "Автопродление приостановлено",
+    "अपने आप नवीनीकरण रुका है",
+    "Pembaharuan automatik dijeda",
+    "พักการต่ออายุอัตโนมัติแล้ว"
   ],
   "自动续费授权已记录，可在续费设置中关闭。": [
     "自动续费授权已记录，可在续费设置中关闭。",
@@ -41326,6 +41371,15 @@
     "मूल्य बदलने के बाद कवरेज पर ध्यान देना आवश्यक है",
     "Liputan selepas perubahan harga memerlukan perhatian",
     "ความครอบคลุมหลังปรับราคาต้องได้รับการจัดการ"
+  ],
+  "调价或限时促销须填写生效时间。": [
+    "调价或限时促销须填写生效时间。",
+    "Enter an effective time for a price change or limited-time promotion.",
+    "価格改定や期間限定プロモーションには、適用開始日時を入力してください。",
+    "Укажите время вступления в силу изменения цены или временной акции.",
+    "मूल्य बदलने या सीमित अवधि के ऑफ़र के लिए लागू होने का समय दर्ज करें।",
+    "Masukkan masa berkuat kuasa untuk perubahan harga atau promosi terhad.",
+    "ระบุเวลาที่มีผลสำหรับการเปลี่ยนราคาหรือโปรโมชันแบบจำกัดเวลา"
   ],
   "调价按固定提前量通知后生效，同时重算承载风险。": [
     "调价按固定提前量通知后生效，同时重算承载风险。",
@@ -44819,6 +44873,15 @@
     "Pilih model dan tetapkan harga pelanggan atau bekalan langsung. Templat pengebilan menentukan cara penggunaan diukur, kadar ATG menentukan caj dan kos pembekal diakaunkan secara berasingan. Harga memerlukan masa kuat kuasa; notis dihantar apabila anda menyerahkan. Lima minit selepas masa semasa disyorkan, tetapi tempoh awal itu tidak diwajibkan.",
     "เลือกโมเดลและกำหนดราคาสำหรับลูกค้าหรือการจัดหาโดยตรง เทมเพลตการเรียกเก็บเงินกำหนดวิธีวัดการใช้งาน อัตรา ATG กำหนดค่าใช้จ่าย และต้นทุนผู้จัดหาบันทึกแยกกัน ราคาต้องมีเวลามีผล และจะส่งการแจ้งเตือนเมื่อส่งข้อมูล แนะนำให้กำหนดหลังเวลาปัจจุบันห้านาที แต่ระยะเวลาล่วงหน้านี้ไม่จำเป็น"
   ],
+  "选择模型，设置客户零售价或直属下级供货价。首次常规定价立即发布，调价和限时促销需要填写生效时间。": [
+    "选择模型，设置客户零售价或直属下级供货价。首次常规定价立即发布，调价和限时促销需要填写生效时间。",
+    "Choose a model and set its retail price or its supply price for a direct buyer. The first regular price publishes immediately. Price changes and promotions require an effective time.",
+    "モデルを選び、顧客向け小売価格または直属の仕入先向け供給価格を設定します。初回の通常価格は即時公開され、価格改定や期間限定価格には適用開始日時が必要です。",
+    "Выберите модель и задайте розничную или оптовую цену для прямого покупателя. Первая обычная цена публикуется сразу. Для изменений и акций укажите время вступления в силу.",
+    "मॉडल चुनें और उसकी खुदरा कीमत या सीधे खरीदार के लिए आपूर्ति कीमत तय करें। पहली सामान्य कीमत तुरंत प्रकाशित होती है। बदलाव और ऑफ़र के लिए लागू होने का समय दर्ज करें।",
+    "Pilih model dan tetapkan harga runcit atau harga bekalan untuk pembeli langsung. Harga biasa pertama diterbitkan serta-merta. Perubahan harga dan promosi memerlukan masa berkuat kuasa.",
+    "เลือกรุ่นและกำหนดราคาขายปลีกหรือราคาจัดหาให้ผู้ซื้อโดยตรง ราคาปกติครั้งแรกเผยแพร่ทันที การเปลี่ยนราคาและโปรโมชันต้องระบุเวลาที่มีผล"
+  ],
   "选择模型，购买通用额度，用一个 API 入口接入你的应用。多个 Key 分别管理访问和预算，每笔消费都能找到依据。": [
     "选择模型，购买通用额度，用一个 API 入口接入你的应用。多个 Key 分别管理访问和预算，每笔消费都能找到依据。",
     "Choose models, buy shared credit, and connect your apps through one API gateway. Manage access and budgets with separate keys, and trace every charge.",
@@ -45295,6 +45358,15 @@
     "चैनल",
     "Saluran",
     "ช่องทาง"
+  ],
+  "通道已确认收到款项，系统正在核实并关联原订单。请勿重复付款。": [
+    "通道已确认收到款项，系统正在核实并关联原订单。请勿重复付款。",
+    "The payment provider confirmed receipt. We are verifying and linking it to the original order. Please do not pay again.",
+    "決済サービスが入金を確認しました。確認のうえ元の注文に関連付けています。再度のお支払いは不要です。",
+    "Платёжный сервис подтвердил поступление средств. Платёж проверяется и привязывается к исходному заказу. Не платите повторно.",
+    "भुगतान सेवा ने राशि मिलने की पुष्टि की है। हम भुगतान सत्यापित कर उसे मूल ऑर्डर से जोड़ रहे हैं। दोबारा भुगतान न करें।",
+    "Penyedia pembayaran mengesahkan dana diterima. Kami sedang mengesahkan dan memadankannya dengan pesanan asal. Jangan bayar lagi.",
+    "ผู้ให้บริการยืนยันว่าได้รับเงินแล้ว ระบบกำลังตรวจสอบและเชื่อมกับคำสั่งซื้อเดิม กรุณาอย่าชำระซ้ำ"
   ],
   "通道或银行真实证据": [
     "通道或银行真实证据",
@@ -48121,6 +48193,15 @@
     "Key बनाते समय आवश्यक। बाद में केवल नाम या सक्षम स्थिति बदलने के लिए इसे खाली छोड़ें; सहेजी गई Key वही रहेगी।",
     "Diperlukan semasa mencipta kunci. Biarkan kosong kemudian untuk menukar nama atau status pengaktifan sahaja; kunci yang disimpan kekal sama.",
     "ต้องระบุเมื่อสร้างคีย์ ครั้งถัดไปเว้นว่างเพื่อเปลี่ยนเฉพาะชื่อหรือสถานะเปิดใช้ โดยคีย์ที่บันทึกไว้ยังเหมือนเดิม"
+  ],
+  "首次常规定价立即发布。已有价格的调整提交后立即通知，到点生效。": [
+    "首次常规定价立即发布。已有价格的调整提交后立即通知，到点生效。",
+    "The first regular price publishes immediately. Revisions are announced on submission and take effect at the scheduled time.",
+    "初回の通常価格は即時公開されます。既存価格の改定は送信時に通知され、指定日時に適用されます。",
+    "Первая обычная цена публикуется сразу. Об изменениях сообщается при отправке, и они вступают в силу в назначенное время.",
+    "पहली सामान्य कीमत तुरंत प्रकाशित होती है। मौजूदा कीमत में बदलाव की सूचना सबमिट करते ही जाती है और बदलाव तय समय पर लागू होता है।",
+    "Harga biasa pertama diterbitkan serta-merta. Semakan diumumkan ketika dihantar dan berkuat kuasa pada masa yang ditetapkan.",
+    "ราคาปกติครั้งแรกเผยแพร่ทันที การปรับราคาที่มีอยู่จะแจ้งเมื่อส่งและมีผลตามเวลาที่กำหนด"
   ],
   "首次新增时系统生成唯一编号；修订时沿用原编号。公开模型标识会出现在客户的 API 请求中，应使用稳定、可读的名称，例如 demo-chat。": [
     "首次新增时系统生成唯一编号；修订时沿用原编号。公开模型标识会出现在客户的 API 请求中，应使用稳定、可读的名称，例如 demo-chat。",

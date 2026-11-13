@@ -163,6 +163,11 @@ func (a *Application) operatorCommand(c *gin.Context) {
 				businessKey, _ := key(c)
 				fact.ProviderReceiptID = payments.ManualReference("receipt", op.ID, businessKey)
 			}
+			if in.OrderID != "" {
+				if e = payments.LockOrderPayment(tx, in.OrderID); e != nil {
+					return nil, e
+				}
+			}
 			if e = applyManualCollectionFee(ctx, tx, op.ID, in.OrderID, &fact); e != nil {
 				return nil, e
 			}
@@ -368,7 +373,18 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			if strings.TrimSpace(in.Evidence) == "" {
 				in.Evidence = "business settings: " + string(in.Feature)
 			}
+			renewalWasOpen := false
+			if in.Feature == organization.Renewal && !in.Enabled {
+				before, err := a.Organization.GetBusinessStatus(ctx, tx, op.ID)
+				if err != nil {
+					return nil, err
+				}
+				renewalWasOpen = before.Renewal
+			}
 			out, e := a.Organization.SetBusinessStatus(ctx, tx, organization.SetBusinessStatusInput{ActorStaffID: actor, OperatorID: op.ID, Feature: in.Feature, Enabled: in.Enabled, ExpectedVersion: in.ExpectedVersion, EvidenceReference: in.Evidence}, a)
+			if e == nil && renewalWasOpen {
+				e = a.enqueueRenewalPause(ctx, tx, op.ID, out.Version, "")
+			}
 			return gin.H{"id": op.ID, "status": "updated", "version": out.Version}, e
 		case "catalog", "providers", "routes", "pricing":
 			return a.catalogCommand(ctx, tx, op, actor, resource, config)
@@ -486,17 +502,12 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 			if e != nil {
 				return nil, e
 			}
-			found := false
 			for _, o := range orders {
 				if o.ID == c.Param("id") {
-					found = true
+					return commandResult(o.ID, "delivered"), a.fulfillCustomerOrder(ctx, tx, o, actor)
 				}
 			}
-			if !found {
-				return nil, commerce.ErrNotFound
-			}
-			d, e := a.Commerce.Fulfill(ctx, tx, c.Param("id"), actor)
-			return commandResult(d.OrderID, "delivered"), e
+			return nil, commerce.ErrNotFound
 		})
 		jsonResponse(c, raw, e)
 	case resource == "payments" && action == "allocate":
@@ -672,7 +683,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			handleError(c, e)
 			return true
 		}
-		p["description"] = "选择模型，设置客户零售价或直属下级供货价。计费模板决定计量方式，ATG 单价决定扣多少额度，供应商成本独立核算。设置价格必须填写生效时间，提交后立即通知。生效时间最好比当前时间晚五分钟，系统不强制。"
+		p["description"] = "选择模型，设置客户零售价或直属下级供货价。首次常规定价立即发布，调价和限时促销需要填写生效时间。"
 		p["search_supported"] = true
 		p["columns"] = []gin.H{col("name", "模型", "text"), col("prices", "客户当前调用价", "text"), col("status", "状态", "status")}
 		listingLabel := "授权与上架"
@@ -680,7 +691,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			listingLabel = "上架与下架"
 		}
 		p["operations"] = []operation{
-			{Name: "price", Label: "设置模型价格", Method: "POST", Path: base, Description: "选择模型和定价对象，填写 ATG 单价和生效时间。提交后立即通知。", Fields: []field{jsonField("action:price、price:{scope,model_id,layer,rule,effective_at,ends_at?}。生效时间必填。")}},
+			{Name: "price", Label: "设置模型价格", Method: "POST", Path: base, Description: "首次常规定价立即发布。已有价格的调整提交后立即通知，到点生效。", Fields: []field{jsonField("action:price、price:{scope,model_id,layer,rule,effective_at?,ends_at?}")}},
 			{Name: "listing", Label: listingLabel, Method: "POST", Path: base, Description: "第一次上架或授权保存后立即生效。之后的变更请填写生效时间，提交后立即通知。", Fields: []field{jsonField("action:listing 或 authorization、model_id、buyer_id（授权时）、enabled、expected_version、effective_at")}},
 		}
 	default:
@@ -898,14 +909,23 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 				in.Price.Rule.Follow = &catalog.PriceScope{Kind: "supply", SellerID: *op.ParentOperatorID, BuyerID: op.ID}
 			}
 			chosenTime := !in.Price.EffectiveAt.IsZero()
-			if !chosenTime {
+			if in.Price.Layer == "promotion" && !chosenTime {
+				return nil, catalog.ErrEffectiveTimeRequired
+			}
+			hasPrice, e := cat.HasPriceHistory(ctx, in.Price.Scope, in.Price.ModelID)
+			if e != nil {
+				return nil, e
+			}
+			if !hasPrice && in.Price.Layer == "regular" {
 				in.Price.EffectiveAt = time.Now().UTC()
+			} else if !chosenTime {
+				return nil, catalog.ErrEffectiveTimeRequired
 			}
 			in.Price.Published = true
 			in.Price.NoticeID = ""
 			// First prices publish immediately. Revisions keep the operator's time
 			// and send notices before this request returns.
-			e := cat.PublishPrice(ctx, op.ID, in.Price, a.pricePublished)
+			e = cat.PublishPrice(ctx, op.ID, in.Price, a.pricePublished)
 			if e == nil || !errors.Is(e, catalog.ErrChangeNotice) {
 				return commandResult(in.Price.ID, "published"), e
 			}

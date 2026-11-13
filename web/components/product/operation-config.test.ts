@@ -10,8 +10,9 @@ it("omits fields belonging to the other pricing mode without losing precise foll
   expect(prepared.price.scope).toEqual({ kind: "retail", seller_id: "operator-one" });
   expect(prepared.price.rule).toEqual({ mode: "follow", multiplier: "1.000000000000000000000001" });
 });
-it("requires a finite promotion end time", () => {
-  expect(() => validatePriceConfiguration({ price: { layer: "promotion" } })).toThrow("结束时间");
+it("requires a start and finite end time for promotions", () => {
+  expect(() => validatePriceConfiguration({ price: { layer: "promotion" } })).toThrow("生效时间");
+  expect(() => validatePriceConfiguration({ price: { layer: "promotion", effective_at: "2026-12-01T00:00:00Z" } })).toThrow("结束时间");
 });
 
 const catalogOperation: Operation = { name:"save",label:"添加公开模型",method:"POST",path:"/api/v1/operators/operator-one/catalog",fields:[] };
@@ -40,12 +41,14 @@ it("requires complete price objects and omits publication bookkeeping and non-pr
   expect(prepared).not.toHaveProperty("price.ends_at");
   expect((prepared as { price: { effective_at: string } }).price.effective_at).toBe("2026-12-01T00:00:00.000Z");
   expect(prepared).not.toHaveProperty("price.published");
-  expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.required).toBe(true);
+  expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.required).toBe(false);
   expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.help).toContain("五分钟");
   expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.help).toContain("不强制");
-  expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.help).not.toContain("留空");
+  expect(configurationSchema(operation)!.fields!.price.fields!.effective_at.help).toContain("留空");
   const missingTime = { action: "price", price: { id: "new-price", model_id: "model-one", scope: { kind: "retail", seller_id: "operator-one" }, layer: "regular", rule: { mode: "manual", components: [{ key: "image", unit: "image", per: "1", rate: "0" }] } } };
-  expect(() => prepareConfiguration(missingTime, configurationSchema(operation)!)).toThrow("生效时间");
+  const firstPrice = prepareConfiguration(missingTime, configurationSchema(operation)!);
+  expect(() => validatePriceConfiguration(firstPrice)).not.toThrow();
+  expect(() => validatePriceConfiguration(firstPrice, { "retail:operator-one:": true })).toThrow("生效时间");
   expect(configurationSchema({ ...operation, name: "listing" })!.fields!.effective_at.required).toBeFalsy();
 });
 it("expands image and video resolution prices and keeps other meters unchanged", () => {

@@ -171,18 +171,17 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 		if automaticPayment && o.Status == "awaiting_payment" {
 			v["reserved_note"] = "自动补货按原授权付款，请在自动补货中查看原交易结果。"
 		}
-		row := entity(o.ID, o.Status, 0, v)
-		row["allowed_actions"] = []string{}
+		actions := []string{}
 		if o.Status == "awaiting_payment" || o.Status == "paid" {
 			if view == "buyer" {
-				row["allowed_actions"] = []string{"query_payment"}
+				actions = []string{"query_payment"}
 				if o.Status == "awaiting_payment" {
-					row["allowed_actions"] = []string{"checkout", "query_payment"}
+					actions = []string{"checkout", "query_payment"}
 				}
 			} else {
-				row["allowed_actions"] = []string{"fulfill"}
+				actions = []string{"fulfill"}
 				if o.Status == "awaiting_payment" {
-					row["allowed_actions"] = []string{"fund"}
+					actions = []string{"fund"}
 				}
 			}
 			if !automaticPayment && view == "buyer" && o.Status == "awaiting_payment" {
@@ -193,33 +192,35 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 					return
 				}
 				if found.RowsAffected == 0 {
-					row["allowed_actions"] = []string{"checkout"}
+					actions = []string{"checkout"}
 				} else {
-					row["allowed_actions"] = []string{"query_payment"}
+					actions = []string{"query_payment"}
 					v["merchant_id"] = checkout.MerchantID
 					intent, err := a.Payments.PaymentIntent(ctx, o.SupplierID, checkout.MerchantID, o.ID)
-					if err == nil && (intent.State == "created" || intent.State == "failed") {
-						row["allowed_actions"] = append(row["allowed_actions"].([]string), "checkout")
-					}
 					if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 						handleError(c, err)
 						return
 					}
-
+					if err == nil {
+						v["payment_state"] = intent.State
+						if intent.AllowsMethodChange() {
+							actions = append(actions, "checkout")
+						}
+					}
 				}
 			}
 			if view == "supplier" && o.Status == "awaiting_payment" {
-				var online int64
-				if err := a.DB.WithContext(ctx).Table("portal_procurement_checkouts c").Joins("JOIN payments_merchants m ON m.id=c.merchant_id::text AND m.operator_id=?", o.SupplierID).Where("c.order_id=? AND m.driver<>'manual'", o.ID).Count(&online).Error; err != nil {
+				driver, _, err := procurementPaymentState(ctx, a.DB, o)
+				if err != nil {
 					handleError(c, err)
 					return
 				}
-				if online > 0 {
-					row["allowed_actions"] = []string{}
+				if driver != "" && driver != "manual" {
+					actions = []string{}
 				}
 			}
 			if automaticPayment && o.Status == "awaiting_payment" {
-				row["allowed_actions"] = []string{}
+				actions = []string{}
 			}
 			if !automaticPayment && o.Status == "awaiting_payment" && o.AllocatedMoney.Sign() == 0 {
 				canClose, err := a.purchasePaymentMayClose(ctx, a.DB, o)
@@ -228,10 +229,23 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 					return
 				}
 				if canClose {
-					row["allowed_actions"] = append(row["allowed_actions"].([]string), "cancel")
+					actions = append(actions, "cancel")
+				}
+			}
+			if o.Status == "awaiting_payment" {
+				received, err := payments.HasOrderReceipt(ctx, a.DB, o.SupplierID, o.ID)
+				if err != nil {
+					handleError(c, err)
+					return
+				}
+				if received {
+					actions = []string{}
+					v["reserved_note"] = "通道已确认收到款项，系统正在核实并关联原订单。请勿重复付款。"
 				}
 			}
 		}
+		row := entity(o.ID, o.Status, 0, v)
+		row["allowed_actions"] = actions
 		items = append(items, row)
 	}
 	if view == "buyer" {
@@ -466,7 +480,16 @@ func (a *Application) procurementAction(c *gin.Context, op organization.Operator
 			handleError(c, e)
 			return
 		}
-		_, e := a.Payments.Reconcile(ctx, func() string { var po payments.Order; _ = json.Unmarshal(cr.PaymentOrder, &po); return po.OperatorID }(), cr.MerchantID, id)
+		var order cooperation.PurchaseOrder
+		if e := a.DB.WithContext(ctx).Select("supplier_id").Where("id=? AND buyer_id=?", id, op.ID).Take(&order).Error; e != nil {
+			handleError(c, e)
+			return
+		}
+		_, e := a.Payments.Reconcile(ctx, order.SupplierID, cr.MerchantID, id)
+		if errors.Is(e, payments.ErrPaymentClosed) {
+			c.JSON(200, gin.H{"id": id, "status": "payment_closed", "message": "原通道已关闭本次付款，未收到款项。"})
+			return
+		}
 		if e != nil {
 			handleError(c, e)
 			return
@@ -563,7 +586,7 @@ func (a *Application) procurementAction(c *gin.Context, op organization.Operator
 			}
 			return commandResult(id, "cancelled"), e
 		case "cancel":
-			if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "procurement-checkout:"+id).Error; err != nil {
+			if err := payments.LockOrderPayment(tx, id); err != nil {
 				return nil, err
 			}
 			reason := "经营方确认取消未付款采购订单"
@@ -599,43 +622,16 @@ func (a *Application) procurementAction(c *gin.Context, op organization.Operator
 				return nil, organization.ErrForbidden
 			}
 			if action == "fund" {
-				if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "procurement-checkout:"+id).Error; err != nil {
-					return nil, err
-				}
-				var checkout procurementCheckout
-				found := tx.Where("order_id=?", id).Limit(1).Find(&checkout)
-				if found.Error != nil {
-					return nil, found.Error
-				}
-				if found.RowsAffected > 0 {
-					var merchant struct{ Driver string }
-					if err := tx.Table("payments_merchants").Select("driver").Where("id=? AND operator_id=?", checkout.MerchantID, o.SupplierID).Take(&merchant).Error; err != nil {
-						return nil, err
-					}
-					if merchant.Driver != "manual" {
-						return nil, payments.ErrConflict
-					}
-				}
-				automaticPayment, e := a.AutoReplenishments.UsesAutomaticPayment(ctx, tx, id)
+				allocation, e := a.allocatePurchaseReceipt(ctx, tx, actor, o, in.ReceiptID, businessKey)
 				if e != nil {
 					return nil, e
 				}
-				if automaticPayment {
-					return nil, payments.ErrConflict
+				if allocation.DeliveryPending {
+					result := allocation.result("paid")
+					result["id"] = id
+					return result, nil
 				}
-				receipt, e := a.Commerce.GetReceipt(ctx, tx, op.ID, in.ReceiptID)
-				if e != nil {
-					return nil, e
-				}
-				if e = a.validateCollectionReceipt(ctx, tx, op.ID, id, &receipt); e != nil {
-					return nil, e
-				}
-				out, e := a.Cooperation.FundPurchase(ctx, tx, a.Commerce, actor, id, in.ReceiptID, businessKey, o.DueMoney)
-				if e != nil {
-					return nil, e
-				}
-				_, e = a.Cooperation.FulfillPurchase(ctx, tx, out.ID, actor)
-				return commandResult(out.ID, "completed"), e
+				return commandResult(id, "completed"), nil
 			}
 			_, e = a.Cooperation.FulfillPurchase(ctx, tx, id, actor)
 			return commandResult(id, "completed"), e
@@ -674,7 +670,7 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		if err == nil && intent.State == "created" {
 			if _, err = a.Payments.Reconcile(ctx, o.SupplierID, previous.MerchantID, id); errors.Is(err, payments.ErrUnpaid) {
 				unpaidMerchant = previous.MerchantID
-			} else {
+			} else if !errors.Is(err, payments.ErrPaymentClosed) {
 				handleError(c, commerce.ErrPaymentUnknown)
 				return
 			}
@@ -682,7 +678,7 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 	}
 	var saved procurementCheckout
 	e = a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if e := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "procurement-checkout:"+id).Error; e != nil {
+		if e := payments.LockOrderPayment(tx, id); e != nil {
 			return e
 		}
 		if e := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&o, "id=?", id).Error; e != nil {
@@ -699,24 +695,22 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		if q.Error != nil {
 			return q.Error
 		}
-		if q.RowsAffected > 0 && saved.MerchantID == in.MerchantID {
-			return nil
-		}
-		if q.RowsAffected > 0 {
-			intent, err := a.Payments.PaymentIntent(ctx, o.SupplierID, saved.MerchantID, id)
-			if err != nil || (intent.State != "failed" && !(intent.State == "created" && unpaidMerchant == saved.MerchantID)) {
-				return commerce.ErrPaymentUnknown
-			}
-			var received int64
-			if err = tx.Table("payments_verified_facts").Where("operator_id=? AND order_id=? AND kind='receipt'", o.SupplierID, id).Count(&received).Error; err != nil {
-				return err
-			}
-			if received > 0 {
-				return commerce.ErrPaymentUnknown
-			}
-		}
 		if o.Status != "awaiting_payment" || !o.AllocatedMoney.IsZero() {
 			return commerce.ErrOrderState
+		}
+		if received, err := payments.HasOrderReceipt(ctx, tx, o.SupplierID, id); err != nil {
+			return err
+		} else if received {
+			return commerce.ErrPaymentUnknown
+		}
+		if q.RowsAffected > 0 {
+			if saved.MerchantID == in.MerchantID {
+				return nil
+			}
+			intent, err := a.Payments.PaymentIntent(ctx, o.SupplierID, saved.MerchantID, id)
+			if err != nil || !intent.AllowsMethodChange() || (intent.State == "created" && unpaidMerchant != saved.MerchantID) {
+				return commerce.ErrPaymentUnknown
+			}
 		}
 		methods, e := a.Payments.PublicMethods(ctx, o.SupplierID)
 		if e != nil {
@@ -784,10 +778,13 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 	}
 	c.JSON(200, gin.H{"id": id, "status": checkout.State, "message": "Pay the original checkout, then verify actual receipt and delivery.", "order": gin.H{"monetary_snapshot": o.MonetarySnapshot, "id": id, "status": checkout.State, "kind": "procurement", "method_change_allowed": intent.State == "created" && o.Status == "awaiting_payment" && o.AllocatedMoney.IsZero(), "operator_name": po.OperatorID, "amount_money": o.DueMoney, "paid_money": o.AllocatedMoney, "created_at": o.CreatedAt, "fee_quote": checkout.FeeQuote, "payment_action": action}})
 }
-func (a *Application) deliverProcurementReceipt(ctx context.Context, cr procurementCheckout, receiptID string) error {
-	return a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		o, e := a.Cooperation.GetPurchase(ctx, tx, cr.ActorID, cr.BuyerID, cr.OrderID)
-		if e != nil {
+func (a *Application) deliverProcurementReceipt(ctx context.Context, supplier, orderID, receiptID string) error {
+	err := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if e := payments.LockOrderPayment(tx, orderID); e != nil {
+			return e
+		}
+		var o cooperation.PurchaseOrder
+		if e := tx.Where("id=? AND supplier_id=?", orderID, supplier).Take(&o).Error; e != nil {
 			return e
 		}
 		r, e := a.Commerce.GetReceipt(ctx, tx, o.SupplierID, receiptID)
@@ -797,12 +794,15 @@ func (a *Application) deliverProcurementReceipt(ctx context.Context, cr procurem
 		if e = a.validateCollectionReceipt(ctx, tx, o.SupplierID, o.ID, &r); e != nil {
 			return e
 		}
-		if _, e = a.Cooperation.ApplyVerifiedPurchaseReceipt(ctx, tx, a.Commerce, o.ID, receiptID, "verified-procurement:"+receiptID, r.GrossMoney.Sub(r.PaymentFeeMoney)); e != nil {
-			return e
-		}
-		_, e = a.Cooperation.FulfillPurchase(ctx, tx, o.ID, "verified-procurement-worker")
+		_, e = a.Cooperation.ApplyVerifiedPurchaseReceipt(ctx, tx, a.Commerce, o.ID, receiptID, "verified-procurement:"+receiptID, r.GrossMoney.Sub(r.PaymentFeeMoney))
 		return e
 	})
+	if err != nil {
+		return err
+	}
+	// Receipt allocation is durable. A delivery retry works against the paid order.
+	_, err = a.Cooperation.FulfillPurchase(ctx, nil, orderID, "verified-procurement-worker")
+	return err
 }
 
 var _ commerce.Order
@@ -871,32 +871,22 @@ func purchasePaymentHold(o cooperation.PurchaseOrder) string {
 	}
 }
 
-// A local failure means checkout creation was definitively rejected. Pending,
-// missing or unverifiable outcomes keep the original inventory reservation.
 func (a *Application) purchasePaymentMayClose(ctx context.Context, tx *gorm.DB, order cooperation.PurchaseOrder) (bool, error) {
-	var checkout procurementCheckout
-	found := tx.WithContext(ctx).Where("order_id=?", order.ID).Limit(1).Find(&checkout)
-	if found.Error != nil {
-		return false, found.Error
-	}
-	if found.RowsAffected == 0 {
-		return true, nil
-	}
-	var merchant struct{ Driver string }
-	if err := tx.Table("payments_merchants").Select("driver").Where("id=? AND operator_id=?", checkout.MerchantID, order.SupplierID).Take(&merchant).Error; err != nil {
+	if open, err := payments.HasOpenOnlinePayment(ctx, tx, order.SupplierID, order.ID); err != nil || open {
 		return false, err
 	}
-	var receipts int64
-	if err := tx.Table("payments_verified_facts").Where("operator_id=? AND merchant_id=? AND order_id=? AND kind='receipt'", order.SupplierID, checkout.MerchantID, order.ID).Count(&receipts).Error; err != nil {
+	if received, err := payments.HasOrderReceipt(ctx, tx, order.SupplierID, order.ID); err != nil || received {
 		return false, err
 	}
-	if receipts > 0 {
-		return false, nil
-	}
-	if merchant.Driver == "manual" {
-		return true, nil
-	}
-	var intent struct{ State string }
-	found = tx.WithContext(ctx).Table("payments_intents").Where("operator_id=? AND merchant_id=? AND order_id=?", order.SupplierID, checkout.MerchantID, order.ID).Limit(1).Find(&intent)
-	return found.RowsAffected == 1 && intent.State == "failed", found.Error
+	driver, state, err := procurementPaymentState(ctx, tx, order)
+	return driver == "" || driver == "manual" || state == "closed" || state == "failed", err
+}
+
+func procurementPaymentState(ctx context.Context, tx *gorm.DB, order cooperation.PurchaseOrder) (driver, state string, err error) {
+	var row struct{ Driver, State string }
+	err = tx.WithContext(ctx).Raw(`SELECT COALESCE(m.driver,'unknown') AS driver,COALESCE(i.state,'') AS state FROM portal_procurement_checkouts c
+ LEFT JOIN payments_merchants m ON m.id=c.merchant_id::text AND m.operator_id=?
+ LEFT JOIN payments_intents i ON i.merchant_id=m.id AND i.order_id=c.order_id::text AND i.operator_id=m.operator_id
+ WHERE c.order_id=?`, order.SupplierID, order.ID).Scan(&row).Error
+	return row.Driver, row.State, err
 }

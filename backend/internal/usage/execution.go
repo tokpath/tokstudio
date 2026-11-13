@@ -158,6 +158,7 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 			if emit == nil {
 				return modelruntime.ErrInvalidRequest
 			}
+			event.RequestID = req.ID
 			if e := emit(c, event); e != nil {
 				return e
 			}

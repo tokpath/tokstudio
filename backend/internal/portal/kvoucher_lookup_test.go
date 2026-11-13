@@ -12,7 +12,7 @@ import (
 )
 
 func TestKVoucherWaitingErrorsDoNotStopTheBatch(t *testing.T) {
-	if !kvoucherStillWaiting(payments.ErrNotFinal) || !kvoucherStillWaiting(payments.ErrProvider) || !kvoucherStillWaiting(payments.ErrAwaitingSettlement) || kvoucherStillWaiting(errors.New("database down")) {
+	if !paymentStillWaiting(payments.ErrNotFinal) || !paymentStillWaiting(payments.ErrUnpaid) || !paymentStillWaiting(payments.ErrProvider) || !paymentStillWaiting(payments.ErrAwaitingSettlement) || paymentStillWaiting(errors.New("database down")) {
 		t.Fatal("only an unfinished channel read should be skipped")
 	}
 }

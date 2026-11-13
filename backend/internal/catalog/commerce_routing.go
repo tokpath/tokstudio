@@ -214,12 +214,18 @@ func (s CommerceCatalog) ClaimRoute(ctx context.Context, upstream, attempt, requ
 		if !u.Enabled || !u.Healthy {
 			return ErrRouteUnavailable
 		}
-		if e := t.Clauses(clause.OnConflict{DoNothing: true}).Create(&RouteHealth{UpstreamID: upstream, Circuit: "closed"}).Error; e != nil {
-			return e
-		}
 		var h RouteHealth
-		if e := t.Clauses(clause.Locking{Strength: "UPDATE"}).First(&h, "upstream_id=?", upstream).Error; e != nil {
-			return e
+		health := t.Where("upstream_id=?", upstream)
+		if e := health.Clauses(clause.Locking{Strength: "SHARE"}).Take(&h).Error; e != nil {
+			if !errors.Is(e, gorm.ErrRecordNotFound) {
+				return e
+			}
+			if e = t.Clauses(clause.OnConflict{DoNothing: true}).Create(&RouteHealth{UpstreamID: upstream, Circuit: "closed"}).Error; e != nil {
+				return e
+			}
+			if e = t.Clauses(clause.Locking{Strength: "SHARE"}).Take(&h, "upstream_id=?", upstream).Error; e != nil {
+				return e
+			}
 		}
 		var now time.Time
 		if e := t.Raw("SELECT clock_timestamp()").Row().Scan(&now); e != nil {
@@ -240,13 +246,21 @@ func (s CommerceCatalog) ClaimRoute(ctx context.Context, upstream, attempt, requ
 			return e
 		}
 		limits := standardCircuitLimits()
-		var active int64
-		if e = t.Model(&routeLease{}).Where("upstream_id=? AND finished_at IS NULL AND expires_at>?", upstream, now).Count(&active).Error; e != nil {
-			return e
-		}
 		probe := h.Circuit != "closed"
-		if probe && active > 0 {
-			return ErrRouteUnavailable
+		if probe {
+			// Only half-open probes compete for a single active lease. Normal
+			// dispatches share the health row while observations update it.
+			if e = t.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "route-probe:"+upstream).Error; e != nil {
+				return e
+			}
+			var active bool
+			e = t.Raw("SELECT EXISTS (SELECT 1 FROM tokenhub_route_leases WHERE upstream_id=? AND finished_at IS NULL AND expires_at>?)", upstream, now).Scan(&active).Error
+			if e != nil {
+				return e
+			}
+			if active {
+				return ErrRouteUnavailable
+			}
 		}
 		b, _ := json.Marshal(limits)
 		return t.Create(&routeLease{AttemptID: attempt, UpstreamID: upstream, RequestID: request, Epoch: h.Epoch, Probe: probe, Limits: b, StartedAt: now, ExpiresAt: deadline}).Error

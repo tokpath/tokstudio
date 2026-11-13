@@ -33,8 +33,8 @@ type PublicCatalogModel struct {
 
 // PublicCatalog contains retail prices and public limits only. Provider routes,
 // keys, supplier costs and verification evidence are never included.
-func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at time.Time) ([]PublicCatalogModel, error) {
-	models, e := s.publicDirectory(ctx, operator)
+func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at time.Time, modelIDs ...string) ([]PublicCatalogModel, error) {
+	models, e := s.publicDirectory(ctx, operator, modelIDs)
 	if e != nil {
 		return nil, e
 	}
@@ -182,9 +182,13 @@ func capabilityPriced(cap modelruntime.Capability, retail ResolvedPrice, supply 
 	return true
 }
 
-func (s CommerceCatalog) publicDirectory(ctx context.Context, operator string) ([]PublicModel, error) {
+func (s CommerceCatalog) publicDirectory(ctx context.Context, operator string, modelIDs []string) ([]PublicModel, error) {
 	var rows []catalogJSONRow
-	if e := s.DB.WithContext(ctx).Table("tokenhub_public_models m").Select("m.*").Joins("JOIN tokenhub_model_listings l ON l.public_model_id=m.id AND l.operator_id=? AND l.enabled", operator).Order("m.id").Scan(&rows).Error; e != nil {
+	q := s.DB.WithContext(ctx).Table("tokenhub_public_models m").Select("m.*").Joins("JOIN tokenhub_model_listings l ON l.public_model_id=m.id AND l.operator_id=? AND l.enabled", operator)
+	if len(modelIDs) > 0 {
+		q = q.Where("m.id IN ?", modelIDs)
+	}
+	if e := q.Order("m.id").Scan(&rows).Error; e != nil {
 		return nil, e
 	}
 	out := []PublicModel{}
@@ -193,7 +197,7 @@ func (s CommerceCatalog) publicDirectory(ctx context.Context, operator string) (
 		if e := json.Unmarshal(row.Definition, &m); e != nil {
 			return nil, e
 		}
-		if e := s.requireAuthorization(ctx, operator, m.ID, false); e != nil {
+		if e := s.requireModelAuthorization(ctx, operator, m, false); e != nil {
 			if errors.Is(e, ErrModelNotVisible) {
 				continue
 			}
@@ -310,8 +314,8 @@ type plannedPriceSource struct {
 	Plan *PriceVersion
 }
 
-func (p plannedPriceSource) PriceVersions(ctx context.Context, scope PriceScope, model string) ([]PriceVersion, error) {
-	rows, e := p.Base.PriceVersions(ctx, scope, model)
+func (p plannedPriceSource) EffectivePriceVersions(ctx context.Context, scope PriceScope, model string, at time.Time) ([]PriceVersion, error) {
+	rows, e := p.Base.EffectivePriceVersions(ctx, scope, model, at)
 	if e != nil {
 		return nil, e
 	}

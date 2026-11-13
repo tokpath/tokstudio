@@ -122,11 +122,21 @@ func (s *Service) EnsureAccount(ctx context.Context, tx *gorm.DB, a Account) (Ac
 	a.Version = 0
 	a.CreatedAt = time.Now().UTC()
 	err := s.within(ctx, tx, func(t *gorm.DB) error {
-		if err := t.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "operator_id"}, {Name: "owner_id"}, {Name: "purpose"}, {Name: "unit"}}, DoNothing: true}).Create(&a).Error; err != nil {
-			return err
-		}
+		// The usual path reuses an existing immutable account identity with
+		// one statement, without running a no-op insert before every debit.
 		var existing Account
-		if err := t.Where("operator_id=? AND owner_id=? AND purpose=? AND unit=?", a.OperatorID, a.OwnerID, a.Purpose, a.Unit).First(&existing).Error; err != nil {
+		lookup := func() error {
+			return t.Where("operator_id=? AND owner_id=? AND purpose=? AND unit=?", a.OperatorID, a.OwnerID, a.Purpose, a.Unit).First(&existing).Error
+		}
+		err := lookup()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			created := t.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "operator_id"}, {Name: "owner_id"}, {Name: "purpose"}, {Name: "unit"}}, DoNothing: true}).Create(&a)
+			if created.Error != nil || created.RowsAffected == 1 {
+				return created.Error
+			}
+			err = lookup()
+		}
+		if err != nil {
 			return err
 		}
 		if existing.AllowNegative != a.AllowNegative {

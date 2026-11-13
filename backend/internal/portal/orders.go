@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
+	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/jobs"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
@@ -192,10 +193,7 @@ func (a *Application) createOrder(c *gin.Context) {
 			return nil, e
 		}
 		if ext.Sign() == 0 {
-			if _, e = a.Commerce.Fulfill(ctx, tx, order.ID, "customer:"+order.CustomerID); e != nil {
-				return nil, e
-			}
-			if e = a.authorizeRenewal(ctx, tx, order, cr); e != nil {
+			if e = a.fulfillCustomerOrder(ctx, tx, order, "customer:"+order.CustomerID); e != nil {
 				return nil, e
 			}
 		}
@@ -219,9 +217,17 @@ func (a *Application) createOrder(c *gin.Context) {
 	}
 	c.JSON(200, dto)
 }
-func (a *Application) authorizeRenewal(ctx context.Context, tx *gorm.DB, o commerce.Order, cr checkoutRow) error {
-	if !cr.AutoRenew || o.Kind == "topup" || o.Period == ledger.Lifetime {
+func (a *Application) fulfillCustomerOrder(ctx context.Context, tx *gorm.DB, o commerce.Order, actor string) error {
+	if _, err := a.Commerce.Fulfill(ctx, tx, o.ID, actor); err != nil {
+		return err
+	}
+	if o.Kind != "package" || o.Period == ledger.Lifetime {
 		return nil
+	}
+	var cr checkoutRow
+	q := tx.Where("order_id=? AND customer_id=?", o.ID, o.CustomerID).Limit(1).Find(&cr)
+	if q.Error != nil || !cr.AutoRenew {
+		return q.Error
 	}
 	_, e := a.Commerce.EnableAutoRenewal(ctx, tx, o.CustomerID, o.ID, "customer explicit order consent:"+o.BusinessKey, cr.AllowCommission)
 	return e
@@ -239,14 +245,14 @@ func (a *Application) paymentValue(ctx context.Context, operator, driver, curren
 	return money, payments.Valuation{Currency: settings.Currency}, nil
 }
 func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) error {
-	if o.Status == "completed" {
+	if o.Status != "pending" {
 		return nil
 	}
 	var cr checkoutRow
 	var paymentOrder payments.Order
 	reuse := false
 	e := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if e := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "checkout:"+o.ID).Error; e != nil {
+		if e := payments.LockOrderPayment(tx, o.ID); e != nil {
 			return e
 		}
 		if e := tx.First(&cr, "order_id=? AND customer_id=?", o.ID, o.CustomerID).Error; e != nil {
@@ -254,6 +260,10 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 		}
 		if cr.MerchantID == nil {
 			return nil
+		}
+		if received, err := payments.HasOrderReceipt(ctx, tx, o.OperatorID, o.ID); err != nil || received {
+			reuse = received
+			return err
 		}
 		// Returning to a previously selected method reuses its original
 		// checkout, amount and quote rather than issuing another payment.
@@ -343,6 +353,16 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 		dto["fee_quote"] = q
 	}
 	dto["cancel_allowed"] = allowed
+	hasReceipt := false
+	if o.Status == "pending" && cr.MerchantID != nil {
+		hasReceipt, err = payments.HasOrderReceipt(ctx, a.DB, o.OperatorID, o.ID)
+		if err != nil {
+			return nil, err
+		}
+		if hasReceipt {
+			dto["payment_notice"] = "通道已确认收到款项，系统正在核实并关联原订单。请勿重复付款。"
+		}
+	}
 	if e == nil && cr.MerchantID != nil && o.Status != "completed" {
 		intent, e := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
 		if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
@@ -350,17 +370,19 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 		}
 		if e == nil {
 			dto["payment_state"] = intent.State
-			dto["method_change_allowed"] = (intent.State == "failed" || intent.State == "created") && o.Status == "pending" && o.ExternalAllocatedMoney.IsZero()
-			if intent.Problem == payments.CheckoutAmountMismatch {
-				dto["payment_notice"] = "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。"
-			} else if intent.State == "executing" || intent.State == "outcome_unknown" || intent.State == "failed" {
-				dto["payment_notice"] = "订单已建立，但付款指引暂时不可用。请保留原订单并联系经营方核实。"
-			} else if intent.State == "awaiting_settlement" {
+			dto["method_change_allowed"] = !hasReceipt && intent.AllowsMethodChange() && o.Status == "pending" && o.ExternalAllocatedMoney.IsZero() && time.Now().Before(o.ExpiresAt)
+			switch {
+			case intent.State == "awaiting_settlement":
 				dto["payment_notice"] = "原币实际款已保留，等待收款方核实本笔交易对应的订单清算金额，请勿重复付款。"
+			case !hasReceipt && intent.Problem == payments.CheckoutAmountMismatch:
+				dto["payment_notice"] = "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。"
+			case !hasReceipt && intent.State == "closed" && o.Status == "pending":
+				dto["payment_notice"] = "原通道已关闭本次付款，未收到款项。"
+			case !hasReceipt && (intent.State == "executing" || intent.State == "outcome_unknown" || intent.State == "failed"):
+				dto["payment_notice"] = "订单已建立，但付款指引暂时不可用。请保留原订单并联系经营方核实。"
 			}
 		}
-		if e == nil && intent.Checkout != nil {
-			dto["method_change_allowed"] = (intent.State == "failed" || intent.State == "created") && o.Status == "pending" && o.ExternalAllocatedMoney.IsZero()
+		if e == nil && o.Status == "pending" && !hasReceipt && intent.Checkout != nil {
 			ch := intent.Checkout
 			action := gin.H{}
 			switch {
@@ -407,11 +429,11 @@ func (a *Application) customerCheckoutDTO(ctx context.Context, o commerce.Order)
 		return nil, err
 	}
 	if checkoutErr != nil {
-		if !errors.Is(checkoutErr, payments.ErrCheckoutMismatch) && !errors.Is(checkoutErr, payments.ErrOutcomeUnknown) && !errors.Is(checkoutErr, payments.ErrProvider) && !errors.Is(checkoutErr, payments.ErrQuoteUnavailable) {
+		if !errors.Is(checkoutErr, payments.ErrCheckoutMismatch) && !errors.Is(checkoutErr, payments.ErrOutcomeUnknown) && !errors.Is(checkoutErr, payments.ErrProvider) && !errors.Is(checkoutErr, payments.ErrPaymentClosed) && !errors.Is(checkoutErr, payments.ErrQuoteUnavailable) {
 			return nil, checkoutErr
 		}
 		state, _ := dto["payment_state"].(string)
-		if state != "executing" && state != "outcome_unknown" && state != "failed" {
+		if state != "executing" && state != "outcome_unknown" && state != "failed" && state != "closed" {
 			return nil, checkoutErr
 		}
 	}
@@ -480,14 +502,14 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		if intentErr == nil && intent.State == "created" {
 			if _, checkErr := a.Payments.Reconcile(ctx, previous.OperatorID, *previousCheckout.MerchantID, previous.ID); errors.Is(checkErr, payments.ErrUnpaid) {
 				unpaidMerchant = *previousCheckout.MerchantID
-			} else {
+			} else if !errors.Is(checkErr, payments.ErrPaymentClosed) {
 				handleError(c, commerce.ErrPaymentUnknown)
 				return
 			}
 		}
 	}
 	raw, e := a.command(c, "payment-method:"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
-		if e := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "checkout:"+c.Param("id")).Error; e != nil {
+		if e := payments.LockOrderPayment(tx, c.Param("id")); e != nil {
 			return nil, e
 		}
 		o, e := a.Commerce.GetOrder(ctx, tx, id.Customer.Customer.ID, c.Param("id"))
@@ -518,14 +540,14 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		}
 		if cr.MerchantID != nil && *cr.MerchantID != m.ID {
 			intent, err := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
-			if err != nil || (intent.State != "failed" && !(intent.State == "created" && unpaidMerchant == *cr.MerchantID)) {
+			if err != nil || !intent.AllowsMethodChange() || (intent.State == "created" && unpaidMerchant != *cr.MerchantID) {
 				return nil, commerce.ErrPaymentUnknown
 			}
-			var facts int64
-			if err := tx.Table("payments_verified_facts").Where("operator_id=? AND order_id=? AND kind='receipt'", o.OperatorID, o.ID).Count(&facts).Error; err != nil {
+			found, err := payments.HasOrderReceipt(ctx, tx, o.OperatorID, o.ID)
+			if err != nil {
 				return nil, err
 			}
-			if facts > 0 {
+			if found {
 				return nil, commerce.ErrPaymentUnknown
 			}
 		}
@@ -575,18 +597,11 @@ func (a *Application) customerOrderMayCancel(ctx context.Context, tx *gorm.DB, o
 	}
 	// An absent/failed checkout row never proves that another online attempt
 	// or a verified but not yet allocated receipt is unpaid.
-	var unresolved int64
-	if err := tx.Table("payments_intents AS i").Joins("JOIN payments_merchants AS m ON m.id=i.merchant_id").Where("i.operator_id=? AND i.order_id=? AND m.driver<>'manual' AND i.state<>'failed'", o.OperatorID, o.ID).Count(&unresolved).Error; err != nil {
+	if open, err := payments.HasOpenOnlinePayment(ctx, tx, o.OperatorID, o.ID); err != nil || open {
 		return false, err
 	}
-	if unresolved > 0 {
-		return false, nil
-	}
-	if err := tx.Table("payments_verified_facts").Where("operator_id=? AND order_id=? AND kind='receipt'", o.OperatorID, o.ID).Count(&unresolved).Error; err != nil {
+	if received, err := payments.HasOrderReceipt(ctx, tx, o.OperatorID, o.ID); err != nil || received {
 		return false, err
-	}
-	if unresolved > 0 {
-		return false, nil
 	}
 	var cr checkoutRow
 	found := tx.WithContext(ctx).Where("order_id=? AND customer_id=?", o.ID, o.CustomerID).Limit(1).Find(&cr)
@@ -600,25 +615,18 @@ func (a *Application) customerOrderMayCancel(ctx context.Context, tx *gorm.DB, o
 	if err := tx.WithContext(ctx).Table("payments_merchants").Select("driver").Where("id=? AND operator_id=?", *cr.MerchantID, o.OperatorID).Take(&merchant).Error; err != nil {
 		return false, err
 	}
-	var receipts int64
-	if err := tx.WithContext(ctx).Table("payments_verified_facts").Where("operator_id=? AND merchant_id=? AND order_id=? AND kind='receipt'", o.OperatorID, *cr.MerchantID, o.ID).Count(&receipts).Error; err != nil {
-		return false, err
-	}
-	if receipts > 0 {
-		return false, nil
-	}
 	if merchant.Driver == "manual" {
 		return true, nil
 	}
 	var intent struct{ State string }
 	found = tx.WithContext(ctx).Table("payments_intents").Where("operator_id=? AND merchant_id=? AND order_id=?", o.OperatorID, *cr.MerchantID, o.ID).Limit(1).Find(&intent)
-	return found.RowsAffected == 1 && intent.State == "failed", found.Error
+	return found.RowsAffected == 1 && (intent.State == "failed" || intent.State == "closed"), found.Error
 }
 func (a *Application) cancelOrder(c *gin.Context) {
 	id := subject(c)
 	ctx := c.Request.Context()
 	raw, e := a.command(c, "cancel-order:"+c.Param("id"), gin.H{}, func(tx *gorm.DB) (any, error) {
-		if e := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "checkout:"+c.Param("id")).Error; e != nil {
+		if e := payments.LockOrderPayment(tx, c.Param("id")); e != nil {
 			return nil, e
 		}
 		o, e := a.Commerce.GetOrder(ctx, tx, id.Customer.Customer.ID, c.Param("id"))
@@ -670,14 +678,14 @@ func (a *Application) expireUnpaidOrders(ctx context.Context, limit int) error {
 	if err := a.DB.WithContext(ctx).Table("commerce_orders AS o").Select("o.id, o.customer_id").
 		Where("o.status='pending' AND o.external_allocated_money=0 AND o.expires_at<=clock_timestamp()").
 		Where("NOT EXISTS (SELECT 1 FROM payments_verified_facts f WHERE f.order_id=o.id::text AND f.operator_id=o.operator_id::text AND f.kind='receipt')").
-		Where("NOT EXISTS (SELECT 1 FROM payments_intents i JOIN payments_merchants m ON m.id=i.merchant_id WHERE i.order_id=o.id::text AND i.operator_id=o.operator_id::text AND m.driver<>'manual' AND i.state<>'failed')").
-		Where("NOT EXISTS (SELECT 1 FROM portal_order_checkout c JOIN payments_merchants m ON m.id=c.merchant_id::text WHERE c.order_id=o.id AND m.driver<>'manual' AND NOT EXISTS (SELECT 1 FROM payments_intents i WHERE i.merchant_id=c.merchant_id::text AND i.order_id=o.id::text AND i.state='failed'))").
+		Where("NOT EXISTS (SELECT 1 FROM payments_intents i JOIN payments_merchants m ON m.id=i.merchant_id WHERE i.order_id=o.id::text AND i.operator_id=o.operator_id::text AND m.driver<>'manual' AND i.state NOT IN ('failed','closed'))").
+		Where("NOT EXISTS (SELECT 1 FROM portal_order_checkout c JOIN payments_merchants m ON m.id=c.merchant_id::text WHERE c.order_id=o.id AND m.driver<>'manual' AND NOT EXISTS (SELECT 1 FROM payments_intents i WHERE i.merchant_id=c.merchant_id::text AND i.order_id=o.id::text AND i.state IN ('failed','closed')))").
 		Order("o.expires_at, o.id").Limit(limit).Find(&rows).Error; err != nil {
 		return err
 	}
 	for _, row := range rows {
 		err := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "checkout:"+row.ID).Error; err != nil {
+			if err := payments.LockOrderPayment(tx, row.ID); err != nil {
 				return err
 			}
 			o, err := a.Commerce.GetOrder(ctx, tx, row.CustomerID, row.ID)
@@ -696,6 +704,36 @@ func (a *Application) expireUnpaidOrders(ctx context.Context, limit int) error {
 		}
 	}
 	return nil
+}
+
+// Query expired online attempts in bounded batches. The provider must attest
+// that an attempt is closed before expiry can release the order's reservations.
+func (a *Application) reconcileExpiredPayments(ctx context.Context) error {
+	var due []struct{ OperatorID, MerchantID, OrderID string }
+	err := a.DB.WithContext(ctx).Raw(`WITH due AS (
+ SELECT i.merchant_id,i.order_id FROM payments_intents i
+ JOIN payments_merchants m ON m.id=i.merchant_id AND m.driver IN ('stripe','wechat')
+ JOIN commerce_orders o ON o.id::text=i.order_id AND o.operator_id::text=i.operator_id
+ WHERE o.status='pending' AND o.expires_at<=clock_timestamp()
+ AND i.state IN ('created','outcome_unknown') AND COALESCE(i.provider_id,'')<>''
+ AND i.updated_at<=clock_timestamp()-interval '1 minute'
+ ORDER BY i.updated_at,i.order_id LIMIT 10 FOR UPDATE OF i SKIP LOCKED
+) UPDATE payments_intents i SET updated_at=clock_timestamp() FROM due
+ WHERE i.merchant_id=due.merchant_id AND i.order_id=due.order_id
+ RETURNING i.operator_id,i.merchant_id,i.order_id`).Scan(&due).Error
+	if err != nil {
+		return err
+	}
+	var reconcileErr error
+	for _, intent := range due {
+		work, cancel := context.WithTimeout(ctx, 3*time.Second)
+		_, err := a.Payments.Reconcile(work, intent.OperatorID, intent.MerchantID, intent.OrderID)
+		cancel()
+		if err != nil && !paymentStillWaiting(err) && !errors.Is(err, payments.ErrPaymentClosed) && !errors.Is(err, context.DeadlineExceeded) {
+			reconcileErr = errors.Join(reconcileErr, err)
+		}
+	}
+	return reconcileErr
 }
 
 // reconcileOpenKVoucher reads KVoucher again for checkouts that are still
@@ -733,14 +771,14 @@ func (a *Application) reconcileOpenKVoucher(ctx context.Context, limit int) erro
 	}
 	for _, row := range rows {
 		_, err = a.Payments.Reconcile(ctx, row.OperatorID, row.MerchantID, row.OrderID)
-		if err != nil && !kvoucherStillWaiting(err) {
+		if err != nil && !paymentStillWaiting(err) {
 			return err
 		}
 	}
 	return nil
 }
-func kvoucherStillWaiting(err error) bool {
-	return errors.Is(err, payments.ErrNotFinal) || errors.Is(err, payments.ErrProvider) || errors.Is(err, payments.ErrOutcomeUnknown) || errors.Is(err, payments.ErrNotConfigured) || errors.Is(err, payments.ErrAwaitingSettlement)
+func paymentStillWaiting(err error) bool {
+	return errors.Is(err, payments.ErrNotFinal) || errors.Is(err, payments.ErrUnpaid) || errors.Is(err, payments.ErrProvider) || errors.Is(err, payments.ErrOutcomeUnknown) || errors.Is(err, payments.ErrNotConfigured) || errors.Is(err, payments.ErrAwaitingSettlement)
 }
 func (a *Application) reconcileOrder(c *gin.Context) {
 	id := subject(c)
@@ -757,7 +795,11 @@ func (a *Application) reconcileOrder(c *gin.Context) {
 		return
 	}
 	if _, e = a.Payments.Reconcile(ctx, o.OperatorID, *cr.MerchantID, o.ID); e != nil {
-		if errors.Is(e, payments.ErrNotFinal) {
+		if errors.Is(e, payments.ErrPaymentClosed) {
+			c.JSON(200, gin.H{"id": o.ID, "status": "payment_closed", "message": "原通道已关闭本次付款，未收到款项。请刷新订单查看可用操作。"})
+			return
+		}
+		if errors.Is(e, payments.ErrNotFinal) || errors.Is(e, payments.ErrUnpaid) {
 			c.JSON(200, gin.H{"id": o.ID, "status": "pending_payment", "message": "原通道尚未确认收款。未付款可继续原订单付款；已经付款请稍后刷新原订单，无须再次付款。"})
 			return
 		}
@@ -829,10 +871,25 @@ func (a *Application) topup(c *gin.Context) {
 }
 func (a *Application) subscriptions(c *gin.Context) {
 	id := subject(c)
-	rows, e := a.Commerce.ListCustomerDeliveries(c.Request.Context(), nil, id.Customer.Customer.ID, 100)
+	const pageSize = 20
+	rows, e := a.Commerce.ListCustomerDeliveries(c.Request.Context(), nil, id.Customer.Customer.ID, c.Query("cursor"), pageSize+1)
 	if e != nil {
 		handleError(c, e)
 		return
+	}
+	next := ""
+	if len(rows) > pageSize {
+		rows = rows[:pageSize]
+		next = commerce.NextOrderCursor(rows[len(rows)-1].Order)
+	}
+	renewalOpen := true
+	if len(rows) > 0 {
+		e = a.Organization.RequireBusiness(c.Request.Context(), nil, id.Customer.Ownership.OperatorID, organization.Renewal)
+		if e != nil && !businessUnavailable(e) {
+			handleError(c, e)
+			return
+		}
+		renewalOpen = e == nil
 	}
 	items := []any{}
 	ids := []string{}
@@ -965,9 +1022,15 @@ func (a *Application) subscriptions(c *gin.Context) {
 			out["auto_renew_available"], out["requires_confirmation"] = false, false
 			out["renewal_unavailable_reason"] = "此笔额度的续费已在最新一期套餐中管理。"
 		}
+		if !renewalOpen && row.Delivery.ExpiresAt != nil && !row.RenewalManagedElsewhere && (row.Subscription != nil || status != "expired") {
+			out["auto_renew_available"], out["requires_current_plan"], out["requires_confirmation"] = false, false, false
+			out["renewal_unavailable_reason"] = "经营方已暂停自动续费。暂停期间不会续费扣款，你仍可关闭已有授权。"
+			delete(out, "renewal_quote")
+			delete(out, "next_renewal_at")
+		}
 		items = append(items, out)
 	}
-	c.JSON(200, gin.H{"items": items})
+	c.JSON(200, gin.H{"items": items, "next_cursor": next})
 }
 
 func renewalQuoteView(pkg commerce.Package, quote commerce.PackageQuote) gin.H {
@@ -989,6 +1052,15 @@ func (a *Application) renewal(c *gin.Context) {
 	id := subject(c)
 	ctx := c.Request.Context()
 	raw, e := a.command(c, "renewal:"+id.Customer.Customer.ID+":"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
+		if in.AutoRenew {
+			operator := id.Customer.Ownership.OperatorID
+			if _, err := a.Organization.LockOwnership(ctx, tx, id.Customer.Customer.ID, operator, id.Customer.Ownership.Version); err != nil {
+				return nil, err
+			}
+			if err := a.Organization.RequireBusiness(ctx, tx, operator, organization.Renewal); err != nil {
+				return nil, err
+			}
+		}
 		s, e := a.Commerce.GetSubscription(ctx, tx, id.Customer.Customer.ID, c.Param("id"))
 		if (errors.Is(e, gorm.ErrRecordNotFound) || errors.Is(e, commerce.ErrNotFound)) && in.AutoRenew {
 			order, err := a.Commerce.GetOrder(ctx, tx, id.Customer.Customer.ID, c.Param("id"))
@@ -1161,13 +1233,13 @@ func (a *Application) RunDeliveryJobs(ctx context.Context, owner string, limit i
 }
 func (a *Application) deliverReceipt(ctx context.Context, op, receiptID, orderID string) error {
 	// These IDs originate exclusively from verified payment intents/jobs.
-	var procurement procurementCheckout
-	q := a.DB.WithContext(ctx).Where("order_id=?", orderID).Limit(1).Find(&procurement)
+	var procurement cooperation.PurchaseOrder
+	q := a.DB.WithContext(ctx).Select("id").Where("id=? AND supplier_id=?", orderID, op).Limit(1).Find(&procurement)
 	if q.Error != nil {
 		return q.Error
 	}
 	if q.RowsAffected > 0 {
-		return a.deliverProcurementReceipt(ctx, procurement, receiptID)
+		return a.deliverProcurementReceipt(ctx, op, orderID, receiptID)
 	}
 	var cr checkoutRow
 	if e := a.DB.WithContext(ctx).First(&cr, "order_id=?", orderID).Error; e != nil {
@@ -1210,10 +1282,7 @@ func (a *Application) deliverReceipt(ctx context.Context, op, receiptID, orderID
 		return e
 	}
 	return a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, e := a.Commerce.Fulfill(ctx, tx, orderID, "verified-payment-worker"); e != nil {
-			return e
-		}
-		return a.authorizeRenewal(ctx, tx, order, cr)
+		return a.fulfillCustomerOrder(ctx, tx, order, "verified-payment-worker")
 	})
 }
 func (a *Application) kvoucherWebhook(c *gin.Context) {

@@ -708,7 +708,7 @@ func TestPostgresRenewalNoticeConsentFundingAndUniqueCycle(t *testing.T) {
 	if err != nil || result.Status != "completed" || result.Order == nil || result.Order.Kind != "renewal" {
 		t.Fatalf("renewal=%+v %v", result, err)
 	}
-	packages, err := f.s.ListCustomerDeliveries(f.ctx, nil, f.customer, 100)
+	packages, err := f.s.ListCustomerDeliveries(f.ctx, nil, f.customer, "", 100)
 	if err != nil {
 		t.Fatal(err)
 	}

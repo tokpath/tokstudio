@@ -11,6 +11,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"gorm.io/gorm"
 )
 
@@ -116,6 +117,9 @@ func manualReceiptFields() []field {
 }
 
 func (a *Application) allocateWholeRetailReceipt(ctx context.Context, tx *gorm.DB, actor, operator, receiptID, orderID, businessKey string) (commerce.Allocation, error) {
+	if err := payments.LockOrderPayment(tx, orderID); err != nil {
+		return commerce.Allocation{}, err
+	}
 	var order commerce.Order
 	if err := tx.WithContext(ctx).Table("commerce_orders").Where("id=? AND operator_id=?", orderID, operator).Take(&order).Error; err != nil {
 		return commerce.Allocation{}, err
@@ -128,6 +132,13 @@ func (a *Application) allocateWholeRetailReceipt(ctx context.Context, tx *gorm.D
 		return commerce.Allocation{}, err
 	}
 	if receipt.Provider == "manual" {
+		received, err := payments.HasOrderReceipt(ctx, tx, operator, orderID)
+		if err != nil {
+			return commerce.Allocation{}, err
+		}
+		if received {
+			return commerce.Allocation{}, commerce.ErrPaymentUnknown
+		}
 		var checkout checkoutRow
 		found := tx.WithContext(ctx).Where("order_id=?", order.ID).Limit(1).Find(&checkout)
 		if found.Error != nil {
@@ -178,22 +189,27 @@ func (a *Application) allocateWholeSalesReceipt(ctx context.Context, tx *gorm.DB
 	if err = a.Organization.RequirePermission(ctx, tx, actor, operator, "payments.manage"); err != nil {
 		return salesReceiptAllocation{}, err
 	}
-	if err = tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "procurement-checkout:"+orderID).Error; err != nil {
+	return a.allocatePurchaseReceipt(ctx, tx, actor, order, receiptID, businessKey)
+}
+
+func (a *Application) allocatePurchaseReceipt(ctx context.Context, tx *gorm.DB, actor string, order cooperation.PurchaseOrder, receiptID, businessKey string) (salesReceiptAllocation, error) {
+	operator, orderID := order.SupplierID, order.ID
+	if err := payments.LockOrderPayment(tx, orderID); err != nil {
 		return salesReceiptAllocation{}, err
 	}
-	var checkout procurementCheckout
-	found := tx.Where("order_id=?", orderID).Limit(1).Find(&checkout)
-	if found.Error != nil {
-		return salesReceiptAllocation{}, found.Error
+	received, err := payments.HasOrderReceipt(ctx, tx, operator, orderID)
+	if err != nil {
+		return salesReceiptAllocation{}, err
 	}
-	if found.RowsAffected > 0 {
-		var merchant struct{ Driver string }
-		if err = tx.Table("payments_merchants").Select("driver").Where("id=? AND operator_id=?", checkout.MerchantID, operator).Take(&merchant).Error; err != nil {
-			return salesReceiptAllocation{}, err
-		}
-		if merchant.Driver != "manual" {
-			return salesReceiptAllocation{}, commerce.ErrPaymentUnknown
-		}
+	if received {
+		return salesReceiptAllocation{}, commerce.ErrPaymentUnknown
+	}
+	driver, _, err := procurementPaymentState(ctx, tx, order)
+	if err != nil {
+		return salesReceiptAllocation{}, err
+	}
+	if driver != "" && driver != "manual" {
+		return salesReceiptAllocation{}, commerce.ErrPaymentUnknown
 	}
 	automatic, err := a.AutoReplenishments.UsesAutomaticPayment(ctx, tx, orderID)
 	if err != nil {

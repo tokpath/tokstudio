@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 )
@@ -239,8 +240,8 @@ type billingRegularSource struct {
 	Scope PriceScope
 }
 
-func (s billingRegularSource) PriceVersions(ctx context.Context, scope PriceScope, model string) ([]PriceVersion, error) {
-	rows, e := s.CommerceCatalog.PriceVersions(ctx, scope, model)
+func (s billingRegularSource) EffectivePriceVersions(ctx context.Context, scope PriceScope, model string, at time.Time) ([]PriceVersion, error) {
+	rows, e := s.CommerceCatalog.EffectivePriceVersions(ctx, scope, model, at)
 	if e != nil || scope != s.Scope {
 		return rows, e
 	}

@@ -1978,6 +1978,7 @@
             }
           }
         },
+        "description": "Customer recovery uses the account and mail service of the requested brand. Staff recovery is available through the official platform brand.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2003,7 +2004,7 @@
     "/v1/auth/password-resets/complete": {
       "post": {
         "operationId": "post__v1_auth_password_resets_complete",
-        "summary": "Complete verified password reset",
+        "summary": "Complete a password reset within the issuing brand",
         "tags": [
           "Authentication"
         ],
@@ -32929,6 +32930,106 @@
             ],
             "additionalProperties": true
           },
+          "brand_operator": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "platform",
+                  "oem",
+                  "channel"
+                ]
+              },
+              "brand_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "lifecycle": {
+                "type": "string"
+              },
+              "contact_email": {
+                "type": "string"
+              },
+              "legal_name": {
+                "type": "string"
+              },
+              "theme": {
+                "type": "object",
+                "properties": {
+                  "primary_color": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^#[\\da-fA-F]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "accent_color": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^#[\\da-fA-F]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "background_color": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^#[\\da-fA-F]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "text_color": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^#[\\da-fA-F]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "logo_url": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "kind",
+              "brand_id"
+            ],
+            "additionalProperties": true
+          },
           "theme": {
             "type": "object",
             "properties": {
@@ -33220,6 +33321,10 @@
           },
           "google_sign_in": {
             "type": "boolean"
+          },
+          "staff_recovery_url": {
+            "type": "string",
+            "format": "uri"
           }
         },
         "required": [
@@ -34791,8 +34896,15 @@
                 "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
               },
               "threshold_money": {
-                "type": "string",
-                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "qualified_at": {
                 "anyOf": [
@@ -36121,8 +36233,15 @@
             "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
           },
           "threshold_money": {
-            "type": "string",
-            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "direct_rate": {
             "type": "string",

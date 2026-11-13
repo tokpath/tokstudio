@@ -15,6 +15,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { ErrorPanel, useCommand } from "./shared";
 import { MonetaryProvider, monetaryRefetchInterval } from "./monetary";
+import { SiteFooter, SiteIdentity } from "./site-identity";
 
 const Context = createContext<{ context?: PublicContext; session?: Session; sessionError?: unknown; reload: () => void }>({ reload: () => {} });
 export function useProduct() { return useContext(Context); }
@@ -84,7 +85,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       ? `/api/v1/operators/${encodeURIComponent(activeStaffWorkspace.operator.id)}/branding/assets/${rawLogo.split("/")[4]}/content`
       : `/api${rawLogo}?operator_id=${encodeURIComponent(presentationOperator?.id || "")}`
     : rawLogo;
-  const actualOperator = presentationOperator;
+  const registration = pathname === "/register";
   const presentationName = activeStaffWorkspace?.operator.name || (current?.kind === "customer" ? current.brand.name : context.data?.brand.name) || "TokenHub";
 
   return <Context.Provider value={{ context: context.data, session: current, sessionError: session.error, reload: () => { void context.refetch(); void session.refetch(); } }}>
@@ -99,9 +100,9 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         </div>
       </header>
       {context.isError && <div className="mx-auto max-w-[1500px] px-5 pt-4"><ErrorPanel error={context.error} retry={() => void context.refetch()} compact /></div>}
-      {context.data && !insideWorkspace && <div className="border-b border-hairline bg-canvas-raised px-5 py-2 text-center text-[11px] leading-5 text-ink-mute">{t("品牌：")}{context.data.brand.name}<span className="mx-3 text-hairline">/</span>{t("实际经营方：")}{current?.kind === "customer" ? current.operator.name : context.data.operator.name}{actualOperator?.legal_name && <span> · {actualOperator.legal_name}</span>}</div>}
+      {context.data && !insideWorkspace && !registration && <SiteIdentity brandName={context.data.brand.name} operator={presentationOperator} />}
       <div id="site-content">{children}</div>
-      <footer className={`border-t border-hairline px-5 text-center text-[11px] leading-6 text-ink-mute ${insideWorkspace ? "bg-canvas-raised py-4" : "py-8"}`}>{actualOperator?.name || "TokenHub"} {t("· 模型服务与独立经营")}{actualOperator?.contact_email && <span> · <a href={`mailto:${actualOperator.contact_email}`}>{actualOperator.contact_email}</a></span>}<p>{t("价格和权益以本次成交条款为准。账单、资金和服务责任均可追溯。")}</p></footer>
+      {!registration && <SiteFooter operator={presentationOperator} insideWorkspace={insideWorkspace} />}
     </div></MonetaryProvider>
   </Context.Provider>;
 }

@@ -164,7 +164,13 @@ type fixture struct {
 }
 
 func setup(t *testing.T) fixture {
-	return setupOnDB(t, integrationDB(t))
+	f := setupOnDB(t, integrationDB(t))
+	policy, err := f.s.SetPolicy(f.ctx, nil, f.owner, f.operator, PolicyInput{ThresholdMoney: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), RewardValiditySeconds: 3600, KOLCrossActivityLimit: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.policy = policy
+	return f
 }
 
 func setupOnDB(t *testing.T, db *gorm.DB) fixture {
@@ -186,10 +192,6 @@ func setupOnDB(t *testing.T, db *gorm.DB) fixture {
 		}
 	}
 	s := New(db)
-	policy, err := s.SetPolicy(ctx, nil, owner, platform.Operator.ID, PolicyInput{ThresholdMoney: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), RewardValiditySeconds: 3600, KOLCrossActivityLimit: 1})
-	if err != nil {
-		t.Fatal(err)
-	}
 	store := commerce.New(db)
 	cap := &coverageDouble{}
 	store.SetSalesCoverage(cap)
@@ -198,7 +200,7 @@ func setupOnDB(t *testing.T, db *gorm.DB) fixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return fixture{ctx: ctx, db: db, s: s, org: org, ledger: ledger.New(db), commerce: store, coverage: cap, operator: platform.Operator.ID, brand: platform.Brand.ID, owner: owner, policy: policy, quote: quote}
+	return fixture{ctx: ctx, db: db, s: s, org: org, ledger: ledger.New(db), commerce: store, coverage: cap, operator: platform.Operator.ID, brand: platform.Brand.ID, owner: owner, quote: quote}
 }
 func (f fixture) register(t *testing.T, email, code string) organization.RegistrationResult {
 	t.Helper()

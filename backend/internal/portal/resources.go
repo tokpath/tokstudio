@@ -96,7 +96,7 @@ func (a *Application) referrals(c *gin.Context) {
 	if !a.Config.IsProduction() {
 		scheme = "http"
 	}
-	c.JSON(200, gin.H{"invite_code": code, "invite_url": scheme + "://" + a.requestHost(c) + "/register?invite=" + code, "direct_count": overview.DirectInvites, "indirect_count": overview.IndirectInvites, "qualified": overview.Qualification.AcquiredAt != nil, "function_status": overview.FunctionState.Status, "confirmed_money": overview.Qualification.ConfirmedMoney, "pending_money": overview.PendingConsumptionMoney, "threshold_money": policy.ThresholdMoney, "direct_rate": policy.DirectRate, "indirect_rate": policy.IndirectRate})
+	c.JSON(200, gin.H{"invite_code": code, "invite_url": scheme + "://" + a.requestHost(c) + "/register?invite=" + code, "direct_count": overview.DirectInvites, "indirect_count": overview.IndirectInvites, "qualified": overview.Qualification.AcquiredAt != nil, "function_status": overview.FunctionState.Status, "confirmed_money": overview.Qualification.ConfirmedMoney, "pending_money": overview.PendingConsumptionMoney, "threshold_money": policy.QualificationThreshold(), "direct_rate": policy.DirectRate, "indirect_rate": policy.IndirectRate})
 }
 func (a *Application) customerWorkspace(c *gin.Context) {
 	id := subject(c)
@@ -569,7 +569,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 		for _, row := range rows {
 			item := entity(row.ID, row.Lifecycle, 1, row)
 			item["allowed_actions"] = []string{}
-			if !owned[row.ID] {
+			if !owned[row.ID] && row.Lifecycle != "exiting" && row.Lifecycle != "terminated" {
 				item["allowed_actions"] = []string{"invite_owner"}
 			}
 			items = append(items, item)
@@ -594,7 +594,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 		} else if op.Kind == organization.Channel {
 			p["operations"] = []operation{}
 		}
-		p["row_operations"] = []operation{{Name: "invite_owner", Label: "开通首位负责人", Method: "POST", Path: base + "/{id}/invite_owner", Fields: ownerAccessFields(true), Description: "为尚无有效负责人的直属经营方开通首位负责人。可手动交付登录信息或发送邮件邀请；已有账号须本人接受邀请。"}}
+		p["row_operations"] = []operation{{Name: "invite_owner", Label: "开通首位负责人", Method: "POST", Path: base + "/{id}/invite_owner", Fields: ownerAccessFields(true), Description: "为直属经营方开通首位负责人。可手动交付登录信息或发送邮件邀请；已有账号须本人接受邀请。重新邀请后，上一封未接受的邀请失效。"}}
 	case "coverage":
 		a.coverageResource(c, op, base, p)
 		return
@@ -615,6 +615,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 		}
 		if e == nil {
 			shown := values(policy)
+			shown["threshold_money"] = policy.QualificationThreshold()
 			delete(shown, "direct_rate")
 			delete(shown, "indirect_rate")
 			shown["direct_percent"] = ratePercentage(policy.DirectRate)
@@ -644,7 +645,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 		}
 		v := values(row)
 		readiness := []gin.H{}
-		destinations := map[string]string{"incentives_policy": "commissions", "verification_mail": "mail", "reward_coverage": "coverage", "package": "plans", "payment": "payment-methods", "catalog_pricing": "pricing", "coverage": "coverage"}
+		destinations := map[string]string{"verification_mail": "mail", "reward_coverage": "coverage", "package": "plans", "payment": "payment-methods", "catalog_pricing": "pricing", "coverage": "coverage"}
 		for _, feature := range []organization.BusinessFeature{organization.Registration, organization.NewPurchase, organization.Renewal, organization.ModelUsage, organization.Activity, organization.Settlement} {
 			requirements, err := a.Check(ctx, nil, op, feature)
 			if err != nil {

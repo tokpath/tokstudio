@@ -4040,6 +4040,15 @@
     "Bagi setiap panggilan, pilih cara ia dipanggil dan masukkan nama caj, unit, laluan penggunaan dan penggunaan maksimum.",
     "สำหรับการเรียกใช้แต่ละแบบ เลือกวิธีเรียกและระบุชื่อค่าบริการ หน่วย พาธการใช้งาน และปริมาณใช้งานสูงสุด"
   ],
+  "为直属经营方开通首位负责人。可手动交付登录信息或发送邮件邀请；已有账号须本人接受邀请。重新邀请后，上一封未接受的邀请失效。": [
+    "为直属经营方开通首位负责人。可手动交付登录信息或发送邮件邀请；已有账号须本人接受邀请。重新邀请后，上一封未接受的邀请失效。",
+    "Set up the first owner of a direct partner. Share sign-in details manually or send an email invitation. Existing account holders must accept their own invitations. Sending a new invitation replaces the previous pending one.",
+    "直属の事業者の最初の責任者を設定します。ログイン情報を手渡すか、メールで招待できます。既存アカウントでは本人が招待を承認してください。新しい招待を送ると、前の未承認の招待は無効になります。",
+    "Назначьте первого руководителя прямого партнёра. Передайте данные для входа вручную или отправьте приглашение по почте. Владельцы существующих аккаунтов принимают приглашение сами. Новое приглашение заменяет предыдущее непринятое.",
+    "सीधे भागीदार का पहला स्वामी जोड़ें। साइन-इन विवरण स्वयं दें या ईमेल आमंत्रण भेजें। मौजूदा खाताधारक अपना आमंत्रण खुद स्वीकार करें। नया आमंत्रण भेजने पर पिछला लंबित आमंत्रण अमान्य हो जाता है।",
+    "Tetapkan pemilik pertama untuk rakan niaga langsung. Kongsi butiran log masuk secara manual atau hantar jemputan melalui e-mel. Pemegang akaun sedia ada perlu menerima sendiri jemputan mereka. Jemputan baharu menggantikan jemputan sebelumnya yang belum diterima.",
+    "ตั้งเจ้าของคนแรกของคู่ค้าโดยตรง ส่งข้อมูลเข้าสู่ระบบด้วยตนเองหรือส่งคำเชิญทางอีเมล ผู้ที่มีบัญชีอยู่แล้วต้องตอบรับคำเชิญด้วยตนเอง เมื่อส่งคำเชิญใหม่ คำเชิญเดิมที่ยังไม่ได้ตอบรับจะหมดผล"
+  ],
   "为第一个应用创建 Key": [
     "为第一个应用创建 Key",
     "Create a Key for your first application",
@@ -36836,6 +36845,15 @@
     "Kata laluan kakitangan",
     "รหัสผ่านพนักงาน"
   ],
+  "经营人员请到平台找回密码": [
+    "经营人员请到平台找回密码",
+    "Reset a staff password on the platform",
+    "運営スタッフのパスワードはプラットフォームで再設定",
+    "Сбросить пароль сотрудника на платформе",
+    "स्टाफ़ का पासवर्ड प्लेटफ़ॉर्म पर रीसेट करें",
+    "Tetapkan semula kata laluan kakitangan di platform",
+    "รีเซ็ตรหัสผ่านของเจ้าหน้าที่บนแพลตฟอร์ม"
+  ],
   "经营人员邀请": [
     "经营人员邀请",
     "Staff invitation",
@@ -37024,6 +37042,15 @@
     "संचालक की कोई बाहरी भुगतान विधि तैयार नहीं है। पर्याप्त आंतरिक निधि उपयोग करें या संचालक से सेटअप पूरा करने को कहें।",
     "Pengendali tiada kaedah pembayaran luaran yang sedia. Gunakan dana dalaman yang mencukupi atau minta pengendali menyelesaikan persediaan.",
     "ผู้ดำเนินงานไม่มีวิธีชำระเงินภายนอกที่พร้อม ใช้เงินภายในให้เพียงพอหรือขอให้ผู้ดำเนินงานตั้งค่าให้เสร็จ"
+  ],
+  "经营方尚未设置 KOL 资格门槛。": [
+    "经营方尚未设置 KOL 资格门槛。",
+    "The operator has yet to set a KOL eligibility threshold.",
+    "運営事業者は KOL 資格の基準をまだ設定していません。",
+    "Оператор ещё не установил порог получения статуса KOL.",
+    "संचालक ने अभी KOL पात्रता सीमा तय नहीं की है।",
+    "Pengendali belum menetapkan ambang kelayakan KOL.",
+    "ผู้ให้บริการยังไม่ได้กำหนดเกณฑ์คุณสมบัติ KOL"
   ],
   "经营方已停止套餐「{name}」的后续续费，当前已购额度和有效期保持不变。可在套餐页面选择其他在售套餐。": [
     "经营方已停止套餐「{name}」的后续续费，当前已购额度和有效期保持不变。可在套餐页面选择其他在售套餐。",
@@ -43027,6 +43054,15 @@
     "इनपुट पाठ",
     "Teks input",
     "ข้อความอินพุต"
+  ],
+  "输入注册邮箱，我们会发送找回链接。": [
+    "输入注册邮箱，我们会发送找回链接。",
+    "Enter the email address on your account to get a password reset link.",
+    "アカウントのメールアドレスを入力すると、パスワード再設定リンクが届きます。",
+    "Введите адрес почты вашего аккаунта, чтобы получить ссылку для сброса пароля.",
+    "पासवर्ड रीसेट लिंक पाने के लिए अपने खाते का ईमेल पता डालें।",
+    "Masukkan alamat e-mel akaun anda untuk mendapatkan pautan tetapan semula kata laluan.",
+    "กรอกอีเมลของบัญชีเพื่อรับลิงก์รีเซ็ตรหัสผ่าน"
   ],
   "输入类型": [
     "输入类型",

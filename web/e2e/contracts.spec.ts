@@ -2,7 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 const brand = { id: "brand-1", name: "山海模型", api_base_url: "https://api.shanhai.example/v1", theme: { primary_color: "#2444aa", accent_color: "#163377" } };
 const operator = { id: "channel-1", name: "星河渠道", kind: "channel", brand_id: "brand-1", contact_email: "support@example.test", legal_name: "星河服务主体", theme: { primary_color: "#775522" } };
-const context = { brand, operator, theme: { primary_color: "#775522", accent_color: "#163377" }, availability: [], payment_methods: [] };
+const brandOperator = { id: "oem-1", name: "山海直属", kind: "oem", brand_id: "brand-1", legal_name: "山海服务主体" };
+const context = { brand, operator, brand_operator: brandOperator, theme: { primary_color: "#775522", accent_color: "#163377" }, availability: [], payment_methods: [] };
 const customer = { kind: "customer", customer: { id: "customer-1", email: "customer@example.test", display_name: "林同学" }, brand, operator, csrf_token: "csrf_test" };
 const credits = { customer_atg: { available: "12.000000000000000001", held: "0.01", purchased_remaining: "10.000000000000000001", gift_remaining: "2" }, money_balance: { available: "20", held: "0" }, commission_money: { available: "3", held: "1", frozen: "0.000000000000000001", recovery_due: "0" }, qualification: { confirmed_money: "50", pending_money: "5", threshold_money: "100", qualified_at: null, function_status: "normal" } };
 const model = { id: "public-chat", name: "公开文本模型", capabilities: ["chat"], status: "published", prices: [{ component: "输入", amount_atg: "0.00000001", unit: "token" }] };
@@ -20,7 +21,14 @@ async function api(page: Page, session: unknown = customer) {
   await page.route("**/api/v1/**", async route => {
     const url = new URL(route.request().url()), path = url.pathname;
     let data: unknown = { items: [] };
-    if (path === "/api/v1/public/context") { const code = url.searchParams.get("invite_code"); data = code ? { ...context, invitation: { code, status: code === "BAD" ? "invalid" : "valid", type: "user", operator: { ...operator, id: code === "NEW" ? "channel-2" : "channel-1", name: code === "NEW" ? "新经营方" : operator.name }, inviter_display_name: "已脱敏邀请人", message: code === "BAD" ? "邀请码不可用，请更正或显式移除。" : undefined } } : context; }
+    if (path === "/api/v1/public/context") {
+      const code = url.searchParams.get("invite_code");
+      if (code === "BAD001") data = { ...context, operator: brandOperator, invitation: { code, status: "invalid", message: "邀请码不可用，请更正或显式移除。" } };
+      else if (code) {
+        const invitedOperator = code === "NEW002" ? { ...operator, id: "channel-2", name: "新经营方", legal_name: "新服务主体" } : operator;
+        data = { ...context, operator: invitedOperator, invitation: { code, status: "valid", type: "user", operator: invitedOperator, inviter_display_name: "已脱敏邀请人" } };
+      } else data = context;
+    }
     else if (path === "/api/v1/auth/me") data = session;
     else if (path === "/api/v1/me/credits") data = credits;
     else if (["/api/v1/public/models", "/api/v1/me/models"].includes(path)) data = { items: [model] };
@@ -50,11 +58,20 @@ test("explicit dark mode keeps a branded white website readable", async ({ page 
 });
 
 test("registration uses the final explicit invitation and blocks invalid fallback", async ({ page }) => {
-  await api(page, { kind: "anonymous" }); let submitted: Record<string, unknown> | undefined;
+  await api(page); let submitted: Record<string, unknown> | undefined;
   await page.route("**/api/v1/auth/registrations", async route => { submitted = route.request().postDataJSON(); expect(route.request().headers()["idempotency-key"]).toMatch(/^[0-9a-f-]{36}$/); await route.fulfill({ json: { registration_id: "reg-1", verification_required: true, message: "请查收验证邮件" } }); });
-  await page.goto("/register?invite_code=BAD"); await page.getByLabel("显示名称").fill("新客户"); await page.getByLabel("邮箱", { exact: true }).fill("new@example.test"); await page.getByLabel("密码", { exact: true }).fill("a-long-password-123"); await expect(page.getByRole("button", { name: "确认归属并注册" })).toBeDisabled();
-  await page.getByLabel("邀请码（可选）").fill("NEW");
-  await expect(page.getByText("经营方：新经营方", { exact: false })).toBeVisible();
+  await page.goto("/register?invite_code=BAD001");
+  await expect(page.getByRole("alert").filter({ hasText: "邀请码不可用" })).toBeVisible();
+  await expect(page.getByText("实际经营方：", { exact: false })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "确认归属并注册" })).toBeDisabled();
+  await page.getByRole("button", { name: "显式移除邀请码，改为品牌直属注册" }).click();
+  await expect(page.getByText("实际经营方：山海直属", { exact: false })).toBeVisible();
+  await expect(page.locator("form").getByText("经营方：山海直属", { exact: false })).toBeVisible();
+  await page.getByLabel("显示名称").fill("新客户"); await page.getByLabel("邮箱", { exact: true }).fill("new@example.test");
+  await page.getByLabel("邀请码（可选）").fill("NEW002");
+  await expect(page.getByText("实际经营方：新经营方", { exact: false })).toBeVisible();
+  await expect(page.locator("form").getByText("经营方：新经营方", { exact: false })).toBeVisible();
+  await expect(page.getByText("实际经营方：星河渠道", { exact: false })).toHaveCount(0);
   const password = page.getByLabel("密码", { exact: true }), register = page.getByRole("button", { name: "确认归属并注册" });
   await password.fill("1234567890");
   await register.click();
@@ -63,7 +80,7 @@ test("registration uses the final explicit invitation and blocks invalid fallbac
   await password.fill("Abcdefghi1");
   await register.click();
   await expect(page.getByText("请查收验证邮件")).toBeVisible();
-  expect(submitted).toMatchObject({ invite_code: "NEW", password: "Abcdefghi1" });
+  expect(submitted).toMatchObject({ invite_code: "NEW002", password: "Abcdefghi1" });
 });
 
 test("customer amounts stay precise and a created key secret disappears when closed", async ({ page }) => {

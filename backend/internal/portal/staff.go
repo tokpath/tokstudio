@@ -18,7 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, actor string) {
+func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, actor string, firstOwner bool) {
 	var in struct {
 		Email, Role     string
 		DeliveryMode    string `json:"delivery_mode"`
@@ -27,6 +27,15 @@ func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, acto
 	}
 	if !body(c, &in) {
 		return
+	}
+	scope := "staff-invite:"
+	if firstOwner {
+		if in.Role != "" && in.Role != "owner" {
+			handleError(c, organization.ErrInvalidInput)
+			return
+		}
+		in.Role = "owner"
+		scope = "first-owner-invite:"
 	}
 	if in.DeliveryMode == "" {
 		in.DeliveryMode = "manual"
@@ -40,14 +49,28 @@ func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, acto
 		return
 	}
 	ctx := c.Request.Context()
-	raw, e := a.command(c, "staff-invite:"+op.ID, in, func(tx *gorm.DB) (any, error) {
-		inv, e := a.Organization.InviteStaff(ctx, tx, actor, op.ID, in.Email, in.Role)
+	raw, e := a.command(c, scope+op.ID, in, func(tx *gorm.DB) (any, error) {
+		email, e := organization.NormalizeEmail(in.Email)
 		if e != nil {
 			return nil, e
 		}
 		// Serialize provisioning across all operators; an existing account is never reset.
-		if e = tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "staff-email:"+inv.Email).Error; e != nil {
+		if e = tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "staff-email:"+email).Error; e != nil {
 			return nil, e
+		}
+		var inv organization.StaffInvitation
+		if firstOwner {
+			inv, e = a.Organization.InviteFirstOwner(ctx, tx, actor, op.ID, email)
+		} else {
+			inv, e = a.Organization.InviteStaff(ctx, tx, actor, op.ID, email, in.Role)
+		}
+		if e != nil {
+			return nil, e
+		}
+		if in.Role == "owner" {
+			if e = expireReplacedOwnerInvitations(tx, op.ID); e != nil {
+				return nil, e
+			}
 		}
 		scheme := "https"
 		if !a.Config.IsProduction() {
@@ -118,6 +141,20 @@ func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, acto
 	})
 	jsonResponse(c, raw, e)
 }
+
+func expireReplacedOwnerInvitations(tx *gorm.DB, operatorID string) error {
+	return tx.Exec(`WITH expired AS (
+ UPDATE portal_challenges ch SET expires_at = i.expires_at
+ FROM organization_staff_invitations i
+ WHERE ch.intent_id = i.id AND i.operator_id = ? AND i.role = 'owner'
+ AND i.accepted_at IS NULL AND i.expires_at <= CURRENT_TIMESTAMP AND ch.expires_at > i.expires_at
+ AND ch.kind IN ('staff_invitation', 'staff_invitation_manual') AND ch.completed_at IS NULL
+ RETURNING ch.id, ch.expires_at
+)
+UPDATE portal_messages m SET expires_at = e.expires_at
+FROM expired e WHERE m.subject_id = e.id AND m.status = 'pending' AND m.expires_at > e.expires_at`, operatorID).Error
+}
+
 func (a *Application) acceptStaff(c *gin.Context) {
 	var in struct {
 		Token, Password string

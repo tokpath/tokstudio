@@ -28,10 +28,10 @@ export const FeeRuleSchema=z.object({driver:z.string().optional(),fee_rule_id:z.
 export const PaymentMethodSchema = z.object({ fee_rule_id:z.string().optional(),flat_fee_money:Decimal.optional(),fee_rate:Decimal.optional(),display_name:z.string().optional(), settlement_currency: z.string().optional(), settlement_supported: z.boolean().optional(), unsupported_reason: z.string().optional(), requires_settlement_confirmation: z.boolean().optional(), id: ID, name: z.string(), kind: z.enum(["online", "offline"]), status: z.enum(["ready", "pending_configuration", "disabled"]), instructions: z.string().optional(), currency: z.string().optional() });
 export const PublicContextSchema = z.object({
   monetary: MonetarySchema.default(defaultMonetary),
-  brand: BrandSchema, operator: OperatorSchema, theme: ThemeSchema,
+  brand: BrandSchema, operator: OperatorSchema, brand_operator: OperatorSchema.optional(), theme: ThemeSchema,
   invitation: z.object({ code: z.string(), status: z.enum(["valid", "invalid", "disabled", "wrong_brand"]), type: z.enum(["user", "channel"]).optional(), operator: OperatorSchema.optional(), inviter_display_name: z.string().optional(), message: z.string().optional() }).optional(),
   availability: z.array(AvailabilitySchema), payment_methods: z.array(PaymentMethodSchema),
-  google_sign_in: z.boolean().optional(),
+  google_sign_in: z.boolean().optional(), staff_recovery_url: z.string().url().optional(),
 });
 export type PublicContext = z.infer<typeof PublicContextSchema>;
 const PersonSchema = z.object({ id: ID, email: z.string(), display_name: z.string() });
@@ -52,7 +52,7 @@ export const CreditsSchema = z.object({
   customer_atg: BalanceSchema.extend({ purchased_remaining: Decimal, gift_remaining: Decimal, expired: Decimal.optional() }),
   money_balance: BalanceSchema,
   commission_money: BalanceSchema.extend({ frozen: Decimal, recovery_due: Decimal,source_restricted:Decimal.optional() }),
-  qualification: z.object({ confirmed_money: Decimal, pending_money: Decimal,pending_correction_money:Decimal.optional(), threshold_money: Decimal, qualified_at: z.string().nullable(), function_status: z.string() }),
+  qualification: z.object({ confirmed_money: Decimal, pending_money: Decimal,pending_correction_money:Decimal.optional(), threshold_money: Decimal.nullable(), qualified_at: z.string().nullable(), function_status: z.string() }),
 });
 export type Credits = z.infer<typeof CreditsSchema>;
 export const PlanSchema = z.object({ id: ID, name: z.string(), price_money: Decimal, purchase_atg: Decimal, gift_atg: Decimal, validity: z.enum(["unlimited", "month", "quarter", "year"]), auto_renew_available: z.boolean(), status: z.string(), description: z.string().optional(), terms_summary:z.string().optional(), quote_id:ID.optional(), version: z.number().int() });
@@ -72,7 +72,7 @@ export type APIKey = z.infer<typeof KeySchema>;
 export const KeySecretSchema = z.object({ key: KeySchema, secret: z.string().min(1) });
 export const RequestSchema = z.object({ id: ID, model_id: ID, key_name: z.string(), status: z.string(), charged_atg: Decimal, corrected_atg:Decimal.optional(),corrected_charged_atg:Decimal.optional(),net_actual_atg:Decimal.optional(),net_charged_atg:Decimal.optional(), held_atg: Decimal, created_at: z.string(), result_expires_at: z.string().nullable().optional(), result_url: z.string().nullable().optional(), reason: z.string().optional(), actual_atg: Decimal.optional(), merchant_shortfall_atg: Decimal.optional(), components: z.array(z.object({ component: z.string(), label:z.string().optional(), quantity: z.string(), unit: z.string(), price_atg: Decimal.optional(), price_description: z.string().optional(), amount_atg: SignedDecimal })).optional(), allocations: z.array(z.object({ source_name: z.string(), kind: z.string(), amount_atg: Decimal, paid_basis_money: Decimal, sources: z.array(z.object({kind:z.string(),amount_atg:Decimal})).optional() })).optional() });
 export const InviteCodeSchema = z.string().regex(/^[0-9A-Z]{6}$/);
-export const ReferralSchema = z.object({ invite_code: InviteCodeSchema, invite_url: z.string(), direct_count: z.number().int(), indirect_count: z.number().int(), qualified: z.boolean(), function_status: z.string(), confirmed_money: Decimal, pending_money: Decimal, threshold_money: Decimal, direct_rate: Decimal, indirect_rate: Decimal });
+export const ReferralSchema = z.object({ invite_code: InviteCodeSchema, invite_url: z.string(), direct_count: z.number().int(), indirect_count: z.number().int(), qualified: z.boolean(), function_status: z.string(), confirmed_money: Decimal, pending_money: Decimal, threshold_money: Decimal.nullable(), direct_rate: Decimal, indirect_rate: Decimal });
 export const ChannelInvitationSchema = z.object({ invite_code: InviteCodeSchema, invite_url: z.string(), brand_name: z.string(), enabled: z.boolean(), registration_open: z.boolean() });
 export const CommissionSchema = z.object({ id: ID, source_id: ID, type: z.string(), hop: z.number().int(), status: z.string(), amount_money: SignedDecimal, basis_money: Decimal, created_at: z.string(), confirms_at: z.string().nullable(), description: z.string().optional() });
 export const NotificationSchema = z.object({ id: ID, title: z.string(), body: z.string(), category: z.string(), necessary: z.boolean(), system_generated: z.boolean().optional(), read_at: z.string().nullable(), created_at: z.string(), action_url: z.string().optional(), delivery_status: z.string().optional() });

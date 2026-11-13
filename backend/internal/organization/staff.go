@@ -2,6 +2,7 @@ package organization
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -64,38 +65,62 @@ func (s *Service) ListMemberships(ctx context.Context, tx *gorm.DB, actorID, ope
 	return out, nil
 }
 
-func (s *Service) InviteStaff(ctx context.Context, tx *gorm.DB, actorID, operatorID, email, role string) (out StaffInvitation, err error) {
+func (s *Service) InviteStaff(ctx context.Context, tx *gorm.DB, actorID, operatorID, email, role string) (StaffInvitation, error) {
+	return s.inviteStaff(ctx, tx, actorID, operatorID, email, role, false)
+}
+
+func (s *Service) InviteFirstOwner(ctx context.Context, tx *gorm.DB, actorID, operatorID, email string) (StaffInvitation, error) {
+	return s.inviteStaff(ctx, tx, actorID, operatorID, email, "owner", true)
+}
+
+func (s *Service) inviteStaff(ctx context.Context, tx *gorm.DB, actorID, operatorID, email, role string, firstOwner bool) (out StaffInvitation, err error) {
 	email, err = NormalizeEmail(email)
 	if err != nil {
 		return out, err
 	}
-	if _, ok := rolePermissions[role]; !ok {
+	if _, ok := rolePermissions[role]; !ok || !validID(operatorID) {
 		return out, ErrInvalidInput
 	}
 	err = s.withTx(ctx, tx, func(tx *gorm.DB) error {
-		o, err := s.GetOperator(ctx, tx, operatorID)
-		if err != nil {
-			return err
+		var op operatorRow
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Take(&op, "id = ?", operatorID).Error; err != nil {
+			return classify(err)
 		}
-		if err = s.RequirePermission(ctx, tx, actorID, operatorID, "staff.manage"); err != nil {
-			// Opening a child authorizes its first owner invitation only. It
-			// never authorizes management of that child's other staff.
-			if role != "owner" || o.ParentOperatorID == nil {
+		if op.Lifecycle == "exiting" || op.Lifecycle == "terminated" {
+			return ErrForbidden
+		}
+		if !firstOwner {
+			if err := s.RequirePermission(ctx, tx, actorID, operatorID, "staff.manage"); err != nil {
+				if !errors.Is(err, ErrForbidden) {
+					return err
+				}
+				firstOwner = true
+			}
+		}
+		if firstOwner {
+			if role != "owner" || op.ParentOperatorID == nil {
 				return ErrForbidden
 			}
-			if err = s.RequirePermission(ctx, tx, actorID, *o.ParentOperatorID, "organization.create"); err != nil {
+			if err = s.RequirePermission(ctx, tx, actorID, *op.ParentOperatorID, "organization.create"); err != nil {
 				return err
-			}
-			var count int64
-			if err = tx.Model(&membershipRow{}).Where("operator_id = ? AND role='owner'", operatorID).Count(&count).Error; err != nil {
-				return err
-			}
-			if count > 0 {
-				return ErrForbidden
 			}
 		} else {
 			for _, action := range rolePermissions[role] {
 				if err = s.RequirePermission(ctx, tx, actorID, operatorID, action); err != nil {
+					return err
+				}
+			}
+		}
+		if role == "owner" {
+			var hasOwner bool
+			if err = tx.Raw(`SELECT EXISTS (SELECT 1 FROM organization_staff_memberships WHERE operator_id = ? AND role = 'owner')`, operatorID).Scan(&hasOwner).Error; err != nil {
+				return err
+			}
+			if firstOwner && hasOwner {
+				return ErrForbidden
+			}
+			if !hasOwner {
+				if err = tx.Exec(`UPDATE organization_staff_invitations SET expires_at = LEAST(expires_at, CURRENT_TIMESTAMP, ?) WHERE operator_id = ? AND role = 'owner' AND accepted_at IS NULL`, s.now(), operatorID).Error; err != nil {
 					return err
 				}
 			}
@@ -133,16 +158,24 @@ func (s *Service) AcceptAuthenticatedStaffInvitation(ctx context.Context, tx *go
 		return out, err
 	}
 	err = s.withTx(ctx, tx, func(tx *gorm.DB) error {
+		hash := tokenHash(rawToken)
 		var r struct {
-			ID, OperatorID, EmailNormalized, Role, TokenHash string
-			ExpiresAt                                        time.Time
-			AcceptedBy                                       *string
-			AcceptedAt                                       *time.Time
+			ID, OperatorID, EmailNormalized, Role string
+			ExpiresAt                             time.Time
+			AcceptedBy                            *string
 		}
-		if err := tx.Table("organization_staff_invitations").Clauses(clause.Locking{Strength: "UPDATE"}).First(&r, "token_hash = ?", tokenHash(rawToken)).Error; err != nil {
+		if err := tx.Table("organization_staff_invitations").Select("operator_id").Take(&r, "token_hash = ?", hash).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return ErrInvalidVerification
 			}
+			return err
+		}
+		// Replacement and acceptance serialize on the same operator before locking the invitation.
+		var op operatorRow
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Take(&op, "id = ?", r.OperatorID).Error; err != nil {
+			return err
+		}
+		if err := tx.Table("organization_staff_invitations").Clauses(clause.Locking{Strength: "UPDATE"}).Take(&r, "token_hash = ?", hash).Error; err != nil {
 			return err
 		}
 		if r.EmailNormalized != email {
@@ -161,6 +194,9 @@ func (s *Service) AcceptAuthenticatedStaffInvitation(ctx context.Context, tx *go
 		}
 		if !r.ExpiresAt.After(s.now()) {
 			return ErrInvalidVerification
+		}
+		if op.Lifecycle == "exiting" || op.Lifecycle == "terminated" {
+			return ErrForbidden
 		}
 		m := membershipRow{ID: newID(), OperatorID: r.OperatorID, StaffID: staff.ID, Role: r.Role, Status: "active", CreatedAt: s.now()}
 		if err = tx.Create(&m).Error; err != nil {

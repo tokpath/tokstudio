@@ -117,6 +117,11 @@ func setupPortalMonetary(t *testing.T, active bool) *testApp {
 }
 func (f *testApp) call(t *testing.T, method, path string, input any, key string) (int, map[string]any, http.Header) {
 	t.Helper()
+	return f.callOnHost(t, "", method, path, input, key)
+}
+
+func (f *testApp) callOnHost(t *testing.T, host, method, path string, input any, key string) (int, map[string]any, http.Header) {
+	t.Helper()
 	var body io.Reader
 	if input != nil {
 		b, _ := json.Marshal(input)
@@ -127,13 +132,18 @@ func (f *testApp) call(t *testing.T, method, path string, input any, key string)
 		t.Fatal(e)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	origin := f.server.URL
+	if host != "" {
+		req.Host = host
+		origin = "http://" + host
+	}
 	if method != "GET" {
 		if key == "" {
 			key = uuid.NewString()
 		}
 		req.Header.Set("Idempotency-Key", key)
 		req.Header.Set("X-CSRF-Token", f.csrf)
-		req.Header.Set("Origin", f.server.URL)
+		req.Header.Set("Origin", origin)
 	}
 	resp, e := f.client.Do(req)
 	if e != nil {

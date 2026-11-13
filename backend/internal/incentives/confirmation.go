@@ -244,6 +244,10 @@ func (s *Service) maybeQualify(ctx context.Context, tx *gorm.DB, operator, custo
 	if err != nil {
 		return err
 	}
+	threshold := p.QualificationThreshold()
+	if threshold == nil {
+		return nil
+	}
 	var knownPendingCorrections ledger.Decimal
 	if err = tx.Model(&confirmationRow{}).Select("COALESCE(SUM(paid_money),0)").Where("operator_id=? AND customer_id=? AND kind='correction' AND status='pending' AND confirm_at<=? AND occurred_at<=?", operator, customer, at, at).Scan(&knownPendingCorrections).Error; err != nil {
 		return err
@@ -252,7 +256,7 @@ func (s *Service) maybeQualify(ctx context.Context, tx *gorm.DB, operator, custo
 	if err = tx.Model(&confirmationRow{}).Select("COALESCE(SUM(paid_money),0)").Where("operator_id=? AND customer_id=? AND status='confirmed' AND confirm_at<=? AND (kind<>'correction' OR occurred_at<=?)", operator, customer, at, at).Scan(&confirmedAtTime).Error; err != nil {
 		return err
 	}
-	if confirmedAtTime.Add(knownPendingCorrections).Cmp(p.ThresholdMoney) < 0 {
+	if confirmedAtTime.Add(knownPendingCorrections).Cmp(*threshold) < 0 {
 		return nil
 	}
 	c, err := s.org.GetCustomer(ctx, tx, customer)
@@ -262,7 +266,7 @@ func (s *Service) maybeQualify(ctx context.Context, tx *gorm.DB, operator, custo
 	// Derive the logical qualification time from confirmed facts and the
 	// applicable threshold version, rather than the worker's catch-up time.
 	acquired := p.EffectiveAt
-	if p.ThresholdMoney.Sign() > 0 {
+	if threshold.Sign() > 0 {
 		var events []confirmationRow
 		if err := tx.Where("operator_id=? AND customer_id=? AND status='confirmed' AND confirm_at<=? AND (kind<>'correction' OR occurred_at<=?)", operator, customer, at, at).Order("confirm_at,business_sequence").Find(&events).Error; err != nil {
 			return err
@@ -271,7 +275,7 @@ func (s *Service) maybeQualify(ctx context.Context, tx *gorm.DB, operator, custo
 		found := false
 		for _, event := range events {
 			accumulated = accumulated.Add(event.PaidMoney)
-			if accumulated.Cmp(p.ThresholdMoney) >= 0 {
+			if accumulated.Cmp(*threshold) >= 0 {
 				if event.ConfirmAt.After(acquired) {
 					acquired = event.ConfirmAt
 				}

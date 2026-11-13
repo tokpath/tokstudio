@@ -116,7 +116,7 @@ func (a *Application) operatorCommand(c *gin.Context) {
 		return
 	}
 	if resource == "staff" {
-		a.inviteStaff(c, op, actor)
+		a.inviteStaff(c, op, actor, false)
 		return
 	}
 	if resource == "domains" {
@@ -451,7 +451,7 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 			handleError(c, organization.ErrForbidden)
 			return
 		}
-		a.inviteStaff(c, child, actor)
+		a.inviteStaff(c, child, actor, true)
 		return
 	}
 	if resource == "withdrawals" || resource == "balance-withdrawals" {

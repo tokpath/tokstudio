@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
-	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
@@ -31,15 +30,14 @@ func (a *Application) Check(ctx context.Context, tx *gorm.DB, op organization.Op
 	}
 
 	at := time.Now().UTC()
-	policy, err := a.Incentives.CurrentPolicy(ctx, tx, op.ID)
-	if err != nil && !errors.Is(err, incentives.ErrNotReady) {
-		return nil, err
-	}
-	add("incentives_policy", "已发布资格、分佣与注册奖励规则", err == nil)
 	if feature == organization.Registration {
+		policy, err := a.Incentives.CurrentPolicy(ctx, tx, op.ID)
+		if err != nil {
+			return nil, err
+		}
 		add("verification_mail", "可发送验证邮件", a.Mail.AvailableForBrand(op.BrandID))
 		reward := policy.InviteeATG.Add(policy.InviterATG)
-		if err == nil && reward.Sign() > 0 {
+		if reward.Sign() > 0 {
 			fits, err := a.Cooperation.SaleFits(ctx, tx, op.ID, at, reward)
 			if err != nil {
 				return nil, err

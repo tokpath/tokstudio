@@ -1,4 +1,36 @@
 {
+  "输入注册邮箱，我们会发送找回链接。": {
+    "en": "Enter the email address on your account to get a password reset link.",
+    "ja": "アカウントのメールアドレスを入力すると、パスワード再設定リンクが届きます。",
+    "ru": "Введите адрес почты вашего аккаунта, чтобы получить ссылку для сброса пароля.",
+    "hi": "पासवर्ड रीसेट लिंक पाने के लिए अपने खाते का ईमेल पता डालें।",
+    "ms": "Masukkan alamat e-mel akaun anda untuk mendapatkan pautan tetapan semula kata laluan.",
+    "th": "กรอกอีเมลของบัญชีเพื่อรับลิงก์รีเซ็ตรหัสผ่าน"
+  },
+  "经营人员请到平台找回密码": {
+    "en": "Reset a staff password on the platform",
+    "ja": "運営スタッフのパスワードはプラットフォームで再設定",
+    "ru": "Сбросить пароль сотрудника на платформе",
+    "hi": "स्टाफ़ का पासवर्ड प्लेटफ़ॉर्म पर रीसेट करें",
+    "ms": "Tetapkan semula kata laluan kakitangan di platform",
+    "th": "รีเซ็ตรหัสผ่านของเจ้าหน้าที่บนแพลตฟอร์ม"
+  },
+  "经营方尚未设置 KOL 资格门槛。": {
+    "en": "The operator has yet to set a KOL eligibility threshold.",
+    "ja": "運営事業者は KOL 資格の基準をまだ設定していません。",
+    "ru": "Оператор ещё не установил порог получения статуса KOL.",
+    "hi": "संचालक ने अभी KOL पात्रता सीमा तय नहीं की है।",
+    "ms": "Pengendali belum menetapkan ambang kelayakan KOL.",
+    "th": "ผู้ให้บริการยังไม่ได้กำหนดเกณฑ์คุณสมบัติ KOL"
+  },
+  "为直属经营方开通首位负责人。可手动交付登录信息或发送邮件邀请；已有账号须本人接受邀请。重新邀请后，上一封未接受的邀请失效。": {
+    "en": "Set up the first owner of a direct partner. Share sign-in details manually or send an email invitation. Existing account holders must accept their own invitations. Sending a new invitation replaces the previous pending one.",
+    "ja": "直属の事業者の最初の責任者を設定します。ログイン情報を手渡すか、メールで招待できます。既存アカウントでは本人が招待を承認してください。新しい招待を送ると、前の未承認の招待は無効になります。",
+    "ru": "Назначьте первого руководителя прямого партнёра. Передайте данные для входа вручную или отправьте приглашение по почте. Владельцы существующих аккаунтов принимают приглашение сами. Новое приглашение заменяет предыдущее непринятое.",
+    "hi": "सीधे भागीदार का पहला स्वामी जोड़ें। साइन-इन विवरण स्वयं दें या ईमेल आमंत्रण भेजें। मौजूदा खाताधारक अपना आमंत्रण खुद स्वीकार करें। नया आमंत्रण भेजने पर पिछला लंबित आमंत्रण अमान्य हो जाता है।",
+    "ms": "Tetapkan pemilik pertama untuk rakan niaga langsung. Kongsi butiran log masuk secara manual atau hantar jemputan melalui e-mel. Pemegang akaun sedia ada perlu menerima sendiri jemputan mereka. Jemputan baharu menggantikan jemputan sebelumnya yang belum diterima.",
+    "th": "ตั้งเจ้าของคนแรกของคู่ค้าโดยตรง ส่งข้อมูลเข้าสู่ระบบด้วยตนเองหรือส่งคำเชิญทางอีเมล ผู้ที่มีบัญชีอยู่แล้วต้องตอบรับคำเชิญด้วยตนเอง เมื่อส่งคำเชิญใหม่ คำเชิญเดิมที่ยังไม่ได้ตอบรับจะหมดผล"
+  },
   "赠送权益": {
     "en": "Gift credits",
     "ja": "特典残高",

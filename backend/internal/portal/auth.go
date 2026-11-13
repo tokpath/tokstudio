@@ -25,8 +25,11 @@ func (a *Application) brandDTO(ctx context.Context, b organization.Brand) gin.H 
 	}
 	return gin.H{"id": b.ID, "name": b.Name, "api_base_url": a.brandAPIEndpoint(ctx, b.ID), "theme": theme.Theme}
 }
+func operatorIdentityDTO(op organization.Operator) gin.H {
+	return gin.H{"id": op.ID, "name": op.Name, "kind": op.Kind, "brand_id": op.BrandID, "legal_name": op.LegalName, "lifecycle": op.Lifecycle}
+}
 func (a *Application) operatorDTO(ctx context.Context, op organization.Operator) gin.H {
-	result := gin.H{"id": op.ID, "name": op.Name, "kind": op.Kind, "brand_id": op.BrandID, "legal_name": op.LegalName, "lifecycle": op.Lifecycle}
+	result := operatorIdentityDTO(op)
 	theme, e := a.Branding.ResolveTheme(ctx, nil, op.BrandID, channelThemeID(op))
 	if e == nil {
 		result["theme"] = theme.Theme
@@ -382,8 +385,10 @@ func (a *Application) passwordReset(c *gin.Context) {
 		return
 	}
 	raw, e := a.command(c, "password-reset:"+brand(c).ID, in, func(tx *gorm.DB) (any, error) {
-		if e := a.queueStaffPasswordReset(c, tx, in.Email); e != nil {
-			return nil, e
+		if brand(c).ID == a.Installation.BrandID {
+			if e := a.queueStaffPasswordReset(c, tx, in.Email); e != nil {
+				return nil, e
+			}
 		}
 		ch, e := a.Organization.BeginPasswordReset(c.Request.Context(), tx, brand(c).ID, in.Email)
 		if errors.Is(e, organization.ErrNotFound) || errors.Is(e, organization.ErrInvalidCredentials) {
@@ -410,6 +415,9 @@ func (a *Application) passwordResetComplete(c *gin.Context) {
 			return nil, e
 		}
 		if ch.Kind == "staff_password_reset" {
+			if ch.BrandID != a.Installation.BrandID {
+				return nil, organization.ErrInvalidVerification
+			}
 			if e = a.completeStaffPasswordReset(tx, ch, in.Password); e != nil {
 				return nil, e
 			}

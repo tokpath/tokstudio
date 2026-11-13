@@ -47,6 +47,15 @@ type Policy struct {
 	EffectiveAt           time.Time      `json:"effective_at"`
 	BusinessSequence      int64          `json:"business_sequence"`
 }
+
+// QualificationThreshold is unset for the initial zero-commission policy.
+func (p Policy) QualificationThreshold() *ledger.Decimal {
+	if p.Version == 0 {
+		return nil
+	}
+	return &p.ThresholdMoney
+}
+
 type PolicyInput struct {
 	Evidence              string         `json:"evidence"`
 	ThresholdMoney        ledger.Decimal `json:"threshold_money"`

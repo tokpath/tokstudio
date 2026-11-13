@@ -153,7 +153,7 @@ func (s *demoBuilder) setup(operator, actor string) (commerce.PackageQuote, ince
 	}
 	d := ledger.MustDecimal
 	policy, e := s.a.Incentives.CurrentPolicy(s.ctx, s.tx, operator)
-	if errors.Is(e, incentives.ErrNotReady) {
+	if e == nil && policy.Version == 0 {
 		policy, e = s.a.Incentives.SetPolicy(s.ctx, s.tx, actor, operator, incentives.PolicyInput{ThresholdMoney: d("60"), DirectRate: d("0.15"), IndirectRate: d("0.05"), ConfirmationSeconds: 60, InviteeATG: ledger.Zero(), InviterATG: ledger.Zero(), RewardValiditySeconds: 2592000, KOLCrossActivityLimit: 3, Evidence: demoEvidence})
 	}
 	if e != nil {

@@ -1,9 +1,11 @@
 package portal
 
 import (
+	"context"
 	"encoding/json"
-	"github.com/gin-gonic/gin"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type settingChange struct {
@@ -12,22 +14,48 @@ type settingChange struct {
 	Summary []string  `json:"summary"`
 }
 
-// Called only after the owning workspace's read permission has been checked.
-// The public result contains names and outcomes, never raw event payloads.
-func (a *Application) settingHistory(c *gin.Context, operator, kind, subject string) ([]settingChange, error) {
-	var rows []struct {
-		Actor     string
-		CreatedAt time.Time
-		Payload   json.RawMessage
-	}
-	query := a.DB.WithContext(c.Request.Context()).Table("organization_events e").Select("COALESCE(NULLIF(s.display_name,''),s.email,'') AS actor,e.created_at,e.payload").Joins("LEFT JOIN portal_staff s ON s.id=e.actor_id").Where("e.operator_id=? AND e.event_type=?", operator, kind)
-	if subject != "" {
-		query = query.Where("e.payload->>'StaffID'=?", subject)
-	}
-	if err := query.Order("e.created_at DESC,e.id DESC").Limit(20).Scan(&rows).Error; err != nil {
+type settingEvent struct {
+	Subject, Actor string
+	CreatedAt      time.Time
+	Payload        json.RawMessage
+}
+
+func (a *Application) businessSettingHistory(c *gin.Context, operator string) ([]settingChange, error) {
+	var rows []settingEvent
+	err := a.DB.WithContext(c.Request.Context()).Table("organization_events e").
+		Select("COALESCE(NULLIF(s.display_name,''),s.email,'') AS actor,e.created_at,e.payload").
+		Joins("LEFT JOIN portal_staff s ON s.id=e.actor_id").
+		Where("e.operator_id=? AND e.event_type='business.status_changed'", operator).
+		Order("e.created_at DESC,e.id DESC").Limit(20).Scan(&rows).Error
+	if err != nil {
 		return nil, err
 	}
-	out := []settingChange{}
+	changes, err := presentSettingChanges(rows, true)
+	if err != nil {
+		return nil, err
+	}
+	return append([]settingChange{}, changes[""]...), nil
+}
+
+// Called after ListMemberships checks the workspace's read permission.
+func (a *Application) staffSettingHistory(ctx context.Context, operator string, staffIDs []string) (map[string][]settingChange, error) {
+	var rows []settingEvent
+	if len(staffIDs) == 0 {
+		return map[string][]settingChange{}, nil
+	}
+	query := a.DB.WithContext(ctx).Table("organization_events e").
+		Select(`e.payload->>'StaffID' AS subject, COALESCE(NULLIF(s.display_name,''),s.email,'') AS actor,
+			e.created_at,e.payload,row_number() OVER (PARTITION BY e.payload->>'StaffID' ORDER BY e.created_at DESC,e.id DESC) AS position`).
+		Joins("LEFT JOIN portal_staff s ON s.id=e.actor_id").
+		Where("e.operator_id=? AND e.event_type='staff.membership_changed' AND e.payload->>'StaffID' IN ?", operator, staffIDs)
+	if err := a.DB.WithContext(ctx).Table("(?) AS history", query).Where("position<=20").Order("subject,position").Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return presentSettingChanges(rows, false)
+}
+
+func presentSettingChanges(rows []settingEvent, business bool) (map[string][]settingChange, error) {
+	out := map[string][]settingChange{}
 	roles := map[string]string{"owner": "负责人", "operations": "运营", "finance": "财务", "support": "客服", "readonly": "只读", "custom": "明确自定义"}
 	features := map[string]string{"registration": "新客户注册", "new_purchase": "套餐新购", "renewal": "套餐续费", "model_usage": "模型调用", "activity": "营销活动", "settlement": "资金结算"}
 	for _, row := range rows {
@@ -40,7 +68,7 @@ func (a *Application) settingHistory(c *gin.Context, operator, kind, subject str
 			return nil, err
 		}
 		summary := []string{}
-		if kind == "business.status_changed" {
+		if business {
 			state := "暂停"
 			if payload.Enabled {
 				state = "开启"
@@ -67,8 +95,7 @@ func (a *Application) settingHistory(c *gin.Context, operator, kind, subject str
 				summary = append(summary, names...)
 			}
 		}
-		actor := row.Actor
-		out = append(out, settingChange{Actor: actor, At: row.CreatedAt, Summary: summary})
+		out[row.Subject] = append(out[row.Subject], settingChange{Actor: row.Actor, At: row.CreatedAt, Summary: summary})
 	}
 	return out, nil
 }

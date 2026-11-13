@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -308,7 +307,13 @@ func (a *Application) playground(c *gin.Context) {
 	if op == "video" {
 		op = modelruntime.Video
 	}
-	models, err := a.Catalog.PublicCatalog(c.Request.Context(), subject(c).Customer.Ownership.OperatorID, time.Now())
+	ctx := c.Request.Context()
+	operator, err := a.Organization.GetOperator(ctx, nil, subject(c).Customer.Ownership.OperatorID)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+	models, err := a.callableCatalog(ctx, operator)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -443,7 +448,12 @@ func (a *Application) apiModels(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	rows, e := a.Catalog.PublicCatalog(ctx, ownership.OperatorID, time.Now())
+	op, e := a.Organization.GetOperator(ctx, nil, ownership.OperatorID)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	rows, e := a.callableCatalog(ctx, op)
 	if e != nil {
 		handleError(c, e)
 		return

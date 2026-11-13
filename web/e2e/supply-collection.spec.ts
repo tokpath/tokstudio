@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { translate } from "../lib/i18n";
+import { translate } from "../lib/i18n-testing";
 
 const ready = process.env.TOKENHUB_STOCK_ACCEPTANCE_FILE;
 test.skip(!ready, "Requires the isolated real stock purchase application and PostgreSQL");

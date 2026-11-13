@@ -9,15 +9,36 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// HashPassword enforces bcrypt's byte limit explicitly (bcrypt must never
-// silently truncate). Digests are never returned in customer-facing DTOs.
 func HashPassword(password string) (string, error) {
-	if len(password) < 10 || len(password) > 72 {
-		return "", ErrInvalidInput
+	if !validPassword(password) {
+		return "", ErrPasswordPolicy
 	}
 	b, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	return string(b), err
 }
+
+func validPassword(password string) bool {
+	if len(password) < 10 || len(password) > 30 {
+		return false
+	}
+	var classes uint8
+	for _, c := range password {
+		switch {
+		case c >= '0' && c <= '9':
+			classes |= 1
+		case c >= 'A' && c <= 'Z':
+			classes |= 2
+		case c >= 'a' && c <= 'z':
+			classes |= 4
+		case c >= '!' && c <= '~':
+			classes |= 8
+		default:
+			return false
+		}
+	}
+	return classes&(classes-1) != 0
+}
+
 func CheckPassword(hash, password string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }

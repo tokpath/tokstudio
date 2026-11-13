@@ -3,7 +3,6 @@ package incentives
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -59,23 +58,27 @@ func (s *Service) fundingLot(ctx context.Context, t *gorm.DB, e CommissionEntry,
 	}
 	return s.applyFlagsToLot(t, lot)
 }
+
+// A dispute allocation is already part of reserved_money. Deduct only the
+// portion of source flags that has not yet been covered by such a reservation.
+const commissionLotSpendableSQL = `GREATEST(l.amount_money-l.reserved_money-l.consumed_money
+	-GREATEST(COALESCE(flags.amount,0)-COALESCE(disputes.amount,0),0),0)`
+const commissionLotAdjustmentsSQL = `
+	LEFT JOIN LATERAL (
+		SELECT sum(f.blocked_money) AS amount FROM incentives_commission_entry_flags f
+		WHERE f.entry_id=l.entry_id AND f.active
+	) flags ON true
+	LEFT JOIN LATERAL (
+		SELECT sum(a.amount_money) AS amount FROM incentives_commission_funding_allocations a
+		JOIN incentives_commission_funding_commands c ON c.id=a.command_id
+		WHERE a.entry_id=l.entry_id AND a.state='reserved' AND c.kind='dispute'
+	) disputes ON true`
+
 func (s *Service) lotSpendable(t *gorm.DB, lot commissionLot) (ledger.Decimal, error) {
-	var blocked, held ledger.Decimal
-	if e := t.Table("incentives_commission_entry_flags").Select("COALESCE(sum(blocked_money),0)::text").Where("entry_id=? AND active", lot.EntryID).Row().Scan(&blocked); e != nil {
-		return ledger.Zero(), e
-	}
-	if e := t.Table("incentives_commission_funding_allocations a").Select("COALESCE(sum(a.amount_money),0)::text").Joins("JOIN incentives_commission_funding_commands c ON c.id=a.command_id").Where("a.entry_id=? AND a.state='reserved' AND c.kind='dispute'", lot.EntryID).Row().Scan(&held); e != nil {
-		return ledger.Zero(), e
-	}
-	blocked = blocked.Sub(held)
-	if blocked.Sign() < 0 {
-		blocked = ledger.Zero()
-	}
-	available := lot.AmountMoney.Sub(lot.ReservedMoney).Sub(lot.ConsumedMoney).Sub(blocked)
-	if available.Sign() < 0 {
-		available = ledger.Zero()
-	}
-	return available, nil
+	var amount ledger.Decimal
+	err := t.Raw("SELECT "+commissionLotSpendableSQL+"::text FROM incentives_commission_funding_lots l "+
+		commissionLotAdjustmentsSQL+" WHERE l.entry_id=?", lot.EntryID).Row().Scan(&amount)
+	return amount, err
 }
 func (s *Service) reserveCommissionUse(ctx context.Context, t *gorm.DB, op, customer, kind, reference string, amount ledger.Decimal, restricted *string) (commissionFundingCommand, error) {
 	var command commissionFundingCommand
@@ -365,28 +368,38 @@ func (s *Service) OrderCommissionFunding(ctx context.Context, t *gorm.DB, op, cu
 	return rows, e
 }
 func (s *Service) CommissionSpendable(ctx context.Context, t *gorm.DB, op, customer string) (ledger.Decimal, error) {
-	if e := s.requireCommissionUseAllowed(ctx, s.dbFor(ctx, t), op, customer); e != nil {
-		if errors.Is(e, ErrBlocked) {
-			return ledger.Zero(), nil
-		}
-		return ledger.Zero(), e
-	}
-	return s.commissionProvenanceSpendable(ctx, t, op, customer)
+	amounts, err := s.CommissionSpendableByCustomer(ctx, t, op, []string{customer})
+	return amounts[customer], err
 }
+
+func (s *Service) CommissionSpendableByCustomer(ctx context.Context, t *gorm.DB, op string, customers []string) (map[string]ledger.Decimal, error) {
+	out := make(map[string]ledger.Decimal, len(customers))
+	if len(customers) == 0 {
+		return out, nil
+	}
+	var rows []struct {
+		CustomerID string
+		Spendable  ledger.Decimal
+	}
+	err := s.dbFor(ctx, t).Raw("SELECT l.customer_id, sum("+commissionLotSpendableSQL+`)::text AS spendable
+		FROM incentives_commission_funding_lots l `+commissionLotAdjustmentsSQL+`
+		WHERE l.operator_id=? AND l.customer_id IN ? AND NOT COALESCE((
+			SELECT f.release_blocked FROM incentives_function_states f
+			WHERE f.operator_id=l.operator_id AND f.customer_id=l.customer_id AND f.effective_at<=statement_timestamp()
+			ORDER BY f.effective_at DESC,f.business_sequence DESC LIMIT 1
+		),false)
+		GROUP BY l.customer_id`, op, customers).Scan(&rows).Error
+	for _, row := range rows {
+		out[row.CustomerID] = row.Spendable
+	}
+	return out, err
+}
+
 func (s *Service) commissionProvenanceSpendable(ctx context.Context, t *gorm.DB, op, customer string) (ledger.Decimal, error) {
-	var lots []commissionLot
-	if e := s.dbFor(ctx, t).Where("operator_id=? AND customer_id=?", op, customer).Find(&lots).Error; e != nil {
-		return ledger.Zero(), e
-	}
-	amount := ledger.Zero()
-	for _, lot := range lots {
-		value, e := s.lotSpendable(s.dbFor(ctx, t), lot)
-		if e != nil {
-			return ledger.Zero(), e
-		}
-		amount = amount.Add(value)
-	}
-	return amount, nil
+	var amount ledger.Decimal
+	err := s.dbFor(ctx, t).Raw("SELECT COALESCE(sum("+commissionLotSpendableSQL+"),0)::text FROM incentives_commission_funding_lots l "+
+		commissionLotAdjustmentsSQL+" WHERE l.operator_id=? AND l.customer_id=?", op, customer).Row().Scan(&amount)
+	return amount, err
 }
 
 func (s *Service) requireCommissionUseAllowed(ctx context.Context, t *gorm.DB, op, customer string) error {

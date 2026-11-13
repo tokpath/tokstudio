@@ -133,14 +133,11 @@ func (v *CloudflareVerifier) Verify(ctx context.Context, hostname, challenge str
 	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
-	records, e := v.settings.Resolver.LookupTXT(ctx, "_tokenhub."+hostname)
-	matched := false
-	for _, record := range records {
-		if strings.TrimSpace(record) == "tokenhub-verification="+challenge {
-			matched = true
-		}
+	matched, e := v.VerifyOwnership(ctx, hostname, challenge)
+	if e != nil {
+		return DomainVerification{}, e
 	}
-	if e != nil || !matched {
+	if !matched {
 		return DomainVerification{FailureReason: "DNS ownership challenge does not match"}, nil
 	}
 	hash := sha256.Sum256([]byte(challenge))

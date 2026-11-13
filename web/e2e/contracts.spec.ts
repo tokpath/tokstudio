@@ -53,7 +53,17 @@ test("registration uses the final explicit invitation and blocks invalid fallbac
   await api(page, { kind: "anonymous" }); let submitted: Record<string, unknown> | undefined;
   await page.route("**/api/v1/auth/registrations", async route => { submitted = route.request().postDataJSON(); expect(route.request().headers()["idempotency-key"]).toMatch(/^[0-9a-f-]{36}$/); await route.fulfill({ json: { registration_id: "reg-1", verification_required: true, message: "请查收验证邮件" } }); });
   await page.goto("/register?invite_code=BAD"); await page.getByLabel("显示名称").fill("新客户"); await page.getByLabel("邮箱", { exact: true }).fill("new@example.test"); await page.getByLabel("密码", { exact: true }).fill("a-long-password-123"); await expect(page.getByRole("button", { name: "确认归属并注册" })).toBeDisabled();
-  await page.getByLabel("邀请码（可选）").fill("NEW"); await expect(page.getByText("经营方：新经营方", { exact: false })).toBeVisible(); await page.getByRole("button", { name: "确认归属并注册" }).click(); await expect(page.getByText("请查收验证邮件")).toBeVisible(); expect(submitted?.invite_code).toBe("NEW");
+  await page.getByLabel("邀请码（可选）").fill("NEW");
+  await expect(page.getByText("经营方：新经营方", { exact: false })).toBeVisible();
+  const password = page.getByLabel("密码", { exact: true }), register = page.getByRole("button", { name: "确认归属并注册" });
+  await password.fill("1234567890");
+  await register.click();
+  await expect(page.getByRole("alert").filter({ hasText: "密码须为 10–30 位" })).toBeVisible();
+  expect(submitted).toBeUndefined();
+  await password.fill("Abcdefghi1");
+  await register.click();
+  await expect(page.getByText("请查收验证邮件")).toBeVisible();
+  expect(submitted).toMatchObject({ invite_code: "NEW", password: "Abcdefghi1" });
 });
 
 test("customer amounts stay precise and a created key secret disappears when closed", async ({ page }) => {

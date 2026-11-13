@@ -4,13 +4,15 @@ import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useI18n } from "@/components/i18n";
 import { request } from "@/lib/api-client";
-import { CommandResultSchema, Decimal, MonetarySchema } from "@/lib/contracts";
+import { CommandResultSchema, MonetarySchema } from "@/lib/contracts";
 import { compareDecimal } from "@/lib/decimal";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMonetary, monetaryRefetchInterval } from "./monetary";
 import { AlertText, ErrorPanel, Notice, When, useCommand } from "./shared";
+
+const ratioPattern = /^(0|[1-9][0-9]{0,19})(\.[0-9]{1,18})?$/;
 
 type Draft = { currency: string; atg_per_unit: string; effective_at: string; expected_version: number; confirmed: true };
 export function MonetarySettings({ canManage }: { canManage: boolean }) {
@@ -28,7 +30,8 @@ export function MonetarySettings({ canManage }: { canManage: boolean }) {
   function review(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget), currency = String(form.get("currency") || "").trim().toUpperCase(), ratio = String(form.get("atg_per_unit") || "").trim(), at = new Date(String(form.get("effective_at") || ""));
-    if (!/^[A-Z]{3}$/.test(currency) || !Decimal.safeParse(ratio).success || compareDecimal(ratio, "0") <= 0 || Number.isNaN(at.getTime()) || at.getTime() <= Date.now()) { setError("请填写有效的三位 ISO 币种、正数 ATG 比例和未来生效时间。"); return; }
+    if (!/^[A-Z]{3}$/.test(currency) || Number.isNaN(at.getTime()) || at.getTime() <= Date.now()) { setError("请填写有效的三位 ISO 币种和未来生效时间。"); return; }
+    if (!ratioPattern.test(ratio) || compareDecimal(ratio, "0") <= 0) { setError("ATG 比例须为正数，整数最多 20 位，小数最多 18 位。"); return; }
     setError(undefined); setAccepted(false); setDraft({ currency, atg_per_unit: ratio, effective_at: at.toISOString(), expected_version: monetary.version, confirmed: true });
   }
   return <Card>
@@ -47,7 +50,7 @@ export function MonetarySettings({ canManage }: { canManage: boolean }) {
       <Button disabled={busy || settings.isPending}>{t("核对并查看风险说明")}</Button>
     </form>}
     {canManage && draft && !locked && <div className="mt-5 space-y-4">
-      <Notice><p>{t("请再次确认：{currency}，每 1 单位购买 {ratio} ATG，生效于：", { currency: draft.currency, ratio: draft.atg_per_unit })} <When value={draft.effective_at} /></p><p>{t("生效后币种和基础比例永久锁定，暂停营业也无法修改。该比例只用于购买 ATG 换算和采购阶梯赠送；套餐等明确配置的 ATG 数量不会自动改变。系统不提供手工或自动汇率，不汇总跨币种利润。")}</p></Notice>
+      <Notice><p>{t("请再次确认：{currency}，每 1 单位购买 {ratio} ATG，生效于：", { currency: draft.currency, ratio: draft.atg_per_unit })} <When value={draft.effective_at} /></p><p>{t("生效后币种和基础比例永久锁定，暂停营业也无法修改。该比例只用于购买 ATG 换算和采购阶梯赠送；套餐等明确配置的 ATG 数量不会自动改变。外币支付按单报价，账务继续按实际原币记录。")}</p></Notice>
       <Notice>{t("请核对已录入的套餐、报价和费率：其中金额将按本次选定币种解释，ATG 数量保持原值；系统不会按外汇汇率换算已有配置。生效前资金与模型调用业务尚未开放，生效后规则永久锁定。")}</Notice>
       <label className="flex items-start gap-2 text-sm leading-6"><input type="checkbox" checked={accepted} disabled={busy} onChange={event => setAccepted(event.target.checked)} />{t("我已核对并理解永久锁定及换算规则")}</label>
       <div className="flex flex-wrap gap-3"><Button disabled={save.busy || (!save.unresolved && !accepted)} onClick={async () => { if (await save.run(save.unresolved ? undefined : draft)) { setDraft(undefined); setAccepted(false); } }}>{t(save.unresolved ? "重试原操作" : "确认预约生效")}</Button><Button variant="outline" disabled={busy} onClick={() => setDraft(undefined)}>{t("返回修改")}</Button></div>

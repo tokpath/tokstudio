@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 import {readFileSync} from "node:fs";
 import {randomUUID} from "node:crypto";
-import {translate} from "../lib/i18n";
+import {translate} from "../lib/i18n-testing";
 const ready=process.env.TOKENHUB_INVITATION_ACCEPTANCE_FILE;
 test.skip(!ready,"Requires the isolated channel invitation application and PostgreSQL");
 test("channel shares its brand invite and queries changes made by another session without changing filters",async({page,browser,baseURL},info)=>{

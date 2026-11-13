@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { translate } from "../lib/i18n";
+import { translate } from "../lib/i18n-testing";
 
 const brand = { id: "brand-visual", name: "TokenHub", api_base_url: "https://models.example.test/v1", theme: { primary_color: "#2f62e8", background_color: "#ffffff", text_color: "#172334" } };
 const operator = { id: "operator-visual", name: "TokenHub 平台", kind: "platform", brand_id: brand.id, legal_name: "视觉验收合成主体" };

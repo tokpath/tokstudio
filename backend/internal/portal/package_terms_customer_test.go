@@ -32,6 +32,12 @@ func TestPostgresReadablePackageTermsReachPurchaseAndRenewalConfirmation(t *test
 		return q
 	}
 	original := publish("", 0, "原服务支持约定")
+	// This projection fixture already has a published package and policy.
+	// Open the operator's sales gates before previewing an actual purchase.
+	if err := f.a.DB.Exec("UPDATE organization_operator_statuses SET new_purchase=true, renewal=true WHERE operator_id=?", parent).Error; err != nil {
+		t.Fatal(err)
+	}
+
 	// Seed a delivered-package projection fixture. Financial delivery and grants
 	// are independently covered by commerce tests; this test exercises browser
 	// DTOs and acceptance against immutable quote facts, without adding money.

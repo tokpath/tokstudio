@@ -918,49 +918,6 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 	}
 	return nil, catalog.ErrInvalidInput
 }
-func (a *Application) Check(ctx context.Context, tx *gorm.DB, op organization.Operator, feature organization.BusinessFeature) ([]organization.Requirement, error) {
-	requirements := []organization.Requirement{}
-	add := func(code, description string, ready bool) {
-		requirements = append(requirements, organization.Requirement{Code: code, Description: description, Ready: ready})
-	}
-	connection := tx
-	if connection == nil {
-		connection = a.DB
-	}
-	_, monetaryErr := ledger.RequireMonetary(ctx, connection)
-	add("monetary_foundation", "平台清算币种和 ATG 基础比例已正式生效", monetaryErr == nil)
-	policy, e := a.Incentives.CurrentPolicy(ctx, tx, op.ID)
-	add("incentives_policy", "已发布资格、分佣与注册奖励规则", e == nil)
-	if feature == organization.Registration {
-		add("verification_mail", "可发送验证邮件", a.Mail.AvailableForBrand(op.BrandID))
-		if e == nil && policy.InviteeATG.Add(policy.InviterATG).Sign() > 0 {
-			coverage, err := a.Cooperation.Coverage(ctx, tx, op.ID, time.Now())
-			add("reward_coverage", "奖励有真实覆盖承诺空间", err == nil && (!coverage.HasUpstream || coverage.Space.Sign() > 0))
-		}
-		return requirements, nil
-	}
-	if feature == organization.NewPurchase || feature == organization.Renewal {
-		pkgs, err := a.Commerce.ListPackages(ctx, tx, op.ID)
-		enabled := false
-		for _, p := range pkgs {
-			enabled = enabled || p.NewPurchaseEnabled || p.RenewalEnabled
-		}
-		add("package", "已发布可售套餐", err == nil && enabled)
-		methods, err := a.Payments.PublicMethods(ctx, op.ID)
-		add("payment", "经营方真实收款材料已配置", err == nil && len(methods) > 0)
-	}
-	if feature == organization.ModelUsage || feature == organization.NewPurchase || feature == organization.Renewal || feature == organization.Activity {
-		models, err := a.Catalog.PublicCatalog(ctx, op.ID, time.Now())
-		ready := false
-		for _, m := range models {
-			ready = ready || m.Status == "available"
-		}
-		add("catalog_pricing", "公开模型、完整价格及经过验证的上游能力", err == nil && ready)
-		coverage, err := a.Cooperation.Coverage(ctx, tx, op.ID, time.Now())
-		add("coverage", "采购与已售责任覆盖可用", err == nil && (!coverage.HasUpstream || coverage.Space.Sign() >= 0))
-	}
-	return requirements, nil
-}
 func (a *Application) domainRequest(c *gin.Context, op organization.Operator, actor string) {
 	var in struct {
 		Action           string `json:"action"`

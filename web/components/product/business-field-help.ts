@@ -37,7 +37,7 @@ export function businessFieldHelp(name: string, existing?: string, lookup?: stri
   if (["reserved_atg", "reserved_note", "payment_hold"].includes(key)) return "采购订单在待付款和待交付期间，按购买库存加赠送库存占用供货方的可售空间。未付款订单没有截止时间。付清并交付，或取消尚未分配收款的订单后释放。已完成和已关闭的订单不再占用。";
   if (["procurement_available", "procurement_available_atg"].includes(key)) return "真实已交付采购余额扣除调用预占后的可用金额。报价、未付款采购订单和超卖额度不会增加这里的余额。";
   if (key === "delivery_mode") return "手动开通可直接设置新账号初始密码，并把登录信息交给本人；首次登录须修改密码。已有账号不会被重设密码，应把接受邀请链接交给本人。邮件邀请需要先配置可用发信服务。";
-  if (key === "initial_password") return "仅用于手动开通的新账号，至少 10 位，最长 72 字节。请把初始密码安全交给本人，首次登录会要求修改；已有账号沿用原密码并自行接受邀请。";
+  if (key === "initial_password") return "仅用于手动开通的新账号，密码为 10–30 位，须包含数字、大写英文字母、小写英文字母、英文特殊符号中的至少两类。首次登录会要求修改。已有账号使用原密码接受邀请。";
   if (key === "role") return "负责人可管理当前经营方；运营、财务、客服、只读角色按实际职责授予权限。上级负责人不会因此取得下级客户与账务的访问权。";
   if (key === "exit_policy") return "选择合作双方实际约定的未使用采购余额退出方式。退款责任依原成交约定核算；填写新约定不会改写历史订单。";
   if (key === "contract_attachment_id") return "选择当前经营方上传的私有合作合同。附件仅向有权查看该合作关系的双方开放，请先上传文件再选择。";

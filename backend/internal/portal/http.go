@@ -108,8 +108,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 403, "resolution_owner", "只有平台经营方可以为图片或视频新增分辨率，其它经营方只能为已有分辨率标价。", false
 	case errors.Is(err, remediation.ErrScope), errors.Is(err, operations.ErrForbidden), errors.Is(err, payments.ErrForbidden), errors.Is(err, catalog.ErrCatalogForbidden), errors.Is(err, incentives.ErrNotEligible), errors.Is(err, organization.ErrForbidden), errors.Is(err, commerce.ErrScope), errors.Is(err, ledger.ErrScope):
 		status, code, msg, retry = 403, "forbidden", "当前身份没有此经营范围的操作权限", false
-	case errors.Is(err, errStaffPasswordLength):
-		status, code, msg, retry = 400, "password_length", "初始密码长度需为 10 至 72 字节，建议使用英文字母、数字和符号", false
+	case errors.Is(err, organization.ErrPasswordPolicy):
+		status, code, msg, retry = 400, "password_policy", "密码须为 10–30 位，从数字、大写英文字母、小写英文字母、英文特殊符号中至少选用两类。", false
 	case errors.Is(err, organization.ErrInvalidCredentials):
 		status, code, msg, retry = 401, "invalid_credentials", "邮箱或密码错误", false
 	case errors.Is(err, organization.ErrEmailAlreadyRegistered):

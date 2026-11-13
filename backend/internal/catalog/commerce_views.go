@@ -38,6 +38,10 @@ func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at 
 	if e != nil {
 		return nil, e
 	}
+	scopes, e := s.supplyScopes(ctx, operator)
+	if e != nil {
+		return nil, e
+	}
 	out := []PublicCatalogModel{}
 	for _, m := range models {
 		view := PublicCatalogModel{ID: m.ID, Name: m.ID, Status: "available", Capabilities: []PublicCapability{}, Prices: []PublicPriceComponent{}}
@@ -58,11 +62,24 @@ func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at 
 		}
 		price, e := (PriceResolver{Source: s}).Resolve(ctx, PriceScope{Kind: "retail", SellerID: operator}, m.ID, at)
 		if e != nil {
+			if !errors.Is(e, ErrPriceUnavailable) {
+				return nil, e
+			}
 			if m.Enabled {
 				view.Status = "pricing_unavailable"
 			}
 			out = append(out, view)
 			continue
+		}
+		if m.Enabled {
+			capabilities, status, e := s.callableOperations(ctx, m, view.Capabilities, price, scopes, at)
+			if e != nil {
+				return nil, e
+			}
+			view.Status = status
+			if len(capabilities) > 0 {
+				view.Capabilities = capabilities
+			}
 		}
 		factor, e := price.Factor()
 		if e != nil {
@@ -91,9 +108,83 @@ func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at 
 	return out, nil
 }
 
+func (s CommerceCatalog) callableOperations(ctx context.Context, m PublicModel, offered []PublicCapability, retail ResolvedPrice, scopes []PriceScope, at time.Time) ([]PublicCapability, string, error) {
+	upstreams, e := s.eligibleUpstreams(ctx, m)
+	if e != nil {
+		return nil, "", e
+	}
+	if len(upstreams) == 0 {
+		return nil, "route_unavailable", nil
+	}
+	var supply []ResolvedPrice
+	for _, scope := range scopes {
+		price, e := (PriceResolver{Source: s}).Resolve(ctx, scope, m.ID, at)
+		if errors.Is(e, ErrPriceUnavailable) {
+			return nil, "pricing_unavailable", nil
+		}
+		if e != nil {
+			return nil, "", e
+		}
+		supply = append(supply, price)
+	}
+	var callable []PublicCapability
+	status := "route_unavailable"
+	for _, operation := range offered {
+		for _, u := range upstreams {
+			if !upstreamOffers(u.Capabilities, operation.Operation) {
+				continue
+			}
+			if operationPriced(u.Capabilities, operation.Operation, retail, supply) {
+				callable = append(callable, operation)
+				break
+			}
+			status = "pricing_unavailable"
+		}
+	}
+	if len(callable) > 0 {
+		status = "available"
+	}
+	return callable, status, nil
+}
+
+func operationPriced(capabilities []modelruntime.Capability, operation modelruntime.Operation, retail ResolvedPrice, supply []ResolvedPrice) bool {
+	for _, cap := range capabilities {
+		if cap.Operation != operation || !cap.Verified() {
+			continue
+		}
+		if capabilityPriced(cap, retail, supply) {
+			return true
+		}
+	}
+	return false
+}
+
+func capabilityPriced(cap modelruntime.Capability, retail ResolvedPrice, supply []ResolvedPrice) bool {
+	retail = activePrice(retail, cap.BillableBounds)
+	if checkMeterPrices(retail, cap) != nil {
+		return false
+	}
+	if _, e := retail.MaximumCharge(cap.BillableBounds); e != nil {
+		return false
+	}
+	for _, price := range supply {
+		price = activePrice(price, cap.BillableBounds)
+		if checkMeterPrices(price, cap) != nil {
+			return false
+		}
+		if _, e := price.MaximumCharge(cap.BillableBounds); e != nil {
+			return false
+		}
+		if _, e := CoverageFactor(retail, price); e != nil {
+			return false
+		}
+	}
+	return true
+}
+
 func (s CommerceCatalog) publicDirectory(ctx context.Context, operator string) ([]PublicModel, error) {
 	var rows []catalogJSONRow
-	if e := s.DB.WithContext(ctx).Table("tokenhub_public_models").Order("id").Find(&rows).Error; e != nil {
+	if e := s.DB.WithContext(ctx).Table("tokenhub_public_models m").Select("m.*").Joins("JOIN tokenhub_model_listings l ON l.public_model_id=m.id AND l.operator_id=? AND l.enabled", operator).Order("m.id").Scan(&rows).Error; e != nil {
 		return nil, e
 	}
 	out := []PublicModel{}
@@ -108,13 +199,7 @@ func (s CommerceCatalog) publicDirectory(ctx context.Context, operator string) (
 			}
 			return nil, e
 		}
-		var listed int64
-		if e := s.DB.WithContext(ctx).Table("tokenhub_model_listings").Where("operator_id=? AND public_model_id=? AND enabled=true", operator, m.ID).Count(&listed).Error; e != nil {
-			return nil, e
-		}
-		if listed > 0 {
-			out = append(out, m)
-		}
+		out = append(out, m)
 	}
 	return out, nil
 }

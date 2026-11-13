@@ -615,14 +615,6 @@
     "ms": "Sahkan semula: {currency}, {ratio} ATG seunit, berkuat kuasa pada:",
     "th": "ยืนยันอีกครั้ง: {currency}, {ratio} ATG ต่อหน่วย มีผลเมื่อ:"
   },
-  "生效后币种和基础比例永久锁定，暂停营业也无法修改。该比例只用于购买 ATG 换算和采购阶梯赠送；套餐等明确配置的 ATG 数量不会自动改变。系统不提供手工或自动汇率，不汇总跨币种利润。": {
-    "en": "The currency and base rate are permanently locked when effective, including during a business pause. The rate applies only to ATG purchases and tiered procurement bonuses; explicitly configured ATG amounts, including packages, do not change automatically. The system provides no manual or automatic exchange rates and does not aggregate profit across currencies.",
-    "ja": "発効後は通貨と基準比率が永久に固定され、営業停止中も変更できません。この比率は ATG 購入と調達の段階別特典にのみ適用され、プランなどで明示した ATG 数量は自動変更されません。手動・自動の為替レートは提供せず、異なる通貨の利益は合算しません。",
-    "ru": "После вступления в силу валюта и базовое соотношение фиксируются навсегда, в том числе при приостановке работы. Соотношение применяется только к покупке ATG и ступенчатым закупочным бонусам; явно заданные объёмы ATG, включая пакеты, автоматически не меняются. Система не использует ручные или автоматические валютные курсы и не суммирует прибыль в разных валютах.",
-    "hi": "प्रभावी होने पर मुद्रा और आधार दर स्थायी रूप से लॉक होते हैं, व्यवसाय रुकने के दौरान भी। दर केवल ATG खरीद और स्तरीय खरीद बोनस पर लागू होती है; पैकेज सहित स्पष्ट कॉन्फ़िगर ATG राशियाँ अपने आप नहीं बदलतीं। सिस्टम मैन्युअल या स्वचालित विनिमय दर नहीं देता और मुद्राओं के बीच लाभ एकत्र नहीं करता।",
-    "ms": "Mata wang dan kadar asas dikunci secara kekal apabila berkuat kuasa, termasuk semasa jeda perniagaan. Kadar hanya terpakai kepada pembelian ATG dan bonus perolehan berperingkat; jumlah ATG yang dikonfigurasi secara jelas, termasuk pakej, tidak berubah secara automatik. Sistem tidak menyediakan kadar pertukaran manual atau automatik dan tidak mengagregatkan keuntungan merentas mata wang.",
-    "th": "สกุลเงินและอัตราพื้นฐานจะล็อกถาวรเมื่อมีผล รวมถึงระหว่างหยุดธุรกิจ อัตรานี้ใช้เฉพาะการซื้อ ATG และโบนัสการจัดซื้อแบบขั้นบันได จำนวน ATG ที่ตั้งค่าไว้อย่างชัดเจนรวมถึงแพ็กเกจจะไม่เปลี่ยนอัตโนมัติ ระบบไม่มีอัตราแลกเปลี่ยนด้วยตนเองหรืออัตโนมัติ และไม่รวมกำไรข้ามสกุลเงิน"
-  },
   "我已核对并理解永久锁定及换算规则": {
     "en": "I have reviewed and understand the permanent lock and conversion rules",
     "ja": "永久固定と換算ルールを確認し、理解しました",
@@ -734,14 +726,6 @@
     "hi": "निर्धारण रद्द करके फिर कॉन्फ़िगर करें",
     "ms": "Batalkan jadual dan konfigurasikan semula",
     "th": "ยกเลิกกำหนดการและตั้งค่าใหม่"
-  },
-  "请填写有效的三位 ISO 币种、正数 ATG 比例和未来生效时间。": {
-    "en": "Enter a valid three-letter ISO currency code, a positive ATG rate, and a future activation time.",
-    "ja": "有効な 3 文字の ISO 通貨コード、正の ATG 比率、将来の発効日時を入力してください。",
-    "ru": "Введите корректный трёхбуквенный код валюты ISO, положительное соотношение ATG и будущее время вступления в силу.",
-    "hi": "वैध तीन अक्षर का ISO मुद्रा कोड, धनात्मक ATG दर और भविष्य का सक्रियण समय दर्ज करें।",
-    "ms": "Masukkan kod mata wang ISO tiga huruf yang sah, kadar ATG positif dan masa pengaktifan pada masa depan.",
-    "th": "กรอกรหัสสกุลเงิน ISO สามตัวอักษรที่ถูกต้อง อัตรา ATG เป็นบวก และเวลาเปิดใช้งานในอนาคต"
   },
   "ATG 基础比例必须大于 0。": {
     "en": "The base ATG rate must be greater than zero.",
@@ -2054,5 +2038,29 @@
     "hi": "कृपया दर्ज की गई जानकारी जाँचें।",
     "ms": "Sila semak maklumat yang dimasukkan.",
     "th": "โปรดตรวจสอบข้อมูลที่กรอก"
+  },
+  "请填写有效的三位 ISO 币种和未来生效时间。": {
+    "en": "Enter a valid three-letter ISO currency and a future effective time.",
+    "ja": "有効な3文字のISO通貨コードと将来の有効化時刻を入力してください。",
+    "ru": "Укажите действующий трёхбуквенный код валюты ISO и будущее время вступления в силу.",
+    "hi": "मान्य तीन-अक्षर वाला ISO मुद्रा कोड और भविष्य का प्रभावी समय दर्ज करें।",
+    "ms": "Masukkan kod mata wang ISO tiga huruf yang sah dan masa kuat kuasa pada masa hadapan.",
+    "th": "กรอกรหัสสกุลเงิน ISO สามตัวอักษรที่ถูกต้องและเวลาที่จะเริ่มมีผลในอนาคต"
+  },
+  "ATG 比例须为正数，整数最多 20 位，小数最多 18 位。": {
+    "en": "The ATG ratio must be positive, with up to 20 integer digits and 18 decimal places.",
+    "ja": "ATG比率は正の数で、整数部は20桁、小数部は18桁までです。",
+    "ru": "Коэффициент ATG должен быть положительным, до 20 цифр до запятой и до 18 после.",
+    "hi": "ATG अनुपात धनात्मक होना चाहिए। पूर्णांक भाग में अधिकतम 20 और दशमलव भाग में अधिकतम 18 अंक रखें।",
+    "ms": "Nisbah ATG mestilah positif, dengan sehingga 20 digit integer dan 18 tempat perpuluhan.",
+    "th": "อัตราส่วน ATG ต้องเป็นจำนวนบวก โดยมีส่วนจำนวนเต็มไม่เกิน 20 หลักและทศนิยมไม่เกิน 18 ตำแหน่ง"
+  },
+  "生效后币种和基础比例永久锁定，暂停营业也无法修改。该比例只用于购买 ATG 换算和采购阶梯赠送；套餐等明确配置的 ATG 数量不会自动改变。外币支付按单报价，账务继续按实际原币记录。": {
+    "en": "The currency and base ratio lock permanently when they take effect, even if business is suspended. The ratio applies to ATG purchases and tiered procurement bonuses. Explicit ATG amounts, such as those in packages, stay fixed. Foreign-currency payments are quoted per order, and accounting records use the actual original currency.",
+    "ja": "適用後、通貨と基本比率は永久に固定され、営業を停止しても変更できません。この比率はATG購入時の換算と調達の段階別ボーナスに使います。パッケージなどで明示したATG数量は固定です。外貨決済は注文ごとに見積もり、会計は実際の原通貨で記録します。",
+    "ru": "Валюта и базовый коэффициент фиксируются навсегда с момента вступления в силу, даже при приостановке работы. Коэффициент применяется к покупке ATG и ступенчатым бонусам закупки. Явно заданные объёмы ATG, например в пакетах, остаются фиксированными. Валютная котировка рассчитывается для отдельного платежа, а учёт ведётся в фактической исходной валюте.",
+    "hi": "प्रभावी होने पर मुद्रा और आधार अनुपात स्थायी रूप से लॉक हो जाते हैं, कारोबार रुकने पर भी। अनुपात ATG खरीद और खरीद के स्तर-आधारित बोनस पर लागू होता है। पैकेज जैसी स्पष्ट रूप से तय ATG मात्राएँ स्थिर रहती हैं। विदेशी मुद्रा का भाव हर भुगतान के लिए अलग तय होता है और लेखा वास्तविक मूल मुद्रा में दर्ज होता है।",
+    "ms": "Mata wang dan nisbah asas dikunci secara kekal apabila berkuat kuasa, termasuk semasa operasi digantung. Nisbah terpakai pada pembelian ATG dan bonus perolehan bertingkat. Kuantiti ATG yang ditetapkan, seperti dalam pakej, kekal. Bayaran mata wang asing disebut harga bagi setiap pesanan dan direkod dalam mata wang asal sebenar.",
+    "th": "สกุลเงินและอัตราส่วนพื้นฐานจะถูกล็อกถาวรเมื่อมีผล แม้ระงับการดำเนินงาน อัตราส่วนนี้ใช้กับการซื้อ ATG และโบนัสจัดซื้อตามขั้น จำนวน ATG ที่ระบุไว้ในแพ็กเกจจะคงเดิม การชำระเงินต่างสกุลเสนอราคาเป็นรายคำสั่งซื้อและบันทึกบัญชีตามสกุลเงินจริง"
   }
 }

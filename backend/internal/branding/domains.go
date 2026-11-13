@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net"
 	"strconv"
 	"strings"
@@ -116,7 +117,7 @@ func (s *Service) verifyDomain(ctx context.Context, actorID string, observed Dom
 	}); ok && observed.VerifiedAt == nil {
 		owned, e := v.VerifyOwnership(ctx, observed.Hostname, observed.VerificationToken)
 		if e != nil {
-			return out, e
+			return out, ErrVerificationUnavailable
 		}
 		if owned {
 			now := s.now()
@@ -144,8 +145,10 @@ func (s *Service) verifyDomain(ctx context.Context, actorID string, observed Dom
 		}
 	}
 	result, err := verifier.Verify(ctx, observed.Hostname, observed.VerificationToken)
-	if err != nil {
-		result = DomainVerification{OwnershipVerified: observed.VerifiedAt != nil, ProviderReference: observed.ProviderReference, FailureReason: "Domain verification service is temporarily unavailable"}
+	if errors.Is(err, ErrConflict) {
+		result = DomainVerification{FailureReason: "Domain does not route to this brand on TokenHub"}
+	} else if err != nil {
+		return out, ErrVerificationUnavailable
 	}
 
 	err = s.withTx(ctx, nil, func(tx *gorm.DB) error {

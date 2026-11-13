@@ -2,6 +2,7 @@ package organization
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"gorm.io/gorm"
@@ -194,44 +195,70 @@ func (s *Service) GetBusinessStatus(ctx context.Context, tx *gorm.DB, operatorID
 	err := s.dbFor(ctx, tx).First(&r, "operator_id = ?", operatorID).Error
 	return BusinessStatus(r), classify(err)
 }
+func (st BusinessStatus) Enabled(feature BusinessFeature) bool {
+	switch feature {
+	case Registration:
+		return st.Registration
+	case NewPurchase:
+		return st.NewPurchase
+	case Renewal:
+		return st.Renewal
+	case ModelUsage:
+		return st.ModelUsage
+	case Activity:
+		return st.Activity
+	case Settlement:
+		return st.Settlement
+	default:
+		return false
+	}
+}
+
 func (s *Service) RequireBusiness(ctx context.Context, tx *gorm.DB, operatorID string, feature BusinessFeature) error {
-	if feature != Settlement {
-		if e := s.RequireNoTakeover(ctx, tx, operatorID); e != nil {
-			return e
-		}
+	if !validFeature(feature) {
+		return ErrInvalidInput
 	}
 	if s.monetaryReady != nil {
 		if e := s.monetaryReady(ctx, s.dbFor(ctx, tx)); e != nil {
 			return e
 		}
 	}
-	if !validFeature(feature) {
-		return ErrInvalidInput
-	}
-	o, err := s.GetOperator(ctx, tx, operatorID)
-	if err != nil {
-		return err
-	}
 	st, err := s.GetBusinessStatus(ctx, tx, operatorID)
 	if err != nil {
 		return err
 	}
-	enabled := map[BusinessFeature]bool{Registration: st.Registration, NewPurchase: st.NewPurchase, Renewal: st.Renewal, ModelUsage: st.ModelUsage, Activity: st.Activity, Settlement: st.Settlement}[feature]
-	if !enabled {
+	if !st.Enabled(feature) {
 		return ErrBusinessClosed
 	}
 	if feature == Settlement {
 		return nil
-	} // Pausing sales does not prevent settlement.
-	b, err := s.GetBrand(ctx, tx, o.BrandID)
+	}
+	op, err := s.GetOperator(ctx, tx, operatorID)
 	if err != nil {
 		return err
 	}
-	if o.Lifecycle != "active" || b.Status != "active" {
+	if err = s.requireNewBusinessScope(ctx, tx, op); err != nil {
+		return err
+	}
+	return s.RequireUnfrozen(ctx, tx, op.BrandID, op.ID, "", string(feature))
+}
+
+func (s *Service) requireNewBusinessScope(ctx context.Context, tx *gorm.DB, op Operator) error {
+	if op.Lifecycle != "active" {
 		return ErrBusinessClosed
 	}
-	if o.Kind != Platform {
-		a, err := s.GetSupplyAgreement(ctx, tx, o.ID)
+	if err := s.RequireNoTakeover(ctx, tx, op.ID); err != nil {
+		return err
+	}
+	b, err := s.GetBrand(ctx, tx, op.BrandID)
+	if err != nil {
+		return err
+	}
+	if b.Status != "active" {
+		return ErrBusinessClosed
+	}
+	if op.Kind != Platform {
+		a, err := s.GetSupplyAgreement(ctx, tx, op.ID)
 		if err != nil {
 			return err
 		}
@@ -239,7 +266,54 @@ func (s *Service) RequireBusiness(ctx context.Context, tx *gorm.DB, operatorID s
 			return ErrBusinessClosed
 		}
 	}
-	return s.RequireUnfrozen(ctx, tx, o.BrandID, o.ID, "", string(feature))
+	return nil
+}
+
+// EffectiveBusinessStatus reads the common scope and freeze state once for a
+// page that needs several of the serving operator's business gates.
+func (s *Service) EffectiveBusinessStatus(ctx context.Context, tx *gorm.DB, op Operator) (BusinessStatus, error) {
+	st, err := s.GetBusinessStatus(ctx, tx, op.ID)
+	if err != nil {
+		return BusinessStatus{}, err
+	}
+	if s.monetaryReady != nil {
+		if err = s.monetaryReady(ctx, s.dbFor(ctx, tx)); err != nil {
+			return BusinessStatus{}, err
+		}
+	}
+	closed := BusinessStatus{OperatorID: st.OperatorID, Settlement: st.Settlement, Version: st.Version, UpdatedAt: st.UpdatedAt}
+	if !st.Registration && !st.NewPurchase && !st.Renewal && !st.ModelUsage && !st.Activity {
+		return closed, nil
+	}
+	if err = s.requireNewBusinessScope(ctx, tx, op); err != nil {
+		if errors.Is(err, ErrBusinessClosed) {
+			return closed, nil
+		}
+		return BusinessStatus{}, err
+	}
+	var frozen []string
+	if err = s.dbFor(ctx, tx).Model(&ScopeFreeze{}).
+		Where("enabled AND ((scope_kind='brand' AND scope_id=?) OR (scope_kind='operator' AND scope_id=?))", op.BrandID, op.ID).
+		Pluck("action", &frozen).Error; err != nil {
+		return BusinessStatus{}, err
+	}
+	for _, action := range frozen {
+		switch action {
+		case "all_new_business":
+			return closed, nil
+		case string(Registration):
+			st.Registration = false
+		case string(NewPurchase):
+			st.NewPurchase = false
+		case string(Renewal):
+			st.Renewal = false
+		case string(ModelUsage):
+			st.ModelUsage = false
+		case string(Activity):
+			st.Activity = false
+		}
+	}
+	return st, nil
 }
 
 func (s *Service) SetBusinessStatus(ctx context.Context, tx *gorm.DB, in SetBusinessStatusInput, checker ReadinessChecker) (out BusinessStatus, err error) {

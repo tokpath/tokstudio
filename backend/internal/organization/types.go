@@ -6,6 +6,7 @@ package organization
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -14,6 +15,7 @@ import (
 var (
 	ErrNotFound               = errors.New("organization: not found")
 	ErrInvalidInput           = errors.New("organization: invalid input")
+	ErrPasswordPolicy         = fmt.Errorf("%w: password does not meet the policy", ErrInvalidInput)
 	ErrForbidden              = errors.New("organization: forbidden")
 	ErrConflict               = errors.New("organization: concurrent or unique conflict")
 	ErrInvalidRelationship    = errors.New("organization: invalid supply relationship")

@@ -546,25 +546,13 @@ func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r m
 	if !operationOffered(m.Capabilities, r) {
 		return nil, modelruntime.ErrUnsupported
 	}
-	upstreams, e := s.upstreams(ctx, r.PublicModel)
+	upstreams, e := s.eligibleUpstreams(ctx, m)
 	if e != nil {
 		return nil, e
 	}
-	health, now, e := s.routeHealth(ctx, r.PublicModel)
-	if e != nil {
-		return nil, e
-	}
-	out := make([]UpstreamModel, 0)
+	out := upstreams[:0]
 	for _, u := range upstreams {
-		for i, c := range u.Capabilities {
-			p, ok := m.Billing[c.Operation]
-			if !ok {
-				p = modelruntime.DefaultBilling(c.Operation)
-			}
-			u.Capabilities[i] = p.Capability(c.Operation, c.Streaming)
-		}
-		h := health[u.ID]
-		if u.Enabled && u.Healthy && u.Identity == m.Identity && requestSupported(u.Capabilities, r) && (h.OpenUntil == nil || !h.OpenUntil.After(now)) {
+		if requestSupported(u.Capabilities, r) {
 			out = append(out, u)
 		}
 	}
@@ -577,6 +565,34 @@ func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r m
 		}
 		return out[i].ID < out[j].ID
 	})
+	return out, nil
+}
+
+// eligibleUpstreams shares the operational route checks with the public catalog.
+func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) ([]UpstreamModel, error) {
+	var rows []catalogJSONRow
+	if e := s.DB.WithContext(ctx).Table("tokenhub_upstreams u").Select("u.definition").
+		Joins("JOIN tokenhub_provider_credentials c ON c.id=u.definition->>'credential_id' AND c.provider_id=u.provider_id AND c.enabled").
+		Joins("LEFT JOIN tokenhub_route_health h ON h.upstream_id=u.id").
+		Where("u.public_model_id=? AND u.definition->>'enabled'='true' AND u.definition->>'healthy'='true' AND u.definition->>'identity'=? AND (h.open_until IS NULL OR h.open_until<=clock_timestamp())", m.ID, m.Identity).
+		Order("u.id").Scan(&rows).Error; e != nil {
+		return nil, e
+	}
+	out := make([]UpstreamModel, 0, len(rows))
+	for _, row := range rows {
+		var u UpstreamModel
+		if e := json.Unmarshal(row.Definition, &u); e != nil {
+			return nil, e
+		}
+		for i, c := range u.Capabilities {
+			p, ok := m.Billing[c.Operation]
+			if !ok {
+				p = modelruntime.DefaultBilling(c.Operation)
+			}
+			u.Capabilities[i] = p.Capability(c.Operation, c.Streaming)
+		}
+		out = append(out, u)
+	}
 	return out, nil
 }
 
@@ -660,10 +676,8 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 		if e != nil {
 			return ModelQuote{}, e
 		}
-		for _, rule := range cap.UsageRules {
-			if !componentCovers(retail.Components, rule.Component, rule.Unit) {
-				return ModelQuote{}, fmt.Errorf("unpriced metering component %s", rule.Component)
-			}
+		if e = checkMeterPrices(retail, cap); e != nil {
+			return ModelQuote{}, e
 		}
 		for key, raw := range cap.BillableBounds {
 			n, e := PriceDecimal(raw)
@@ -691,12 +705,12 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 	if _, e = retail.MaximumCharge(q.Bounds); e != nil {
 		return ModelQuote{}, e
 	}
-	for current := operator; current != s.PlatformOperatorID; {
-		o, e := s.Operators.CatalogOperator(ctx, current)
-		if e != nil {
-			return ModelQuote{}, e
-		}
-		price, e := resolver.Resolve(ctx, PriceScope{Kind: "supply", SellerID: o.ParentID, BuyerID: current}, r.PublicModel, at)
+	scopes, e := s.supplyScopes(ctx, operator)
+	if e != nil {
+		return ModelQuote{}, e
+	}
+	for _, scope := range scopes {
+		price, e := resolver.Resolve(ctx, scope, r.PublicModel, at)
 		if e != nil {
 			return ModelQuote{}, e
 		}
@@ -708,15 +722,36 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 			return ModelQuote{}, e
 		}
 		q.Supply = append(q.Supply, price)
-		current = o.ParentID
-		if len(q.Supply) > 3 {
-			return ModelQuote{}, ErrCatalogForbidden
-		}
 	}
 	if e = s.rankRoutes(ctx, &q); e != nil {
 		return ModelQuote{}, e
 	}
 	return q, nil
+}
+
+func checkMeterPrices(price ResolvedPrice, capability modelruntime.Capability) error {
+	for _, rule := range capability.UsageRules {
+		if !componentCovers(price.Components, rule.Component, rule.Unit) {
+			return fmt.Errorf("%w: unpriced metering component %s", ErrPriceUnavailable, rule.Component)
+		}
+	}
+	return nil
+}
+
+func (s CommerceCatalog) supplyScopes(ctx context.Context, operator string) ([]PriceScope, error) {
+	var scopes []PriceScope
+	for operator != s.PlatformOperatorID {
+		if operator == "" || len(scopes) == 3 || s.Operators == nil {
+			return nil, ErrCatalogForbidden
+		}
+		o, e := s.Operators.CatalogOperator(ctx, operator)
+		if e != nil {
+			return nil, e
+		}
+		scopes = append(scopes, PriceScope{Kind: "supply", SellerID: o.ParentID, BuyerID: operator})
+		operator = o.ParentID
+	}
+	return scopes, nil
 }
 
 // PublishPrice requires a caller's coverage computation in the same transaction.

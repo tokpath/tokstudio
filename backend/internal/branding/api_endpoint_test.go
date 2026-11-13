@@ -47,6 +47,19 @@ func TestPostgresAPIEndpointSwitchRequiresPlatformApproval(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertEndpoint("https://second.example.test/v1")
+	if _, err = f.s.VerifyDomain(f.ctx, oemOwner, secondReady.ID, DomainVerifierFunc(func(context.Context, string, string) (DomainVerification, error) {
+		return DomainVerification{}, context.DeadlineExceeded
+	})); !errors.Is(err, ErrVerificationUnavailable) {
+		t.Fatalf("temporary provider failure: %v", err)
+	}
+	assertEndpoint("https://second.example.test/v1")
+	if _, err = f.s.ResolveHost(f.ctx, nil, second.Domain.Hostname); err != nil {
+		t.Fatal("temporary check made the existing domain unusable", err)
+	}
+	secondAfterError, err := f.s.GetDomain(f.ctx, nil, oemOwner, secondReady.ID)
+	if err != nil || !secondAfterError.CheckedAt.Equal(*secondReady.CheckedAt) {
+		t.Fatal("temporary check refreshed successful verification evidence", secondAfterError, err)
+	}
 	firstReady, err := f.s.VerifyDomain(f.ctx, oemOwner, first.Domain.ID, ready)
 	if err != nil {
 		t.Fatal(err)
@@ -74,6 +87,19 @@ func TestPostgresAPIEndpointSwitchRequiresPlatformApproval(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertEndpoint("https://first.example.test/v1")
+	if domain, err := f.s.VerifyDomain(f.ctx, oemOwner, firstActive.ID, DomainVerifierFunc(func(context.Context, string, string) (DomainVerification, error) {
+		return DomainVerification{OwnershipVerified: true, TLSReady: true, FailureReason: "wrong brand route"}, nil
+	})); err != nil || domain.Status != "verified" {
+		t.Fatal("confirmed route mismatch did not stop serving the hostname", domain, err)
+	}
+	assertEndpoint("")
+	firstReady, err = f.s.VerifyDomain(f.ctx, oemOwner, firstActive.ID, ready)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.s.SetDomainEnabled(f.ctx, nil, f.owner, firstReady.ID, true, firstReady.Version); err != nil {
+		t.Fatal(err)
+	}
 	if endpoint, err := f.s.APIEndpoint(f.ctx, nil, f.platform.Brand.ID); err != nil || endpoint != "" {
 		t.Fatalf("another brand inherited the OEM endpoint: %q %v", endpoint, err)
 	}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
@@ -138,8 +139,8 @@ func (a *Application) publicContext(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	status, e := a.Organization.GetBusinessStatus(ctx, nil, op.ID)
-	if e != nil {
+	status, e := a.Organization.EffectiveBusinessStatus(ctx, nil, op)
+	if e != nil && !errors.Is(e, ledger.ErrMonetaryNotReady) {
 		handleError(c, e)
 		return
 	}
@@ -181,7 +182,7 @@ func (a *Application) models(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	models, e := a.Catalog.PublicCatalog(c.Request.Context(), op.ID, time.Now().UTC())
+	models, e := a.callableCatalog(c.Request.Context(), op)
 	if e != nil {
 		handleError(c, e)
 		return
@@ -211,10 +212,51 @@ func (a *Application) models(c *gin.Context) {
 		if m.Status != "available" {
 			status = m.Status
 		}
-		items = append(items, gin.H{"id": m.ID, "name": m.Name, "status": status, "capabilities": caps, "prices": prices, "upcoming_changes": m.UpcomingChanges})
+		item := gin.H{"id": m.ID, "name": m.Name, "status": status, "capabilities": caps, "prices": prices, "upcoming_changes": m.UpcomingChanges}
+		if reason := modelUnavailableReason[status]; reason != "" {
+			item["unavailable_reason"] = reason
+		}
+		items = append(items, item)
 	}
 	c.JSON(200, gin.H{"items": items})
 }
+
+var modelUnavailableReason = map[string]string{
+	"business_closed":     "当前经营方尚未开放模型调用。",
+	"route_unavailable":   "当前没有符合条件的可用模型路由。",
+	"pricing_unavailable": "模型的零售或供货价格尚未齐全。",
+	"procurement_empty":   "供货链上的可用采购额度不足。",
+}
+
+func (a *Application) callableCatalog(ctx context.Context, op organization.Operator) ([]catalog.PublicCatalogModel, error) {
+	models, err := a.Catalog.PublicCatalog(ctx, op.ID, time.Now().UTC())
+	if err != nil {
+		return nil, err
+	}
+	blocked := ""
+	if err = a.Organization.RequireBusiness(ctx, nil, op.ID, organization.ModelUsage); businessUnavailable(err) {
+		blocked = "business_closed"
+	} else if err != nil {
+		return nil, err
+	} else {
+		stock, err := a.hasProcurementStock(ctx, nil, op)
+		if err != nil {
+			return nil, err
+		}
+		if !stock {
+			blocked = "procurement_empty"
+		}
+	}
+	if blocked != "" {
+		for i := range models {
+			if models[i].Status == "available" {
+				models[i].Status = blocked
+			}
+		}
+	}
+	return models, nil
+}
+
 func validity(p ledger.Period) string {
 	if p == ledger.Lifetime {
 		return "unlimited"
@@ -227,7 +269,13 @@ func (a *Application) plans(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	pkgs, e := a.Commerce.ListPackages(c.Request.Context(), nil, op.ID)
+	ctx := c.Request.Context()
+	gates, e := a.Organization.EffectiveBusinessStatus(ctx, nil, op)
+	if e != nil && !businessUnavailable(e) {
+		handleError(c, e)
+		return
+	}
+	pkgs, e := a.Commerce.ListPackages(ctx, nil, op.ID)
 	if e != nil {
 		handleError(c, e)
 		return
@@ -243,10 +291,10 @@ func (a *Application) plans(c *gin.Context) {
 			return
 		}
 		status := "disabled"
-		if p.NewPurchaseEnabled {
+		if gates.NewPurchase && p.NewPurchaseEnabled {
 			status = "active"
 		}
-		items = append(items, gin.H{"id": p.ID, "name": p.Name, "price_money": q.PriceMoney, "purchase_atg": q.PaidATG, "gift_atg": q.GiftATG, "validity": validity(q.Period), "auto_renew_available": p.RenewalEnabled && q.Period != ledger.Lifetime, "status": status, "version": q.Version, "quote_id": q.ID, "terms_summary": commerce.PackageTermsSummary(q), "description": commerce.PackageTermsSummary(q)})
+		items = append(items, gin.H{"id": p.ID, "name": p.Name, "price_money": q.PriceMoney, "purchase_atg": q.PaidATG, "gift_atg": q.GiftATG, "validity": validity(q.Period), "auto_renew_available": gates.Renewal && p.RenewalEnabled && q.Period != ledger.Lifetime, "status": status, "version": q.Version, "quote_id": q.ID, "terms_summary": commerce.PackageTermsSummary(q), "description": commerce.PackageTermsSummary(q)})
 	}
 	c.JSON(200, gin.H{"items": items})
 }

@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"context"
 	"net/url"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"gorm.io/gorm"
 )
 
 // These are read models: saved accounts, journals and command identifiers are
@@ -130,6 +132,31 @@ func (a *Application) ledgerSources(c *gin.Context, op string, ids []string) (ma
 	return out, nil
 }
 
+func accountAvailability(r ledger.Account, grant ledger.Grant, now time.Time, commission map[string]ledger.Decimal) (ledger.Decimal, string) {
+	switch {
+	case r.Purpose == "commission:frozen":
+		return ledger.Zero(), "等待佣金确认"
+	case grant.ID != "" && now.Before(grant.EffectiveAt):
+		return ledger.Zero(), "尚未生效"
+	case grant.ExpiresAt != nil && !now.Before(*grant.ExpiresAt):
+		return ledger.Zero(), "已到期"
+	case r.Purpose == "commission:available" && commission[r.OwnerID].Cmp(r.Available()) < 0:
+		return commission[r.OwnerID], "部分佣金受限"
+	default:
+		return r.Available(), ""
+	}
+}
+
+func (a *Application) accountCommissionAvailability(ctx context.Context, tx *gorm.DB, operator string, accounts []ledger.Account) (map[string]ledger.Decimal, error) {
+	var owners []string
+	for _, account := range accounts {
+		if account.Purpose == "commission:available" && account.Available().Sign() > 0 {
+			owners = append(owners, account.OwnerID)
+		}
+	}
+	return a.Incentives.CommissionSpendableByCustomer(ctx, tx, operator, owners)
+}
+
 func (a *Application) ledgerDisplays(c *gin.Context, op string, accounts []ledger.Account, extraIDs []string) (map[string]ledgerAccountDisplay, map[string]*ledgerSource, error) {
 	ids := append([]string{}, extraIDs...)
 	accountIDs := []string{}
@@ -137,11 +164,14 @@ func (a *Application) ledgerDisplays(c *gin.Context, op string, accounts []ledge
 		ids = append(ids, r.OwnerID)
 		accountIDs = append(accountIDs, r.ID)
 	}
-	var grants []ledger.Grant
-	if len(accountIDs) > 0 {
-		if err := a.DB.WithContext(c.Request.Context()).Where("operator_id=? AND account_id IN ?", op, accountIDs).Find(&grants).Error; err != nil {
-			return nil, nil, err
-		}
+	ctx := c.Request.Context()
+	grantByAccount, now, err := a.Ledger.AccountGrants(ctx, nil, op, accountIDs)
+	if err != nil {
+		return nil, nil, err
+	}
+	commission, err := a.accountCommissionAvailability(ctx, nil, op, accounts)
+	if err != nil {
+		return nil, nil, err
 	}
 	giftKinds := map[string]string{}
 	if len(accountIDs) > 0 {
@@ -153,9 +183,7 @@ func (a *Application) ledgerDisplays(c *gin.Context, op string, accounts []ledge
 			giftKinds[r.AccountID] = map[string]string{"registration_gift": "注册赠送", "manual_gift": "定向赠送"}[r.Kind]
 		}
 	}
-	grantByAccount := map[string]ledger.Grant{}
-	for _, g := range grants {
-		grantByAccount[g.AccountID] = g
+	for _, g := range grantByAccount {
 		ids = append(ids, g.OrderID)
 	}
 	sources, err := a.ledgerSources(c, op, ids)
@@ -179,10 +207,6 @@ func (a *Application) ledgerDisplays(c *gin.Context, op string, accounts []ledge
 		return nil, nil, err
 	}
 	displays := map[string]ledgerAccountDisplay{}
-	var now time.Time
-	if err := a.DB.WithContext(c.Request.Context()).Raw("SELECT clock_timestamp()").Row().Scan(&now); err != nil {
-		return nil, nil, err
-	}
 	for i, r := range accounts {
 		labels := labelRows[i].(gin.H)["presentation"].(humanPresentation).Labels
 		owner := labels["customer_id"]
@@ -194,13 +218,9 @@ func (a *Application) ledgerDisplays(c *gin.Context, op string, accounts []ledge
 		}
 		d := ledgerAccountDisplay{Owner: owner, Purpose: ledgerPurpose(r.Purpose), Auxiliary: !ledger.IsBusinessAccount(r.Purpose), Source: sources[r.OwnerID]}
 		if !d.Auxiliary {
-			n := r.Available()
+			n, reason := accountAvailability(r, grantByAccount[r.ID], now, commission)
 			d.Available = &n
-		}
-		if r.Purpose == "commission:frozen" {
-			n := ledger.Zero()
-			d.Available = &n
-			d.Availability = "等待佣金确认"
+			d.Availability = reason
 		}
 		if g, ok := grantByAccount[r.ID]; ok {
 			d.Source = sources[g.OrderID]
@@ -212,15 +232,6 @@ func (a *Application) ledgerDisplays(c *gin.Context, op string, accounts []ledge
 					kind = "权益发放"
 				}
 				d.Source = &ledgerSource{Kind: kind, At: &g.CreatedAt}
-			}
-			if now.Before(g.EffectiveAt) {
-				d.Availability = "尚未生效"
-				n := ledger.Zero()
-				d.Available = &n
-			} else if g.ExpiresAt != nil && !now.Before(*g.ExpiresAt) {
-				d.Availability = "已到期"
-				n := ledger.Zero()
-				d.Available = &n
 			}
 			// A grant source is also the business source of issuance/expiry journals.
 			sources[g.ID] = d.Source

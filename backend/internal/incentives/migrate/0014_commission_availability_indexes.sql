@@ -1,0 +1,2 @@
+CREATE INDEX incentives_commission_funding_owner ON incentives_commission_funding_lots(operator_id,customer_id);
+CREATE INDEX incentives_commission_reserved_entry ON incentives_commission_funding_allocations(entry_id) WHERE state='reserved';

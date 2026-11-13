@@ -8,6 +8,7 @@ export default defineConfig({
   oxc: { jsx: { runtime: "automatic" } },
   test: {
     environment: "node",
+    setupFiles: ["./lib/i18n-testing.ts"],
     exclude: ["e2e/**", "node_modules/**", ".next/**"],
   },
 });

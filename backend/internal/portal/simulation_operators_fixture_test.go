@@ -71,7 +71,7 @@ func (f *testApp) seedOperatorSimulation(t *testing.T, lab string) map[string]an
 	// The *.localhost host is a preconfigured local-only fixture. It deliberately
 	// does not claim that public DNS ownership or a public TLS certificate exists.
 	now := time.Now().UTC()
-	domain := branding.Domain{ID: uuid.NewString(), BrandID: oem.Brand.ID, Hostname: "operators.localhost", VerificationToken: "synthetic-local-only", Status: "active", TLSReady: true, VerifiedAt: &now, CheckedAt: &now, ProviderReference: "test-fixture:local-host", ProviderStatus: "synthetic_local", TLSStatus: "synthetic_local", Version: 1, CreatedAt: now}
+	domain := branding.Domain{ID: uuid.NewString(), BrandID: oem.Brand.ID, Hostname: "operators.localhost", VerificationToken: "synthetic-local-only", Status: "active", TLSReady: true, RouteReady: true, VerifiedAt: &now, CheckedAt: &now, ProviderReference: "test-fixture:local-host", ProviderStatus: "synthetic_local", TLSStatus: "synthetic_local", Version: 1, CreatedAt: now}
 	if err = f.a.DB.Table("branding_domains").Create(&domain).Error; err != nil {
 		t.Fatal(err)
 	}

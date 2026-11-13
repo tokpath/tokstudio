@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { translate } from "../lib/i18n";
+import { translate } from "../lib/i18n-testing";
 
 test.use({ timezoneId: "Asia/Shanghai" });
 
@@ -33,8 +33,14 @@ test("platform owner reviews irreversible settings before scheduling and can can
   const writes = await workspace(page, { currency: "USD", atg_per_unit: "1", status: "unconfigured", version: 7 }, true);
   await page.goto("/manage/platform/business-status");
   await page.getByLabel("结算币种（ISO 代码）").fill("CNY");
-  await page.getByLabel("每 1 单位结算币种购买的 ATG").fill("10.25");
+  const ratio = page.getByLabel("每 1 单位结算币种购买的 ATG");
   await page.getByLabel("生效时间", { exact: true }).fill("2099-01-01T09:00");
+  for (const invalid of ["1.0000000000000000001", "100000000000000000000"]) {
+    await ratio.fill(invalid);
+    await page.getByRole("button", { name: "核对并查看风险说明" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "ATG 比例须为正数，整数最多 20 位，小数最多 18 位。" })).toBeVisible();
+  }
+  await ratio.fill("10.25");
   await page.getByRole("button", { name: "核对并查看风险说明" }).click();
   expect(writes).toHaveLength(0);
   await expect(page.getByRole("button", { name: "确认预约生效" })).toBeDisabled();

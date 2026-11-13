@@ -436,7 +436,8 @@ func (s *Service) registerGoogleCustomer(ctx context.Context, tx *gorm.DB, inten
 	if err != nil {
 		return err
 	}
-	hash, err := HashPassword(secret + "Aa1")
+	// This internal credential is never disclosed. Its random part has 144 bits.
+	hash, err := HashPassword(secret[:24] + "Aa1!")
 	if err != nil {
 		return err
 	}

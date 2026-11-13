@@ -133,6 +133,32 @@ func (s *Service) Coverage(ctx context.Context, tx *gorm.DB, operator string, at
 	err := s.within(ctx, tx, func(t *gorm.DB) error { var e error; out, _, e = s.coverage(ctx, t, operator, at); return e })
 	return out, err
 }
+
+// SaleFits checks the same quantity and direct rate as a new order reservation.
+func (s *Service) SaleFits(ctx context.Context, tx *gorm.DB, operator string, at time.Time, quantity ledger.Decimal) (bool, error) {
+	var fits bool
+	err := s.within(ctx, tx, func(t *gorm.DB) error {
+		snapshot, rates, err := s.coverage(ctx, t, operator, at)
+		if err != nil {
+			return err
+		}
+		fits, err = saleFits(snapshot, rates, quantity)
+		return err
+	})
+	return fits, err
+}
+
+func saleFits(snapshot CoverageSnapshot, rates CoverageRates, quantity ledger.Decimal) (bool, error) {
+	if !snapshot.HasUpstream {
+		return true, nil
+	}
+	if rates.Direct == nil {
+		return false, nil
+	}
+	demand, err := conservative(quantity, rates.Direct)
+	return err == nil && demand.Cmp(snapshot.Space) <= 0, err
+}
+
 func (s *Service) coverage(ctx context.Context, t *gorm.DB, operator string, at time.Time) (CoverageSnapshot, CoverageRates, error) {
 	out := CoverageSnapshot{OperatorID: operator, Status: "ready", CatalogVersion: 1}
 	rates := CoverageRates{}
@@ -276,14 +302,12 @@ func (s *Service) reserveSale(ctx context.Context, tx *gorm.DB, o commerce.Order
 				return ErrConflict
 			}
 		}
-		if snapshot.HasUpstream {
-			demand, e := conservative(qty, rates.Direct)
-			if e != nil {
-				return e
-			}
-			if demand.Cmp(snapshot.Space) > 0 && !(restore && o.ExternalAllocatedMoney.Sign() > 0) {
-				return ErrCoverage
-			}
+		fits, e := saleFits(snapshot, rates, qty)
+		if e != nil {
+			return e
+		}
+		if !fits && (rates.Direct == nil || !(restore && o.ExternalAllocatedMoney.Sign() > 0)) {
+			return ErrCoverage
 		}
 		if exists {
 			old.Status = "active"

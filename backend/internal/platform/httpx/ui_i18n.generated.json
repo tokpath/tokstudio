@@ -476,6 +476,15 @@
     "Sumber dan tempoh sah ATG",
     "แหล่งที่มาและอายุ ATG"
   ],
+  "ATG 比例须为正数，整数最多 20 位，小数最多 18 位。": [
+    "ATG 比例须为正数，整数最多 20 位，小数最多 18 位。",
+    "The ATG ratio must be positive, with up to 20 integer digits and 18 decimal places.",
+    "ATG比率は正の数で、整数部は20桁、小数部は18桁までです。",
+    "Коэффициент ATG должен быть положительным, до 20 цифр до запятой и до 18 после.",
+    "ATG अनुपात धनात्मक होना चाहिए। पूर्णांक भाग में अधिकतम 20 और दशमलव भाग में अधिकतम 18 अंक रखें।",
+    "Nisbah ATG mestilah positif, dengan sehingga 20 digit integer dan 18 tempat perpuluhan.",
+    "อัตราส่วน ATG ต้องเป็นจำนวนบวก โดยมีส่วนจำนวนเต็มไม่เกิน 20 หลักและทศนิยมไม่เกิน 18 ตำแหน่ง"
+  ],
   "ATG 预算上限": [
     "ATG 预算上限",
     "ATG budget limit",
@@ -4625,14 +4634,14 @@
     "Hanya untuk akaun baharu yang dicipta secara manual. Serahkan kata laluan awal dengan selamat; ia mesti ditukar pada log masuk pertama. Pemegang akaun sedia ada mengekalkan kata laluan dan menerima jemputan sendiri.",
     "สำหรับบัญชีใหม่ที่สร้างด้วยตนเองเท่านั้น ส่งรหัสผ่านเริ่มต้นอย่างปลอดภัย โดยต้องเปลี่ยนเมื่อเข้าสู่ระบบครั้งแรก เจ้าของบัญชีเดิมใช้รหัสผ่านเดิมและยอมรับคำเชิญด้วยตนเอง"
   ],
-  "仅用于手动开通的新账号，至少 10 位，最长 72 字节。请把初始密码安全交给本人，首次登录会要求修改；已有账号沿用原密码并自行接受邀请。": [
-    "仅用于手动开通的新账号，至少 10 位，最长 72 字节。请把初始密码安全交给本人，首次登录会要求修改；已有账号沿用原密码并自行接受邀请。",
-    "Only for new accounts created manually: at least 10 characters and at most 72 bytes. Deliver the initial password securely; it must be changed on first login. Existing account holders keep their passwords and accept invitations themselves.",
-    "手動登録する新規アカウント専用です。10文字以上、72バイト以下で設定してください。初期パスワードを安全に本人へ渡し、初回ログイン時に変更してください。既存アカウントは元のパスワードで本人が招待を承諾します。",
-    "Только для новых аккаунтов, созданных вручную: не менее 10 символов и не более 72 байт. Безопасно передайте начальный пароль; при первом входе его потребуется сменить. Владельцы существующих аккаунтов используют прежний пароль и сами принимают приглашение.",
-    "केवल मैन्युअल बनाए नए खातों के लिए: कम से कम 10 अक्षर और अधिकतम 72 बाइट। प्रारंभिक पासवर्ड सुरक्षित रूप से दें; पहले लॉगिन पर बदलना होगा। मौजूदा खाताधारक अपना पासवर्ड रखते हैं और आमंत्रण स्वयं स्वीकार करते हैं।",
-    "Hanya untuk akaun baharu yang dicipta secara manual: sekurang-kurangnya 10 aksara dan paling banyak 72 bait. Serahkan kata laluan awal dengan selamat; ia mesti ditukar pada log masuk pertama. Pemegang akaun sedia ada mengekalkan kata laluan dan menerima jemputan sendiri.",
-    "สำหรับบัญชีใหม่ที่สร้างด้วยตนเองเท่านั้น: อย่างน้อย 10 ตัวอักษรและไม่เกิน 72 ไบต์ ส่งรหัสผ่านเริ่มต้นอย่างปลอดภัย โดยต้องเปลี่ยนเมื่อเข้าสู่ระบบครั้งแรก เจ้าของบัญชีเดิมใช้รหัสผ่านเดิมและยอมรับคำเชิญด้วยตนเอง"
+  "仅用于手动开通的新账号，密码为 10–30 位，须包含数字、大写英文字母、小写英文字母、英文特殊符号中的至少两类。首次登录会要求修改。已有账号使用原密码接受邀请。": [
+    "仅用于手动开通的新账号，密码为 10–30 位，须包含数字、大写英文字母、小写英文字母、英文特殊符号中的至少两类。首次登录会要求修改。已有账号使用原密码接受邀请。",
+    "For new accounts opened manually, use 10–30 characters of at least two types: digits, uppercase English letters, lowercase English letters, or ASCII punctuation. A password change is required at first login. Existing accounts accept the invitation with their current password.",
+    "手動で開設する新規アカウント専用です。10～30文字で、数字、英大文字、英小文字、ASCII記号のうち2種類以上を使います。初回ログイン時に変更が必要です。既存アカウントは現在のパスワードで招待を受け入れます。",
+    "Только для новых аккаунтов, создаваемых вручную. Используйте 10–30 символов как минимум двух типов: цифры, заглавные или строчные латинские буквы либо знаки ASCII. При первом входе пароль нужно сменить. Владельцы существующих аккаунтов принимают приглашение с текущим паролем.",
+    "केवल हाथ से खोले गए नए खातों के लिए। 10–30 वर्ण रखें, जिनमें अंक, बड़े या छोटे अंग्रेज़ी अक्षर और ASCII चिह्नों में से कम से कम दो प्रकार हों। पहली बार लॉग इन करते समय पासवर्ड बदलना होगा। मौजूदा खाते अपने वर्तमान पासवर्ड से निमंत्रण स्वीकार करें।",
+    "Untuk akaun baharu yang dibuka secara manual. Gunakan 10–30 aksara daripada sekurang-kurangnya dua jenis: digit, huruf besar Inggeris, huruf kecil Inggeris atau tanda baca ASCII. Kata laluan mesti ditukar pada log masuk pertama. Akaun sedia ada menerima jemputan dengan kata laluan semasa.",
+    "สำหรับบัญชีใหม่ที่เปิดด้วยตนเอง ใช้ 10–30 อักขระอย่างน้อยสองประเภทจากตัวเลข ตัวอักษรอังกฤษพิมพ์ใหญ่ ตัวอักษรอังกฤษพิมพ์เล็ก หรือเครื่องหมาย ASCII ระบบจะให้เปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก บัญชีเดิมใช้รหัสผ่านปัจจุบันเพื่อตอบรับคำเชิญ"
   ],
   "仅登记这笔真实原币收款对应的订单清算金额。收款方承担的手续费不减少订单交付额度。": [
     "仅登记这笔真实原币收款对应的订单清算金额。收款方承担的手续费不减少订单交付额度。",
@@ -6946,6 +6955,15 @@
     "थोक बिक्री ऑर्डर",
     "Pesanan jualan borong",
     "คำสั่งขายส่ง"
+  ],
+  "供货链上的可用采购额度不足。": [
+    "供货链上的可用采购额度不足。",
+    "Available procurement credits in the supply chain are insufficient.",
+    "供給チェーンで利用できる調達クレジットが不足しています。",
+    "В цепочке поставок недостаточно доступных закупочных кредитов.",
+    "आपूर्ति शृंखला में उपलब्ध खरीद क्रेडिट अपर्याप्त हैं।",
+    "Kredit perolehan tersedia dalam rantaian bekalan tidak mencukupi.",
+    "โควตาจัดซื้อที่ใช้ได้ในห่วงโซ่อุปทานไม่เพียงพอ"
   ],
   "供货销售记账": [
     "供货销售记账",
@@ -9565,15 +9583,6 @@
     "प्रारंभिक पासवर्ड केवल इस कार्रवाई के दौरान दिखता है। इसे खाताधारक को सुरक्षित रूप से दें; पहले लॉगिन पर उन्हें इसे बदलना होगा।",
     "Kata laluan awal hanya ditunjukkan semasa tindakan ini. Serahkannya dengan selamat kepada pemegang akaun; mereka mesti menukarnya pada log masuk pertama.",
     "รหัสผ่านเริ่มต้นแสดงเฉพาะระหว่างการดำเนินการนี้ ส่งให้เจ้าของบัญชีอย่างปลอดภัย โดยต้องเปลี่ยนเมื่อเข้าสู่ระบบครั้งแรก"
-  ],
-  "初始密码长度需为 10 至 72 字节，建议使用英文字母、数字和符号": [
-    "初始密码长度需为 10 至 72 字节，建议使用英文字母、数字和符号",
-    "The initial password must be 10–72 bytes. Use Latin letters, digits and symbols.",
-    "初期パスワードは10～72バイトで設定してください。英字・数字・記号の使用を推奨します。",
-    "Начальный пароль должен занимать от 10 до 72 байт. Рекомендуются латинские буквы, цифры и символы.",
-    "प्रारंभिक पासवर्ड 10–72 बाइट होना चाहिए। लैटिन अक्षर, अंक और प्रतीक उपयोग करें।",
-    "Kata laluan awal mesti 10–72 bait. Gunakan huruf Latin, digit dan simbol.",
-    "รหัสผ่านเริ่มต้นต้องมีความยาว 10–72 ไบต์ ใช้อักษรละติน ตัวเลข และสัญลักษณ์"
   ],
   "删除": [
     "删除",
@@ -12563,6 +12572,15 @@
     "E-mel pengesahan tersedia",
     "ส่งอีเมลยืนยันได้"
   ],
+  "可售空间至少能覆盖一份符合条件的套餐": [
+    "可售空间至少能覆盖一份符合条件的套餐",
+    "Sales capacity covers at least one eligible package.",
+    "販売余力で条件を満たすパッケージを1件以上賄えます。",
+    "Доступный объём продаж покрывает хотя бы один подходящий пакет.",
+    "बिक्री क्षमता कम से कम एक योग्य पैकेज के लिए पर्याप्त है।",
+    "Kapasiti jualan menampung sekurang-kurangnya satu pakej yang layak.",
+    "วงเงินขายครอบคลุมแพ็กเกจที่เข้าเงื่อนไขได้อย่างน้อยหนึ่งชุด"
+  ],
   "可填写已约定的联系或交付安排。": [
     "可填写已约定的联系或交付安排。",
     "Optionally describe the agreed contact or handover arrangements.",
@@ -12859,6 +12877,15 @@
     "आप वैकल्पिक सहयोग अनुबंध अपलोड कर सकते हैं, जो एन्क्रिप्ट करके रखा जाता है। पहले अपलोड करें, फिर संबंध बनाते या कोटेशन प्रकाशित करते समय चुनें। केवल आपूर्तिकर्ता और संबंधित खरीदार इसे देख सकते हैं। वास्तविक भुगतान राशियाँ, क्रेडिट और निकास शर्तें ऑर्डर द्वारा स्वीकृत कोटेशन का पालन करती हैं।",
     "Anda boleh memuat naik kontrak kerjasama pilihan yang disimpan dalam bentuk disulitkan. Muat naik dahulu, kemudian pilihnya semasa mencipta hubungan atau menerbitkan sebut harga. Hanya pembekal dan pembeli berkaitan boleh melihatnya. Jumlah pembayaran sebenar, kredit dan terma keluar mengikut sebut harga yang diterima pesanan.",
     "คุณสามารถอัปโหลดสัญญาความร่วมมือเพิ่มเติมซึ่งเก็บแบบเข้ารหัส อัปโหลดก่อนแล้วเลือกเมื่อสร้างความสัมพันธ์หรือเผยแพร่ใบเสนอราคา เฉพาะผู้จัดหาและผู้ซื้อที่เกี่ยวข้องเท่านั้นที่ดูได้ จำนวนเงินที่ชำระจริง เครดิต และเงื่อนไขการออกเป็นไปตามใบเสนอราคาที่คำสั่งซื้อยอมรับ"
+  ],
+  "各供货层有可用的真实采购余额": [
+    "各供货层有可用的真实采购余额",
+    "Each supply tier has a spendable procurement balance.",
+    "各供給段階に利用可能な調達残高があります。",
+    "На каждом уровне поставок есть доступный закупочный остаток.",
+    "आपूर्ति के प्रत्येक स्तर पर खर्च योग्य खरीद शेष है।",
+    "Setiap peringkat bekalan mempunyai baki perolehan yang boleh digunakan.",
+    "แต่ละระดับของห่วงโซ่อุปทานมียอดจัดซื้อที่ใช้ได้"
   ],
   "各币种分别汇总，不折算、不相减。供应商报告成本、参考成本与实际账单分别展示，不能相加作为同一成本。": [
     "各币种分别汇总，不折算、不相减。供应商报告成本、参考成本与实际账单分别展示，不能相加作为同一成本。",
@@ -17450,6 +17477,15 @@
     "E-mel penetapan semula kata laluan",
     "อีเมลรีเซ็ตรหัสผ่าน"
   ],
+  "密码须为 10–30 位，从数字、大写英文字母、小写英文字母、英文特殊符号中至少选用两类。": [
+    "密码须为 10–30 位，从数字、大写英文字母、小写英文字母、英文特殊符号中至少选用两类。",
+    "Use 10–30 characters and at least two of these types: digits, uppercase English letters, lowercase English letters, and ASCII punctuation.",
+    "パスワードは10～30文字で、数字、英大文字、英小文字、ASCII記号のうち2種類以上を使用してください。",
+    "Пароль должен содержать 10–30 символов как минимум двух типов: цифры, заглавные латинские буквы, строчные латинские буквы и знаки ASCII.",
+    "पासवर्ड 10–30 वर्ण का रखें और अंकों, बड़े अंग्रेज़ी अक्षरों, छोटे अंग्रेज़ी अक्षरों और ASCII चिह्नों में से कम से कम दो प्रकार चुनें।",
+    "Gunakan 10–30 aksara dan sekurang-kurangnya dua jenis: digit, huruf besar Inggeris, huruf kecil Inggeris dan tanda baca ASCII.",
+    "ใช้ 10–30 อักขระ โดยมีอย่างน้อยสองประเภทจากตัวเลข ตัวอักษรอังกฤษพิมพ์ใหญ่ ตัวอักษรอังกฤษพิมพ์เล็ก และเครื่องหมาย ASCII"
+  ],
   "密钥加密保存，页面不再显示原文。更换时留空表示继续用原来的密钥。": [
     "密钥加密保存，页面不再显示原文。更换时留空表示继续用原来的密钥。",
     "The key is stored encrypted and is not shown again. Leave it blank to keep the current key.",
@@ -18566,6 +18602,24 @@
     "Diterbitkan",
     "เผยแพร่แล้ว"
   ],
+  "已发布允许新购的套餐": [
+    "已发布允许新购的套餐",
+    "A package has been published for new purchases.",
+    "新規購入を許可したパッケージが公開されています。",
+    "Опубликован пакет, доступный для новой покупки.",
+    "नई खरीद के लिए एक पैकेज प्रकाशित है।",
+    "Pakej yang membenarkan pembelian baharu telah diterbitkan.",
+    "เผยแพร่แพ็กเกจที่เปิดให้ซื้อใหม่แล้ว"
+  ],
+  "已发布允许续费的套餐": [
+    "已发布允许续费的套餐",
+    "A package has been published for renewal.",
+    "更新を許可したパッケージが公開されています。",
+    "Опубликован пакет, доступный для продления.",
+    "नवीनीकरण के लिए एक पैकेज प्रकाशित है।",
+    "Pakej yang membenarkan pembaharuan telah diterbitkan.",
+    "เผยแพร่แพ็กเกจที่เปิดให้ต่ออายุแล้ว"
+  ],
   "已发布可售套餐": [
     "已发布可售套餐",
     "Saleable packages published",
@@ -19169,14 +19223,14 @@
     "Gabungan sedia ada (kosong untuk persediaan pertama)",
     "ชุดที่มีอยู่ (เว้นว่างเมื่อตั้งค่าครั้งแรก)"
   ],
-  "已有经营人员账号请使用原密码；邮件邀请的新账号请设置至少 10 位密码。接受后直接使用邮箱登录。": [
-    "已有经营人员账号请使用原密码；邮件邀请的新账号请设置至少 10 位密码。接受后直接使用邮箱登录。",
-    "Existing staff accounts should use their current password. New accounts invited by email must set a password of at least 10 characters. After accepting, log in with your email.",
-    "既存の運営スタッフアカウントは元のパスワードを使用してください。メール招待の新規アカウントは10文字以上のパスワードを設定します。承諾後はメールアドレスでログインできます。",
-    "Для существующего аккаунта сотрудника используйте прежний пароль. Для нового аккаунта по приглашению задайте пароль не короче 10 символов. После принятия входите по почте.",
-    "मौजूदा कर्मचारी खाते अपना वर्तमान पासवर्ड उपयोग करें। ईमेल से आमंत्रित नए खातों को कम से कम 10 अक्षरों का पासवर्ड सेट करना होगा। स्वीकार करने के बाद अपने ईमेल से लॉगिन करें।",
-    "Akaun kakitangan sedia ada perlu menggunakan kata laluan semasa. Akaun baharu yang dijemput melalui e-mel mesti menetapkan kata laluan sekurang-kurangnya 10 aksara. Selepas menerima, log masuk dengan e-mel anda.",
-    "บัญชีพนักงานเดิมควรใช้รหัสผ่านปัจจุบัน บัญชีใหม่ที่ได้รับเชิญทางอีเมลต้องตั้งรหัสผ่านอย่างน้อย 10 ตัวอักษร หลังยอมรับแล้วให้เข้าสู่ระบบด้วยอีเมล"
+  "已有经营人员账号请使用原密码。新账号请设置符合以下规则的密码。": [
+    "已有经营人员账号请使用原密码。新账号请设置符合以下规则的密码。",
+    "Use your current password if you already have a staff account. For a new account, set a password using these rules.",
+    "既存のスタッフアカウントでは現在のパスワードを使用してください。新しいアカウントでは次のルールに従って設定してください。",
+    "Если у вас уже есть аккаунт сотрудника, используйте текущий пароль. Для нового аккаунта задайте пароль по указанным правилам.",
+    "यदि आपका स्टाफ़ खाता पहले से है, तो मौजूदा पासवर्ड इस्तेमाल करें। नए खाते के लिए नीचे दिए गए नियमों के अनुसार पासवर्ड सेट करें।",
+    "Gunakan kata laluan semasa jika anda sudah mempunyai akaun kakitangan. Tetapkan kata laluan untuk akaun baharu mengikut peraturan berikut.",
+    "หากมีบัญชีเจ้าหน้าที่อยู่แล้ว ให้ใช้รหัสผ่านปัจจุบัน สำหรับบัญชีใหม่ให้ตั้งรหัสผ่านตามกฎต่อไปนี้"
   ],
   "已有经营人员账号请使用原密码；首次加入请设置至少 12 位密码。接受后通过经营人员登录进入已授权范围。": [
     "已有经营人员账号请使用原密码；首次加入请设置至少 12 位密码。接受后通过经营人员登录进入已授权范围。",
@@ -21293,6 +21347,15 @@
     "Tiada pakej aktif",
     "ไม่มีแพ็กเกจที่ใช้งานอยู่"
   ],
+  "当前没有符合条件的可用模型路由。": [
+    "当前没有符合条件的可用模型路由。",
+    "No eligible model route is available.",
+    "利用条件を満たすモデルルートがありません。",
+    "Нет доступного маршрута модели, отвечающего условиям.",
+    "कोई योग्य मॉडल रूट उपलब्ध नहीं है।",
+    "Tiada laluan model yang layak dan tersedia.",
+    "ไม่มีเส้นทางโมเดลที่พร้อมใช้งานตามเงื่อนไข"
+  ],
   "当前没有记账流水。": [
     "当前没有记账流水。",
     "No ledger entries yet.",
@@ -21445,6 +21508,15 @@
     "वर्तमान संचालक नए इनवॉइस अनुरोध स्वीकार नहीं कर रहा। मौजूदा अनुरोध मूल जारीकर्ता के पास रहते हैं।",
     "Pengendali semasa tidak menerima permintaan invois baharu. Permintaan sedia ada kekal dengan pengeluar asal.",
     "ผู้ดำเนินงานปัจจุบันไม่รับคำขอใบกำกับสินค้าใหม่ คำขอเดิมยังอยู่กับผู้ออกเดิม"
+  ],
+  "当前经营方尚未开放模型调用。": [
+    "当前经营方尚未开放模型调用。",
+    "The current operator has not opened model usage.",
+    "現在の運営者はモデル利用を開始していません。",
+    "Текущий оператор ещё не открыл доступ к моделям.",
+    "मौजूदा ऑपरेटर ने मॉडल का उपयोग अभी शुरू नहीं किया है।",
+    "Pengendali semasa belum membuka penggunaan model.",
+    "ผู้ประกอบการปัจจุบันยังไม่ได้เปิดให้เรียกใช้โมเดล"
   ],
   "当前经营方尚未开放此项业务": [
     "当前经营方尚未开放此项业务",
@@ -26558,6 +26630,15 @@
     "Kata laluan baharu",
     "รหัสผ่านใหม่"
   ],
+  "新密码不能与当前密码相同。": [
+    "新密码不能与当前密码相同。",
+    "Choose a password different from your current one.",
+    "現在のパスワードとは異なるパスワードを設定してください。",
+    "Выберите пароль, который отличается от текущего.",
+    "वर्तमान पासवर्ड से अलग पासवर्ड चुनें।",
+    "Pilih kata laluan yang berbeza daripada kata laluan semasa.",
+    "เลือกรหัสผ่านที่แตกต่างจากรหัสผ่านปัจจุบัน"
+  ],
   "新密码（留空保留）": [
     "新密码（留空保留）",
     "New password (blank to retain)",
@@ -26647,15 +26728,6 @@
     "नए खाते का प्रारंभिक पासवर्ड",
     "Kata laluan awal untuk akaun baharu",
     "รหัสผ่านเริ่มต้นสำหรับบัญชีใหม่"
-  ],
-  "新账号初始密码至少 10 位，最长 72 字节。": [
-    "新账号初始密码至少 10 位，最长 72 字节。",
-    "The new account's initial password must be at least 10 characters and no more than 72 bytes.",
-    "新規アカウントの初期パスワードは10文字以上、72バイト以下にしてください。",
-    "Начальный пароль нового аккаунта должен содержать не менее 10 символов и не более 72 байт.",
-    "नए खाते का प्रारंभिक पासवर्ड कम से कम 10 अक्षर और अधिकतम 72 बाइट होना चाहिए।",
-    "Kata laluan awal akaun baharu mesti sekurang-kurangnya 10 aksara dan tidak melebihi 72 bait.",
-    "รหัสผ่านเริ่มต้นของบัญชีใหม่ต้องมีอย่างน้อย 10 ตัวอักษรและไม่เกิน 72 ไบต์"
   ],
   "新购": [
     "新购",
@@ -31202,6 +31274,15 @@
     "Penstriman disokong",
     "รองรับการสตรีม"
   ],
+  "模型的零售或供货价格尚未齐全。": [
+    "模型的零售或供货价格尚未齐全。",
+    "Retail or supply pricing for this model is incomplete.",
+    "このモデルの小売価格または供給価格が揃っていません。",
+    "Для этой модели указаны не все розничные цены или цены поставки.",
+    "इस मॉडल के खुदरा या आपूर्ति मूल्य अधूरे हैं।",
+    "Harga runcit atau harga bekalan untuk model ini belum lengkap.",
+    "ราคาขายปลีกหรือราคาจัดหาของโมเดลนี้ยังไม่ครบ"
+  ],
   "模型目录与价格": [
     "模型目录与价格",
     "Model catalog & pricing",
@@ -33812,14 +33893,14 @@
     "Senarai ini dikemas kini secara automatik selepas pengaktifan",
     "รายการนี้อัปเดตอัตโนมัติหลังมีผล"
   ],
-  "生效后币种和基础比例永久锁定，暂停营业也无法修改。该比例只用于购买 ATG 换算和采购阶梯赠送；套餐等明确配置的 ATG 数量不会自动改变。系统不提供手工或自动汇率，不汇总跨币种利润。": [
-    "生效后币种和基础比例永久锁定，暂停营业也无法修改。该比例只用于购买 ATG 换算和采购阶梯赠送；套餐等明确配置的 ATG 数量不会自动改变。系统不提供手工或自动汇率，不汇总跨币种利润。",
-    "The currency and base rate are permanently locked when effective, including during a business pause. The rate applies only to ATG purchases and tiered procurement bonuses; explicitly configured ATG amounts, including packages, do not change automatically. The system provides no manual or automatic exchange rates and does not aggregate profit across currencies.",
-    "発効後は通貨と基準比率が永久に固定され、営業停止中も変更できません。この比率は ATG 購入と調達の段階別特典にのみ適用され、プランなどで明示した ATG 数量は自動変更されません。手動・自動の為替レートは提供せず、異なる通貨の利益は合算しません。",
-    "После вступления в силу валюта и базовое соотношение фиксируются навсегда, в том числе при приостановке работы. Соотношение применяется только к покупке ATG и ступенчатым закупочным бонусам; явно заданные объёмы ATG, включая пакеты, автоматически не меняются. Система не использует ручные или автоматические валютные курсы и не суммирует прибыль в разных валютах.",
-    "प्रभावी होने पर मुद्रा और आधार दर स्थायी रूप से लॉक होते हैं, व्यवसाय रुकने के दौरान भी। दर केवल ATG खरीद और स्तरीय खरीद बोनस पर लागू होती है; पैकेज सहित स्पष्ट कॉन्फ़िगर ATG राशियाँ अपने आप नहीं बदलतीं। सिस्टम मैन्युअल या स्वचालित विनिमय दर नहीं देता और मुद्राओं के बीच लाभ एकत्र नहीं करता।",
-    "Mata wang dan kadar asas dikunci secara kekal apabila berkuat kuasa, termasuk semasa jeda perniagaan. Kadar hanya terpakai kepada pembelian ATG dan bonus perolehan berperingkat; jumlah ATG yang dikonfigurasi secara jelas, termasuk pakej, tidak berubah secara automatik. Sistem tidak menyediakan kadar pertukaran manual atau automatik dan tidak mengagregatkan keuntungan merentas mata wang.",
-    "สกุลเงินและอัตราพื้นฐานจะล็อกถาวรเมื่อมีผล รวมถึงระหว่างหยุดธุรกิจ อัตรานี้ใช้เฉพาะการซื้อ ATG และโบนัสการจัดซื้อแบบขั้นบันได จำนวน ATG ที่ตั้งค่าไว้อย่างชัดเจนรวมถึงแพ็กเกจจะไม่เปลี่ยนอัตโนมัติ ระบบไม่มีอัตราแลกเปลี่ยนด้วยตนเองหรืออัตโนมัติ และไม่รวมกำไรข้ามสกุลเงิน"
+  "生效后币种和基础比例永久锁定，暂停营业也无法修改。该比例只用于购买 ATG 换算和采购阶梯赠送；套餐等明确配置的 ATG 数量不会自动改变。外币支付按单报价，账务继续按实际原币记录。": [
+    "生效后币种和基础比例永久锁定，暂停营业也无法修改。该比例只用于购买 ATG 换算和采购阶梯赠送；套餐等明确配置的 ATG 数量不会自动改变。外币支付按单报价，账务继续按实际原币记录。",
+    "The currency and base ratio lock permanently when they take effect, even if business is suspended. The ratio applies to ATG purchases and tiered procurement bonuses. Explicit ATG amounts, such as those in packages, stay fixed. Foreign-currency payments are quoted per order, and accounting records use the actual original currency.",
+    "適用後、通貨と基本比率は永久に固定され、営業を停止しても変更できません。この比率はATG購入時の換算と調達の段階別ボーナスに使います。パッケージなどで明示したATG数量は固定です。外貨決済は注文ごとに見積もり、会計は実際の原通貨で記録します。",
+    "Валюта и базовый коэффициент фиксируются навсегда с момента вступления в силу, даже при приостановке работы. Коэффициент применяется к покупке ATG и ступенчатым бонусам закупки. Явно заданные объёмы ATG, например в пакетах, остаются фиксированными. Валютная котировка рассчитывается для отдельного платежа, а учёт ведётся в фактической исходной валюте.",
+    "प्रभावी होने पर मुद्रा और आधार अनुपात स्थायी रूप से लॉक हो जाते हैं, कारोबार रुकने पर भी। अनुपात ATG खरीद और खरीद के स्तर-आधारित बोनस पर लागू होता है। पैकेज जैसी स्पष्ट रूप से तय ATG मात्राएँ स्थिर रहती हैं। विदेशी मुद्रा का भाव हर भुगतान के लिए अलग तय होता है और लेखा वास्तविक मूल मुद्रा में दर्ज होता है।",
+    "Mata wang dan nisbah asas dikunci secara kekal apabila berkuat kuasa, termasuk semasa operasi digantung. Nisbah terpakai pada pembelian ATG dan bonus perolehan bertingkat. Kuantiti ATG yang ditetapkan, seperti dalam pakej, kekal. Bayaran mata wang asing disebut harga bagi setiap pesanan dan direkod dalam mata wang asal sebenar.",
+    "สกุลเงินและอัตราส่วนพื้นฐานจะถูกล็อกถาวรเมื่อมีผล แม้ระงับการดำเนินงาน อัตราส่วนนี้ใช้กับการซื้อ ATG และโบนัสจัดซื้อตามขั้น จำนวน ATG ที่ระบุไว้ในแพ็กเกจจะคงเดิม การชำระเงินต่างสกุลเสนอราคาเป็นรายคำสั่งซื้อและบันทึกบัญชีตามสกุลเงินจริง"
   ],
   "生效待复核": [
     "生效待复核",
@@ -38402,14 +38483,14 @@
     "hingga",
     "ถึง"
   ],
-  "至少 10 位，且不能与当前密码相同。": [
-    "至少 10 位，且不能与当前密码相同。",
-    "At least 10 characters, different from your current password.",
-    "10文字以上で、現在のパスワードと異なるものにしてください。",
-    "Не менее 10 символов и отличается от текущего пароля.",
-    "कम से कम 10 अक्षर, आपके वर्तमान पासवर्ड से अलग।",
-    "Sekurang-kurangnya 10 aksara, berbeza daripada kata laluan semasa anda.",
-    "อย่างน้อย 10 ตัวอักษร และต้องต่างจากรหัสผ่านปัจจุบัน"
+  "至少有一种可用于当前结算币种的收款方式": [
+    "至少有一种可用于当前结算币种的收款方式",
+    "At least one collection method supports the current settlement currency.",
+    "現在の決済通貨に対応する集金方法が1つ以上あります。",
+    "Есть хотя бы один способ приёма платежей для текущей валюты расчётов.",
+    "मौजूदा निपटान मुद्रा में कम से कम एक भुगतान प्राप्ति विधि उपलब्ध है।",
+    "Sekurang-kurangnya satu kaedah kutipan menyokong mata wang penyelesaian semasa.",
+    "มีวิธีรับชำระอย่างน้อยหนึ่งวิธีที่รองรับสกุลเงินที่ใช้ชำระบัญชีปัจจุบัน"
   ],
   "至少选择一种供应商能力。": [
     "至少选择一种供应商能力。",
@@ -40049,6 +40130,15 @@
     "Butiran",
     "รายละเอียด"
   ],
+  "语言加载失败，请重试。": [
+    "语言加载失败，请重试。",
+    "The language could not load. Try again.",
+    "言語を読み込めませんでした。もう一度お試しください。",
+    "Не удалось загрузить язык. Повторите попытку.",
+    "भाषा लोड नहीं हुई। फिर से कोशिश करें।",
+    "Bahasa gagal dimuatkan. Cuba lagi.",
+    "โหลดภาษาไม่สำเร็จ โปรดลองอีกครั้ง"
+  ],
   "语言只支持 zh、en、ja、ru": [
     "语言只支持 zh、en、ja、ru",
     "Supported languages are Chinese, English, Japanese and Russian.",
@@ -40418,14 +40508,14 @@
     "Masukkan {label} yang sah",
     "กรอก {label} ที่ถูกต้อง"
   ],
-  "请填写有效的三位 ISO 币种、正数 ATG 比例和未来生效时间。": [
-    "请填写有效的三位 ISO 币种、正数 ATG 比例和未来生效时间。",
-    "Enter a valid three-letter ISO currency code, a positive ATG rate, and a future activation time.",
-    "有効な 3 文字の ISO 通貨コード、正の ATG 比率、将来の発効日時を入力してください。",
-    "Введите корректный трёхбуквенный код валюты ISO, положительное соотношение ATG и будущее время вступления в силу.",
-    "वैध तीन अक्षर का ISO मुद्रा कोड, धनात्मक ATG दर और भविष्य का सक्रियण समय दर्ज करें।",
-    "Masukkan kod mata wang ISO tiga huruf yang sah, kadar ATG positif dan masa pengaktifan pada masa depan.",
-    "กรอกรหัสสกุลเงิน ISO สามตัวอักษรที่ถูกต้อง อัตรา ATG เป็นบวก และเวลาเปิดใช้งานในอนาคต"
+  "请填写有效的三位 ISO 币种和未来生效时间。": [
+    "请填写有效的三位 ISO 币种和未来生效时间。",
+    "Enter a valid three-letter ISO currency and a future effective time.",
+    "有効な3文字のISO通貨コードと将来の有効化時刻を入力してください。",
+    "Укажите действующий трёхбуквенный код валюты ISO и будущее время вступления в силу.",
+    "मान्य तीन-अक्षर वाला ISO मुद्रा कोड और भविष्य का प्रभावी समय दर्ज करें।",
+    "Masukkan kod mata wang ISO tiga huruf yang sah dan masa kuat kuasa pada masa hadapan.",
+    "กรอกรหัสสกุลเงิน ISO สามตัวอักษรที่ถูกต้องและเวลาที่จะเริ่มมีผลในอนาคต"
   ],
   "请填写有效的提现兑换比例。": [
     "请填写有效的提现兑换比例。",
@@ -45709,6 +45799,15 @@
     "आंशिक भुगतान",
     "Dibayar sebahagian",
     "ชำระบางส่วนแล้ว"
+  ],
+  "部分佣金受限": [
+    "部分佣金受限",
+    "Some commission is restricted.",
+    "一部のコミッションに利用制限があります。",
+    "Доступ к части комиссии ограничен.",
+    "कुछ कमीशन पर रोक है।",
+    "Sebahagian komisen dihadkan.",
+    "ค่าคอมมิชชันบางส่วนถูกจำกัด"
   ],
   "部分待办指标尚未核实，请到相应业务页继续查询。": [
     "部分待办指标尚未核实，请到相应业务页继续查询。",

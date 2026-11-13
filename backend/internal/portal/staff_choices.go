@@ -1,6 +1,8 @@
 package portal
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 )
@@ -41,4 +43,39 @@ func (a *Application) staffGrantField(c *gin.Context, actor string, op organizat
 		}
 	}
 	return field, nil
+}
+
+type staffMembershipDetails struct {
+	people  map[string]staffDisplayIdentity
+	grants  map[string][]string
+	history map[string][]settingChange
+}
+
+type staffDisplayIdentity struct {
+	ID, DisplayName, Email string
+}
+
+func (a *Application) staffMembershipDetails(ctx context.Context, operator string, membershipIDs, staffIDs []string) (staffMembershipDetails, error) {
+	out := staffMembershipDetails{people: map[string]staffDisplayIdentity{}, grants: map[string][]string{}}
+	if len(membershipIDs) == 0 {
+		return out, nil
+	}
+	var people []staffDisplayIdentity
+	db := a.DB.WithContext(ctx)
+	if err := db.Table("portal_staff").Select("id,display_name,email").Where("id IN ?", staffIDs).Scan(&people).Error; err != nil {
+		return out, err
+	}
+	for _, person := range people {
+		out.people[person.ID] = person
+	}
+	var grants []struct{ MembershipID, Action string }
+	if err := db.Table("organization_staff_grants").Select("membership_id,action").Where("membership_id IN ?", membershipIDs).Order("action").Scan(&grants).Error; err != nil {
+		return out, err
+	}
+	for _, row := range grants {
+		out.grants[row.MembershipID] = append(out.grants[row.MembershipID], row.Action)
+	}
+	var err error
+	out.history, err = a.staffSettingHistory(ctx, operator, staffIDs)
+	return out, err
 }

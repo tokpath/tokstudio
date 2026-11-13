@@ -19,13 +19,14 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 // Deliberately not exposed by Router, migrations, or normal startup.
 // The one-time transaction preserves a receipt/order/ledger trail for synthetic
 // assets and never executes an external payment or sends an invitation email.
+const demoPassword = "TokenHub-Test1!"
+
 type DemoOptions struct{ Confirmation, Host, ModelBaseURL, ModelKey string }
 type DemoAccount struct{ Email, Kind, Role, OperatorID string }
 type DemoResult struct {
@@ -74,11 +75,11 @@ func (a *Application) SeedDemo(ctx context.Context, in DemoOptions) (out DemoRes
 		}
 		defer seeded.Close()
 		builder := demoBuilder{a: seeded, tx: tx, ctx: ctx, out: &out}
-		hash, e := bcrypt.GenerateFromPassword([]byte("password1"), 12)
+		hash, e := organization.HashPassword(demoPassword)
 		if e != nil {
 			return e
 		}
-		builder.hash = string(hash)
+		builder.hash = hash
 		if e = builder.run(in); e != nil {
 			return e
 		}
@@ -133,7 +134,12 @@ func (s *demoBuilder) operator(parent, actor, email, name string, kind organizat
 		return created, owner, e
 	}
 	terms := json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"TEST DATA ONLY"}`)
-	_, e = s.a.Cooperation.DeliverPurchase(s.ctx, s.tx, cooperation.PurchaseInput{BuyerID: created.Operator.ID, SupplierID: parent, OrderID: uuid.NewString(), ReceiptReference: demoEvidence, ActorID: actor, PaidMoney: ledger.MustDecimal("800"), PaidATG: ledger.MustDecimal("1000"), ExitTerms: terms, At: time.Now()})
+	paid, quantity := ledger.FromInt64(800), ledger.FromInt64(1000)
+	if kind == organization.OEM {
+		// Cover the OEM channel's opening procurement and retain room to sell.
+		paid, quantity = ledger.FromInt64(1600), ledger.FromInt64(2000)
+	}
+	_, e = s.a.Cooperation.DeliverPurchase(s.ctx, s.tx, cooperation.PurchaseInput{BuyerID: created.Operator.ID, SupplierID: parent, OrderID: uuid.NewString(), ReceiptReference: demoEvidence, ActorID: actor, PaidMoney: paid, PaidATG: quantity, ExitTerms: terms, At: time.Now()})
 	if e != nil {
 		return created, owner, e
 	}
@@ -171,7 +177,7 @@ func (s *demoBuilder) setup(operator, actor string) (commerce.PackageQuote, ince
 func (s *demoBuilder) customer(brand, operator, email, name, invite string) (organization.RegistrationResult, error) {
 	// Verified synthetic identities are created inside this transaction only.
 	// Real public registration still requires configured verification mail.
-	challenge, e := s.a.Organization.BeginRegistration(s.ctx, s.tx, organization.RegistrationIntentRequest{BrandID: brand, Email: email, Password: "temporary-fixture-password", InviteCode: invite})
+	challenge, e := s.a.Organization.BeginRegistration(s.ctx, s.tx, organization.RegistrationIntentRequest{BrandID: brand, Email: email, Password: demoPassword, InviteCode: invite})
 	if e != nil {
 		return organization.RegistrationResult{}, e
 	}
@@ -185,11 +191,8 @@ func (s *demoBuilder) customer(brand, operator, email, name, invite string) (org
 	if e != nil {
 		return result, e
 	}
-	e = s.tx.Table("organization_customer_credentials").Where("customer_id=?", result.Customer.ID).Update("password_hash", s.hash).Error
-	if e == nil {
-		s.out.Accounts = append(s.out.Accounts, DemoAccount{email, "customer", "customer", operator})
-	}
-	return result, e
+	s.out.Accounts = append(s.out.Accounts, DemoAccount{email, "customer", "customer", operator})
+	return result, nil
 }
 func (s *demoBuilder) fund(actor string, order commerce.Order) error {
 	base, baseErr := ledger.RequireMonetary(s.ctx, s.tx)
@@ -226,12 +229,12 @@ func (s *demoBuilder) balance(actor, operator, customer string, quote commerce.P
 func (s *demoBuilder) run(in DemoOptions) error {
 	a := s.a
 	platform, owner := a.Installation.OperatorID, a.Installation.OwnerStaffID
-	s.out.Note = "Synthetic test data only. New test accounts use password1; the existing owner is unchanged. OEM public domain is not activated by this command. Real mail and payment providers still require configuration."
+	s.out.Note = "Synthetic test data only. New test accounts use " + demoPassword + "; the existing owner is unchanged. OEM public domain is not activated by this command. Real mail and payment providers still require configuration."
 	var existingOwner Staff
 	if e := s.tx.First(&existingOwner, "id=?", owner).Error; e != nil {
 		return e
 	}
-	if strings.HasSuffix(existingOwner.Email, "@tokenhub.local") && organization.CheckPassword(existingOwner.PasswordHash, "password1") {
+	if strings.HasSuffix(existingOwner.Email, "@tokenhub.local") && organization.CheckPassword(existingOwner.PasswordHash, demoPassword) {
 		s.out.Accounts = append(s.out.Accounts, DemoAccount{existingOwner.Email, "staff", "owner", platform})
 	}
 	for _, role := range []string{"operations", "finance", "support", "readonly"} {

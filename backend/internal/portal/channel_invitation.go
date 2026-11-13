@@ -1,7 +1,6 @@
 package portal
 
 import (
-	"errors"
 	"net/url"
 
 	"github.com/gin-gonic/gin"
@@ -39,9 +38,9 @@ func (a *Application) channelCustomerInvitation(c *gin.Context) {
 		link = u.String()
 	}
 	registrationOpen := false
-	if enabled {
+	if enabled && link != "" {
 		err := a.Organization.RequireBusiness(ctx, nil, op.ID, organization.Registration)
-		if err != nil && !errors.Is(err, organization.ErrBusinessClosed) && !errors.Is(err, organization.ErrFrozen) {
+		if err != nil && !businessUnavailable(err) {
 			handleError(c, err)
 			return
 		}

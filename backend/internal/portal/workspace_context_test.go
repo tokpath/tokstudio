@@ -362,3 +362,54 @@ func seedCustomerContextFilters(t *testing.T, f *testApp, order commerce.Order, 
 		{url.Values{"section": {"refunds"}, "q": {"refund reason"}, "status": {"approved"}}, []string{refund.ID}},
 	}
 }
+
+func TestPostgresExpiredGrantIsUnavailableAcrossCustomerAndOperatorViews(t *testing.T) {
+	f := setupPortal(t)
+	ctx := t.Context()
+	op, actor := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
+	f.openRegistration(t)
+	f.registered(t, "assets@audit.test")
+	f.login(t, "customer", "assets@audit.test", "customer-password-test")
+	status, session, _ := f.call(t, "GET", "/v1/auth/me", nil, "")
+	mustOK(t, status, session)
+	customer := session["customer"].(map[string]any)["id"].(string)
+	var now time.Time
+	if err := f.a.DB.Raw("SELECT clock_timestamp()").Row().Scan(&now); err != nil {
+		t.Fatal(err)
+	}
+	expires := now.Add(-time.Second)
+	grant, err := f.a.Ledger.IssueGrant(ctx, nil, ledger.GrantInput{OperatorID: op, CustomerID: customer, OrderID: uuid.NewString(), BusinessKey: "audit-expired-grant", ActorID: actor, Reason: "isolated expired grant before expiry worker", Sources: []ledger.GrantSource{{Kind: "manual_gift", Amount: ledger.MustDecimal("20")}}, EffectiveAt: now.Add(-time.Minute), ExpiresAt: &expires})
+	if err != nil {
+		t.Fatal(err)
+	}
+	status, credits, _ := f.call(t, "GET", "/v1/me/credits", nil, "")
+	mustOK(t, status, credits)
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	base := "/v1/operators/" + op
+	status, workbench, _ := f.call(t, "GET", base+"/customer-context/"+customer+"?section=assets", nil, "")
+	mustOK(t, status, workbench)
+	status, accounts, _ := f.call(t, "GET", base+"/ledger?view=accounts", nil, "")
+	mustOK(t, status, accounts)
+	var staffWorkbench, staffLedger any
+	for _, section := range workbench["sections"].([]any) {
+		page := section.(map[string]any)["page"].(map[string]any)
+		if section.(map[string]any)["resource"] != "assets" {
+			continue
+		}
+		for _, raw := range page["items"].([]any) {
+			row := raw.(map[string]any)
+			if row["id"] == grant.AccountID {
+				staffWorkbench = row["values"].(map[string]any)["available"]
+			}
+		}
+	}
+	for _, raw := range accounts["items"].([]any) {
+		row := raw.(map[string]any)
+		if row["id"] == grant.AccountID {
+			staffLedger = row["values"].(map[string]any)["display"].(map[string]any)["available"]
+		}
+	}
+	if customerAvailable := credits["customer_atg"].(map[string]any)["available"]; customerAvailable != "0" || staffWorkbench != "0" || staffLedger != "0" {
+		t.Fatalf("expired grant availability: customer=%v customer context=%v operator ledger=%v", customerAvailable, staffWorkbench, staffLedger)
+	}
+}

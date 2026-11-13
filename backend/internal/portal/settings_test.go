@@ -7,8 +7,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/commerce"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/payments"
 )
 
 func TestPostgresSettingsSimpleCommandsRetainReadinessVersionAndAudit(t *testing.T) {
@@ -170,5 +173,64 @@ func TestPostgresSettingsNotificationHasReadableContentAndOptionalReference(t *t
 	var notice operations.Notification
 	if err := f.a.DB.First(&notice, "id=?", fmt.Sprint(out["id"])).Error; err != nil || notice.Reference == "" {
 		t.Fatal(notice, err)
+	}
+}
+
+func TestPostgresBusinessReadinessUsesEligiblePackagePaymentAndRoutes(t *testing.T) {
+	f := setupPortal(t)
+	ctx := t.Context()
+	op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
+	f.openRegistration(t)
+	model := f.configureExternalCatalog(t, "http://127.0.0.1:58090")
+	packages, err := f.a.Commerce.ListPackages(ctx, nil, op)
+	if err != nil || len(packages) != 1 {
+		t.Fatal(packages, err)
+	}
+	quote := commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: op, PackageID: packages[0].ID,
+		Name: "Monthly", PriceMoney: ledger.FromInt64(100), PaidATG: ledger.FromInt64(100), Period: ledger.Month, RenewalEnabled: true, ExpectedVersion: 1}
+	if _, err = f.a.Commerce.PublishPackage(ctx, nil, quote); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.a.Payments.SaveMerchant(ctx, owner, payments.Merchant{ID: uuid.NewString(), OperatorID: op, Driver: "manual", Enabled: true, Credentials: map[string]string{"currency": "CNY", "recipient_reference": "synthetic", "instructions": "synthetic"}}, 0); err != nil {
+		t.Fatal(err)
+	}
+	fx, err := f.a.Payments.FXSettings(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fx.Enabled = false
+	if _, err = f.a.Payments.SetFXSettings(ctx, owner, op, fx, fx.Version); err != nil {
+		t.Fatal(err)
+	}
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	toggle := func(feature organization.BusinessFeature, want int) {
+		t.Helper()
+		state, err := f.a.Organization.GetBusinessStatus(ctx, nil, op)
+		if err != nil {
+			t.Fatal(err)
+		}
+		status, out, _ := f.call(t, "POST", "/v1/operators/"+op+"/business-status", map[string]any{"feature": feature, "enabled": true, "expected_version": state.Version}, "")
+		if status != want {
+			t.Fatalf("%s status=%d want=%d response=%v", feature, status, want, out)
+		}
+	}
+	toggle(organization.NewPurchase, 409)
+	toggle(organization.Renewal, 200)
+	quote.ExpectedVersion = 2
+	quote.NewPurchaseEnabled = true
+	if _, err = f.a.Commerce.PublishPackage(ctx, nil, quote); err != nil {
+		t.Fatal(err)
+	}
+	toggle(organization.NewPurchase, 409)
+	toggle(organization.ModelUsage, 200)
+	if err := f.a.DB.Exec("UPDATE tokenhub_upstreams SET definition=jsonb_set(definition, '{enabled}', 'false'::jsonb) WHERE public_model_id=?", model).Error; err != nil {
+		t.Fatal(err)
+	}
+	toggle(organization.ModelUsage, 409)
+	status, out, _ := f.call(t, "GET", "/v1/public/models", nil, "")
+	mustOK(t, status, out)
+	rows := out["items"].([]any)
+	if len(rows) != 1 || rows[0].(map[string]any)["status"] != "route_unavailable" {
+		t.Fatal(out)
 	}
 }

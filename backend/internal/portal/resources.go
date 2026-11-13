@@ -671,7 +671,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 			readiness = append(readiness, gin.H{"feature": feature, "requirements": checks})
 		}
 		v["readiness"] = readiness
-		history, e := a.settingHistory(c, op.ID, "business.status_changed", "")
+		history, e := a.businessSettingHistory(c, op.ID)
 		if e != nil {
 			handleError(c, e)
 			return
@@ -696,26 +696,22 @@ func (a *Application) operatorResource(c *gin.Context) {
 			handleError(c, e)
 			return
 		}
+		membershipIDs, staffIDs := make([]string, 0, len(rows)), make([]string, 0, len(rows))
 		for _, row := range rows {
-			var person Staff
-			if e := a.DB.WithContext(ctx).Where("id=?", row.StaffID).Limit(1).Find(&person).Error; e != nil {
-				handleError(c, e)
-				return
-			}
-			var grants []string
-			if e := a.DB.WithContext(ctx).Table("organization_staff_grants").Where("membership_id=?", row.ID).Order("action").Pluck("action", &grants).Error; e != nil {
-				handleError(c, e)
-				return
-			}
+			membershipIDs = append(membershipIDs, row.ID)
+			staffIDs = append(staffIDs, row.StaffID)
+		}
+		details, e := a.staffMembershipDetails(ctx, op.ID, membershipIDs, staffIDs)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		for _, row := range rows {
+			person := details.people[row.StaffID]
 			v := values(row)
 			v["display_name"], v["email"] = person.DisplayName, person.Email
-			v["grants"] = strings.Join(grants, ",")
-			history, e := a.settingHistory(c, op.ID, "staff.membership_changed", row.StaffID)
-			if e != nil {
-				handleError(c, e)
-				return
-			}
-			v["change_history"] = history
+			v["grants"] = strings.Join(details.grants[row.ID], ",")
+			v["change_history"] = append([]settingChange{}, details.history[row.StaffID]...)
 			items = append(items, entity(row.ID, row.Status, 1, v))
 		}
 		p["columns"] = []gin.H{col("display_name", "人员", "text"), col("email", "邮箱", "text"), col("role", "角色", "text"), col("status", "状态", "status")}

@@ -65,6 +65,31 @@ func (s *Service) CustomerAssetSummary(ctx context.Context, tx *gorm.DB, operato
 	return result, err
 }
 
+// AccountGrants returns timing and source information for the selected page
+// of accounts, along with the database time used to evaluate availability.
+func (s *Service) AccountGrants(ctx context.Context, tx *gorm.DB, operator string, accounts []string) (map[string]Grant, time.Time, error) {
+	out := make(map[string]Grant)
+	if len(accounts) == 0 {
+		return out, time.Time{}, nil
+	}
+	db := s.db.WithContext(ctx)
+	if tx != nil {
+		db = tx.WithContext(ctx)
+	}
+	var now time.Time
+	if err := db.Raw("SELECT clock_timestamp()").Row().Scan(&now); err != nil {
+		return nil, now, err
+	}
+	var grants []Grant
+	if err := db.Where("operator_id=? AND account_id IN ?", operator, accounts).Find(&grants).Error; err != nil {
+		return nil, now, err
+	}
+	for _, g := range grants {
+		out[g.AccountID] = g
+	}
+	return out, now, nil
+}
+
 func (s *Service) FindAccount(ctx context.Context, tx *gorm.DB, operator, owner, purpose string) (Account, error) {
 	var result Account
 	if !validPortalScope(operator, owner) || owner == "" || purpose == "" {

@@ -97,6 +97,29 @@ func TestPostgresChannelInvitationUsesOwnBrandAndPreservesDirectRegistration(t *
 	}
 }
 
+func TestPostgresChannelInvitationIsVisibleBeforeMonetaryActivation(t *testing.T) {
+	f := setupPortalMonetary(t, false)
+	ctx := t.Context()
+	op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
+	channel, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: op, Kind: organization.Channel, Name: "Opening channel"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	invitation, err := f.a.Organization.InviteStaff(ctx, nil, owner, channel.Operator.ID, "owner@example.test", "owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.a.Organization.AcceptStaffInvitation(ctx, nil, invitation.Token, organization.VerifiedStaff{ID: owner, Email: invitation.Email, EmailVerified: true}); err != nil {
+		t.Fatal(err)
+	}
+	f.login(t, "staff", invitation.Email, "owner-password-test")
+	status, out, _ := f.call(t, "GET", "/v1/operators/"+channel.Operator.ID+"/customer-invitation", nil, "")
+	mustOK(t, status, out)
+	if out["invite_code"] != channel.InviteCode || out["invite_url"] == "" || out["registration_open"] != false {
+		t.Fatal(out)
+	}
+}
+
 func TestExternalChannelInvitationAcceptanceServer(t *testing.T) {
 	ready := os.Getenv("TOKENHUB_INVITATION_ACCEPTANCE_FILE")
 	if ready == "" {

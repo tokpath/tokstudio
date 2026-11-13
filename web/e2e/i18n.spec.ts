@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { localeNames, locales, translate, type Locale } from "../lib/i18n";
+import { localeNames, locales, translate, type Locale } from "../lib/i18n-testing";
 
 const brand = { id: "brand-i18n", name: "山海模型", api_base_url: "https://api.shanhai.example/v1", theme: { primary_color: "#2444aa" } };
 const operator = { id: "operator-i18n", name: "星河渠道", kind: "channel", brand_id: brand.id, contact_email: "support@example.test", legal_name: "星河服务主体" };

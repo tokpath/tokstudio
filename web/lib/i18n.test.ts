@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import ts from "typescript";
-import { catalogs, localizeNumberText, messages, normalizeLocale, resolveLocale, translate } from "./i18n";
+import { localizeNumberText, normalizeLocale, resolveLocale, translate } from "./i18n";
+import { catalogs, messages } from "./i18n-catalogs";
 
 describe("seven-language presentation contract", () => {
   it.each([
@@ -80,6 +81,13 @@ describe("seven-language presentation contract", () => {
       expect(localizeNumberText("0.000000000000000001", locale)).toBe("0.000000000000000001");
     }
   });
+  it("formats a readiness error with only the source language available", async () => {
+    vi.resetModules();
+    const { translate } = await import("./i18n");
+    expect(translate("zh", "仍有未满足事项：剩余额度；未结款项")).toBe("仍有未满足事项：剩余额度\n未结款项");
+    expect(translate("zh", "仍有未满足事项：")).toBe("仍有未满足事项：");
+  });
+
   it.each(["zh", "en", "ja", "ru", "hi", "ms", "th"] as const)("shows the configured settlement currency only in marked system templates in %s", locale => {
     const amount = translate(locale, "金额 结算币种", undefined, "CNY");
     expect(amount).toContain("CNY");

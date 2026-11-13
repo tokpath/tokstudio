@@ -46,6 +46,19 @@ func TestNormalizeEmailAndRelationship(t *testing.T) {
 	}
 }
 
+func TestNewPasswordPolicy(t *testing.T) {
+	for _, password := range []string{"abcdefghi1", "ABCDEFGHI!", "abcdeABCDE", "123456789?", strings.Repeat("a", 29) + "1"} {
+		if !validPassword(password) {
+			t.Errorf("expected valid password for %q", password)
+		}
+	}
+	for _, password := range []string{"abcdefg1!", strings.Repeat("a", 30) + "1", "abcdefghij", "ABCDEFGHIJ", "0123456789", "!!@@##$$%%", "password1 ", "password1é", "password1\n"} {
+		if _, err := HashPassword(password); !errors.Is(err, ErrPasswordPolicy) {
+			t.Errorf("expected password policy error for %q, got %v", password, err)
+		}
+	}
+}
+
 func integrationDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("TOKENHUB_TEST_DATABASE_URL")

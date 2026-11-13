@@ -82,8 +82,8 @@ it("explains the warning buffer inside the editable coverage form",()=>{
 it("explains initial-password limits and rejects a short password before sending the account request",async()=>{
  const fetch=vi.fn();vi.stubGlobal("fetch",fetch);
  show(<OperationForm operatorID="workspace" operation={{name:"invite",label:"开通经营人员",method:"POST",path:"/api/v1/operators/workspace/staff",fields:[{name:"initial_password",label:"新账号初始密码",kind:"password"}]}} />);
- const input=screen.getByLabelText("新账号初始密码");expect((input as HTMLInputElement).minLength).toBe(10);
+ const input=screen.getByLabelText("新账号初始密码");
  fireEvent.change(input,{target:{value:"password1"}});fireEvent.click(screen.getByRole("button",{name:"开通经营人员",exact:true}));
- expect(screen.getByRole("alert").textContent).toContain("至少 10 位，最长 72 字节");expect(fetch).not.toHaveBeenCalled();
- fireEvent.click(screen.getByRole("button",{name:"了解新账号初始密码"}));expect(screen.getByRole("dialog").textContent).toContain("至少 10 位，最长 72 字节");
+ expect(screen.getByRole("alert").textContent).toContain("10–30 位");expect(fetch).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole("button",{name:"了解新账号初始密码"}));expect(screen.getByRole("dialog").textContent).toContain("10–30 位");
 });

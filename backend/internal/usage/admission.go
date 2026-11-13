@@ -114,12 +114,8 @@ func (s *Service) Admit(ctx context.Context, authenticated Key, businessKey stri
 		if c.Status != "active" || c.BrandID != k.BrandID {
 			return ErrKey
 		}
-		status, e := s.Organization.GetBusinessStatus(ctx, t, ownership.OperatorID)
-		if e != nil {
+		if e = s.Organization.RequireBusiness(ctx, t, ownership.OperatorID, organization.ModelUsage); e != nil {
 			return e
-		}
-		if !status.ModelUsage {
-			return organization.ErrBusinessClosed
 		}
 		var modelIDs []string
 		if len(k.ModelIDs) > 0 && json.Unmarshal(k.ModelIDs, &modelIDs) != nil {

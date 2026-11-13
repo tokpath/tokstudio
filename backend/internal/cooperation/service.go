@@ -122,6 +122,23 @@ func (s *Service) Position(ctx context.Context, tx *gorm.DB, buyer string) (Proc
 	return p, err
 }
 
+// HasProcurementStock checks spendable inventory, excluding oversell allowances
+// and amounts already held by accepted requests.
+func (s *Service) HasProcurementStock(ctx context.Context, tx *gorm.DB, buyers []string) (bool, error) {
+	if len(buyers) == 0 {
+		return true, nil
+	}
+	var count int64
+	db := tx
+	if db == nil {
+		db = s.DB
+	}
+	err := db.WithContext(ctx).Table("cooperation_procurement_positions p").
+		Joins("JOIN ledger_accounts a ON a.id=p.account_id").
+		Where("p.buyer_id IN ? AND a.balance>a.held", buyers).Count(&count).Error
+	return count == int64(len(buyers)), err
+}
+
 // DeliverPurchase consumes an already verified full payment fact. The application
 // validates its allocation to the immutable wholesale quote in the same transaction.
 func (s *Service) DeliverPurchase(ctx context.Context, tx *gorm.DB, in PurchaseInput) (ProcurementLot, error) {

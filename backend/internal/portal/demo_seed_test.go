@@ -43,9 +43,9 @@ func TestPostgresDemoFixtureIsAtomicRepeatableAndScoped(t *testing.T) {
 	f.a.Config.OfficialHost = original
 	for _, account := range out.Accounts {
 		if account.Kind == "staff" {
-			f.login(t, "staff", account.Email, "password1")
+			f.login(t, "staff", account.Email, demoPassword)
 		} else {
-			f.login(t, "customer", account.Email, "password1")
+			f.login(t, "customer", account.Email, demoPassword)
 		}
 	}
 	var platformCustomer, channelCustomer string

@@ -1,6 +1,6 @@
 import {test,expect} from "@playwright/test";
 import {readFileSync} from "node:fs";
-import {translate} from "../lib/i18n";
+import {translate} from "../lib/i18n-testing";
 const ready=process.env.TOKENHUB_REPORTS_ACCEPTANCE_FILE;
 test.skip(!ready,"Requires the isolated reports fixture and PostgreSQL");
 test("operator reviews sales then exports the same period as a private CSV",async({page},info)=>{

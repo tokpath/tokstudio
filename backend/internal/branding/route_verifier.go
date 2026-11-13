@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -27,7 +28,10 @@ func ownership(ctx context.Context, resolver TXTResolver, host, token string) (b
 	defer cancel()
 	records, err := resolver.LookupTXT(ctx, "_tokenhub."+host)
 	if err != nil {
-		return false, nil
+		if dnsRecordMissing(err) {
+			return false, nil
+		}
+		return false, ErrVerificationUnavailable
 	}
 	for _, r := range records {
 		if strings.TrimSpace(r) == "tokenhub-verification="+token {
@@ -36,6 +40,18 @@ func ownership(ctx context.Context, resolver TXTResolver, host, token string) (b
 	}
 	return false, nil
 }
+
+func dnsRecordMissing(err error) bool {
+	var dns *net.DNSError
+	return errors.As(err, &dns) && dns.IsNotFound
+}
+
+func tlsEvidenceFailed(err error) bool {
+	var certificate *tls.CertificateVerificationError
+	var record tls.RecordHeaderError
+	return errors.As(err, &certificate) || errors.As(err, &record)
+}
+
 func (v DNSAndTLSVerifier) VerifyOwnership(ctx context.Context, host, token string) (bool, error) {
 	return ownership(ctx, v.Resolver, host, token)
 }
@@ -67,6 +83,9 @@ func (v RouteVerifier) Verify(ctx context.Context, host, token string) (DomainVe
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	ips, e := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if e != nil && !dnsRecordMissing(e) {
+		return out, ErrVerificationUnavailable
+	}
 	if e != nil || len(ips) == 0 {
 		out.FailureReason = "Domain routing is not ready"
 		return out, nil
@@ -101,10 +120,20 @@ func (v RouteVerifier) Verify(ctx context.Context, host, token string) (DomainVe
 		return out, e
 	}
 	res, e := client.Do(req)
-	if e == nil {
+	if e != nil {
+		if !tlsEvidenceFailed(e) {
+			return out, ErrVerificationUnavailable
+		}
+	} else {
 		defer res.Body.Close()
-		b, readErr := io.ReadAll(io.LimitReader(res.Body, 256))
-		out.RouteReady = readErr == nil && res.StatusCode == 200 && hmac.Equal([]byte(expected), b)
+		if res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests || res.StatusCode == http.StatusRequestTimeout {
+			return out, ErrVerificationUnavailable
+		}
+		b, err := io.ReadAll(io.LimitReader(res.Body, 256))
+		if err != nil {
+			return out, ErrVerificationUnavailable
+		}
+		out.RouteReady = res.StatusCode == http.StatusOK && hmac.Equal([]byte(expected), b)
 	}
 	if !out.RouteReady {
 		out.FailureReason = "Domain does not route to this brand on TokenHub"

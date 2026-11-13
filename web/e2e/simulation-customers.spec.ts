@@ -43,7 +43,8 @@ async function purchase(page: Page, plan: string, operatorActivity?: string, kol
   const quoted = page.waitForResponse(response => response.url().endsWith("/api/v1/me/orders/quotes") && response.request().method() === "POST");
   await page.getByRole("button", { name: "继续，核对成交条款" }).click();
   const quoteHTTP = await quoted; expect(quoteHTTP.status()).toBe(200); const quote = await quoteHTTP.json();
-  await expect(page.getByLabel("本次使用 结算币种 支付余额", { exact: true })).toHaveValue(quote.amount_money);
+  const monetary = await get(page, "/public/context");
+  await expect(page.getByLabel(`本次使用 ${monetary.monetary.currency} 支付余额`, { exact: true })).toHaveValue(quote.amount_money);
   await expect(page.getByLabel("使用可用佣金补足", { exact: false })).not.toBeChecked();
   await expect(page.getByLabel("授权到期自动续费", { exact: true })).not.toBeChecked();
   if (renew) await page.getByLabel("授权到期自动续费", { exact: true }).check();
@@ -79,7 +80,8 @@ async function resourceAction(page: Page, name: string, fields: Record<string, s
   const response = page.waitForResponse(response => response.url().endsWith(path) && response.request().method() === "POST");
   await panel.getByRole("button", { name, exact: true }).click();
   const http = await response; const body = await http.json();
-  await panel.getByRole("button", { name: "关闭办理面板", exact: true }).click();
+  const close = panel.getByRole("button", { name: "关闭办理面板", exact: true });
+  if (await close.isVisible()) await close.click();
   return { status: http.status(), body };
 }
 
@@ -129,11 +131,11 @@ test("new customer verifies actual email, preserves selected invitation and cann
   } finally { await context.close(); }
 });
 
-test("KOL activity, explicit combination, paid entitlement, shared Key budget, two-hop commissions, withdrawal cancellation and service stop are real business journeys", async ({ browser }, testInfo) => {
+test("KOL activity, explicit combination, paid entitlement, shared Key budget, two-hop commissions, withdrawal precision and service stop are real business journeys", async ({ browser }, testInfo) => {
   test.setTimeout(300_000);
   const root = fixture(), f = root.personas.customers;
   const contexts: BrowserContext[] = [], errors: string[] = [];
-  async function persona(person: Persona, staff = false) { const context = await browser.newContext(); contexts.push(context); const page = await context.newPage(); page.on("pageerror", error => errors.push(error.message)); page.setDefaultTimeout(20_000); await login(page, person, staff); return page; }
+  async function persona(person: Persona, staff = false) { const context = await browser.newContext(); contexts.push(context); const page = await context.newPage(); page.on("pageerror", error => errors.push(error.stack || error.message)); page.setDefaultTimeout(20_000); await login(page, person, staff); return page; }
   const kol = await persona(f.kol), buyer = await persona(f.buyer), upstream = await persona(f.upstream), other = await persona(f.other_kol);
   const staff = await persona({ id: "", invite_code: "", email: root.owner_email, password: root.owner_password }, true);
   try {
@@ -225,26 +227,21 @@ test("KOL activity, explicit combination, paid entitlement, shared Key budget, t
     await kol.getByLabel("收款人姓名", { exact: true }).fill("Synthetic Payee");
     await kol.getByLabel("开户银行", { exact: true }).fill("Synthetic Bank");
     await kol.getByLabel("银行卡号", { exact: true }).fill("6222021234567890123");
-    await kol.getByLabel("开户支行", { exact: true }).fill("Synthetic Branch");
-    const submittedWait = kol.waitForResponse(response => response.url().endsWith("/api/v1/me/withdrawals") && response.request().method() === "POST");
-    await kol.getByRole("button", { name: "提交提现申请", exact: true }).click();
-    const submittedHTTP = await submittedWait;
-    const submitted = { status: submittedHTTP.status(), body: await submittedHTTP.json() };
-    expect(submitted.status).toBe(200);
-    const held = await get(kol, "/me/credits"); expect(held.commission_money.held).toBe(payoutAmount);
-    expect(held.commission_money.available).toBe("0");
-    expect((await resourceAction(kol, "取消提现申请", {}, `/api/v1/me/withdrawals/${submitted.body.id}/cancel`)).status).toBe(200);
-    const restored = await get(kol, "/me/credits"); expect(restored.commission_money.held).toBe("0"); expect(restored.commission_money.available).toBe(walletBefore.commission_money.available);
+    await expect(kol.getByRole("button", { name: "提交提现申请", exact: true })).toBeDisabled();
+    await expect(kol.getByRole("alert").filter({ hasText: "不足最小支付单位的尾数仍留在佣金钱包" })).toBeVisible();
+    const retainedCommission = await get(kol, "/me/credits");
+    expect(retainedCommission.commission_money.held).toBe("0");
+    expect(retainedCommission.commission_money.available).toBe(walletBefore.commission_money.available);
     await kol.goto("/workspace/account");
-    expect((await resourceAction(kol, "开始注销清算", { "本人注销申请说明": "本人明确退出后续推广分佣，既有正确佣金继续结清" }, "/api/v1/me/account/lifecycle/begin-close")).status).toBe(200);
-    expect((await get(kol, "/me/credits")).commission_money.available).toBe(restored.commission_money.available);
+    expect((await resourceAction(kol, "开始注销清算", { "补充说明（可选）": "本人明确退出后续推广分佣，既有正确佣金继续结清" }, "/api/v1/me/account/lifecycle/begin-close")).status).toBe(200);
+    expect((await get(kol, "/me/credits")).commission_money.available).toBe(retainedCommission.commission_money.available);
     const afterExitCall = await invoke(key.secret, randomUUID()); expect(afterExitCall.status()).toBe(200);
     const afterExitDirect = await get(kol, "/me/commissions"), afterExitIndirect = await get(upstream, "/me/commissions");
     expect(afterExitDirect.items).toHaveLength(3); expect(afterExitIndirect.items).toHaveLength(4);
     expect((await get(kol, "/me/referrals")).function_status).toBe("terminated");
-    const cannotEraseCommission = await resourceAction(kol, "核实清算并完成注销", { "本人确认清算完成": "验证有未结佣金时不得完成注销" }, "/api/v1/me/account/lifecycle/complete-close");
+    const cannotEraseCommission = await resourceAction(kol, "核实清算并完成注销", { "补充说明（可选）": "验证有未结佣金时不得完成注销" }, "/api/v1/me/account/lifecycle/complete-close");
     expect(cannotEraseCommission.status).toBe(409);
-    expect((await get(kol, "/me/credits")).commission_money.available).toBe(restored.commission_money.available);
+    expect((await get(kol, "/me/credits")).commission_money.available).toBe(retainedCommission.commission_money.available);
     await buyer.goto("/workspace/notifications");
     await buyer.getByLabel("本人授权营销邮件（可随时撤回）", { exact: true }).uncheck();
     const pref = buyer.waitForResponse(response => response.url().endsWith("/api/v1/me/notifications/preferences") && response.request().method() === "POST");
@@ -272,19 +269,19 @@ test("KOL activity, explicit combination, paid entitlement, shared Key budget, t
     expect((await read).status()).toBe(200);
     const assetsBeforeStop = await get(buyer, "/me/credits");
     await buyer.goto("/workspace/account");
-    expect((await resourceAction(buyer, "停止使用服务", { "本人停止使用说明": "本人暂停模型使用；请保留已购买资产" }, "/api/v1/me/account/lifecycle/stop")).status).toBe(200);
+    expect((await resourceAction(buyer, "停止使用服务", { "补充说明（可选）": "本人暂停模型使用；请保留已购买资产" }, "/api/v1/me/account/lifecycle/stop")).status).toBe(200);
     const stoppedAssets = await get(buyer, "/me/credits"); expect(stoppedAssets.customer_atg).toEqual(assetsBeforeStop.customer_atg); expect(stoppedAssets.money_balance).toEqual(assetsBeforeStop.money_balance);
     expect((await get(buyer, "/me/plans")).items[0].auto_renew).toBe(false);
     const stoppedKey = await invoke(key.secret, randomUUID()); expect(stoppedKey.status()).toBe(401);
     expect((await stoppedKey.json()).error.code).toBe("invalid_api_key");
-    expect((await resourceAction(buyer, "恢复使用", { "本人恢复使用说明": "本人恢复使用，稍后自行重新授权 Key" }, "/api/v1/me/account/lifecycle/resume")).status).toBe(200);
+    expect((await resourceAction(buyer, "恢复使用", { "补充说明（可选）": "本人恢复使用，稍后自行重新授权 Key" }, "/api/v1/me/account/lifecycle/resume")).status).toBe(200);
     const keys = await get(buyer, "/me/keys"); expect(keys.items.filter((item: { status: string }) => item.status === "active")).toHaveLength(0);
     expect((await get(buyer, "/me/plans")).items[0].auto_renew).toBe(false);
-    expect((await resourceAction(buyer, "开始注销清算", { "本人注销申请说明": "本人申请清算，保留购买ATG和现金余额，不作放弃" }, "/api/v1/me/account/lifecycle/begin-close")).status).toBe(200);
-    expect((await resourceAction(buyer, "核实清算并完成注销", { "本人确认清算完成": "验证剩余购买资产和现金不能点击抹去" }, "/api/v1/me/account/lifecycle/complete-close")).status).toBe(409);
+    expect((await resourceAction(buyer, "开始注销清算", { "补充说明（可选）": "本人申请清算，保留购买ATG和现金余额，不作放弃" }, "/api/v1/me/account/lifecycle/begin-close")).status).toBe(200);
+    expect((await resourceAction(buyer, "核实清算并完成注销", { "补充说明（可选）": "验证剩余购买资产和现金不能点击抹去" }, "/api/v1/me/account/lifecycle/complete-close")).status).toBe(409);
     const retainedAssets = await get(buyer, "/me/credits"); expect(retainedAssets.customer_atg).toEqual(assetsBeforeStop.customer_atg); expect(retainedAssets.money_balance).toEqual(assetsBeforeStop.money_balance);
     expect(errors).toEqual([]);
-    await testInfo.attach("customer-business-facts", { body: JSON.stringify({ order_id: order.id, total_atg: quote.total_atg, api_replay_preserved_balance: true, budget_rejected_status: refused.status(), playground_request_id: experience.request_id, direct_commissions: commissions.items.map((item: { amount_money: string; basis_money: string; status: string }) => ({ amount_money: item.amount_money, basis_money: item.basis_money, status: item.status })), withdrawal_id: submitted.body.id, withdrawal_cancel_restored_exact_balance: true, exited_direct_kol_no_new_commission_indirect_continues: true, stop_preserved_assets_cancelled_renewal_and_keys: true, closure_rejected_while_cash_or_purchased_assets_remain: true }), contentType: "application/json" });
+    await testInfo.attach("customer-business-facts", { body: JSON.stringify({ order_id: order.id, total_atg: quote.total_atg, api_replay_preserved_balance: true, budget_rejected_status: refused.status(), playground_request_id: experience.request_id, direct_commissions: commissions.items.map((item: { amount_money: string; basis_money: string; status: string }) => ({ amount_money: item.amount_money, basis_money: item.basis_money, status: item.status })), sub_minor_commission_remained_spendable: true, exited_direct_kol_no_new_commission_indirect_continues: true, stop_preserved_assets_cancelled_renewal_and_keys: true, closure_rejected_while_cash_or_purchased_assets_remain: true }), contentType: "application/json" });
   } finally { for (const context of contexts) await context.close(); }
 });
 

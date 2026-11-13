@@ -57,11 +57,27 @@ async function operation(page: Page, label: string, values: Record<string, strin
   return submit(page, label, path);
 }
 function localTime(date = new Date()) { return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16); }
+async function workspaceAPI(page: Page, path: string, options?: { headers: Record<string, string>; data: unknown }) {
+  const response = await page.evaluate(async ({ path, options }) => {
+    const result = await fetch(path, options && {
+      method: "POST",
+      headers: { ...options.headers, "Content-Type": "application/json" },
+      body: JSON.stringify(options.data),
+    });
+    return { status: result.status, body: await result.text() };
+  }, { path, options });
+  return {
+    status: () => response.status,
+    json: async () => JSON.parse(response.body),
+    text: async () => response.body,
+  };
+}
+
 async function recordRow(page: Page, id: string) {
   const current = new URL(page.url());
   const scope = current.pathname.match(/^\/manage\/([^/]+)\/([^/]+)/);
   expect(scope, "A business record must be selected within its operating workspace").toBeTruthy();
-  const response = await page.request.get(`/api/v1/operators/${scope![1]}/${scope![2]}${current.search}`);
+  const response = await workspaceAPI(page, `/api/v1/operators/${scope![1]}/${scope![2]}${current.search}`);
   expect(response.status()).toBe(200);
   const records = await response.json();
   const record = records.items.find((item: any) => item.id === id);
@@ -91,13 +107,13 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     await login(oem, f.oem_owner); await login(channel, f.channel_owner);
     await login(finance, f.finance); await login(support, f.support); await login(readonly, f.readonly);
     // Parent ownership is not a membership in a child's operating workspace.
-    expect((await oem.request.get(`${channelBase}/customers`)).status()).toBe(403);
-    expect((await oem.request.get(`${channelBase}/assets`)).status()).toBe(403);
-    expect((await channel.request.get(`/api/v1/operators/${f.other_channel_id}/customers`)).status()).toBe(403);
-    const descendants = await (await channel.request.get(`${channelBase}/operators`)).json();
+    expect((await workspaceAPI(oem, `${channelBase}/customers`)).status()).toBe(403);
+    expect((await workspaceAPI(oem, `${channelBase}/assets`)).status()).toBe(403);
+    expect((await workspaceAPI(channel, `/api/v1/operators/${f.other_channel_id}/customers`)).status()).toBe(403);
+    const descendants = await (await workspaceAPI(channel, `${channelBase}/operators`)).json();
     expect(descendants.items).toHaveLength(0);
-    const channelSession = await (await channel.request.get("/api/v1/auth/me")).json();
-    const forbiddenChild = await channel.request.post(`${channelBase}/operators`, { headers: { "X-CSRF-Token": channelSession.csrf_token, "Idempotency-Key": randomUUID(), Origin: f.origin }, data: { kind: "channel", name: "must never be created", legal_name: "negative relationship check", supply_terms: "negative permission check", exit_policy: "non_refundable" } });
+    const channelSession = await (await workspaceAPI(channel, "/api/v1/auth/me")).json();
+    const forbiddenChild = await workspaceAPI(channel, `${channelBase}/operators`, { headers: { "X-CSRF-Token": channelSession.csrf_token, "Idempotency-Key": randomUUID(), Origin: f.origin }, data: { kind: "channel", name: "must never be created", legal_name: "negative relationship check", supply_terms: "negative permission check" } });
     expect(forbiddenChild.status()).toBe(400);
     await channel.goto(`/manage/${f.channel_id}/operators`);
     await expect(channel.getByRole("button", { name: "建立 OEM / 渠道", exact: true })).toHaveCount(0);
@@ -110,11 +126,11 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     await expect(readonly.getByRole("button", { name: "建立 OEM / 渠道", exact: true })).toHaveCount(0);
     await expect(readonly.getByRole("button", { name: "建立直属渠道", exact: true })).toHaveCount(0);
     for (const [person, path] of [[finance, `${channelBase}/plans`], [support, `${channelBase}/payments`], [readonly, `${oemBase}/operators`]] as const) {
-      const identity = await (await person.request.get("/api/v1/auth/me")).json();
-      const denied = await person.request.post(path, { headers: { "X-CSRF-Token": identity.csrf_token, "Idempotency-Key": randomUUID(), Origin: f.origin }, data: { kind: "channel", name: "forbidden role operation", legal_name: "negative", supply_terms: "negative permission check", exit_policy: "non_refundable" } });
+      const identity = await (await workspaceAPI(person, "/api/v1/auth/me")).json();
+      const denied = await workspaceAPI(person, path, { headers: { "X-CSRF-Token": identity.csrf_token, "Idempotency-Key": randomUUID(), Origin: f.origin }, data: { kind: "channel", name: "forbidden role operation", legal_name: "negative", supply_terms: "negative permission check" } });
       expect(denied.status()).toBe(403);
     }
-    expect((await oem.request.get(`${oemBase}/providers`)).status()).toBe(403);
+    expect((await workspaceAPI(oem, `${oemBase}/providers`)).status()).toBe(403);
     await readonly.screenshot({ path: info.outputPath("operator-readonly-boundary.png"), fullPage: true });
     save("permissions", { parent_customer_and_assets: 403, sibling_customers: 403, channel_create_descendants: 400, finance_and_support_navigation_restricted: true });
 
@@ -148,7 +164,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       await person.getByRole("button", { name: "接受邀请", exact: true }).click();
       const response = await pending; expect(response.status(), await response.text()).toBe(200);
       await login(person, { email: "sim-browser-created-owner@operator.test", password: "simulation-new-owner-password" });
-      const session = await (await person.request.get("/api/v1/auth/me")).json(); expect(session.workspaces.map((w: any) => w.operator.id)).toEqual([journal.created_channel.id]);
+      const session = await (await workspaceAPI(person, "/api/v1/auth/me")).json(); expect(session.workspaces.map((w: any) => w.operator.id)).toEqual([journal.created_channel.id]);
       save("owner_accepted", { independent_workspace_only: true });
     }
 
@@ -172,6 +188,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       const panel = channel.getByRole("dialog").last();
       await expect(panel.locator('[data-config-path="price.id"]')).toHaveCount(0);
       await config(panel, "price.model_id", f.model_id);
+      await config(panel, "price.effective_at", localTime(new Date(Date.now() - 60_000)));
       for (const input of await panel.locator('[data-config-path^="price.rule.components."][data-config-path$=".rate"] input').all()) await input.fill("4000");
       const published = await submit(channel, "设置模型价格", `${channelBase}/pricing`);
       expect(published.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
@@ -181,7 +198,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     if (!journal.quote) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
       await oem.getByRole("tab", { name: "供货报价", exact: true }).click();
-      save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.channel_id, gift_tiers: "50", name: "UI 星河供货报价", terms_summary: "先实际收款再交付采购库存；退出前清算存量服务责任", exit_policy: "non_refundable" }, `${oemBase}/procurement`));
+      save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.channel_id, gift_tiers: "50", name: "UI 星河供货报价", terms_summary: "先实际收款再交付采购库存；退出前清算存量服务责任" }, `${oemBase}/procurement`));
     }
     if (!journal.purchase) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
@@ -198,7 +215,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.receipt) {
       await oem.goto(`/manage/${f.oem_id}/payments`);
-      save("receipt", await operation(oem, "登记人工核实收款", { provider_receipt_id: "synthetic-operator-ui-" + randomUUID(), gross_money: "80", fee_status: "pending", currency: "结算币种", recipient_reference: "synthetic OEM recipient", payer_reference: "synthetic channel payer", verification_evidence: "SYNTHETIC bank fact for actual browser simulation", paid_at: localTime() }, `${oemBase}/payments`));
+      save("receipt", await operation(oem, "登记人工核实收款", { provider_receipt_id: "synthetic-operator-ui-" + randomUUID(), original_amount: "80", settlement_amount: "80", settlement_evidence: "Same-currency synthetic receipt", currency: "USD", recipient_reference: "synthetic OEM recipient", payer_reference: "synthetic channel payer", verification_evidence: "SYNTHETIC bank fact for actual browser simulation", paid_at: localTime() }, `${oemBase}/payments`));
     }
     if (!journal.funded) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
@@ -207,7 +224,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       save("funded", await submit(oem, "关联线下收款并交付", `${oemBase}/procurement/${journal.purchase.id}/fund`));
     }
     if (!journal.delivered) {
-      const page = await (await channel.request.get(`${channelBase}/procurement?section=orders`)).json();
+      const page = await (await workspaceAPI(channel, `${channelBase}/procurement?section=orders`)).json();
       expect(page.items.find((row:any)=>row.id===journal.purchase.id)?.status).toBe("completed");
       save("delivered",{id:journal.purchase.id,status:"completed"});
     }
@@ -232,7 +249,15 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     await channel.screenshot({ path: info.outputPath("operator-procurement-replenishment.png"), fullPage: true });
     if (!journal.exit) {
       await channel.goto(`/manage/${f.channel_id}/exits`);
-      save("exit", await operation(channel, "通知品牌办理退出", { note: "synthetic channel exit notice; whole-customer takeover to follow" }, `${channelBase}/exits`));
+      await channel.getByRole("button", { name: "通知品牌办理退出", exact: true }).click();
+      const panel = channel.getByRole("dialog").last();
+      await panel.getByLabel("补充说明（可选）", { exact: true }).fill("synthetic channel exit notice; whole-customer takeover to follow");
+      await panel.getByRole("checkbox").check();
+      const pending = channel.waitForResponse(r => new URL(r.url()).pathname === `${channelBase}/exits` && r.request().method() === "POST");
+      await panel.getByRole("button", { name: "通知品牌办理退出", exact: true }).click();
+      const response = await pending;
+      expect(response.status()).toBe(200);
+      save("exit", await response.json());
     }
     if (!journal.oversell) {
       await oem.goto(`/manage/${f.oem_id}/coverage`);
@@ -252,8 +277,10 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
         await channel.goto(`/manage/${f.channel_id}/business-status`);
         const label = ({ registration: "新客户注册", new_purchase: "套餐新购", model_usage: "模型调用" } as Record<string,string>)[feature];
         const enable = channel.getByRole("button", { name: "开启 " + label, exact: true });
-        if (await enable.count()) await enable.click();
-        await expect(channel.getByRole("button", { name: "暂停 " + label, exact: true })).toBeEnabled();
+        const pause = channel.getByRole("button", { name: "暂停 " + label, exact: true });
+        await expect(enable.or(pause)).toBeEnabled();
+        if (await enable.isVisible()) await enable.click();
+        await expect(pause).toBeEnabled();
       }
       save("business_open", true);
     }
@@ -266,8 +293,10 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
         await oem.goto(`/manage/${f.oem_id}/business-status`);
         const label = ({ registration: "新客户注册", new_purchase: "套餐新购", model_usage: "模型调用" } as Record<string,string>)[feature];
         const enable = oem.getByRole("button", { name: "开启 " + label, exact: true });
-        if (await enable.count()) await enable.click();
-        await expect(oem.getByRole("button", { name: "暂停 " + label, exact: true })).toBeEnabled();
+        const pause = oem.getByRole("button", { name: "暂停 " + label, exact: true });
+        await expect(enable.or(pause)).toBeEnabled();
+        if (await enable.isVisible()) await enable.click();
+        await expect(pause).toBeEnabled();
       }
       save("oem_business_open", true);
     }
@@ -278,7 +307,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.topup_receipt) {
       await channel.goto(`/manage/${f.channel_id}/payments`);
-      save("topup_receipt", await operation(channel, "登记人工核实收款", { provider_receipt_id: "synthetic-channel-topup-" + randomUUID(), gross_money: "50", fee_status: "pending", currency: "结算币种", recipient_reference: "synthetic channel recipient", payer_reference: "synthetic customer original payer", verification_evidence: "SYNTHETIC customer topup bank fact", paid_at: localTime() }, `${channelBase}/payments`));
+      save("topup_receipt", await operation(channel, "登记人工核实收款", { provider_receipt_id: "synthetic-channel-topup-" + randomUUID(), original_amount: "50", settlement_amount: "50", settlement_evidence: "Same-currency synthetic receipt", currency: "USD", recipient_reference: "synthetic channel recipient", payer_reference: "synthetic customer original payer", verification_evidence: "SYNTHETIC customer topup bank fact", paid_at: localTime() }, `${channelBase}/payments`));
     }
     if (!journal.topup_allocated) {
       await channel.goto(`/manage/${f.channel_id}/orders`);
@@ -303,7 +332,8 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       await customer.goto("/workspace/plans"); await customer.getByRole("button", { name: "选择此套餐", exact: true }).first().click();
       await customer.getByRole("button", { name: "继续，核对成交条款" }).click();
       await customer.getByText("精确调整抵扣金额", { exact: true }).click();
-      await control(customer, "本次使用 结算币种 支付余额", true).fill("10");
+      const context = await (await workspaceAPI(customer, "/api/v1/public/context")).json();
+      await control(customer, `本次使用 ${context.monetary.currency} 支付余额`, true).fill("10");
       await customer.getByRole("checkbox", { name: /^我确认本次价格/ }).check();
       const pending = customer.waitForResponse(r => new URL(r.url()).pathname === "/api/v1/me/orders" && r.request().method() === "POST");
       await customer.getByRole("button", { name: "确认购买并核实到账", exact: true }).click();
@@ -331,14 +361,14 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       await expect(customer.getByText("本次实际扣费", { exact: true })).toBeVisible();
       await customer.screenshot({ path: info.outputPath("operator-customer-real-model-call.png"), fullPage: true });
     }
-    const keysBefore = await (await customer.request.get("/api/v1/me/keys")).json();
+    const keysBefore = await (await workspaceAPI(customer, "/api/v1/me/keys")).json();
     const originalKey = keysBefore.items.find((key: any) => key.name === "接管前连续使用的应用");
     expect(originalKey).toBeTruthy(); save("customer_key", { id: originalKey.id, name: originalKey.name, budget: originalKey.budget });
-    const records = await (await customer.request.get("/api/v1/me/requests")).json();
+    const records = await (await workspaceAPI(customer, "/api/v1/me/requests")).json();
     const record = records.items.find((r: any) => r.id === journal.customer_call.request_id);
     expect(record.components.every((c: any) => c.component === "precision_carry" || c.price_description === "4000 / 1000000 token"), JSON.stringify(record.components)).toBe(true);
     expect(record.charged_atg).toBe("0.068"); save("customer_bill", record);
-    const credits = await (await customer.request.get("/api/v1/me/credits")).json();
+    const credits = await (await workspaceAPI(customer, "/api/v1/me/credits")).json();
     expect(Number(credits.customer_atg.available)).toBeGreaterThan(24);
     await customer.goto("/workspace/credit-sources"); await customer.screenshot({ path: info.outputPath("operator-customer-delivered-package.png"), fullPage: true });
     if (!journal.risk_rule) {
@@ -352,7 +382,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       save("risk_rule", savedRule);
     }
     await expect.poll(async () => {
-      const data = await (await channel.request.get(`${channelBase}/alerts`)).json();
+      const data = await (await workspaceAPI(channel, `${channelBase}/alerts`)).json();
       return data.items.find((item: any) => item.id === journal.risk_rule.id)?.status;
     }, { timeout: 75_000, intervals: [1000, 3000] }).toBe("warning");
     save("risk_observed", { rule: journal.risk_rule.id, measured_warning: true });
@@ -360,7 +390,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     // The brand cannot read the customer's current assets before an explicit
     // reviewed whole-channel takeover. The same account survives afterwards.
     if (!journal.takeover) {
-      await oem.goto(`/manage/${f.oem_id}/takeovers`); await oem.getByRole("button", { name: "接管渠道", exact: true }).click();
+      await oem.goto(`/manage/${f.oem_id}/takeovers`); await oem.getByRole("button", { name: "接管渠道", exact: true }).first().click();
       const panel = oem.getByRole("dialog").last();
       await panel.getByRole("combobox", { name: /^直属渠道/ }).selectOption(f.channel_id);
       await panel.getByRole("textbox", { name: "补充说明（可选）" }).fill("explicit synthetic whole-channel takeover decision");
@@ -372,7 +402,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     if (!journal.takeover_executed) {
       await oem.goto(`/manage/${f.oem_id}/takeovers`);
       await expect(oem.getByRole("button", { name: "确认接管", exact: true })).toBeVisible();
-      const reviewed = await (await oem.request.get(`${oemBase}/takeovers`)).json();
+      const reviewed = await (await workspaceAPI(oem, `${oemBase}/takeovers`)).json();
       expect(reviewed.items.find((item: any) => item.id === journal.takeover.id)?.snapshot.customers[f.customer.id]).toBeGreaterThan(0);
       await oem.screenshot({ path: info.outputPath("operator-takeover-full-snapshot.png"), fullPage: true });
       await oem.getByRole("button", { name: "确认接管", exact: true }).click();
@@ -381,23 +411,23 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       await panel.getByRole("button", { name: "确认提交", exact: true }).click();
       const response = await pending, data = await response.json(); expect(response.status(), JSON.stringify(data)).toBe(200); save("takeover_executed", data);
     }
-    await customer.reload(); const me = await (await customer.request.get("/api/v1/auth/me")).json(); expect(me.operator.id).toBe(f.oem_id);
-    const after = await (await customer.request.get("/api/v1/me/credits")).json(); expect(after.customer_atg.available).toBe(credits.customer_atg.available); expect(after.money_balance.available).toBe(credits.money_balance.available);
-    const retainedKeys = await (await customer.request.get("/api/v1/me/keys")).json();
+    await customer.reload(); const me = await (await workspaceAPI(customer, "/api/v1/auth/me")).json(); expect(me.operator.id).toBe(f.oem_id);
+    const after = await (await workspaceAPI(customer, "/api/v1/me/credits")).json(); expect(after.customer_atg.available).toBe(credits.customer_atg.available); expect(after.money_balance.available).toBe(credits.money_balance.available);
+    const retainedKeys = await (await workspaceAPI(customer, "/api/v1/me/keys")).json();
     expect(retainedKeys.items.find((key: any) => key.id === journal.customer_key.id)?.budget.limit_atg).toBe("10");
     await oem.goto(`/manage/${f.oem_id}/customers`); await expect(oem.getByText("星河真实流程客户", { exact: true })).toBeVisible();
     await oem.goto(`/manage/${f.oem_id}/takeovers`); await oem.screenshot({ path: info.outputPath("operator-takeover-responsibility-preserved.png"), fullPage: true });
     save("takeover_preserved", { current_operator_id: me.operator.id, customer_atg: after.customer_atg.available, customer_money: after.money_balance.available });
     if (!journal.post_takeover_key_call && continuitySecret) {
-      const response = await customer.request.post("/api/v1/chat/completions", { headers: { Authorization: `Bearer ${continuitySecret}`, "Idempotency-Key": randomUUID() }, data: { model: f.model_id, messages: [{ role: "user", content: "Synthetic original key remains usable after takeover" }], max_completion_tokens: 20 } });
+      const response = await workspaceAPI(customer, "/api/v1/chat/completions", { headers: { Authorization: `Bearer ${continuitySecret}`, "Idempotency-Key": randomUUID() }, data: { model: f.model_id, messages: [{ role: "user", content: "Synthetic original key remains usable after takeover" }], max_completion_tokens: 20 } });
       expect(response.status(), await response.text()).toBe(200);
-      const current = await (await customer.request.get("/api/v1/me/credits")).json();
+      const current = await (await workspaceAPI(customer, "/api/v1/me/credits")).json();
       expect(Number(after.customer_atg.available) - Number(current.customer_atg.available)).toBeCloseTo(0.034, 12);
       save("post_takeover_key_call", { original_key_id: journal.customer_key.id, actual_charged_atg: "0.034", current_brand_retail_price: "0.002" });
     }
     await expect(oem.getByRole("button", { name: "登记实际收付款", exact: true })).toHaveCount(0);
     await oem.goto(`/manage/${f.oem_id}/exits`);
-    const exitRecords = await (await oem.request.get(`${oemBase}/exits`)).json();
+    const exitRecords = await (await workspaceAPI(oem, `${oemBase}/exits`)).json();
     expect(exitRecords.items.some((item: any) => item.id === journal.exit.id)).toBe(true);
     await expect(oem.getByRole("button", { name: "按原来源预留本次退款", exact: true })).toHaveCount(0);
     save("exit_verified", { notice_id: journal.exit.id, takeover_complete: true, procurement_refund: false });
@@ -436,6 +466,7 @@ test("offline replenishment actually creates one unpaid order without creating i
       const panel = buyer.getByRole("dialog").last();
       await expect(panel.locator('[data-config-path="price.id"]')).toHaveCount(0);
       await config(panel, "price.model_id", f.model_id);
+      await config(panel, "price.effective_at", localTime(new Date(Date.now() - 60_000)));
       for (const input of await panel.locator('[data-config-path^="price.rule.components."][data-config-path$=".rate"] input').all()) await input.fill("4000");
       const published = await submit(buyer, "设置模型价格", `${base}/pricing`);
       expect(published.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
@@ -444,7 +475,7 @@ test("offline replenishment actually creates one unpaid order without creating i
     if (!journal.quote) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
       await oem.getByRole("tab", { name: "供货报价", exact: true }).click();
-      save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.other_channel_id, gift_tiers: "100", name: "UI 离线补货报价", terms_summary: "有限补货授权仅创建待付订单，实际收款后才交付", exit_policy: "non_refundable" }, `${supplier}/procurement`));
+      save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.other_channel_id, gift_tiers: "100", name: "UI 离线补货报价", terms_summary: "有限补货授权仅创建待付订单，实际收款后才交付" }, `${supplier}/procurement`));
     }
     if (!journal.authorization) {
       await buyer.goto(`/manage/${f.other_channel_id}/procurement`);
@@ -453,14 +484,14 @@ test("offline replenishment actually creates one unpaid order without creating i
     }
     let resource: any;
     await expect.poll(async () => {
-      resource = await (await buyer.request.get(`${base}/procurement`)).json();
+      resource = await (await workspaceAPI(buyer, `${base}/procurement`)).json();
       return resource.items.find((item: any) => item.values.record_kind === "replenishment_attempt")?.status;
     }, { timeout: 90_000, intervals: [1000, 3000] }).toBe("awaiting_manual_payment");
     const attempts = resource.items.filter((item: any) => item.values.record_kind === "replenishment_attempt");
     expect(attempts).toHaveLength(1);
     const orders = resource.items.filter((item: any) => item.values.record_kind === "order");
     expect(orders).toHaveLength(1); expect(orders[0].status).toBe("awaiting_payment"); expect(orders[0].values.allocated_money).toBe("0");
-    const coverage = await (await buyer.request.get(`${base}/coverage`)).json();
+    const coverage = await (await workspaceAPI(buyer, `${base}/coverage`)).json();
     expect(coverage.items[0].values.procurement_available).toBe("0");
     save("actual_attempt", { attempt_id: attempts[0].id, order_id: orders[0].id, state: attempts[0].status, allocated_money: "0", procurement_available: "0" });
     await buyer.goto(`/manage/${f.other_channel_id}/procurement`);
@@ -471,7 +502,7 @@ test("offline replenishment actually creates one unpaid order without creating i
       await (await recordRow(buyer, journal.authorization.id)).getByRole("button", { name: "停止未来自动补货", exact: true }).click();
       save("cancelled", await submit(buyer, "停止未来自动补货", `${base}/procurement/${journal.authorization.id}/cancel_authorization`));
     }
-    const after = await (await buyer.request.get(`${base}/procurement`)).json();
+    const after = await (await workspaceAPI(buyer, `${base}/procurement`)).json();
     expect(after.items.filter((item: any) => item.values.record_kind === "order").map((item: any) => item.id)).toEqual([orders[0].id]);
     await info.attach("actual-offline-replenishment", { body: JSON.stringify(journal, null, 2), contentType: "application/json" });
   } finally { await Promise.all(contexts.map(context => context.close())); }

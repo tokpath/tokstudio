@@ -85,7 +85,7 @@ func TestDNSVerifierPinsValidatedIPInsteadOfResolvingHostnameAgain(t *testing.T)
 		return errors.New("test prevents external connection")
 	}}}
 	result, e := v.Verify(context.Background(), "tenant.example", "proof")
-	if e != nil || !result.OwnershipVerified || result.TLSReady || target != "8.8.8.8:443" {
+	if !errors.Is(e, ErrVerificationUnavailable) || !result.OwnershipVerified || result.TLSReady || target != "8.8.8.8:443" {
 		t.Fatal("TLS dial did not pin validated public address", target, result, e)
 	}
 }

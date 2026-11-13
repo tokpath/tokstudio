@@ -1343,10 +1343,7 @@
                     "type": "string"
                   },
                   "new_password": {
-                    "type": "string",
-                    "minLength": 10,
-                    "maxLength": 72,
-                    "writeOnly": true
+                    "$ref": "#/components/schemas/NewPassword"
                   }
                 },
                 "required": [
@@ -2119,8 +2116,7 @@
                     "type": "string"
                   },
                   "password": {
-                    "type": "string",
-                    "minLength": 12
+                    "$ref": "#/components/schemas/NewPassword"
                   }
                 },
                 "required": [
@@ -2250,7 +2246,9 @@
                     "type": "string"
                   },
                   "password": {
-                    "type": "string"
+                    "type": "string",
+                    "writeOnly": true,
+                    "description": "Current password for an existing staff account. For a new account, use the NewPassword schema."
                   },
                   "display_name": {
                     "type": "string"
@@ -44593,6 +44591,38 @@
         "pattern": "^-?(0|[1-9][0-9]{0,19})(\\.[0-9]{1,18})?$",
         "description": "Exact signed NUMERIC(38,18) ledger quantity."
       },
+      "NewPassword": {
+        "type": "string",
+        "minLength": 10,
+        "maxLength": 30,
+        "pattern": "^[!-~]+$",
+        "allOf": [
+          {
+            "anyOf": [
+              {
+                "pattern": "(?=.*[0-9])(?=.*[A-Z])"
+              },
+              {
+                "pattern": "(?=.*[0-9])(?=.*[a-z])"
+              },
+              {
+                "pattern": "(?=.*[0-9])(?=.*[^0-9A-Za-z])"
+              },
+              {
+                "pattern": "(?=.*[A-Z])(?=.*[a-z])"
+              },
+              {
+                "pattern": "(?=.*[A-Z])(?=.*[^0-9A-Za-z])"
+              },
+              {
+                "pattern": "(?=.*[a-z])(?=.*[^0-9A-Za-z])"
+              }
+            ]
+          }
+        ],
+        "writeOnly": true,
+        "description": "10–30 visible ASCII characters from at least two categories: digits, uppercase letters, lowercase letters, and symbols."
+      },
       "LoginInput": {
         "type": "object",
         "properties": {
@@ -44624,8 +44654,7 @@
             "format": "email"
           },
           "password": {
-            "type": "string",
-            "minLength": 12
+            "$ref": "#/components/schemas/NewPassword"
           },
           "display_name": {
             "type": "string"
@@ -46352,7 +46381,7 @@
             "description": "人员姓名"
           },
           "initial_password": {
-            "type": "string",
+            "$ref": "#/components/schemas/NewPassword",
             "description": "新账号初始密码",
             "writeOnly": true,
             "x-visible-when": {
@@ -47077,7 +47106,7 @@
             "description": "人员姓名"
           },
           "initial_password": {
-            "type": "string",
+            "$ref": "#/components/schemas/NewPassword",
             "description": "新账号初始密码",
             "writeOnly": true,
             "x-visible-when": {

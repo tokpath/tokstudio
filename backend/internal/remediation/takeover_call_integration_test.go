@@ -14,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
-	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/platform/objectstore"
@@ -124,18 +123,12 @@ func TestExternalTakenOverCustomerKeepsKeyAndFutureCostBelongsToBrand(t *testing
 	if err = brand.db.First(&after, "id=?", p.ID).Error; err != nil || after.CashMoney.Cmp(p.CashMoney) != 0 {
 		t.Fatal("future use changed closed channel valuation", err)
 	}
-	accounts, err := brand.s.Ledger.ListAccounts(brand.ctx, nil, brand.operator, brand.operator)
-	if err != nil {
+	var attempt usage.AttemptRecord
+	if err = brand.db.Where("request_id=?", out.Request.ID).Take(&attempt).Error; err != nil {
 		t.Fatal(err)
 	}
-	cost := ledger.Zero()
-	for _, a := range accounts {
-		if a.Purpose == "cost:supplier:provider" {
-			cost = a.Balance
-		}
-	}
-	if cost.String() != "0.017" {
-		t.Fatal("brand did not carry future supplier cost", cost.String())
+	if attempt.ReferenceCostCurrency != "USD" || attempt.ReferenceCostAmount == nil || *attempt.ReferenceCostAmount != "0.017" {
+		t.Fatal("brand's future invocation did not retain its original-currency reference cost", attempt.ReferenceCostCurrency, attempt.ReferenceCostAmount)
 	}
 }
 

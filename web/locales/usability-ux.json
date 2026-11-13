@@ -759,14 +759,6 @@
     "ms": "Pautan jemputan menentukan e-mel dan skop pengendali. Sahkan sumbernya sebelum menerima.",
     "th": "ลิงก์คำเชิญระบุอีเมลและขอบเขตผู้ดำเนินงาน ตรวจสอบแหล่งที่มาก่อนยอมรับ"
   },
-  "已有经营人员账号请使用原密码；邮件邀请的新账号请设置至少 10 位密码。接受后直接使用邮箱登录。": {
-    "en": "Existing staff accounts should use their current password. New accounts invited by email must set a password of at least 10 characters. After accepting, log in with your email.",
-    "ja": "既存の運営スタッフアカウントは元のパスワードを使用してください。メール招待の新規アカウントは10文字以上のパスワードを設定します。承諾後はメールアドレスでログインできます。",
-    "ru": "Для существующего аккаунта сотрудника используйте прежний пароль. Для нового аккаунта по приглашению задайте пароль не короче 10 символов. После принятия входите по почте.",
-    "hi": "मौजूदा कर्मचारी खाते अपना वर्तमान पासवर्ड उपयोग करें। ईमेल से आमंत्रित नए खातों को कम से कम 10 अक्षरों का पासवर्ड सेट करना होगा। स्वीकार करने के बाद अपने ईमेल से लॉगिन करें।",
-    "ms": "Akaun kakitangan sedia ada perlu menggunakan kata laluan semasa. Akaun baharu yang dijemput melalui e-mel mesti menetapkan kata laluan sekurang-kurangnya 10 aksara. Selepas menerima, log masuk dengan e-mel anda.",
-    "th": "บัญชีพนักงานเดิมควรใช้รหัสผ่านปัจจุบัน บัญชีใหม่ที่ได้รับเชิญทางอีเมลต้องตั้งรหัสผ่านอย่างน้อย 10 ตัวอักษร หลังยอมรับแล้วให้เข้าสู่ระบบด้วยอีเมล"
-  },
   "接受邀请": {
     "en": "Accept invitation",
     "ja": "招待を承諾",
@@ -950,14 +942,6 @@
     "hi": "नया पासवर्ड",
     "ms": "Kata laluan baharu",
     "th": "รหัสผ่านใหม่"
-  },
-  "至少 10 位，且不能与当前密码相同。": {
-    "en": "At least 10 characters, different from your current password.",
-    "ja": "10文字以上で、現在のパスワードと異なるものにしてください。",
-    "ru": "Не менее 10 символов и отличается от текущего пароля.",
-    "hi": "कम से कम 10 अक्षर, आपके वर्तमान पासवर्ड से अलग।",
-    "ms": "Sekurang-kurangnya 10 aksara, berbeza daripada kata laluan semasa anda.",
-    "th": "อย่างน้อย 10 ตัวอักษร และต้องต่างจากรหัสผ่านปัจจุบัน"
   },
   "确认新密码": {
     "en": "Confirm new password",
@@ -1270,30 +1254,6 @@
     "hi": "संबंधित व्यावसायिक विषय",
     "ms": "Subjek perniagaan berkaitan",
     "th": "บุคคลหรือหน่วยงานธุรกิจที่เกี่ยวข้อง"
-  },
-  "初始密码长度需为 10 至 72 字节，建议使用英文字母、数字和符号": {
-    "en": "The initial password must be 10–72 bytes. Use Latin letters, digits and symbols.",
-    "ja": "初期パスワードは10～72バイトで設定してください。英字・数字・記号の使用を推奨します。",
-    "ru": "Начальный пароль должен занимать от 10 до 72 байт. Рекомендуются латинские буквы, цифры и символы.",
-    "hi": "प्रारंभिक पासवर्ड 10–72 बाइट होना चाहिए। लैटिन अक्षर, अंक और प्रतीक उपयोग करें।",
-    "ms": "Kata laluan awal mesti 10–72 bait. Gunakan huruf Latin, digit dan simbol.",
-    "th": "รหัสผ่านเริ่มต้นต้องมีความยาว 10–72 ไบต์ ใช้อักษรละติน ตัวเลข และสัญลักษณ์"
-  },
-  "仅用于手动开通的新账号，至少 10 位，最长 72 字节。请把初始密码安全交给本人，首次登录会要求修改；已有账号沿用原密码并自行接受邀请。": {
-    "en": "Only for new accounts created manually: at least 10 characters and at most 72 bytes. Deliver the initial password securely; it must be changed on first login. Existing account holders keep their passwords and accept invitations themselves.",
-    "ja": "手動登録する新規アカウント専用です。10文字以上、72バイト以下で設定してください。初期パスワードを安全に本人へ渡し、初回ログイン時に変更してください。既存アカウントは元のパスワードで本人が招待を承諾します。",
-    "ru": "Только для новых аккаунтов, созданных вручную: не менее 10 символов и не более 72 байт. Безопасно передайте начальный пароль; при первом входе его потребуется сменить. Владельцы существующих аккаунтов используют прежний пароль и сами принимают приглашение.",
-    "hi": "केवल मैन्युअल बनाए नए खातों के लिए: कम से कम 10 अक्षर और अधिकतम 72 बाइट। प्रारंभिक पासवर्ड सुरक्षित रूप से दें; पहले लॉगिन पर बदलना होगा। मौजूदा खाताधारक अपना पासवर्ड रखते हैं और आमंत्रण स्वयं स्वीकार करते हैं।",
-    "ms": "Hanya untuk akaun baharu yang dicipta secara manual: sekurang-kurangnya 10 aksara dan paling banyak 72 bait. Serahkan kata laluan awal dengan selamat; ia mesti ditukar pada log masuk pertama. Pemegang akaun sedia ada mengekalkan kata laluan dan menerima jemputan sendiri.",
-    "th": "สำหรับบัญชีใหม่ที่สร้างด้วยตนเองเท่านั้น: อย่างน้อย 10 ตัวอักษรและไม่เกิน 72 ไบต์ ส่งรหัสผ่านเริ่มต้นอย่างปลอดภัย โดยต้องเปลี่ยนเมื่อเข้าสู่ระบบครั้งแรก เจ้าของบัญชีเดิมใช้รหัสผ่านเดิมและยอมรับคำเชิญด้วยตนเอง"
-  },
-  "新账号初始密码至少 10 位，最长 72 字节。": {
-    "en": "The new account's initial password must be at least 10 characters and no more than 72 bytes.",
-    "ja": "新規アカウントの初期パスワードは10文字以上、72バイト以下にしてください。",
-    "ru": "Начальный пароль нового аккаунта должен содержать не менее 10 символов и не более 72 байт.",
-    "hi": "नए खाते का प्रारंभिक पासवर्ड कम से कम 10 अक्षर और अधिकतम 72 बाइट होना चाहिए।",
-    "ms": "Kata laluan awal akaun baharu mesti sekurang-kurangnya 10 aksara dan tidak melebihi 72 bait.",
-    "th": "รหัสผ่านเริ่มต้นของบัญชีใหม่ต้องมีอย่างน้อย 10 ตัวอักษรและไม่เกิน 72 ไบต์"
   },
   "服务条款": {
     "en": "Service terms",
@@ -8230,5 +8190,125 @@
     "hi": "कार्यभार ग्रहण जारी",
     "ms": "Pengambilalihan sedang berlangsung",
     "th": "กำลังรับช่วง"
+  },
+  "密码须为 10–30 位，从数字、大写英文字母、小写英文字母、英文特殊符号中至少选用两类。": {
+    "en": "Use 10–30 characters and at least two of these types: digits, uppercase English letters, lowercase English letters, and ASCII punctuation.",
+    "ja": "パスワードは10～30文字で、数字、英大文字、英小文字、ASCII記号のうち2種類以上を使用してください。",
+    "ru": "Пароль должен содержать 10–30 символов как минимум двух типов: цифры, заглавные латинские буквы, строчные латинские буквы и знаки ASCII.",
+    "hi": "पासवर्ड 10–30 वर्ण का रखें और अंकों, बड़े अंग्रेज़ी अक्षरों, छोटे अंग्रेज़ी अक्षरों और ASCII चिह्नों में से कम से कम दो प्रकार चुनें।",
+    "ms": "Gunakan 10–30 aksara dan sekurang-kurangnya dua jenis: digit, huruf besar Inggeris, huruf kecil Inggeris dan tanda baca ASCII.",
+    "th": "ใช้ 10–30 อักขระ โดยมีอย่างน้อยสองประเภทจากตัวเลข ตัวอักษรอังกฤษพิมพ์ใหญ่ ตัวอักษรอังกฤษพิมพ์เล็ก และเครื่องหมาย ASCII"
+  },
+  "已有经营人员账号请使用原密码。新账号请设置符合以下规则的密码。": {
+    "en": "Use your current password if you already have a staff account. For a new account, set a password using these rules.",
+    "ja": "既存のスタッフアカウントでは現在のパスワードを使用してください。新しいアカウントでは次のルールに従って設定してください。",
+    "ru": "Если у вас уже есть аккаунт сотрудника, используйте текущий пароль. Для нового аккаунта задайте пароль по указанным правилам.",
+    "hi": "यदि आपका स्टाफ़ खाता पहले से है, तो मौजूदा पासवर्ड इस्तेमाल करें। नए खाते के लिए नीचे दिए गए नियमों के अनुसार पासवर्ड सेट करें।",
+    "ms": "Gunakan kata laluan semasa jika anda sudah mempunyai akaun kakitangan. Tetapkan kata laluan untuk akaun baharu mengikut peraturan berikut.",
+    "th": "หากมีบัญชีเจ้าหน้าที่อยู่แล้ว ให้ใช้รหัสผ่านปัจจุบัน สำหรับบัญชีใหม่ให้ตั้งรหัสผ่านตามกฎต่อไปนี้"
+  },
+  "仅用于手动开通的新账号，密码为 10–30 位，须包含数字、大写英文字母、小写英文字母、英文特殊符号中的至少两类。首次登录会要求修改。已有账号使用原密码接受邀请。": {
+    "en": "For new accounts opened manually, use 10–30 characters of at least two types: digits, uppercase English letters, lowercase English letters, or ASCII punctuation. A password change is required at first login. Existing accounts accept the invitation with their current password.",
+    "ja": "手動で開設する新規アカウント専用です。10～30文字で、数字、英大文字、英小文字、ASCII記号のうち2種類以上を使います。初回ログイン時に変更が必要です。既存アカウントは現在のパスワードで招待を受け入れます。",
+    "ru": "Только для новых аккаунтов, создаваемых вручную. Используйте 10–30 символов как минимум двух типов: цифры, заглавные или строчные латинские буквы либо знаки ASCII. При первом входе пароль нужно сменить. Владельцы существующих аккаунтов принимают приглашение с текущим паролем.",
+    "hi": "केवल हाथ से खोले गए नए खातों के लिए। 10–30 वर्ण रखें, जिनमें अंक, बड़े या छोटे अंग्रेज़ी अक्षर और ASCII चिह्नों में से कम से कम दो प्रकार हों। पहली बार लॉग इन करते समय पासवर्ड बदलना होगा। मौजूदा खाते अपने वर्तमान पासवर्ड से निमंत्रण स्वीकार करें।",
+    "ms": "Untuk akaun baharu yang dibuka secara manual. Gunakan 10–30 aksara daripada sekurang-kurangnya dua jenis: digit, huruf besar Inggeris, huruf kecil Inggeris atau tanda baca ASCII. Kata laluan mesti ditukar pada log masuk pertama. Akaun sedia ada menerima jemputan dengan kata laluan semasa.",
+    "th": "สำหรับบัญชีใหม่ที่เปิดด้วยตนเอง ใช้ 10–30 อักขระอย่างน้อยสองประเภทจากตัวเลข ตัวอักษรอังกฤษพิมพ์ใหญ่ ตัวอักษรอังกฤษพิมพ์เล็ก หรือเครื่องหมาย ASCII ระบบจะให้เปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก บัญชีเดิมใช้รหัสผ่านปัจจุบันเพื่อตอบรับคำเชิญ"
+  },
+  "新密码不能与当前密码相同。": {
+    "en": "Choose a password different from your current one.",
+    "ja": "現在のパスワードとは異なるパスワードを設定してください。",
+    "ru": "Выберите пароль, который отличается от текущего.",
+    "hi": "वर्तमान पासवर्ड से अलग पासवर्ड चुनें।",
+    "ms": "Pilih kata laluan yang berbeza daripada kata laluan semasa.",
+    "th": "เลือกรหัสผ่านที่แตกต่างจากรหัสผ่านปัจจุบัน"
+  },
+  "当前经营方尚未开放模型调用。": {
+    "en": "The current operator has not opened model usage.",
+    "ja": "現在の運営者はモデル利用を開始していません。",
+    "ru": "Текущий оператор ещё не открыл доступ к моделям.",
+    "hi": "मौजूदा ऑपरेटर ने मॉडल का उपयोग अभी शुरू नहीं किया है।",
+    "ms": "Pengendali semasa belum membuka penggunaan model.",
+    "th": "ผู้ประกอบการปัจจุบันยังไม่ได้เปิดให้เรียกใช้โมเดล"
+  },
+  "当前没有符合条件的可用模型路由。": {
+    "en": "No eligible model route is available.",
+    "ja": "利用条件を満たすモデルルートがありません。",
+    "ru": "Нет доступного маршрута модели, отвечающего условиям.",
+    "hi": "कोई योग्य मॉडल रूट उपलब्ध नहीं है।",
+    "ms": "Tiada laluan model yang layak dan tersedia.",
+    "th": "ไม่มีเส้นทางโมเดลที่พร้อมใช้งานตามเงื่อนไข"
+  },
+  "模型的零售或供货价格尚未齐全。": {
+    "en": "Retail or supply pricing for this model is incomplete.",
+    "ja": "このモデルの小売価格または供給価格が揃っていません。",
+    "ru": "Для этой модели указаны не все розничные цены или цены поставки.",
+    "hi": "इस मॉडल के खुदरा या आपूर्ति मूल्य अधूरे हैं।",
+    "ms": "Harga runcit atau harga bekalan untuk model ini belum lengkap.",
+    "th": "ราคาขายปลีกหรือราคาจัดหาของโมเดลนี้ยังไม่ครบ"
+  },
+  "供货链上的可用采购额度不足。": {
+    "en": "Available procurement credits in the supply chain are insufficient.",
+    "ja": "供給チェーンで利用できる調達クレジットが不足しています。",
+    "ru": "В цепочке поставок недостаточно доступных закупочных кредитов.",
+    "hi": "आपूर्ति शृंखला में उपलब्ध खरीद क्रेडिट अपर्याप्त हैं।",
+    "ms": "Kredit perolehan tersedia dalam rantaian bekalan tidak mencukupi.",
+    "th": "โควตาจัดซื้อที่ใช้ได้ในห่วงโซ่อุปทานไม่เพียงพอ"
+  },
+  "已发布允许新购的套餐": {
+    "en": "A package has been published for new purchases.",
+    "ja": "新規購入を許可したパッケージが公開されています。",
+    "ru": "Опубликован пакет, доступный для новой покупки.",
+    "hi": "नई खरीद के लिए एक पैकेज प्रकाशित है।",
+    "ms": "Pakej yang membenarkan pembelian baharu telah diterbitkan.",
+    "th": "เผยแพร่แพ็กเกจที่เปิดให้ซื้อใหม่แล้ว"
+  },
+  "已发布允许续费的套餐": {
+    "en": "A package has been published for renewal.",
+    "ja": "更新を許可したパッケージが公開されています。",
+    "ru": "Опубликован пакет, доступный для продления.",
+    "hi": "नवीनीकरण के लिए एक पैकेज प्रकाशित है।",
+    "ms": "Pakej yang membenarkan pembaharuan telah diterbitkan.",
+    "th": "เผยแพร่แพ็กเกจที่เปิดให้ต่ออายุแล้ว"
+  },
+  "至少有一种可用于当前结算币种的收款方式": {
+    "en": "At least one collection method supports the current settlement currency.",
+    "ja": "現在の決済通貨に対応する集金方法が1つ以上あります。",
+    "ru": "Есть хотя бы один способ приёма платежей для текущей валюты расчётов.",
+    "hi": "मौजूदा निपटान मुद्रा में कम से कम एक भुगतान प्राप्ति विधि उपलब्ध है।",
+    "ms": "Sekurang-kurangnya satu kaedah kutipan menyokong mata wang penyelesaian semasa.",
+    "th": "มีวิธีรับชำระอย่างน้อยหนึ่งวิธีที่รองรับสกุลเงินที่ใช้ชำระบัญชีปัจจุบัน"
+  },
+  "可售空间至少能覆盖一份符合条件的套餐": {
+    "en": "Sales capacity covers at least one eligible package.",
+    "ja": "販売余力で条件を満たすパッケージを1件以上賄えます。",
+    "ru": "Доступный объём продаж покрывает хотя бы один подходящий пакет.",
+    "hi": "बिक्री क्षमता कम से कम एक योग्य पैकेज के लिए पर्याप्त है।",
+    "ms": "Kapasiti jualan menampung sekurang-kurangnya satu pakej yang layak.",
+    "th": "วงเงินขายครอบคลุมแพ็กเกจที่เข้าเงื่อนไขได้อย่างน้อยหนึ่งชุด"
+  },
+  "各供货层有可用的真实采购余额": {
+    "en": "Each supply tier has a spendable procurement balance.",
+    "ja": "各供給段階に利用可能な調達残高があります。",
+    "ru": "На каждом уровне поставок есть доступный закупочный остаток.",
+    "hi": "आपूर्ति के प्रत्येक स्तर पर खर्च योग्य खरीद शेष है।",
+    "ms": "Setiap peringkat bekalan mempunyai baki perolehan yang boleh digunakan.",
+    "th": "แต่ละระดับของห่วงโซ่อุปทานมียอดจัดซื้อที่ใช้ได้"
+  },
+  "部分佣金受限": {
+    "en": "Some commission is restricted.",
+    "ja": "一部のコミッションに利用制限があります。",
+    "ru": "Доступ к части комиссии ограничен.",
+    "hi": "कुछ कमीशन पर रोक है।",
+    "ms": "Sebahagian komisen dihadkan.",
+    "th": "ค่าคอมมิชชันบางส่วนถูกจำกัด"
+  },
+  "语言加载失败，请重试。": {
+    "en": "The language could not load. Try again.",
+    "ja": "言語を読み込めませんでした。もう一度お試しください。",
+    "ru": "Не удалось загрузить язык. Повторите попытку.",
+    "hi": "भाषा लोड नहीं हुई। फिर से कोशिश करें।",
+    "ms": "Bahasa gagal dimuatkan. Cuba lagi.",
+    "th": "โหลดภาษาไม่สำเร็จ โปรดลองอีกครั้ง"
   }
 }

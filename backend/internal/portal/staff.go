@@ -18,8 +18,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var errStaffPasswordLength = errors.New("staff password length must be 10 to 72 bytes")
-
 func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, actor string) {
 	var in struct {
 		Email, Role     string
@@ -62,9 +60,6 @@ func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, acto
 			if errors.Is(e, gorm.ErrRecordNotFound) {
 				hash, err := organization.HashPassword(in.InitialPassword)
 				if err != nil {
-					if errors.Is(err, organization.ErrInvalidInput) {
-						return nil, errStaffPasswordLength
-					}
 					return nil, err
 				}
 				staff := Staff{ID: uuid.NewString(), Email: inv.Email, DisplayName: strings.TrimSpace(in.DisplayName), PasswordHash: hash, Version: 1, Status: "active", MustChangePassword: true, CreatedAt: time.Now().UTC()}

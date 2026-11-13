@@ -74,6 +74,12 @@ func (a *Application) quote(c *gin.Context) {
 	id := subject(c)
 	ctx := c.Request.Context()
 	raw, e := a.command(c, "quote:"+id.Customer.Customer.ID, in, func(tx *gorm.DB) (any, error) {
+		if e := a.Organization.RequireBusiness(ctx, tx, id.Customer.Ownership.OperatorID, organization.NewPurchase); e != nil {
+			return nil, e
+		}
+		if e := a.Organization.RequireCustomerAction(ctx, tx, id.Customer.Customer.ID, id.Customer.Ownership.OperatorID, "new_purchase"); e != nil {
+			return nil, e
+		}
 		p, e := a.Commerce.GetPackage(ctx, tx, id.Customer.Ownership.OperatorID, in.PlanID)
 		if e != nil {
 			return nil, e
@@ -844,6 +850,11 @@ func (a *Application) subscriptions(c *gin.Context) {
 	for _, r := range remainders {
 		byGrant[r.GrantID] = r
 	}
+	var now time.Time
+	if e = a.DB.WithContext(c.Request.Context()).Raw("SELECT clock_timestamp()").Row().Scan(&now); e != nil {
+		handleError(c, e)
+		return
+	}
 	for _, row := range rows {
 		paid, gift := ledger.Zero(), ledger.Zero()
 		if row.Delivery.GrantID != nil {
@@ -852,8 +863,10 @@ func (a *Application) subscriptions(c *gin.Context) {
 			gift = remaining.GiftATG
 		}
 		status := "active"
-		if row.Delivery.ExpiresAt != nil && !time.Now().Before(*row.Delivery.ExpiresAt) {
-			status = "expired"
+		if now.Before(row.Delivery.EffectiveAt) {
+			paid, gift, status = ledger.Zero(), ledger.Zero(), "scheduled"
+		} else if row.Delivery.ExpiresAt != nil && !now.Before(*row.Delivery.ExpiresAt) {
+			paid, gift, status = ledger.Zero(), ledger.Zero(), "expired"
 		}
 		out := gin.H{"id": row.Order.ID, "name": row.Name, "status": status, "purchase_remaining_atg": paid, "gift_remaining_atg": gift, "effective_at": row.Delivery.EffectiveAt, "expires_at": row.Delivery.ExpiresAt, "auto_renew": false, "auto_renew_available": false, "allow_commission": false, "requires_confirmation": false, "version": 1}
 		if row.Delivery.ExpiresAt == nil {

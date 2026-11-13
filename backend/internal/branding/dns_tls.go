@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"net"
 	"net/netip"
-	"strings"
 	"time"
 )
 
@@ -35,16 +34,9 @@ func (v DNSAndTLSVerifier) Verify(ctx context.Context, hostname, challenge strin
 	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	records, err := resolver.LookupTXT(ctx, "_tokenhub."+hostname)
+	matched, err := ownership(ctx, resolver, hostname, challenge)
 	if err != nil {
-		return DomainVerification{FailureReason: "DNS verification record is not available"}, nil
-	}
-	matched := false
-	for _, r := range records {
-		if strings.TrimSpace(r) == "tokenhub-verification="+challenge {
-			matched = true
-			break
-		}
+		return DomainVerification{}, err
 	}
 	if !matched {
 		return DomainVerification{FailureReason: "DNS verification challenge does not match"}, nil
@@ -52,6 +44,9 @@ func (v DNSAndTLSVerifier) Verify(ctx context.Context, hostname, challenge strin
 	out := DomainVerification{OwnershipVerified: true, ProviderReference: "dns:" + hostname}
 	tlsDialer := tls.Dialer{NetDialer: dialer, Config: &tls.Config{ServerName: hostname, MinVersion: tls.VersionTLS12}}
 	addresses, err := resolver.LookupIPAddr(ctx, hostname)
+	if err != nil && !dnsRecordMissing(err) {
+		return out, ErrVerificationUnavailable
+	}
 	if err != nil || len(addresses) == 0 {
 		out.FailureReason = "domain has no verified public network address"
 		return out, nil
@@ -64,15 +59,20 @@ func (v DNSAndTLSVerifier) Verify(ctx context.Context, hostname, challenge strin
 	}
 	// Pin the already-checked address. Resolving the hostname again during dial
 	// would allow rebinding between validation and the TLS network connection.
+	inconclusive := false
 	for _, address := range addresses {
 		conn, err := tlsDialer.DialContext(ctx, "tcp", net.JoinHostPort(address.IP.String(), "443"))
 		if err != nil {
+			inconclusive = inconclusive || !tlsEvidenceFailed(err)
 			continue
 		}
 		_ = conn.Close()
 		out.TLSReady = true
 		out.ProviderReference = "dns-tls:" + hostname
 		return out, nil
+	}
+	if inconclusive {
+		return out, ErrVerificationUnavailable
 	}
 	out.FailureReason = "TLS certificate or hostname is not ready"
 	return out, nil

@@ -162,9 +162,21 @@ func (a *Application) customerContext(c *gin.Context) {
 			if err != nil {
 				return err
 			}
+			accountIDs := make([]string, 0, len(rows))
+			for _, row := range rows {
+				accountIDs = append(accountIDs, row.ID)
+			}
+			grants, now, err := a.Ledger.AccountGrants(ctx, tx, op.ID, accountIDs)
+			if err != nil {
+				return err
+			}
+			commission, err := a.accountCommissionAvailability(ctx, tx, op.ID, rows)
+			if err != nil {
+				return err
+			}
 			p := contextPage("客户资产", rows, []gin.H{col("purpose", "资产用途", "text"), col("unit", "单位", "text"), col("balance", "账面余额", "decimal"), col("held", "占用", "decimal"), col("available", "可用", "decimal"), col("created_at", "创建时间", "datetime")}, func(r ledger.Account) gin.H {
 				v := values(r)
-				v["available"] = r.Available()
+				v["available"], _ = accountAvailability(r, grants[r.ID], now, commission)
 				return entity(r.ID, "open", r.Version, v)
 			})
 			a.appendCustomerContextSection(c, &out, "assets", "客户资产", p, next)

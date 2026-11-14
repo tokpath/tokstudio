@@ -45,6 +45,9 @@ func (s *Service) CreateOrder(ctx context.Context, tx *gorm.DB, in CreateOrderIn
 		if err != nil {
 			return err
 		}
+		if err = s.org.LockCustomerResponsibility(ctx, tx, in.CustomerID); err != nil {
+			return err
+		}
 		if err = s.lockBusinessScope(ctx, tx, in.OperatorID); err != nil {
 			return err
 		}
@@ -168,6 +171,9 @@ func (s *Service) CreateTopUpOrder(ctx context.Context, tx *gorm.DB, in CreateTo
 		}
 		own, err := s.org.LockOwnership(ctx, tx, in.CustomerID, in.OperatorID, in.ExpectedOwnershipVersion)
 		if err != nil {
+			return err
+		}
+		if err = s.org.LockCustomerResponsibility(ctx, tx, in.CustomerID); err != nil {
 			return err
 		}
 		if err = s.lockBusinessScope(ctx, tx, in.OperatorID); err != nil {

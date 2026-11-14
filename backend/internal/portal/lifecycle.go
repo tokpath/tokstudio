@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
@@ -52,80 +51,36 @@ func (a *Application) CheckClose(ctx context.Context, tx *gorm.DB, in organizati
 		return nil, e
 	}
 	checks = append(checks, extra...)
-	// Pending original-currency facts survive commercial order closure and
-	// operator takeover. Only this stable customer's retail order IDs qualify.
-	pending := false
-	cursor := ""
-	for {
-		rows, e := a.Commerce.ListCustomerOrdersPage(ctx, tx, in.CustomerID, cursor, "", 100)
-		if e != nil {
-			return nil, e
-		}
-		byOperator := map[string][]string{}
-		for _, r := range rows {
-			source := r.OriginalOperatorID
-			if source == "" {
-				source = r.OperatorID
-			}
-			byOperator[source] = append(byOperator[source], r.ID)
-		}
-		for source, ids := range byOperator {
-			facts, e := a.Payments.PendingReceiptObligations(ctx, tx, source, ids)
-			if e != nil {
-				return nil, e
-			}
-			pending = pending || len(facts) > 0
-			links, e := a.Payments.RecordedReceiptLinks(ctx, tx, source, ids)
-			if e != nil {
-				return nil, e
-			}
-			receiptIDs := []string{}
-			for _, link := range links {
-				receiptIDs = append(receiptIDs, link.ReceiptID)
-			}
-			if len(receiptIDs) > 0 {
-				funds, e := a.Commerce.UnsettledReceiptFunds(ctx, tx, source, receiptIDs)
-				if e != nil {
-					return nil, e
-				}
-				pending = pending || len(funds) > 0
-			}
-		}
-		if len(rows) < 100 {
-			break
-		}
-		cursor = commerce.NextOrderCursor(rows[len(rows)-1])
+	// Check outstanding facts against the original collector, including after
+	// order closure or takeover. Paid, unfulfilled orders are obligations even
+	// when the funds came from the wallet or a manual receipt.
+	var pending bool
+	if e := tx.WithContext(ctx).Raw(`SELECT EXISTS (
+		SELECT 1 FROM commerce_orders o WHERE o.customer_id=? AND (
+			o.status IN ('pending','partial','paid','exception')
+			OR EXISTS (SELECT 1 FROM payments_intents i JOIN payments_merchants m ON m.id=i.merchant_id
+				WHERE i.order_id=o.id::text AND i.operator_id=o.original_operator_id::text
+				  AND m.driver<>'manual' AND i.state NOT IN ('failed','closed','verified'))
+			OR EXISTS (SELECT 1 FROM payments_verified_facts f
+				LEFT JOIN ledger_accounts cash ON cash.owner_id::text=f.receipt_id AND cash.operator_id=o.original_operator_id AND cash.purpose='receipt:unallocated'
+				WHERE f.order_id=o.id::text AND f.operator_id=o.original_operator_id::text AND f.kind='receipt'
+				  AND ((COALESCE(f.receipt_id,'')='' AND f.state IN ('awaiting_settlement','verified_pending_receipt','verified')) OR cash.balance>0))
+		))`, in.CustomerID).Scan(&pending).Error; e != nil {
+		return nil, e
 	}
-	checks = append(checks, organization.Requirement{Code: "pending_receipts", Description: "原币真实已收款仍待核实付款时点、对应结算金额或入账；须按原订单处理，不能重复付款", Ready: !pending})
+	checks = append(checks, organization.Requirement{Code: "pending_receipts", Description: "待付款、待交付或待核实原收款的订单，须先在原订单中处理。", Ready: !pending})
 	account, e := a.Ledger.FindAccount(ctx, tx, in.OperatorID, in.CustomerID, "customer:money")
 	if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
 		return nil, e
 	}
-	checks = append(checks, organization.Requirement{Code: "money_balance", Description: "结算币种余额及占用须通过原路退款等真实结算归零", Ready: account.Balance.IsZero() && account.Held.IsZero()})
-	grants, e := a.Ledger.CustomerGrants(ctx, tx, in.OperatorID, in.CustomerID)
-	if e != nil {
+	waiving := in.WaiveBalance != nil && in.ActorID == in.CustomerID && in.WaiveBalance.Sign() > 0 && in.WaiveBalance.Cmp(account.Balance) == 0
+	checks = append(checks, organization.Requirement{Code: "money_balance", Description: "支付余额须结清，或由本人明确放弃。已有资金占用须先处理。", Ready: account.Held.IsZero() && (account.Balance.IsZero() || waiving)})
+	var paid bool
+	if e := tx.WithContext(ctx).Raw(`SELECT EXISTS (SELECT 1 FROM ledger_grants g JOIN ledger_grant_sources src ON src.grant_id=g.id
+		WHERE g.operator_id=? AND g.customer_id=? AND src.kind='paid' AND src.quantity-src.consumed-src.expired-src.cancelled>0)`, in.OperatorID, in.CustomerID).Scan(&paid).Error; e != nil {
 		return nil, e
 	}
-	paid, gift := ledger.Zero(), ledger.Zero()
-	for start := 0; start < len(grants); start += 100 {
-		end := start + 100
-		if end > len(grants) {
-			end = len(grants)
-		}
-		ids := []string{}
-		for _, g := range grants[start:end] {
-			ids = append(ids, g.ID)
-		}
-		remaining, e := a.Ledger.GrantRemainders(ctx, tx, in.OperatorID, in.CustomerID, ids)
-		if e != nil {
-			return nil, e
-		}
-		for _, r := range remaining {
-			paid = paid.Add(r.PurchasedATG)
-			gift = gift.Add(r.GiftATG)
-		}
-	}
-	checks = append(checks, organization.Requirement{Code: "remaining_paid_grants", Description: "购买ATG仍有余额；可继续使用、等待到期或本人明确放弃，不能按现价兑现", Ready: paid.IsZero()}, organization.Requirement{Code: "remaining_gifts", Description: "剩余赠送ATG将在正式注销的同一事务内失效，不要求放弃购买资产来清除纯赠送", Ready: true})
+	checks = append(checks, organization.Requirement{Code: "remaining_paid_grants", Description: "剩余购买 ATG 可等待到期或由本人明确放弃。", Ready: !paid}, organization.Requirement{Code: "remaining_gifts", Description: "剩余赠送 ATG 将在正式注销时失效。", Ready: true})
 	// Several independent domains contribute payouts/disputes. Every answer must
 	// be ready; overwriting one result with another would hide an obligation.
 	byCode := map[string]organization.Requirement{}
@@ -148,6 +103,14 @@ func (a *Application) CheckClose(ctx context.Context, tx *gorm.DB, in organizati
 	return out, nil
 }
 func (a *Application) CloseCustomerLifecycle(ctx context.Context, tx *gorm.DB, in organization.CustomerLifecycleInput) error {
+	if in.WaiveBalance != nil {
+		if in.ActorID != in.CustomerID {
+			return organization.ErrForbidden
+		}
+		if e := a.Ledger.WaiveCustomerBalance(ctx, tx, in.OperatorID, in.CustomerID, in.Evidence, *in.WaiveBalance); e != nil {
+			return e
+		}
+	}
 	if e := a.Ledger.CancelClosureGifts(ctx, tx, in.OperatorID, in.CustomerID, "formal-close:"+in.CustomerID, in.ActorID, in.Evidence, in.EffectiveAt); e != nil {
 		return e
 	}
@@ -155,18 +118,25 @@ func (a *Application) CloseCustomerLifecycle(ctx context.Context, tx *gorm.DB, i
 }
 func (a *Application) customerLifecycle(c *gin.Context) {
 	var in struct {
-		Version  int64  `json:"version"`
-		Evidence string `json:"evidence"`
-		Waiver   string `json:"waiver_evidence"`
+		Version      int64           `json:"version"`
+		Evidence     string          `json:"evidence"`
+		Waiver       string          `json:"waiver_evidence"`
+		WaiveBalance *ledger.Decimal `json:"waive_balance_money"`
 	}
 	if !body(c, &in) {
 		return
 	}
 	id := subject(c)
-	if in.Evidence == "" {
+	if in.WaiveBalance != nil {
+		in.Evidence = "customer confirmed permanent closure and waiver of " + in.WaiveBalance.String() + " settlement currency units"
+	} else if in.Evidence == "" {
 		in.Evidence = "customer-action:" + c.Param("action")
 	}
-	input := organization.CustomerLifecycleInput{CustomerID: id.Customer.Customer.ID, OperatorID: id.Customer.Ownership.OperatorID, ActorID: id.Customer.Customer.ID, ExpectedVersion: in.Version, Evidence: in.Evidence, WaiverEvidence: in.Waiver}
+	if in.WaiveBalance != nil && (c.Param("action") != "complete-close" || !in.WaiveBalance.Valid() || in.WaiveBalance.Sign() <= 0) {
+		handleError(c, organization.ErrInvalidInput)
+		return
+	}
+	input := organization.CustomerLifecycleInput{CustomerID: id.Customer.Customer.ID, OperatorID: id.Customer.Ownership.OperatorID, ActorID: id.Customer.Customer.ID, ExpectedVersion: in.Version, Evidence: in.Evidence, WaiverEvidence: in.Waiver, WaiveBalance: in.WaiveBalance}
 	raw, e := a.command(c, "customer-lifecycle:"+input.CustomerID+":"+c.Param("action"), in, func(tx *gorm.DB) (any, error) {
 		var out organization.Customer
 		var err error

@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
 )
@@ -141,12 +142,31 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 			handleError(c, e)
 			return
 		}
+		policy, e := a.Incentives.CurrentPolicy(ctx, nil, op)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		actionErr := a.Organization.RequireUnfrozen(ctx, nil, id.Customer.Customer.BrandID, op, customer, string(organization.Activity))
+		if actionErr != nil && !errors.Is(actionErr, organization.ErrFrozen) {
+			handleError(c, actionErr)
+			return
+		}
+		businessErr := a.Organization.RequireBusiness(ctx, nil, op, organization.Activity)
+		if businessErr != nil && !businessUnavailable(businessErr) {
+			handleError(c, businessErr)
+			return
+		}
+		restricted := actionErr != nil || businessErr != nil || id.Customer.Customer.Status == "closing"
+		p["activity_restricted"] = restricted
+		now := time.Now()
 		items := []any{}
 		for _, row := range rows {
 			v := values(row.Version)
 			v["kind"] = row.Campaign.Kind
 			v["used_uses"], v["reserved_uses"] = row.Campaign.UsedUses, row.Campaign.ReservedUses
-			items = append(items, entity(row.Campaign.ID, campaignStatus(row.Version, time.Now()), row.Version.Version, v))
+			status := kolCampaignStatus(row.Version, now, policy.DirectRate, restricted)
+			items = append(items, entity(row.Campaign.ID, status, row.Version.Version, v))
 		}
 		p["title"] = "我的 KOL 活动"
 		p["items"] = items
@@ -201,30 +221,54 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		}
 		accountRow := p["items"].([]any)[0].(gin.H)
 		accountRow["allowed_actions"] = actions
-		waiver := field{Name: "waiver_evidence", Label: "本人明确放弃剩余购买与赠送ATG的确认（可选）", Kind: "textarea", Help: "留空将保留全部ATG，余额未归零前不能完成注销。填写代表明确放弃剩余ATG；结算币种与佣金仍须真实结算，不会被删除。"}
-		p["row_operations"] = []operation{{Name: "stop", Label: "停止使用服务", Method: "POST", Path: "/api/v1/me/account/lifecycle/stop", IncludeVersion: true, Fields: []field{optional("evidence", "补充说明（可选）", "textarea")}, Confirmation: "停用Key及未来续费，保留全部资产、推广资格和历史佣金。恢复使用后需本人明确重新启用Key与续费。"}, {Name: "resume", Label: "恢复使用", Method: "POST", Path: "/api/v1/me/account/lifecycle/resume", IncludeVersion: true, Fields: []field{optional("evidence", "补充说明（可选）", "textarea")}}, {Name: "begin_close", Label: "开始注销清算", Method: "POST", Path: "/api/v1/me/account/lifecycle/begin-close", IncludeVersion: true, Fields: []field{optional("evidence", "补充说明（可选）", "textarea"), waiver}, Confirmation: "开始注销会停止调用、续费与未来分佣，保留历史权利和资金清算。只有全部未决请求、退款、提现、争议与余额真实结清后才能完成。"}, {Name: "complete_close", Label: "核实清算并完成注销", Method: "POST", Path: "/api/v1/me/account/lifecycle/complete-close", IncludeVersion: true, Fields: []field{optional("evidence", "补充说明（可选）", "textarea")}, Confirmation: "完成后撤销登录凭据。服务器逐项校验清算，不能通过点击抹去未结资产。"}}
+		waiver := field{Name: "waiver_evidence", Label: "本人明确放弃剩余购买与赠送ATG的确认（可选）", Kind: "textarea", Help: "留空会保留全部 ATG。填写表示本人明确放弃剩余 ATG。支付余额在注销清算中另行处理。"}
+		p["row_operations"] = []operation{{Name: "stop", Label: "停止使用服务", Method: "POST", Path: "/api/v1/me/account/lifecycle/stop", IncludeVersion: true, Fields: []field{optional("evidence", "补充说明（可选）", "textarea")}, Confirmation: "停用Key及未来续费，保留全部资产、推广资格和历史佣金。恢复使用后需本人明确重新启用Key与续费。"}, {Name: "resume", Label: "恢复使用", Method: "POST", Path: "/api/v1/me/account/lifecycle/resume", IncludeVersion: true, Fields: []field{optional("evidence", "补充说明（可选）", "textarea")}}, {Name: "begin_close", Label: "开始注销清算", Method: "POST", Path: "/api/v1/me/account/lifecycle/begin-close", IncludeVersion: true, Fields: []field{optional("evidence", "补充说明（可选）", "textarea"), waiver}, Confirmation: "开始注销会停止调用、续费与未来分佣。办结其他清算事项后，可结清支付余额，或明确放弃剩余支付余额并注销。"}, {Name: "complete_close", Label: "核实清算并完成注销", Method: "POST", Path: "/api/v1/me/account/lifecycle/complete-close", IncludeVersion: true, Fields: []field{optional("evidence", "补充说明（可选）", "textarea")}, Confirmation: "完成后撤销登录凭据。服务器逐项校验清算，不能通过点击抹去未结资产。"}}
 
 		rowOps := p["row_operations"].([]operation)
 		rowOps = append(rowOps, operation{Name: "waive", Label: "本人明确放弃剩余ATG", Method: "POST", Path: "/api/v1/me/account/waive-credits", IncludeVersion: true, Fields: []field{f("waiver_evidence", "本人明确放弃购买与赠送ATG的确认", "textarea")}, Confirmation: "仅注销清算中可执行。将真实撤销全部未使用购买与赠送ATG，不触碰结算币种或佣金。该放弃将保留不可变证据。"})
 		p["row_operations"] = rowOps
-		var closureChecks []organization.Requirement
-		if e := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			var err error
-			closureChecks, err = a.CheckClose(ctx, tx, organization.CustomerLifecycleInput{CustomerID: customer, OperatorID: op, ActorID: customer})
-			return err
-		}); e != nil {
-			handleError(c, e)
-			return
-		}
-		summary := []gin.H{}
-		for _, check := range closureChecks {
-			state := "待处理"
-			if check.Ready {
-				state = "已满足"
+		if customerState == "closing" {
+			var closureChecks []organization.Requirement
+			var wallet ledger.Account
+			if e := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+				var err error
+				closureChecks, err = a.CheckClose(ctx, tx, organization.CustomerLifecycleInput{CustomerID: customer, OperatorID: op, ActorID: customer})
+				if err != nil {
+					return err
+				}
+				wallet, err = a.Ledger.FindAccount(ctx, tx, op, customer, "customer:money")
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return nil
+				}
+				return err
+			}); e != nil {
+				handleError(c, e)
+				return
 			}
-			summary = append(summary, gin.H{"label": check.Description, "value": state})
+			summary := []gin.H{}
+			canWaive := wallet.Balance.Sign() > 0 && wallet.Held.IsZero()
+			if wallet.Balance.Sign() > 0 {
+				summary = append(summary, gin.H{"label": "剩余支付余额", "value": wallet.Balance.String(), "unit": "MONEY"})
+			}
+			for _, check := range closureChecks {
+				state := "待处理"
+				if check.Ready {
+					state = "已满足"
+				} else if check.Code != "money_balance" {
+					canWaive = false
+				}
+				summary = append(summary, gin.H{"label": check.Description, "value": state})
+			}
+			if canWaive {
+				accountRow["allowed_actions"] = append(actions, "waive_balance_close")
+				p["row_operations"] = append(p["row_operations"].([]operation), operation{
+					Name: "waive_balance_close", Label: "放弃剩余余额并注销", Method: "POST", Path: "/api/v1/me/account/lifecycle/complete-close", IncludeVersion: true,
+					Fields:       []field{defaultField("waive_balance_money", "已确认放弃的支付余额", "hidden", wallet.Balance.String())},
+					Confirmation: "我同意永久放弃页面显示的全部剩余支付余额，并完成注销。该余额将无法取回。",
+				})
+			}
+			p["summary"] = summary
 		}
-		p["summary"] = summary
 
 	default:
 		if a.customerOperationsWorkspace(c, resource, p) {

@@ -188,9 +188,18 @@ func (a *Application) customerContext(c *gin.Context) {
 			if err != nil {
 				return err
 			}
+			canCorrect := a.Organization.RequirePermission(ctx, tx, actor, op.ID, "refunds.manage") == nil
 			p := contextPage("模型调用", rows, []gin.H{col("model_id", "公开模型", "text"), col("operation", "调用类型", "text"), col("status", "状态", "status"), col("charged_atg", "原扣费", "atg"), col("net_charged_atg", "冲正后净扣费", "atg"), col("accepted_at", "受理时间", "datetime")}, func(r usage.Request) gin.H {
-				return entity(r.ID, r.Status, 1, gin.H{"model_id": r.ModelID, "operation": r.Operation, "charged_atg": r.ChargedATG, "net_charged_atg": r.ChargedATG.Sub(r.CorrectedChargedATG), "accepted_at": r.AcceptedAt, "reason": r.Reason})
+				row := entity(r.ID, r.Status, 1, gin.H{"model_id": r.ModelID, "operation": r.Operation, "charged_atg": r.ChargedATG, "net_charged_atg": r.ChargedATG.Sub(r.CorrectedChargedATG), "accepted_at": r.AcceptedAt, "reason": r.Reason})
+				row["allowed_actions"] = []string{}
+				if canCorrect && r.Status == "completed" && r.ActualATG.Cmp(r.CorrectedATG) > 0 {
+					row["allowed_actions"] = []string{"correct_charge"}
+				}
+				return row
 			})
+			if canCorrect {
+				p["row_operations"] = []operation{chargeCorrectionOperation(op.ID)}
+			}
 			a.appendCustomerContextSection(c, &out, "requests", "模型调用", p, next)
 		}
 		if a.contextSection(c, tx, actor, op.ID, "commissions") {

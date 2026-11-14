@@ -33,7 +33,7 @@ func (s *Service) publishCampaign(ctx context.Context, tx *gorm.DB, in CampaignI
 	if in.FinalPriceMoney != nil && (in.FinalPriceMoney.Sign() <= 0 || !in.FinalPriceMoney.Valid()) {
 		return out, ErrInvalidInput
 	}
-	if in.Kind == "kol" && (!validID(in.OwnerCustomerID) || in.FinalPriceMoney != nil || !in.GiftATG.IsZero() || in.ConcessionRate.Sign() <= 0) {
+	if in.Kind == "kol" && (!validID(in.OwnerCustomerID) || in.FinalPriceMoney != nil || !in.GiftATG.IsZero() || (in.Enabled && in.ConcessionRate.Sign() <= 0)) {
 		return out, ErrInvalidInput
 	}
 	if in.Kind == "merchant" && (!in.ConcessionRate.IsZero() || in.OwnerCustomerID != "") {
@@ -42,6 +42,13 @@ func (s *Service) publishCampaign(ctx context.Context, tx *gorm.DB, in CampaignI
 	err = s.within(ctx, tx, func(tx *gorm.DB) error {
 		if !asCustomer {
 			if err := s.org.RequirePermission(ctx, tx, in.ActorStaffID, in.OperatorID, "marketing.manage"); err != nil {
+				return err
+			}
+		} else if in.Enabled {
+			if err := s.org.RequireCustomerAction(ctx, tx, in.OwnerCustomerID, in.OperatorID, string(organization.Activity)); err != nil {
+				return err
+			}
+			if err := s.org.RequireBusiness(ctx, tx, in.OperatorID, organization.Activity); err != nil {
 				return err
 			}
 		}
@@ -81,7 +88,7 @@ func (s *Service) publishCampaign(ctx context.Context, tx *gorm.DB, in CampaignI
 				}
 			}
 		}
-		if in.Kind == "kol" {
+		if in.Kind == "kol" && in.Enabled {
 			if _, err = s.eligibleKOL(ctx, tx, in.OperatorID, in.OwnerCustomerID, instant.At); err != nil {
 				return err
 			}
@@ -188,7 +195,10 @@ func (s *Service) eligibleKOL(ctx context.Context, tx *gorm.DB, operator, custom
 	if own.OperatorID != operator {
 		return Qualification{}, ErrNotEligible
 	}
-	if err = s.advance(ctx, tx, operator, customer, at); err != nil {
+	if err = s.org.RequireUnfrozen(ctx, tx, own.BrandID, operator, customer, string(organization.Activity)); err != nil {
+		return Qualification{}, err
+	}
+	if err := s.advance(ctx, tx, operator, customer, at); err != nil {
 		return Qualification{}, err
 	}
 	q, err := s.ensureQualification(tx, operator, customer)
@@ -275,6 +285,7 @@ func (s *Service) Quote(ctx context.Context, tx *gorm.DB, o commerce.Order, sele
 			snap.IndirectCustomerID = &v
 		}
 		price := o.DueMoney
+		firstPurchaseChecked := false
 		if chosen.MerchantCampaignID != "" && chosen.KOLCampaignID != "" {
 			var count int64
 			if err = tx.Table("incentives_combinations").Where("operator_id=? AND merchant_campaign_id=? AND kol_campaign_id=?", o.OperatorID, chosen.MerchantCampaignID, chosen.KOLCampaignID).Count(&count).Error; err != nil {
@@ -305,12 +316,22 @@ func (s *Service) Quote(ctx context.Context, tx *gorm.DB, o commerce.Order, sele
 			if !v.Enabled || v.PackageID != quote.PackageID || instant.At.Before(v.StartsAt) || !instant.At.Before(v.EndsAt) {
 				return ErrNotEligible
 			}
-			completed, err := s.commerce.CountCompletedOrders(ctx, tx, o.CustomerID)
-			if err != nil {
-				return err
-			}
-			if (v.Eligibility == "first_order" && completed != 0) || (v.Eligibility == "existing" && completed == 0) {
-				return ErrNotEligible
+			switch v.Eligibility {
+			case "first_order":
+				if !firstPurchaseChecked {
+					if err := s.requireFirstPurchase(ctx, tx, o, "reserved", "fulfilled"); err != nil {
+						return err
+					}
+					firstPurchaseChecked = true
+				}
+			case "existing":
+				completed, err := s.commerce.CountCompletedOrders(ctx, tx, o.CustomerID)
+				if err != nil {
+					return err
+				}
+				if completed == 0 {
+					return ErrNotEligible
+				}
 			}
 			gift, discount := v.GiftATG, ledger.Zero()
 			if selected.kind == "merchant" {
@@ -363,6 +384,34 @@ func (s *Service) Quote(ctx context.Context, tx *gorm.DB, o commerce.Order, sele
 		return nil
 	})
 	return
+}
+
+func firstPurchaseClaimed(tx *gorm.DB, o commerce.Order, states ...string) (bool, error) {
+	var claimed bool
+	err := tx.Raw(`SELECT EXISTS (
+		SELECT 1 FROM incentives_order_snapshots s
+		LEFT JOIN incentives_campaign_versions m ON m.id=s.merchant_version_id
+		LEFT JOIN incentives_campaign_versions k ON k.id=s.kol_version_id
+		WHERE s.customer_id=? AND s.order_id<>? AND s.status IN ?
+		  AND (s.merchant_version_id IS NOT NULL OR s.kol_version_id IS NOT NULL)
+		  AND (m.eligibility='first_order' OR k.eligibility='first_order')
+	)`, o.CustomerID, o.ID, states).Scan(&claimed).Error
+	return claimed, err
+}
+
+func (s *Service) requireFirstPurchase(ctx context.Context, tx *gorm.DB, o commerce.Order, states ...string) error {
+	completed, err := s.commerce.CountCompletedOrders(ctx, tx, o.CustomerID)
+	if err != nil {
+		return err
+	}
+	if completed != 0 {
+		return ErrNotEligible
+	}
+	claimed, err := firstPurchaseClaimed(tx, o, states...)
+	if err == nil && claimed {
+		return ErrNotEligible
+	}
+	return err
 }
 
 func (s *Service) reserveCampaign(tx *gorm.DB, c Campaign, v CampaignVersion, customer string, gift, discount ledger.Decimal) error {
@@ -430,6 +479,26 @@ func (s *Service) resolveCampaigns(ctx context.Context, tx *gorm.DB, o commerce.
 			return ErrConflict
 		}
 		restored := snap.Status == "released" && fulfill
+		if fulfill && (snap.MerchantVersionID != nil || snap.KOLVersionID != nil) {
+			var firstPurchase bool
+			if err := tx.Raw(`SELECT EXISTS (SELECT 1 FROM incentives_campaign_versions
+				WHERE (id=? OR id=?) AND eligibility='first_order')`, snap.MerchantVersionID, snap.KOLVersionID).Scan(&firstPurchase).Error; err != nil {
+				return err
+			}
+			if firstPurchase && restored {
+				if err := s.requireFirstPurchase(ctx, tx, o, "reserved", "fulfilled"); err != nil {
+					return err
+				}
+			} else if firstPurchase {
+				claimed, err := firstPurchaseClaimed(tx, o, "fulfilled")
+				if err != nil {
+					return err
+				}
+				if claimed {
+					return ErrNotEligible
+				}
+			}
+		}
 		for _, item := range []struct {
 			id             *string
 			gift, discount ledger.Decimal

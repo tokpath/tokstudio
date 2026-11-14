@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -57,6 +58,10 @@ func TestPostgresCustomerCanCancelUnpaidManualOrderButNotAnOpenOnlineCheckout(t 
 	mustOK(t, status, out)
 	if out["status"] != "closed" {
 		t.Fatal("repeat cancel changed the closed order", out["status"])
+	}
+	stale := payments.Order{ID: manualOrder, OperatorID: op, MerchantID: manual.ID, Money: payments.Money{Currency: "USD", Amount: ledger.FromInt64(80)}, AcceptedAt: now, ExpiresAt: now.Add(time.Hour)}
+	if _, err = f.a.Payments.Create(t.Context(), op, manual.ID, stale); !errors.Is(err, commerce.ErrOrderState) {
+		t.Fatal("stale checkout reached the gateway after order closure", err)
 	}
 	onlineOrder := create("online-cancel", online.ID)
 	status, out, _ = f.call(t, "GET", "/v1/me/orders/"+onlineOrder, nil, "")

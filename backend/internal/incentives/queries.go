@@ -93,34 +93,34 @@ func (s *Service) EligibleActivities(ctx context.Context, tx *gorm.DB, operator,
 		if len(chain) > 0 {
 			direct = chain[0].InviterID
 		}
-		var campaigns []campaignRow
-		q := tx.Where("operator_id=?", operator)
-		if direct == "" {
-			q = q.Where("kind='merchant'")
-		} else {
-			q = q.Where("kind='merchant' OR owner_customer_id=?", direct)
-		}
-		if err = q.Order("id").Find(&campaigns).Error; err != nil {
-			return err
+		var campaigns []struct {
+			CampaignVersion `gorm:"embedded"`
+			Kind            string
+			OwnerCustomerID *string
 		}
 		instant, err := s.BusinessInstant(ctx, tx)
 		if err != nil {
 			return err
 		}
+		q := tx.Table("incentives_campaign_versions v").Select("v.*,c.kind,c.owner_customer_id").
+			Joins("JOIN incentives_campaigns c ON c.id=v.campaign_id AND c.current_version=v.version").
+			Where("c.operator_id=? AND v.package_id=? AND v.enabled AND v.starts_at<=? AND v.ends_at>?", operator, packageID, instant.At, instant.At)
+		if direct == "" {
+			q = q.Where("c.kind='merchant'")
+		} else {
+			q = q.Where("(c.kind='merchant' OR c.owner_customer_id=?)", direct)
+		}
+		if err = q.Order("c.id").Scan(&campaigns).Error; err != nil {
+			return err
+		}
 		out = []ActivityOffer{}
 		for _, c := range campaigns {
-			var v campaignVersionRow
-			if err = tx.First(&v, "campaign_id=? AND version=?", c.ID, c.CurrentVersion).Error; err != nil {
-				return err
-			}
-			if v.PackageID != packageID || !v.Enabled || instant.At.Before(v.StartsAt) || !instant.At.Before(v.EndsAt) {
-				continue
-			}
+			v := c.CampaignVersion
 			selection := ActivitySelection{}
 			if c.Kind == "merchant" {
-				selection.MerchantCampaignID = c.ID
+				selection.MerchantCampaignID = v.CampaignID
 			} else {
-				selection.KOLCampaignID = c.ID
+				selection.KOLCampaignID = v.CampaignID
 			}
 			b, _ := json.Marshal(selection)
 			_, previewErr := s.PreviewQuote(ctx, tx, customer, operator, *p.CurrentQuoteID, b)
@@ -128,7 +128,7 @@ func (s *Service) EligibleActivities(ctx context.Context, tx *gorm.DB, operator,
 			if name == "" {
 				name = p.Name
 			}
-			offer := ActivityOffer{Name: name, ID: c.ID, Kind: c.Kind, OwnerCustomerID: c.OwnerCustomerID, PackageID: v.PackageID, FinalPriceMoney: v.FinalPriceMoney, GiftATG: v.GiftATG, ConcessionRate: v.ConcessionRate, StartsAt: v.StartsAt, EndsAt: v.EndsAt, PerCustomerLimit: v.PerCustomerLimit, Eligible: previewErr == nil}
+			offer := ActivityOffer{Name: name, ID: v.CampaignID, Kind: c.Kind, OwnerCustomerID: c.OwnerCustomerID, PackageID: v.PackageID, FinalPriceMoney: v.FinalPriceMoney, GiftATG: v.GiftATG, ConcessionRate: v.ConcessionRate, StartsAt: v.StartsAt, EndsAt: v.EndsAt, PerCustomerLimit: v.PerCustomerLimit, Eligible: previewErr == nil, CompatibleCampaignIDs: []string{}}
 			if previewErr != nil {
 				offer.Reason = previewErr.Error()
 			}
@@ -136,28 +136,31 @@ func (s *Service) EligibleActivities(ctx context.Context, tx *gorm.DB, operator,
 		}
 		// Combination is an explicit campaign pair, not a global promise that
 		// any merchant activity can be combined with any KOL activity.
-		var pairs []struct{ MerchantCampaignID, KOLCampaignID string }
-		if err = tx.Table("incentives_combinations").Where("operator_id=?", operator).Find(&pairs).Error; err != nil {
-			return err
-		}
-		visible := map[string]bool{}
-		for _, o := range out {
-			visible[o.ID] = true
-		}
+		var merchants, kols []string
+		visible := make(map[string]*ActivityOffer, len(out))
 		for i := range out {
-			out[i].CompatibleCampaignIDs = []string{}
-			for _, pair := range pairs {
-				other := ""
-				if pair.MerchantCampaignID == out[i].ID {
-					other = pair.KOLCampaignID
-				} else if pair.KOLCampaignID == out[i].ID {
-					other = pair.MerchantCampaignID
-				}
-				if visible[other] {
-					out[i].CompatibleCampaignIDs = append(out[i].CompatibleCampaignIDs, other)
+			o := &out[i]
+			if o.Eligible {
+				visible[o.ID] = o
+				if o.Kind == "merchant" {
+					merchants = append(merchants, o.ID)
+				} else {
+					kols = append(kols, o.ID)
 				}
 			}
-			out[i].AllowCombination = len(out[i].CompatibleCampaignIDs) > 0
+		}
+		if len(merchants) == 0 || len(kols) == 0 {
+			return nil
+		}
+		var pairs []struct{ MerchantCampaignID, KOLCampaignID string }
+		if err = tx.Table("incentives_combinations").Where("operator_id=? AND merchant_campaign_id IN ? AND kol_campaign_id IN ?", operator, merchants, kols).Order("merchant_campaign_id,kol_campaign_id").Find(&pairs).Error; err != nil {
+			return err
+		}
+		for _, pair := range pairs {
+			merchant, kol := visible[pair.MerchantCampaignID], visible[pair.KOLCampaignID]
+			merchant.CompatibleCampaignIDs = append(merchant.CompatibleCampaignIDs, kol.ID)
+			kol.CompatibleCampaignIDs = append(kol.CompatibleCampaignIDs, merchant.ID)
+			merchant.AllowCombination, kol.AllowCombination = true, true
 		}
 		return nil
 	})

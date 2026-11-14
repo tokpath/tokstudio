@@ -502,6 +502,12 @@ func (s *Service) VerifyWithdrawalPaid(ctx context.Context, tx *gorm.DB, actor, 
 			}
 		}
 		r.Status = "paid"
+		r.PaidCurrency = proof.Currency
+		r.PaidOriginalAmount, err = ledger.ParseDecimal(proof.OriginalAmount)
+		if err != nil {
+			return err
+		}
+		r.PaymentActorID = &actor
 		r.PaymentReference = &proof.PaymentReference
 		r.PaymentEvidence = proof.Evidence
 		r.PaidAt = &proof.PaidAt

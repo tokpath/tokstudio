@@ -69,6 +69,8 @@ func (s *Service) BeginManualRefund(ctx context.Context, actor, op, legID, key, 
 			if _, e = s.requireAuthorizedDestination(ctx, t, l); e != nil {
 				return e
 			}
+		} else if e = s.requireOfflineRefund(ctx, t, l); e != nil {
+			return e
 		}
 		if e = s.RequireReceiptRefundExecution(ctx, t, l.SourceOperatorID, l.ReceiptID, l.ID); e != nil {
 			return e
@@ -88,6 +90,19 @@ func (s *Service) BeginManualRefund(ctx context.Context, actor, op, legID, key, 
 	})
 	return out, e
 }
+
+func (s *Service) requireOfflineRefund(ctx context.Context, t *gorm.DB, l RefundLeg) error {
+	receipt, e := s.Commerce.GetReceipt(ctx, t, l.SourceOperatorID, l.ReceiptID)
+	if e != nil {
+		return e
+	}
+	driver, _, _ := strings.Cut(receipt.Provider, ":")
+	if payments.SupportsOriginalRefund(driver) {
+		return ErrState
+	}
+	return nil
+}
+
 func (s *Service) MarkRefundUnknown(ctx context.Context, actor, op, legID, evidence string) (RefundLeg, error) {
 	var out RefundLeg
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
@@ -175,6 +190,8 @@ func (s *Service) RecordManualRefund(ctx context.Context, actor, op, legID strin
 				if _, e = s.requireAuthorizedDestination(ctx, t, l); e != nil {
 					return e
 				}
+			} else if e = s.requireOfflineRefund(ctx, t, l); e != nil {
+				return e
 			}
 			if e = s.RequireReceiptRefundExecution(ctx, t, l.SourceOperatorID, l.ReceiptID, l.ID); e != nil {
 				return e

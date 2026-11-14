@@ -356,8 +356,3 @@ func (s *Service) RecordChargebackRecovery(ctx context.Context, actor, op, id, k
 	})
 	return out, e
 }
-func (s *Service) Chargebacks(ctx context.Context, op string) ([]Chargeback, error) {
-	var out []Chargeback
-	e := s.DB.WithContext(ctx).Where("operator_id=?", op).Order("created_at DESC,id").Limit(200).Find(&out).Error
-	return out, e
-}

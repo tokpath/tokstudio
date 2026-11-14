@@ -79,6 +79,9 @@ type Authorizer interface {
 type ReceiptSink interface {
 	RecordVerifiedReceipt(context.Context, *gorm.DB, Merchant, Order, Fact, MoneyValue) (string, error)
 }
+type CheckoutAcceptance interface {
+	RequireOpenCheckout(context.Context, *gorm.DB, Order) error
+}
 type ReceiptFeeSink interface {
 	ConfirmVerifiedReceiptFee(context.Context, *gorm.DB, string, Fact) error
 }
@@ -316,6 +319,14 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	fresh := false
 	var saved intentRow
 	e = s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if domain, ok := s.Sink.(CheckoutAcceptance); ok {
+			if e := LockOrderPayment(tx, o.ID); e != nil {
+				return e
+			}
+			if e := domain.RequireOpenCheckout(ctx, tx, o); e != nil {
+				return e
+			}
+		}
 		if e := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", merchant+":"+o.ID).Error; e != nil {
 			return e
 		}

@@ -213,6 +213,16 @@ func (s *Service) AllocateReceipt(ctx context.Context, tx *gorm.DB, in AllocateR
 		if _, err := s.org.LockOwnership(ctx, tx, observed.CustomerID, in.OperatorID, observed.OwnershipVersion); err != nil {
 			return err
 		}
+		if err := s.org.LockCustomerResponsibility(ctx, tx, observed.CustomerID); err != nil {
+			return err
+		}
+		customer, err := s.org.GetCustomer(ctx, tx, observed.CustomerID)
+		if err != nil {
+			return err
+		}
+		if customer.Status == "closed" {
+			return ErrOrderState
+		}
 		if err := s.lockBusinessScope(ctx, tx, in.OperatorID); err != nil {
 			return err
 		}

@@ -3986,5 +3986,8 @@
     "name": "test",
     "path": "/v1/operators/{operatorId}/mail/test",
     "permission": "branding.manage"
-  }
+  },
+  {"resource": "refunds", "name": "execute_api", "label": "发起原路退款", "method": "POST", "path": "/v1/operators/{operatorId}/refunds/{id}/execute_api", "fields": [{"name": "refund_cross_currency", "label": "原付款币种类型", "kind": "hidden", "required": false}, {"name": "money.amount", "label": "原币退款金额", "kind": "decimal", "required": true, "visible_when": {"field": "refund_cross_currency", "values": ["different"]}}, {"name": "settlement_evidence", "label": "原币退款金额的核实说明", "kind": "textarea", "required": true, "visible_when": {"field": "refund_cross_currency", "values": ["different"]}}], "permission": "payments.manage", "confirmation": "确认将批准的金额通过原收款通道退给原付款人。", "description": "", "include_version": false},
+  {"resource": "refunds", "name": "query_api", "label": "核实原路退款结果", "method": "POST", "path": "/v1/operators/{operatorId}/refunds/{id}/query_api", "fields": [], "permission": "refunds.manage", "confirmation": "", "description": "", "include_version": false},
+  {"resource": "requests", "name": "correct_charge", "label": "冲正扣费", "method": "POST", "path": "/v1/operators/{operatorId}/requests/{id}/correct_charge", "fields": [{"name": "amount_atg", "label": "应冲正的计价额度（ATG）", "kind": "decimal", "required": true}, {"name": "evidence", "label": "冲正原因及依据", "kind": "textarea", "required": true}], "permission": "refunds.manage", "confirmation": "确认冲正本次调用的错误计价。系统按原订单处理额度及对应的资格与佣金。", "description": "", "include_version": false}
 ]

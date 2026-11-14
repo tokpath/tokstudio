@@ -180,7 +180,7 @@ func (s *Service) CloseRefundExecution(ctx context.Context, actor, op, legID str
 			}
 			for _, f := range facts {
 				switch f.State {
-				case "failed", "cancelled":
+				case "failed", "cancelled", "canceled":
 				case "succeeded", "verified_pending_settlement":
 					if f.FactID == "" {
 						return ErrReview

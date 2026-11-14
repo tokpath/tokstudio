@@ -2,11 +2,15 @@ package portal
 
 import (
 	"context"
+	"errors"
+	"time"
+
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"github.com/tokpath/tokstudio/backend/internal/remediation"
-	"time"
+	"gorm.io/gorm"
 )
 
 func (a *Application) customerRefundDestinations(c *gin.Context) {
@@ -16,7 +20,29 @@ func (a *Application) customerRefundDestinations(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	c.JSON(200, gin.H{"items": rows})
+	items := make([]gin.H, 0, len(rows))
+	for _, row := range rows {
+		var proposal gin.H
+		if row.Proposal != nil {
+			proposal = gin.H{"asset": row.Proposal.Asset, "address": row.Proposal.Address}
+		}
+		item := gin.H{"leg_id": row.LegID, "amount_money": row.AmountMoney, "destination_required": row.DestinationRequired, "destination_mutable": row.DestinationMutable, "authorization_id": row.AuthorizationID}
+		if proposal != nil {
+			item["proposal"] = proposal
+		}
+		if row.DestinationRequired && row.DestinationMutable && row.AuthorizationID == "" {
+			var currency string
+			e := a.DB.WithContext(c.Request.Context()).Table("remediation_refund_legs l").Select("r.currency").
+				Joins("JOIN commerce_receipts r ON r.id=l.receipt_id AND r.operator_id=l.source_operator_id").Where("l.id=?", row.LegID).Row().Scan(&currency)
+			if e != nil {
+				handleError(c, e)
+				return
+			}
+			item["currency"] = currency
+		}
+		items = append(items, item)
+	}
+	c.JSON(200, gin.H{"items": items})
 }
 func (a *Application) proposeRefundDestination(c *gin.Context) {
 	var in remediation.RefundDestinationProposalInput
@@ -55,22 +81,15 @@ func refundDestinationFields() []field {
 	return []field{defaultField("destination.network", "网络", "hidden", "bank"), f("destination.asset", "付款币种", "text"), f("destination.address", "收款信息", "text")}
 }
 func (a *Application) refundLegForStaff(ctx context.Context, op, id string) (remediation.RefundLeg, error) {
-	cases, e := a.Remediation.Cases(ctx, op, "")
-	if e != nil {
-		return remediation.RefundLeg{}, e
+	var leg remediation.RefundLeg
+	if _, e := uuid.Parse(id); e != nil {
+		return leg, remediation.ErrInvalid
 	}
-	for _, c := range cases {
-		legs, e := a.Remediation.Legs(ctx, nil, op, c.ID)
-		if e != nil {
-			return remediation.RefundLeg{}, e
-		}
-		for _, l := range legs {
-			if l.ID == id {
-				return l, nil
-			}
-		}
+	e := a.DB.WithContext(ctx).Where("operator_id=? AND id=?", op, id).Take(&leg).Error
+	if errors.Is(e, gorm.ErrRecordNotFound) {
+		e = remediation.ErrScope
 	}
-	return remediation.RefundLeg{}, remediation.ErrScope
+	return leg, e
 }
 func (a *Application) externalRefundAction(c *gin.Context, actor, operator, action string) bool {
 	switch action {

@@ -467,6 +467,21 @@ func TestExternalStripeReceiptCallbackTopup(t *testing.T) {
 	if out["customer_atg"].(map[string]any)["available"] != "119.983" {
 		t.Fatal("request not settled once", out)
 	}
+	requestID := requests[0].(map[string]any)["id"].(string)
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	path := "/v1/operators/" + f.a.Installation.OperatorID + "/requests/" + requestID + "/correct_charge"
+	correction := map[string]string{"amount_atg": "0.007", "evidence": "verified part of this call was overbilled"}
+	correctionKey := uuid.NewString()
+	for range 2 {
+		status, out, _ = f.call(t, "POST", path, correction, correctionKey)
+		mustOK(t, status, out)
+	}
+	f.login(t, "customer", "paying@example.test", "customer-password-test")
+	status, out, _ = f.call(t, "GET", "/v1/me/requests/"+requestID, nil, "")
+	mustOK(t, status, out)
+	if out["net_charged_atg"] != "0.01" {
+		t.Fatal("customer did not see the corrected charge", out["net_charged_atg"])
+	}
 }
 func (f *testApp) configureExternalCatalog(t *testing.T, lab string) string {
 	t.Helper()
@@ -623,6 +638,78 @@ func TestPostgresLifecycleKeepsStoppedAssetsAndRequiresExplicitATGWaiver(t *test
 	status, out, _ = f.call(t, "GET", "/v1/me/credits", nil, "")
 	if status != 401 {
 		t.Fatal("closed identity kept access", status, out)
+	}
+}
+
+func TestPostgresClosingRequiresOriginalOrderResolutionAndExactBalanceConsent(t *testing.T) {
+	f := setupPortal(t)
+	f.openRegistration(t)
+	const email = "close-balance@example.test"
+	f.registered(t, email)
+	f.login(t, "customer", email, "customer-password-test")
+	status, identity, _ := f.call(t, "GET", "/v1/auth/me", nil, "")
+	mustOK(t, status, identity)
+	customer := identity["customer"].(map[string]any)["id"].(string)
+	op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
+	if err := f.a.DB.Exec("UPDATE organization_operator_statuses SET new_purchase=true WHERE operator_id=?", op).Error; err != nil {
+		t.Fatal(err)
+	}
+	ctx := t.Context()
+	newOrder := func(amount string) commerce.Order {
+		t.Helper()
+		o, err := f.a.Commerce.CreateTopUpOrder(ctx, nil, commerce.CreateTopUpInput{OperatorID: op, CustomerID: customer, ExpectedOwnershipVersion: 1, BusinessKey: uuid.NewString(), AmountMoney: ledger.MustDecimal(amount)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return o
+	}
+	topup := newOrder("0.005")
+	paidAt := time.Now().UTC()
+	r, err := f.a.Commerce.RecordManualReceipt(ctx, nil, owner, commerce.VerifiedReceipt{OperatorID: op, ProviderReceiptID: uuid.NewString(), Currency: "USD", GrossMoney: topup.DueMoney, OriginalAmount: topup.DueMoney.String(), FeeStatus: "pending", ValuationEvidence: "test: confirmed USD", PaidAt: &paidAt})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.a.Commerce.AllocateReceipt(ctx, nil, commerce.AllocateReceiptInput{OperatorID: op, ActorStaffID: owner, BusinessKey: uuid.NewString(), OrderID: topup.ID, ReceiptID: r.ID, AmountMoney: topup.DueMoney}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.a.Commerce.Fulfill(ctx, nil, topup.ID, owner); err != nil {
+		t.Fatal(err)
+	}
+	pending := newOrder("10")
+	status, begun, _ := f.call(t, "POST", "/v1/me/account/lifecycle/begin-close", map[string]any{"version": 1}, "")
+	mustOK(t, status, begun)
+	complete := func(waived string) (int, map[string]any) {
+		t.Helper()
+		input := map[string]any{"version": begun["version"]}
+		if waived != "" {
+			input["waive_balance_money"] = waived
+		}
+		status, result, _ := f.call(t, "POST", "/v1/me/account/lifecycle/complete-close", input, "")
+		return status, result
+	}
+	if status, result := complete("0.005"); status != 409 {
+		t.Fatal("open order did not block closure with a waiver", status, result)
+	}
+	if _, err = f.a.Commerce.CloseOrder(ctx, nil, customer, pending.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "unpaid synthetic order"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, amount := range []string{"", "0.01"} {
+		if status, result := complete(amount); status != 409 {
+			t.Fatal("closure accepted without the exact consent amount", status, result)
+		}
+	}
+	status, out := complete("0.005")
+	mustOK(t, status, out)
+	if out["status"] != "closed" {
+		t.Fatal(out)
+	}
+	account, err := f.a.Ledger.FindAccount(ctx, nil, op, customer, "customer:money")
+	if err != nil || !account.Balance.IsZero() {
+		t.Fatal(account.Balance, err)
+	}
+	var journals int64
+	if err = f.a.DB.Table("ledger_journals").Where("source_id=? AND actor_id=? AND kind='balance_closure_waiver'", customer, customer).Count(&journals).Error; err != nil || journals != 1 {
+		t.Fatal(journals, err)
 	}
 }
 

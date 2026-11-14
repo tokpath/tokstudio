@@ -5021,6 +5021,15 @@
     "Butiran pembayar (pilihan)",
     "รายละเอียดผู้ชำระเงิน (ไม่บังคับ)"
   ],
+  "付款无效": [
+    "付款无效",
+    "Invalid payment",
+    "無効な支払い",
+    "Недействительный платёж",
+    "अमान्य भुगतान",
+    "Bayaran tidak sah",
+    "การชำระเงินไม่ถูกต้อง"
+  ],
   "付款无效，按来源纠正": [
     "付款无效，按来源纠正",
     "Invalid payment; correct by source",
@@ -8864,6 +8873,15 @@
     "Nyatakan input dan parameter yang diterima keupayaan ini serta input terbesar yang boleh diterimanya.",
     "ระบุข้อมูลเข้าและพารามิเตอร์ที่ความสามารถนี้รับได้ และข้อมูลเข้าขนาดใหญ่สุดที่รับได้"
   ],
+  "冲正原因及依据": [
+    "冲正原因及依据",
+    "Reason and evidence for the correction",
+    "訂正理由と根拠",
+    "Причина и подтверждение корректировки",
+    "सुधार का कारण और प्रमाण",
+    "Sebab dan bukti pembetulan",
+    "เหตุผลและหลักฐานการแก้ไข"
+  ],
   "冲正后净扣费": [
     "冲正后净扣费",
     "Net charge after reversals",
@@ -8872,6 +8890,15 @@
     "वापसी के बाद शुद्ध शुल्क",
     "Caj bersih selepas pembalikan",
     "ยอดเรียกเก็บสุทธิหลังรายการกลับบัญชี"
+  ],
+  "冲正扣费": [
+    "冲正扣费",
+    "Correct charge",
+    "請求を訂正",
+    "Скорректировать списание",
+    "शुल्क सुधारें",
+    "Betulkan caj",
+    "แก้ไขการเรียกเก็บ"
   ],
   "冻结": [
     "冻结",
@@ -9827,6 +9854,15 @@
     "Baki perolehan boleh dibayar balik mengikut kontrak dalam mata wang penyelesaian",
     "ยอดจัดซื้อคงเหลือที่คืนได้ตามสัญญาในสกุลเงินที่ใช้ชำระบัญชี"
   ],
+  "剩余支付余额": [
+    "剩余支付余额",
+    "Remaining payment balance",
+    "支払い残高",
+    "Остаток платёжного баланса",
+    "शेष भुगतान राशि",
+    "Baki bayaran",
+    "ยอดเงินชำระคงเหลือ"
+  ],
   "剩余款授权版本": [
     "剩余款授权版本",
     "Remaining payment authorization version",
@@ -9854,6 +9890,15 @@
     "Baki tanggungjawab dalam mata wang penyelesaian",
     "ภาระที่เหลือในสกุลเงินที่ใช้ชำระบัญชี"
   ],
+  "剩余购买 ATG 可等待到期或由本人明确放弃。": [
+    "剩余购买 ATG 可等待到期或由本人明确放弃。",
+    "Wait for the remaining purchased ATG to expire or explicitly waive it.",
+    "購入済みの残りの ATG は、有効期限まで待つか、本人が明示的に放棄できます。",
+    "Дождитесь истечения срока оставшихся купленных ATG или явно откажитесь от них.",
+    "खरीदे गए शेष ATG की समय-सीमा समाप्त होने दें या स्पष्ट रूप से उन्हें छोड़ें।",
+    "Tunggu ATG yang dibeli tamat tempoh atau sahkan pelepasannya.",
+    "รอให้ ATG ที่ซื้อไว้หมดอายุ หรือยืนยันการสละส่วนที่เหลือ"
+  ],
   "剩余购买库存原价比例": [
     "剩余购买库存原价比例",
     "Original-price ratio for remaining purchased inventory",
@@ -9862,6 +9907,15 @@
     "शेष खरीदे गए स्टॉक के लिए मूल मूल्य अनुपात",
     "Nisbah harga asal bagi baki inventori yang dibeli",
     "สัดส่วนราคาเดิมของสินค้าคงคลังที่ซื้อและเหลืออยู่"
+  ],
+  "剩余赠送 ATG 将在正式注销时失效。": [
+    "剩余赠送 ATG 将在正式注销时失效。",
+    "Remaining bonus ATG expires when the account is closed.",
+    "残りの付与 ATG はアカウント閉鎖時に失効します。",
+    "Оставшиеся бонусные ATG сгорают при закрытии аккаунта.",
+    "खाता बंद होने पर शेष बोनस ATG समाप्त हो जाएगा।",
+    "Baki ATG bonus luput apabila akaun ditutup.",
+    "ATG โบนัสที่เหลือจะหมดอายุเมื่อปิดบัญชี"
   ],
   "剩余赠送ATG将在正式注销的同一事务内失效，不要求放弃购买资产来清除纯赠送": [
     "剩余赠送ATG将在正式注销的同一事务内失效，不要求放弃购买资产来清除纯赠送",
@@ -10862,6 +10916,24 @@
     "Penerimaan sebenar dalam mata wang asal",
     "เงินรับจริงในสกุลเดิม"
   ],
+  "原币退款金额": [
+    "原币退款金额",
+    "Refund amount in original currency",
+    "元の通貨での返金額",
+    "Сумма возврата в исходной валюте",
+    "मूल मुद्रा में रिफ़ंड की राशि",
+    "Amaun bayaran balik dalam mata wang asal",
+    "ยอดคืนเงินในสกุลเดิม"
+  ],
+  "原币退款金额的核实说明": [
+    "原币退款金额的核实说明",
+    "Evidence for the original-currency refund amount",
+    "元の通貨での返金額の確認根拠",
+    "Подтверждение суммы возврата в исходной валюте",
+    "मूल मुद्रा में रिफ़ंड राशि का प्रमाण",
+    "Bukti amaun bayaran balik dalam mata wang asal",
+    "หลักฐานการตรวจสอบยอดคืนเงินในสกุลเดิม"
+  ],
   "原币金额": [
     "原币金额",
     "Original currency amount",
@@ -11122,6 +11194,15 @@
     "मूल मार्ग पर प्रतिबंध होने पर जिम्मेदार पक्ष का भुगतान स्पष्ट रूप से चुनें",
     "Pilih pembayaran oleh pihak bertanggungjawab secara jelas apabila laluan asal disekat",
     "เลือกให้ผู้รับผิดชอบจ่ายแทนอย่างชัดเจนเมื่อช่องทางเดิมมีข้อจำกัด"
+  ],
+  "原路退款结果待核实，请在原退款记录继续查询。": [
+    "原路退款结果待核实，请在原退款记录继续查询。",
+    "The original-route refund is awaiting verification. Continue checking from the original refund record.",
+    "元の決済経路での返金結果は確認待ちです。元の返金記録から引き続き照会してください。",
+    "Результат возврата исходным способом ожидает проверки. Продолжите проверку в исходной записи возврата.",
+    "मूल भुगतान माध्यम से वापसी के परिणाम का सत्यापन बाकी है। मूल वापसी रिकॉर्ड में जाँच जारी रखें।",
+    "Bayaran balik melalui saluran asal sedang menunggu pengesahan. Teruskan semakan pada rekod bayaran balik asal.",
+    "ผลการคืนเงินผ่านช่องทางเดิมรอการตรวจสอบ โปรดตรวจสอบต่อจากรายการคืนเงินเดิม"
   ],
   "原退出条款": [
     "原退出条款",
@@ -11689,6 +11770,15 @@
     "शुरू करने का आधार और प्रमाण संदर्भ",
     "Asas permulaan dan rujukan bukti",
     "หลักเกณฑ์การเริ่มและการอ้างอิงหลักฐาน"
+  ],
+  "发起原路退款": [
+    "发起原路退款",
+    "Refund to original payment method",
+    "元の支払い方法に返金",
+    "Вернуть на исходный способ оплаты",
+    "मूल भुगतान तरीके पर रिफ़ंड करें",
+    "Bayar balik melalui kaedah asal",
+    "คืนเงินผ่านช่องทางเดิม"
   ],
   "发起接管准备": [
     "发起接管准备",
@@ -19943,6 +20033,15 @@
     "Hasil disahkan tolak kos disahkan. Kos tertunda bermakna hasil ini belum muktamad.",
     "รายได้ที่ยืนยันแล้วหักต้นทุนที่ยืนยันแล้ว หากมีต้นทุนรอตรวจสอบ ผลลัพธ์นี้ยังไม่สิ้นสุด"
   ],
+  "已确认放弃的支付余额": [
+    "已确认放弃的支付余额",
+    "Confirmed payment balance to waive",
+    "放棄を確認した支払い残高",
+    "Подтверждённый остаток к списанию",
+    "छोड़ने के लिए पुष्टि की गई भुगतान शेष राशि",
+    "Baki bayaran yang disahkan untuk dilepaskan",
+    "ยอดเงินชำระที่ยืนยันการสละ"
+  ],
   "已确认未付": [
     "已确认未付",
     "Confirmed unpaid",
@@ -20654,6 +20753,15 @@
     "Jumlah perlu dibayar dalam mata wang pembayaran",
     "จำนวนที่ต้องชำระในสกุลเงินที่ชำระ"
   ],
+  "应冲正的计价额度（ATG）": [
+    "应冲正的计价额度（ATG）",
+    "Charge correction amount (ATG)",
+    "訂正する計上額（ATG）",
+    "Сумма корректировки (ATG)",
+    "शुल्क सुधार की राशि (ATG)",
+    "Amaun pembetulan caj (ATG)",
+    "จำนวนที่ต้องแก้ไข (ATG)"
+  ],
   "应有": [
     "应有",
     "Expected",
@@ -20789,14 +20897,14 @@
     "Masa mula",
     "เวลาเริ่ม"
   ],
-  "开始注销会停止调用、续费与未来分佣，保留历史权利和资金清算。只有全部未决请求、退款、提现、争议与余额真实结清后才能完成。": [
-    "开始注销会停止调用、续费与未来分佣，保留历史权利和资金清算。只有全部未决请求、退款、提现、争议与余额真实结清后才能完成。",
-    "Starting account closure stops requests, renewals and future commissions, while preserving historical rights and settlement. Closure completes only after all pending requests, refunds, withdrawals, disputes and balances are actually settled.",
-    "アカウント閉鎖を開始すると呼び出し・更新・将来のコミッションを停止し、過去の権利と資金精算を維持します。未決リクエスト、返金、出金、紛争、残高がすべて実際に解決してから完了できます。",
-    "Начало закрытия аккаунта останавливает запросы, продления и будущие комиссии, сохраняя исторические права и расчёты. Завершение возможно только после урегулирования всех запросов, возвратов, выводов, споров и балансов.",
-    "खाता बंद करना शुरू होने पर अनुरोध, नवीनीकरण और भविष्य के कमीशन रुक जाते हैं, जबकि ऐतिहासिक अधिकार और निपटान सुरक्षित रहते हैं। सभी लंबित अनुरोध, धनवापसी, निकासी, विवाद और शेष राशि वास्तव में निपटने के बाद ही खाता बंद होता है।",
-    "Memulakan penutupan akaun menghentikan permintaan, pembaharuan dan komisen masa depan, sambil mengekalkan hak sejarah dan penyelesaian. Penutupan hanya selesai selepas semua permintaan, bayaran balik, pengeluaran, pertikaian dan baki tertunda benar-benar diselesaikan.",
-    "การเริ่มปิดบัญชีจะหยุดคำขอ การต่ออายุ และค่าคอมมิชชันในอนาคต โดยเก็บสิทธิ์ในอดีตและการชำระบัญชีไว้ การปิดเสร็จได้ต่อเมื่อคำขอ การคืนเงิน การถอนเงิน ข้อพิพาท และยอดคงเหลือที่ค้างทั้งหมดชำระเสร็จจริง"
+  "开始注销会停止调用、续费与未来分佣。办结其他清算事项后，可结清支付余额，或明确放弃剩余支付余额并注销。": [
+    "开始注销会停止调用、续费与未来分佣。办结其他清算事项后，可结清支付余额，或明确放弃剩余支付余额并注销。",
+    "Starting account closure stops requests, renewals, and future commissions. After resolving all other obligations, you can settle the payment balance or explicitly waive the remaining balance and close the account.",
+    "アカウント閉鎖を開始すると、呼び出し、更新、今後の紹介報酬が停止します。他の清算事項が完了したら、支払い残高を精算するか、残高を明示的に放棄して閉鎖できます。",
+    "Начало закрытия аккаунта останавливает запросы, продления и начисление будущих комиссий. После урегулирования остальных обязательств вы можете получить платёжный остаток или явно отказаться от него и закрыть аккаунт.",
+    "खाता बंद करना शुरू करते ही अनुरोध, नवीनीकरण और भविष्य के कमीशन रुक जाते हैं। अन्य सभी निपटान पूरे होने के बाद भुगतान शेष का निपटान करें या उसे स्पष्ट रूप से छोड़कर खाता बंद करें।",
+    "Memulakan penutupan akaun menghentikan permintaan, pembaharuan dan komisen akan datang. Selepas menyelesaikan semua tanggungan lain, anda boleh menyelesaikan baki bayaran atau melepaskannya secara jelas dan menutup akaun.",
+    "การเริ่มปิดบัญชีจะหยุดคำขอ การต่ออายุ และค่าคอมมิชชันในอนาคต เมื่อจัดการภาระอื่นครบแล้ว คุณสามารถชำระยอดเงินคงเหลือ หรือยืนยันสละยอดนั้นแล้วปิดบัญชี"
   ],
   "开始注销清算": [
     "开始注销清算",
@@ -21085,6 +21193,15 @@
     "वर्तमान व्यावसायिक स्थिति या निधि शर्तें इस कार्रवाई की अनुमति नहीं देतीं। मूल रिकॉर्ड जाँचें।",
     "Status perniagaan atau syarat dana semasa tidak membenarkan operasi ini. Semak rekod asal.",
     "สถานะธุรกิจหรือเงื่อนไขเงินทุนปัจจุบันไม่อนุญาตการดำเนินการนี้ โปรดตรวจสอบระเบียนเดิม"
+  ],
+  "当前业务范围有未解除的限制。": [
+    "当前业务范围有未解除的限制。",
+    "This activity is currently restricted.",
+    "この操作は現在制限されています。",
+    "Это действие сейчас ограничено.",
+    "यह गतिविधि अभी प्रतिबंधित है।",
+    "Aktiviti ini sedang dihadkan.",
+    "กิจกรรมนี้ถูกจำกัดอยู่ในขณะนี้"
   ],
   "当前值": [
     "当前值",
@@ -21797,6 +21914,15 @@
     "Menunggu pembayaran",
     "รอชำระเงิน"
   ],
+  "待付款、待交付或待核实原收款的订单，须先在原订单中处理。": [
+    "待付款、待交付或待核实原收款的订单，须先在原订单中处理。",
+    "Resolve unpaid orders, pending delivery, and unverified payments on their original orders first.",
+    "支払い待ち、提供待ち、または入金確認待ちの注文は、先に元の注文で処理してください。",
+    "Сначала обработайте в исходных заказах неоплаченные заказы, ожидающие поставки или проверки платежи.",
+    "पहले मूल ऑर्डर पर लंबित भुगतान, वितरण और भुगतान सत्यापन पूरा करें।",
+    "Selesaikan pesanan yang belum dibayar, menunggu penghantaran atau semakan bayaran pada pesanan asal dahulu.",
+    "ดำเนินการคำสั่งซื้อที่รอชำระ รอส่งมอบ หรือรอตรวจสอบการชำระในคำสั่งซื้อเดิมก่อน"
+  ],
   "待付款占用": [
     "待付款占用",
     "Reserved for payment",
@@ -21895,6 +22021,15 @@
     "लंबित धनवापसी",
     "Bayaran balik tertunda",
     "การคืนเงินที่ค้างอยู่"
+  ],
+  "待复核": [
+    "待复核",
+    "Awaiting review",
+    "確認待ち",
+    "На проверке",
+    "समीक्षा लंबित",
+    "Menunggu semakan",
+    "รอการทบทวน"
   ],
   "待复核事项": [
     "待复核事项",
@@ -22697,6 +22832,15 @@
     "Status bukti kos",
     "สถานะหลักฐานต้นทุน"
   ],
+  "我同意永久放弃页面显示的全部剩余支付余额，并完成注销。该余额将无法取回。": [
+    "我同意永久放弃页面显示的全部剩余支付余额，并完成注销。该余额将无法取回。",
+    "I agree to permanently waive the entire remaining payment balance shown and close my account. I will not be able to recover this balance.",
+    "画面に表示された支払い残高の全額を放棄し、アカウントを閉鎖することに同意します。この残高は取り戻せません。",
+    "Я соглашаюсь безвозвратно отказаться от всего указанного остатка и закрыть аккаунт. Этот остаток вернуть нельзя.",
+    "मैं दिखाई गई पूरी शेष भुगतान राशि को स्थायी रूप से छोड़ने और अपना खाता बंद करने के लिए सहमत हूँ। यह राशि वापस नहीं मिलेगी।",
+    "Saya bersetuju melepaskan semua baki bayaran yang dipaparkan secara kekal dan menutup akaun. Baki ini tidak boleh dituntut semula.",
+    "ฉันยินยอมสละยอดเงินชำระคงเหลือทั้งหมดที่แสดงอย่างถาวรและปิดบัญชี ยอดนี้ไม่สามารถขอคืนได้"
+  ],
   "我已付款，核实原通道": [
     "我已付款，核实原通道",
     "I've paid — verify with original provider",
@@ -22831,6 +22975,24 @@
     "मेरी सूचनाएँ",
     "Pemberitahuan saya",
     "การแจ้งเตือนของฉัน"
+  ],
+  "我确认保存此活动为停用状态。": [
+    "我确认保存此活动为停用状态。",
+    "I confirm that this campaign will be saved as disabled.",
+    "このキャンペーンを無効として保存することを確認します。",
+    "Подтверждаю сохранение кампании в отключённом состоянии.",
+    "मैं पुष्टि करता/करती हूँ कि यह अभियान निष्क्रिय रूप में सहेजा जाएगा।",
+    "Saya mengesahkan bahawa kempen ini akan disimpan dalam keadaan dinyahaktifkan.",
+    "ฉันยืนยันที่จะบันทึกแคมเปญนี้ในสถานะปิดใช้งาน"
+  ],
+  "我确认所填账户已获原付款人授权接收本笔退款。": [
+    "我确认所填账户已获原付款人授权接收本笔退款。",
+    "I confirm that the original payer has authorized this account to receive the refund.",
+    "元の支払者が、この口座で返金を受け取ることを承認済みであると確認します。",
+    "Подтверждаю, что исходный плательщик разрешил перечислить возврат на этот счёт.",
+    "मैं पुष्टि करता हूँ कि मूल भुगतानकर्ता ने इस खाते को रिफ़ंड प्राप्त करने की अनुमति दी है।",
+    "Saya mengesahkan pembayar asal telah membenarkan akaun ini menerima bayaran balik.",
+    "ฉันยืนยันว่าผู้ชำระเดิมอนุญาตให้บัญชีนี้รับเงินคืน"
   ],
   "我确认本次价格、购赠组成、有效期和服务约定。套餐无一般退款；续费条件变差须重新授权。": [
     "我确认本次价格、购赠组成、有效期和服务约定。套餐无一般退款；续费条件变差须重新授权。",
@@ -23182,6 +23344,15 @@
     "लॉगिन पृष्ठ खोलें",
     "Buka halaman log masuk",
     "เปิดหน้าเข้าสู่ระบบ"
+  ],
+  "打开详情，发起原路退款。": [
+    "打开详情，发起原路退款。",
+    "Open the details to start an original-route refund.",
+    "詳細を開いて元の決済経路での返金を開始します。",
+    "Откройте детали, чтобы начать возврат исходным способом.",
+    "मूल भुगतान माध्यम से वापसी शुरू करने के लिए विवरण खोलें।",
+    "Buka butiran untuk memulakan bayaran balik melalui saluran asal.",
+    "เปิดรายละเอียดเพื่อเริ่มคืนเงินผ่านช่องทางเดิม"
   ],
   "扣减了哪些额度": [
     "扣减了哪些额度",
@@ -25469,6 +25640,15 @@
     "Bayaran balik baki pembayaran",
     "การคืนยอดคงเหลือสำหรับชำระเงิน"
   ],
+  "支付余额须结清，或由本人明确放弃。已有资金占用须先处理。": [
+    "支付余额须结清，或由本人明确放弃。已有资金占用须先处理。",
+    "Settle the payment balance or explicitly waive it. Resolve any active holds first.",
+    "支払い残高を精算するか、本人が明示的に放棄してください。先に保留中の資金を処理してください。",
+    "Погасите платёжный остаток или явно откажитесь от него. Сначала обработайте все резервы.",
+    "भुगतान शेष का निपटान करें या स्पष्ट रूप से इसे छोड़ें। पहले सभी रोकी गई राशियों का निपटान करें।",
+    "Selesaikan baki bayaran atau nyatakan persetujuan untuk melepaskannya. Uruskan semua amaun yang ditahan dahulu.",
+    "ชำระยอดเงินคงเหลือให้เรียบร้อยหรือยืนยันการสละยอด จัดการยอดที่ถูกกันไว้ก่อน"
+  ],
   "支付宝": [
     "支付宝",
     "Alipay",
@@ -25846,6 +26026,15 @@
     "संग्रह विवरण",
     "Butiran penerimaan",
     "รายละเอียดการรับเงิน"
+  ],
+  "收款信息已提交，等待经营方核实。": [
+    "收款信息已提交，等待经营方核实。",
+    "Recipient details submitted and awaiting verification by the operator.",
+    "返金先情報を送信しました。運営者の確認をお待ちください。",
+    "Реквизиты отправлены и ожидают проверки оператором.",
+    "प्राप्तकर्ता की जानकारी भेज दी गई है और संचालक के सत्यापन की प्रतीक्षा है।",
+    "Butiran penerima telah dihantar dan menunggu semakan pengendali.",
+    "ส่งข้อมูลผู้รับแล้ว กำลังรอผู้ดำเนินการตรวจสอบ"
   ],
   "收款信息见本订单付款说明": [
     "收款信息见本订单付款说明",
@@ -26386,6 +26575,15 @@
     "बदलाव छोड़ें",
     "Buang perubahan",
     "ละทิ้งการเปลี่ยนแปลง"
+  ],
+  "放弃剩余余额并注销": [
+    "放弃剩余余额并注销",
+    "Waive remaining balance and close account",
+    "残高を放棄してアカウントを閉鎖",
+    "Отказаться от остатка и закрыть аккаунт",
+    "शेष राशि छोड़कर खाता बंद करें",
+    "Lepaskan baki dan tutup akaun",
+    "สละยอดคงเหลือและปิดบัญชี"
   ],
   "放弃并关闭": [
     "放弃并关闭",
@@ -30563,6 +30761,15 @@
     "Sahkan dana, liputan dan kelayakan pesanan asal sebelum mencuba semula. Syarat pembayaran tidak boleh dipintas.",
     "ตรวจสอบเงิน ความครอบคลุม และคุณสมบัติของคำสั่งซื้อเดิมก่อนลองอีกครั้ง ห้ามข้ามเงื่อนไขการชำระเงิน"
   ],
+  "核实原路退款结果": [
+    "核实原路退款结果",
+    "Check original refund status",
+    "元の支払い方法への返金状況を確認",
+    "Проверить статус возврата",
+    "मूल रिफ़ंड की स्थिति देखें",
+    "Semak status bayaran balik asal",
+    "ตรวจสอบสถานะการคืนเงินผ่านช่องทางเดิม"
+  ],
   "核实外部付款已失败或取消": [
     "核实外部付款已失败或取消",
     "Verify external payment failure or cancellation",
@@ -30670,6 +30877,15 @@
     "सत्यापन समय",
     "Masa pengesahan",
     "เวลาตรวจสอบ"
+  ],
+  "核实替代收款信息后继续办理退款。": [
+    "核实替代收款信息后继续办理退款。",
+    "Verify the alternate payment destination before continuing the refund.",
+    "変更後の受取先を確認してから返金を続けます。",
+    "Проверьте альтернативные реквизиты и продолжите возврат.",
+    "वापसी जारी रखने से पहले वैकल्पिक प्राप्ति खाते का सत्यापन करें।",
+    "Sahkan butiran penerima alternatif sebelum meneruskan bayaran balik.",
+    "ตรวจสอบข้อมูลบัญชีผู้รับเงินทางเลือกก่อนดำเนินการคืนเงินต่อ"
   ],
   "核实未分配款原付款人授权目的地": [
     "核实未分配款原付款人授权目的地",
@@ -32705,6 +32921,15 @@
     "Hadiah pendaftaran sah untuk bilangan hari penuh dari pendaftaran berjaya. Nilai lalai ialah 30 hari. Ganjaran pendaftaran yang belum digunakan tamat selepas itu.",
     "ของขวัญลงทะเบียนมีอายุเป็นจำนวนวันเต็มนับจากลงทะเบียนสำเร็จ ค่าเริ่มต้นคือ 30 วัน รางวัลลงทะเบียนที่ไม่ได้ใช้จะหมดอายุหลังจากนั้น"
   ],
+  "注销时放弃支付余额": [
+    "注销时放弃支付余额",
+    "Payment balance waived on account closure",
+    "アカウント閉鎖時の支払い残高放棄",
+    "Списание остатка при закрытии аккаунта",
+    "खाता बंद करने पर छोड़ी गई भुगतान शेष राशि",
+    "Baki bayaran dilepaskan semasa penutupan akaun",
+    "สละยอดเงินชำระเมื่อปิดบัญชี"
+  ],
   "注销清算中": [
     "注销清算中",
     "Account closure settlement",
@@ -34334,6 +34559,15 @@
     "Kekalkan pesanan ini",
     "คงคำสั่งซื้อนี้ไว้"
   ],
+  "留空会保留全部 ATG。填写表示本人明确放弃剩余 ATG。支付余额在注销清算中另行处理。": [
+    "留空会保留全部 ATG。填写表示本人明确放弃剩余 ATG。支付余额在注销清算中另行处理。",
+    "Leave this blank to keep all ATG. Filling it in explicitly waives your remaining ATG. Your payment balance is handled separately during account closure.",
+    "空欄にするとすべての ATG が保持されます。入力すると残りの ATG を明示的に放棄します。支払い残高は閉鎖時に別途処理されます。",
+    "Оставьте поле пустым, чтобы сохранить все ATG. Заполнение означает явный отказ от остатка ATG. Платёжный остаток обрабатывается отдельно при закрытии аккаунта.",
+    "सभी ATG रखने के लिए इसे खाली छोड़ें। इसे भरकर आप शेष ATG स्पष्ट रूप से छोड़ते हैं। भुगतान शेष का निपटान खाता बंद करते समय अलग से होगा।",
+    "Biarkan kosong untuk menyimpan semua ATG. Mengisinya bermakna anda melepaskan baki ATG secara jelas. Baki bayaran diuruskan secara berasingan semasa penutupan akaun.",
+    "เว้นว่างเพื่อเก็บ ATG ทั้งหมด การกรอกคือการยืนยันสละ ATG ที่เหลือ ยอดเงินชำระจะจัดการแยกต่างหากระหว่างปิดบัญชี"
+  ],
   "留空使用默认值。上传图片后，保存外观才会在网站生效。": [
     "留空使用默认值。上传图片后，保存外观才会在网站生效。",
     "Leave fields empty to use defaults. Uploaded images take effect after you save the appearance.",
@@ -34351,15 +34585,6 @@
     "सहेजा गुप्त मान रखने के लिए खाली छोड़ें",
     "Biarkan kosong untuk mengekalkan rahsia yang disimpan",
     "เว้นว่างเพื่อเก็บข้อมูลลับที่บันทึกไว้"
-  ],
-  "留空将保留全部ATG，余额未归零前不能完成注销。填写代表明确放弃剩余ATG；结算币种与佣金仍须真实结算，不会被删除。": [
-    "留空将保留全部ATG，余额未归零前不能完成注销。填写代表明确放弃剩余ATG；结算币种与佣金仍须真实结算，不会被删除。",
-    "Leave blank to retain all ATG; account closure cannot complete until balances reach zero. Filling this explicitly waives remaining ATG. settlement currency and commissions still require actual settlement and will not be deleted.",
-    "空欄では全 ATG を保持し、残高がゼロになるまで退会を完了できません。入力は残り ATG の明示放棄を意味します。決済通貨 と紹介報酬は実際の精算が必要で、削除されません。",
-    "Пустое поле сохраняет все ATG; закрытие невозможно до нулевых остатков. Заполнение означает явный отказ от оставшихся ATG. валюта расчётов и вознаграждения требуют фактического расчёта и не удаляются.",
-    "सभी ATG रखने के लिए खाली छोड़ें; शेष राशि शून्य होने तक खाता बंद नहीं हो सकता। इसे भरने पर आप शेष ATG स्पष्ट रूप से छोड़ते हैं। निपटान मुद्रा और कमीशन का वास्तविक निपटान अभी भी आवश्यक है और इन्हें हटाया नहीं जाएगा।",
-    "Biarkan kosong untuk mengekalkan semua ATG; penutupan akaun tidak dapat diselesaikan sehingga baki menjadi sifar. Mengisi medan ini bermaksud anda secara jelas melepaskan baki ATG. mata wang penyelesaian dan komisen masih memerlukan penyelesaian sebenar dan tidak akan dipadamkan.",
-    "เว้นว่างเพื่อเก็บ ATG ทั้งหมดไว้ บัญชีจะปิดไม่ได้จนกว่ายอดคงเหลือเป็นศูนย์ การกรอกหมายถึงสละ ATG ที่เหลืออย่างชัดเจน สกุลเงินที่ใช้ชำระบัญชีและค่าคอมมิชชันยังต้องชำระบัญชีจริงและจะไม่ถูกลบ"
   ],
   "留空表示不额外限制": [
     "留空表示不额外限制",
@@ -35261,6 +35486,15 @@
     "Sahkan terma baharu di atas",
     "ยืนยันเงื่อนไขใหม่ข้างต้น"
   ],
+  "确认冲正本次调用的错误计价。系统按原订单处理额度及对应的资格与佣金。": [
+    "确认冲正本次调用的错误计价。系统按原订单处理额度及对应的资格与佣金。",
+    "Confirm the charge correction. Credits, qualification and commissions will be adjusted against the original order.",
+    "請求の訂正を確認してください。元の注文に基づいて、クレジット、資格およびコミッションが調整されます。",
+    "Подтвердите корректировку списания. Кредиты, право на участие и комиссии будут пересчитаны по исходному заказу.",
+    "शुल्क सुधार की पुष्टि करें। क्रेडिट, पात्रता और कमीशन मूल ऑर्डर के आधार पर समायोजित होंगे।",
+    "Sahkan pembetulan caj. Kredit, kelayakan dan komisen diselaraskan mengikut pesanan asal.",
+    "ยืนยันการแก้ไขยอดเรียกเก็บ เครดิต คุณสมบัติ และค่าคอมมิชชันจะปรับตามคำสั่งซื้อเดิม"
+  ],
   "确认删除": [
     "确认删除",
     "Confirm deletion",
@@ -35431,6 +35665,15 @@
     "सभी ग्राहक अधिकार हस्तांतरण, योजनाओं की प्रतिलिपि और मूल चैनल बंद करने की पुष्टि करें। निधि सिस्टम के बाहर संभाली जाती है।",
     "Sahkan pemindahan semua hak pelanggan, salin pelan dan tutup saluran asal. Dana diurus di luar sistem.",
     "ยืนยันการโอนสิทธิของลูกค้าทั้งหมด คัดลอกแผน และปิดช่องทางเดิม เงินจัดการนอกระบบ"
+  ],
+  "确认将批准的金额通过原收款通道退给原付款人。": [
+    "确认将批准的金额通过原收款通道退给原付款人。",
+    "Confirm that the approved amount will be returned to the original payer through the original payment method.",
+    "承認済みの金額を、元の支払い方法で元の支払者に返金します。",
+    "Подтвердите возврат утверждённой суммы исходному плательщику через первоначальный способ оплаты.",
+    "पुष्टि करें कि स्वीकृत राशि मूल भुगतान के तरीके से मूल भुगतानकर्ता को वापस की जाएगी।",
+    "Sahkan amaun yang diluluskan akan dipulangkan kepada pembayar asal melalui kaedah asal.",
+    "ยืนยันว่าจะคืนยอดที่อนุมัติให้ผู้ชำระเดิมผ่านช่องทางการชำระเดิม"
   ],
   "确认已按应退金额完成付款，并填写本次手续费。提交后申请结束。没有手续费填 0。": [
     "确认已按应退金额完成付款，并填写本次手续费。提交后申请结束。没有手续费填 0。",
@@ -35782,6 +36025,15 @@
     "पुष्टि करें कि इस आवेदन का वास्तव में भुगतान नहीं हुआ। सबमिट करने पर भुगतान शेष राशि का आरक्षण मुक्त होगा और आवेदन समाप्त होगा।",
     "Sahkan permohonan ini sebenarnya belum dibayar. Penyerahan akan melepaskan baki pembayaran yang ditahan dan menamatkan permohonan.",
     "ยืนยันว่าคำขอนี้ไม่ได้ชำระเงินจริง การส่งจะปล่อยยอดคงเหลือสำหรับชำระเงินที่กันไว้และสิ้นสุดคำขอ"
+  ],
+  "确认退款收款信息": [
+    "确认退款收款信息",
+    "Confirm refund recipient details",
+    "返金先情報を確認",
+    "Подтвердить реквизиты возврата",
+    "रिफ़ंड प्राप्तकर्ता की जानकारी की पुष्टि करें",
+    "Sahkan butiran penerima bayaran balik",
+    "ยืนยันข้อมูลผู้รับเงินคืน"
   ],
   "确认通过这笔提现申请？通过后可以登记付款。": [
     "确认通过这笔提现申请？通过后可以登记付款。",
@@ -36925,6 +37177,15 @@
     "व्यावसायिक रिपोर्ट",
     "Laporan perniagaan",
     "รายงานธุรกิจ"
+  ],
+  "经营收款风险": [
+    "经营收款风险",
+    "Merchant collection risk",
+    "事業者の入金リスク",
+    "Риск получения средств продавцом",
+    "व्यापारी वसूली जोखिम",
+    "Risiko kutipan peniaga",
+    "ความเสี่ยงการรับเงินของผู้ค้า"
   ],
   "经营收款风险，保留客户权益": [
     "经营收款风险，保留客户权益",
@@ -44288,6 +44549,15 @@
     "Pelaksanaan bayaran balik disahkan gagal atau dibatalkan",
     "ตรวจสอบแล้วว่าการดำเนินการคืนเงินล้มเหลวหรือถูกยกเลิก"
   ],
+  "退款收款信息已核实。": [
+    "退款收款信息已核实。",
+    "Refund recipient details verified.",
+    "返金先情報を確認済みです。",
+    "Реквизиты возврата проверены.",
+    "रिफ़ंड पाने वाले की जानकारी सत्यापित है।",
+    "Butiran penerima bayaran balik telah disahkan.",
+    "ตรวจสอบข้อมูลผู้รับเงินคืนแล้ว"
+  ],
   "退款流水或收据号（可选）": [
     "退款流水或收据号（可选）",
     "Refund reference or receipt number (optional)",
@@ -44332,6 +44602,15 @@
     "धनवापसी दायित्व",
     "Tanggungjawab bayaran balik",
     "ภาระการคืนเงิน"
+  ],
+  "退款进度": [
+    "退款进度",
+    "Refund status",
+    "返金状況",
+    "Статус возврата",
+    "रिफ़ंड की स्थिति",
+    "Status bayaran balik",
+    "สถานะการคืนเงิน"
   ],
   "送入待对账失败": [
     "送入待对账失败",

@@ -7448,9 +7448,14 @@
                     "items": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "additionalProperties": true
+                        "$ref": "#/components/schemas/RefundDestination"
                       }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   },
                   "required": [
@@ -9154,6 +9159,10 @@
                   },
                   "waiver_evidence": {
                     "type": "string"
+                  },
+                  "waive_balance_money": {
+                    "$ref": "#/components/schemas/LedgerDecimal",
+                    "description": "Optional exact payment wallet balance explicitly relinquished by its owner on complete-close. All other obligations must be closed."
                   }
                 },
                 "required": [
@@ -30747,6 +30756,432 @@
         "x-required-permission": "branding.manage"
       }
     },
+    "/v1/operators/{operatorId}/refunds/{id}/execute_api": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_refunds_id_execute_api",
+        "summary": "发起原路退款",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_refunds_execute_api"
+              }
+            }
+          }
+        },
+        "description": " Required explicit review: 确认将批准的金额通过原收款通道退给原付款人。 Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
+      }
+    },
+    "/v1/operators/{operatorId}/refunds/{id}/query_api": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_refunds_id_query_api",
+        "summary": "核实原路退款结果",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_refunds_query_api"
+              }
+            }
+          }
+        },
+        "description": " Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
+      }
+    },
+    "/v1/operators/{operatorId}/requests/{id}/correct_charge": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_requests_id_correct_charge",
+        "summary": "冲正扣费",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_requests_correct_charge"
+              }
+            }
+          }
+        },
+        "description": " Required explicit review: 确认冲正本次调用的错误计价。系统按原订单处理额度及对应的资格与佣金。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
+      }
+    },
     "/v1/operators/{operatorId}/takeovers/{id}/refresh": {
       "post": {
         "operationId": "post__v1_operators_operatorId_takeovers_id_refresh",
@@ -34381,6 +34816,49 @@
           "order": {
             "type": "object",
             "properties": {
+              "refunds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "amount_money": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "paid_at": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "amount_money",
+                    "reason",
+                    "created_at"
+                  ],
+                  "additionalProperties": true
+                }
+              },
               "fee_quote": {
                 "anyOf": [
                   {
@@ -35238,9 +35716,140 @@
         ],
         "additionalProperties": true
       },
+      "RefundProgress": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string"
+          },
+          "amount_money": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "amount_money",
+          "reason",
+          "created_at"
+        ],
+        "additionalProperties": true
+      },
+      "RefundDestination": {
+        "type": "object",
+        "properties": {
+          "leg_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "amount_money": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+          },
+          "destination_required": {
+            "type": "boolean"
+          },
+          "destination_mutable": {
+            "type": "boolean"
+          },
+          "authorization_id": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "proposal": {
+            "type": "object",
+            "properties": {
+              "asset": {
+                "type": "string"
+              },
+              "address": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "asset",
+              "address"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "leg_id",
+          "amount_money",
+          "destination_required",
+          "destination_mutable"
+        ],
+        "additionalProperties": true
+      },
       "Order": {
         "type": "object",
         "properties": {
+          "refunds": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "type": "string"
+                },
+                "amount_money": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "paid_at": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "status",
+                "amount_money",
+                "reason",
+                "created_at"
+              ],
+              "additionalProperties": true
+            }
+          },
           "fee_quote": {
             "anyOf": [
               {
@@ -41174,6 +41783,9 @@
       "ResourcePage": {
         "type": "object",
         "properties": {
+          "activity_restricted": {
+            "type": "boolean"
+          },
           "payment_method_catalog": {
             "type": "array",
             "items": {
@@ -48925,6 +49537,125 @@
         "type": "object",
         "properties": {},
         "required": [],
+        "additionalProperties": false
+      },
+      "Operator_refunds_execute_api": {
+        "type": "object",
+        "properties": {
+          "refund_cross_currency": {
+            "type": "string",
+            "description": "原付款币种类型"
+          },
+          "money": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "$ref": "#/components/schemas/LedgerDecimal",
+                "description": "原币退款金额",
+                "x-visible-when": {
+                  "field": "refund_cross_currency",
+                  "values": [
+                    "different"
+                  ]
+                },
+                "x-required-when-visible": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "settlement_evidence": {
+            "type": "string",
+            "description": "原币退款金额的核实说明",
+            "x-required-when-currency-differs-from-settlement": true,
+            "x-visible-when": {
+              "field": "refund_cross_currency",
+              "values": [
+                "different"
+              ]
+            },
+            "x-required-when-visible": true
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "refund_cross_currency": {
+                  "enum": [
+                    "different"
+                  ]
+                }
+              },
+              "required": [
+                "refund_cross_currency"
+              ]
+            },
+            "then": {
+              "properties": {
+                "money": {
+                  "type": "object",
+                  "properties": {
+                    "amount": {}
+                  },
+                  "required": [
+                    "amount"
+                  ]
+                }
+              },
+              "required": [
+                "money"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "refund_cross_currency": {
+                  "enum": [
+                    "different"
+                  ]
+                }
+              },
+              "required": [
+                "refund_cross_currency"
+              ]
+            },
+            "then": {
+              "properties": {
+                "settlement_evidence": {}
+              },
+              "required": [
+                "settlement_evidence"
+              ]
+            }
+          }
+        ]
+      },
+      "Operator_refunds_query_api": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "Operator_requests_correct_charge": {
+        "type": "object",
+        "properties": {
+          "amount_atg": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "应冲正的计价额度（ATG）"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "冲正原因及依据"
+          }
+        },
+        "required": [
+          "amount_atg",
+          "evidence"
+        ],
         "additionalProperties": false
       },
       "ExecutionProof": {

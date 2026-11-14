@@ -41,6 +41,14 @@ func campaignStatus(v incentives.CampaignVersion, now time.Time) string {
 	return "active"
 }
 
+func kolCampaignStatus(v incentives.CampaignVersion, now time.Time, directRate ledger.Decimal, restricted bool) string {
+	status := campaignStatus(v, now)
+	if (status == "active" || status == "scheduled") && (restricted || v.ConcessionRate.Cmp(directRate) > 0) {
+		return "restricted"
+	}
+	return status
+}
+
 func activityOfferDescription(o incentives.ActivityOffer, locale string) string {
 	text := func(source, amount string) string {
 		return strings.ReplaceAll(httpx.LocalizedText(locale, source), "{amount}", amount)
@@ -83,6 +91,12 @@ func (a *Application) marketingResource(c *gin.Context, op organization.Operator
 		names[row.Campaign.ID] = row.Version.Name
 	}
 	items := []any{}
+	policy, err := a.Incentives.CurrentPolicy(c.Request.Context(), nil, op.ID)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+	now := time.Now()
 	for _, row := range rows {
 		v := values(row.Version)
 		v["kind"], v["owner_customer_id"] = row.Campaign.Kind, row.Campaign.OwnerCustomerID
@@ -97,7 +111,10 @@ func (a *Application) marketingResource(c *gin.Context, op organization.Operator
 			}
 		}
 		v["combined_campaign_names"] = strings.Join(combined, "、")
-		status := campaignStatus(row.Version, time.Now())
+		status := campaignStatus(row.Version, now)
+		if row.Campaign.Kind == "kol" {
+			status = kolCampaignStatus(row.Version, now, policy.DirectRate, false)
+		}
 		r := entity(row.Campaign.ID, status, row.Version.Version, v)
 		r["allowed_actions"] = []string{}
 		if row.Campaign.Kind == "merchant" {

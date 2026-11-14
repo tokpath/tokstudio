@@ -255,6 +255,14 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 		if e := payments.LockOrderPayment(tx, o.ID); e != nil {
 			return e
 		}
+		current, err := a.Commerce.GetOrder(ctx, tx, o.CustomerID, o.ID)
+		if err != nil {
+			return err
+		}
+		if current.Status != "pending" {
+			reuse = true
+			return nil
+		}
 		if e := tx.First(&cr, "order_id=? AND customer_id=?", o.ID, o.CustomerID).Error; e != nil {
 			return e
 		}
@@ -424,11 +432,18 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 // fail normally, and no unverified payment form is returned.
 func (a *Application) customerCheckoutDTO(ctx context.Context, o commerce.Order) (gin.H, error) {
 	checkoutErr := a.ensureCheckout(ctx, o)
-	dto, err := a.orderDTO(ctx, o)
+	current, err := a.Commerce.GetOrder(ctx, nil, o.CustomerID, o.ID)
+	if err != nil {
+		return nil, err
+	}
+	dto, err := a.orderDTO(ctx, current)
 	if err != nil {
 		return nil, err
 	}
 	if checkoutErr != nil {
+		if errors.Is(checkoutErr, commerce.ErrOrderState) {
+			return dto, nil
+		}
 		if !errors.Is(checkoutErr, payments.ErrCheckoutMismatch) && !errors.Is(checkoutErr, payments.ErrOutcomeUnknown) && !errors.Is(checkoutErr, payments.ErrProvider) && !errors.Is(checkoutErr, payments.ErrPaymentClosed) && !errors.Is(checkoutErr, payments.ErrQuoteUnavailable) {
 			return nil, checkoutErr
 		}
@@ -462,15 +477,28 @@ func (a *Application) orders(c *gin.Context) {
 	c.JSON(200, gin.H{"items": items, "next_cursor": next})
 }
 func (a *Application) order(c *gin.Context) {
-	o, e := a.Commerce.GetOrder(c.Request.Context(), nil, subject(c).Customer.Customer.ID, c.Param("id"))
+	ctx, identity := c.Request.Context(), subject(c)
+	o, e := a.Commerce.GetOrder(ctx, nil, identity.Customer.Customer.ID, c.Param("id"))
 	if e != nil {
 		handleError(c, e)
 		return
 	}
-	dto, e := a.orderDTO(c.Request.Context(), o)
+	dto, e := a.orderDTO(ctx, o)
 	if e != nil {
 		handleError(c, e)
 		return
+	}
+	refunds, e := a.Remediation.CustomerCasesForOrder(ctx, o.CustomerID, identity.Customer.Customer.BrandID, o.ID)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	if len(refunds) > 0 {
+		items := make([]gin.H, 0, len(refunds))
+		for _, record := range refunds {
+			items = append(items, customerRefundRecord(record))
+		}
+		dto["refunds"] = items
 	}
 	c.JSON(200, dto)
 }
@@ -1177,6 +1205,31 @@ func (a *Application) renewal(c *gin.Context) {
 type portalReceiptSink struct {
 	Application *Application
 	payments.CommerceSink
+}
+
+func (s portalReceiptSink) RequireOpenCheckout(ctx context.Context, tx *gorm.DB, o payments.Order) error {
+	var checkout struct {
+		OperatorID, Status string
+		MerchantID         *string
+	}
+	q := tx.WithContext(ctx).Table("commerce_orders o").Select("o.operator_id,o.status,c.merchant_id").
+		Joins("LEFT JOIN portal_order_checkout c ON c.order_id=o.id").
+		Where("o.id=?", o.ID).Limit(1).Find(&checkout)
+	if q.Error != nil {
+		return q.Error
+	}
+	// Procurement has its own order and accepted checkout.
+	if q.RowsAffected == 0 {
+		return nil
+	}
+	if checkout.OperatorID != o.OperatorID || checkout.Status != "pending" || checkout.MerchantID == nil || *checkout.MerchantID != o.MerchantID {
+		return commerce.ErrOrderState
+	}
+	received, err := payments.HasOrderReceipt(ctx, tx, o.OperatorID, o.ID)
+	if received {
+		return commerce.ErrOrderState
+	}
+	return err
 }
 
 func (s portalReceiptSink) LockReceiptAcceptance(ctx context.Context, tx *gorm.DB, operator, orderID string) error {

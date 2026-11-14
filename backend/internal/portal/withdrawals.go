@@ -94,8 +94,8 @@ func (a *Application) customerWithdrawalWorkspace(c *gin.Context, p gin.H, opera
 	items := []any{}
 	for _, w := range rows {
 		v := values(w)
-		if w.PayoutCurrency != "" {
-			v["payout_display"] = w.PayoutAmount.String() + " " + w.PayoutCurrency
+		if w.PaidCurrency != "" {
+			v["payout_display"] = w.PaidOriginalAmount.String() + " " + w.PaidCurrency
 		}
 		row := entity(w.ID, w.Status, 1, v)
 		row["allowed_actions"] = []string{}
@@ -168,14 +168,14 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 		return
 	}
 	items := []any{}
-	hasQuoted := false
+	hasActualPayout := false
 	for _, w := range rows {
-		if w.PayoutCurrency != "" {
-			hasQuoted = true
+		if w.PaidCurrency != "" {
+			hasActualPayout = true
 		}
 		v := values(w)
-		if w.PayoutCurrency != "" {
-			v["payout_display"] = w.PayoutAmount.String() + " " + w.PayoutCurrency
+		if w.PaidCurrency != "" {
+			v["payout_display"] = w.PaidOriginalAmount.String() + " " + w.PaidCurrency
 		}
 		row := entity(w.ID, w.Status, 1, v)
 		actions := withdrawalAllowedActions(w.Status)
@@ -192,7 +192,7 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 	p["items"] = items
 	p["next_cursor"] = next
 	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("method_name", "提现方式", "text"), col("amount_money", "总额", "money"), col("fee_money", "手续费", "money"), col("net_money", "实付", "money"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
-	if hasQuoted {
+	if hasActualPayout {
 		p["columns"] = append(p["columns"].([]gin.H), col("payout_display", "实际到账", "text"))
 	}
 	if wallet != "balance" {

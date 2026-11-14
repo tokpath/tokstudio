@@ -89,6 +89,18 @@ func (s *Service) CustomerCases(ctx context.Context, customer, brand string) ([]
 	e = s.DB.WithContext(ctx).Where("customer_id=?", customer).Order("created_at DESC,id").Limit(200).Find(&out).Error
 	return out, e
 }
+
+func (s *Service) CustomerCasesForOrder(ctx context.Context, customer, brand, order string) ([]Case, error) {
+	if !validID(customer) || !validID(brand) || !validID(order) {
+		return nil, ErrInvalid
+	}
+	var rows []Case
+	e := s.DB.WithContext(ctx).Table("remediation_cases c").Select("c.*").
+		Joins("JOIN commerce_orders o ON o.id=c.order_id AND o.customer_id=c.customer_id").
+		Where("c.customer_id=? AND o.brand_id=? AND c.order_id=?", customer, brand, order).
+		Order("c.created_at DESC,c.id DESC").Find(&rows).Error
+	return rows, e
+}
 func (s *Service) CustomerCancelRefundByBrand(ctx context.Context, customer, brand, id string) (Case, error) {
 	c, e := s.Organization.GetCustomer(ctx, nil, customer)
 	if e != nil {

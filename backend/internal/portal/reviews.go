@@ -1,12 +1,46 @@
 package portal
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/tokpath/tokstudio/backend/internal/organization"
-	"gorm.io/gorm"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/organization"
+	"github.com/tokpath/tokstudio/backend/internal/usage"
+	"gorm.io/gorm"
 )
+
+func chargeCorrectionOperation(operator string) operation {
+	return operation{Name: "correct_charge", Label: "冲正扣费", Method: "POST", Path: "/api/v1/operators/" + operator + "/requests/{id}/correct_charge", Permission: "refunds.manage",
+		Fields:       []field{f("amount_atg", "应冲正的计价额度（ATG）", "decimal"), f("evidence", "冲正原因及依据", "textarea")},
+		Confirmation: "确认冲正本次调用的错误计价。系统按原订单处理额度及对应的资格与佣金。"}
+}
+
+func (a *Application) correctCustomerCharge(c *gin.Context, op organization.Operator, actor string) {
+	if !validContextID(c) {
+		return
+	}
+	var in struct {
+		Amount   ledger.Decimal `json:"amount_atg"`
+		Evidence string         `json:"evidence"`
+	}
+	if !body(c, &in) {
+		return
+	}
+	in.Evidence = strings.TrimSpace(in.Evidence)
+	if in.Evidence == "" || in.Amount.Sign() <= 0 {
+		handleError(c, organization.ErrInvalidInput)
+		return
+	}
+	k, _ := key(c)
+	result, e := a.Usage.CorrectCustomerCharge(c.Request.Context(), nil, usage.ChargeCorrectionInput{OperatorID: op.ID, RequestID: c.Param("id"), BusinessKey: k, ActorID: actor, Evidence: in.Evidence, AmountATG: in.Amount}, a.Incentives)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	c.JSON(200, commandResult(result.ID, "recorded"))
+}
 
 func (a *Application) staffMembershipAction(c *gin.Context, op organization.Operator, actor string) {
 	var in struct {
@@ -65,8 +99,17 @@ func (a *Application) platformRequestsResource(c *gin.Context, op organization.O
 		return
 	}
 	items := []any{}
+	canCorrect := a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, "refunds.manage") == nil
 	for _, r := range rows {
-		items = append(items, entity(r.ID, r.Status, 0, r))
+		row := entity(r.ID, r.Status, 0, r)
+		row["allowed_actions"] = []string{}
+		if canCorrect && r.Status == "completed" && r.ActualATG.Cmp(r.CorrectedATG) > 0 {
+			row["allowed_actions"] = []string{"correct_charge"}
+		}
+		items = append(items, row)
+	}
+	if canCorrect {
+		p["row_operations"] = []operation{chargeCorrectionOperation(op.ID)}
 	}
 	p["title"] = "请求与成本证据"
 	p["description"] = "当前平台经营范围最近24小时的前100条业务事实；查看更长范围请使用受权导出。预估占用是调用前锁定的应收上限，实际用量计价是按真实用量和受理时销售价算出的应收。对照这两列可判断预估偏高或偏低。无正文、明文Key或供应商凭据。未知供应成本单列。"
@@ -79,6 +122,7 @@ func (a *Application) platformRequestsResource(c *gin.Context, op organization.O
 		{"key": "estimate_atg", "label": "预估占用", "kind": "atg", "help": "调用前锁定的应收上限。高于实际用量计价说明占用偏保守，低于实际用量计价说明预估没有盖住真实应收。"},
 		{"key": "actual_atg", "label": "实际用量计价", "kind": "atg", "help": "按真实用量和受理时的销售价计算的应收。客户余额足够时与实扣相同。"},
 		col("charged_atg", "实扣ATG", "atg"),
+		col("net_charged_atg", "冲正后净扣费", "atg"),
 		col("supplier_reference_costs", "参考成本（原币）", "text"),
 		col("supplier_reported_costs", "供应商报告成本（原币）", "text"),
 		col("unverified_attempts", "成本证据状态", "status"),

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -16,6 +17,7 @@ type CustomerLifecycleInput struct {
 	CustomerID, OperatorID, ActorID, Evidence, WaiverEvidence string
 	ExpectedVersion                                           int64
 	EffectiveAt                                               time.Time
+	WaiveBalance                                              *ledger.Decimal
 }
 
 // CustomerLifecycleHandler joins real Key/subscription/ledger/incentive state

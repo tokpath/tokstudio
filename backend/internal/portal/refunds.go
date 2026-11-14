@@ -2,12 +2,15 @@ package portal
 
 import (
 	"encoding/json"
+	"errors"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"github.com/tokpath/tokstudio/backend/internal/remediation"
+	"gorm.io/gorm"
 )
 
 func (a *Application) refunds(c *gin.Context) {
@@ -19,9 +22,13 @@ func (a *Application) refunds(c *gin.Context) {
 	}
 	items := []any{}
 	for _, r := range rows {
-		items = append(items, gin.H{"id": r.ID, "status": r.State, "amount_money": r.AmountMoney, "reason": r.Reason, "created_at": r.CreatedAt, "paid_at": r.CompletedAt})
+		items = append(items, customerRefundRecord(r))
 	}
 	c.JSON(200, gin.H{"items": items})
+}
+
+func customerRefundRecord(r remediation.Case) gin.H {
+	return gin.H{"id": r.ID, "status": r.State, "amount_money": r.AmountMoney, "reason": r.Reason, "created_at": r.CreatedAt, "paid_at": r.CompletedAt}
 }
 func (a *Application) requestRefund(c *gin.Context) {
 	fail(c, 409, "use_balance_withdrawal", "支付余额请通过余额提现申请办理，不再按原充值逐笔退回。", false)
@@ -44,7 +51,7 @@ func refundStaffActions(actions []string, destinationRequired bool) []string {
 			if !destinationRequired {
 				name = "verify_manual"
 			}
-		case "execute_api", "query_api", "unknown":
+		case "unknown":
 			continue
 		}
 		if seen[name] {
@@ -56,6 +63,8 @@ func refundStaffActions(actions []string, destinationRequired bool) []string {
 	return out
 }
 func (a *Application) refundStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
+	ctx := c.Request.Context()
+	canSend := a.Organization.RequirePermission(ctx, nil, actor, op.ID, "payments.manage") == nil
 	p["search_supported"], p["status_supported"] = true, true
 	var rows []remediation.Case
 	var e error
@@ -102,14 +111,13 @@ func (a *Application) refundStaffResource(c *gin.Context, op organization.Operat
 			row := entity(leg.ID, leg.State, 1, v)
 			allowed := []string{}
 
-			if (r.State == "approved" || r.State == "paying") && (leg.State == "reserved" || leg.State == "approved") {
+			ready := (r.State == "approved" || r.State == "paying") && leg.State == "approved"
+			executing := leg.State == "executing" || leg.State == "unknown" || leg.State == "exception"
+			if ready {
 				allowed = []string{"begin_manual"}
-				if leg.SourceOperatorID == op.ID {
-					allowed = append(allowed, "execute_api")
-				}
 			}
-			if leg.State == "executing" || leg.State == "unknown" {
-				allowed = []string{"unknown", "verify_manual", "query_api"}
+			if executing && leg.ExecutionMode == "manual" && leg.State != "exception" {
+				allowed = []string{"verify_manual"}
 			}
 
 			status, err := a.Remediation.RefundDestinationStatusForStaff(c.Request.Context(), actor, op.ID, leg.ID)
@@ -141,18 +149,48 @@ func (a *Application) refundStaffResource(c *gin.Context, op organization.Operat
 						allowed = []string{"authorize_unallocated_destination"}
 					}
 
-				} else if leg.State == "executing" || leg.State == "unknown" || leg.State == "exception" {
-					allowed = []string{"unknown"}
-				} else {
-					allowed = []string{"begin_manual"}
-				}
-				if status.ResponsibleExecution && status.AuthorizationID != "" && (leg.State == "executing" || leg.State == "unknown") {
-					allowed = []string{"unknown", "verify_responsible_bank"}
+				} else if status.ResponsibleExecution {
+					switch leg.State {
+					case "approved":
+						allowed = []string{"begin_manual"}
+					case "executing", "unknown":
+						allowed = []string{"verify_responsible_bank"}
+					}
 				}
 			}
 
 			if leg.State == "completed" || leg.State == "cancelled" || leg.State == "exception" {
 				allowed = []string{}
+			}
+			if !status.DestinationRequired && leg.SourceOperatorID == op.ID && (ready || (executing && leg.ExecutionMode == "provider")) {
+				source, sourceErr := a.Payments.PaymentSourceForReceipt(ctx, op.ID, leg.ReceiptID)
+				if sourceErr != nil && !errors.Is(sourceErr, gorm.ErrRecordNotFound) {
+					handleError(c, sourceErr)
+					return
+				}
+				if sourceErr == nil && payments.SupportsOriginalRefund(source.Driver) {
+					allowed = []string{}
+					v["original_refund_currency"] = source.Fact.Money.Currency
+					v["refund_cross_currency"] = "same"
+					if source.Fact.Money.Currency != source.OriginalOrder.Settlement().Currency {
+						v["refund_cross_currency"] = "different"
+					}
+					if ready && canSend {
+						allowed = []string{"execute_api"}
+					}
+					if executing && leg.ExecutionMode == "provider" {
+						allowed = []string{"query_api"}
+						executions, err := a.Payments.RefundExecutions(ctx, op.ID, source.MerchantID, leg.ID)
+						if err != nil {
+							handleError(c, err)
+							return
+						}
+						row["status"] = "pending_verification"
+						if len(executions) > 0 && contains([]string{"failed", "cancelled", "canceled"}, executions[len(executions)-1].State) {
+							row["status"] = "exception"
+						}
+					}
+				}
 			}
 			row["allowed_actions"] = refundStaffActions(allowed, status.DestinationRequired)
 			row["values"] = v
@@ -187,6 +225,16 @@ func (a *Application) refundStaffResource(c *gin.Context, op organization.Operat
 	authorizationFields := []field{f("proposal_id", "本人最新确认", "hidden"), f("payer_authorization_reference", "原付款人明确授权证据", "textarea"), f("verification_evidence", "地址及原付款人核实依据", "textarea"), defaultField("responsible_execution", "已明确选择责任方付款", "hidden", false), optional("route_exception_reference", "同经营方原路受限的替代依据（跨经营方接管可留空）", "textarea")}
 	p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "authorize_destination", Label: "核实客户已确认的退款目的地", Method: "POST", Path: base + "/{id}/authorize_destination", Fields: authorizationFields, Confirmation: "已核实当前行本人最新提案、原付款人授权和接收地址；锁定后不可改为其它地址。"}, operation{Name: "authorize_unallocated_destination", Label: "核实未分配款原付款人授权目的地", Method: "POST", Path: base + "/{id}/authorize_unallocated_destination", Fields: append(refundDestinationFields(), authorizationFields[1:]...), Confirmation: "已核实原付款人明确授权，未从原交易sender推定退款地址。"})
 	p["row_operations"] = append(p["row_operations"].([]operation), responsibleRefundOperations(base)...)
+	mode := f("refund_cross_currency", "原付款币种类型", "hidden")
+	originalAmount := f("money.amount", "原币退款金额", "decimal")
+	originalAmount.VisibleWhen = &fieldVisibility{Field: mode.Name, Values: []string{"different"}}
+	originalEvidence := f("settlement_evidence", "原币退款金额的核实说明", "textarea")
+	originalEvidence.VisibleWhen = originalAmount.VisibleWhen
+	p["row_operations"] = append(p["row_operations"].([]operation),
+		operation{Name: "execute_api", Label: "发起原路退款", Method: "POST", Path: base + "/{id}/execute_api", Permission: "payments.manage", Fields: []field{mode, originalAmount, originalEvidence}, Confirmation: "确认将批准的金额通过原收款通道退给原付款人。"},
+		operation{Name: "query_api", Label: "核实原路退款结果", Method: "POST", Path: base + "/{id}/query_api", Fields: []field{}},
+	)
+	p["columns"] = append(p["columns"].([]gin.H), col("original_refund_currency", "原付款币种", "text"))
 	p["columns"] = append(p["columns"].([]gin.H), col("actual_payment_money", "本次实际支付结算币种", "money"), col("fee_status", "手续费核实状态", "status"), col("fee_money", "已核实手续费（待核实为空）", "money"))
 	p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "confirm_fee", Label: "登记退款手续费", Method: "POST", Path: base + "/{id}/confirm_fee", Fields: []field{f("leg_id", "原退款明细", "hidden"), f("fee_money", "已核实退款手续费（结算币种，没有则填 0）", "decimal"), optional("reference", "费用流水或收据号（可选）", "text"), f("occurred_at", "费用发生时间", "datetime"), optional("evidence", "费用说明（可选）", "textarea")}, Confirmation: "只登记经营方承担的退款费用，不改变客户应退金额。"})
 	a.resourceResponse(c, p)
@@ -277,25 +325,15 @@ func (a *Application) refundStaffAction(c *gin.Context, op organization.Operator
 
 		_, e = a.Remediation.RecordManualRefund(ctx, actor, op.ID, c.Param("id"), in)
 	case "execute_api", "query_api":
-		var leg remediation.RefundLeg
-		cases, err := a.Remediation.Cases(ctx, op.ID, "")
+		if !validContextID(c) {
+			return
+		}
+		leg, err := a.refundLegForStaff(ctx, op.ID, c.Param("id"))
 		if err != nil {
 			handleError(c, err)
 			return
 		}
-		for _, r := range cases {
-			legs, err := a.Remediation.Legs(ctx, nil, op.ID, r.ID)
-			if err != nil {
-				handleError(c, err)
-				return
-			}
-			for _, candidate := range legs {
-				if candidate.ID == c.Param("id") {
-					leg = candidate
-				}
-			}
-		}
-		if leg.ID == "" {
+		if leg.SourceOperatorID != op.ID {
 			handleError(c, remediation.ErrScope)
 			return
 		}
@@ -304,34 +342,71 @@ func (a *Application) refundStaffAction(c *gin.Context, op organization.Operator
 			handleError(c, err)
 			return
 		}
+		var result payments.RefundStatus
 		if action == "query_api" {
 			var empty struct{}
 			if !body(c, &empty) {
 				return
 			}
-			_, e = a.Payments.QueryRefund(ctx, op.ID, source.MerchantID, leg.ID)
+			result, e = a.Payments.QueryRefund(ctx, op.ID, source.MerchantID, leg.ID)
 		} else {
 			raw, ok := decodeConfiguration(c)
 			if !ok {
 				return
 			}
-			var in payments.Refund
-			if json.Unmarshal(raw, &in) != nil {
+			var input struct {
+				Money    payments.Money `json:"money"`
+				Evidence string         `json:"settlement_evidence"`
+			}
+			if json.Unmarshal(raw, &input) != nil {
 				handleError(c, payments.ErrInvalid)
 				return
 			}
-			in.RefundValuation, e = a.refundSettlementConfirmation(ctx, "retail-api:"+op.ID+":"+leg.ID, in.SettlementAmount, in.SettlementEvidence)
-			if e != nil {
-				handleError(c, e)
+			in := payments.Refund{ID: leg.ID, Order: source.OriginalOrder, MoneyAmount: leg.AmountMoney, Money: input.Money}
+			if in.Money.Currency != "" && in.Money.Currency != source.Fact.Money.Currency {
+				handleError(c, payments.ErrInvalid)
 				return
 			}
-			in.ID = leg.ID
-			in.Order = source.OriginalOrder
-			in.MoneyAmount = leg.AmountMoney
-			if in.Money.Currency == in.Order.Settlement().Currency && in.Money.Amount.IsZero() {
+			in.Money.Currency = source.Fact.Money.Currency
+			if in.Money.Currency == in.Order.Settlement().Currency {
+				if !in.Money.Amount.IsZero() && in.Money.Amount.Cmp(leg.AmountMoney) != 0 {
+					handleError(c, remediation.ErrRefundFullPayment)
+					return
+				}
 				in.Money.Amount = leg.AmountMoney
+			} else {
+				if in.Money.Amount.Sign() <= 0 || strings.TrimSpace(input.Evidence) == "" {
+					handleError(c, payments.ErrInvalid)
+					return
+				}
+				in.RefundValuation, e = a.refundSettlementConfirmation(ctx, "retail-api:"+op.ID+":"+leg.ID, leg.AmountMoney, strings.TrimSpace(input.Evidence))
+				if e != nil {
+					handleError(c, e)
+					return
+				}
 			}
-			_, e = a.Payments.SubmitRefund(ctx, actor, op.ID, source.MerchantID, in)
+			result, e = a.Payments.SubmitRefund(ctx, actor, op.ID, source.MerchantID, in)
+		}
+		if e == nil && result.ProviderID != "" && result.Fact == nil && contains([]string{"failed", "cancelled", "canceled"}, result.State) {
+			record, err := a.Remediation.GetCase(ctx, nil, op.ID, leg.CaseID)
+			if err != nil {
+				handleError(c, err)
+				return
+			}
+			if record.Kind == "package_exception" || record.Kind == "unallocated" {
+				// Require stored channel evidence before asking for an alternate destination.
+				_, e = a.Remediation.CloseRefundExecution(ctx, actor, op.ID, leg.ID, remediation.RefundExecutionClosureInput{
+					BusinessKey:               "original-refund-failed:" + leg.ID,
+					ExpectedExecutionKey:      leg.ID,
+					Reason:                    "failed",
+					NoFurtherPaymentReference: source.Driver + ":" + result.ProviderID,
+					Evidence:                  "Original payment provider confirmed a terminal refund failure",
+				})
+			}
+		}
+		if errors.Is(e, payments.ErrOutcomeUnknown) || (e == nil && result.State != "succeeded" && result.State != "closed" && !contains([]string{"failed", "cancelled", "canceled"}, result.State)) {
+			c.JSON(200, gin.H{"id": leg.ID, "status": "pending_verification", "message": "原路退款结果待核实，请在原退款记录继续查询。"})
+			return
 		}
 	default:
 		fail(c, 404, "not_found", "退款命令不存在", false)

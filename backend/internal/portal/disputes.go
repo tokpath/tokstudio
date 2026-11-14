@@ -1,6 +1,8 @@
 package portal
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
@@ -8,15 +10,43 @@ import (
 )
 
 func (a *Application) disputesResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
-	rows, e := a.Remediation.Chargebacks(c.Request.Context(), op.ID)
+	q := a.DB.WithContext(c.Request.Context()).Where("operator_id=?", op.ID)
+	if record := c.Query("record"); record != "" {
+		q = q.Where("id::text=?", record)
+	}
+	if term := strings.TrimSpace(c.Query("q")); term != "" {
+		term = "%" + strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(term) + "%"
+		q = q.Where("(id::text ILIKE ? OR receipt_id::text ILIKE ? OR provider_case_id ILIKE ? OR reason ILIKE ?)", term, term, term, term)
+	}
+	if status := c.Query("status"); status != "" {
+		q = q.Where("state=?", status)
+	}
+	at, cursorID, e := organization.ParseAuditCursor(c.Query("cursor"))
 	if e != nil {
 		handleError(c, e)
 		return
 	}
+	if at != nil {
+		q = q.Where("(created_at,id)<(?,?::uuid)", *at, cursorID)
+	}
+	var rows []remediation.Chargeback
+	if e := q.Order("created_at DESC,id DESC").Limit(51).Find(&rows).Error; e != nil {
+		handleError(c, e)
+		return
+	}
+	p["search_supported"], p["status_supported"] = true, true
+	if len(rows) > 50 {
+		last := rows[49]
+		p["next_cursor"] = organization.NextAuditCursor([]organization.AuditEvent{{ID: last.ID, CreatedAt: last.CreatedAt}}, 1)
+		rows = rows[:50]
+	}
 	items := []any{}
 	for _, r := range rows {
 		row := entity(r.ID, r.State, 1, r)
-		actions := []string{"recover"}
+		actions := []string{}
+		if r.RecoveredMoney.Cmp(r.AmountMoney) < 0 {
+			actions = append(actions, "recover")
+		}
 		if r.State == "disputed" {
 			actions = append(actions, "restrict", "resolve")
 		}

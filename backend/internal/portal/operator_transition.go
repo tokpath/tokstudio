@@ -49,7 +49,7 @@ func channelCommandAllowed(state, path string) bool {
 		return false
 	case "procurement":
 		return state != "completed" && contains([]string{"cancel", "cancel_authorization", "query_payment"}, action)
-	case "customers", "customer-context", "orders", "order-context":
+	case "customers", "customer-context", "orders", "order-context", "requests":
 		return state != "completed"
 	case "payments":
 		// A stopped business may still verify a historical receipt or record its fee.

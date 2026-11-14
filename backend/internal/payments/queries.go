@@ -114,7 +114,7 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 			supported = false
 			reason = "系统清算设置尚未正式生效，暂不可付款。"
 		}
-		view := PublicMethod{ID: m.ID, Driver: m.Driver, Currency: currency, Configured: true, SettlementCurrency: settings.Currency, SettlementSupported: supported, UnsupportedReason: reason, RequiresSettlementConfirmation: m.Driver == "manual" && currency != settings.Currency && !fiatPayment, RefundAPI: m.Driver == "stripe" || m.Driver == "alipay" || m.Driver == "wechat", AutoCharge: m.Driver == "stripe"}
+		view := PublicMethod{ID: m.ID, Driver: m.Driver, Currency: currency, Configured: true, SettlementCurrency: settings.Currency, SettlementSupported: supported, UnsupportedReason: reason, RequiresSettlementConfirmation: m.Driver == "manual" && currency != settings.Currency && !fiatPayment, RefundAPI: SupportsOriginalRefund(m.Driver), AutoCharge: m.Driver == "stripe"}
 		if m.Driver == "manual" {
 			view.Instructions = m.Credentials["instructions"]
 		}

@@ -98,6 +98,50 @@ func TestPostgresResourceSearchRunsBeforePaginationAndKeepsOperatorScope(t *test
 	}
 }
 
+func TestPostgresOlderDisputeStaysReachable(t *testing.T) {
+	f := setupPortal(t)
+	op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
+	now := time.Now().UTC().Add(-time.Hour)
+	receipt := commerce.Receipt{ID: uuid.NewString(), OperatorID: op, Provider: "manual", ProviderReceiptID: "disputed-cash", Fingerprint: "synthetic", GrossMoney: ledger.FromInt64(1), FeeStatus: "pending", Currency: "USD", OriginalAmount: "1", ObservedAt: now, CreatedAt: now, VerifiedBy: owner}
+	if err := f.a.DB.Table("commerce_receipts").Create(&receipt).Error; err != nil {
+		t.Fatal(err)
+	}
+	target := uuid.NewString()
+	if err := f.a.DB.Exec(`INSERT INTO remediation_chargebacks
+		(id,operator_id,receipt_id,provider,provider_case_id,fingerprint,amount_money,recovered_money,state,reason,evidence,created_at,resolved_at)
+		VALUES (?, ?, ?, 'manual', 'old-open-dispute', 'synthetic', 1, 0, 'disputed', 'Old dispute', 'evidence', ?, NULL)`, target, op, receipt.ID, now).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := f.a.DB.Exec(`INSERT INTO remediation_chargebacks
+		(id,operator_id,receipt_id,provider,provider_case_id,fingerprint,amount_money,recovered_money,state,reason,evidence,created_at,resolved_at)
+		SELECT gen_random_uuid(),?::uuid,?::uuid,'manual','closed-'||n,'synthetic',1,1,'reversed',
+		'Settled fixture','evidence',clock_timestamp(),clock_timestamp() FROM generate_series(1,200) n`, op, receipt.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	base := "/v1/operators/" + op + "/disputes"
+	status, page, _ := f.call(t, "GET", base, nil, "")
+	mustOK(t, status, page)
+	if len(page["items"].([]any)) != 50 || page["next_cursor"] == nil || page["next_cursor"] == "" || listHasID(page, target) {
+		t.Fatal("expected a first page of recent resolved disputes", len(page["items"].([]any)), page["next_cursor"], listHasID(page, target))
+	}
+	for range 4 {
+		cursor := page["next_cursor"].(string)
+		status, page, _ = f.call(t, "GET", base+"?cursor="+url.QueryEscape(cursor), nil, "")
+		mustOK(t, status, page)
+	}
+	if len(page["items"].([]any)) != 1 || !listHasID(page, target) {
+		t.Fatal("oldest dispute was skipped while paging")
+	}
+	for _, suffix := range []string{"?record=" + target, "?q=old-open-dispute", "?status=disputed"} {
+		status, found, _ := f.call(t, "GET", base+suffix, nil, "")
+		mustOK(t, status, found)
+		if len(found["items"].([]any)) != 1 || !listHasID(found, target) {
+			t.Fatal("older dispute missing", suffix)
+		}
+	}
+}
+
 func TestPostgresRefundSearchPagesCasesBeforeLoadingTheirDetails(t *testing.T) {
 	f := setupPortal(t)
 	op := f.a.Installation.OperatorID

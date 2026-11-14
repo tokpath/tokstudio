@@ -1631,13 +1631,13 @@
     "ms": "E-mel baharu",
     "th": "อีเมลใหม่"
   },
-  "留空将保留全部ATG，余额未归零前不能完成注销。填写代表明确放弃剩余ATG；结算币种与佣金仍须真实结算，不会被删除。": {
-    "en": "Leave blank to retain all ATG; account closure cannot complete until balances reach zero. Filling this explicitly waives remaining ATG. settlement currency and commissions still require actual settlement and will not be deleted.",
-    "ja": "空欄では全 ATG を保持し、残高がゼロになるまで退会を完了できません。入力は残り ATG の明示放棄を意味します。決済通貨 と紹介報酬は実際の精算が必要で、削除されません。",
-    "ru": "Пустое поле сохраняет все ATG; закрытие невозможно до нулевых остатков. Заполнение означает явный отказ от оставшихся ATG. валюта расчётов и вознаграждения требуют фактического расчёта и не удаляются.",
-    "hi": "सभी ATG रखने के लिए खाली छोड़ें; शेष राशि शून्य होने तक खाता बंद नहीं हो सकता। इसे भरने पर आप शेष ATG स्पष्ट रूप से छोड़ते हैं। निपटान मुद्रा और कमीशन का वास्तविक निपटान अभी भी आवश्यक है और इन्हें हटाया नहीं जाएगा।",
-    "ms": "Biarkan kosong untuk mengekalkan semua ATG; penutupan akaun tidak dapat diselesaikan sehingga baki menjadi sifar. Mengisi medan ini bermaksud anda secara jelas melepaskan baki ATG. mata wang penyelesaian dan komisen masih memerlukan penyelesaian sebenar dan tidak akan dipadamkan.",
-    "th": "เว้นว่างเพื่อเก็บ ATG ทั้งหมดไว้ บัญชีจะปิดไม่ได้จนกว่ายอดคงเหลือเป็นศูนย์ การกรอกหมายถึงสละ ATG ที่เหลืออย่างชัดเจน สกุลเงินที่ใช้ชำระบัญชีและค่าคอมมิชชันยังต้องชำระบัญชีจริงและจะไม่ถูกลบ"
+  "留空会保留全部 ATG。填写表示本人明确放弃剩余 ATG。支付余额在注销清算中另行处理。": {
+    "en": "Leave this blank to keep all ATG. Filling it in explicitly waives your remaining ATG. Your payment balance is handled separately during account closure.",
+    "ja": "空欄にするとすべての ATG が保持されます。入力すると残りの ATG を明示的に放棄します。支払い残高は閉鎖時に別途処理されます。",
+    "ru": "Оставьте поле пустым, чтобы сохранить все ATG. Заполнение означает явный отказ от остатка ATG. Платёжный остаток обрабатывается отдельно при закрытии аккаунта.",
+    "hi": "सभी ATG रखने के लिए इसे खाली छोड़ें। इसे भरकर आप शेष ATG स्पष्ट रूप से छोड़ते हैं। भुगतान शेष का निपटान खाता बंद करते समय अलग से होगा।",
+    "ms": "Biarkan kosong untuk menyimpan semua ATG. Mengisinya bermakna anda melepaskan baki ATG secara jelas. Baki bayaran diuruskan secara berasingan semasa penutupan akaun.",
+    "th": "เว้นว่างเพื่อเก็บ ATG ทั้งหมด การกรอกคือการยืนยันสละ ATG ที่เหลือ ยอดเงินชำระจะจัดการแยกต่างหากระหว่างปิดบัญชี"
   },
   "停用Key及未来续费，保留全部资产、推广资格和历史佣金。恢复使用后需本人明确重新启用Key与续费。": {
     "en": "Disable the Key and future renewals while retaining all assets, referral eligibility, and past commissions. You must explicitly reenable the Key and renewals after resuming use.",
@@ -8159,13 +8159,13 @@
     "ms": "Sebab saya menyambung semula penggunaan",
     "th": "เหตุผลที่ข้าพเจ้ากลับมาใช้บริการ"
   },
-  "开始注销会停止调用、续费与未来分佣，保留历史权利和资金清算。只有全部未决请求、退款、提现、争议与余额真实结清后才能完成。": {
-    "en": "Starting account closure stops requests, renewals and future commissions, while preserving historical rights and settlement. Closure completes only after all pending requests, refunds, withdrawals, disputes and balances are actually settled.",
-    "ja": "アカウント閉鎖を開始すると呼び出し・更新・将来のコミッションを停止し、過去の権利と資金精算を維持します。未決リクエスト、返金、出金、紛争、残高がすべて実際に解決してから完了できます。",
-    "ru": "Начало закрытия аккаунта останавливает запросы, продления и будущие комиссии, сохраняя исторические права и расчёты. Завершение возможно только после урегулирования всех запросов, возвратов, выводов, споров и балансов.",
-    "hi": "खाता बंद करना शुरू होने पर अनुरोध, नवीनीकरण और भविष्य के कमीशन रुक जाते हैं, जबकि ऐतिहासिक अधिकार और निपटान सुरक्षित रहते हैं। सभी लंबित अनुरोध, धनवापसी, निकासी, विवाद और शेष राशि वास्तव में निपटने के बाद ही खाता बंद होता है।",
-    "ms": "Memulakan penutupan akaun menghentikan permintaan, pembaharuan dan komisen masa depan, sambil mengekalkan hak sejarah dan penyelesaian. Penutupan hanya selesai selepas semua permintaan, bayaran balik, pengeluaran, pertikaian dan baki tertunda benar-benar diselesaikan.",
-    "th": "การเริ่มปิดบัญชีจะหยุดคำขอ การต่ออายุ และค่าคอมมิชชันในอนาคต โดยเก็บสิทธิ์ในอดีตและการชำระบัญชีไว้ การปิดเสร็จได้ต่อเมื่อคำขอ การคืนเงิน การถอนเงิน ข้อพิพาท และยอดคงเหลือที่ค้างทั้งหมดชำระเสร็จจริง"
+  "开始注销会停止调用、续费与未来分佣。办结其他清算事项后，可结清支付余额，或明确放弃剩余支付余额并注销。": {
+    "en": "Starting account closure stops requests, renewals, and future commissions. After resolving all other obligations, you can settle the payment balance or explicitly waive the remaining balance and close the account.",
+    "ja": "アカウント閉鎖を開始すると、呼び出し、更新、今後の紹介報酬が停止します。他の清算事項が完了したら、支払い残高を精算するか、残高を明示的に放棄して閉鎖できます。",
+    "ru": "Начало закрытия аккаунта останавливает запросы, продления и начисление будущих комиссий. После урегулирования остальных обязательств вы можете получить платёжный остаток или явно отказаться от него и закрыть аккаунт.",
+    "hi": "खाता बंद करना शुरू करते ही अनुरोध, नवीनीकरण और भविष्य के कमीशन रुक जाते हैं। अन्य सभी निपटान पूरे होने के बाद भुगतान शेष का निपटान करें या उसे स्पष्ट रूप से छोड़कर खाता बंद करें।",
+    "ms": "Memulakan penutupan akaun menghentikan permintaan, pembaharuan dan komisen akan datang. Selepas menyelesaikan semua tanggungan lain, anda boleh menyelesaikan baki bayaran atau melepaskannya secara jelas dan menutup akaun.",
+    "th": "การเริ่มปิดบัญชีจะหยุดคำขอ การต่ออายุ และค่าคอมมิชชันในอนาคต เมื่อจัดการภาระอื่นครบแล้ว คุณสามารถชำระยอดเงินคงเหลือ หรือยืนยันสละยอดนั้นแล้วปิดบัญชี"
   },
   "完成后撤销登录凭据。服务器逐项校验清算，不能通过点击抹去未结资产。": {
     "en": "Completion revokes login credentials. The server checks each settlement item; clicking cannot erase unsettled assets.",
@@ -11754,5 +11754,245 @@
     "hi": "शेष राशि निकासी रद्द",
     "ms": "Pengeluaran baki dibatalkan",
     "th": "ยกเลิกการถอนยอดคงเหลือแล้ว"
+  },
+  "放弃剩余余额并注销": {
+    "en": "Waive remaining balance and close account",
+    "ja": "残高を放棄してアカウントを閉鎖",
+    "ru": "Отказаться от остатка и закрыть аккаунт",
+    "hi": "शेष राशि छोड़कर खाता बंद करें",
+    "ms": "Lepaskan baki dan tutup akaun",
+    "th": "สละยอดคงเหลือและปิดบัญชี"
+  },
+  "已确认放弃的支付余额": {
+    "en": "Confirmed payment balance to waive",
+    "ja": "放棄を確認した支払い残高",
+    "ru": "Подтверждённый остаток к списанию",
+    "hi": "छोड़ने के लिए पुष्टि की गई भुगतान शेष राशि",
+    "ms": "Baki bayaran yang disahkan untuk dilepaskan",
+    "th": "ยอดเงินชำระที่ยืนยันการสละ"
+  },
+  "我同意永久放弃页面显示的全部剩余支付余额，并完成注销。该余额将无法取回。": {
+    "en": "I agree to permanently waive the entire remaining payment balance shown and close my account. I will not be able to recover this balance.",
+    "ja": "画面に表示された支払い残高の全額を放棄し、アカウントを閉鎖することに同意します。この残高は取り戻せません。",
+    "ru": "Я соглашаюсь безвозвратно отказаться от всего указанного остатка и закрыть аккаунт. Этот остаток вернуть нельзя.",
+    "hi": "मैं दिखाई गई पूरी शेष भुगतान राशि को स्थायी रूप से छोड़ने और अपना खाता बंद करने के लिए सहमत हूँ। यह राशि वापस नहीं मिलेगी।",
+    "ms": "Saya bersetuju melepaskan semua baki bayaran yang dipaparkan secara kekal dan menutup akaun. Baki ini tidak boleh dituntut semula.",
+    "th": "ฉันยินยอมสละยอดเงินชำระคงเหลือทั้งหมดที่แสดงอย่างถาวรและปิดบัญชี ยอดนี้ไม่สามารถขอคืนได้"
+  },
+  "剩余支付余额": {
+    "en": "Remaining payment balance",
+    "ja": "支払い残高",
+    "ru": "Остаток платёжного баланса",
+    "hi": "शेष भुगतान राशि",
+    "ms": "Baki bayaran",
+    "th": "ยอดเงินชำระคงเหลือ"
+  },
+  "待付款、待交付或待核实原收款的订单，须先在原订单中处理。": {
+    "en": "Resolve unpaid orders, pending delivery, and unverified payments on their original orders first.",
+    "ja": "支払い待ち、提供待ち、または入金確認待ちの注文は、先に元の注文で処理してください。",
+    "ru": "Сначала обработайте в исходных заказах неоплаченные заказы, ожидающие поставки или проверки платежи.",
+    "hi": "पहले मूल ऑर्डर पर लंबित भुगतान, वितरण और भुगतान सत्यापन पूरा करें।",
+    "ms": "Selesaikan pesanan yang belum dibayar, menunggu penghantaran atau semakan bayaran pada pesanan asal dahulu.",
+    "th": "ดำเนินการคำสั่งซื้อที่รอชำระ รอส่งมอบ หรือรอตรวจสอบการชำระในคำสั่งซื้อเดิมก่อน"
+  },
+  "支付余额须结清，或由本人明确放弃。已有资金占用须先处理。": {
+    "en": "Settle the payment balance or explicitly waive it. Resolve any active holds first.",
+    "ja": "支払い残高を精算するか、本人が明示的に放棄してください。先に保留中の資金を処理してください。",
+    "ru": "Погасите платёжный остаток или явно откажитесь от него. Сначала обработайте все резервы.",
+    "hi": "भुगतान शेष का निपटान करें या स्पष्ट रूप से इसे छोड़ें। पहले सभी रोकी गई राशियों का निपटान करें।",
+    "ms": "Selesaikan baki bayaran atau nyatakan persetujuan untuk melepaskannya. Uruskan semua amaun yang ditahan dahulu.",
+    "th": "ชำระยอดเงินคงเหลือให้เรียบร้อยหรือยืนยันการสละยอด จัดการยอดที่ถูกกันไว้ก่อน"
+  },
+  "剩余购买 ATG 可等待到期或由本人明确放弃。": {
+    "en": "Wait for the remaining purchased ATG to expire or explicitly waive it.",
+    "ja": "購入済みの残りの ATG は、有効期限まで待つか、本人が明示的に放棄できます。",
+    "ru": "Дождитесь истечения срока оставшихся купленных ATG или явно откажитесь от них.",
+    "hi": "खरीदे गए शेष ATG की समय-सीमा समाप्त होने दें या स्पष्ट रूप से उन्हें छोड़ें।",
+    "ms": "Tunggu ATG yang dibeli tamat tempoh atau sahkan pelepasannya.",
+    "th": "รอให้ ATG ที่ซื้อไว้หมดอายุ หรือยืนยันการสละส่วนที่เหลือ"
+  },
+  "剩余赠送 ATG 将在正式注销时失效。": {
+    "en": "Remaining bonus ATG expires when the account is closed.",
+    "ja": "残りの付与 ATG はアカウント閉鎖時に失効します。",
+    "ru": "Оставшиеся бонусные ATG сгорают при закрытии аккаунта.",
+    "hi": "खाता बंद होने पर शेष बोनस ATG समाप्त हो जाएगा।",
+    "ms": "Baki ATG bonus luput apabila akaun ditutup.",
+    "th": "ATG โบนัสที่เหลือจะหมดอายุเมื่อปิดบัญชี"
+  },
+  "发起原路退款": {
+    "en": "Refund to original payment method",
+    "ja": "元の支払い方法に返金",
+    "ru": "Вернуть на исходный способ оплаты",
+    "hi": "मूल भुगतान तरीके पर रिफ़ंड करें",
+    "ms": "Bayar balik melalui kaedah asal",
+    "th": "คืนเงินผ่านช่องทางเดิม"
+  },
+  "核实原路退款结果": {
+    "en": "Check original refund status",
+    "ja": "元の支払い方法への返金状況を確認",
+    "ru": "Проверить статус возврата",
+    "hi": "मूल रिफ़ंड की स्थिति देखें",
+    "ms": "Semak status bayaran balik asal",
+    "th": "ตรวจสอบสถานะการคืนเงินผ่านช่องทางเดิม"
+  },
+  "确认将批准的金额通过原收款通道退给原付款人。": {
+    "en": "Confirm that the approved amount will be returned to the original payer through the original payment method.",
+    "ja": "承認済みの金額を、元の支払い方法で元の支払者に返金します。",
+    "ru": "Подтвердите возврат утверждённой суммы исходному плательщику через первоначальный способ оплаты.",
+    "hi": "पुष्टि करें कि स्वीकृत राशि मूल भुगतान के तरीके से मूल भुगतानकर्ता को वापस की जाएगी।",
+    "ms": "Sahkan amaun yang diluluskan akan dipulangkan kepada pembayar asal melalui kaedah asal.",
+    "th": "ยืนยันว่าจะคืนยอดที่อนุมัติให้ผู้ชำระเดิมผ่านช่องทางการชำระเดิม"
+  },
+  "原币退款金额": {
+    "en": "Refund amount in original currency",
+    "ja": "元の通貨での返金額",
+    "ru": "Сумма возврата в исходной валюте",
+    "hi": "मूल मुद्रा में रिफ़ंड की राशि",
+    "ms": "Amaun bayaran balik dalam mata wang asal",
+    "th": "ยอดคืนเงินในสกุลเดิม"
+  },
+  "原币退款金额的核实说明": {
+    "en": "Evidence for the original-currency refund amount",
+    "ja": "元の通貨での返金額の確認根拠",
+    "ru": "Подтверждение суммы возврата в исходной валюте",
+    "hi": "मूल मुद्रा में रिफ़ंड राशि का प्रमाण",
+    "ms": "Bukti amaun bayaran balik dalam mata wang asal",
+    "th": "หลักฐานการตรวจสอบยอดคืนเงินในสกุลเดิม"
+  },
+  "冲正扣费": {
+    "en": "Correct charge",
+    "ja": "請求を訂正",
+    "ru": "Скорректировать списание",
+    "hi": "शुल्क सुधारें",
+    "ms": "Betulkan caj",
+    "th": "แก้ไขการเรียกเก็บ"
+  },
+  "应冲正的计价额度（ATG）": {
+    "en": "Charge correction amount (ATG)",
+    "ja": "訂正する計上額（ATG）",
+    "ru": "Сумма корректировки (ATG)",
+    "hi": "शुल्क सुधार की राशि (ATG)",
+    "ms": "Amaun pembetulan caj (ATG)",
+    "th": "จำนวนที่ต้องแก้ไข (ATG)"
+  },
+  "冲正原因及依据": {
+    "en": "Reason and evidence for the correction",
+    "ja": "訂正理由と根拠",
+    "ru": "Причина и подтверждение корректировки",
+    "hi": "सुधार का कारण और प्रमाण",
+    "ms": "Sebab dan bukti pembetulan",
+    "th": "เหตุผลและหลักฐานการแก้ไข"
+  },
+  "确认冲正本次调用的错误计价。系统按原订单处理额度及对应的资格与佣金。": {
+    "en": "Confirm the charge correction. Credits, qualification and commissions will be adjusted against the original order.",
+    "ja": "請求の訂正を確認してください。元の注文に基づいて、クレジット、資格およびコミッションが調整されます。",
+    "ru": "Подтвердите корректировку списания. Кредиты, право на участие и комиссии будут пересчитаны по исходному заказу.",
+    "hi": "शुल्क सुधार की पुष्टि करें। क्रेडिट, पात्रता और कमीशन मूल ऑर्डर के आधार पर समायोजित होंगे।",
+    "ms": "Sahkan pembetulan caj. Kredit, kelayakan dan komisen diselaraskan mengikut pesanan asal.",
+    "th": "ยืนยันการแก้ไขยอดเรียกเก็บ เครดิต คุณสมบัติ และค่าคอมมิชชันจะปรับตามคำสั่งซื้อเดิม"
+  },
+  "退款进度": {
+    "en": "Refund status",
+    "ja": "返金状況",
+    "ru": "Статус возврата",
+    "hi": "रिफ़ंड की स्थिति",
+    "ms": "Status bayaran balik",
+    "th": "สถานะการคืนเงิน"
+  },
+  "打开详情，发起原路退款。": {
+    "en": "Open the details to start an original-route refund.",
+    "ja": "詳細を開いて元の決済経路での返金を開始します。",
+    "ru": "Откройте детали, чтобы начать возврат исходным способом.",
+    "hi": "मूल भुगतान माध्यम से वापसी शुरू करने के लिए विवरण खोलें।",
+    "ms": "Buka butiran untuk memulakan bayaran balik melalui saluran asal.",
+    "th": "เปิดรายละเอียดเพื่อเริ่มคืนเงินผ่านช่องทางเดิม"
+  },
+  "核实替代收款信息后继续办理退款。": {
+    "en": "Verify the alternate payment destination before continuing the refund.",
+    "ja": "変更後の受取先を確認してから返金を続けます。",
+    "ru": "Проверьте альтернативные реквизиты и продолжите возврат.",
+    "hi": "वापसी जारी रखने से पहले वैकल्पिक प्राप्ति खाते का सत्यापन करें।",
+    "ms": "Sahkan butiran penerima alternatif sebelum meneruskan bayaran balik.",
+    "th": "ตรวจสอบข้อมูลบัญชีผู้รับเงินทางเลือกก่อนดำเนินการคืนเงินต่อ"
+  },
+  "原路退款结果待核实，请在原退款记录继续查询。": {
+    "en": "The original-route refund is awaiting verification. Continue checking from the original refund record.",
+    "ja": "元の決済経路での返金結果は確認待ちです。元の返金記録から引き続き照会してください。",
+    "ru": "Результат возврата исходным способом ожидает проверки. Продолжите проверку в исходной записи возврата.",
+    "hi": "मूल भुगतान माध्यम से वापसी के परिणाम का सत्यापन बाकी है। मूल वापसी रिकॉर्ड में जाँच जारी रखें।",
+    "ms": "Bayaran balik melalui saluran asal sedang menunggu pengesahan. Teruskan semakan pada rekod bayaran balik asal.",
+    "th": "ผลการคืนเงินผ่านช่องทางเดิมรอการตรวจสอบ โปรดตรวจสอบต่อจากรายการคืนเงินเดิม"
+  },
+  "退款收款信息已核实。": {
+    "en": "Refund recipient details verified.",
+    "ja": "返金先情報を確認済みです。",
+    "ru": "Реквизиты возврата проверены.",
+    "hi": "रिफ़ंड पाने वाले की जानकारी सत्यापित है।",
+    "ms": "Butiran penerima bayaran balik telah disahkan.",
+    "th": "ตรวจสอบข้อมูลผู้รับเงินคืนแล้ว"
+  },
+  "确认退款收款信息": {
+    "en": "Confirm refund recipient details",
+    "ja": "返金先情報を確認",
+    "ru": "Подтвердить реквизиты возврата",
+    "hi": "रिफ़ंड प्राप्तकर्ता की जानकारी की पुष्टि करें",
+    "ms": "Sahkan butiran penerima bayaran balik",
+    "th": "ยืนยันข้อมูลผู้รับเงินคืน"
+  },
+  "收款信息已提交，等待经营方核实。": {
+    "en": "Recipient details submitted and awaiting verification by the operator.",
+    "ja": "返金先情報を送信しました。運営者の確認をお待ちください。",
+    "ru": "Реквизиты отправлены и ожидают проверки оператором.",
+    "hi": "प्राप्तकर्ता की जानकारी भेज दी गई है और संचालक के सत्यापन की प्रतीक्षा है।",
+    "ms": "Butiran penerima telah dihantar dan menunggu semakan pengendali.",
+    "th": "ส่งข้อมูลผู้รับแล้ว กำลังรอผู้ดำเนินการตรวจสอบ"
+  },
+  "我确认所填账户已获原付款人授权接收本笔退款。": {
+    "en": "I confirm that the original payer has authorized this account to receive the refund.",
+    "ja": "元の支払者が、この口座で返金を受け取ることを承認済みであると確認します。",
+    "ru": "Подтверждаю, что исходный плательщик разрешил перечислить возврат на этот счёт.",
+    "hi": "मैं पुष्टि करता हूँ कि मूल भुगतानकर्ता ने इस खाते को रिफ़ंड प्राप्त करने की अनुमति दी है।",
+    "ms": "Saya mengesahkan pembayar asal telah membenarkan akaun ini menerima bayaran balik.",
+    "th": "ฉันยืนยันว่าผู้ชำระเดิมอนุญาตให้บัญชีนี้รับเงินคืน"
+  },
+  "当前业务范围有未解除的限制。": {
+    "en": "This activity is currently restricted.",
+    "ja": "この操作は現在制限されています。",
+    "ru": "Это действие сейчас ограничено.",
+    "hi": "यह गतिविधि अभी प्रतिबंधित है।",
+    "ms": "Aktiviti ini sedang dihadkan.",
+    "th": "กิจกรรมนี้ถูกจำกัดอยู่ในขณะนี้"
+  },
+  "注销时放弃支付余额": {
+    "en": "Payment balance waived on account closure",
+    "ja": "アカウント閉鎖時の支払い残高放棄",
+    "ru": "Списание остатка при закрытии аккаунта",
+    "hi": "खाता बंद करने पर छोड़ी गई भुगतान शेष राशि",
+    "ms": "Baki bayaran dilepaskan semasa penutupan akaun",
+    "th": "สละยอดเงินชำระเมื่อปิดบัญชี"
+  },
+  "待复核": {
+    "en": "Awaiting review",
+    "ja": "確認待ち",
+    "ru": "На проверке",
+    "hi": "समीक्षा लंबित",
+    "ms": "Menunggu semakan",
+    "th": "รอการทบทวน"
+  },
+  "付款无效": {
+    "en": "Invalid payment",
+    "ja": "無効な支払い",
+    "ru": "Недействительный платёж",
+    "hi": "अमान्य भुगतान",
+    "ms": "Bayaran tidak sah",
+    "th": "การชำระเงินไม่ถูกต้อง"
+  },
+  "经营收款风险": {
+    "en": "Merchant collection risk",
+    "ja": "事業者の入金リスク",
+    "ru": "Риск получения средств продавцом",
+    "hi": "व्यापारी वसूली जोखिम",
+    "ms": "Risiko kutipan peniaga",
+    "th": "ความเสี่ยงการรับเงินของผู้ค้า"
   }
 }

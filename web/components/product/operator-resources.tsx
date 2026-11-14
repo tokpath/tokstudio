@@ -194,6 +194,7 @@ const resourceFilterStatuses: Record<string, readonly string[]> = {
   notifications: ["pending", "processing", "accepted", "needs_attention", "suppressed"],
   procurement: ["quote","disabled","expired","archived","awaiting_payment","paid","completed","closed","exception","authorization","prepared","awaiting_manual_payment","outcome_unknown","verified_payment_delivery_pending","failed_unpaid","cancelled_unpaid"],
   refunds: ["pending_review", "approved", "paying", "completed", "rejected", "cancelled", "exception"],
+  disputes: ["disputed", "invalid_payment", "merchant_collection_risk", "reversed"],
   withdrawals: ["requested", "approved", "paid", "cancelled", "failed"],
   "balance-withdrawals": ["requested", "approved", "paid", "cancelled", "failed"],
   invoices: ["requested", "issued", "rejected", "review_required", "voided"],
@@ -202,9 +203,14 @@ const resourceFilterStatuses: Record<string, readonly string[]> = {
   assets: ["open"], ledger: ["open"],
 };
 const invoiceStatusLabels: Record<string,string> = {issued:"已开具"};
+const disputeStatusLabels: Record<string, string> = {
+  disputed: "待复核", invalid_payment: "付款无效", merchant_collection_risk: "经营收款风险", reversed: "已撤销",
+};
+
 function recordStatusLabels(resource: string) {
   if (["invoices","procurement-invoices"].includes(resource)) return invoiceStatusLabels;
   if (resource === "refunds") return refundStatusLabels;
+  if (resource === "disputes") return disputeStatusLabels;
   if (resource === "withdrawals" || resource === "balance-withdrawals") return withdrawalStatusLabels;
   return undefined;
 }
@@ -212,6 +218,7 @@ export function resourceFilterStatusLabel(resource: string, status: string): str
   if (["invoices","procurement-invoices"].includes(resource) && invoiceStatusLabels[status]) return invoiceStatusLabels[status];
   if ((resource === "withdrawals" || resource === "balance-withdrawals") && withdrawalStatusLabels[status]) return withdrawalStatusLabels[status];
   if (resource === "refunds" && refundStatusLabels[status]) return refundStatusLabels[status];
+  if (resource === "disputes") return disputeStatusLabels[status] || status;
   if (resource === "customers" && status === "suspended") return "已暂停账号";
   return ({ partial: "部分付款", anonymized: "已匿名", open: "正常" } as Record<string, string>)[status] || statusLabels[status] || status;
 }
@@ -434,6 +441,9 @@ function sumResourceAmounts(rows: Entity[], key: string): string | undefined {
 function refundNextStep(row: Entity, legs: Entity[]): string {
   if (row.status === "pending_review") return "下一步：完成审批。";
   if (["completed", "cancelled", "canceled", "rejected"].includes(row.status || "")) return "此事项已结束，可核对原责任与实际付款证据。";
+  if (legs.some(leg => leg.allowed_actions?.includes("query_api"))) return "原路退款结果待核实，请在原退款记录继续查询。";
+  if (legs.some(leg => leg.allowed_actions?.includes("execute_api"))) return "打开详情，发起原路退款。";
+  if (legs.some(leg => leg.values.destination_required && !leg.values.authorization_id)) return "核实替代收款信息后继续办理退款。";
   return "下一步：打开详情，登记实际付款。提交后申请结束。";
 }
 

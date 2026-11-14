@@ -318,7 +318,10 @@ test('finance commands derive same-settlement-currency values and retain indepen
  assert.equal(refund.required.includes('actual_money'),false);
  assert.equal(refund.required.includes('fee_money'),true);
  assert.equal(refund.properties.fee_status,undefined);
- assert.equal(schemas.Operator_refunds_execute_api,undefined);
+ assert.ok(schemas.Operator_refunds_execute_api);
+ assert.equal(schemas.Operator_refunds_execute_api.properties.money.properties.amount['x-required-when-visible'],true);
+ assert.ok(schemas.Operator_refunds_query_api);
+ assert.ok(schemas.Operator_requests_correct_charge.required.includes('amount_atg'));
  assert.equal(schemas.Operator_refunds_begin_manual,undefined);
  assert.ok(schemas.Operator_refunds_confirm_fee);
  assert.equal(refund.properties.actual_money,undefined);

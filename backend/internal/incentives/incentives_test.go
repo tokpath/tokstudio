@@ -393,7 +393,24 @@ func TestPostgresCampaignCombinationLocksOriginalRatiosAndTwoHopScope(t *testing
 	if order.MerchantGiftATG.Cmp(d("20")) != 0 || order.KOLGiftATG.Cmp(d("10")) != 0 {
 		t.Fatalf("KOL gift multiplied merchant gift: %+v", order)
 	}
+	review := now.Add(2 * time.Hour)
+	freeze := organization.ScopeFreezeInput{ActorStaffID: f.owner, OperatorID: f.operator, ScopeKind: "customer", ScopeID: b.Customer.ID, Action: "activity", Enabled: true, Evidence: "temporary review", Explanation: "pause future KOL offers", ReviewDueAt: &review}
+	locked, err := f.org.SetScopeFreeze(f.ctx, nil, freeze)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.s.PreviewQuote(f.ctx, nil, c.Customer.ID, f.operator, f.quote.ID, raw); !errors.Is(err, organization.ErrFrozen) {
+		t.Fatal("restricted inviter still gives new KOL offers", err)
+	}
+	edit := CampaignInput{CampaignID: kol.CampaignID, ExpectedVersion: kol.Version, OperatorID: f.operator, PackageID: f.quote.PackageID, Eligibility: "any", Enabled: true, StartsAt: kol.StartsAt, EndsAt: kol.EndsAt, ConcessionRate: kol.ConcessionRate, PerCustomerLimit: kol.PerCustomerLimit}
+	if _, err = f.s.PublishKOLCampaign(f.ctx, nil, b.Customer.ID, edit); !errors.Is(err, organization.ErrFrozen) {
+		t.Fatal("restricted inviter still publishes KOL offers", err)
+	}
 	if _, err = f.commerce.Fulfill(f.ctx, nil, order.ID, "worker:delivery"); err != nil {
+		t.Fatal(err)
+	}
+	freeze.Enabled, freeze.ExpectedVersion = false, locked.Version
+	if _, err = f.org.SetScopeFreeze(f.ctx, nil, freeze); err != nil {
 		t.Fatal(err)
 	}
 	beforeA := f.balance(t, a.Customer.ID, "commission:available").Balance
@@ -670,6 +687,38 @@ func TestPostgresCampaignConcurrentCountAndGiftAccounting(t *testing.T) {
 	var saved campaignRow
 	if err = f.db.First(&saved, "id=?", campaign.CampaignID).Error; err != nil || saved.ReservedGiftATG.Cmp(d("10")) != 0 || saved.ReservedUses != 1 {
 		t.Fatalf("campaign reservation=%+v %v", saved, err)
+	}
+}
+
+func TestPostgresFirstPurchaseSlotSpansCampaignsAndIsReleasedOnCancel(t *testing.T) {
+	f := setup(t)
+	customer := f.register(t, "first-slot@example.test", "").Customer.ID
+	now := time.Now()
+	var quotes []json.RawMessage
+	for _, gift := range []string{"3", "7"} {
+		campaign, err := f.s.PublishCampaign(f.ctx, nil, CampaignInput{ActorStaffID: f.owner, OperatorID: f.operator, Kind: "merchant", PackageID: f.quote.PackageID, Eligibility: "first_order", Enabled: true, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour), GiftATG: d(gift), PerCustomerLimit: 5})
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, _ := json.Marshal(ActivitySelection{MerchantCampaignID: campaign.CampaignID})
+		quotes = append(quotes, raw)
+	}
+	order := func(key string, selection json.RawMessage) (commerce.Order, error) {
+		return f.commerce.CreateOrder(f.ctx, nil, commerce.CreateOrderInput{OperatorID: f.operator, CustomerID: customer, QuoteID: f.quote.ID, BusinessKey: key, ExpectedOwnershipVersion: 1, ActivitySelection: selection})
+	}
+	first, err := order("first-activity", quotes[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := order("other-activity", quotes[1]); !errors.Is(err, ErrNotEligible) {
+		t.Fatal("second campaign could reserve the first purchase", err)
+	}
+	if _, err = f.commerce.CloseOrder(f.ctx, nil, customer, first.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "original order confirmed unpaid"}); err != nil {
+		t.Fatal(err)
+	}
+	second, err := order("other-activity", quotes[1])
+	if err != nil || second.MerchantGiftATG.Cmp(d("7")) != 0 {
+		t.Fatal("cancel did not release the first purchase", second.MerchantGiftATG, err)
 	}
 }
 

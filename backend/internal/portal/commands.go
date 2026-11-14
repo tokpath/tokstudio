@@ -399,6 +399,9 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 	if resource == "orders" && c.Param("action") == "fulfill_supply" {
 		scopeResource = "payments"
 	}
+	if resource == "requests" && c.Param("action") == "correct_charge" {
+		scopeResource = "refunds"
+	}
 	op, actor, ok := a.staffScope(c, scopeResource)
 	if !ok {
 		return
@@ -446,6 +449,10 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 	}
 	if resource == "refunds" {
 		a.refundStaffAction(c, op, actor, action)
+		return
+	}
+	if resource == "requests" && action == "correct_charge" {
+		a.correctCustomerCharge(c, op, actor)
 		return
 	}
 	if resource == "jobs" && action == "redrive" {

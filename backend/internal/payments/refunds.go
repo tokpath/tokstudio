@@ -64,6 +64,10 @@ func bindRefundFact(tx *gorm.DB, m Merchant, r Refund, f Fact) error {
 	return tx.Table("payments_refund_fact_bindings").Create(map[string]any{"fact_id": f.ID, "operator_id": m.OperatorID, "merchant_id": m.ID, "business_refund_id": r.ID}).Error
 }
 
+func SupportsOriginalRefund(driver string) bool {
+	return driver == "stripe" || driver == "alipay" || driver == "wechat"
+}
+
 // SubmitRefund requires the business refund approval/hold in the same database
 // transaction. A finance permission alone does not authorize sending money.
 func (s *Service) SubmitRefund(ctx context.Context, actor, operator, merchant string, r Refund) (RefundStatus, error) {
@@ -78,7 +82,7 @@ func (s *Service) SubmitRefund(ctx context.Context, actor, operator, merchant st
 		return RefundStatus{}, e
 	}
 	d := s.Drivers[m.Driver]
-	if m.Driver != "stripe" && m.Driver != "alipay" && m.Driver != "wechat" {
+	if !SupportsOriginalRefund(m.Driver) {
 		return RefundStatus{}, ErrUnsupported
 	}
 	m.Enabled = true // Collection disablement does not revoke an approved original-route refund.

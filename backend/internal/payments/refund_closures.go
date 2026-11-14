@@ -2,9 +2,10 @@ package payments
 
 import (
 	"context"
+	"time"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"time"
 )
 
 // A durable short lease fences route closure against a network request that
@@ -101,7 +102,13 @@ func (s *Service) SealRefundExecutions(ctx context.Context, tx *gorm.DB, operato
 		if v.ClosureID != "" {
 			continue
 		}
-		if v.State != "failed" && v.State != "cancelled" && !((v.State == "succeeded" || v.State == "verified_pending_settlement") && v.FactID != "") {
+		switch v.State {
+		case "failed", "cancelled", "canceled":
+		case "succeeded", "verified_pending_settlement":
+			if v.FactID == "" {
+				return ErrOutcomeUnknown
+			}
+		default:
 			return ErrOutcomeUnknown
 		}
 		if e := tx.Exec(`INSERT INTO payments_refund_execution_closures(operator_id,merchant_id,execution_id,business_refund_id,closure_id) VALUES(?,?,?,?,?) ON CONFLICT(merchant_id,execution_id) DO NOTHING`, operator, v.MerchantID, v.ExecutionID, legID, closureID).Error; e != nil {

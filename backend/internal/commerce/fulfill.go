@@ -36,6 +36,16 @@ func (s *Service) Fulfill(ctx context.Context, tx *gorm.DB, orderID, actorID str
 		if _, err := s.org.LockOwnership(ctx, tx, observed.CustomerID, observed.OperatorID, observed.OwnershipVersion); err != nil {
 			return err
 		}
+		if err := s.org.LockCustomerResponsibility(ctx, tx, observed.CustomerID); err != nil {
+			return err
+		}
+		customer, err := s.org.GetCustomer(ctx, tx, observed.CustomerID)
+		if err != nil {
+			return err
+		}
+		if customer.Status == "closed" {
+			return ErrOrderState
+		}
 		if err := s.lockBusinessScope(ctx, tx, observed.OperatorID); err != nil {
 			return err
 		}

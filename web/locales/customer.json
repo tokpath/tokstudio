@@ -351,6 +351,14 @@
     "ms": "Saya mengesahkan konsesi, tarikh dan had penggunaan. Setelah diterbitkan, kempen hanya terpakai kepada pelanggan layak yang saya jemput secara langsung.",
     "th": "ข้าพเจ้ายืนยันส่วนลด วันที่ และขีดจำกัดการใช้งาน หลังเผยแพร่แคมเปญใช้ได้เฉพาะลูกค้าที่ข้าพเจ้าเชิญโดยตรงและมีสิทธิ์"
   },
+  "我确认保存此活动为停用状态。": {
+    "en": "I confirm that this campaign will be saved as disabled.",
+    "ja": "このキャンペーンを無効として保存することを確認します。",
+    "ru": "Подтверждаю сохранение кампании в отключённом состоянии.",
+    "hi": "मैं पुष्टि करता/करती हूँ कि यह अभियान निष्क्रिय रूप में सहेजा जाएगा।",
+    "ms": "Saya mengesahkan bahawa kempen ini akan disimpan dalam keadaan dinyahaktifkan.",
+    "th": "ฉันยืนยันที่จะบันทึกแคมเปญนี้ในสถานะปิดใช้งาน"
+  },
   "正在发布…": {
     "en": "Publishing…",
     "ja": "公開中…",

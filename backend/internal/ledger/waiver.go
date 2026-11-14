@@ -7,6 +7,34 @@ import (
 	"gorm.io/gorm"
 )
 
+// WaiveCustomerBalance posts an account holder's consent to give up the exact
+// remaining payment balance as part of the formal closure transaction.
+func (s *Service) WaiveCustomerBalance(ctx context.Context, tx *gorm.DB, operator, customer, evidence string, amount Decimal) error {
+	if tx == nil || !amount.Valid() || amount.Sign() <= 0 || evidence == "" {
+		return ErrScope
+	}
+	if err := lockCustomer(tx, operator, customer); err != nil {
+		return err
+	}
+	wallet, err := s.FindAccount(ctx, tx, operator, customer, "customer:money")
+	if err != nil {
+		return err
+	}
+	wallet, err = s.AccountInTransaction(ctx, tx, wallet.ID)
+	if err != nil {
+		return err
+	}
+	if !wallet.Held.IsZero() || wallet.Balance.Cmp(amount) != 0 {
+		return ErrHoldState
+	}
+	control, err := s.EnsureAccount(ctx, tx, Account{OperatorID: operator, OwnerID: operator, Purpose: "control:balance_waivers", Unit: MoneyUnit, AllowNegative: true})
+	if err != nil {
+		return err
+	}
+	_, err = s.Post(ctx, tx, Posting{OperatorID: operator, BusinessKey: "closure-balance-waiver:" + customer, Kind: "balance_closure_waiver", SourceID: customer, ActorID: customer, Reason: evidence, Lines: []Line{{wallet.ID, amount.Neg()}, {control.ID, amount}}})
+	return err
+}
+
 // CancelClosureGifts is invoked by the authenticated lifecycle coordinator in
 // the same transaction that formally closes the customer. Purchased rights
 // must already be consumed, expired or explicitly waived. This does not grant

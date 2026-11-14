@@ -179,12 +179,13 @@ func (s *Store) ConfigureTemporaryLifecycle(ctx context.Context) error {
 		}
 	} else {
 		for _, r := range existing.Rules {
-			if aws.ToString(r.ID) != "tokenhub-temporary-results" {
+			if aws.ToString(r.ID) != "tokenhub-temporary-results" && aws.ToString(r.ID) != "tokenhub-exports" {
 				rules = append(rules, r)
 			}
 		}
 	}
 	rules = append(rules, types.LifecycleRule{ID: aws.String("tokenhub-temporary-results"), Status: types.ExpirationStatusEnabled, Filter: &types.LifecycleRuleFilter{Prefix: aws.String("temporary-results/")}, Expiration: &types.LifecycleExpiration{Days: aws.Int32(2)}, NoncurrentVersionExpiration: &types.NoncurrentVersionExpiration{NoncurrentDays: aws.Int32(2)}, AbortIncompleteMultipartUpload: &types.AbortIncompleteMultipartUpload{DaysAfterInitiation: aws.Int32(1)}})
+	rules = append(rules, types.LifecycleRule{ID: aws.String("tokenhub-exports"), Status: types.ExpirationStatusEnabled, Filter: &types.LifecycleRuleFilter{Prefix: aws.String("exports/")}, Expiration: &types.LifecycleExpiration{Days: aws.Int32(2)}, NoncurrentVersionExpiration: &types.NoncurrentVersionExpiration{NoncurrentDays: aws.Int32(2)}})
 	_, e = s.client.PutBucketLifecycleConfiguration(ctx, &s3.PutBucketLifecycleConfigurationInput{Bucket: aws.String(s.bucket), LifecycleConfiguration: &types.BucketLifecycleConfiguration{Rules: rules}})
 	if e != nil {
 		return fmt.Errorf("%w: lifecycle configuration failed", ErrUnavailable)

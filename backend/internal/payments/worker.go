@@ -24,17 +24,22 @@ func (s *Service) RunPending(ctx context.Context, limit int) ([]InboxAttempt, er
 		limit = 20
 	}
 	var jobs []struct {
-		MerchantID, EventID string
-		Attempts            int
+		MerchantID, EventID   string
+		Attempts, MaxAttempts int
+		Refund                bool
+		LeaseUntil            time.Time
 	}
 	e := s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Scheduling uses PostgreSQL's clock, as the inbox's initial due time
 		// does. Host/DB clock skew must not hide a newly persisted callback.
-		if e := tx.Table("payments_webhook_inbox").Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("(state='pending' AND next_attempt_at<=clock_timestamp()) OR (state='processing' AND lease_until<clock_timestamp())").Order("received_at").Limit(limit).Find(&jobs).Error; e != nil {
+		if e := tx.Table("payments_webhook_inbox").
+			Select("merchant_id,event_id,attempts,max_attempts,COALESCE(hint->>'kind'='refund',false) AS refund").
+			Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("(state='pending' AND next_attempt_at<=clock_timestamp()) OR (state='processing' AND lease_until<clock_timestamp())").Order("received_at,merchant_id,event_id").Limit(limit).Find(&jobs).Error; e != nil {
 			return e
 		}
-		for _, job := range jobs {
-			if e := tx.Table("payments_webhook_inbox").Where("merchant_id=? AND event_id=?", job.MerchantID, job.EventID).Updates(map[string]any{"state": "processing", "lease_until": gorm.Expr("clock_timestamp()+interval '30 seconds'")}).Error; e != nil {
+		for i := range jobs {
+			job := &jobs[i]
+			if e := tx.Raw("UPDATE payments_webhook_inbox SET state='processing',lease_until=clock_timestamp()+interval '30 seconds' WHERE merchant_id=? AND event_id=? RETURNING lease_until", job.MerchantID, job.EventID).Row().Scan(&job.LeaseUntil); e != nil {
 				return e
 			}
 		}
@@ -71,7 +76,12 @@ func (s *Service) RunPending(ctx context.Context, limit int) ([]InboxAttempt, er
 			if backoff > time.Hour {
 				backoff = time.Hour
 			}
-			if dbErr := s.DB.WithContext(ctx).Table("payments_webhook_inbox").Where("merchant_id=? AND event_id=? AND state='processing'", job.MerchantID, job.EventID).Updates(map[string]any{"state": "pending", "attempts": job.Attempts + 1, "next_attempt_at": gorm.Expr("clock_timestamp() + make_interval(secs => ?)", int64(backoff/time.Second)), "lease_until": nil, "error_code": code}).Error; dbErr != nil {
+			update := map[string]any{"state": "pending", "attempts": job.Attempts + 1, "next_attempt_at": gorm.Expr("clock_timestamp() + make_interval(secs => ?)", int64(backoff/time.Second)), "lease_until": nil, "error_code": code}
+			if job.Refund && job.Attempts+1 >= job.MaxAttempts {
+				attempt.State = "dead"
+				update["state"], update["exhausted_at"] = attempt.State, gorm.Expr("clock_timestamp()")
+			}
+			if dbErr := s.DB.WithContext(ctx).Table("payments_webhook_inbox").Where("merchant_id=? AND event_id=? AND state='processing' AND lease_until=?", job.MerchantID, job.EventID, job.LeaseUntil).Updates(update).Error; dbErr != nil {
 				return out, dbErr
 			}
 		}

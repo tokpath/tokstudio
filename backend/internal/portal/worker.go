@@ -79,7 +79,7 @@ func (a *Application) setProgress(ctx context.Context, id, cursor string) error 
 	return a.DB.WithContext(ctx).Exec("INSERT INTO portal_worker_progress(id,cursor) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET cursor=EXCLUDED.cursor", id, cursor).Error
 }
 func (a *Application) DiscoverWorkerTasks(ctx context.Context) error {
-	for _, kind := range []string{"registration_release", "unpaid_orders", "kvoucher_payments", "commerce_events", "incentive_events", "remediation_events", "catalog_changes", "retention"} {
+	for _, kind := range []string{"registration_release", "unpaid_orders", "kvoucher_payments", "incentive_events", "remediation_events", "catalog_changes", "retention"} {
 		interval := time.Minute
 		if kind == "kvoucher_payments" {
 			interval = 5 * time.Second
@@ -87,6 +87,9 @@ func (a *Application) DiscoverWorkerTasks(ctx context.Context) error {
 		if e := a.schedule(ctx, kind, "global", workerPayload{}, interval); e != nil {
 			return e
 		}
+	}
+	if e := a.queueCommerceNotifications(ctx); e != nil {
+		return e
 	}
 	domains, domainErr := a.Branding.PendingDomainChecks(ctx)
 	if domainErr != nil {
@@ -127,7 +130,7 @@ func (a *Application) DiscoverWorkerTasks(ctx context.Context) error {
 	if e != nil {
 		return e
 	}
-	customers, e := a.Organization.CurrentCustomerPage(ctx, nil, cursor, 100)
+	customers, e := a.Incentives.DueQualificationPage(ctx, cursor, 100)
 	if e != nil {
 		return e
 	}
@@ -248,6 +251,34 @@ func (a *Application) DiscoverWorkerTasks(ctx context.Context) error {
 	}
 	return a.setProgress(ctx, "registration_rewards", next)
 }
+func (a *Application) queueCommerceNotifications(ctx context.Context) error {
+	return a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var events []struct{ ID, OperatorID, Kind string }
+		if err := tx.Raw(`SELECT e.id,e.operator_id,e.kind FROM commerce_events e
+ WHERE e.published_at IS NULL
+   AND NOT EXISTS (SELECT 1 FROM durable_jobs j WHERE j.queue='portal-commerce-notifications'
+                   AND j.kind='commerce_notification' AND j.business_key=e.id::text)
+ ORDER BY e.created_at,e.id LIMIT 100 FOR UPDATE OF e SKIP LOCKED`).Scan(&events).Error; err != nil {
+			return err
+		}
+		var acknowledged []string
+		for _, event := range events {
+			if !operations.HasCommerceNotification(event.Kind) {
+				acknowledged = append(acknowledged, event.ID)
+				continue
+			}
+			payload, _ := json.Marshal(workerPayload{ID: event.ID, OperatorID: event.OperatorID})
+			if _, err := a.Jobs.EnqueueTx(tx, jobs.Input{Queue: "portal-commerce-notifications", Kind: "commerce_notification", BusinessKey: event.ID, Payload: payload, MaxAttempts: 12}); err != nil {
+				return err
+			}
+		}
+		if len(acknowledged) != 0 {
+			return tx.Table("commerce_events").Where("id IN ?", acknowledged).Update("published_at", gorm.Expr("clock_timestamp()")).Error
+		}
+		return nil
+	})
+}
+
 func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 	var p workerPayload
 	if e := json.Unmarshal(job.Payload, &p); e != nil {
@@ -278,9 +309,8 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 	case "incentive_events":
 		_, e := a.Incentives.RelayEvents(ctx, nil, 100, operations.IncentiveNotifications{Operations: a.Operations, Audience: a.Incentives})
 		return e
-	case "commerce_events":
-		_, e := a.Commerce.RelayEvents(ctx, nil, 100, operations.CommerceNotifications{Operations: a.Operations, Audience: a.Commerce})
-		return e
+	case "commerce_notification":
+		return a.Commerce.PublishEvent(ctx, nil, p.ID, operations.CommerceNotifications{Operations: a.Operations, Audience: a.Commerce})
 	case "qualification":
 		return a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			own, e := a.Organization.CurrentOwnership(ctx, tx, p.CustomerID)
@@ -341,15 +371,14 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 		_, e := a.Operations.ReviewInvoices(ctx, p.OperatorID, 50)
 		return e
 	case "retention":
-		if _, e := a.Operations.RunRetention(ctx, time.Now().UTC(), 100); e != nil {
-			return e
-		}
-		return a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		_, resultsErr := a.Operations.RunRetention(ctx, time.Now().UTC(), 100)
+		accountErr := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			if e := tx.Model(&queuedMessage{}).Where("expires_at<=? AND ciphertext<>''", time.Now()).Updates(map[string]any{"ciphertext": "", "status": "expired"}).Error; e != nil {
 				return e
 			}
 			return tx.Where("expires_at<=?", time.Now()).Delete(&browserSession{}).Error
 		})
+		return errors.Join(resultsErr, accountErr)
 	}
 	return errors.New("unknown maintenance kind")
 }
@@ -367,11 +396,15 @@ func safeWorkerError(kind string, e error) string {
 	return kind + ": dependency_or_state_requires_review"
 }
 func (a *Application) RunMaintenanceJobs(ctx context.Context, owner string, limit int) error {
+	return a.runPortalJobs(ctx, "portal-maintenance", owner, limit)
+}
+
+func (a *Application) runPortalJobs(ctx context.Context, queue, owner string, limit int) error {
 	if limit < 1 || limit > 100 {
 		limit = 1
 	}
 	for i := 0; i < limit; i++ {
-		claimed, e := a.Jobs.Claim(ctx, "portal-maintenance", owner, 60*time.Second, 1)
+		claimed, e := a.Jobs.Claim(ctx, queue, owner, 60*time.Second, 1)
 		if e != nil {
 			return e
 		}
@@ -441,6 +474,7 @@ func (a *Application) RunWorker(ctx context.Context, concurrency int, onError fu
 				report("delivery", a.RunDeliveryJobs(ctx, owner, 1))
 				report("price_checks", a.RunPriceChecks(ctx, owner, 1))
 				report("maintenance", a.RunMaintenanceJobs(ctx, owner, 1))
+				report("commerce_notification", a.runPortalJobs(ctx, "portal-commerce-notifications", owner, 1))
 				if _, e := a.Payments.RunPending(ctx, 1); e != nil {
 					report("payments", e)
 				}
@@ -464,7 +498,11 @@ func (a *Application) RunWorker(ctx context.Context, concurrency int, onError fu
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	for {
-		report("discovery", a.DiscoverWorkerTasks(ctx))
+		e := a.DiscoverWorkerTasks(ctx)
+		report("discovery", e)
+		if e == nil {
+			a.workerHeartbeat.Store(time.Now().UnixNano())
+		}
 		select {
 		case <-ctx.Done():
 			workers.Wait()

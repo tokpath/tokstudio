@@ -43,7 +43,7 @@ func (a *Application) invoiceFiles(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	filesAvailable := !customer && !buyer || application.Invoice.State == "issued" || application.Invoice.State == "review_required" || application.Invoice.State == "voided"
+	filesAvailable := !customer && !buyer || application.Invoice.HasIssuedDocument()
 	var rows []operations.InvoiceFile
 	if filesAvailable {
 		if buyer {

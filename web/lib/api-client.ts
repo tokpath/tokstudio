@@ -40,6 +40,20 @@ async function readResponse<T extends z.ZodTypeAny>(response: Response, schema: 
   return result.data;
 }
 
+export async function downloadCSV(path: string, filename: string) {
+  if (!path.startsWith("/api/v1/")) throw new Error("Business API path must start with /api/v1/");
+  const response = await fetch(path, { credentials: "same-origin", cache: "no-store", headers: { Accept: "text/csv", "Accept-Language": getClientLocale() }, signal: AbortSignal.timeout(requestTimeoutMs) });
+  if (!response.ok) await readResponse(response, z.unknown());
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function uploadWithProgress<T extends z.ZodTypeAny>(path: string, schema: T, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; actionKey?: string; onUploadProgress?: (loaded: number, total: number) => void }): Promise<z.infer<T>> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();

@@ -3,9 +3,13 @@ package portal
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +18,67 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 )
+
+func TestExternalFailedRefundWebhookFinishesAndUnverifiedOneIsRecoverable(t *testing.T) {
+	lab := os.Getenv("TOKENHUB_PAYMENT_MOCK_URL")
+	if lab == "" {
+		t.Skip("requires independent integration-lab")
+	}
+	f := setupPortal(t)
+	s := seedOriginalRefund(t, f, lab)
+	base := "/v1/operators/" + s.operator + "/refunds"
+	var merchant string
+	if err := f.a.DB.Raw("SELECT merchant_id FROM payments_intents WHERE order_id=?", s.order).Row().Scan(&merchant); err != nil {
+		t.Fatal(err)
+	}
+	originalRefundControl(t, lab, "/__control/faults", map[string]any{"path": "/v1/refunds", "mode": "timeout_after", "count": 1})
+	status, out, _ := f.call(t, "POST", base+"/"+s.leg+"/execute_api", map[string]any{}, "")
+	mustOK(t, status, out)
+	initial, err := f.a.Payments.QueryRefund(t.Context(), s.operator, merchant, s.leg)
+	if err != nil || initial.ProviderID == "" || initial.State != "pending" {
+		t.Fatalf("initial refund: %s %v", initial.State, err)
+	}
+	event := originalRefundControl(t, lab, "/__control/refunds/"+initial.ProviderID+"/settle", map[string]any{"status": "failed"})
+	eventID := event["event_id"].(string)
+	callback := f.server.URL
+	if host := os.Getenv("TOKENHUB_MOCK_CALLBACK_HOST"); host != "" {
+		u, err := url.Parse(callback)
+		if err != nil {
+			t.Fatal(err)
+		}
+		callback = "http://" + net.JoinHostPort(host, u.Port())
+	}
+	originalRefundControl(t, lab, "/__control/webhooks", map[string]any{"url": callback + "/v1/payments/webhooks/" + merchant, "event_id": eventID})
+	// First record the provider failure through the normal staff query.
+	status, out, _ = f.call(t, "POST", base+"/"+s.leg+"/query_api", map[string]any{}, "")
+	mustOK(t, status, out)
+	if attempts, err := f.a.Payments.RunPending(t.Context(), 10); err != nil || len(attempts) != 1 || attempts[0].EventID != eventID || attempts[0].State != "processed" {
+		t.Fatalf("terminal callback: %+v %v", attempts, err)
+	}
+	if err = f.a.DB.Exec(`UPDATE payments_webhook_inbox SET state='pending',attempts=11,next_attempt_at=now(),
+	hint=jsonb_set(hint,'{provider_id}',to_jsonb('different fixture reference'::text)) WHERE merchant_id=? AND event_id=?`, merchant, eventID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if attempts, err := f.a.Payments.RunPending(t.Context(), 10); err != nil || len(attempts) != 1 || attempts[0].State != "dead" {
+		t.Fatalf("failed callback should exhaust: %+v %v", attempts, err)
+	}
+	jobsPath := "/v1/operators/" + s.operator + "/jobs"
+	status, out, _ = f.call(t, "GET", jobsPath, nil, "")
+	mustOK(t, status, out)
+	rows := out["items"].([]any)
+	if len(rows) != 1 {
+		t.Fatal(rows)
+	}
+	jobID := rows[0].(map[string]any)["id"].(string)
+	status, out, _ = f.call(t, "POST", jobsPath+"/"+jobID+"/redrive", map[string]any{}, "")
+	mustOK(t, status, out)
+	if err = f.a.DB.Exec(`UPDATE payments_webhook_inbox SET hint=jsonb_set(hint,'{provider_id}',to_jsonb(?::text)) WHERE merchant_id=? AND event_id=?`, initial.ProviderID, merchant, eventID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if attempts, err := f.a.Payments.RunPending(t.Context(), 10); err != nil || len(attempts) != 1 || attempts[0].State != "processed" {
+		t.Fatalf("recovered original callback: %+v %v", attempts, err)
+	}
+}
 
 type originalRefundFixture struct {
 	operator, order, refundCase, leg string
@@ -76,7 +141,7 @@ func seedOriginalRefund(t *testing.T, f *testApp, lab string) originalRefundFixt
 	return originalRefundFixture{operator: op, order: orderID, refundCase: caseID, leg: legs[0].ID}
 }
 
-func originalRefundControl(t *testing.T, lab, path string, data map[string]any) {
+func originalRefundControl(t *testing.T, lab, path string, data map[string]any) map[string]any {
 	t.Helper()
 	b, e := json.Marshal(data)
 	if e != nil {
@@ -96,6 +161,11 @@ func originalRefundControl(t *testing.T, lab, path string, data map[string]any) 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		t.Fatalf("simulator %s returned %d", path, res.StatusCode)
 	}
+	var out map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	return out
 }
 
 func TestExternalOriginalRouteRefundAppearsOnSourceOrder(t *testing.T) {
@@ -126,5 +196,14 @@ func TestExternalOriginalRouteRefundAppearsOnSourceOrder(t *testing.T) {
 	refunds := order["refunds"].([]any)
 	if len(refunds) != 1 || refunds[0].(map[string]any)["id"] != s.refundCase || refunds[0].(map[string]any)["status"] != "completed" || refunds[0].(map[string]any)["amount_money"] != "10" {
 		t.Fatal(refunds)
+	}
+	resp, e := f.client.Get(f.server.URL + "/v1/me/refunds/" + s.refundCase + "/voucher")
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer resp.Body.Close()
+	raw, e := io.ReadAll(resp.Body)
+	if e != nil || resp.StatusCode != 200 || !strings.Contains(string(raw), s.order) || !strings.Contains(string(raw), ",10,USD,") {
+		t.Fatalf("completed refund voucher: %d %v %s", resp.StatusCode, e, raw)
 	}
 }

@@ -74,7 +74,7 @@ cd web && npm run build && npx playwright test
 
 ## 备份和隔离恢复
 
-设置独立随机的 `TOKENHUB_BACKUP_KEY`（至少 32 字符，另存至密钥保管系统）后，运行 `docker compose --profile backup up --build -d backup`。备份容器使用真实 `pg_dump`，归档数据库以及私有桶的 `branding/`、`invoices/`、`finance-evidence/` 文件清单、长度和 SHA-256，再进行认证加密；不包含模型临时结果或可重建的导出。默认每天备份一次，成功后清理超过 30 天的本地备份。`tokenhub_v2_offsite` 只是本机卷的名字，并不意味着异地容灾；须另行复制加密文件至独立存储并监控备份失败。
+设置独立随机的 `TOKENHUB_BACKUP_KEY`（至少 32 字符，另存至密钥保管系统）后，运行 `docker compose --profile backup up --build -d backup`。备份用 `pg_dump` 归档数据库，并保存私有桶中的品牌、发票、财务证据和合作合同文件及其校验清单。导出申请和下载审计随数据库保留。临时 CSV 正文和模型结果保存在私有桶的临时目录，均排除在备份之外。恢复后如需 CSV，可重新生成。默认每天备份一次，成功后清理超过 30 天的本地备份。异地容灾需另行复制加密文件至独立存储，并监控备份失败。
 
 原应用加密密钥和备份密钥都必须保留，分别用于恢复业务密文和解开备份。恢复只接受显式配置、名称以 `tokenhub_restore_drill_` 开头的空数据库及独立空对象桶。预先创建它们，在演练进程中设置 `TOKENHUB_RESTORE_DATABASE_URL` 和目的桶的 `TOKENHUB_S3_*`，保持 `TOKENHUB_DATABASE_URL` 指向源库，再运行 `bash scripts/restore_drill.sh /绝对路径/备份.thbk`。本机执行需要 PostgreSQL 16 客户端；也可使用 Dockerfile 的 `backup` 构建阶段运行 `tokenhub-backup --mode=restore-drill --input=…`。
 

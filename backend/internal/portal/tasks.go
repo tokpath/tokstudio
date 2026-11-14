@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/jobs"
@@ -63,6 +64,19 @@ func (a *Application) redrive(c *gin.Context, op organization.Operator) {
 	raw, e := a.command(c, "redrive:"+op.ID+":"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
 		if !taskIDPattern.MatchString(c.Param("id")) {
 			return nil, organization.ErrInvalidInput
+		}
+		if strings.HasPrefix(c.Param("id"), "refund_") {
+			result := tx.Exec(`UPDATE payments_webhook_inbox SET state='pending',max_attempts=max_attempts+3,
+ next_attempt_at=clock_timestamp()
+ WHERE exhausted_at IS NOT NULL AND state='dead' AND max_attempts+3<=?
+ AND md5(merchant_id||':'||event_id)=?`, jobs.MaxAttempts, strings.TrimPrefix(c.Param("id"), "refund_"))
+			if result.Error != nil {
+				return nil, result.Error
+			}
+			if result.RowsAffected != 1 {
+				return nil, organization.ErrConflict
+			}
+			return commandResult(c.Param("id"), "pending"), nil
 		}
 		var job jobs.Job
 		if err := tx.First(&job, "id=?", c.Param("id")).Error; err != nil {

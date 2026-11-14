@@ -42,7 +42,7 @@ func TestPostgresFinancialFactsKeepGiftCostWithinTotalAndCorrectionsSeparate(t *
 	if e != nil {
 		t.Fatal(e)
 	}
-	if report.CorrectionPaidMoney.Cmp(d("80")) != 0 || !report.ShortfallATG.IsZero() || len(report.SupplierCosts) != 2 || report.SupplierCosts[0].Currency != "CNY" || report.SupplierCosts[0].ReportedCost.String() != "6" || report.SupplierCosts[1].ReferenceCost.String() != "0.8" {
+	if report.CorrectionPaidMoney.Cmp(d("80")) != 0 || !report.ShortfallATG.IsZero() || !report.NetChargedATG.IsZero() || len(report.SupplierCosts) != 2 || report.SupplierCosts[0].Currency != "CNY" || report.SupplierCosts[0].ReportedCost.String() != "6" || report.SupplierCosts[1].ReferenceCost.String() != "0.8" {
 		t.Fatalf("retail correction must not fabricate supplier refund: %+v", report)
 	}
 	rows, e := f.s.OperationalRequests(f.ctx, nil, f.operator, f.customer, from, to, 100)

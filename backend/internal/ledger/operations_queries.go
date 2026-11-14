@@ -18,21 +18,29 @@ type IntegrityFact struct {
 }
 
 func (s *Service) OperationalIntegrity(ctx context.Context, tx *gorm.DB, operator string) ([]IntegrityFact, error) {
-	if _, e := uuid.Parse(operator); e != nil {
-		return nil, ErrScope
+	if operator != "" {
+		if _, e := uuid.Parse(operator); e != nil {
+			return nil, ErrScope
+		}
+	}
+	var filter any
+	if operator != "" {
+		filter = operator
 	}
 	out := []IntegrityFact{}
 	e := s.within(ctx, tx, func(t *gorm.DB) error {
 		return t.Raw(`SELECT a.id::text AS reference,'account_balance' AS kind,a.unit,COALESCE(e.amount,0)::text AS expected,a.balance::text AS actual
    FROM ledger_accounts a LEFT JOIN (SELECT account_id,sum(amount) AS amount FROM ledger_entries GROUP BY account_id)e ON e.account_id=a.id
-   WHERE a.operator_id=? AND a.balance<>COALESCE(e.amount,0)
+   WHERE a.operator_id=COALESCE(?::uuid,a.operator_id) AND a.balance<>COALESCE(e.amount,0)
    UNION ALL
    SELECT a.id::text,'account_held',a.unit,COALESCE(h.amount,0)::text,a.held::text
    FROM ledger_accounts a LEFT JOIN(SELECT ha.account_id,sum(ha.amount) AS amount FROM ledger_hold_allocations ha JOIN ledger_holds h ON h.id=ha.hold_id WHERE h.status='active' GROUP BY ha.account_id)h ON h.account_id=a.id
-   WHERE a.operator_id=? AND a.held<>COALESCE(h.amount,0)
+   WHERE a.operator_id=COALESCE(?::uuid,a.operator_id) AND a.held<>COALESCE(h.amount,0)
    UNION ALL
-   SELECT j.id::text,'journal_balance',e.unit,'0',sum(e.amount)::text FROM ledger_journals j JOIN ledger_entries e ON e.journal_id=j.id
-   WHERE j.operator_id=? GROUP BY j.id,e.unit HAVING sum(e.amount)<>0`, operator, operator, operator).Scan(&out).Error
+   SELECT j.id::text,'journal_balance',COALESCE(e.unit,'笔'),'0',COALESCE(sum(e.amount),1)::text
+   FROM ledger_journals j LEFT JOIN ledger_entries e ON e.journal_id=j.id
+   WHERE j.operator_id=COALESCE(?::uuid,j.operator_id)
+   GROUP BY j.id,e.unit HAVING count(e.id)=0 OR sum(e.amount)<>0`, filter, filter, filter).Scan(&out).Error
 	})
 	return out, e
 }

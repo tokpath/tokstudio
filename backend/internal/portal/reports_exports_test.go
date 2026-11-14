@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"io"
 	"net"
 	"net/http/httptest"
@@ -13,6 +14,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/commerce"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 )
 
@@ -27,6 +30,9 @@ func TestSimpleReportsAndCSVExports(t *testing.T) {
 	mustOK(t, status, report)
 	if report["procurement"].(map[string]any)["wholesale_sales_money"] != "1000" {
 		t.Fatal(report)
+	}
+	if cash := report["cash"].(map[string]any); cash["recorded_in_money"] != "1000" || cash["closing_recorded_net_money"] != "1000" {
+		t.Fatalf("same-currency receipt missing from report: %v", cash)
 	}
 	var first string
 	for _, kind := range []string{"financial", "orders", "payments", "requests", "procurement", "ledger"} {
@@ -69,7 +75,7 @@ func TestSimpleReportsAndCSVExports(t *testing.T) {
 		if kind == "procurement" && (!strings.Contains(string(raw), "Third OEM") || !strings.Contains(string(raw), "OEM3-1 channel")) {
 			t.Fatal(string(raw))
 		}
-		if kind == "financial" && !strings.Contains(string(raw), "批发销售额,1000,USD") {
+		if kind == "financial" && (!strings.Contains(string(raw), "批发销售额,1000,USD") || !strings.Contains(string(raw), "资金收支,已核实流入,1000,USD")) {
 			t.Fatal(string(raw))
 		}
 		if kind == "orders" && len(rows) != 1 {
@@ -102,6 +108,78 @@ func TestSimpleReportsAndCSVExports(t *testing.T) {
 			if row["status"] != "expired" || row["values"].(map[string]any)["download_url"] != nil {
 				t.Fatal("expired file offered download", row)
 			}
+		}
+	}
+}
+
+func TestProcurementReportingAndReconciliationUseTheSamePayment(t *testing.T) {
+	s := stockSetup(t)
+	f, ctx := s.f, t.Context()
+	owner := f.a.Installation.OwnerStaffID
+	status, purchase := s.buy(t, 1000)
+	mustOK(t, status, purchase)
+	id := purchase["id"].(string)
+	now := time.Now().UTC()
+	paidAt := now.Add(-time.Hour)
+	split := now.Add(-time.Minute)
+	gross := ledger.FromInt64(1000)
+	receipt, err := f.a.Commerce.RecordManualReceipt(ctx, nil, owner, commerce.VerifiedReceipt{OperatorID: s.oem, ProviderReceiptID: uuid.NewString(), GrossMoney: gross, FeeStatus: "pending", Currency: "USD", OriginalAmount: "1000", ValuationEvidence: "verified fixture", PaidAt: &paidAt, ObservedAt: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	status, order, _ := f.call(t, "POST", "/v1/operators/"+s.oem+"/procurement/"+id+"/fund", map[string]string{"receipt_id": receipt.ID}, "")
+	mustOK(t, status, order)
+	seller, err := f.a.Operations.FinancialReport(ctx, owner, s.oem, paidAt.Add(-time.Minute), split)
+	if err != nil || seller.Cash.RecordedInMoney.Cmp(gross) != 0 {
+		t.Fatalf("seller cash at payment: %+v %v", seller.Cash, err)
+	}
+	buyer, err := f.a.Operations.FinancialReport(ctx, owner, s.channel, paidAt.Add(-time.Minute), split)
+	if err != nil || buyer.Cash.ProcurementPaymentsMoney.Cmp(gross) != 0 {
+		t.Fatalf("buyer cash at payment: %+v %v", buyer.Cash, err)
+	}
+	buyer, err = f.a.Operations.FinancialReport(ctx, owner, s.channel, split, now.Add(time.Minute))
+	if err != nil || !buyer.Cash.ProcurementPaymentsMoney.IsZero() {
+		t.Fatalf("late posting counted twice: %+v %v", buyer.Cash, err)
+	}
+	for _, operator := range []string{s.oem, s.channel} {
+		clean, err := f.a.Operations.RunReconciliation(ctx, owner, operator)
+		if err != nil || clean.FindingCount != 0 {
+			t.Fatalf("clean supply pair: %+v %v", clean, err)
+		}
+	}
+	if err = f.a.DB.Exec("UPDATE cooperation_purchase_orders SET allocated_money=0 WHERE id=?", id).Error; err != nil {
+		t.Fatal(err)
+	}
+	discrepancies := make(map[string]string)
+	for _, operator := range []string{s.oem, s.channel} {
+		for range 2 {
+			run, err := f.a.Operations.RunReconciliation(ctx, owner, operator)
+			if err != nil || run.FindingCount != 1 {
+				t.Fatalf("unreported supply mismatch: %+v %v", run, err)
+			}
+		}
+		rows, next, err := f.a.Operations.ListDiscrepancies(ctx, owner, operator, "open", "", 1)
+		if err != nil || len(rows) != 1 || next != "" || rows[0].Reference != id || rows[0].Expected.Cmp(gross) != 0 || !rows[0].Actual.IsZero() {
+			t.Fatalf("wrong supply mismatch or duplicate: %+v %s %v", rows, next, err)
+		}
+		discrepancies[operator] = rows[0].ID
+		if err := f.a.Operations.ResolveDiscrepancy(ctx, owner, operator, rows[0].ID, receipt.ID, "verified receipt"); !errors.Is(err, operations.ErrConflict) {
+			t.Fatalf("a receipt resolved a still-open mismatch: %v", err)
+		}
+	}
+	if err = f.a.DB.Exec("UPDATE cooperation_purchase_orders SET allocated_money=? WHERE id=?", gross, id).Error; err != nil {
+		t.Fatal(err)
+	}
+	for operator, discrepancy := range discrepancies {
+		if err = f.a.Operations.ResolveDiscrepancy(ctx, owner, operator, discrepancy, uuid.NewString(), "unknown record"); !errors.Is(err, operations.ErrInvalid) {
+			t.Fatalf("unknown reference accepted: %v", err)
+		}
+		if err = f.a.Operations.ResolveDiscrepancy(ctx, owner, operator, discrepancy, receipt.ID, "checked the verified receipt after repair"); err != nil {
+			t.Fatal(err)
+		}
+		rows, _, err := f.a.Operations.ListDiscrepancies(ctx, owner, operator, "resolved", "", 1)
+		if err != nil || len(rows) != 1 || rows[0].ID != discrepancy || rows[0].AdjustmentReference == nil || *rows[0].AdjustmentReference != receipt.ID {
+			t.Fatalf("resolution did not preserve the evidence: %+v %v", rows, err)
 		}
 	}
 }

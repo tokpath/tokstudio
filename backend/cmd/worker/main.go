@@ -46,6 +46,15 @@ func main() {
 		logger.Fatal().Err(err).Msg("worker_not_ready")
 	}
 	defer application.Close()
+	if len(os.Args) == 2 && os.Args[1] == "--release-check" {
+		check, cancel := context.WithTimeout(ctx, time.Minute)
+		defer cancel()
+		if err := application.ReleaseCheck(check); err != nil {
+			logger.Fatal().Err(err).Msg("release_check_failed")
+		}
+		logger.Info().Msg("release_check_passed")
+		return
+	}
 	addr := os.Getenv("TOKENHUB_WORKER_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8081"

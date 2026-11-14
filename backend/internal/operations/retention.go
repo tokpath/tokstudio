@@ -2,6 +2,7 @@ package operations
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -18,15 +19,32 @@ func (s *Service) RunRetention(ctx context.Context, at time.Time, limit int) (Re
 		limit = 100
 	}
 	var out RetentionResult
-	r := s.DB.WithContext(ctx).Model(&Export{}).Where("expires_at<=? AND state<>'expired'", at).Updates(map[string]any{"content_ciphertext": "", "state": "expired", "lease_until": nil})
-	out.ExportsPurged = r.RowsAffected
-	if r.Error != nil {
-		return out, r.Error
+	var expired []Export
+	if err := s.DB.WithContext(ctx).Where("expires_at<=? AND state<>'expired'", at).Order("expires_at,id").Limit(limit).Find(&expired).Error; err != nil {
+		return out, err
+	}
+	var cleanupErr error
+	for _, row := range expired {
+		if row.ObjectKey != "" {
+			if s.ExportStore == nil {
+				return out, ErrNotReady
+			}
+			if err := s.ExportStore.Delete(ctx, row.ObjectKey); err != nil {
+				cleanupErr = errors.Join(cleanupErr, err)
+				continue
+			}
+		}
+		r := s.DB.WithContext(ctx).Model(&Export{}).Where("id=? AND state<>'expired'", row.ID).
+			Updates(map[string]any{"object_key": "", "state": "expired", "lease_until": nil, "attempt_id": nil})
+		if r.Error != nil {
+			return out, r.Error
+		}
+		out.ExportsPurged += r.RowsAffected
 	}
 	if s.Results == nil {
-		return out, ErrNotReady
+		return out, errors.Join(cleanupErr, ErrNotReady)
 	}
 	var e error
 	out.ModelResultsPurged, e = s.Results.PurgeExpiredResults(ctx, at, limit)
-	return out, e
+	return out, errors.Join(cleanupErr, e)
 }

@@ -200,9 +200,11 @@ const resourceFilterStatuses: Record<string, readonly string[]> = {
   invoices: ["requested", "issued", "rejected", "review_required", "voided"],
   "procurement-invoices": ["requested", "issued", "rejected", "review_required", "voided"],
   "receipt-valuations": ["awaiting_settlement"],
+  reconciliation: ["open", "resolved"],
   assets: ["open"], ledger: ["open"],
 };
 const invoiceStatusLabels: Record<string,string> = {issued:"已开具"};
+const reconciliationStatusLabels: Record<string, string> = { open: "待处理", resolved: "已结案" };
 const disputeStatusLabels: Record<string, string> = {
   disputed: "待复核", invalid_payment: "付款无效", merchant_collection_risk: "经营收款风险", reversed: "已撤销",
 };
@@ -211,6 +213,7 @@ function recordStatusLabels(resource: string) {
   if (["invoices","procurement-invoices"].includes(resource)) return invoiceStatusLabels;
   if (resource === "refunds") return refundStatusLabels;
   if (resource === "disputes") return disputeStatusLabels;
+  if (resource === "reconciliation") return reconciliationStatusLabels;
   if (resource === "withdrawals" || resource === "balance-withdrawals") return withdrawalStatusLabels;
   return undefined;
 }
@@ -219,6 +222,7 @@ export function resourceFilterStatusLabel(resource: string, status: string): str
   if ((resource === "withdrawals" || resource === "balance-withdrawals") && withdrawalStatusLabels[status]) return withdrawalStatusLabels[status];
   if (resource === "refunds" && refundStatusLabels[status]) return refundStatusLabels[status];
   if (resource === "disputes") return disputeStatusLabels[status] || status;
+  if (resource === "reconciliation") return reconciliationStatusLabels[status] || status;
   if (resource === "customers" && status === "suspended") return "已暂停账号";
   return ({ partial: "部分付款", anonymized: "已匿名", open: "正常" } as Record<string, string>)[status] || statusLabels[status] || status;
 }
@@ -320,12 +324,13 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     {label:t("供应商参考成本"),align:"right",cell:(row:Entity)=><div className="min-w-24"><Money value={String(row.values.reference_amount || "0")} unit={String(row.values.reference_currency || "USD")} />{Number(row.values.pending_count)>0 && <p className="mt-2 text-xs text-hold">{t("{count} 次调用缺少核算金额",{count:Number(row.values.pending_count)})}</p>}</div>},
     {label:t("供应商实际账单"),align:"right",cell:(row:Entity)=><Money value={String(row.values.amount || "0")} unit={String(row.values.currency || "")} />},
     {label:"办理",cell:row=><div className="min-w-28">{actions(row)}</div>},
-  ]} /> : <Table rows={items} getID={row => row.id} emptyTitle={resourceName === "reconciliation" ? "没有差额" : undefined} empty={t(resourceName === "reconciliation" ? "对账后这里仍为空，表示账户余额、占用、记账借贷和采购额度都与原始事实一致，没有异常数据。只有对不上的差额才会出现在这里。" : "当前筛选下没有记录。可查询其他编号或继续办理新事项。")} columns={[{ label: t("名称与事项"), cell: identity }, ...columnsFor(items).filter(column => column.key !== "state").map(column => ({ label: column.label, help: businessFieldHelp(`${resourceName}.${column.key}`, column.help), align: ["money", "atg", "decimal"].includes(column.kind) ? "right" as const : undefined, cell: (row: Entity) => { if ((resourceName === "catalog" || resourceName === "providers") && column.key === "capabilities") return <PublicModelCapabilities value={row.values.capabilities} />; if (resourceName === "catalog" && column.key === "enabled" && operatorID) return <PublicModelSwitch row={row} operatorID={operatorID} />; const value = <ResourceValue value={readableResourceValue(row, column.key, locale)} kind={column.kind} field={column.key} settlementCurrency={recordSettlementCurrency(row)} />; if (column.key === "reserved_atg" && procurementHold(row)) return <span className="inline-flex rounded-md bg-danger/10 px-2 py-1 font-semibold text-danger">{value}</span>; if (column.key === "reserved_note" && procurementHold(row)) return <span className="font-medium text-danger">{value}</span>; return value; } })), { label: t(resourceName === "notifications" ? "邮件状态" : "状态"), cell: (row: Entity) => row.status ? <Status value={row.status} labels={recordStatusLabels(resourceName)} /> : <span>—</span> }, { label: t("办理"), cell: (row: Entity) => actions(row) }]} />;
+  ]} /> : <Table rows={items} getID={row => row.id} emptyTitle={resourceName === "reconciliation" ? "没有差额" : undefined} empty={t(resourceName === "reconciliation" ? "此筛选范围内没有待办或已结案差额。" : "当前筛选下没有记录。可查询其他编号或继续办理新事项。")} columns={[{ label: t("名称与事项"), cell: identity }, ...columnsFor(items).filter(column => column.key !== "state").map(column => ({ label: column.label, help: businessFieldHelp(`${resourceName}.${column.key}`, column.help), align: ["money", "atg", "decimal"].includes(column.kind) ? "right" as const : undefined, cell: (row: Entity) => { if ((resourceName === "catalog" || resourceName === "providers") && column.key === "capabilities") return <PublicModelCapabilities value={row.values.capabilities} />; if (resourceName === "catalog" && column.key === "enabled" && operatorID) return <PublicModelSwitch row={row} operatorID={operatorID} />; const value = <ResourceValue value={readableResourceValue(row, column.key, locale)} kind={column.kind} field={column.key} settlementCurrency={recordSettlementCurrency(row)} />; if (column.key === "reserved_atg" && procurementHold(row)) return <span className="inline-flex rounded-md bg-danger/10 px-2 py-1 font-semibold text-danger">{value}</span>; if (column.key === "reserved_note" && procurementHold(row)) return <span className="font-medium text-danger">{value}</span>; return value; } })), { label: t(resourceName === "notifications" ? "邮件状态" : "状态"), cell: (row: Entity) => row.status ? <Status value={row.status} labels={recordStatusLabels(resourceName)} /> : <span>—</span> }, { label: t("办理"), cell: (row: Entity) => actions(row) }]} />;
   const renderRefund = (row: Entity, children: Entity[]) => <section key={row.id} className="rounded-card border border-hairline bg-canvas-raised p-5"><div className="flex flex-wrap items-start justify-between gap-3">{identity(row)}{row.status && <Status value={row.status} labels={refundStatusLabels} />}</div><div className="my-4 grid gap-4 sm:grid-cols-3"><div><p className="mb-1 text-xs text-ink-mute">{t("退款责任")}</p><ResourceValue value={row.values.amount_money} kind="money" /></div><div><p className="mb-1 text-xs text-ink-mute">{t("已真实清偿")}</p><ResourceValue value={sumResourceAmounts(children, "settled_money")} kind="money" /></div><div><p className="mb-1 text-xs text-ink-mute">{t("仍待付款")}</p><ResourceValue value={sumResourceAmounts(children, "remaining_money")} kind="money" /></div></div><p className="mb-4 text-sm text-ink-secondary">{t(refundNextStep(row, children))}</p>{actions(row)}{record && refundSources(row.id)}</section>;
   const refundCases = resourceName === "refunds" ? rows.filter(row => row.values.record_kind === "case") : [];
   const linkedRefundIDs = new Set(refundCases.flatMap(row => { const legs = rows.filter(leg => leg.values.record_kind === "leg" && leg.values.case_id === row.id); return [row.id, ...legs.map(leg => leg.id), ...rows.filter(payment => legs.some(leg => payment.values.leg_id === leg.id)).map(payment => payment.id)]; }));
   const orphanRefunds = rows.filter(row => !linkedRefundIDs.has(row.id));
   const actions = (row: Entity) => <div className="flex flex-wrap items-center gap-1 text-brand-emphasis">
+    {customer && resourceName === "topups" && <Button asChild variant="ghost" size="sm"><Link href={`/workspace/orders?record=${encodeURIComponent(row.id)}`}>{t("查看订单详情")}</Link></Button>}
     {showInspect && (inspectionLinks && operatorID && ["customers", "orders"].includes(resourceName) ? <Button asChild variant="ghost" size="sm"><Link href={subjectURL(operatorID, resourceName, row.id, typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined)} onClick={event => { if (onInspect && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.button === 0) { event.preventDefault(); inspect(row); } }}>{inspectLabel}<ArrowUpRight size={13} aria-hidden className="ml-1" /></Link></Button> : <Button type="button" variant="ghost" size="sm" onClick={() => inspect(row)}>{inspectLabel}<ArrowUpRight size={13} aria-hidden className="ml-1" /></Button>)}{editOperation && (!row.allowed_actions || row.allowed_actions.includes(editOperation.name)) && <Button type="button" variant="ghost" size="sm" onClick={() => selectOperation({ ...editOperation, label: editable.label }, row)}>{t(editable.label)}
     </Button>}{rowOperations(row).map(operation => <Button key={operation.name} type="button" variant="ghost" size="sm" onClick={() => selectOperation(operation, row)}>{t(operation.label)}
     </Button>)}{(customer || resourceName === "procurement-invoices") && ["invoices", "procurement-invoices"].includes(resourceName) && ["issued", "review_required", "voided"].includes(row.status || "") && <Button type="button" variant="ghost" size="sm" onClick={() => setInvoiceID(row.id)}>{t("文件与下载")}</Button>}
@@ -947,6 +952,7 @@ const savedFactLabels: Record<string, string> = {
 };
 
 const enumLabelsByField: Record<string, Record<string, string>> = {
+  "domain": { ledger: "账本", commerce: "订单与交付", cooperation: "采购与供货" },
   "classification": {
     "invalid_payment": "付款无效，按来源纠正",
     "merchant_collection_risk": "经营收款风险，保留客户权益",
@@ -965,6 +971,18 @@ const enumLabelsByField: Record<string, Record<string, string>> = {
     "year": "年"
   },
   "kind": {
+    "account_balance": "余额",
+    "account_held": "占用",
+    "journal_balance": "借贷平衡",
+    "procurement_lots": "采购批次",
+    "procurement_account": "采购余额",
+    "purchase_receipt_allocation": "关联收款",
+    "purchase_order_payment": "采购付款",
+    "purchase_delivery": "实际交付",
+    "retail_receipt_allocation": "关联收款",
+    "retail_order_payment": "套餐付款",
+    "retail_delivery": "实际交付",
+    "retail_delivered_credits": "交付权益",
     "supply": "供货采购",
     "oem": "独立OEM品牌",
     "channel": "同品牌渠道",

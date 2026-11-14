@@ -56,6 +56,7 @@ type Service struct {
 	Invoices            InvoiceSource
 	ProcurementInvoices ProcurementInvoiceSource
 	InvoiceStore        objectstore.BlobStore
+	ExportStore         objectstore.BlobStore
 	Results             ResultRetention
 	Restrictions        RestrictionReviewDirectory
 }

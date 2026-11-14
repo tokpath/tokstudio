@@ -199,10 +199,13 @@ func (s *Service) RegisterInvoice(ctx context.Context, actor, operator, id, stat
 		if e := t.Clauses(clause.Locking{Strength: "UPDATE"}).First(&out, "id=? AND operator_id=?", id, operator).Error; e != nil {
 			return e
 		}
+		if state == "voided" {
+			invoiceRef, evidence = out.InvoiceReference, out.EvidenceReference
+		}
 		if out.State == state && out.InvoiceReference == invoiceRef && out.EvidenceReference == evidence {
 			return nil
 		}
-		if (state == "issued" && out.State != "requested") || (state == "rejected" && out.State != "requested") || (state == "voided" && out.State != "issued" && out.State != "review_required") {
+		if (state == "issued" && out.State != "requested") || (state == "rejected" && out.State != "requested") || (state == "voided" && !out.HasIssuedDocument()) {
 			return ErrConflict
 		}
 		if state == "issued" {
@@ -243,6 +246,10 @@ func (s *Service) RegisterInvoice(ctx context.Context, actor, operator, id, stat
 	return out, e
 }
 
+func (i Invoice) HasIssuedDocument() bool {
+	return i.InvoiceReference != "" && (i.State == "issued" || i.State == "review_required" || i.State == "voided")
+}
+
 // ReviewInvoices flags external refunds/corrections without changing tax facts.
 // An issued invoice remains reserved until a documented void is registered.
 func (s *Service) ReviewInvoices(ctx context.Context, operator string, limit int) (int, error) {
@@ -255,7 +262,7 @@ func (s *Service) ReviewInvoices(ctx context.Context, operator string, limit int
 	count := 0
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
 		rows := []Invoice{}
-		if e := t.Where("operator_id=? AND state IN ('requested','issued')", operator).Order("last_reviewed_at,id").Limit(limit).Find(&rows).Error; e != nil {
+		if e := t.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("operator_id=? AND state='issued'", operator).Order("last_reviewed_at,id").Limit(limit).Find(&rows).Error; e != nil {
 			return e
 		}
 		for _, r := range rows {
@@ -266,8 +273,7 @@ func (s *Service) ReviewInvoices(ctx context.Context, operator string, limit int
 			if e != nil {
 				return e
 			}
-			review := !valid
-			if review {
+			if !valid {
 				if e := t.Model(&Invoice{}).Where("id=?", r.ID).Update("state", "review_required").Error; e != nil {
 					return e
 				}

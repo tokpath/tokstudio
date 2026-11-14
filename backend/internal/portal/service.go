@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io/fs"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -80,6 +81,7 @@ type Staff struct {
 func (Staff) TableName() string { return "portal_staff" }
 
 type Application struct {
+	workerHeartbeat    atomic.Int64
 	ModelPricing       *modelpricing.Service
 	DomainVerifier     branding.DomainVerifier
 	Metrics            *observability.Metrics
@@ -175,7 +177,7 @@ func newApplication(ctx context.Context, c Config, gdb *gorm.DB) (*Application, 
 	}
 	a.Runtime = runtime
 	a.Usage = usage.New(gdb, usage.Dependencies{Ledger: a.Ledger, Organization: a.Organization, Cooperation: a.Cooperation, Catalog: a.Catalog, Runtime: runtime, GrantObserver: a.Incentives, EncryptionKey: c.AppKey, ResultStore: a.ObjectStore, AdmissionLimiter: usage.RedisLimiter{Client: a.Redis}})
-	a.Operations = &operations.Service{DB: gdb, EncryptionKey: c.AppKey, Authorize: a.Organization, Recipients: recipientDirectory{a}, Mail: a.Mail, Source: operations.DomainSource{Payments: a.Payments, Ledger: a.Ledger, Cooperation: a.Cooperation, Usage: a.Usage}, Results: a.Usage, InvoiceStore: a.ObjectStore}
+	a.Operations = &operations.Service{DB: gdb, EncryptionKey: c.AppKey, Authorize: a.Organization, Recipients: recipientDirectory{a}, Mail: a.Mail, Source: operations.DomainSource{Payments: a.Payments, Ledger: a.Ledger, Cooperation: a.Cooperation, Usage: a.Usage}, Results: a.Usage, InvoiceStore: a.ObjectStore, ExportStore: a.ObjectStore}
 	a.Operations.Restrictions = a.Organization
 	a.Remediation = remediation.New(gdb, remediation.Dependencies{Ledger: a.Ledger, Organization: a.Organization, Commerce: a.Commerce, Cooperation: a.Cooperation, Incentives: a.Incentives, Payments: a.Payments})
 	a.Commerce.SetReceiptGuard(a.Remediation)

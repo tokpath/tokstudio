@@ -2,7 +2,6 @@ package usage
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
@@ -16,6 +15,7 @@ type FinancialSnapshot struct {
 	PaidInvocationMoney           ledger.Decimal          `json:"paid_invocation_money"`
 	CorrectionPaidMoney           ledger.Decimal          `json:"correction_paid_money"`
 	ChargedATG                    ledger.Decimal          `json:"charged_atg"`
+	NetChargedATG                 ledger.Decimal          `json:"net_charged_atg"`
 	ActualATG                     ledger.Decimal          `json:"actual_atg"`
 	CorrectionATG                 ledger.Decimal          `json:"correction_atg"`
 	ShortfallATG                  ledger.Decimal          `json:"shortfall_atg"`
@@ -38,57 +38,25 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 		return out, ErrConflict
 	}
 	e := s.within(ctx, tx, func(t *gorm.DB) error {
-		// Aggregate gift cost as rational values before a single display rounding.
-		giftCost := new(big.Rat)
-		var batch []Request
-		q := t.Where("operator_id=? AND status='completed' AND completed_at>=? AND completed_at<?", operator, from, to)
-		if e := q.FindInBatches(&batch, 500, func(batchTx *gorm.DB, _ int) error {
-			for _, r := range batch {
-				var settlement Settlement
-				if e := json.Unmarshal(r.Settlement, &settlement); e != nil {
-					return e
-				}
-				out.CompletedRequests++
-				out.PaidInvocationMoney = out.PaidInvocationMoney.Add(settlement.Customer.PaidMoney)
-				out.ChargedATG = out.ChargedATG.Add(r.ChargedATG)
-				out.ActualATG = out.ActualATG.Add(r.ActualATG)
-				out.ShortfallATG = out.ShortfallATG.Add(r.MerchantShortfall)
-				cost := ledger.Zero()
-				if operator != s.Catalog.PlatformOperatorID {
-					for _, p := range settlement.Procurement {
-						if p.BuyerID == operator {
-							cost = cost.Add(p.CostMoney)
-						}
-					}
-				}
-				out.OwnRetailFulfillmentCostMoney = out.OwnRetailFulfillmentCostMoney.Add(cost)
-				gift := ledger.Zero()
-				for _, e := range settlement.Customer.Events {
-					var sources []ledger.GrantSource
-					if err := json.Unmarshal(e.Sources, &sources); err != nil {
-						return err
-					}
-					for _, source := range sources {
-						if source.Kind != "paid" {
-							gift = gift.Add(source.Amount)
-						}
-					}
-				}
-				if r.ActualATG.Sign() > 0 {
-					giftCost.Add(giftCost, new(big.Rat).Quo(new(big.Rat).Mul(cost.Rat(), gift.Rat()), r.ActualATG.Rat()))
-				}
-			}
-			return nil
-		}).Error; e != nil {
+		if e := t.Raw(`SELECT count(*),
+ COALESCE(sum((settlement#>>'{customer,paid_money}')::numeric),0)::text,
+ COALESCE(sum(charged_atg),0)::text, COALESCE(sum(actual_atg),0)::text, COALESCE(sum(merchant_shortfall),0)::text
+ FROM usage_requests WHERE operator_id=? AND status='completed' AND completed_at>=? AND completed_at<?`, operator, from, to).
+			Row().Scan(&out.CompletedRequests, &out.PaidInvocationMoney, &out.ChargedATG, &out.ActualATG, &out.ShortfallATG); e != nil {
 			return e
 		}
-		out.OwnRetailGiftCostMoney, _ = ledger.Quantize(giftCost)
+		if operator != s.Catalog.PlatformOperatorID {
+			if e := retailFulfillmentCosts(t, operator, from, to, &out); e != nil {
+				return e
+			}
+		}
 		var correction struct{ Paid, Amount, Returned ledger.Decimal }
 		if e := t.Table("usage_charge_corrections").Where("operator_id=? AND created_at>=? AND created_at<?", operator, from, to).Select("COALESCE(sum(paid_money),0)::text AS paid,COALESCE(sum(amount_atg),0)::text AS amount,COALESCE(sum(returned_atg),0)::text AS returned").Scan(&correction).Error; e != nil {
 			return e
 		}
 		out.CorrectionPaidMoney = correction.Paid
 		out.CorrectionATG = correction.Amount
+		out.NetChargedATG = out.ChargedATG.Sub(correction.Returned)
 		// The forgiven over-estimate is corrected before any actual customer debit.
 		out.ShortfallATG = out.ShortfallATG.Sub(correction.Amount.Sub(correction.Returned))
 		if operator == s.Catalog.PlatformOperatorID {
@@ -104,6 +72,42 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 		return nil
 	})
 	return out, e
+}
+
+// Let PostgreSQL add exact numerators with the same denominator, then quantize
+// the combined rational once. Rounding individual gift shares drops small costs.
+func retailFulfillmentCosts(t *gorm.DB, operator string, from, to time.Time, out *FinancialSnapshot) error {
+	var groups []struct {
+		Actual, Cost      ledger.Decimal
+		GiftCostNumerator string
+	}
+	if e := t.Raw(`SELECT r.actual_atg::text AS actual, sum(p.cost_money)::text AS cost,
+ COALESCE(sum(p.cost_money*g.gift_atg),0)::text AS gift_cost_numerator
+ FROM usage_requests r
+ JOIN cooperation_procurement_settlements p ON p.request_id=r.id::text AND p.buyer_id=r.operator_id
+ LEFT JOIN LATERAL (
+   SELECT sum((source->>'amount')::numeric) AS gift_atg
+   FROM jsonb_array_elements(NULLIF(r.settlement#>'{customer,events}','null')) event
+   CROSS JOIN LATERAL jsonb_array_elements(NULLIF(event->'sources','null')) source
+   WHERE source->>'kind'<>'paid'
+ ) g ON r.actual_atg>0
+ WHERE r.operator_id=? AND r.status='completed' AND r.completed_at>=? AND r.completed_at<? AND p.cost_money>0
+ GROUP BY r.actual_atg`, operator, from, to).Scan(&groups).Error; e != nil {
+		return e
+	}
+	gift := new(big.Rat)
+	for _, group := range groups {
+		out.OwnRetailFulfillmentCostMoney = out.OwnRetailFulfillmentCostMoney.Add(group.Cost)
+		if group.Actual.Sign() > 0 {
+			numerator, ok := new(big.Rat).SetString(group.GiftCostNumerator)
+			if !ok {
+				return ErrConflict
+			}
+			gift.Add(gift, numerator.Quo(numerator, group.Actual.Rat()))
+		}
+	}
+	out.OwnRetailGiftCostMoney, _ = ledger.Quantize(gift)
+	return nil
 }
 
 // SupplierCurrencyCosts keeps independent cost bases side by side. These

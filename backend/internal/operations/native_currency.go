@@ -24,6 +24,24 @@ type OriginalCurrencyTotal struct {
 	SupplierActualCost    ledger.Decimal `json:"supplier_actual_cost"`
 }
 
+// A posted receipt supersedes its provider observation. Before posting, a
+// confirmed provider net still represents cash in its original currency.
+const recordedReceiptInflows = `
+ SELECT settlement_currency AS currency,settlement_net_amount AS amount,COALESCE(paid_at,observed_at) AS paid_at
+ FROM commerce_receipts WHERE operator_id=? AND settlement_net_amount IS NOT NULL
+ UNION ALL
+ SELECT f.fact->'merchant_net'->>'currency',(f.fact->'merchant_net'->>'amount')::numeric,
+   COALESCE((f.fact->>'occurred_at')::timestamptz,f.observed_at)
+ FROM payments_verified_facts f WHERE f.operator_id=? AND f.kind='receipt'
+  AND f.fact->'merchant_net'->>'currency' IS NOT NULL
+  AND NOT EXISTS(SELECT 1 FROM commerce_receipts r WHERE r.id::text=f.receipt_id)`
+
+func settlementCurrencyReceiptCash(ctx context.Context, tx *gorm.DB, op, currency string, from, to time.Time) (received, closing ledger.Decimal, err error) {
+	err = tx.WithContext(ctx).Raw(`SELECT COALESCE(sum(amount) FILTER(WHERE paid_at>=?),0)::text,COALESCE(sum(amount),0)::text
+ FROM (`+recordedReceiptInflows+`) receipts WHERE currency=? AND paid_at<?`, from, op, op, currency, to).Row().Scan(&received, &closing)
+	return
+}
+
 func originalCurrencyFacts(ctx context.Context, tx *gorm.DB, op string, from, to time.Time, u usage.FinancialSnapshot, platform bool) ([]OriginalCurrencyTotal, error) {
 	totals := map[string]OriginalCurrencyTotal{}
 	type transfer struct {
@@ -31,20 +49,16 @@ func originalCurrencyFacts(ctx context.Context, tx *gorm.DB, op string, from, to
 		Income, Expense ledger.Decimal
 	}
 	rows := []transfer{}
-	// Read original amounts once from the owning facts. Raw verified payments
-	// remain visible during internal accounting recovery, then their domain
-	// observations replace them. A misdirected refund is an expense for the sender
-	// and never income for its intended buyer. Unknown payment times use the
-	// original observation time, so later data entry does not move the flow.
+	// A misdirected refund records an expense for the sender alone. Unknown
+	// payment times use the initial observation time during accounting recovery.
 	err := tx.WithContext(ctx).Raw(`SELECT currency,sum(income)::text AS income,sum(expense)::text AS expense FROM (
- SELECT settlement_currency AS currency,settlement_net_amount AS income,0::numeric AS expense FROM commerce_receipts WHERE settlement_net_amount IS NOT NULL AND operator_id=? AND COALESCE(paid_at,observed_at)>=? AND COALESCE(paid_at,observed_at)<?
- UNION ALL SELECT fact->'merchant_net'->>'currency',(fact->'merchant_net'->>'amount')::numeric,0::numeric FROM payments_verified_facts f WHERE fact->'merchant_net'->>'currency' IS NOT NULL AND f.operator_id=? AND f.kind='receipt' AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)>=? AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)<? AND NOT EXISTS(SELECT 1 FROM commerce_receipts r WHERE r.id::text=f.receipt_id)
+ SELECT currency,amount AS income,0::numeric AS expense FROM (`+recordedReceiptInflows+`) receipts WHERE paid_at>=? AND paid_at<?
  UNION ALL SELECT p.currency,0::numeric,p.amount::numeric FROM remediation_payment_observations p JOIN remediation_refund_legs l ON l.id=p.leg_id WHERE l.operator_id=? AND p.occurred_at>=? AND p.occurred_at<?
  UNION ALL SELECT p.currency,p.amount::numeric,0::numeric FROM remediation_payment_observations p JOIN remediation_refund_legs l ON l.id=p.leg_id JOIN remediation_cases c ON c.id=l.case_id JOIN cooperation_purchase_orders o ON o.id=c.order_id WHERE c.kind='procurement_nondelivery' AND o.buyer_id=? AND p.occurred_at>=? AND p.occurred_at<? AND NOT EXISTS(SELECT 1 FROM remediation_external_refund_observations x WHERE x.observation_id=p.id AND lower(x.address)<>lower(x.recipient_address))
  UNION ALL SELECT fact->'money'->>'currency',0::numeric,(fact->'money'->>'amount')::numeric FROM payments_verified_facts f WHERE f.operator_id=? AND f.kind='refund' AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)>=? AND COALESCE((fact->>'occurred_at')::timestamptz,f.observed_at)<? AND NOT EXISTS(SELECT 1 FROM remediation_payment_observations o WHERE o.business_key='provider:'||f.id)
  UNION ALL SELECT payload->'proof'->>'currency',0::numeric,(payload->'proof'->>'original_amount')::numeric FROM incentives_events WHERE operator_id=? AND kind='withdrawal.payment_verified' AND (payload->'proof'->>'paid_at')::timestamptz>=? AND (payload->'proof'->>'paid_at')::timestamptz<?
  UNION ALL SELECT r.currency,0::numeric,r.original_amount::numeric FROM commerce_receipts r JOIN (SELECT a.receipt_id,min(o.buyer_id::text) AS buyer_id FROM cooperation_purchase_allocations a JOIN cooperation_purchase_orders o ON o.id=a.order_id GROUP BY a.receipt_id HAVING count(DISTINCT o.buyer_id)=1) own ON own.receipt_id=r.id WHERE own.buyer_id=? AND COALESCE(r.paid_at,r.observed_at)>=? AND COALESCE(r.paid_at,r.observed_at)<? AND (SELECT sum(a.amount_money) FROM cooperation_purchase_allocations a WHERE a.receipt_id=r.id)=r.gross_money-r.payment_fee_money AND NOT EXISTS(SELECT 1 FROM commerce_receipt_allocations a WHERE a.receipt_id=r.id)
- ) transfers GROUP BY currency ORDER BY currency`, op, from, to, op, from, to, op, from, to, op, from, to, op, from, to, op, from, to, op, from, to).Scan(&rows).Error
+ ) transfers GROUP BY currency ORDER BY currency`, op, op, from, to, op, from, to, op, from, to, op, from, to, op, from, to, op, from, to).Scan(&rows).Error
 	if err != nil {
 		return nil, err
 	}

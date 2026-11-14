@@ -44,9 +44,9 @@ async function submit(page: Page, label: string, path: string, values: Record<st
 }
 function localNow() { const now = new Date(); return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
 
-test("finance records one whole payment, links private evidence, reviews a refund and retains unknown-payment holds", async ({ browser }, info) => {
-  const customerContext = await browser.newContext(), financeContext = await browser.newContext();
-  const customer = await customerContext.newPage(), finance = await financeContext.newPage();
+test("finance records a whole payment, customer downloads vouchers, and private invoices and withdrawals stay scoped", async ({ browser }, info) => {
+  const customerContext = await browser.newContext(), financeContext = await browser.newContext(), ownerContext = await browser.newContext();
+  const customer = await customerContext.newPage(), finance = await financeContext.newPage(), owner = await ownerContext.newPage();
   const base = `/api/v1/operators/${persona.operator_id}`, manage = `/manage/${persona.operator_id}`;
   const errors: string[] = [];
   for (const p of [customer, finance]) { p.setDefaultTimeout(20_000); p.on("pageerror", e => errors.push(e.message)); }
@@ -72,24 +72,48 @@ test("finance records one whole payment, links private evidence, reviews a refun
     await expect(receiptPanel.getByText("凭据已关联",{exact:false})).toBeVisible();
     const marker=await receiptPanel.locator('[data-command-field="verification_evidence"] textarea').inputValue();
     const receipt = await submit(finance, "登记本单线下收款", `${base}/payments`, {
-      provider_receipt_id: `simulation-bank-${randomUUID()}`, gross_money: "100", currency: "USD",
+      provider_receipt_id: `simulation-bank-${randomUUID()}`, settlement_amount: "100",
       recipient_reference: "SYNTHETIC finance merchant", payer_reference: "SYNTHETIC customer bank",
-      verification_evidence: "SYNTHETIC local acceptance bank fact\n"+marker, fee_status: "pending", paid_at: localNow(),
+      verification_evidence: "SYNTHETIC local acceptance bank fact\n"+marker, paid_at: localNow(),
     });
     receipts.push(receipt.id);
-    await finance.goto(`${manage}/payments?q=${receipt.id}`);
-    await finance.getByRole("button",{name:"核实手续费与结算",exact:true}).click();
-    await submit(finance,"核实手续费与结算",`${base}/payments/${receipt.id}/accounting`,{fee_money:"3",evidence:"Independent synthetic bank fee statement"});
     // Finance allocates verified receipts; the durable worker delivers the
     // funded order. Allow its discovery interval and the shared queue backlog.
     await expect.poll(async () => (await (await customer.request.get("/api/v1/me/credits")).json()).money_balance.available, { timeout: 60_000 }).toBe(String(startingBalance + 100));
-    await finance.goto(`${manage}/balance-withdrawals?view=methods`);
-    await finance.getByRole("button", { name: "新增提现方式", exact: true }).click();
-    await submit(finance, "新增提现方式", `${base}/balance-withdrawals`, { payout_kind: "alipay", method_name: "仿真支付宝", fee_mode: "fixed", flat_fee_money: "0.5", enabled: true });
+    const orderURL = `/workspace/orders?record=${orderID}`;
+    await customer.goto("/workspace/notifications");
+    const linkedOrder = customer.locator(`a[href="${orderURL}"]`).first();
+    await expect(linkedOrder).toBeVisible({ timeout: 60_000 });
+    await linkedOrder.click();
+    await expect(customer.getByRole("heading", { name: "订单详情", exact: true })).toBeVisible();
+    for (const [label, expected] of [["下载订单凭证", "order"], ["下载收款凭证", "receipt"]]) {
+      const pending = customer.waitForEvent("download");
+      await customer.getByRole("link", { name: label, exact: true }).click();
+      const download = await pending;
+      expect(download.suggestedFilename()).toBe(`${expected}-${orderID}.csv`);
+      const file = info.outputPath(`${expected}.csv`);
+      await download.saveAs(file);
+      expect(readFileSync(file, "utf8")).toContain(orderID);
+    }
+    await customer.goto("/workspace/requests");
+    await customer.getByText("下载对账单", { exact: true }).first().click();
+    const statement = customer.waitForEvent("download");
+    await customer.getByRole("button", { name: "下载对账单", exact: true }).click();
+    expect((await statement).suggestedFilename()).toBe("statement.csv");
+    await login(owner, "staff", { email: fixture.owner_email, password: fixture.owner_password });
+    const ownerSession = await (await owner.request.get("/api/v1/auth/me")).json();
+    const ownerHeaders = () => ({ "X-CSRF-Token": ownerSession.csrf_token, "Idempotency-Key": randomUUID(), Origin: new URL(owner.url()).origin });
+    const methods = await (await owner.request.get(`${base}/payment-methods`)).json();
+    if (!methods.items.some((row: { values: { method_kind?: string; payout_enabled?: boolean } }) => row.values.method_kind === "alipay" && row.values.payout_enabled)) {
+      const methodResponse = await owner.request.post(`${base}/payment-methods`, { headers: ownerHeaders(), data: { action: "open_method", method_kind: "alipay", enabled: true, collection: false, payout_enabled: true, fee_mode: "fixed", flat_fee_money: "0.5" } });
+      expect(methodResponse.status(), await methodResponse.text()).toBe(200);
+    }
     await customer.goto("/workspace/refunds");
-    await customer.getByLabel("提现金额 USD").fill("20");
+    await customer.getByLabel(/提现金额/).fill("20");
+    await customer.getByRole("radio", { name: /支付宝/ }).check();
     await customer.getByLabel("支付宝实名").fill("合成客户");
-    await customer.getByLabel("支付宝账号").fill("synthetic@example.test");
+    const recipient = `synthetic-${randomUUID()}@example.test`;
+    await customer.getByLabel("支付宝账号").fill(recipient);
     const submitted = customer.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === "/api/v1/me/balance-withdrawals");
     await customer.getByRole("button", { name: "提交提现申请", exact: true }).click();
     const withdrawalResponse = await submitted;
@@ -100,26 +124,22 @@ test("finance records one whole payment, links private evidence, reviews a refun
     const heldBeforePayment = await (await customer.request.get("/api/v1/me/credits")).json();
     expect(heldBeforePayment.money_balance.available).toBe(String(startingBalance + 80)); expect(heldBeforePayment.money_balance.held).toBe("20");
     await finance.goto(`${manage}/balance-withdrawals`);
-    await finance.getByRole("button", { name: "通过", exact: true }).click();
+    await finance.locator("tr").filter({ hasText: recipient }).getByRole("button", { name: "通过", exact: true }).click();
     await submit(finance, "通过", `${base}/balance-withdrawals/${withdrawalID}/approve`);
     await finance.goto(`${manage}/balance-withdrawals`);
-    await finance.getByRole("button", { name: "登记付款", exact: true }).click();
+    await finance.locator("tr").filter({ hasText: recipient }).getByRole("button", { name: "登记付款", exact: true }).click();
     await submit(finance, "登记付款", `${base}/balance-withdrawals/${withdrawalID}/verify_paid`, { evidence: "SYNTHETIC settled payout to the declared Alipay account", currency: "USD", paid_at: localNow() });
     const credits = await (await customer.request.get("/api/v1/me/credits")).json();
     expect(credits.money_balance.available).toBe(String(startingBalance + 80)); expect(credits.money_balance.held).toBe("0");
     const reportResponse = finance.waitForResponse(r => new URL(r.url()).pathname === `${base}/reports/financial`);
     await finance.goto(`${manage}/reports`);
     const report = await (await reportResponse).json();
-    expect(report.costs.payment_fees_money, "collection fee stays on the receipt; the withdrawal fee is paid by the customer").toBe(String(startingFees + 3));
+    expect(report.costs.payment_fees_money, "customer withdrawal fee is not a merchant expense").toBe(String(startingFees));
 
-    const ownerContext = await browser.newContext();
-    const owner = await ownerContext.newPage();
-    await login(owner, "staff", { email: fixture.owner_email, password: fixture.owner_password });
-    const ownerSession = await (await owner.request.get("/api/v1/auth/me")).json();
-    const planResponse = await owner.request.post(`${base}/plans`, { headers: { "X-CSRF-Token": ownerSession.csrf_token, "Idempotency-Key": randomUUID(), Origin: new URL(owner.url()).origin }, data: { name: "合成购买套餐", price_money: "40", paid_atg: "40", gift_atg: "0", period: "lifetime", timezone: "UTC", terms_summary: "合成服务约定", new_purchase_enabled: true, renewal_enabled: false, expected_version: 0 } });
+    const planName = `合成购买套餐 ${randomUUID().slice(0, 8)}`;
+    const planResponse = await owner.request.post(`${base}/plans`, { headers: ownerHeaders(), data: { name: planName, price_money: "40", paid_atg: "40", gift_atg: "0", period: "lifetime", timezone: "UTC", terms_summary: "合成服务约定", new_purchase_enabled: true, renewal_enabled: false, expected_version: 0 } });
     const plan = await planResponse.json();
     expect(planResponse.status(), JSON.stringify(plan)).toBe(200);
-    await ownerContext.close();
     const customerSession = await (await customer.request.get("/api/v1/auth/me")).json();
     const quoteResponse = await customer.request.post("/api/v1/me/orders/quotes", { headers: { "X-CSRF-Token": customerSession.csrf_token, "Idempotency-Key": randomUUID(), Origin: new URL(customer.url()).origin }, data: { plan_id: plan.id } });
     const quote = await quoteResponse.json();
@@ -127,14 +147,16 @@ test("finance records one whole payment, links private evidence, reviews a refun
     const orderResponse = await customer.request.post("/api/v1/me/orders", { headers: { "X-CSRF-Token": customerSession.csrf_token, "Idempotency-Key": randomUUID(), Origin: new URL(customer.url()).origin }, data: { quote_id: quote.id, terms_version: quote.terms_version, funding: { money_balance: "40", commission_money: "0" }, auto_renew: false, allow_commission: false } });
     const purchased = await orderResponse.json();
     expect(orderResponse.status(), JSON.stringify(purchased)).toBe(200);
-    expect(purchased.status).toBe("completed");
+    await expect.poll(async () => (await (await customer.request.get(`/api/v1/me/orders/${purchased.id}`)).json()).status, { timeout: 60_000 }).toBe("completed");
     await finance.goto(`${manage}/invoices`);
     await finance.getByRole("button", { name: "编辑开票说明", exact: true }).click();
     await submit(finance, "编辑开票说明", `${base}/invoices`, { instructions: "Synthetic invoice handling instructions" });
     await customer.goto("/workspace/invoices");
     await customer.getByRole("button", { name: "申请发票", exact: true }).click();
-    await customer.getByRole("combobox", {name:"购买订单",exact:true}).fill(purchased.id);
-    await expect(customer.getByRole("combobox", {name:"购买订单",exact:true})).toHaveValue(/合成购买套餐/);
+    const picker = customer.getByRole("combobox", { name: "购买订单", exact: true });
+    await picker.click();
+    await customer.getByRole("option", { name: new RegExp(planName) }).click();
+    await expect(picker).toHaveValue(new RegExp(planName));
     await expect(customer.locator('[data-command-field="lines.0.amount_money"]')).toHaveCount(0);
     const invoice = await submit(customer, "申请发票", "/api/v1/me/invoices", { "details.title": "合成仿真客户", "details.tax_id": "SYNTHETIC-NOT-A-TAX-ID", "details.email": persona.customer.email });
     await finance.goto(`${manage}/invoices`);
@@ -170,9 +192,9 @@ test("finance records one whole payment, links private evidence, reviews a refun
     await expect(customer.getByText("已核实付款", { exact: true }).first()).toBeVisible();
     await expect(customer.getByRole("button", { name: "取消提现申请", exact: true })).toHaveCount(0);
     await finance.goto(`${manage}/balance-withdrawals`);
-    await expect(finance.getByText("已核实付款", { exact: true }).first()).toBeVisible();
+    await expect(finance.locator("tr").filter({ hasText: recipient }).getByText("已核实付款", { exact: true })).toBeVisible();
     await finance.screenshot({ path: info.outputPath("finance-balance-withdrawal.png"), fullPage: true });
     expect(errors).toEqual([]);
-    await info.attach("synthetic-finance-facts", { body: JSON.stringify({ order_id: orderID, receipt_ids: receipts, initial_customer_available_money: String(startingBalance), credited_money: "100", merchant_receipt_fees_money: "3", withdrawal_id: withdrawalID, withdrawal_amount_money: "20", customer_fee_money: "0.5", net_paid_money: "19.5", final_customer_available_money: credits.money_balance.available, final_customer_held_money: credits.money_balance.held, invoice_id: invoice.id, private_invoice_downloaded: true, other_customer_download_status: 404 }), contentType: "application/json" });
-  } finally { await customerContext.close(); await financeContext.close(); }
+    await info.attach("synthetic-finance-facts", { body: JSON.stringify({ order_id: orderID, receipt_ids: receipts, initial_customer_available_money: String(startingBalance), credited_money: "100", merchant_receipt_fees_money: "0", withdrawal_id: withdrawalID, withdrawal_amount_money: "20", customer_fee_money: "0.5", net_paid_money: "19.5", final_customer_available_money: credits.money_balance.available, final_customer_held_money: credits.money_balance.held, invoice_id: invoice.id, private_invoice_downloaded: true, other_customer_download_status: 404 }), contentType: "application/json" });
+  } finally { await Promise.all([customerContext.close(), financeContext.close(), ownerContext.close()]); }
 });

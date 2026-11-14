@@ -9,12 +9,12 @@ import (
 
 func TestExportCSVPreservesPrecisionAndAuthoredText(t *testing.T) {
 	for _, input := range []string{"=SUM(A1:A2)", " +cmd", "\t@formula", "\n=1"} {
-		if !strings.HasPrefix(safeCSVCell(input), "'") {
+		if !strings.HasPrefix(SafeCSVCell(input), "'") {
 			t.Fatalf("unsafe spreadsheet text: %q", input)
 		}
 	}
 	for _, input := range []string{"-0.000000000000000001", "123456789012345678.123456789012345678", "Third OEM", "1+1"} {
-		if safeCSVCell(input) != input {
+		if SafeCSVCell(input) != input {
 			t.Fatalf("changed ordinary value: %q", input)
 		}
 	}

@@ -25,11 +25,7 @@ func TestPostgresFinancialExportRequiresCurrentReportPermission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cipher, err := s.seal([]byte("分类,指标,数值,单位\n经营结果,收入合计,1,USD\n"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = s.DB.Model(&Export{}).Where("id=?", job.ID).Updates(map[string]any{"state": "ready", "content_ciphertext": cipher}).Error; err != nil {
+	if err = s.DB.Model(&Export{}).Where("id=?", job.ID).Update("state", "ready").Error; err != nil {
 		t.Fatal(err)
 	}
 	s.Authorize = exportWithoutReports{s.Authorize}

@@ -631,11 +631,15 @@ func TestPostgresPendingFeeAndObservedPaymentUpperBound(t *testing.T) {
 func TestPostgresEventRelayRollsBackAndConcurrentWorkersDeduplicate(t *testing.T) {
 	f := setup(t)
 	_ = f.order(t, "event-order", "0", "0")
+	var events []Event
+	if err := f.db.Order("created_at,id").Find(&events).Error; err != nil || len(events) == 0 {
+		t.Fatalf("outbox fixture: %d %v", len(events), err)
+	}
 	if err := f.db.Exec(`CREATE TABLE test_event_destination(event_id UUID PRIMARY KEY,kind TEXT NOT NULL)`).Error; err != nil {
 		t.Fatal(err)
 	}
 	failure := errors.New("destination unavailable")
-	_, err := f.s.RelayEvents(f.ctx, nil, 100, EventEnqueuerFunc(func(ctx context.Context, tx *gorm.DB, e Event) error {
+	err := f.s.PublishEvent(f.ctx, nil, events[0].ID, EventEnqueuerFunc(func(ctx context.Context, tx *gorm.DB, e Event) error {
 		if err := tx.Exec(`INSERT INTO test_event_destination(event_id,kind) VALUES(?,?)`, e.ID, e.Kind).Error; err != nil {
 			return err
 		}
@@ -658,7 +662,15 @@ func TestPostgresEventRelayRollsBackAndConcurrentWorkersDeduplicate(t *testing.T
 	errs := make(chan error, 2)
 	for i := 0; i < 2; i++ {
 		wg.Add(1)
-		go func() { defer wg.Done(); _, err := f.s.RelayEvents(f.ctx, nil, 100, sink); errs <- err }()
+		go func() {
+			defer wg.Done()
+			for _, event := range events {
+				if err := f.s.PublishEvent(f.ctx, nil, event.ID, sink); err != nil {
+					errs <- err
+					return
+				}
+			}
+		}()
 	}
 	wg.Wait()
 	close(errs)

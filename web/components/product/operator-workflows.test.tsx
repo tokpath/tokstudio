@@ -294,7 +294,7 @@ it("retains unresolved financial facts and validates the selected calendar date 
   staff(["reports.view"]);
   const report = {
     operator_id: "operator-one", from: "2026-10-01T00:00:00Z", to: "2026-10-18T00:00:00Z", captured_at: "2026-10-18T00:00:00Z", status: "pending_verification", settlement_currency: "CNY", original_currency_totals: [{currency:"EUR",income:"12",expense:"3",receipt_fees:"0.5",net_receipts:"11.5",pending_receipt_fees:1,supplier_reported_cost:"2",supplier_reference_cost:"0",supplier_actual_cost:"5"}],
-    sales:{completed_sales:2,sales_money:"20",wallet_top_ups:1,wallet_top_up_money:"5",pending_deliveries:0},procurement:{purchase_orders:1,purchases_money:"4",wholesale_orders:1,wholesale_sales_money:"30"},usage:{completed_requests:4,charged_atg:"8",correction_atg:"1",shortfall_atg:"0"},
+    sales:{completed_sales:2,sales_money:"20",wallet_top_ups:1,wallet_top_up_money:"5",pending_deliveries:0},procurement:{purchase_orders:1,purchases_money:"4",wholesale_orders:1,wholesale_sales_money:"30"},usage:{completed_requests:4,charged_atg:"8",net_charged_atg:"7",correction_atg:"1",shortfall_atg:"0"},
     revenue: { paid_invocation_money: "1", expired_unused_paid_money: "2", wholesale_consumed_money: "3", withdrawal_fees_retained_money: "4", total_money: "10" },
     costs: { fulfillment_money: "5", retail_gift_subset_money: "1", commission_money: "2", payment_fees_money: "3", exception_loss_money: "3.000000000000000001", total_money: "13.000000000000000001", pending_fees: 1, pending_supplier_costs: 2 },
     cash: { recorded_in_money: "20", recorded_out_money: "7", procurement_payments_money: "4", commission_payouts_money: "3", takeover_in_money: "0", takeover_out_money: "0", provider_receivable_money: "1" },

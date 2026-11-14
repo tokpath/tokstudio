@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -26,6 +27,26 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/usage"
 	"gorm.io/gorm"
 )
+
+type nativeExportStore struct {
+	sync.Map
+}
+
+func (s *nativeExportStore) Put(_ context.Context, key string, data []byte, _ string, _ time.Time) error {
+	s.Store(key, data)
+	return nil
+}
+func (s *nativeExportStore) Get(_ context.Context, key string) ([]byte, error) {
+	data, ok := s.Load(key)
+	if !ok {
+		return nil, errors.New("missing test export")
+	}
+	return data.([]byte), nil
+}
+func (s *nativeExportStore) Delete(_ context.Context, key string) error {
+	s.Map.Delete(key)
+	return nil
+}
 
 type nativeFinancialFixture struct {
 	db       *gorm.DB
@@ -86,7 +107,7 @@ func newNativeFinancialFixture(t *testing.T, currency string) nativeFinancialFix
 	f.pay = payments.NewService(f.db, "native-financial-test", f.org, nil, payments.CommerceSink{Commerce: f.commerce})
 	f.rem = remediation.New(f.db, remediation.Dependencies{Ledger: l, Organization: f.org, Commerce: f.commerce, Cooperation: f.coop, Payments: f.pay, Incentives: incentives.New(f.db)})
 	u := usage.New(f.db, usage.Dependencies{Ledger: l, Organization: f.org, Cooperation: f.coop, Catalog: catalog.CommerceCatalog{DB: f.db, PlatformOperatorID: f.operator}})
-	f.reports = &operations.Service{DB: f.db, EncryptionKey: "native-financial-export-test", Authorize: f.org, Source: operations.DomainSource{Ledger: l, Cooperation: f.coop, Commerce: f.commerce, Usage: u, Payments: f.pay, Refunds: operations.RefundFinancialSourceFunc(func(ctx context.Context, tx *gorm.DB, op string, from, to time.Time) (operations.RefundFinancialFacts, error) {
+	f.reports = &operations.Service{DB: f.db, EncryptionKey: "native-financial-export-test", Authorize: f.org, ExportStore: &nativeExportStore{}, Source: operations.DomainSource{Ledger: l, Cooperation: f.coop, Commerce: f.commerce, Usage: u, Payments: f.pay, Refunds: operations.RefundFinancialSourceFunc(func(ctx context.Context, tx *gorm.DB, op string, from, to time.Time) (operations.RefundFinancialFacts, error) {
 		r, err := f.rem.FinancialRefundFacts(ctx, tx, op, from, to)
 		return operations.RefundFinancialFacts{PendingFees: r.PendingFees, PendingExecutions: r.PendingExecutions, OutstandingMoney: r.OutstandingMoney, MismatchCount: r.MismatchCount}, err
 	})}}
@@ -238,6 +259,40 @@ func TestFinancialOriginalReceiptKeepsObservationPeriodWhenRecordedLater(t *test
 	if rows := f.export(t, "payments"); len(rows) != 2 {
 		t.Fatal("CSV and financial report disagree on the original receipt period", rows)
 	}
+}
+
+func TestFinancialVerifiedSameCurrencyNetSurvivesReceiptPosting(t *testing.T) {
+	f := newNativeFinancialFixture(t, "USD")
+	m := payments.Merchant{ID: uuid.NewString(), OperatorID: f.operator, Driver: "manual", Enabled: true, Credentials: map[string]string{"currency": "USD", "recipient_reference": "bank:usd", "instructions": "Synthetic transfer"}}
+	if _, err := f.pay.SaveMerchant(f.ctx, f.owner, m, 0); err != nil {
+		t.Fatal(err)
+	}
+	factID, paid := uuid.NewString(), f.from.Add(time.Minute)
+	if err := f.db.Exec(`INSERT INTO payments_verified_facts(id,merchant_id,operator_id,order_id,kind,fingerprint,fact,valuation,state,observed_at)
+ VALUES(?,?,?,?,'receipt','verified fixture',jsonb_build_object('occurred_at',?::timestamptz,'merchant_net','{"currency":"USD","amount":"97"}'::jsonb),
+ 'null'::jsonb,'awaiting_settlement',now())`, factID, m.ID, f.operator, uuid.NewString(), paid).Error; err != nil {
+		t.Fatal(err)
+	}
+	check := func() {
+		t.Helper()
+		report := f.report(t, f.operator)
+		if report.Cash.RecordedInMoney.String() != "97" || report.Cash.ClosingRecordedNetMoney.String() != "97" || nativeTotal(t, report, "USD").Income.String() != "97" {
+			t.Fatalf("actual settlement net missing or duplicate: %+v", report.Cash)
+		}
+	}
+	check()
+	gross, net, fee := ledger.FromInt64(100), ledger.FromInt64(97), ledger.FromInt64(3)
+	r, err := f.commerce.RecordReceipt(f.ctx, nil, commerce.VerifiedReceipt{OperatorID: f.operator, Provider: "stripe", ProviderReceiptID: "confirmed-usd-receipt",
+		GrossMoney: gross, NetMoney: &net, FeeMoney: &fee, FeeStatus: "confirmed", Currency: "USD", OriginalAmount: "100",
+		SettlementCurrency: "USD", SettlementNetAmount: &net, ValuationEvidence: "verified USD", PaidAt: &paid,
+		RecipientReference: "synthetic merchant", PayerReference: "synthetic payer", VerificationEvidence: "synthetic provider statement", VerifiedBy: "system:payment-verification"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.db.Table("payments_verified_facts").Where("id=?", factID).Update("receipt_id", r.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	check()
 }
 
 type nativeFinancialRates struct{}

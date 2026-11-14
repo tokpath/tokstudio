@@ -488,6 +488,7 @@ func (a *Application) order(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
+	dto["receipt_voucher_available"] = o.ExternalAllocatedMoney.Sign() > 0
 	refunds, e := a.Remediation.CustomerCasesForOrder(ctx, o.CustomerID, identity.Customer.Customer.BrandID, o.ID)
 	if e != nil {
 		handleError(c, e)

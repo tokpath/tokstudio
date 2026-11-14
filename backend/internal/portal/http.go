@@ -170,6 +170,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 400, "invoice_document_required", "外部开具已完成前，请先上传票据文件。支持 PDF、PNG 或 JPEG。", false
 	case errors.Is(err, operations.ErrInvoiceFileKept):
 		status, code, msg, retry = 409, "invoice_file_kept", "已经登记开票结果的票据文件不能删除。", false
+	case errors.Is(err, operations.ErrTooLarge):
+		status, code, msg, retry = 400, "range_too_large", "记录过多，请缩小日期范围。", false
 	case errors.Is(err, remediation.ErrNotReady), errors.Is(err, operations.ErrNotReady), errors.Is(err, incentives.ErrNotReady), errors.Is(err, modelruntime.ErrUnsupported), errors.Is(err, commerce.ErrNotReady), errors.Is(err, payments.ErrNotConfigured):
 		status, code, msg, retry = 409, "pending_configuration", "相关能力尚未完成配置或验证，请联系当前经营方", false
 	case errors.Is(err, remediation.ErrPaymentMismatch):

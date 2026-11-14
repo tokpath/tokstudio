@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
@@ -95,7 +98,13 @@ func (a *Application) notifications(c *gin.Context) {
 	}
 	items := []any{}
 	for _, n := range rows {
-		items = append(items, gin.H{"id": n.ID, "title": n.Title, "body": n.Body, "category": n.Category, "necessary": n.Category == "mandatory", "system_generated": n.SystemGenerated(), "read_at": n.ReadAt, "created_at": n.CreatedAt})
+		item := gin.H{"id": n.ID, "title": n.Title, "body": n.Body, "category": n.Category, "necessary": n.Category == "mandatory", "system_generated": n.SystemGenerated(), "read_at": n.ReadAt, "created_at": n.CreatedAt}
+		if ref, ok := strings.CutPrefix(n.Reference, "order:"); ok && n.SystemGenerated() {
+			if _, err := uuid.Parse(ref); err == nil {
+				item["action_url"] = "/workspace/orders?record=" + url.QueryEscape(ref)
+			}
+		}
+		items = append(items, item)
 	}
 	c.JSON(200, gin.H{"items": items, "next_cursor": next})
 }
@@ -225,18 +234,24 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		}
 
 	case "reconciliation":
-		rows, e := a.Operations.ListDiscrepancies(ctx, actor, op.ID, 100)
+		rows, next, e := a.Operations.ListDiscrepancies(ctx, actor, op.ID, c.Query("status"), c.Query("cursor"), 50)
 		if e != nil {
 			handleError(c, e)
 			return true
 		}
+		p["next_cursor"], p["status_supported"] = next, true
 		for _, row := range rows {
-			items = append(items, entity(row.ID, row.State, 1, row))
+			item := entity(row.ID, row.State, 1, row)
+			item["allowed_actions"] = []string{}
+			if row.State == "open" {
+				item["allowed_actions"] = []string{"resolve"}
+			}
+			items = append(items, item)
 		}
 		p["columns"] = []gin.H{col("domain", "领域", "text"), col("kind", "差额类型", "text"), col("reference", "原始事实", "text"), col("unit", "单位", "text"), col("expected", "应有", "decimal"), col("actual", "实际", "decimal")}
-		p["description"] = "这里只列出对不上的差额，不列出正常的订单和收款。运行对账后如果列表仍是空的，表示没有差额，也没有异常数据。"
-		p["operations"] = []operation{{Name: "reconcile", Label: "按领域事实运行对账", Method: "POST", Path: base, Fields: []field{}, Description: "核对本经营方的账户余额、占用金额、每笔记账是否借贷平衡，以及采购额度是否与批次和账户一致。没有差额时不会新增记录。"}}
-		p["row_operations"] = []operation{{Name: "resolve", Label: "登记修复依据", Method: "POST", Path: base + "/{id}/resolve", Fields: []field{f("adjustment", "真实冲正/修复记录", "text"), f("reason", "原因", "textarea")}, Description: "只有可核实的领域修复记录才能解决差额；此操作不改余额。"}}
+		p["description"] = "核对本经营方的余额、占用、借贷平衡和采购批次，以及订单、已关联收款和交付。已有差额在登记修复依据后结案。"
+		p["operations"] = []operation{{Name: "reconcile", Label: "按领域事实运行对账", Method: "POST", Path: base, Fields: []field{}}}
+		p["row_operations"] = []operation{{Name: "resolve", Label: "登记修复依据", Method: "POST", Path: base + "/{id}/resolve", Permission: "operations.manage", Fields: []field{f("adjustment", "真实冲正/修复记录", "text"), f("reason", "原因", "textarea")}, Description: "只有可核实的领域修复记录才能解决差额；此操作不改余额。"}}
 	case "exports":
 		rows, e := a.Operations.ListExports(ctx, actor, op.ID)
 		if e != nil {
@@ -334,9 +349,9 @@ func (a *Application) operatorOperationsCommand(c *gin.Context, op organization.
 			return true
 		}
 		result := commandResult(out.ID, "completed")
-		result["message"] = "对账已完成，已发现差额。请回到列表核对应有金额和实际金额。没有出现在列表里的部分没有异常。"
+		result["message"] = "本次检查发现差额，请在列表核对应有值和实际值。"
 		if out.FindingCount == 0 {
-			result["message"] = "对账已完成，没有发现差额，也没有异常数据。回到列表后仍然是空的，这是正常结果。"
+			result["message"] = "本次检查范围内未发现差额。此前待办可登记修复依据后结案。"
 		}
 		c.JSON(200, result)
 		return true

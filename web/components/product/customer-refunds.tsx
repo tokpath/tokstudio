@@ -22,6 +22,7 @@ export function CustomerOrderRefunds({ refunds, currency }: { refunds: NonNullab
         <Status value={refund.status} labels={refundStates} />
       </div>
       <p className="text-xs text-ink-secondary"><When value={refund.paid_at || refund.created_at} /></p>
+      {refund.status === "completed" && refund.paid_at && <a href={`/api/v1/me/refunds/${encodeURIComponent(refund.id)}/voucher`} className="text-sm text-brand-emphasis underline" download>{t("下载退款凭证")}</a>}
       {["pending_review", "approved", "paying"].includes(refund.status) && <RefundDestinations caseID={refund.id} />}
     </div>)}
   </section>;

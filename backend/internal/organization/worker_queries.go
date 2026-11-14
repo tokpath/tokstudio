@@ -24,18 +24,3 @@ func (s *Service) OperatorPage(ctx context.Context, tx *gorm.DB, cursor string, 
 	}
 	return out, nil
 }
-
-type CurrentCustomer struct{ CustomerID, OperatorID, BrandID string }
-
-func (s *Service) CurrentCustomerPage(ctx context.Context, tx *gorm.DB, cursor string, limit int) ([]CurrentCustomer, error) {
-	if limit < 1 || limit > 200 || (cursor != "" && !validID(cursor)) {
-		return nil, ErrInvalidInput
-	}
-	q := s.dbFor(ctx, tx).Table("organization_service_ownerships").Where("ended_at IS NULL").Order("customer_id").Limit(limit)
-	if cursor != "" {
-		q = q.Where("customer_id>?", cursor)
-	}
-	rows := []CurrentCustomer{}
-	e := q.Find(&rows).Error
-	return rows, e
-}

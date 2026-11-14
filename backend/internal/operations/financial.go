@@ -159,12 +159,18 @@ func (d DomainSource) FinancialReport(ctx context.Context, t *gorm.DB, op string
 	if e != nil {
 		return out, e
 	}
-	out = composeFinancial(op, l, c, p, u, r, op == d.Usage.Catalog.PlatformOperatorID)
 	monetary, e := ledger.GetMonetary(ctx, t)
 	if e != nil {
 		return out, e
 	}
+	out = composeFinancial(op, l, c, p, u, r, op == d.Usage.Catalog.PlatformOperatorID)
 	out.SettlementCurrency = monetary.Currency
+	received, closing, e := settlementCurrencyReceiptCash(ctx, t, op, monetary.Currency, from, to)
+	if e != nil {
+		return out, e
+	}
+	out.Cash.RecordedInMoney = out.Cash.RecordedInMoney.Add(received)
+	out.Cash.ClosingRecordedNetMoney = out.Cash.ClosingRecordedNetMoney.Add(closing)
 	out.OriginalCurrencyTotals, e = originalCurrencyFacts(ctx, t, op, from, to, u, op == d.Usage.Catalog.PlatformOperatorID)
 	if e != nil {
 		return out, e
@@ -224,10 +230,6 @@ func composeFinancial(op string, l ledger.FinancialSnapshot, c commerce.Financia
 	out.Liabilities.WholesalePrepaymentMoney = p.ClosingWholesalePrepaymentMoney
 	for _, f := range l.Flows {
 		if f.Unit != ledger.MoneyUnit {
-			if f.Unit == out.SettlementCurrency && f.Purpose == "control:external_cash" {
-				out.Cash.RecordedInMoney = out.Cash.RecordedInMoney.Add(f.Decrease)
-				out.Cash.RecordedOutMoney = out.Cash.RecordedOutMoney.Add(f.Increase)
-			}
 			continue
 		}
 		takeover := strings.HasPrefix(f.Kind, "takeover_") || strings.Contains(f.Purpose, "takeover")
@@ -271,9 +273,6 @@ func composeFinancial(op string, l ledger.FinancialSnapshot, c commerce.Financia
 			continue
 		}
 		if b.Unit != ledger.MoneyUnit {
-			if b.Unit == out.SettlementCurrency && b.Purpose == "control:external_cash" {
-				out.Cash.ClosingRecordedNetMoney = out.Cash.ClosingRecordedNetMoney.Sub(b.Balance)
-			}
 			continue
 		}
 		switch b.Purpose {

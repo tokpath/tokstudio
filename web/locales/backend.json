@@ -11994,5 +11994,157 @@
     "hi": "व्यापारी वसूली जोखिम",
     "ms": "Risiko kutipan peniaga",
     "th": "ความเสี่ยงการรับเงินของผู้ค้า"
+  },
+  "下载订单凭证": {
+    "en": "Download order voucher",
+    "ja": "注文証明書をダウンロード",
+    "ru": "Скачать документ по заказу",
+    "hi": "ऑर्डर प्रमाण डाउनलोड करें",
+    "ms": "Muat turun bukti pesanan",
+    "th": "ดาวน์โหลดหลักฐานคำสั่งซื้อ"
+  },
+  "下载收款凭证": {
+    "en": "Download payment receipt",
+    "ja": "入金証明書をダウンロード",
+    "ru": "Скачать подтверждение оплаты",
+    "hi": "भुगतान रसीद डाउनलोड करें",
+    "ms": "Muat turun resit bayaran",
+    "th": "ดาวน์โหลดหลักฐานการชำระเงิน"
+  },
+  "下载退款凭证": {
+    "en": "Download refund voucher",
+    "ja": "返金証明書をダウンロード",
+    "ru": "Скачать подтверждение возврата",
+    "hi": "धनवापसी प्रमाण डाउनलोड करें",
+    "ms": "Muat turun bukti bayaran balik",
+    "th": "ดาวน์โหลดหลักฐานการคืนเงิน"
+  },
+  "下载对账单": {
+    "en": "Download statement",
+    "ja": "取引明細をダウンロード",
+    "ru": "Скачать выписку",
+    "hi": "खाता विवरण डाउनलोड करें",
+    "ms": "Muat turun penyata",
+    "th": "ดาวน์โหลดรายการบัญชี"
+  },
+  "清算币种": {
+    "en": "Settlement currency",
+    "ja": "決済通貨",
+    "ru": "Валюта расчётов",
+    "hi": "निपटान मुद्रा",
+    "ms": "Mata wang penyelesaian",
+    "th": "สกุลเงินชำระบัญชี"
+  },
+  "退款编号": {
+    "en": "Refund ID",
+    "ja": "返金番号",
+    "ru": "Номер возврата",
+    "hi": "धनवापसी आईडी",
+    "ms": "ID bayaran balik",
+    "th": "เลขอ้างอิงการคืนเงิน"
+  },
+  "退款金额": {
+    "en": "Refund amount",
+    "ja": "返金額",
+    "ru": "Сумма возврата",
+    "hi": "धनवापसी राशि",
+    "ms": "Jumlah bayaran balik",
+    "th": "ยอดเงินคืน"
+  },
+  "完成时间": {
+    "en": "Completed at",
+    "ja": "完了日時",
+    "ru": "Время завершения",
+    "hi": "पूरा होने का समय",
+    "ms": "Masa selesai",
+    "th": "เวลาที่เสร็จสิ้น"
+  },
+  "此筛选范围内没有待办或已结案差额。": {
+    "en": "There are no open or resolved discrepancies in this view.",
+    "ja": "この条件に該当する未処理または解決済みの差異はありません。",
+    "ru": "По этому фильтру нет открытых или закрытых расхождений.",
+    "hi": "इस फ़िल्टर में कोई लंबित या निपटाया गया अंतर नहीं है।",
+    "ms": "Tiada perbezaan terbuka atau selesai bagi penapis ini.",
+    "th": "ไม่มีผลต่างที่รอดำเนินการหรือปิดแล้วตามตัวกรองนี้"
+  },
+  "核对本经营方的余额、占用、借贷平衡和采购批次，以及订单、已关联收款和交付。已有差额在登记修复依据后结案。": {
+    "en": "Checks your balances, holds, balanced entries, procurement lots, orders, linked receipts, and fulfillment. Record correction evidence to close a discrepancy.",
+    "ja": "残高、保留額、貸借、仕入れロット、注文、紐付け済み入金、引き渡しを照合します。差異の解決には修正の根拠を登録してください。",
+    "ru": "Проверяются остатки, резервы, баланс проводок, партии закупок, заказы, связанные платежи и исполнение. Для закрытия расхождения укажите подтверждение исправления.",
+    "hi": "शेष राशि, आरक्षण, लेखा संतुलन, खरीद बैच, ऑर्डर, जुड़े भुगतान और डिलीवरी जाँची जाती है। अंतर बंद करने के लिए सुधार का प्रमाण दर्ज करें।",
+    "ms": "Semak baki, amaun ditahan, imbangan jurnal, lot perolehan, pesanan, resit berkaitan dan penghantaran. Rekodkan bukti pembetulan untuk menutup perbezaan.",
+    "th": "ตรวจสอบยอดคงเหลือ ยอดกันไว้ ดุลรายการบัญชี ล็อตจัดซื้อ คำสั่งซื้อ การรับเงินที่เชื่อมโยง และการส่งมอบ บันทึกหลักฐานการแก้ไขเพื่อปิดผลต่าง"
+  },
+  "本次检查发现差额，请在列表核对应有值和实际值。": {
+    "en": "Discrepancies were found. Compare the expected and actual values in the list.",
+    "ja": "差異が見つかりました。一覧で期待値と実際の値を確認してください。",
+    "ru": "Найдены расхождения. Сравните ожидаемые и фактические значения в списке.",
+    "hi": "अंतर मिले हैं। सूची में अपेक्षित और वास्तविक मान की तुलना करें।",
+    "ms": "Perbezaan ditemui. Bandingkan nilai dijangka dan sebenar dalam senarai.",
+    "th": "พบผลต่าง โปรดเทียบค่าที่ควรเป็นกับค่าจริงในรายการ"
+  },
+  "本次检查范围内未发现差额。此前待办可登记修复依据后结案。": {
+    "en": "No discrepancies were found in the checks run. Record correction evidence to close earlier items.",
+    "ja": "今回の照合範囲で差異は見つかりませんでした。以前の項目は修正の根拠を登録して解決できます。",
+    "ru": "В рамках проверки расхождений не найдено. Чтобы закрыть прежние пункты, укажите подтверждение исправления.",
+    "hi": "इस जाँच में कोई अंतर नहीं मिला। पुराने मामले बंद करने के लिए सुधार का प्रमाण दर्ज करें।",
+    "ms": "Tiada perbezaan ditemui dalam semakan ini. Rekodkan bukti pembetulan untuk menutup perkara terdahulu.",
+    "th": "ไม่พบผลต่างในขอบเขตที่ตรวจสอบ บันทึกหลักฐานการแก้ไขเพื่อปิดรายการเดิม"
+  },
+  "原路退款回调核实": {
+    "en": "Verify original-method refund callback",
+    "ja": "元の支払い方法への返金通知を確認",
+    "ru": "Проверка уведомления о возврате исходным способом",
+    "hi": "मूल माध्यम की धनवापसी सूचना सत्यापित करें",
+    "ms": "Sahkan panggilan balik bayaran balik kaedah asal",
+    "th": "ตรวจสอบการแจ้งคืนเงินผ่านช่องทางเดิม"
+  },
+  "原路退款结果待核实，请检查支付通道。": {
+    "en": "The original-method refund is awaiting verification. Check the payment provider.",
+    "ja": "元の支払い方法への返金結果は確認待ちです。決済サービスを確認してください。",
+    "ru": "Результат возврата исходным способом ожидает проверки. Проверьте платёжный сервис.",
+    "hi": "मूल माध्यम से धनवापसी का सत्यापन बाकी है। भुगतान प्रदाता की जाँच करें।",
+    "ms": "Bayaran balik melalui kaedah asal menunggu pengesahan. Semak penyedia bayaran.",
+    "th": "ผลคืนเงินผ่านช่องทางเดิมรอการตรวจสอบ โปรดตรวจสอบผู้ให้บริการชำระเงิน"
+  },
+  "支付通道结果与原退款记录不一致，请核对原执行。": {
+    "en": "The provider’s result differs from the refund record. Check the original attempt.",
+    "ja": "決済サービスの結果が返金記録と一致しません。元の処理を確認してください。",
+    "ru": "Результат платёжного сервиса расходится с записью о возврате. Проверьте исходную попытку.",
+    "hi": "भुगतान प्रदाता का परिणाम धनवापसी रिकॉर्ड से मेल नहीं खाता। मूल प्रयास की जाँच करें।",
+    "ms": "Keputusan penyedia bayaran berbeza daripada rekod bayaran balik. Semak percubaan asal.",
+    "th": "ผลจากช่องทางชำระเงินไม่ตรงกับบันทึกการคืนเงิน โปรดตรวจสอบการดำเนินการเดิม"
+  },
+  "请查看订单详情核对当前付款和交付状态。": {
+    "en": "Open the order details to check its payment and delivery status.",
+    "ja": "注文の詳細で支払いと引き渡しの状況を確認してください。",
+    "ru": "Откройте заказ, чтобы проверить статус оплаты и исполнения.",
+    "hi": "भुगतान और डिलीवरी की स्थिति देखने के लिए ऑर्डर खोलें।",
+    "ms": "Buka butiran pesanan untuk menyemak status bayaran dan penghantaran.",
+    "th": "เปิดรายละเอียดคำสั่งซื้อเพื่อตรวจสอบสถานะการชำระเงินและการส่งมอบ"
+  },
+  "记录过多，请缩小日期范围。": {
+    "en": "Too many records. Select a shorter date range.",
+    "ja": "レコードが多すぎます。期間を短くしてください。",
+    "ru": "Слишком много записей. Сократите диапазон дат.",
+    "hi": "बहुत अधिक रिकॉर्ड हैं। छोटी अवधि चुनें।",
+    "ms": "Terlalu banyak rekod. Pilih julat tarikh yang lebih pendek.",
+    "th": "มีรายการมากเกินไป โปรดเลือกช่วงวันที่สั้นลง"
+  },
+  "已结案": {
+    "en": "Closed",
+    "ja": "解決済み",
+    "ru": "Закрыто",
+    "hi": "बंद",
+    "ms": "Ditutup",
+    "th": "ปิดเรื่องแล้ว"
+  },
+  "借贷平衡": {
+    "en": "Debit and credit balance",
+    "ja": "貸借の一致",
+    "ru": "Баланс дебета и кредита",
+    "hi": "डेबिट और क्रेडिट का संतुलन",
+    "ms": "Imbangan debit dan kredit",
+    "th": "สมดุลเดบิตและเครดิต"
   }
 }

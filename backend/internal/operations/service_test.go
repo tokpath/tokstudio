@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/platform/mail"
 	"github.com/tokpath/tokstudio/backend/internal/usage"
 	"gorm.io/driver/postgres"
@@ -118,7 +120,8 @@ func opsFixture(t *testing.T) (*Service, *operationAuth, *operationSender, strin
 	operator, customer := uuid.NewString(), uuid.NewString()
 	a := &operationAuth{actor: uuid.NewString()}
 	sender := &operationSender{}
-	return &Service{DB: db, EncryptionKey: "synthetic-operations-key", Authorize: a, Recipients: operationRecipients{operator, customer}, Mail: sender, InvoiceStore: &operationBlobs{data: map[string][]byte{}}}, a, sender, operator, customer
+	store := &operationBlobs{data: map[string][]byte{}}
+	return &Service{DB: db, EncryptionKey: "synthetic-operations-key", Authorize: a, Recipients: operationRecipients{operator, customer}, Mail: sender, InvoiceStore: store, ExportStore: store}, a, sender, operator, customer
 }
 func TestNotificationQueueRecoveryConsentAndScope(t *testing.T) {
 	s, _, sender, operator, customer := opsFixture(t)
@@ -190,7 +193,7 @@ func (m *metricSource) Metrics(context.Context, *gorm.DB, string, time.Time) (ma
 func (m *metricSource) Export(context.Context, *gorm.DB, string, ExportQuery) ([]json.RawMessage, error) {
 	return []json.RawMessage{json.RawMessage(`{"amount":"2.5"}`)}, nil
 }
-func (m *metricSource) HasAdjustment(context.Context, *gorm.DB, string, string) (bool, error) {
+func (m *metricSource) HasAdjustment(context.Context, *gorm.DB, Discrepancy, string) (bool, error) {
 	return true, nil
 }
 
@@ -301,8 +304,10 @@ func TestRealLedgerReconciliationExportAuthorizationAndRetention(t *testing.T) {
 	}
 	apply(cooperation.Migrations())
 	apply(usage.Migrations())
+	apply(organization.Migrations())
+	apply(commerce.Migrations())
 	us := usage.New(s.DB, usage.Dependencies{ResultStore: &operationBlobs{data: map[string][]byte{}}})
-	s.Source = DomainSource{Ledger: l, Cooperation: cooperation.New(s.DB, l, nil), Usage: us}
+	s.Source = DomainSource{Ledger: l, Cooperation: cooperation.New(s.DB, l, nil), Usage: us, Commerce: commerce.New(s.DB)}
 	s.Results = us
 	run, e := s.RunReconciliation(ctx, a.actor, operator)
 	if e != nil || run.FindingCount != 0 {
@@ -315,7 +320,7 @@ func TestRealLedgerReconciliationExportAuthorizationAndRetention(t *testing.T) {
 	if e != nil || run.FindingCount != 1 {
 		t.Fatal("materialized corruption not detected")
 	}
-	rows, e := s.ListDiscrepancies(ctx, a.actor, operator, 10)
+	rows, _, e := s.ListDiscrepancies(ctx, a.actor, operator, "", "", 10)
 	if e != nil || rows[0].Expected.Cmp(ledger.FromInt64(10)) != 0 {
 		t.Fatal("reconciliation lost exact amount")
 	}
@@ -353,6 +358,66 @@ func TestRealLedgerReconciliationExportAuthorizationAndRetention(t *testing.T) {
 	_ = s.DB.Model(&ledger.Journal{}).Count(&journals).Error
 	if journals != 1 {
 		t.Fatal("retention deleted financial facts")
+	}
+}
+
+type exportLeaseSource struct {
+	metricSource
+	firstStarted chan struct{}
+	firstRelease chan struct{}
+	claimed      atomic.Bool
+}
+
+func (s *exportLeaseSource) Export(ctx context.Context, tx *gorm.DB, operator string, q ExportQuery) ([]json.RawMessage, error) {
+	if s.claimed.CompareAndSwap(false, true) {
+		close(s.firstStarted)
+		select {
+		case <-s.firstRelease:
+			return nil, errors.New("first export source failed after its lease expired")
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	return s.metricSource.Export(ctx, tx, operator, q)
+}
+
+func TestExpiredExportLeaseCannotOverwriteReadyCSV(t *testing.T) {
+	s, auth, _, operator, _ := opsFixture(t)
+	installLedger(t, s.DB)
+	source := &exportLeaseSource{firstStarted: make(chan struct{}), firstRelease: make(chan struct{})}
+	s.Source = source
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	now := time.Now()
+	export, err := s.RequestExport(ctx, auth.actor, operator, ExportQuery{Kind: "ledger", From: now.Add(-time.Hour), To: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	staleResult := make(chan error, 1)
+	go func() {
+		rows, err := s.RunExports(ctx, 1)
+		if err == nil && len(rows) != 0 {
+			err = errors.New("expired lease returned a completed export")
+		}
+		staleResult <- err
+	}()
+	select {
+	case <-source.firstStarted:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	if err = s.DB.Model(&Export{}).Where("id=?", export.ID).Update("lease_until", now.Add(-time.Minute)).Error; err != nil {
+		t.Fatal(err)
+	}
+	if rows, err := s.RunExports(ctx, 1); err != nil || len(rows) != 1 || rows[0].State != "ready" {
+		t.Fatalf("replacement did not publish its CSV: %+v %v", rows, err)
+	}
+	close(source.firstRelease)
+	if err = <-staleResult; err != nil {
+		t.Fatal(err)
+	}
+	if data, err := s.DownloadExport(ctx, auth.actor, operator, export.ID); err != nil || len(data) == 0 {
+		t.Fatalf("replacement CSV is unavailable: %v", err)
 	}
 }
 

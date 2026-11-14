@@ -3329,6 +3329,24 @@
     "Muat turun CSV",
     "ดาวน์โหลด CSV"
   ],
+  "下载对账单": [
+    "下载对账单",
+    "Download statement",
+    "取引明細をダウンロード",
+    "Скачать выписку",
+    "खाता विवरण डाउनलोड करें",
+    "Muat turun penyata",
+    "ดาวน์โหลดรายการบัญชี"
+  ],
+  "下载收款凭证": [
+    "下载收款凭证",
+    "Download payment receipt",
+    "入金証明書をダウンロード",
+    "Скачать подтверждение оплаты",
+    "भुगतान रसीद डाउनलोड करें",
+    "Muat turun resit bayaran",
+    "ดาวน์โหลดหลักฐานการชำระเงิน"
+  ],
   "下载有效期至": [
     "下载有效期至",
     "Download available until",
@@ -3346,6 +3364,24 @@
     "निजी फ़ाइल डाउनलोड करें",
     "Muat turun fail peribadi",
     "ดาวน์โหลดไฟล์ส่วนตัว"
+  ],
+  "下载订单凭证": [
+    "下载订单凭证",
+    "Download order voucher",
+    "注文証明書をダウンロード",
+    "Скачать документ по заказу",
+    "ऑर्डर प्रमाण डाउनलोड करें",
+    "Muat turun bukti pesanan",
+    "ดาวน์โหลดหลักฐานคำสั่งซื้อ"
+  ],
+  "下载退款凭证": [
+    "下载退款凭证",
+    "Download refund voucher",
+    "返金証明書をダウンロード",
+    "Скачать подтверждение возврата",
+    "धनवापसी प्रमाण डाउनलोड करें",
+    "Muat turun bukti bayaran balik",
+    "ดาวน์โหลดหลักฐานการคืนเงิน"
   ],
   "不予办理": [
     "不予办理",
@@ -7514,6 +7550,15 @@
     "Kesihatan dan penggunaan laluan calon",
     "สถานะและการใช้งานเส้นทางตัวเลือก"
   ],
+  "借贷平衡": [
+    "借贷平衡",
+    "Debit and credit balance",
+    "貸借の一致",
+    "Баланс дебета и кредита",
+    "डेबिट और क्रेडिट का संतुलन",
+    "Imbangan debit dan kredit",
+    "สมดุลเดบิตและเครดิต"
+  ],
   "值": [
     "值",
     "Value",
@@ -11195,6 +11240,15 @@
     "Pilih pembayaran oleh pihak bertanggungjawab secara jelas apabila laluan asal disekat",
     "เลือกให้ผู้รับผิดชอบจ่ายแทนอย่างชัดเจนเมื่อช่องทางเดิมมีข้อจำกัด"
   ],
+  "原路退款回调核实": [
+    "原路退款回调核实",
+    "Verify original-method refund callback",
+    "元の支払い方法への返金通知を確認",
+    "Проверка уведомления о возврате исходным способом",
+    "मूल माध्यम की धनवापसी सूचना सत्यापित करें",
+    "Sahkan panggilan balik bayaran balik kaedah asal",
+    "ตรวจสอบการแจ้งคืนเงินผ่านช่องทางเดิม"
+  ],
   "原路退款结果待核实，请在原退款记录继续查询。": [
     "原路退款结果待核实，请在原退款记录继续查询。",
     "The original-route refund is awaiting verification. Continue checking from the original refund record.",
@@ -11203,6 +11257,15 @@
     "मूल भुगतान माध्यम से वापसी के परिणाम का सत्यापन बाकी है। मूल वापसी रिकॉर्ड में जाँच जारी रखें।",
     "Bayaran balik melalui saluran asal sedang menunggu pengesahan. Teruskan semakan pada rekod bayaran balik asal.",
     "ผลการคืนเงินผ่านช่องทางเดิมรอการตรวจสอบ โปรดตรวจสอบต่อจากรายการคืนเงินเดิม"
+  ],
+  "原路退款结果待核实，请检查支付通道。": [
+    "原路退款结果待核实，请检查支付通道。",
+    "The original-method refund is awaiting verification. Check the payment provider.",
+    "元の支払い方法への返金結果は確認待ちです。決済サービスを確認してください。",
+    "Результат возврата исходным способом ожидает проверки. Проверьте платёжный сервис.",
+    "मूल माध्यम से धनवापसी का सत्यापन बाकी है। भुगतान प्रदाता की जाँच करें।",
+    "Bayaran balik melalui kaedah asal menunggu pengesahan. Semak penyedia bayaran.",
+    "ผลคืนเงินผ่านช่องทางเดิมรอการตรวจสอบ โปรดตรวจสอบผู้ให้บริการชำระเงิน"
   ],
   "原退出条款": [
     "原退出条款",
@@ -16073,6 +16136,15 @@
     "Lengkapkan persediaan yang diperlukan untuk mengaktifkan",
     "ตั้งค่าที่จำเป็นให้เสร็จเพื่อเปิดใช้งาน"
   ],
+  "完成时间": [
+    "完成时间",
+    "Completed at",
+    "完了日時",
+    "Время завершения",
+    "पूरा होने का समय",
+    "Masa selesai",
+    "เวลาที่เสร็จสิ้น"
+  ],
   "完成本订单付款": [
     "完成本订单付款",
     "Complete payment for this order",
@@ -20185,6 +20257,15 @@
     "समाप्त",
     "Tamat",
     "สิ้นสุดแล้ว"
+  ],
+  "已结案": [
+    "已结案",
+    "Closed",
+    "解決済み",
+    "Закрыто",
+    "बंद",
+    "Ditutup",
+    "ปิดเรื่องแล้ว"
   ],
   "已结清 结算币种": [
     "已结清 结算币种",
@@ -25847,6 +25928,15 @@
     "Kejayaan penyedia pembayaran tidak bermakna kredit telah diserahkan; rekod pengesahan dan penyerahan pesanan ini menentukan aset anda. Bayaran kurang, bayaran berlebihan, pembayaran lewat dan kes dibayar tetapi belum diserahkan kekal dengan pesanan asal. Semakan semula tidak pernah mencaj lagi.",
     "การชำระเงินสำเร็จกับผู้ให้บริการไม่ได้หมายความว่าส่งมอบเครดิตแล้ว ระเบียนตรวจสอบและส่งมอบของคำสั่งซื้อนี้เป็นตัวกำหนดสินทรัพย์ของคุณ การชำระขาด เกิน ล่าช้า และชำระแล้วแต่ยังไม่ส่งมอบยังจัดการตามคำสั่งซื้อเดิม การตรวจสอบซ้ำไม่เรียกเก็บเงินอีก"
   ],
+  "支付通道结果与原退款记录不一致，请核对原执行。": [
+    "支付通道结果与原退款记录不一致，请核对原执行。",
+    "The provider’s result differs from the refund record. Check the original attempt.",
+    "決済サービスの結果が返金記録と一致しません。元の処理を確認してください。",
+    "Результат платёжного сервиса расходится с записью о возврате. Проверьте исходную попытку.",
+    "भुगतान प्रदाता का परिणाम धनवापसी रिकॉर्ड से मेल नहीं खाता। मूल प्रयास की जाँच करें।",
+    "Keputusan penyedia bayaran berbeza daripada rekod bayaran balik. Semak percubaan asal.",
+    "ผลจากช่องทางชำระเงินไม่ตรงกับบันทึกการคืนเงิน โปรดตรวจสอบการดำเนินการเดิม"
+  ],
   "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。": [
     "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。",
     "The payment provider returned a currency or amount that differs from this order's quote. Payment is paused. Keep this order and contact your operator to check it.",
@@ -29285,6 +29375,24 @@
     "Hasil sementara untuk permintaan ini",
     "ผลลัพธ์ชั่วคราวสำหรับคำขอนี้"
   ],
+  "本次检查发现差额，请在列表核对应有值和实际值。": [
+    "本次检查发现差额，请在列表核对应有值和实际值。",
+    "Discrepancies were found. Compare the expected and actual values in the list.",
+    "差異が見つかりました。一覧で期待値と実際の値を確認してください。",
+    "Найдены расхождения. Сравните ожидаемые и фактические значения в списке.",
+    "अंतर मिले हैं। सूची में अपेक्षित और वास्तविक मान की तुलना करें।",
+    "Perbezaan ditemui. Bandingkan nilai dijangka dan sebenar dalam senarai.",
+    "พบผลต่าง โปรดเทียบค่าที่ควรเป็นกับค่าจริงในรายการ"
+  ],
+  "本次检查范围内未发现差额。此前待办可登记修复依据后结案。": [
+    "本次检查范围内未发现差额。此前待办可登记修复依据后结案。",
+    "No discrepancies were found in the checks run. Record correction evidence to close earlier items.",
+    "今回の照合範囲で差異は見つかりませんでした。以前の項目は修正の根拠を登録して解決できます。",
+    "В рамках проверки расхождений не найдено. Чтобы закрыть прежние пункты, укажите подтверждение исправления.",
+    "इस जाँच में कोई अंतर नहीं मिला। पुराने मामले बंद करने के लिए सुधार का प्रमाण दर्ज करें।",
+    "Tiada perbezaan ditemui dalam semakan ini. Rekodkan bukti pembetulan untuk menutup perkara terdahulu.",
+    "ไม่พบผลต่างในขอบเขตที่ตรวจสอบ บันทึกหลักฐานการแก้ไขเพื่อปิดรายการเดิม"
+  ],
   "本次模型与价格": [
     "本次模型与价格",
     "Selected model and pricing",
@@ -31139,6 +31247,15 @@
     "Semak pelan pengambilalihan ini dan tindakan yang direkodkan.",
     "ตรวจสอบแผนรับโอนนี้และการดำเนินการที่กำลังบันทึก"
   ],
+  "核对本经营方的余额、占用、借贷平衡和采购批次，以及订单、已关联收款和交付。已有差额在登记修复依据后结案。": [
+    "核对本经营方的余额、占用、借贷平衡和采购批次，以及订单、已关联收款和交付。已有差额在登记修复依据后结案。",
+    "Checks your balances, holds, balanced entries, procurement lots, orders, linked receipts, and fulfillment. Record correction evidence to close a discrepancy.",
+    "残高、保留額、貸借、仕入れロット、注文、紐付け済み入金、引き渡しを照合します。差異の解決には修正の根拠を登録してください。",
+    "Проверяются остатки, резервы, баланс проводок, партии закупок, заказы, связанные платежи и исполнение. Для закрытия расхождения укажите подтверждение исправления.",
+    "शेष राशि, आरक्षण, लेखा संतुलन, खरीद बैच, ऑर्डर, जुड़े भुगतान और डिलीवरी जाँची जाती है। अंतर बंद करने के लिए सुधार का प्रमाण दर्ज करें।",
+    "Semak baki, amaun ditahan, imbangan jurnal, lot perolehan, pesanan, resit berkaitan dan penghantaran. Rekodkan bukti pembetulan untuk menutup perbezaan.",
+    "ตรวจสอบยอดคงเหลือ ยอดกันไว้ ดุลรายการบัญชี ล็อตจัดซื้อ คำสั่งซื้อ การรับเงินที่เชื่อมโยง และการส่งมอบ บันทึกหลักฐานการแก้ไขเพื่อปิดผลต่าง"
+  ],
   "核对本经营方的账户余额、占用金额、每笔记账是否借贷平衡，以及采购额度是否与批次和账户一致。没有差额时不会新增记录。": [
     "核对本经营方的账户余额、占用金额、每笔记账是否借贷平衡，以及采购额度是否与批次和账户一致。没有差额时不会新增记录。",
     "Checks this operator's account balances, held amounts, whether each journal balances, and whether procurement quantity matches its lots and account. No row is added when there is no difference.",
@@ -32164,6 +32281,15 @@
     "इन क्रेडिट का नवीनीकरण नवीनतम पैकेज चक्र के साथ प्रबंधित होता है।",
     "Pembaharuan untuk kredit ini diurus bersama kitaran pakej terkini.",
     "การต่ออายุเครดิตเหล่านี้จัดการร่วมกับรอบแพ็กเกจล่าสุด"
+  ],
+  "此筛选范围内没有待办或已结案差额。": [
+    "此筛选范围内没有待办或已结案差额。",
+    "There are no open or resolved discrepancies in this view.",
+    "この条件に該当する未処理または解決済みの差異はありません。",
+    "По этому фильтру нет открытых или закрытых расхождений.",
+    "इस फ़िल्टर में कोई लंबित या निपटाया गया अंतर नहीं है।",
+    "Tiada perbezaan terbuka atau selesai bagi penapis ini.",
+    "ไม่มีผลต่างที่รอดำเนินการหรือปิดแล้วตามตัวกรองนี้"
   ],
   "此能力只由平台维护": [
     "此能力只由平台维护",
@@ -33415,6 +33541,15 @@
     "दायित्व निपटाने के बाद अप्रयुक्त खरीदे क्रेडिट मूल भुगतान के अनुपात में लौटाएँ; उपहार वापस नहीं होते",
     "Selepas menyelesaikan tanggungjawab, bayar balik kredit dibeli yang belum digunakan mengikut kadar pembayaran asal; hadiah tidak boleh dibayar balik",
     "หลังชำระภาระแล้ว คืนเครดิตที่ซื้อและยังไม่ใช้ตามสัดส่วนการชำระเงินเดิม ของแถมคืนไม่ได้"
+  ],
+  "清算币种": [
+    "清算币种",
+    "Settlement currency",
+    "決済通貨",
+    "Валюта расчётов",
+    "निपटान मुद्रा",
+    "Mata wang penyelesaian",
+    "สกุลเงินชำระบัญชี"
   ],
   "清算币种业务事实": [
     "清算币种业务事实",
@@ -40058,6 +40193,15 @@
     "ID rekod",
     "ID บันทึก"
   ],
+  "记录过多，请缩小日期范围。": [
+    "记录过多，请缩小日期范围。",
+    "Too many records. Select a shorter date range.",
+    "レコードが多すぎます。期間を短くしてください。",
+    "Слишком много записей. Сократите диапазон дат.",
+    "बहुत अधिक रिकॉर्ड हैं। छोटी अवधि चुनें।",
+    "Terlalu banyak rekod. Pilih julat tarikh yang lebih pendek.",
+    "มีรายการมากเกินไป โปรดเลือกช่วงวันที่สั้นลง"
+  ],
   "记账流水": [
     "记账流水",
     "Ledger transactions",
@@ -40957,6 +41101,15 @@
     "मॉडल स्थिति जाँचें या संचालक से संपर्क करें।",
     "Semak status model atau hubungi pengendali.",
     "ตรวจสอบสถานะโมเดลหรือติดต่อผู้ดำเนินงาน"
+  ],
+  "请查看订单详情核对当前付款和交付状态。": [
+    "请查看订单详情核对当前付款和交付状态。",
+    "Open the order details to check its payment and delivery status.",
+    "注文の詳細で支払いと引き渡しの状況を確認してください。",
+    "Откройте заказ, чтобы проверить статус оплаты и исполнения.",
+    "भुगतान और डिलीवरी की स्थिति देखने के लिए ऑर्डर खोलें।",
+    "Buka butiran pesanan untuk menyemak status bayaran dan penghantaran.",
+    "เปิดรายละเอียดคำสั่งซื้อเพื่อตรวจสอบสถานะการชำระเงินและการส่งมอบ"
   ],
   "请核实客户和处理依据。审查时保持active并暂缓解冻和新使用，继续正确应计；暂停/终止才停止后续本人分佣。恢复不重新累计资格，永久终止不可恢复，已成立合法佣金不删除。": [
     "请核实客户和处理依据。审查时保持active并暂缓解冻和新使用，继续正确应计；暂停/终止才停止后续本人分佣。恢复不重新累计资格，永久终止不可恢复，已成立合法佣金不删除。",
@@ -44585,6 +44738,15 @@
     "Hasil bayaran balik masih menunggu pengesahan",
     "ผลการคืนเงินยังรอการตรวจสอบ"
   ],
+  "退款编号": [
+    "退款编号",
+    "Refund ID",
+    "返金番号",
+    "Номер возврата",
+    "धनवापसी आईडी",
+    "ID bayaran balik",
+    "เลขอ้างอิงการคืนเงิน"
+  ],
   "退款网络": [
     "退款网络",
     "Refund network",
@@ -44611,6 +44773,15 @@
     "रिफ़ंड की स्थिति",
     "Status bayaran balik",
     "สถานะการคืนเงิน"
+  ],
+  "退款金额": [
+    "退款金额",
+    "Refund amount",
+    "返金額",
+    "Сумма возврата",
+    "धनवापसी राशि",
+    "Jumlah bayaran balik",
+    "ยอดเงินคืน"
   ],
   "送入待对账失败": [
     "送入待对账失败",

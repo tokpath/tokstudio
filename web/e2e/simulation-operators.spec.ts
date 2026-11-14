@@ -320,13 +320,8 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       save("topup_allocated", await submit(channel, "关联已核实收款", `${channelBase}/order-context/${journal.topup.id}/allocate`));
     }
     if (!journal.topup_delivered) {
-      await channel.goto(`/manage/${f.channel_id}/orders`);
-      await control(channel, "搜索记录").fill(journal.topup.id); await channel.getByRole("button", { name: "查询", exact: true }).click();
-      await channel.getByRole("link", { name: "查看并办理", exact: true }).click();
-      await expect(channel.getByRole("heading", { name: "订单与收款办理", exact: true })).toBeVisible();
-      await expect(channel.getByRole("dialog")).toHaveCount(0);
-      await channel.getByRole("button", { name: "核实资金并重试交付", exact: true }).click();
-      save("topup_delivered", await submit(channel, "核实资金并重试交付", `${channelBase}/orders/${journal.topup.id}/fulfill`));
+      await expect.poll(async () => (await (await workspaceAPI(customer, `/api/v1/me/orders/${journal.topup.id}`)).json()).status, { timeout: 60_000 }).toBe("completed");
+      save("topup_delivered", { id: journal.topup.id, status: "completed" });
     }
     if (!journal.customer_order) {
       await customer.goto("/workspace/plans"); await customer.getByRole("button", { name: "选择此套餐", exact: true }).first().click();

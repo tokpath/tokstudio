@@ -154,6 +154,18 @@ func run() error {
 		if _, e = databaseCommand(ctx, target, "pg_restore", "--dbname="+strings.TrimPrefix(u.Path, "/"), "--exit-on-error", "--single-transaction", "--no-owner", "--no-privileges", dump); e != nil {
 			return e
 		}
+		// Export rows and access history survive the drill, but their temporary
+		// objects were deliberately omitted from the archive.
+		if _, e = scalar(ctx, target, `DO $expire_exports$
+ BEGIN
+   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema=current_schema()
+      AND table_name='operations_exports' AND column_name='object_key') THEN
+     UPDATE operations_exports SET state='expired',object_key='',attempt_id=NULL,lease_until=NULL
+     WHERE state IN ('pending','processing','ready') OR object_key<>'';
+   END IF;
+ END; $expire_exports$`); e != nil {
+			return e
+		}
 		generation, e := scalar(ctx, target, "SELECT generation FROM schema_identity WHERE id=TRUE")
 		if e != nil || generation != m.Generation {
 			return errors.New("restored database generation mismatch")

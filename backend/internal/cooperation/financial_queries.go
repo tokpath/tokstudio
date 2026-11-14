@@ -57,7 +57,6 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 			{`SELECT COALESCE(sum(cost_money),0)::text FROM cooperation_procurement_reversals WHERE buyer_id=? AND created_at>=? AND created_at<?`, &out.ProcurementCorrectionMoney},
 			{`SELECT COALESCE(sum(c.cost_money),0)::text FROM cooperation_procurement_settlements c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at>=? AND c.created_at<?`, &out.WholesaleEarnedMoney},
 			{`SELECT COALESCE(sum(c.cost_money),0)::text FROM cooperation_procurement_reversals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at>=? AND c.created_at<?`, &out.WholesaleCorrectionMoney},
-			{`SELECT COALESCE(sum(a.amount_money),0)::text FROM cooperation_purchase_allocations a JOIN cooperation_purchase_orders o ON o.id=a.order_id WHERE o.buyer_id=? AND a.created_at>=? AND a.created_at<?`, &out.VerifiedProcurementPaymentsMoney},
 		} {
 			if e := t.Raw(q.SQL, operator, from, to).Row().Scan(q.Target); e != nil {
 				return e
@@ -66,7 +65,15 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 		if e := t.Raw(`SELECT (COALESCE((SELECT sum(paid_money) FROM cooperation_procurement_lots WHERE buyer_id=? AND delivered_at<?),0)-COALESCE((SELECT sum(cost_money) FROM cooperation_procurement_settlements WHERE buyer_id=? AND created_at<?),0)+COALESCE((SELECT sum(cost_money) FROM cooperation_procurement_reversals WHERE buyer_id=? AND created_at<?),0)-COALESCE((SELECT sum(book_cost_money) FROM cooperation_procurement_removals WHERE buyer_id=? AND created_at<?),0))::text`, operator, to, operator, to, operator, to, operator, to).Row().Scan(&out.ClosingInventoryCostMoney); e != nil {
 			return e
 		}
-		if e := t.Raw(`SELECT COALESCE(sum(a.amount_money),0)::text FROM cooperation_purchase_allocations a JOIN cooperation_purchase_orders o ON o.id=a.order_id WHERE o.buyer_id=? AND a.created_at<?`, operator, to).Row().Scan(&out.ClosingProcurementPaymentsMoney); e != nil {
+		// Procurement allocations cover the principal. The buyer actually pays the
+		// whole receipt, including any fee charged to them at checkout.
+		if e := t.Raw(`SELECT
+ COALESCE(sum(a.amount_money+r.payment_fee_money) FILTER (WHERE COALESCE(r.paid_at,r.observed_at)>=?),0)::text,
+ COALESCE(sum(a.amount_money+r.payment_fee_money),0)::text
+ FROM cooperation_purchase_allocations a
+ JOIN cooperation_purchase_orders o ON o.id=a.order_id
+ JOIN commerce_receipts r ON r.id=a.receipt_id AND r.operator_id=o.supplier_id
+ WHERE o.buyer_id=? AND COALESCE(r.paid_at,r.observed_at)<?`, from, operator, to).Row().Scan(&out.VerifiedProcurementPaymentsMoney, &out.ClosingProcurementPaymentsMoney); e != nil {
 			return e
 		}
 		if e := t.Raw(`SELECT (COALESCE((SELECT sum(l.paid_money) FROM cooperation_procurement_lots l JOIN cooperation_procurement_positions p ON p.buyer_id=l.buyer_id WHERE p.supplier_id=? AND l.delivered_at<?),0)-COALESCE((SELECT sum(c.cost_money) FROM cooperation_procurement_settlements c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0)+COALESCE((SELECT sum(c.cost_money) FROM cooperation_procurement_reversals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0)-COALESCE((SELECT sum(c.book_cost_money) FROM cooperation_procurement_removals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at<?),0))::text`, operator, to, operator, to, operator, to, operator, to).Row().Scan(&out.ClosingWholesalePrepaymentMoney); e != nil {

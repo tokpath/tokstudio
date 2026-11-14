@@ -6,7 +6,6 @@ import { useI18n } from "@/components/i18n";
 import { request } from "@/lib/api-client";
 import { FinancialReportSchema } from "@/lib/contracts";
 import { canReadResource } from "@/lib/navigation";
-import { subtractDecimal } from "@/lib/decimal";
 import { useProduct } from "./context";
 import { Heading, Empty, Loading, ErrorPanel, Stat, Money, When, Table } from "./shared";
 import { Card } from "@/components/ui/card";
@@ -44,7 +43,7 @@ export function FinancialReportScreen({ operatorID }: { operatorID: string }) {
       </div>
       {pending.length > 0 && <Card className="mb-6"><h2 className="mb-4 font-semibold">{t("待处理事项")}</h2><div className="flex flex-wrap gap-x-6 gap-y-3">{pending.map(item => <div key={item.label} className="text-sm">{canReadResource(ws, item.permission) ? <Link className="text-brand-emphasis underline" href={base + "/" + item.path}>{t(item.label)} · {item.count}</Link> : <span>{t(item.label)} · {item.count}</span>}</div>)}</div>{report.costs.pending_supplier_costs + report.costs.pending_fees > 0 && <p className="mt-3 text-xs text-ink-mute">{t("仍有成本待核实，请结合各币种原始记录查看。")}</p>}{report.payments?.original_money.length ? <div className="mt-3 text-sm">{report.payments.original_money.map(item => <span key={item.currency} className="mr-4"><Money value={item.amount} unit={item.currency} /></span>)}</div> : null}</Card>}
       <div className="mb-6 grid gap-6 xl:grid-cols-2">
-        <Card><h2 className="mb-5 text-lg font-semibold">{t("销售与调用")}</h2>{facts([["套餐销售额", report.sales.sales_money, report.settlement_currency], ["套餐销售笔数", report.sales.completed_sales], ["批发销售额", report.procurement.wholesale_sales_money, report.settlement_currency], ["批发销售笔数", report.procurement.wholesale_orders], ["支付余额充值", report.sales.wallet_top_up_money, report.settlement_currency], ["已完成调用", report.usage.completed_requests], ["净扣费", subtractDecimal(report.usage.charged_atg, report.usage.correction_atg), "ATG"]])}<p className="mt-5 text-xs text-ink-mute">{t("销售额按已交付订单统计；销售、充值与确认收入分别展示。")}</p></Card>
+        <Card><h2 className="mb-5 text-lg font-semibold">{t("销售与调用")}</h2>{facts([["套餐销售额", report.sales.sales_money, report.settlement_currency], ["套餐销售笔数", report.sales.completed_sales], ["批发销售额", report.procurement.wholesale_sales_money, report.settlement_currency], ["批发销售笔数", report.procurement.wholesale_orders], ["支付余额充值", report.sales.wallet_top_up_money, report.settlement_currency], ["已完成调用", report.usage.completed_requests], ["净扣费", report.usage.net_charged_atg, "ATG"]])}<p className="mt-5 text-xs text-ink-mute">{t("销售额按已交付订单统计；销售、充值与确认收入分别展示。")}</p></Card>
         <Card><h2 className="mb-5 text-lg font-semibold">{t("资金收支")}</h2>{facts([["已核实流入", report.cash.recorded_in_money, report.settlement_currency], ["已核实流出", report.cash.recorded_out_money, report.settlement_currency], ["采购付款", report.cash.procurement_payments_money, report.settlement_currency], ["佣金提现付款", report.cash.commission_payouts_money, report.settlement_currency], ["通道未结应收", report.cash.provider_receivable_money, report.settlement_currency]])}</Card>
       </div>
       <details className="mb-6 rounded-card border border-hairline bg-canvas-raised p-5"><summary className="cursor-pointer font-medium">{t("收入与成本明细")}</summary><div className="mt-5 grid gap-8 xl:grid-cols-2">

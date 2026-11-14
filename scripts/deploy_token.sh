@@ -37,7 +37,8 @@ fi
 ready=0
 for _ in $(seq 1 45); do
   if curl -fsS --max-time 3 -H 'Host: test.tokpath.com' http://127.0.0.1/healthz >/dev/null &&
-     curl -fsS --max-time 3 -H 'Host: test.tokpath.com' http://127.0.0.1/readyz >/dev/null; then
+     curl -fsS --max-time 3 -H 'Host: test.tokpath.com' http://127.0.0.1/readyz >/dev/null &&
+     "${COMPOSE[@]}" exec -T worker /worker --healthcheck; then
     ready=1
     break
   fi
@@ -48,4 +49,5 @@ if [[ "$ready" != 1 ]]; then
   "${COMPOSE[@]}" ps >&2
   exit 1
 fi
+"${COMPOSE[@]}" exec -T worker /worker --release-check
 printf 'TokenHub selected revision is running at %s\n' "$TOKENHUB_PUBLIC_BASE_URL"

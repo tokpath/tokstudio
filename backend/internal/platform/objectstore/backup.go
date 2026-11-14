@@ -10,16 +10,25 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-// Model outputs and regenerated report exports are deliberately absent from
-// long-lived backups. Private invoice/evidence/branding objects are immutable.
-func durableKey(key string) bool {
-	return validKey(key) && (strings.HasPrefix(key, "branding/") || strings.HasPrefix(key, "invoices/") || strings.HasPrefix(key, "finance-evidence/") || strings.HasPrefix(key, "cooperation-contracts/"))
+var durablePrefixes = [...]string{"branding/", "finance-evidence/", "invoices/", "cooperation-contracts/"}
+
+// DurableKey is shared by backup collection, archive inspection and restore.
+func DurableKey(key string) bool {
+	if !validKey(key) {
+		return false
+	}
+	for _, prefix := range durablePrefixes {
+		if strings.HasPrefix(key, prefix) {
+			return true
+		}
+	}
+	return false
 }
 func (s *Store) VisitDurable(ctx context.Context, visit func(key, contentType string, data []byte) error) error {
 	if s == nil || s.client == nil {
 		return ErrUnavailable
 	}
-	for _, prefix := range []string{"branding/", "finance-evidence/", "invoices/", "cooperation-contracts/"} {
+	for _, prefix := range durablePrefixes {
 		pages := s3.NewListObjectsV2Paginator(s.client, &s3.ListObjectsV2Input{Bucket: aws.String(s.bucket), Prefix: aws.String(prefix)})
 		for pages.HasMorePages() {
 			page, e := pages.NextPage(ctx)
@@ -28,7 +37,7 @@ func (s *Store) VisitDurable(ctx context.Context, visit func(key, contentType st
 			}
 			for _, item := range page.Contents {
 				key := aws.ToString(item.Key)
-				if !durableKey(key) {
+				if !DurableKey(key) {
 					return ErrKey
 				}
 				if aws.ToInt64(item.Size) > MaxObjectBytes {
@@ -73,7 +82,7 @@ func (s *Store) RequireEmpty(ctx context.Context) error {
 	return nil
 }
 func (s *Store) RestoreDurable(ctx context.Context, key, contentType string, data []byte) error {
-	if !durableKey(key) {
+	if !DurableKey(key) {
 		return ErrKey
 	}
 	return s.Put(ctx, key, data, contentType, time.Time{})

@@ -43,6 +43,34 @@ func invoicePDFFixture() []byte {
 	return []byte("%PDF-1.4\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n2 0 obj\n<</Type/Pages/Count 0/Kids[]>>\nendobj\ntrailer\n<</Root 1 0 R>>\n%%EOF\n")
 }
 func TestPrivateInvoiceFilesAndVoidReplacement(t *testing.T) { testPrivateInvoiceFiles(t, false) }
+
+func TestRefundReviewDoesNotPublishUnissuedInvoiceFiles(t *testing.T) {
+	s, actor, _, operator, customer := opsFixture(t)
+	basis := &invoiceBasis{value: ledger.FromInt64(10)}
+	s.Invoices = basis
+	ctx := t.Context()
+	invoice, err := s.RequestInvoice(ctx, customer, operator, uuid.NewString(), []InvoiceLine{{uuid.NewString(), basis.value}}, InvoiceDetails{Title: "Synthetic buyer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = s.UploadInvoiceFile(ctx, actor.actor, operator, invoice.ID, "draft", InvoiceUpload{Filename: "draft.pdf", ContentType: "application/pdf", Data: invoicePDFFixture()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	basis.review.Store(true)
+	if n, err := s.ReviewInvoices(ctx, operator, 50); err != nil || n != 0 {
+		t.Fatalf("review changed unissued request: %d %v", n, err)
+	}
+	if _, err = s.ListInvoiceFiles(ctx, customer, operator, invoice.ID, true); !errors.Is(err, ErrConflict) {
+		t.Fatalf("unissued draft is visible: %v", err)
+	}
+	if _, err = s.RegisterInvoice(ctx, actor.actor, operator, invoice.ID, "issued", "draft", "test-file", "reviewed"); !errors.Is(err, ErrConflict) {
+		t.Fatalf("issued against invalid order: %v", err)
+	}
+	if out, err := s.RegisterInvoice(ctx, actor.actor, operator, invoice.ID, "rejected", "", "", "Original order changed"); err != nil || out.State != "rejected" {
+		t.Fatalf("issuer cannot reject an unissued request: %+v %v", out, err)
+	}
+}
 func TestExternalS3PrivateInvoiceFilesAndVoidReplacement(t *testing.T) {
 	if os.Getenv("TOKENHUB_TEST_S3_ENDPOINT") == "" {
 		t.Skip("real private S3-compatible test bucket required")

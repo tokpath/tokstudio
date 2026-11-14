@@ -512,6 +512,42 @@ func TestPostgresQualificationConfirmationDisputeAndProtection(t *testing.T) {
 	}
 }
 
+func TestDueQualificationPageSelectsMatureOpenWork(t *testing.T) {
+	f := setup(t)
+	eligible := f.register(t, "due@example.test", "").Customer.ID
+	future := f.register(t, "future@example.test", "").Customer.ID
+	idle := f.register(t, "idle@example.test", "").Customer.ID
+	closed := f.register(t, "closed@example.test", "").Customer.ID
+	if err := f.db.Table("organization_customers").Where("id=?", closed).Update("status", "closed").Error; err != nil {
+		t.Fatal(err)
+	}
+	policy, err := f.s.CurrentPolicy(f.ctx, nil, f.operator)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := policy.EffectiveAt.Add(24 * time.Hour)
+	confirmedAfterPolicy := policy.EffectiveAt
+	for customer, due := range map[string]time.Time{eligible: confirmedAfterPolicy, future: now, closed: confirmedAfterPolicy} {
+		row := confirmationRow{ID: uuid.NewString(), SourceEventID: uuid.NewString(), OperatorID: f.operator,
+			OriginalOperatorID: f.operator, CustomerID: customer, OrderID: uuid.NewString(), Kind: "usage",
+			PaidMoney: d("2"), PolicyID: policy.ID, OccurredAt: policy.EffectiveAt, SourceOccurredAt: policy.EffectiveAt,
+			ConfirmAt: due, Status: "pending", Fingerprint: "synthetic due work"}
+		if err := f.db.Create(&row).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	rows, err := f.s.DueQualificationPage(f.ctx, "", 1)
+	if err != nil || len(rows) != 1 || rows[0].OperatorID != f.operator || rows[0].CustomerID != eligible {
+		t.Fatalf("wrong due qualification rows (idle=%s): %+v %v", idle, rows, err)
+	}
+	if _, err := f.s.Advance(f.ctx, nil, f.operator, eligible, time.Now().UTC()); err != nil {
+		t.Fatal(err)
+	}
+	if rows, err := f.s.DueQualificationPage(f.ctx, "", 10); err != nil || len(rows) != 0 {
+		t.Fatalf("completed or inactive accounts were scheduled: %+v %v", rows, err)
+	}
+}
+
 func TestPostgresWithdrawalUnknownRecoveryAndOffsetsNeverTouchOtherAssets(t *testing.T) {
 	f := setup(t)
 	a := f.register(t, "a@example.test", "")

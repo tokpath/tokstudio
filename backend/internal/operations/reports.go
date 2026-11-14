@@ -4,12 +4,18 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"time"
+
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/platform/objectstore"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"time"
 )
 
 type Reconciliation struct {
@@ -45,7 +51,7 @@ func (s *Service) RunReconciliation(ctx context.Context, actor, operator string)
 	if s.Source == nil {
 		return out, ErrNotReady
 	}
-	e := s.DB.WithContext(ctx).Transaction(func(t *gorm.DB) error {
+	run := func(t *gorm.DB) error {
 		if e := s.require(ctx, t, actor, operator, "reports.view"); e != nil {
 			return e
 		}
@@ -59,26 +65,65 @@ func (s *Service) RunReconciliation(ctx context.Context, actor, operator string)
 		}
 		for _, f := range findings {
 			d := Discrepancy{ID: uuid.NewString(), RunID: out.ID, OperatorID: operator, Domain: f.Domain, Kind: f.Kind, Reference: f.Reference, Unit: f.Unit, Expected: f.Expected, Actual: f.Actual, State: "open"}
-			if e = t.Create(&d).Error; e != nil {
+			if e = t.Clauses(clause.OnConflict{
+				Columns:     []clause.Column{{Name: "operator_id"}, {Name: "domain"}, {Name: "kind"}, {Name: "reference"}, {Name: "unit"}},
+				TargetWhere: clause.Where{Exprs: []clause.Expression{clause.Expr{SQL: "state='open'"}}},
+				DoUpdates:   clause.AssignmentColumns([]string{"run_id", "expected", "actual"}),
+			}).Create(&d).Error; e != nil {
 				return e
 			}
 		}
 		return nil
-	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
-	return out, e
+	}
+	var err error
+	for range 3 {
+		err = s.DB.WithContext(ctx).Transaction(run, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
+		var pg *pgconn.PgError
+		if !errors.As(err, &pg) || pg.Code != "40001" {
+			break
+		}
+	}
+	return out, err
 }
-func (s *Service) ListDiscrepancies(ctx context.Context, actor, operator string, limit int) ([]Discrepancy, error) {
-	if limit < 1 || limit > 100 {
-		limit = 50
+
+type discrepancyCursor struct {
+	State, ID string
+}
+
+func (s *Service) ListDiscrepancies(ctx context.Context, actor, operator, state, cursor string, limit int) ([]Discrepancy, string, error) {
+	if limit < 1 || limit > 100 || (state != "" && state != "open" && state != "resolved") {
+		return nil, "", ErrInvalid
+	}
+	var after discrepancyCursor
+	if cursor != "" {
+		data, err := base64.RawURLEncoding.DecodeString(cursor)
+		if err != nil || json.Unmarshal(data, &after) != nil || !validID(after.ID) ||
+			(after.State != "open" && after.State != "resolved") || (state != "" && state != after.State) {
+			return nil, "", ErrInvalid
+		}
 	}
 	out := []Discrepancy{}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
 		if e := s.require(ctx, t, actor, operator, "reports.view"); e != nil {
 			return e
 		}
-		return t.Where("operator_id=?", operator).Order("state,id").Limit(limit).Find(&out).Error
+		q := t.Where("operator_id=?", operator)
+		if state != "" {
+			q = q.Where("state=?", state)
+		}
+		if cursor != "" {
+			q = q.Where("(state,id)>(?,?)", after.State, after.ID)
+		}
+		return q.Order("state,id").Limit(limit + 1).Find(&out).Error
 	})
-	return out, e
+	next := ""
+	if e == nil && len(out) > limit {
+		out = out[:limit]
+		last := out[limit-1]
+		data, _ := json.Marshal(discrepancyCursor{last.State, last.ID})
+		next = base64.RawURLEncoding.EncodeToString(data)
+	}
+	return out, next, e
 }
 
 // Resolve requires both a real adjustment and a fresh report proving that this
@@ -98,7 +143,13 @@ func (s *Service) ResolveDiscrepancy(ctx context.Context, actor, operator, id, a
 		if e := t.Clauses(clause.Locking{Strength: "UPDATE"}).First(&d, "id=? AND operator_id=?", id, operator).Error; e != nil {
 			return e
 		}
-		ok, e := s.Source.HasAdjustment(ctx, t, operator, adjustment)
+		if d.State == "resolved" {
+			if d.AdjustmentReference != nil && *d.AdjustmentReference == adjustment {
+				return nil
+			}
+			return ErrConflict
+		}
+		ok, e := s.Source.HasAdjustment(ctx, t, d, adjustment)
 		if e != nil {
 			return e
 		}
@@ -110,7 +161,7 @@ func (s *Service) ResolveDiscrepancy(ctx context.Context, actor, operator, id, a
 			return e
 		}
 		for _, f := range findings {
-			if f.Domain == d.Domain && f.Kind == d.Kind && f.Reference == d.Reference {
+			if f.Domain == d.Domain && f.Kind == d.Kind && f.Reference == d.Reference && f.Unit == d.Unit {
 				return ErrConflict
 			}
 		}
@@ -119,20 +170,21 @@ func (s *Service) ResolveDiscrepancy(ctx context.Context, actor, operator, id, a
 }
 
 type Export struct {
-	ID                string     `json:"id"`
-	OperatorID        string     `json:"operator_id"`
-	RequestedBy       string     `json:"requested_by"`
-	Kind              string     `json:"kind"`
-	FromAt            time.Time  `json:"from_at"`
-	ToAt              time.Time  `json:"to_at"`
-	State             string     `json:"state"`
-	CreatedAt         time.Time  `json:"created_at"`
-	ExpiresAt         time.Time  `json:"expires_at"`
-	LeaseUntil        *time.Time `json:"-"`
-	ContentCiphertext string     `json:"-"`
-	SHA256            string     `json:"sha256,omitempty"`
-	RowCount          int        `json:"row_count"`
-	ErrorCode         string     `json:"error_code,omitempty"`
+	ID          string     `json:"id"`
+	OperatorID  string     `json:"operator_id"`
+	RequestedBy string     `json:"requested_by"`
+	Kind        string     `json:"kind"`
+	FromAt      time.Time  `json:"from_at"`
+	ToAt        time.Time  `json:"to_at"`
+	State       string     `json:"state"`
+	CreatedAt   time.Time  `json:"created_at"`
+	ExpiresAt   time.Time  `json:"expires_at"`
+	LeaseUntil  *time.Time `json:"-"`
+	ObjectKey   string     `json:"-"`
+	AttemptID   *string    `json:"-"`
+	SHA256      string     `json:"sha256,omitempty"`
+	RowCount    int        `json:"row_count"`
+	ErrorCode   string     `json:"error_code,omitempty"`
 }
 
 func (Export) TableName() string { return "operations_exports" }
@@ -162,12 +214,12 @@ func (s *Service) ListExports(ctx context.Context, actor, operator string) ([]Ex
 		if e := s.require(ctx, t, actor, operator, "reports.export"); e != nil {
 			return e
 		}
-		return t.Omit("content_ciphertext").Where("operator_id=? AND requested_by=?", operator, actor).Order("created_at DESC").Limit(100).Find(&out).Error
+		return t.Where("operator_id=? AND requested_by=?", operator, actor).Order("created_at DESC").Limit(100).Find(&out).Error
 	})
 	return out, e
 }
 func (s *Service) RunExports(ctx context.Context, limit int) ([]Export, error) {
-	if s.Source == nil {
+	if s.Source == nil || s.ExportStore == nil {
 		return nil, ErrNotReady
 	}
 	if limit < 1 || limit > 20 {
@@ -175,12 +227,18 @@ func (s *Service) RunExports(ctx context.Context, limit int) ([]Export, error) {
 	}
 	jobs := []Export{}
 	e := s.DB.WithContext(ctx).Transaction(func(t *gorm.DB) error {
-		now := time.Now().UTC()
+		var now time.Time
+		if err := t.Raw("SELECT clock_timestamp()").Row().Scan(&now); err != nil {
+			return err
+		}
 		if e := t.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("expires_at>? AND (state='pending' OR (state='processing' AND lease_until<?))", now, now).Order("created_at").Limit(limit).Find(&jobs).Error; e != nil {
 			return e
 		}
-		for _, j := range jobs {
-			if e := t.Model(&Export{}).Where("id=?", j.ID).Updates(map[string]any{"state": "processing", "lease_until": now.Add(time.Minute)}).Error; e != nil {
+		for i := range jobs {
+			j := &jobs[i]
+			id := uuid.NewString()
+			j.AttemptID = &id
+			if e := t.Model(&Export{}).Where("id=?", j.ID).Updates(map[string]any{"state": "processing", "lease_until": now.Add(time.Minute), "attempt_id": id}).Error; e != nil {
 				return e
 			}
 		}
@@ -189,10 +247,12 @@ func (s *Service) RunExports(ctx context.Context, limit int) ([]Export, error) {
 	if e != nil {
 		return nil, e
 	}
+	completed := make([]Export, 0, len(jobs))
 	for i := range jobs {
 		j := &jobs[i]
 		j.State = "ready"
 		j.ErrorCode = ""
+		var ciphertext string
 		e = s.DB.WithContext(ctx).Transaction(func(t *gorm.DB) error {
 			if e := s.require(ctx, t, j.RequestedBy, j.OperatorID, "reports.export"); e != nil {
 				return e
@@ -219,23 +279,39 @@ func (s *Service) RunExports(ctx context.Context, limit int) ([]Export, error) {
 			digest := sha256.Sum256(b)
 			j.SHA256 = hex.EncodeToString(digest[:])
 			j.RowCount = len(rows)
-			j.ContentCiphertext, e = s.seal(b)
+			ciphertext, e = s.seal(b)
 			return e
 		}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
+		if e == nil {
+			j.ObjectKey = "exports/" + j.ID + "/" + *j.AttemptID
+			e = s.ExportStore.Put(ctx, j.ObjectKey, []byte(ciphertext), "application/octet-stream", j.ExpiresAt)
+			if errors.Is(e, objectstore.ErrSize) {
+				e = ErrTooLarge
+			}
+		}
 		if e != nil {
 			j.State = "failed"
 			j.ErrorCode = "source_unavailable"
-			if e == ErrTooLarge {
+			if errors.Is(e, ErrTooLarge) {
 				j.ErrorCode = "range_too_large"
 			}
-			j.ContentCiphertext = ""
+			j.ObjectKey, j.SHA256, j.RowCount = "", "", 0
 		}
-		if e = s.DB.WithContext(ctx).Model(&Export{}).Where("id=? AND state='processing'", j.ID).Updates(map[string]any{"state": j.State, "content_ciphertext": j.ContentCiphertext, "sha256": j.SHA256, "row_count": j.RowCount, "error_code": j.ErrorCode, "lease_until": nil}).Error; e != nil {
-			return jobs, e
+		result := s.DB.WithContext(ctx).Model(&Export{}).
+			Where("id=? AND state='processing' AND attempt_id=? AND lease_until>clock_timestamp() AND expires_at>clock_timestamp()", j.ID, *j.AttemptID).
+			Updates(map[string]any{"state": j.State, "object_key": j.ObjectKey, "sha256": j.SHA256, "row_count": j.RowCount, "error_code": j.ErrorCode, "lease_until": nil, "attempt_id": nil})
+		if result.Error != nil {
+			return completed, result.Error
 		}
-		j.ContentCiphertext = ""
+		if result.RowsAffected == 0 {
+			if j.ObjectKey != "" {
+				_ = s.ExportStore.Delete(ctx, j.ObjectKey)
+			}
+			continue
+		}
+		completed = append(completed, *j)
 	}
-	return jobs, nil
+	return completed, nil
 }
 func (s *Service) DownloadExport(ctx context.Context, actor, operator, id string) ([]byte, error) {
 	var out []byte
@@ -255,7 +331,14 @@ func (s *Service) DownloadExport(ctx context.Context, actor, operator, id string
 				return e
 			}
 		}
-		if e := s.open(row.ContentCiphertext, &out); e != nil {
+		if s.ExportStore == nil {
+			return ErrNotReady
+		}
+		ciphertext, e := s.ExportStore.Get(ctx, row.ObjectKey)
+		if e != nil {
+			return e
+		}
+		if e := s.open(string(ciphertext), &out); e != nil {
 			return e
 		}
 		return t.Table("operations_export_access").Create(map[string]any{"id": uuid.NewString(), "export_id": id, "actor_id": actor, "at": time.Now().UTC()}).Error

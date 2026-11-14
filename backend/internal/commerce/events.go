@@ -31,30 +31,20 @@ type EventEnqueuerFunc func(context.Context, *gorm.DB, Event) error
 func (f EventEnqueuerFunc) EnqueueCommerceEvent(ctx context.Context, tx *gorm.DB, e Event) error {
 	return f(ctx, tx, e)
 }
-func (s *Service) RelayEvents(ctx context.Context, tx *gorm.DB, limit int, destination EventEnqueuer) (count int, err error) {
-	if destination == nil || limit < 1 || limit > 1000 {
-		return 0, ErrInvalidInput
-	}
-	err = s.within(ctx, tx, func(tx *gorm.DB) error {
-		var events []Event
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("published_at IS NULL").Order("created_at,id").Limit(limit).Find(&events).Error; err != nil {
+
+// PublishEvent keeps emission and the acknowledgement in one transaction.
+func (s *Service) PublishEvent(ctx context.Context, tx *gorm.DB, id string, destination EventEnqueuer) error {
+	return s.within(ctx, tx, func(t *gorm.DB) error {
+		var event Event
+		result := t.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=? AND published_at IS NULL", id).Limit(1).Find(&event)
+		if result.Error != nil || result.RowsAffected == 0 {
+			return result.Error
+		}
+		if err := destination.EnqueueCommerceEvent(ctx, t, event); err != nil {
 			return err
 		}
-		for _, event := range events {
-			if err := destination.EnqueueCommerceEvent(ctx, tx, event); err != nil {
-				return err
-			}
-			if err := tx.Model(&Event{}).Where("id=? AND published_at IS NULL", event.ID).Update("published_at", s.now()).Error; err != nil {
-				return err
-			}
-			count++
-		}
-		return nil
+		return t.Model(&event).Update("published_at", s.now()).Error
 	})
-	if err != nil {
-		count = 0
-	}
-	return
 }
 
 func (s *Service) ListCustomerOrders(ctx context.Context, tx *gorm.DB, customerID string, limit int) ([]Order, error) {

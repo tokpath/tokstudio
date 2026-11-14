@@ -23,6 +23,7 @@ var schema string
 
 //go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql zzzzzz_payment_quotes.sql zzzzzzz_shared_payment_methods.sql zzzzzzzz_method_catalog.sql zzzzzzzzz_method_capabilities.sql zzzzzzzzzz_simple_withdrawals.sql zzzzzzzzzzz_fx_refresh_interval.sql
 //go:embed zzzzzzzzzzzz_order_payment_indexes.sql
+//go:embed zzzzzzzzzzzzz_refund_callback_recovery.sql
 var migrationFS embed.FS
 
 //go:embed zz_refund_executions.sql
@@ -67,10 +68,13 @@ var fxRefreshIntervalSchema string
 //go:embed zzzzzzzzzzzz_order_payment_indexes.sql
 var orderPaymentIndexesSchema string
 
+//go:embed zzzzzzzzzzzzz_refund_callback_recovery.sql
+var refundCallbackRecoverySchema string
+
 func Migrations() (string, fs.FS) { return "payments", migrationFS }
 
 func Schema() string {
-	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema + "\n" + sharedMethodsSchema + "\n" + methodCatalogSchema + "\n" + methodCapabilitiesSchema + "\n" + simpleWithdrawalsSchema + "\n" + fxRefreshIntervalSchema + "\n" + orderPaymentIndexesSchema
+	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema + "\n" + sharedMethodsSchema + "\n" + methodCatalogSchema + "\n" + methodCapabilitiesSchema + "\n" + simpleWithdrawalsSchema + "\n" + fxRefreshIntervalSchema + "\n" + orderPaymentIndexesSchema + "\n" + refundCallbackRecoverySchema
 }
 
 type Authorizer interface {
@@ -565,6 +569,9 @@ func (s *Service) ProcessInbox(ctx context.Context, merchant, eventID string) (F
 	if e = s.DB.WithContext(ctx).Table("payments_webhook_inbox").Where("merchant_id=? AND event_id=?", merchant, eventID).Take(&inbox).Error; e != nil {
 		return Fact{}, e
 	}
+	if inbox.State == "processed" {
+		return Fact{}, nil
+	}
 	var hint Hint
 	if json.Unmarshal(inbox.Hint, &hint) != nil {
 		return Fact{}, ErrUnsupported
@@ -583,13 +590,19 @@ func (s *Service) ProcessInbox(ctx context.Context, merchant, eventID string) (F
 			return Fact{}, e
 		}
 		if result.Fact == nil {
+			switch result.State {
+			case "closed", "failed", "cancelled", "canceled":
+				if result.ProviderID == "" || result.ProviderID != hint.ProviderID {
+					return Fact{}, ErrConflict
+				}
+				return Fact{}, s.finishPaymentInbox(ctx, merchant, eventID)
+			}
 			return Fact{}, ErrNotFinal
 		}
 		if result.Fact.ProviderID != hint.ProviderID {
 			return Fact{}, ErrConflict
 		}
-		e = s.DB.WithContext(ctx).Table("payments_webhook_inbox").Where("merchant_id=? AND event_id=?", merchant, eventID).Updates(map[string]any{"state": "processed", "processed_at": time.Now().UTC(), "error_code": nil, "lease_until": nil}).Error
-		return *result.Fact, e
+		return *result.Fact, s.finishPaymentInbox(ctx, merchant, eventID)
 	}
 	if hint.Kind != "receipt" && hint.Kind != "payment_closed" {
 		return Fact{}, ErrUnsupported
@@ -643,7 +656,8 @@ func (s *Service) ProcessInbox(ctx context.Context, merchant, eventID string) (F
 }
 
 func (s *Service) finishPaymentInbox(ctx context.Context, merchant, eventID string) error {
-	return s.DB.WithContext(ctx).Table("payments_webhook_inbox").Where("merchant_id=? AND event_id=?", merchant, eventID).Updates(map[string]any{"state": "processed", "processed_at": time.Now().UTC(), "error_code": nil, "lease_until": nil}).Error
+	return s.DB.WithContext(ctx).Table("payments_webhook_inbox").Where("merchant_id=? AND event_id=?", merchant, eventID).
+		Updates(map[string]any{"state": "processed", "processed_at": gorm.Expr("clock_timestamp()"), "error_code": nil, "lease_until": nil, "exhausted_at": nil}).Error
 }
 func (s *Service) RecordFact(ctx context.Context, m Merchant, o Order, incoming Fact) error {
 	if !incoming.Verified() || incoming.MerchantID != m.ID || incoming.OperatorID != m.OperatorID || incoming.OrderID != o.ID || o.Validate(m) != nil {

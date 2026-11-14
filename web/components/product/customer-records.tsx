@@ -7,7 +7,7 @@ import { useEffect, useId, useState } from "react";
 import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Search, X } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { request } from "@/lib/api-client";
+import { downloadCSV, request } from "@/lib/api-client";
 import { collection, OrderSchema, RequestSchema, CommandResultSchema } from "@/lib/contracts";
 import { compareDecimal, safeAssetURL } from "@/lib/decimal";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { Empty, ErrorPanel, Heading, Loading, Money, Notice, Status, statusLabel
 import { ContextHelp, CopyButton, DetailPairs } from "./customer-ui";
 import { modelTerm } from "./customer-models";
 import { CancelUnpaidOrder, PaymentAction } from "./customer-plans";
+import { ReportPeriod, monthRange, type ReportRange } from "./report-period";
 
 export function useCursor(namespace: string) {
   const cache = useQueryClient();
@@ -51,7 +52,7 @@ export function CustomerOrders() {
     <OrderDetailDrawer orderID={selected} onClose={() => setSelected(undefined)} />
     {data.isPending ? <Loading /> : data.isError ? <ErrorPanel error={data.error} retry={() => void data.refetch()} /> : !data.data.items.length ? <Empty title={paging.search ? t("没有找到匹配订单") : t("还没有购买记录")}>{paging.search ? t("检查订单编号或清除搜索后重试。") : <><p>{t("购买套餐后，订单会显示在这里。余额充值记录在充值页面查看。")}</p><Button asChild variant="outline" className="mt-4"><Link href="/workspace/plans">{t("查看可购买套餐")}</Link></Button></>}</Empty> : <div className="space-y-3">{data.data.items.map(item => <Card key={item.id} className={item.id === selected ? "border-brand" : ""}><div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><h2 className="font-medium">{item.plan_name || (item.kind === "topup" ? t("结算币种 余额充值") : t("套餐订单"))}</h2><p className="mt-2 break-all font-mono text-xs text-ink-mute">{item.id}</p><p className="mt-2 text-xs text-ink-secondary">{item.operator_name} · <When value={item.created_at} /></p></div><Status value={item.status} /></div><div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-hairline pt-4"><div className="flex flex-wrap gap-x-8 gap-y-3"><div><p className="mb-1 text-xs text-ink-mute">{t("订单本金")}</p><Money value={item.amount_money} unit={item.monetary_snapshot?.currency || "MONEY"} /></div><div><p className="mb-1 text-xs text-ink-mute">{t("已核实本金")}</p><Money value={item.paid_money} unit={item.monetary_snapshot?.currency || "MONEY"} /></div></div><div className="flex flex-wrap items-center gap-2">{item.cancel_allowed && <CancelUnpaidOrder orderID={item.id} onCancelled={() => { setSelected(item.id); void data.refetch(); }} />}<Button variant="outline" size="sm" onClick={() => setSelected(item.id)}>{["pending", "pending_payment", "partially_paid"].includes(item.status) ? t("继续付款 / 查看详情") : t("查看订单详情")}<ArrowRight /></Button></div></div></Card>)}</div>}<CursorControls paging={paging} next={data.data?.next_cursor} /><div className="mt-6"><ContextHelp title={t("付款成功后为什么还未到账")}><p>{t("足额付款和资产交付是两个步骤。请先刷新原订单记录；已收款未交付不需要重新支付。金额、时间或币种存在差异时，经营方将保留异常记录继续核实。")}</p></ContextHelp></div></>;
 }
-function OrderDetailDrawer({ orderID, onClose }: { orderID?: string; onClose: () => void }) {
+export function OrderDetailDrawer({ orderID, onClose }: { orderID?: string; onClose: () => void }) {
   const { t } = useI18n();
   const detail = useQuery({ queryKey: ["order-detail", orderID], queryFn: () => request(`/api/v1/me/orders/${encodeURIComponent(orderID || "")}`, OrderSchema), enabled: !!orderID });
   return <Dialog.Root open={!!orderID} onOpenChange={open => { if (!open) onClose(); }}>
@@ -63,6 +64,10 @@ function OrderDetailDrawer({ orderID, onClose }: { orderID?: string; onClose: ()
           <Dialog.Close asChild><Button variant="ghost" size="icon" aria-label={t("收起详情")}><X /></Button></Dialog.Close>
         </div>
         {detail.isPending ? <Loading /> : detail.isError ? <ErrorPanel error={detail.error} retry={() => void detail.refetch()} /> : detail.data ? <PaymentAction order={detail.data} /> : null}
+        {detail.data && <div className="mt-5 flex flex-wrap gap-5 text-sm text-brand-emphasis">
+          <a href={`/api/v1/me/orders/${encodeURIComponent(detail.data.id)}/voucher/order`} className="underline" download>{t("下载订单凭证")}</a>
+          {detail.data.receipt_voucher_available && <a href={`/api/v1/me/orders/${encodeURIComponent(detail.data.id)}/voucher/receipt`} className="underline" download>{t("下载收款凭证")}</a>}
+        </div>}
         <div className="mt-5 flex flex-wrap gap-5 border-t border-hairline pt-5 text-sm text-brand-emphasis"><Link href="/workspace/credit-sources" className="underline">{t("额度与到期记录")}</Link><Link href="/workspace/invoices" className="underline">{t("开票与交易凭证")}</Link><Link href="/workspace/refunds" className="underline">{t("余额提现")}</Link></div>
       </Dialog.Content>
     </Dialog.Portal>
@@ -70,12 +75,36 @@ function OrderDetailDrawer({ orderID, onClose }: { orderID?: string; onClose: ()
 }
 const creditSourceLabels: Record<string, string> = { paid: "购买额度", purchase: "购买额度", purchased: "购买额度", package_gift: "套餐赠送", plan_gift: "套餐赠送", merchant_gift: "经营方赠送", operator_gift: "经营方赠送", kol_gift: "KOL 赠送", registration_gift: "注册赠送", manual_gift: "独立赠送", gift: "赠送额度" };
 const inFlight = ["accepted", "executing", "submitted", "awaiting_usage", "cancellation_requested"];
+function CustomerStatement() {
+  const { t } = useI18n();
+  const [range] = useState(monthRange);
+  const [busy, setBusy] = useState(false), [error, setError] = useState<unknown>();
+  async function download(period: ReportRange) {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await downloadCSV("/api/v1/me/statement?" + new URLSearchParams(period), "statement.csv");
+    } catch (error) {
+      setError(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return <details className="mb-5 rounded-card border border-hairline bg-canvas-raised p-4">
+    <summary className="cursor-pointer font-medium">{t("下载对账单")}</summary>
+    <div className="mt-4">
+      <ReportPeriod range={range} autoApply={false} label="下载对账单" disabled={busy} onApply={download} />
+      {!!error && <ErrorPanel error={error} />}
+    </div>
+  </details>;
+}
 export function CustomerRequests() {
   const { t } = useI18n();
   const paging = useCursor("requests"), [selected, setSelected] = useSelectedRecord();
   const data = useQuery({ queryKey: ["requests", paging.cursor, paging.search], queryFn: ({signal}) => request(paging.path("/api/v1/me/requests"), collection(RequestSchema), {signal}), refetchInterval: query => query.state.data?.items.some(item => inFlight.includes(item.status)) ? 5000 : false });
   const detail = useQuery({ queryKey: ["request-detail", selected], queryFn: () => request(`/api/v1/me/requests/${encodeURIComponent(selected || "")}`, RequestSchema), enabled: !!selected, refetchInterval: query => query.state.data && inFlight.includes(query.state.data.status) ? 3000 : false });
   return <><Heading title={t("用量与账单")} description={t("按请求核对模型、Key 和费用，获取尚在保留期的异步结果。")} actions={<Button variant="outline" onClick={() => void data.refetch()} disabled={data.isFetching}>{t("刷新记录")}</Button>} /><RecordSearch paging={paging} placeholder={t("搜索请求编号、模型 ID 或状态")} statuses={["completed", "accepted", "executing", "submitted", "awaiting_usage", "cancellation_requested", "failed", "free"]} hint={t("查询全部调用；选择状态会替换当前关键词。")} />
+    <CustomerStatement />
     {selected && <Card className="mb-6 border-brand/40"><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">{t("本次请求如何计费")}</h2><Button variant="ghost" size="sm" onClick={() => setSelected(undefined)}>{t("收起详情")}</Button></div>{detail.isPending ? <Loading /> : detail.isError ? <ErrorPanel error={detail.error} retry={() => void detail.refetch()} /> : <RequestDetail item={detail.data} />}</Card>}
     {data.isPending ? <Loading /> : data.isError ? <ErrorPanel error={data.error} retry={() => void data.refetch()} /> : !data.data.items.length ? <Empty title={paging.search ? t("没有找到匹配请求") : t("还没有模型调用")}>{paging.search ? t("检查请求编号或清除搜索后重试。") : <div className="mt-4 flex flex-wrap justify-center gap-3"><Button asChild variant="outline"><Link href="/workspace/models">{t("接入应用")}</Link></Button><Button asChild><Link href="/workspace/playground">{t("体验模型")}</Link></Button></div>}</Empty> : <div className="space-y-3">{data.data.items.map(item => <Card key={item.id} className={item.id === selected ? "border-brand" : ""}><div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><h2 className="break-all font-medium">{item.model_id}</h2><p className="mt-2 text-xs text-ink-secondary">{item.key_name} · <When value={item.created_at} /></p><p className="mt-2 break-all font-mono text-xs text-ink-mute">{item.id}</p></div><Status value={item.status} /></div><div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-hairline pt-4"><div className="flex flex-wrap gap-x-8 gap-y-3"><div><p className="mb-1 text-xs text-ink-mute">{t("实际净扣费")}</p><Money value={item.net_charged_atg ?? item.charged_atg} /></div><div><p className="mb-1 text-xs text-ink-mute">{t("在途预占")}</p><Money value={item.held_atg} /></div></div><Button size="sm" variant="outline" onClick={() => { setSelected(item.id); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{t("费用明细与结果")}<ArrowRight /></Button></div>{item.reason && <p className="mt-3 text-xs leading-6 text-hold">{t(item.reason)}</p>}</Card>)}</div>}<CursorControls paging={paging} next={data.data?.next_cursor} /><div className="mt-6"><ContextHelp title={t("预占、实际费用与内容保留")}><p>{t("预占是请求执行中的临时占用，实际结算后释放差额；重复查询或取得同一结果不会新增调用费。模型价格在受理时锁定，账单保留元数据及纠正关联。")}</p><p>{t("不提供长期会话或请求内容存储。暂存结果请在显示期限内取得，到期清理不会撤销已正确发生的费用。")}</p></ContextHelp></div></>;
 }

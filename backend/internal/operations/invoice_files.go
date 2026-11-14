@@ -201,7 +201,7 @@ func (s *Service) invoiceReader(ctx context.Context, tx *gorm.DB, actor, operato
 			return out, e
 		}
 	}
-	if !application && (customer || buyer != "") && (out.State != "issued" && out.State != "review_required" && out.State != "voided") {
+	if !application && (customer || buyer != "") && !out.HasIssuedDocument() {
 		return out, ErrConflict
 	}
 	return out, nil

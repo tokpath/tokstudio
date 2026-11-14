@@ -28,7 +28,7 @@ type Source interface {
 	Reconcile(context.Context, *gorm.DB, string) ([]Finding, error)
 	Metrics(context.Context, *gorm.DB, string, time.Time) (map[string]ledger.Decimal, error)
 	Export(context.Context, *gorm.DB, string, ExportQuery) ([]json.RawMessage, error)
-	HasAdjustment(context.Context, *gorm.DB, string, string) (bool, error)
+	HasAdjustment(context.Context, *gorm.DB, Discrepancy, string) (bool, error)
 }
 type ResultRetention interface {
 	PurgeExpiredResults(context.Context, time.Time, int) (int64, error)
@@ -52,8 +52,8 @@ func (d DomainSource) ready() error {
 	return nil
 }
 func (d DomainSource) Reconcile(ctx context.Context, tx *gorm.DB, operator string) ([]Finding, error) {
-	if e := d.ready(); e != nil {
-		return nil, e
+	if d.Ledger == nil || d.Cooperation == nil || d.Commerce == nil {
+		return nil, ErrNotReady
 	}
 	out := []Finding{}
 	l, e := d.Ledger.OperationalIntegrity(ctx, tx, operator)
@@ -68,7 +68,14 @@ func (d DomainSource) Reconcile(ctx context.Context, tx *gorm.DB, operator strin
 		return nil, e
 	}
 	for _, r := range c {
-		out = append(out, Finding{"cooperation", r.Kind, r.Reference, "ATG", r.Expected, r.Actual})
+		out = append(out, Finding{"cooperation", r.Kind, r.Reference, r.Unit, r.Expected, r.Actual})
+	}
+	orders, e := d.Commerce.OperationalIntegrity(ctx, tx, operator)
+	if e != nil {
+		return nil, e
+	}
+	for _, r := range orders {
+		out = append(out, Finding{"commerce", r.Kind, r.Reference, r.Unit, r.Expected, r.Actual})
 	}
 	return out, nil
 }
@@ -149,9 +156,19 @@ func (d DomainSource) Export(ctx context.Context, tx *gorm.DB, operator string, 
 		return nil, ErrInvalid
 	}
 }
-func (d DomainSource) HasAdjustment(ctx context.Context, tx *gorm.DB, operator, id string) (bool, error) {
+func (d DomainSource) HasAdjustment(ctx context.Context, tx *gorm.DB, finding Discrepancy, id string) (bool, error) {
 	if d.Ledger == nil {
 		return false, ErrNotReady
 	}
-	return d.Ledger.HasAdjustment(ctx, tx, operator, id)
+	if ok, err := d.Ledger.HasAdjustment(ctx, tx, finding.OperatorID, id); ok || err != nil {
+		return ok, err
+	}
+	switch finding.Domain {
+	case "commerce":
+		return d.Commerce.HasOrderReconciliationEvidence(ctx, tx, finding.OperatorID, finding.Reference, finding.Kind, id)
+	case "cooperation":
+		return d.Cooperation.HasPurchaseReconciliationEvidence(ctx, tx, finding.OperatorID, finding.Reference, finding.Kind, id)
+	default:
+		return false, nil
+	}
 }

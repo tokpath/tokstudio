@@ -3,11 +3,13 @@ package portal
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -217,6 +219,22 @@ func TestPostgresTakeoverCopiedPlansAndRenewalConsentHTTP(t *testing.T) {
 	status, p, _ = f.call(t, "POST", path+"/execute", map[string]any{"expected_snapshot": p["snapshot_fingerprint"]}, "")
 	mustOK(t, status, p)
 	assertTakeoverWorkspaceState(t, f, s.channel, "completed")
+	// An unrelated missing business record must not block valid notifications
+	// from this takeover or any other order in the same scheduled batch.
+	broken := commerce.Event{ID: uuid.NewString(), OperatorID: s.channel, AggregateID: uuid.NewString(), Kind: "order.created", Payload: json.RawMessage(`{}`), CreatedAt: time.Now().Add(-time.Hour)}
+	if err := f.a.DB.Create(&broken).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := f.a.queueCommerceNotifications(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.a.runPortalJobs(ctx, "portal-commerce-notifications", "isolated-notification-worker", 100); err != nil {
+		t.Fatal(err)
+	}
+	var failed int64
+	if err := f.a.DB.Table("durable_jobs").Where("kind='commerce_notification' AND business_key=? AND status='pending' AND attempts=1", broken.ID).Count(&failed).Error; err != nil || failed != 1 {
+		t.Fatalf("independent notification retry: %d %v", failed, err)
+	}
 	status, invoice, _ = f.call(t, "POST", "/v1/operators/"+s.channel+"/invoices/"+invoiceID+"/register", map[string]any{"state": "rejected", "reason": "Buyer requested a corrected invoice title"}, "")
 	mustOK(t, status, invoice)
 
@@ -246,6 +264,27 @@ func TestPostgresTakeoverCopiedPlansAndRenewalConsentHTTP(t *testing.T) {
 		t.Fatal("platform read independent OEM takeover", rows, e)
 	}
 	f.login(t, "customer", s.email, "customer-password-test")
+	status, customerNotices, _ := f.call(t, "GET", "/v1/me/notifications", nil, "")
+	mustOK(t, status, customerNotices)
+	var linked bool
+	for _, item := range customerNotices["items"].([]any) {
+		if item.(map[string]any)["action_url"] == "/workspace/orders?record="+s.order {
+			linked = true
+			break
+		}
+	}
+	if !linked {
+		t.Fatal("moved order notice or its link missing from the customer's workspace")
+	}
+	resp, err := f.client.Get(f.server.URL + "/v1/me/orders/" + s.order + "/voucher/order")
+	if err != nil {
+		t.Fatal(err)
+	}
+	voucher, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil || resp.StatusCode != 200 || !strings.Contains(string(voucher), "星河渠道") {
+		t.Fatalf("order voucher lost its original merchant: %d %v %s", resp.StatusCode, err, voucher)
+	}
 	status, plans, _ := f.call(t, "GET", "/v1/me/plans", nil, "")
 	mustOK(t, status, plans)
 	var monthly map[string]any

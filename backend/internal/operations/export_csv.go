@@ -54,7 +54,7 @@ func financialExportRows(r FinancialReport) ([]json.RawMessage, error) {
 	add("销售与调用", "批发销售笔数", r.Procurement.WholesaleOrders, "笔")
 	add("销售与调用", "支付余额充值", r.Sales.WalletTopUpMoney, r.SettlementCurrency)
 	add("销售与调用", "已完成调用", r.Usage.CompletedRequests, "次")
-	add("销售与调用", "净扣费", r.Usage.ChargedATG.Sub(r.Usage.CorrectionATG), "ATG")
+	add("销售与调用", "净扣费", r.Usage.NetChargedATG, "ATG")
 	add("清算币种业务事实", "收入合计", r.Revenue.TotalMoney, r.SettlementCurrency)
 	add("清算币种业务事实", "成本合计", r.Costs.TotalMoney, r.SettlementCurrency)
 	add("资金收支", "已核实流入", r.Cash.RecordedInMoney, r.SettlementCurrency)
@@ -186,7 +186,7 @@ func buildExportCSV(ctx context.Context, tx *gorm.DB, operator, kind string, raw
 			if strings.HasPrefix(value, "map[") {
 				return nil, ErrInvalid
 			}
-			cells[i] = safeCSVCell(exportValue(c.Key, value))
+			cells[i] = SafeCSVCell(ExportLabel(c.Key, value))
 		}
 		if err := writer.Write(cells); err != nil {
 			return nil, err
@@ -198,14 +198,17 @@ func buildExportCSV(ctx context.Context, tx *gorm.DB, operator, kind string, raw
 
 var csvNumber = regexp.MustCompile(`^-?[0-9]+(?:\.[0-9]+)?$`)
 
-func safeCSVCell(value string) string {
+// SafeCSVCell keeps authored values from being interpreted as spreadsheet formulas.
+func SafeCSVCell(value string) string {
 	trimmed := strings.TrimLeft(value, " \t\r\n")
 	if trimmed != "" && (strings.ContainsRune("=+-@", rune(trimmed[0])) || strings.ContainsAny(value[:len(value)-len(trimmed)], "\t\r\n")) && !csvNumber.MatchString(value) {
 		return "'" + value
 	}
 	return value
 }
-func exportValue(key, value string) string {
+
+// ExportLabel returns a business label for a known value in a system column.
+func ExportLabel(key, value string) string {
 	if !strings.Contains("|kind|status|fee_status|operation|purpose|provider|", "|"+key+"|") {
 		return value
 	}
@@ -244,7 +247,7 @@ func LocalizeExportCSV(raw []byte, translate func(string) string) ([]byte, error
 	for i, record := range records {
 		for j, value := range record {
 			if i == 0 || translateColumns[headers[j]] {
-				record[j] = safeCSVCell(translate(value))
+				record[j] = SafeCSVCell(translate(value))
 			}
 		}
 		if err := writer.Write(record); err != nil {

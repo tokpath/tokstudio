@@ -12,6 +12,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/tokpath/tokstudio/backend/internal/platform/objectstore"
 )
 
 type DurableStore interface {
@@ -84,15 +86,8 @@ func BuildArchive(ctx context.Context, dump string, store DurableStore, w io.Wri
 	return tw.Close()
 }
 func validObjectName(name string) bool {
-	if strings.ContainsAny(name, "\\\r\n\x00") || strings.Contains(name, "..") || strings.Contains(name, "//") {
-		return false
-	}
-	for _, p := range []string{"objects/branding/", "objects/invoices/", "objects/finance-evidence/"} {
-		if strings.HasPrefix(name, p) && len(name) > len(p) {
-			return true
-		}
-	}
-	return false
+	key, ok := strings.CutPrefix(name, "objects/")
+	return ok && objectstore.DurableKey(key)
 }
 func InspectArchive(path string) (Manifest, error) {
 	var m Manifest

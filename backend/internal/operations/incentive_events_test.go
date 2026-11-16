@@ -52,19 +52,23 @@ func TestIncentiveRelayUsesDurableFactsAndSafeAudience(t *testing.T) {
 	s.Authorize = org
 	s.Recipients = nil
 	sink := IncentiveNotifications{Operations: s, Audience: inc}
-	if n, e := inc.RelayEvents(ctx, nil, 20, sink); !errors.Is(e, ErrNotReady) || n != 0 {
-		t.Fatalf("partial relay committed without recipient verification: %d %v", n, e)
+	var event incentives.Event
+	if e = s.DB.First(&event).Error; e != nil {
+		t.Fatal(e)
+	}
+	if e := inc.PublishEvent(ctx, nil, event.ID, sink); !errors.Is(e, ErrNotReady) {
+		t.Fatalf("partial relay committed without recipient verification: %v", e)
 	}
 	var published int64
 	if e = s.DB.Model(&incentives.Event{}).Where("published_at IS NOT NULL").Count(&published).Error; e != nil || published != 0 {
 		t.Fatalf("failed notice lost original retryable event: %d %v", published, e)
 	}
 	s.Recipients = operationRecipients{operator: op, customer: a.actor}
-	if n, e := inc.RelayEvents(ctx, nil, 20, sink); e != nil || n != 1 {
-		t.Fatalf("durable relay failed: %d %v", n, e)
+	if e := inc.PublishEvent(ctx, nil, event.ID, sink); e != nil {
+		t.Fatalf("durable relay failed: %v", e)
 	}
-	if n, e := inc.RelayEvents(ctx, nil, 20, sink); e != nil || n != 0 {
-		t.Fatalf("published event replay duplicated notices: %d %v", n, e)
+	if e := inc.PublishEvent(ctx, nil, event.ID, sink); e != nil {
+		t.Fatalf("published event replay failed: %v", e)
 	}
 	notices, e := s.ListNotifications(ctx, a.actor, op, nil, 20)
 	if e != nil || len(notices) != 1 {
@@ -72,10 +76,6 @@ func TestIncentiveRelayUsesDurableFactsAndSafeAudience(t *testing.T) {
 	}
 	if strings.Contains(notices[0].Body, "sensitive") || notices[0].RecipientID != a.actor || notices[0].Title != "推广经营规则已更新" {
 		t.Fatalf("raw evidence leaked or audience changed: %+v", notices)
-	}
-	var event incentives.Event
-	if e = s.DB.First(&event).Error; e != nil {
-		t.Fatal(e)
 	}
 	event.Kind = "commission.source_restricted"
 	if e = s.DB.Transaction(func(tx *gorm.DB) error { return sink.EnqueueIncentiveEvent(ctx, tx, event) }); !errors.Is(e, incentives.ErrConflict) {

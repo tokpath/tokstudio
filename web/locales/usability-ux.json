@@ -8414,5 +8414,32 @@
     "hi": "भुगतान सेवा ने राशि मिलने की पुष्टि की है। हम भुगतान सत्यापित कर उसे मूल ऑर्डर से जोड़ रहे हैं। दोबारा भुगतान न करें।",
     "ms": "Penyedia pembayaran mengesahkan dana diterima. Kami sedang mengesahkan dan memadankannya dengan pesanan asal. Jangan bayar lagi.",
     "th": "ผู้ให้บริการยืนยันว่าได้รับเงินแล้ว ระบบกำลังตรวจสอบและเชื่อมกับคำสั่งซื้อเดิม กรุณาอย่าชำระซ้ำ"
+  },
+  "当前服务方": {
+    "zh": "当前服务方",
+    "en": "Current service operator",
+    "ja": "現在のサービス提供事業者",
+    "ru": "Текущий обслуживающий оператор",
+    "hi": "वर्तमान सेवा प्रदाता",
+    "ms": "Pengendali perkhidmatan semasa",
+    "th": "ผู้ให้บริการปัจจุบัน"
+  },
+  "账户类型": {
+    "zh": "账户类型",
+    "en": "Account type",
+    "ja": "口座種別",
+    "ru": "Тип счёта",
+    "hi": "खाते का प्रकार",
+    "ms": "Jenis akaun",
+    "th": "ประเภทบัญชี"
+  },
+  "该账户变动后余额": {
+    "zh": "该账户变动后余额",
+    "en": "This account balance after change",
+    "ja": "当該口座の変動後残高",
+    "ru": "Остаток этого счёта после операции",
+    "hi": "परिवर्तन के बाद इस खाते की शेष राशि",
+    "ms": "Baki akaun ini selepas perubahan",
+    "th": "ยอดคงเหลือของบัญชีนี้หลังรายการ"
   }
 }

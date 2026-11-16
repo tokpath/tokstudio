@@ -252,28 +252,37 @@ func (a *Application) DiscoverWorkerTasks(ctx context.Context) error {
 	return a.setProgress(ctx, "registration_rewards", next)
 }
 func (a *Application) queueCommerceNotifications(ctx context.Context) error {
+	return a.queueEventNotifications(ctx, "commerce_events", "portal-commerce-notifications", "commerce_notification", operations.HasCommerceNotification)
+}
+
+func (a *Application) queueIncentiveNotifications(ctx context.Context) error {
+	return a.queueEventNotifications(ctx, "incentives_events", "portal-incentive-notifications", "incentive_notification", operations.HasIncentiveNotification)
+}
+
+// The table and job names are fixed by the two callers above, never user input.
+func (a *Application) queueEventNotifications(ctx context.Context, table, queue, kind string, supported func(string) bool) error {
 	return a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var events []struct{ ID, OperatorID, Kind string }
-		if err := tx.Raw(`SELECT e.id,e.operator_id,e.kind FROM commerce_events e
+		if err := tx.Raw(fmt.Sprintf(`SELECT e.id,e.operator_id,e.kind FROM %s e
  WHERE e.published_at IS NULL
-   AND NOT EXISTS (SELECT 1 FROM durable_jobs j WHERE j.queue='portal-commerce-notifications'
-                   AND j.kind='commerce_notification' AND j.business_key=e.id::text)
- ORDER BY e.created_at,e.id LIMIT 100 FOR UPDATE OF e SKIP LOCKED`).Scan(&events).Error; err != nil {
+   AND NOT EXISTS (SELECT 1 FROM durable_jobs j WHERE j.queue=?
+                   AND j.kind=? AND j.business_key=e.id::text)
+ ORDER BY e.created_at,e.id LIMIT 100 FOR UPDATE OF e SKIP LOCKED`, table), queue, kind).Scan(&events).Error; err != nil {
 			return err
 		}
 		var acknowledged []string
 		for _, event := range events {
-			if !operations.HasCommerceNotification(event.Kind) {
+			if !supported(event.Kind) {
 				acknowledged = append(acknowledged, event.ID)
 				continue
 			}
 			payload, _ := json.Marshal(workerPayload{ID: event.ID, OperatorID: event.OperatorID})
-			if _, err := a.Jobs.EnqueueTx(tx, jobs.Input{Queue: "portal-commerce-notifications", Kind: "commerce_notification", BusinessKey: event.ID, Payload: payload, MaxAttempts: 12}); err != nil {
+			if _, err := a.Jobs.EnqueueTx(tx, jobs.Input{Queue: queue, Kind: kind, BusinessKey: event.ID, Payload: payload, MaxAttempts: 12}); err != nil {
 				return err
 			}
 		}
 		if len(acknowledged) != 0 {
-			return tx.Table("commerce_events").Where("id IN ?", acknowledged).Update("published_at", gorm.Expr("clock_timestamp()")).Error
+			return tx.Table(table).Where("id IN ?", acknowledged).Update("published_at", gorm.Expr("clock_timestamp()")).Error
 		}
 		return nil
 	})
@@ -307,8 +316,9 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 		_, e := a.Remediation.RelayEvents(ctx, nil, 100, a.publishRemediationEvent)
 		return e
 	case "incentive_events":
-		_, e := a.Incentives.RelayEvents(ctx, nil, 100, operations.IncentiveNotifications{Operations: a.Operations, Audience: a.Incentives})
-		return e
+		return a.queueIncentiveNotifications(ctx)
+	case "incentive_notification":
+		return a.Incentives.PublishEvent(ctx, nil, p.ID, operations.IncentiveNotifications{Operations: a.Operations, Audience: a.Incentives})
 	case "commerce_notification":
 		return a.Commerce.PublishEvent(ctx, nil, p.ID, operations.CommerceNotifications{Operations: a.Operations, Audience: a.Commerce})
 	case "qualification":
@@ -475,6 +485,7 @@ func (a *Application) RunWorker(ctx context.Context, concurrency int, onError fu
 				report("price_checks", a.RunPriceChecks(ctx, owner, 1))
 				report("maintenance", a.RunMaintenanceJobs(ctx, owner, 1))
 				report("commerce_notification", a.runPortalJobs(ctx, "portal-commerce-notifications", owner, 1))
+				report("incentive_notification", a.runPortalJobs(ctx, "portal-incentive-notifications", owner, 1))
 				if _, e := a.Payments.RunPending(ctx, 1); e != nil {
 					report("payments", e)
 				}

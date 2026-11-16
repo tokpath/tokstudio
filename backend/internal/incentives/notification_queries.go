@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
 )
 
@@ -35,6 +36,7 @@ func (s *Service) NotificationEventAudience(ctx context.Context, tx *gorm.DB, in
 	if event.OperatorID != input.OperatorID || event.Kind != input.Kind || event.AggregateID != input.AggregateID {
 		return nil, ErrConflict
 	}
+	// true identifies a customer; staff remain scoped to the event's operator.
 	ids := map[string]bool{}
 	var amount *ledger.Decimal
 	var wallet, reason string
@@ -44,7 +46,9 @@ func (s *Service) NotificationEventAudience(ctx context.Context, tx *gorm.DB, in
 			return e
 		}
 		for _, id := range staff {
-			ids[id] = true
+			if _, exists := ids[id]; !exists {
+				ids[id] = false
+			}
 		}
 		return nil
 	}
@@ -112,9 +116,29 @@ func (s *Service) NotificationEventAudience(ctx context.Context, tx *gorm.DB, in
 		}
 	}
 	sort.Strings(ordered)
+	original, err := s.org.GetOperator(ctx, tx, event.OperatorID)
+	if err != nil {
+		return nil, err
+	}
 	out := make([]NotificationAudience, 0, len(ordered))
 	for _, id := range ordered {
-		out = append(out, NotificationAudience{OperatorID: event.OperatorID, RecipientID: id, Reference: event.ID, Kind: event.Kind, Wallet: wallet, Reason: reason, AmountMoney: amount, OccurredAt: event.CreatedAt})
+		operator := event.OperatorID
+		if ids[id] {
+			own, err := s.org.CurrentOwnership(ctx, tx, id)
+			if err != nil {
+				return nil, err
+			}
+			if own.BrandID != original.BrandID {
+				return nil, organization.ErrForbidden
+			}
+			// Keep the delivery scope stable until the event is acknowledged. If
+			// takeover won the race, retry against its newly committed ownership.
+			if _, err := s.org.LockOwnership(ctx, tx, id, own.OperatorID, own.Version); err != nil {
+				return nil, err
+			}
+			operator = own.OperatorID
+		}
+		out = append(out, NotificationAudience{OperatorID: operator, RecipientID: id, Reference: event.ID, Kind: event.Kind, Wallet: wallet, Reason: reason, AmountMoney: amount, OccurredAt: event.CreatedAt})
 	}
 	return out, nil
 }

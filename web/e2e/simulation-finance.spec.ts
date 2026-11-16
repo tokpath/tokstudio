@@ -193,7 +193,25 @@ test("finance records a whole payment, customer downloads vouchers, and private 
     await expect(customer.getByRole("button", { name: "取消提现申请", exact: true })).toHaveCount(0);
     await finance.goto(`${manage}/balance-withdrawals`);
     await expect(finance.locator("tr").filter({ hasText: recipient }).getByText("已核实付款", { exact: true })).toBeVisible();
+    const moneyCells = finance.locator("tr").filter({ hasText: recipient }).locator(".th-money");
+    await expect(moneyCells.first()).toBeVisible();
+    const unbrokenMoney = () => moneyCells.evaluateAll(elements => elements.every(element => {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      let node: Node | null;
+      while ((node = walker.nextNode())) {
+        if (!node.textContent?.trim()) continue;
+        const range = document.createRange(); range.selectNodeContents(node);
+        if (range.getClientRects().length !== 1) return false;
+      }
+      return true;
+    }));
+    expect(await unbrokenMoney(), "decimal amounts and currency codes must stay intact").toBe(true);
     await finance.screenshot({ path: info.outputPath("finance-balance-withdrawal.png"), fullPage: true });
+    await finance.setViewportSize({ width: 390, height: 844 });
+    await moneyCells.nth(2).scrollIntoViewIfNeeded();
+    expect(await unbrokenMoney(), "mobile table must scroll without splitting monetary values").toBe(true);
+    expect(await finance.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+    await finance.screenshot({ path: info.outputPath("finance-balance-withdrawal-mobile.png"), fullPage: true });
     expect(errors).toEqual([]);
     await info.attach("synthetic-finance-facts", { body: JSON.stringify({ order_id: orderID, receipt_ids: receipts, initial_customer_available_money: String(startingBalance), credited_money: "100", merchant_receipt_fees_money: "0", withdrawal_id: withdrawalID, withdrawal_amount_money: "20", customer_fee_money: "0.5", net_paid_money: "19.5", final_customer_available_money: credits.money_balance.available, final_customer_held_money: credits.money_balance.held, invoice_id: invoice.id, private_invoice_downloaded: true, other_customer_download_status: 404 }), contentType: "application/json" });
   } finally { await Promise.all([customerContext.close(), financeContext.close(), ownerContext.close()]); }

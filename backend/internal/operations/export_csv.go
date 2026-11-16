@@ -18,7 +18,7 @@ type exportColumn struct{ Key, Label string }
 
 var exportColumns = map[string][]exportColumn{
 	"financial":   {{"section", "分类"}, {"metric", "指标"}, {"value", "数值"}, {"unit", "单位"}},
-	"orders":      {{"created_at", "创建时间"}, {"customer_name", "客户"}, {"kind", "业务类型"}, {"status", "状态"}, {"due_money", "应付 清算币种"}, {"paid_atg", "购买 ATG"}, {"gift_atg", "赠送 ATG"}, {"external_allocated_money", "外部收款 清算币种"}, {"internal_money", "清算币种 余额支付"}, {"commission_money", "佣金支付"}, {"completed_at", "交付时间"}, {"id", "记录编号"}},
+	"orders":      {{"created_at", "创建时间"}, {"legal_name", "实际经营方"}, {"service_operator_name", "当前服务方"}, {"customer_name", "客户"}, {"kind", "业务类型"}, {"status", "状态"}, {"due_money", "应付 清算币种"}, {"paid_atg", "购买 ATG"}, {"gift_atg", "赠送 ATG"}, {"external_allocated_money", "外部收款 清算币种"}, {"internal_money", "清算币种 余额支付"}, {"commission_money", "佣金支付"}, {"completed_at", "交付时间"}, {"id", "记录编号"}},
 	"payments":    {{"paid_at", "实际付款时间"}, {"counterparty_name", "客户或采购方"}, {"provider", "收款方式"}, {"currency", "实际币种"}, {"original_amount", "原币收款总额（扣手续费前）"}, {"original_fee_amount", "原币己方手续费"}, {"received_amount", "实际到账金额"}, {"received_currency", "实际到账币种"}, {"gross_money", "关联订单金额（含经营方手续费）"}, {"payment_fee_money", "已收支付手续费 清算币种"}, {"allocated_money", "已关联 清算币种"}, {"id", "记录编号"}},
 	"requests":    {{"accepted_at", "受理时间"}, {"customer_name", "客户"}, {"model_id", "模型"}, {"operation", "调用类型"}, {"status", "状态"}, {"net_charged_atg", "净扣费 ATG"}, {"net_actual_atg", "实际消耗 ATG"}, {"corrected_charged_atg", "已冲正 ATG"}, {"merchant_shortfall", "经营方承担 ATG"}, {"fulfillment_cost_money", "履约成本 清算币种"}, {"supplier_reference_costs", "供应商参考成本（原币）"}, {"supplier_reported_costs", "供应商报告成本（原币）"}, {"unverified_attempts", "成本待核实次数"}, {"id", "记录编号"}},
 	"procurement": {{"created_at", "创建时间"}, {"supplier_name", "供货方"}, {"buyer_name", "采购方"}, {"name", "报价名称"}, {"status", "状态"}, {"due_money", "应付 清算币种"}, {"allocated_money", "已收款 清算币种"}, {"paid_atg", "购买 ATG"}, {"gift_atg", "赠送 ATG"}, {"completed_at", "交付时间"}, {"id", "记录编号"}},
@@ -31,7 +31,11 @@ func (d DomainSource) salesExport(ctx context.Context, tx *gorm.DB, operator str
 	var rows []map[string]any
 	var err error
 	if q.Kind == "orders" {
-		err = tx.WithContext(ctx).Table("commerce_orders o").Select("o.id,o.customer_id,o.kind,o.status,o.due_money::text,o.paid_atg::text,(o.package_gift_atg+o.merchant_gift_atg+o.kol_gift_atg)::text AS gift_atg,o.external_allocated_money::text,o.internal_money::text,o.commission_money::text,o.created_at,o.completed_at").Where("o.operator_id=? AND o.created_at>=? AND o.created_at<?", operator, q.From, q.To).Order("o.created_at,o.id").Limit(100001).Find(&rows).Error
+		err = tx.WithContext(ctx).Table("commerce_orders o").Select(`o.id,o.customer_id,o.kind,o.status,o.due_money::text,o.paid_atg::text,(o.package_gift_atg+o.merchant_gift_atg+o.kol_gift_atg)::text AS gift_atg,o.external_allocated_money::text,o.internal_money::text,o.commission_money::text,o.created_at,o.completed_at,
+ COALESCE(NULLIF(seller.legal_name,''),seller.name) AS legal_name,service.name AS service_operator_name`).
+			Joins("JOIN organization_operators seller ON seller.id=o.original_operator_id").
+			Joins("JOIN organization_operators service ON service.id=o.operator_id").
+			Where("o.original_operator_id=? AND o.created_at>=? AND o.created_at<?", operator, q.From, q.To).Order("o.created_at,o.id").Limit(100001).Find(&rows).Error
 	} else {
 		err = tx.WithContext(ctx).Table("commerce_receipts r").Select(`r.id,r.provider,r.currency,r.original_amount,r.original_fee_amount::text,r.settlement_net_amount::text AS received_amount,r.settlement_currency AS received_currency,r.gross_money::text,r.payment_fee_money::text,r.allocated_money::text,r.paid_at,
  COALESCE((SELECT string_agg(DISTINCT c.display_name,' / ') FROM commerce_receipt_allocations a JOIN commerce_orders o ON o.id=a.order_id JOIN organization_customers c ON c.id=o.customer_id WHERE a.receipt_id=r.id AND a.operator_id=r.operator_id),
@@ -141,7 +145,7 @@ func buildExportCSV(ctx context.Context, tx *gorm.DB, operator, kind string, raw
 		for start := 0; start < len(keys); start += 5000 {
 			batch := keys[start:min(start+5000, len(keys))]
 			var found []struct{ ID, Name string }
-			if err := tx.WithContext(ctx).Raw(`SELECT id::text,name FROM organization_operators WHERE id IN ? AND (id=? OR parent_operator_id=? OR id=(SELECT parent_operator_id FROM organization_operators WHERE id=?)) UNION ALL SELECT c.id::text,c.display_name AS name FROM organization_customers c WHERE c.id IN ? AND (EXISTS(SELECT 1 FROM organization_service_ownerships o WHERE o.customer_id=c.id AND o.operator_id=?) OR EXISTS(SELECT 1 FROM commerce_orders o WHERE o.customer_id=c.id AND o.operator_id=?))`, batch, operator, operator, operator, batch, operator, operator).Scan(&found).Error; err != nil {
+			if err := tx.WithContext(ctx).Raw(`SELECT id::text,name FROM organization_operators WHERE id IN ? AND (id=? OR parent_operator_id=? OR id=(SELECT parent_operator_id FROM organization_operators WHERE id=?)) UNION ALL SELECT c.id::text,c.display_name AS name FROM organization_customers c WHERE c.id IN ? AND (EXISTS(SELECT 1 FROM organization_service_ownerships o WHERE o.customer_id=c.id AND o.operator_id=?) OR EXISTS(SELECT 1 FROM commerce_orders o WHERE o.customer_id=c.id AND (o.operator_id=? OR o.original_operator_id=?)))`, batch, operator, operator, operator, batch, operator, operator, operator).Scan(&found).Error; err != nil {
 				return nil, err
 			}
 			for _, r := range found {
@@ -215,7 +219,30 @@ func ExportLabel(key, value string) string {
 	if key == "provider" {
 		value = strings.SplitN(value, ":", 2)[0]
 	}
-	labels := map[string]string{"pending": "待付款", "awaiting_payment": "待付款", "paid": "已付款待交付", "completed": "已完成", "closed": "已关闭", "confirmed": "已核实", "settled": "已结算", "released": "已释放", "failed": "失败", "unknown": "待核实", "exception": "异常", "manual": "线下人工核实", "stripe": "Stripe", "alipay": "支付宝", "wechat": "微信支付", "topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费", "chat": "文本对话", "responses": "模型响应", "image_generation": "图片生成", "speech": "语音生成", "transcription": "语音转写", "video_generation": "视频生成", "embedding": "文本向量", "customer:money": "客户清算币种余额", "commission:available": "可用佣金", "commission:frozen": "冻结佣金", "procurement:atg": "采购余额", "control:merchant_fees": "收款手续费", "control:provider_receivable": "通道未结应收", "control:external_cash": "资金往来", "order:funds": "订单待交付资金", "wallet_topup": "余额充值", "package_payment": "套餐购买", "external_receipt": "实际收款", "wholesale_sale": "批发销售", "procurement": "采购入库", "commission_payout": "佣金提现", "request_settlement": "调用结算"}
+	labels := map[string]string{"pending": "待付款", "awaiting_payment": "待付款", "paid": "已付款待交付", "completed": "已完成", "closed": "已关闭", "confirmed": "已核实", "settled": "已结算", "released": "已释放", "failed": "失败", "unknown": "待核实", "exception": "异常", "manual": "线下人工核实", "stripe": "Stripe", "alipay": "支付宝", "wechat": "微信支付", "topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费", "chat": "文本对话", "responses": "模型响应", "image_generation": "图片生成", "speech": "语音生成", "transcription": "语音转写", "video_generation": "视频生成", "embedding": "文本向量", "customer:money": "客户清算币种余额", "commission:available": "可用佣金", "commission:frozen": "冻结佣金", "procurement:atg": "采购余额", "control:merchant_fees": "收款手续费", "control:provider_receivable": "通道未结应收", "control:external_cash": "资金往来", "order:funds": "订单待交付资金", "wallet_topup": "余额充值", "package_payment": "套餐购买", "external_receipt": "实际收款", "wholesale_sale": "批发销售", "procurement": "采购入库", "commission_payout": "佣金提现", "request_settlement": "调用结算",
+		"grant":                       "权益发放",
+		"usage":                       "模型调用扣费",
+		"expiry":                      "权益到期",
+		"rights_cancellation":         "权益收回",
+		"usage_reversal":              "调用扣费冲正",
+		"reversal":                    "账务冲正",
+		"commission_accrual":          "佣金计提",
+		"commission_release":          "佣金解冻",
+		"commission_recovery":         "佣金待抵扣结清",
+		"commission_correction":       "佣金冲正",
+		"external_refund":             "退款付款记账",
+		"package_nondelivery_refund":  "未交付套餐退款",
+		"external_chargeback":         "外部扣回记账",
+		"chargeback_recovery":         "扣回款项追偿",
+		"invalid_payment_assets":      "无效付款权益处理",
+		"customer_responsibility_in":  "接管客户权益转入",
+		"customer_responsibility_out": "接管客户权益转出",
+		"correction":                  "账务冲正",
+		"balance_payout":              "余额提现付款",
+		"commission_withdrawal":       "佣金提现付款",
+		"balance_withdrawal":          "余额提现付款",
+		"balance_closure_waiver":      "注销时放弃支付余额",
+	}
 	if key == "fee_status" && value == "pending" {
 		return "待核实"
 	}

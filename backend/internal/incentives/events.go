@@ -33,28 +33,22 @@ type EventEnqueuerFunc func(context.Context, *gorm.DB, Event) error
 func (f EventEnqueuerFunc) EnqueueIncentiveEvent(ctx context.Context, tx *gorm.DB, e Event) error {
 	return f(ctx, tx, e)
 }
-func (s *Service) RelayEvents(ctx context.Context, tx *gorm.DB, limit int, sink EventEnqueuer) (count int, err error) {
-	if sink == nil || limit < 1 || limit > 1000 {
-		return 0, ErrInvalidInput
+
+// PublishEvent commits one notification and its acknowledgement together.
+// The durable worker retries each event independently using its original ID.
+func (s *Service) PublishEvent(ctx context.Context, tx *gorm.DB, id string, sink EventEnqueuer) error {
+	if sink == nil || !validID(id) {
+		return ErrInvalidInput
 	}
-	err = s.within(ctx, tx, func(tx *gorm.DB) error {
-		var events []Event
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("published_at IS NULL").Order("created_at,id").Limit(limit).Find(&events).Error; err != nil {
+	return s.within(ctx, tx, func(tx *gorm.DB) error {
+		var event Event
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=? AND published_at IS NULL", id).Limit(1).Find(&event)
+		if result.Error != nil || result.RowsAffected == 0 {
+			return result.Error
+		}
+		if err := sink.EnqueueIncentiveEvent(ctx, tx, event); err != nil {
 			return err
 		}
-		for _, e := range events {
-			if err := sink.EnqueueIncentiveEvent(ctx, tx, e); err != nil {
-				return err
-			}
-			if err := tx.Model(&Event{}).Where("id=?", e.ID).Update("published_at", gorm.Expr("clock_timestamp()")).Error; err != nil {
-				return err
-			}
-			count++
-		}
-		return nil
+		return tx.Model(&event).Update("published_at", gorm.Expr("clock_timestamp()")).Error
 	})
-	if err != nil {
-		count = 0
-	}
-	return
 }

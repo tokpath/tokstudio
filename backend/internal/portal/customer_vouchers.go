@@ -147,6 +147,7 @@ func (a *Application) customerStatement(c *gin.Context) {
 	}
 	var records []struct {
 		ID, Kind, Unit, SourceID, LegalName string
+		AccountID, Purpose, PackageName     string
 		CreatedAt                           time.Time
 		Amount, BalanceAfter                ledger.Decimal
 	}
@@ -157,9 +158,14 @@ func (a *Application) customerStatement(c *gin.Context) {
 			return err
 		}
 		currency = monetary.Currency
-		return tx.Raw(`SELECT j.id,j.kind,e.unit,j.source_id,COALESCE(NULLIF(o.legal_name,''),o.name) AS legal_name,e.created_at,e.amount::text,e.balance_after::text
+		return tx.Raw(`SELECT j.id,j.kind,e.unit,j.source_id,COALESCE(NULLIF(o.legal_name,''),o.name) AS legal_name,e.created_at,e.amount::text,e.balance_after::text,
+ a.id AS account_id,a.purpose,COALESCE(p.name,'') AS package_name
  FROM ledger_accounts a JOIN ledger_entries e ON e.account_id=a.id
  JOIN ledger_journals j ON j.id=e.journal_id JOIN organization_operators o ON o.id=a.operator_id AND o.brand_id=?
+ LEFT JOIN ledger_grants g ON g.id=CASE WHEN a.purpose LIKE 'customer:atg:%' THEN split_part(a.purpose,':',3)::uuid END AND g.customer_id=a.owner_id
+ LEFT JOIN commerce_orders co ON co.id::text=g.order_id AND co.customer_id=a.owner_id
+ LEFT JOIN commerce_package_quotes q ON q.id=co.quote_id
+ LEFT JOIN commerce_packages p ON p.id=q.package_id
  WHERE a.owner_id=? AND (a.purpose IN ('customer:money','commission:available','commission:frozen')
  OR a.purpose LIKE 'customer:atg:%') AND e.created_at>=? AND e.created_at<?
  ORDER BY e.created_at,e.id LIMIT 10001`, customer.BrandID, customer.ID, from, to).Scan(&records).Error
@@ -178,9 +184,10 @@ func (a *Application) customerStatement(c *gin.Context) {
 		if unit == ledger.MoneyUnit {
 			unit = currency
 		}
-		rows = append(rows, []string{statementTime(&row.CreatedAt), row.LegalName, customerExportLabel(c, "kind", row.Kind), unit, row.Amount.String(), row.BalanceAfter.String(), row.ID, row.SourceID})
+		purpose := httpx.LocalizedText(httpx.RequestLocale(c.Request), ledgerPurpose(row.Purpose))
+		rows = append(rows, []string{statementTime(&row.CreatedAt), row.LegalName, purpose, row.PackageName, customerExportLabel(c, "kind", row.Kind), unit, row.Amount.String(), row.BalanceAfter.String(), row.AccountID, row.ID, row.SourceID})
 	}
-	customerCSV(c, "statement", []string{"入账时间", "实际经营方", "账务事项", "单位", "变动金额", "变动后余额", "账务记录编号", "来源记录编号"}, rows)
+	customerCSV(c, "statement", []string{"入账时间", "实际经营方", "账户类型", "套餐名称", "账务事项", "单位", "变动金额", "该账户变动后余额", "账户编号", "账务记录编号", "来源记录编号"}, rows)
 }
 
 func customerExportLabel(c *gin.Context, key, value string) string {

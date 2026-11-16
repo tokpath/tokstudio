@@ -87,7 +87,7 @@ func taskName(kind string) string {
 		"brand_domain": "品牌域名验证", "catalog_changes": "模型配置生效检查",
 		"registration_release": "注册奖励预留清理", "unpaid_orders": "未付款订单检查",
 		"kvoucher_payments": "付款报价与 KVoucher 收款核实", "registration_reward": "注册奖励发放",
-		"remediation_events": "退款与争议通知", "incentive_events": "邀请与佣金通知", "commerce_notification": "购买与续费通知",
+		"remediation_events": "退款与争议通知", "incentive_events": "邀请与佣金通知", "incentive_notification": "邀请与佣金通知", "commerce_notification": "购买与续费通知",
 		"refund_callback": "原路退款回调核实",
 		"qualification":   "消费确认与 KOL 资格检查", "expiry": "到期额度处理", "renewal": "套餐自动续费",
 		"package_change": "套餐变更通知", "usage": "调用结果与用量核实", "delivery": "套餐额度交付",

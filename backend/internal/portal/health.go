@@ -50,6 +50,10 @@ func (a *Application) ReleaseCheck(ctx context.Context) error {
  AND NOT EXISTS (SELECT 1 FROM durable_jobs j WHERE j.queue='portal-commerce-notifications'
                  AND j.kind='commerce_notification' AND j.business_key=e.id::text)
  UNION ALL
+ SELECT 1 FROM incentives_events e WHERE e.published_at IS NULL AND e.created_at<now()-interval '15 minutes'
+ AND NOT EXISTS (SELECT 1 FROM durable_jobs j WHERE j.queue='portal-incentive-notifications'
+                 AND j.kind='incentive_notification' AND j.business_key=e.id::text)
+ UNION ALL
  SELECT 1 FROM payments_webhook_inbox WHERE (state='pending' AND next_attempt_at<now()-interval '15 minutes')
  OR (state='processing' AND lease_until<now()-interval '15 minutes')
  UNION ALL

@@ -21464,6 +21464,15 @@
     "Pelanggan yang kini ditugaskan kepada perkhidmatan ini",
     "ลูกค้าที่อยู่ในการดูแลของบริการนี้ปัจจุบัน"
   ],
+  "当前服务方": [
+    "当前服务方",
+    "Current service operator",
+    "現在のサービス提供事業者",
+    "Текущий обслуживающий оператор",
+    "वर्तमान सेवा प्रदाता",
+    "Pengendali perkhidmatan semasa",
+    "ผู้ให้บริการปัจจุบัน"
+  ],
   "当前服务经营方": [
     "当前服务经营方",
     "Current service operator",
@@ -40589,6 +40598,15 @@
     "Belum ada butiran pemeteran untuk permintaan ini.",
     "ยังไม่มีรายละเอียดการวัดสำหรับคำขอนี้"
   ],
+  "该账户变动后余额": [
+    "该账户变动后余额",
+    "This account balance after change",
+    "当該口座の変動後残高",
+    "Остаток этого счёта после операции",
+    "परिवर्तन के बाद इस खाते की शेष राशि",
+    "Baki akaun ini selepas perubahan",
+    "ยอดคงเหลือของบัญชีนี้หลังรายการ"
+  ],
   "该邮箱在本品牌已注册，请直接登录": [
     "该邮箱在本品牌已注册，请直接登录",
     "This email is already registered for this brand. Sign in instead.",
@@ -42343,6 +42361,15 @@
     "खाते का उद्देश्य",
     "Tujuan akaun",
     "วัตถุประสงค์บัญชี"
+  ],
+  "账户类型": [
+    "账户类型",
+    "Account type",
+    "口座種別",
+    "Тип счёта",
+    "खाते का प्रकार",
+    "Jenis akaun",
+    "ประเภทบัญชี"
   ],
   "账户编号": [
     "账户编号",

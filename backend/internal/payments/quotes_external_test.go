@@ -42,12 +42,19 @@ func TestExternalQuoteSourceAndKVoucherActualReceipt(t *testing.T) {
 		t.Fatal(err)
 	}
 	response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatal("fixture did not record the mismatched voucher", response.StatusCode)
+	}
 	fact, err := s.Reconcile(t.Context(), m.OperatorID, m.ID, o.ID)
-	if !errors.Is(err, ErrAwaitingSettlement) || fact.Money.Currency != "MYR" || fact.Money.Amount.String() != "0.01" {
+	// Receipt is the delivered voucher asset. A face value different from the
+	// accepted order is conflicting evidence, not a verified cash receipt.
+	if !errors.Is(err, ErrConflict) || fact.Verified() {
 		t.Fatal("incorrect external payment fulfilled the order", fact.Money, err)
 	}
 	var n int64
-	db.Table("payment_test_receipts").Count(&n)
+	if err := db.Table("payment_test_receipts").Count(&n).Error; err != nil {
+		t.Fatal(err)
+	}
 	if n != 0 {
 		t.Fatal("external underpayment created an account credit")
 	}

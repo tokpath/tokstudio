@@ -84,7 +84,10 @@ func TestPostgresBalanceWithdrawalRequiresDisplayedTermsAndAppearsInReviews(t *t
 	if err := f.a.DB.Table("ledger_accounts").Select("held").Where("id=?", account.ID).Row().Scan(&held); err != nil || !held.IsZero() {
 		t.Fatal("rejected withdrawal retained a hold", held, err)
 	}
-	if _, err := f.a.Incentives.RelayEvents(ctx, nil, 50, operations.IncentiveNotifications{Operations: f.a.Operations, Audience: f.a.Incentives}); err != nil {
+	if err := f.a.queueIncentiveNotifications(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.a.runPortalJobs(ctx, "portal-incentive-notifications", "withdrawal-test-worker", 50); err != nil {
 		t.Fatal(err)
 	}
 	var notice operations.Notification

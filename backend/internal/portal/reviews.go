@@ -125,6 +125,7 @@ func (a *Application) platformRequestsResource(c *gin.Context, op organization.O
 		col("net_charged_atg", "冲正后净扣费", "atg"),
 		col("supplier_reference_costs", "参考成本（原币）", "text"),
 		col("supplier_reported_costs", "供应商报告成本（原币）", "text"),
+		col("subscription_accounts", "订阅计费", "text"),
 		col("unverified_attempts", "成本证据状态", "status"),
 		col("accepted_at", "受理时间", "datetime"),
 	}

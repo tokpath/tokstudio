@@ -3,29 +3,35 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
+	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
+	"gorm.io/gorm"
 )
 
 // SupplierModel is a provider connection and supported operations, with an
 // optional Bifrost cost identity. Public ATG prices are managed independently.
 type SupplierModel struct {
-	BaseURL          string                    `json:"base_url,omitempty"`
-	PricingReference string                    `json:"pricing_reference,omitempty"`
-	CostProvider     string                    `json:"cost_provider"`
-	CostModel        string                    `json:"cost_model"`
-	ID               string                    `json:"id"`
-	ProviderID       string                    `json:"provider_id"`
-	CredentialID     string                    `json:"credential_id"`
-	Provider         string                    `json:"provider"`
-	Model            string                    `json:"model"`
-	Capabilities     []modelruntime.Capability `json:"capabilities"`
-	Enabled          bool                      `json:"enabled"`
-	Version          uint64                    `json:"version"`
+	BaseURL                 string                    `json:"base_url,omitempty"`
+	PricingReference        string                    `json:"pricing_reference,omitempty"`
+	CostProvider            string                    `json:"cost_provider"`
+	CostModel               string                    `json:"cost_model"`
+	ID                      string                    `json:"id"`
+	ProviderID              string                    `json:"provider_id"`
+	CredentialID            string                    `json:"credential_id"`
+	SubscriptionKind        string                    `json:"subscription_kind,omitempty"`
+	SubscriptionInputLimit  int64                     `json:"subscription_input_limit,omitempty"`
+	SubscriptionOutputLimit int64                     `json:"subscription_output_limit,omitempty"`
+	Provider                string                    `json:"provider"`
+	Model                   string                    `json:"model"`
+	Capabilities            []modelruntime.Capability `json:"capabilities"`
+	Enabled                 bool                      `json:"enabled"`
+	Version                 uint64                    `json:"version"`
 }
 
 // RouteBinding attaches one supplier model to a public model.
@@ -126,14 +132,16 @@ func (s CommerceCatalog) saveSupplierModel(ctx context.Context, actor string, in
 	if !s.platform(actor) {
 		return ErrCatalogForbidden
 	}
-	var credential struct{ ProviderID string }
+	var credential CredentialView
 	if in.ID == "" || in.CredentialID == "" || in.Provider == "" || in.Model == "" {
 		return ErrInvalidInput
 	}
-	if e := s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Select("provider_id").Where("id=?", in.CredentialID).Take(&credential).Error; e != nil {
+	if e := s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Select("provider_id,subscription_kind").Where("id=?", in.CredentialID).Take(&credential).Error; e != nil {
 		return ErrInvalidInput
 	}
 	in.ProviderID = credential.ProviderID
+	in.SubscriptionKind = credential.SubscriptionKind
+	in.SubscriptionInputLimit, in.SubscriptionOutputLimit = 0, 0
 	switch in.Provider {
 	case "openai", "anthropic", "gemini", "openrouter", "elevenlabs":
 	default:
@@ -143,6 +151,11 @@ func (s CommerceCatalog) saveSupplierModel(ctx context.Context, actor string, in
 		return ErrInvalidInput
 	}
 	in.CostProvider, in.CostModel = in.Provider, in.Model
+	if in.SubscriptionKind != "" {
+		if err := s.prepareSubscriptionModel(ctx, &in); err != nil {
+			return err
+		}
+	}
 	if in.PricingReference != "" {
 		var reference struct{ Provider, Model string }
 		if e := s.DB.WithContext(ctx).Table("model_pricing_rows").Select("provider,model").Where("id=?", in.PricingReference).Take(&reference).Error; e != nil {
@@ -227,9 +240,45 @@ func applySupplierModel(upstream *UpstreamModel, model SupplierModel, identity s
 	upstream.Provider = model.Provider
 	upstream.Model = model.Model
 	upstream.CredentialID = model.CredentialID
+	upstream.SubscriptionKind = model.SubscriptionKind
+	upstream.SubscriptionInputLimit = model.SubscriptionInputLimit
+	upstream.SubscriptionOutputLimit = model.SubscriptionOutputLimit
 	upstream.Endpoints = supplierEndpoints(model)
 	upstream.Capabilities = model.Capabilities
 	upstream.SupplierModelID = model.ID
+}
+
+func (s CommerceCatalog) prepareSubscriptionModel(ctx context.Context, model *SupplierModel) error {
+	if model.Provider != subscriptionauth.Protocol(model.SubscriptionKind) || model.BaseURL != "" || model.PricingReference != "" {
+		return ErrInvalidInput
+	}
+	operation := modelruntime.Responses
+	if model.SubscriptionKind == subscriptionauth.Claude {
+		operation = modelruntime.Chat
+	}
+	for _, capability := range model.Capabilities {
+		if capability.Operation != operation {
+			return modelruntime.ErrUnsupported
+		}
+	}
+	var bounds struct {
+		InputLimit  int64
+		OutputLimit int64
+	}
+	err := s.DB.WithContext(ctx).Raw(`SELECT
+		COALESCE(MAX(GREATEST((definition->>'max_input_tokens')::bigint,(definition->>'context_length')::bigint)),0) AS input_limit,
+		COALESCE(MAX((definition->>'max_output_tokens')::bigint),0) AS output_limit
+		FROM model_pricing_rows WHERE provider=? AND model=? AND mode IN ('chat','responses')
+		AND COALESCE(definition->>'is_deprecated','false')='false'`, model.Provider, model.Model).
+		Scan(&bounds).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	if bounds.InputLimit <= 0 || bounds.OutputLimit <= 0 {
+		return ErrSubscriptionModelLimits
+	}
+	model.SubscriptionInputLimit, model.SubscriptionOutputLimit = bounds.InputLimit, bounds.OutputLimit
+	return nil
 }
 func (s CommerceCatalog) SaveRouteConfiguration(ctx context.Context, actor string, in RouteConfiguration, expected uint64) error {
 	return s.mutate(ctx, func(tx CommerceCatalog) error { return tx.saveRouteConfiguration(ctx, actor, in, expected) })

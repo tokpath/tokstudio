@@ -1,0 +1,103 @@
+package modelruntime
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
+)
+
+type testSubscriptionCredential struct{}
+
+func (testSubscriptionCredential) ResolveSubscriptionCredential(context.Context, Attempt) (SubscriptionCredential, error) {
+	return SubscriptionCredential{AccessToken: "mock-subscription-token", AccountID: "mock-account"}, nil
+}
+
+func TestSubscriptionBifrostNativeContracts(t *testing.T) {
+	for _, sample := range []struct {
+		kind, provider, path, raw string
+		op                        Operation
+	}{
+		{subscriptionauth.Codex, "openai", "/backend-api/codex/responses", `{"model":"public-model","input":"hello"}`, Responses},
+		{subscriptionauth.Codex, "openai", "/backend-api/codex/responses", `{"model":"public-model","input":"hello","stream":true}`, Responses},
+		{subscriptionauth.Claude, "anthropic", "/v1/messages", `{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`, Chat},
+	} {
+		t.Run(sample.kind+"/"+sample.raw, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != sample.path || r.Header.Get("Authorization") != "Bearer mock-subscription-token" || r.Header.Get("X-Api-Key") != "" {
+					t.Errorf("wrong upstream path or authorization mechanism")
+				}
+				var body map[string]json.RawMessage
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+				}
+				if string(body["model"]) != `"upstream-exact-model"` {
+					t.Error("vendor model was changed")
+				}
+				if sample.kind == subscriptionauth.Claude {
+					if !strings.Contains(r.Header.Get("Anthropic-Beta"), "oauth-2025-04-20") || string(body["max_tokens"]) != "20" {
+						t.Error("missing Claude authorization or token cap")
+					}
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"id":"msg_test","type":"message","role":"assistant","model":"upstream-exact-model","content":[{"type":"text","text":"ok"}],"stop_reason":"end_turn","usage":{"input_tokens":2,"output_tokens":1}}`)
+					return
+				}
+				if r.Header.Get("ChatGPT-Account-Id") != "mock-account" || string(body["store"]) != "false" || string(body["stream"]) != "true" {
+					t.Error("missing Codex account or stateless streaming options")
+				}
+				w.Header().Set("Content-Type", "text/event-stream")
+				fmt.Fprint(w, "event: response.completed\ndata: "+`{"type":"response.completed","response":{"id":"resp_test","object":"response","model":"upstream-exact-model","status":"completed","output":[{"id":"msg_test","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"ok","annotations":[]}]}],"usage":{"input_tokens":2,"output_tokens":1,"total_tokens":3}}}`+"\n\n")
+			}))
+			t.Cleanup(server.Close)
+			endpoint := server.URL + sample.path
+			ctx := context.Background()
+			b, err := NewBifrost(ctx, BifrostConfig{
+				Providers: []string{sample.provider}, Credentials: testCredentials{}, Subscriptions: testSubscriptionCredential{},
+				AllowTestLoopback: true, subscriptionTestEndpoints: map[string]string{sample.kind: endpoint},
+				EndpointGuard: func(_ context.Context, url string) error {
+					if url != endpoint {
+						return ErrInvalidRequest
+					}
+					return nil
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(b.Close)
+			r, err := DecodeProtocol("request", sample.op, []byte(sample.raw))
+			if err != nil {
+				t.Fatal(err)
+			}
+			capability := DefaultBilling(sample.op).Capability(sample.op, r.Stream)
+			a := testAttempt("", capability)
+			a.Provider, a.SubscriptionKind, a.SubscriptionAccountID, a.SubscriptionOutputLimit = sample.provider, sample.kind, "account", 20
+			events := 0
+			out, err := b.Execute(ctx, a, r, func(_ context.Context, event Event) error {
+				events++
+				if strings.Contains(string(event.Data), "mock-subscription-token") {
+					t.Error("upstream token was emitted")
+				}
+				return nil
+			})
+			if err != nil || out.State != "completed" || !out.Usage.Reliable || out.Cost != nil {
+				t.Fatalf("native subscription result state=%s usage=%+v err=%v", out.State, out.Usage, err)
+			}
+			if r.Stream && events == 0 || !r.Stream && !strings.Contains(string(out.Output), "public-model") {
+				t.Fatal("expected public model output")
+			}
+			if sample.kind == subscriptionauth.Codex {
+				r.Params = json.RawMessage(`{"max_output_tokens":10}`)
+				if _, err = b.Execute(ctx, a, r, nil); !errors.Is(err, ErrUnsupported) {
+					t.Fatalf("silently changed a Codex output limit: %v", err)
+				}
+			}
+		})
+	}
+}

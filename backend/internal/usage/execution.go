@@ -115,99 +115,105 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 			}
 		}
 	}()
+	var acceptedQuote catalog.ModelQuote
+	if e = json.Unmarshal(req.PriceSnapshot, &acceptedQuote); e != nil {
+		return out, e
+	}
+	costs := make(map[string]json.RawMessage, len(acceptedQuote.Supplier))
+	for _, price := range acceptedQuote.Supplier {
+		costs[price.UpstreamID] = price.Snapshot
+	}
+	billingParams := modelruntime.BillingParameters(input.Params)
 	var last modelruntime.Result
 	var lastErr error
-	dispatched := false
+	requiresSettlement := false
+	excluded := map[string][]string{}
+routes:
 	for _, upstream := range candidates {
-		if executionCtx.Err() != nil {
-			break
-		}
 		capability, e := catalog.SelectCapability(upstream, input)
 		if e != nil {
 			return out, e
 		}
-		attempt := modelruntime.Attempt{ID: uuid.NewString(), RequestID: req.ID, UpstreamID: upstream.ID, Provider: upstream.Provider, UpstreamModel: upstream.Model, PublicModel: req.ModelID, CredentialID: upstream.CredentialID, BaseURL: upstream.Endpoints[input.Operation], Deadline: req.UsageDeadline, Capability: capability}
-		var acceptedQuote catalog.ModelQuote
-		if e = json.Unmarshal(req.PriceSnapshot, &acceptedQuote); e != nil {
-			return out, e
-		}
-		for _, price := range acceptedQuote.Supplier {
-			if price.UpstreamID == upstream.ID {
-				attempt.CostSnapshot = price.Snapshot
+		for executionCtx.Err() == nil {
+			attempt := modelruntime.Attempt{
+				ID: uuid.NewString(), RequestID: req.ID, UpstreamID: upstream.ID, Provider: upstream.Provider,
+				UpstreamModel: upstream.Model, PublicModel: req.ModelID, CredentialID: upstream.CredentialID,
+				BaseURL: upstream.Endpoints[input.Operation], Deadline: req.UsageDeadline, Capability: capability,
+				BillingParams: billingParams, CostSnapshot: costs[upstream.ID],
+				SubscriptionKind: upstream.SubscriptionKind, SubscriptionOutputLimit: upstream.SubscriptionOutputLimit,
 			}
-		}
-		attempt.BillingParams = modelruntime.BillingParameters(input.Params)
-		definition, _ := json.Marshal(attempt)
-		row := AttemptRecord{SupplierModelID: upstream.SupplierModelID, ID: attempt.ID, RequestID: req.ID, UpstreamID: upstream.ID, ProviderID: upstream.ProviderID, Definition: definition, State: "dispatching", CostStatus: "pending", StartedAt: s.wallNow()}
-		e = s.DB.WithContext(executionCtx).Transaction(func(t *gorm.DB) error {
-			if e := s.Catalog.WithDB(t).ClaimRoute(executionCtx, upstream.ID, attempt.ID, req.ID, req.UsageDeadline); e != nil {
-				return e
+			row := AttemptRecord{SupplierModelID: upstream.SupplierModelID, ID: attempt.ID, RequestID: req.ID, UpstreamID: upstream.ID,
+				ProviderID: upstream.ProviderID, State: "dispatching", CostStatus: "pending", StartedAt: s.wallNow()}
+			if attempt.SubscriptionKind != "" {
+				row.CostStatus = "subscription"
+				row.CostObservation = json.RawMessage(`{"source":"subscription"}`)
 			}
-			return t.Create(&row).Error
-		})
-		if errors.Is(e, catalog.ErrRouteUnavailable) {
-			lastErr = e
-			continue
-		}
-		if e != nil {
-			return out, e
-		}
-		dispatched = true
-		delivered := false
-		wrapped := func(c context.Context, event modelruntime.Event) error {
-			if emit == nil {
-				return modelruntime.ErrInvalidRequest
+			e = s.DB.WithContext(executionCtx).Transaction(func(t *gorm.DB) error {
+				cat := s.Catalog.WithDB(t)
+				if err := cat.ClaimRoute(executionCtx, upstream.ID, attempt.ID, req.ID, req.UsageDeadline); err != nil {
+					return err
+				}
+				if err := cat.ClaimSubscriptionAccount(executionCtx, &attempt, excluded[upstream.CredentialID]); err != nil {
+					return err
+				}
+				definition, err := json.Marshal(attempt)
+				if err != nil {
+					return err
+				}
+				row.Definition = definition
+				return t.Create(&row).Error
+			})
+			if errors.Is(e, catalog.ErrRouteUnavailable) || errors.Is(e, catalog.ErrSubscriptionUnavailable) {
+				break
 			}
-			event.RequestID = req.ID
-			if e := emit(c, event); e != nil {
-				return e
-			}
-			if len(event.Data) > 0 {
-				delivered = true
-			}
-			return nil
-		}
-		attemptCtx, attemptSpan := otel.Tracer("tokenhub/usage").Start(executionCtx, "model.upstream_attempt")
-		attemptSpan.SetAttributes(attribute.String("tokenhub.attempt_id", attempt.ID), attribute.String("tokenhub.upstream_id", upstream.ID), attribute.String("tokenhub.provider_id", upstream.ProviderID))
-		last, lastErr = s.Runtime.Execute(attemptCtx, attempt, input, wrapped)
-		last.ErrorCode = modelruntime.SafeErrorCode(last.ErrorCode)
-		last.ProviderStatus = modelruntime.SafeProviderStatus(last.ProviderStatus)
-		if last.ErrorCode == "" && lastErr != nil {
-			last.ErrorCode = modelruntime.Diagnostic(lastErr)
-		}
-		attemptSpan.SetAttributes(attribute.String("tokenhub.outcome", last.State), attribute.Bool("tokenhub.usage_reliable", last.Usage.Reliable))
-		attemptSpan.End()
-		last.OutputDelivered = last.OutputDelivered || delivered
-		// The caller may disconnect after consuming output. Settlement has its own
-		// short context and cannot be cancelled by the disconnected client.
-		recordCtx, done := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
-		e = s.RecordAttempt(recordCtx, req.ID, attempt.ID, last)
-		done()
-		if e != nil {
-			return out, e
-		}
-		if last.State == "not_dispatched" {
-			finalCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
-			defer cancel()
-			out.Request, e = s.failUndispatched(finalCtx, req.ID, failureReason(last))
-			out.Result = last
 			if e != nil {
 				return out, e
 			}
-			return out, lastErr
-		}
-		if last.State == "submitted" || last.State == "outcome_unknown" || last.OutputDelivered || lastErr == nil {
+			result, runtimeErr, recordErr := s.executeAttempt(executionCtx, attempt, input, emit, upstream.ProviderID)
+			if recordErr != nil {
+				return out, recordErr
+			}
+			rejected := attempt.SubscriptionAccountID != "" && modelruntime.SubscriptionRejection(result)
+			if rejected {
+				excluded[upstream.CredentialID] = append(excluded[upstream.CredentialID], attempt.SubscriptionAccountID)
+				if !requiresSettlement {
+					last, lastErr = result, runtimeErr
+				}
+				continue
+			}
+			last, lastErr = result, runtimeErr
+			if last.State == "not_dispatched" {
+				finalCtx, finish := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+				defer finish()
+				out.Request, e = s.failUndispatched(finalCtx, req.ID, failureReason(last))
+				out.Result = last
+				if e != nil {
+					return out, e
+				}
+				return out, lastErr
+			}
+			requiresSettlement = true
+			if last.State == "submitted" || last.State == "outcome_unknown" || last.OutputDelivered || attempt.SubscriptionKind != "" && last.Usage.Reliable || lastErr == nil {
+				break routes
+			}
+			// A failed, undelivered attempt can move to the next verified route.
 			break
 		}
-		// Only a failed, undelivered attempt can move to the next verified route.
-		// Its independently observed vendor cost remains a platform expense.
 	}
 	finishCtx, finishCancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 	defer finishCancel()
-	if !dispatched {
-		out.Request, e = s.failUndispatched(finishCtx, req.ID)
+	if !requiresSettlement {
+		if last.State == "" {
+			out.Request, e = s.failUndispatched(finishCtx, req.ID)
+		} else {
+			out.Result = last
+			out.Request, e = s.failUndispatched(finishCtx, req.ID, failureReason(last))
+		}
 		if e != nil {
 			return out, e
+		}
+		if lastErr != nil {
+			return out, lastErr
 		}
 		return out, catalog.ErrRouteUnavailable
 	}
@@ -239,6 +245,36 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 	// Reliable usage can be charged on an interrupted stream. The HTTP handler
 	// still receives its original runtime error and never sends a replacement.
 	return out, lastErr
+}
+
+func (s *Service) executeAttempt(ctx context.Context, attempt modelruntime.Attempt, input modelruntime.Request, emit modelruntime.Emit, providerID string) (modelruntime.Result, error, error) {
+	delivered := false
+	wrapped := func(c context.Context, event modelruntime.Event) error {
+		if emit == nil {
+			return modelruntime.ErrInvalidRequest
+		}
+		event.RequestID = attempt.RequestID
+		if e := emit(c, event); e != nil {
+			return e
+		}
+		delivered = delivered || len(event.Data) > 0
+		return nil
+	}
+	attemptCtx, span := otel.Tracer("tokenhub/usage").Start(ctx, "model.upstream_attempt")
+	span.SetAttributes(attribute.String("tokenhub.attempt_id", attempt.ID), attribute.String("tokenhub.upstream_id", attempt.UpstreamID), attribute.String("tokenhub.provider_id", providerID))
+	result, err := s.Runtime.Execute(attemptCtx, attempt, input, wrapped)
+	result.ErrorCode = modelruntime.SafeErrorCode(result.ErrorCode)
+	result.ProviderStatus = modelruntime.SafeProviderStatus(result.ProviderStatus)
+	if result.ErrorCode == "" && err != nil {
+		result.ErrorCode = modelruntime.Diagnostic(err)
+	}
+	span.SetAttributes(attribute.String("tokenhub.outcome", result.State), attribute.Bool("tokenhub.usage_reliable", result.Usage.Reliable))
+	span.End()
+	result.OutputDelivered = result.OutputDelivered || delivered
+	// Keep attempt recording independent of caller cancellation.
+	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	defer cancel()
+	return result, err, s.RecordAttempt(recordCtx, attempt.RequestID, attempt.ID, result)
 }
 
 // RecordAttempt books every reliably observed vendor cost independently of
@@ -282,7 +318,7 @@ func (s *Service) RecordAttempt(ctx context.Context, requestID, attemptID string
 		}
 		// Observations are source facts, never automatic financial postings. A
 		// reference and a reported amount may coexist without being added together.
-		if row.CostStatus != "confirmed" && result.Cost != nil {
+		if row.CostStatus == "pending" && result.Cost != nil {
 			raw, _ := json.Marshal(result.Cost)
 			updates["cost_observation"] = raw
 			known := result.State == "not_dispatched"

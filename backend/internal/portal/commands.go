@@ -72,6 +72,10 @@ func (a *Application) operatorCommand(c *gin.Context) {
 		a.modelSettingsCommand(c, op, actor)
 		return
 	}
+	if resource == "subscription-pools" {
+		a.subscriptionPoolsCommand(c, op)
+		return
+	}
 	if resource == "supplier-costs" {
 		a.actualCostCommand(c, op, actor)
 		return
@@ -591,6 +595,9 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 		}
 		labels := supplierLabels(rows)
 		for _, row := range rows {
+			if row.SubscriptionKind != "" {
+				continue
+			}
 			item := entity(row.ID, "configured", int64(row.Version), row)
 			values := item["values"].(gin.H)
 			values["record_kind"] = "credential"
@@ -613,7 +620,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			item["allowed_actions"] = []string{"model"}
 			items = append(items, item)
 		}
-		p["description"] = "上半部分管理供应商连接，下半部分维护供应商模型与能力。上游成本优先采用可靠的供应商费用，否则由 Bifrost 参考价目计算。"
+		p["description"] = "选择 API 密钥或订阅账号池连接供应商模型，随后在路由配置中绑定公开模型。"
 		p["columns"] = []gin.H{col("record_kind", "类型", "text"), col("name", "名称", "text"), col("supplier_name", "供应商", "text"), col("provider", "协议", "text"), col("model", "供应商模型", "text"), col("capabilities", "能力", "text"), col("enabled", "启用", "boolean")}
 		name := f("name", "凭据名称", "text")
 		name.Help = "例如「OpenAI 生产」。以后可以只改名称，不必重新填写密钥。"
@@ -626,7 +633,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 		// The credential id and provider id stay on the saved record so routes keep
 		// using the same key. People do not type them.
 		modelHelp := jsonField("supplier_model：凭据、协议、供应商模型名称、能力与参考成本模型、expected_version")
-		p["operations"] = []operation{{Name: "credential", Label: "添加供应商密钥", Method: "POST", Path: base, Description: "填写名称和密钥。名称用来在列表里辨认这把密钥。", Fields: []field{name, createSecret, enabled, version}}, {Name: "model", Label: "添加供应商模型", Method: "POST", Path: base, Description: "选择供应商连接、接口协议和供应商模型，选择参考计价模型并确认能力。", Fields: []field{modelHelp}}}
+		p["operations"] = []operation{{Name: "credential", Label: "添加供应商密钥", Method: "POST", Path: base, Description: "填写名称和密钥。名称用来在列表里辨认这把密钥。", Fields: []field{name, createSecret, enabled, version}}, {Name: "model", Label: "添加供应商模型", Method: "POST", Path: base, Description: "选择供应商连接、模型和能力。按量连接可选 Bifrost 参考价目。", Fields: []field{modelHelp}}}
 		p["row_operations"] = []operation{{Name: "credential", Label: "修改密钥", Method: "POST", Path: base, Description: "可以修改名称或启用状态。密钥留空表示不更换。", Fields: []field{name, editSecret, enabled, optional("id", "凭据", "hidden"), optional("provider_id", "供应商", "hidden"), version}}, {Name: "model", Label: "编辑供应商模型", Method: "POST", Path: base, Description: "修改这个供应商模型的协议、能力和参考成本模型。已经绑定的路由会跟着更新。", Fields: []field{modelHelp}}}
 	case "routes":
 		models, e := a.Catalog.AdminModels(ctx, a.Installation.OperatorID)

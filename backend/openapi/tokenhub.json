@@ -22238,7 +22238,7 @@
             }
           }
         },
-        "description": "按账单原币独立登记实际成本；Bifrost USD参考成本和供应商报告成本分别观察，不折算、不相减、不计入清算币种成本总计。财报按数据库登记时间汇总，服务期间单独保留。 Requires platform.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "按账单原币独立登记实际成本。订阅账号池按服务期间登记原币订阅账单。财报按登记时间汇总，服务期间单独保留。 Requires platform.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "platform.manage"
       }
     },
@@ -25140,6 +25140,407 @@
           "content": {
             "application/json": {
               "schema": {}
+            }
+          }
+        }
+      }
+    },
+    "/v1/operators/{operatorId}/subscription-pools": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_subscription_pools",
+        "summary": "List platform subscription pools and credential-free account status",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionPools"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "catalog.manage",
+        "x-platform-only": true
+      },
+      "post": {
+        "operationId": "post__v1_operators_operatorId_subscription_pools",
+        "summary": "Save a subscription pool, manage its credentials, or remove an account",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "catalog.manage",
+        "x-platform-only": true,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "save_pool"
+                      },
+                      "pool": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "subscription_kind": {
+                            "$ref": "#/components/schemas/SubscriptionVendor"
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "expected_version": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "first_account": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "credential": {
+                                "type": "string",
+                                "writeOnly": true,
+                                "maxLength": 65536
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "credential"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "subscription_kind",
+                          "enabled",
+                          "expected_version"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "pool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "save_account"
+                      },
+                      "account": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "pool_id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "credential": {
+                            "type": "string",
+                            "writeOnly": true,
+                            "maxLength": 65536
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "subscription_ends_at": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "expected_version": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "pool_id",
+                          "name",
+                          "enabled",
+                          "expected_version"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "account"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "remove_account"
+                      },
+                      "account": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "pool_id": {
+                            "type": "string"
+                          },
+                          "expected_version": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "pool_id",
+                          "expected_version"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "account"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
             }
           }
         }
@@ -37589,6 +37990,266 @@
         ],
         "additionalProperties": true
       },
+      "SubscriptionVendor": {
+        "type": "string",
+        "enum": [
+          "codex",
+          "claude"
+        ]
+      },
+      "SubscriptionAccount": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "subscription_ends_at": {
+            "type": "string"
+          },
+          "cooldown_until": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "enabled",
+          "version",
+          "status"
+        ],
+        "additionalProperties": true
+      },
+      "SubscriptionPool": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "subscription_kind": {
+            "type": "string",
+            "enum": [
+              "codex",
+              "claude"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "accounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "name": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "version": {
+                  "type": "integer"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "subscription_ends_at": {
+                  "type": "string"
+                },
+                "cooldown_until": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "enabled",
+                "version",
+                "status"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "latest_statement": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "statement_reference": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
+              "currency": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "statement_reference",
+              "amount",
+              "currency"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "subscription_kind",
+          "enabled",
+          "version",
+          "accounts"
+        ],
+        "additionalProperties": true
+      },
+      "SubscriptionPools": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "name": {
+                  "type": "string"
+                },
+                "subscription_kind": {
+                  "type": "string",
+                  "enum": [
+                    "codex",
+                    "claude"
+                  ]
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "version": {
+                  "type": "integer"
+                },
+                "accounts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "version": {
+                        "type": "integer"
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "subscription_ends_at": {
+                        "type": "string"
+                      },
+                      "cooldown_until": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "enabled",
+                      "version",
+                      "status"
+                    ],
+                    "additionalProperties": true
+                  }
+                },
+                "latest_statement": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "statement_reference": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                    },
+                    "currency": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "statement_reference",
+                    "amount",
+                    "currency"
+                  ],
+                  "additionalProperties": true
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "subscription_kind",
+                "enabled",
+                "version",
+                "accounts"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": true
+      },
       "JSONValue": {
         "anyOf": [
           {
@@ -45210,6 +45871,10 @@
                 "supplier_actual_cost": {
                   "type": "string",
                   "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+                },
+                "subscription_actual_cost": {
+                  "type": "string",
+                  "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
                 }
               },
               "required": [
@@ -46688,6 +47353,12 @@
               },
               "credential_id": {
                 "type": "string"
+              },
+              "provider_id": {
+                "type": "string"
+              },
+              "subscription_kind": {
+                "$ref": "#/components/schemas/SubscriptionVendor"
               },
               "provider": {
                 "enum": [
@@ -49585,9 +50256,53 @@
             "type": "string",
             "description": "供应商"
           },
+          "subscription_kind": {
+            "type": "string",
+            "description": "订阅计费",
+            "enum": [
+              "",
+              "codex",
+              "claude"
+            ]
+          },
           "supplier_model_id": {
             "type": "string",
-            "description": "供应商模型（留空表示供应商整体）"
+            "description": "供应商模型（留空表示供应商整体）",
+            "x-visible-when": {
+              "field": "subscription_kind",
+              "values": [
+                "codex",
+                "claude"
+              ],
+              "not": true
+            },
+            "x-required-when-visible": false
+          },
+          "statement_reference": {
+            "type": "string",
+            "description": "订阅账单编号",
+            "x-visible-when": {
+              "field": "subscription_kind",
+              "values": [
+                "codex",
+                "claude"
+              ]
+            },
+            "x-required-when-visible": true,
+            "maxLength": 160
+          },
+          "account_coverage": {
+            "type": "string",
+            "description": "覆盖账号",
+            "x-visible-when": {
+              "field": "subscription_kind",
+              "values": [
+                "codex",
+                "claude"
+              ]
+            },
+            "x-required-when-visible": false,
+            "maxLength": 500
           },
           "starts_at": {
             "type": "string",
@@ -49620,7 +50335,32 @@
           "currency",
           "amount"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "subscription_kind": {
+                  "enum": [
+                    "codex",
+                    "claude"
+                  ]
+                }
+              },
+              "required": [
+                "subscription_kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "statement_reference": {}
+              },
+              "required": [
+                "statement_reference"
+              ]
+            }
+          }
+        ]
       },
       "Operator_supplier_costs_edit": {
         "type": "object",
@@ -49638,9 +50378,53 @@
             "type": "string",
             "description": "供应商"
           },
+          "subscription_kind": {
+            "type": "string",
+            "description": "订阅计费",
+            "enum": [
+              "",
+              "codex",
+              "claude"
+            ]
+          },
           "supplier_model_id": {
             "type": "string",
-            "description": "供应商模型（留空表示供应商整体）"
+            "description": "供应商模型（留空表示供应商整体）",
+            "x-visible-when": {
+              "field": "subscription_kind",
+              "values": [
+                "codex",
+                "claude"
+              ],
+              "not": true
+            },
+            "x-required-when-visible": false
+          },
+          "statement_reference": {
+            "type": "string",
+            "description": "订阅账单编号",
+            "x-visible-when": {
+              "field": "subscription_kind",
+              "values": [
+                "codex",
+                "claude"
+              ]
+            },
+            "x-required-when-visible": true,
+            "maxLength": 160
+          },
+          "account_coverage": {
+            "type": "string",
+            "description": "覆盖账号",
+            "x-visible-when": {
+              "field": "subscription_kind",
+              "values": [
+                "codex",
+                "claude"
+              ]
+            },
+            "x-required-when-visible": false,
+            "maxLength": 500
           },
           "starts_at": {
             "type": "string",
@@ -49675,7 +50459,32 @@
           "currency",
           "amount"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "subscription_kind": {
+                  "enum": [
+                    "codex",
+                    "claude"
+                  ]
+                }
+              },
+              "required": [
+                "subscription_kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "statement_reference": {}
+              },
+              "required": [
+                "statement_reference"
+              ]
+            }
+          }
+        ]
       },
       "Operator_procurement_offline_purchase": {
         "type": "object",

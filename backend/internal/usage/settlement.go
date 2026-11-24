@@ -299,8 +299,8 @@ func (s *Service) ResolveTimeout(ctx context.Context, id string) (Request, error
 	return out, e
 }
 
-// Every candidate can lose capacity between quote and dispatch. Only absence
-// of all durable dispatch intents proves that releasing immediately is safe.
+// Capacity failures and explicit refusals can release immediately once every
+// attempt has been accounted for and none has usable output or usage.
 func (s *Service) failUndispatched(ctx context.Context, id string, reasons ...string) (Request, error) {
 	var out Request
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
@@ -331,7 +331,7 @@ func (s *Service) failUndispatched(ctx context.Context, id string, reasons ...st
 		reason := "route_capacity_or_health_unavailable"
 		if len(reasons) > 0 {
 			reason = reasons[0]
-			query = query.Where("state NOT IN ('failed','not_dispatched')")
+			query = query.Where("(state NOT IN ('failed','not_dispatched') OR output_delivered OR usage->>'reliable'='true')")
 		}
 		if e := query.Count(&count).Error; e != nil {
 			return e

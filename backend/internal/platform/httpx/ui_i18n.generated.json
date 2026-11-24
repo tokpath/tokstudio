@@ -2258,6 +2258,15 @@
     "Strim {ability}",
     "สตรีม {ability}"
   ],
+  "{available} / {total} 个账号可用": [
+    "{available} / {total} 个账号可用",
+    "{available} of {total} accounts available",
+    "{total} 件中 {available} 件のアカウントが利用可能",
+    "Доступно аккаунтов: {available} из {total}",
+    "{total} में से {available} खाते उपलब्ध",
+    "{available} daripada {total} akaun tersedia",
+    "มีบัญชีพร้อมใช้ {available} จาก {total} บัญชี"
+  ],
   "{count} 个已展示模型 · 调用还受 Key 范围限制": [
     "{count} 个已展示模型 · 调用还受 Key 范围限制",
     "{count} models listed · Key access restrictions also apply",
@@ -6587,6 +6596,15 @@
     "Rujukan pembekal, diisi selepas anda memilih rahsia",
     "ข้อมูลอ้างอิงผู้ให้บริการ ซึ่งกรอกหลังเลือกข้อมูลลับ"
   ],
+  "供应商引用（选择连接后自动带入）": [
+    "供应商引用（选择连接后自动带入）",
+    "Supplier reference (filled from the connection)",
+    "供給元参照（接続から自動入力）",
+    "Идентификатор поставщика (из подключения)",
+    "आपूर्तिकर्ता संदर्भ (कनेक्शन से अपने आप भरा जाता है)",
+    "Rujukan pembekal (diisi daripada sambungan)",
+    "ข้อมูลอ้างอิงผู้ให้บริการ (กรอกอัตโนมัติจากการเชื่อมต่อ)"
+  ],
   "供应商成本 原币种": [
     "供应商成本 原币种",
     "Supplier cost original currency",
@@ -6793,6 +6811,15 @@
     "आपूर्तिकर्ता उपयोग लागत",
     "Kos penggunaan pembekal",
     "ต้นทุนการใช้งานผู้จัดหา"
+  ],
+  "供应商连接": [
+    "供应商连接",
+    "Supplier connection",
+    "供給元への接続",
+    "Подключение поставщика",
+    "आपूर्तिकर्ता कनेक्शन",
+    "Sambungan pembekal",
+    "การเชื่อมต่อผู้ให้บริการ"
   ],
   "供应成本待核实": [
     "供应成本待核实",
@@ -7081,6 +7108,15 @@
     "प्रचार समाप्त",
     "Promosi tamat",
     "สิ้นสุดโปรโมชัน"
+  ],
+  "保存": [
+    "保存",
+    "Save",
+    "保存",
+    "Сохранить",
+    "सहेजें",
+    "Simpan",
+    "บันทึก"
   ],
   "保存一次性密钥，按需限制预算与模型。": [
     "保存一次性密钥，按需限制预算与模型。",
@@ -8945,6 +8981,15 @@
     "Betulkan caj",
     "แก้ไขการเรียกเก็บ"
   ],
+  "冷却中": [
+    "冷却中",
+    "Cooling down",
+    "クールダウン中",
+    "Ожидание повторного доступа",
+    "कूलडाउन में",
+    "Sedang menunggu",
+    "กำลังพักการเรียก"
+  ],
   "冻结": [
     "冻结",
     "Frozen",
@@ -9187,6 +9232,15 @@
     "क्रेडेंशियल संदर्भ",
     "Rujukan kelayakan",
     "การอ้างอิงข้อมูลรับรอง"
+  ],
+  "凭据格式无效，请使用所选供应商的订阅授权。": [
+    "凭据格式无效，请使用所选供应商的订阅授权。",
+    "Invalid credential format. Use the subscription authorization for the selected supplier.",
+    "認証情報の形式が無効です。選択した供給元のサブスクリプション認証を使用してください。",
+    "Неверный формат авторизации. Используйте данные подписки выбранного поставщика.",
+    "क्रेडेंशियल का प्रारूप अमान्य है। चुने गए आपूर्तिकर्ता का सदस्यता प्राधिकरण इस्तेमाल करें।",
+    "Format bukti kelayakan tidak sah. Gunakan kebenaran langganan untuk pembekal yang dipilih.",
+    "รูปแบบข้อมูลรับรองไม่ถูกต้อง ใช้การอนุญาตสำหรับผู้ให้บริการที่เลือก"
   ],
   "凭证编号": [
     "凭证编号",
@@ -14974,6 +15028,15 @@
     "मीटरिंग दर्ज करें",
     "Masukkan pemeteran",
     "ระบุการวัด"
+  ],
+  "填写账单覆盖的账号名称。空白代表整个账号池。": [
+    "填写账单覆盖的账号名称。空白代表整个账号池。",
+    "Enter the account names covered by this bill. Leave blank for the whole pool.",
+    "請求対象のアカウント名を入力します。空欄の場合はプール全体が対象です。",
+    "Введите названия аккаунтов в счёте. Оставьте поле пустым для всего пула.",
+    "इस बिल में शामिल खातों के नाम दर्ज करें। पूरे पूल के लिए खाली छोड़ें।",
+    "Masukkan nama akaun yang diliputi oleh bil ini. Biarkan kosong untuk seluruh kumpulan.",
+    "กรอกชื่อบัญชีที่อยู่ในบิลนี้ เว้นว่างหากครอบคลุมทั้งกลุ่ม"
   ],
   "填写邮件服务商提供的 SMTP 密码或授权码；留空保留本品牌已保存的密码。": [
     "填写邮件服务商提供的 SMTP 密码或授权码；留空保留本品牌已保存的密码。",
@@ -24461,6 +24524,15 @@
     "Semak model, Key dan caj bagi setiap permintaan, dan dapatkan hasil tak segerak dalam tempoh penyimpanannya.",
     "ตรวจสอบโมเดล Key และยอดเรียกเก็บต่อคำขอ และรับผลลัพธ์อะซิงโครนัสภายในระยะเวลาเก็บรักษา"
   ],
+  "按账单原币登记供应商实际费用。按量线路可对照 Bifrost 参考成本，订阅账号池按服务期间登记实际账单。": [
+    "按账单原币登记供应商实际费用。按量线路可对照 Bifrost 参考成本，订阅账号池按服务期间登记实际账单。",
+    "Record supplier bills in their original currency. Compare usage-based routes with Bifrost reference costs and record subscription bills by service period.",
+    "供給元の実費を請求通貨で記録します。従量課金ルートは Bifrost の参考料金と照合でき、サブスクリプションは利用期間ごとに記録します。",
+    "Регистрируйте счета поставщиков в исходной валюте. Сверяйте маршруты с эталонной стоимостью Bifrost, а подписки регистрируйте по периоду обслуживания.",
+    "आपूर्तिकर्ता के बिल मूल मुद्रा में दर्ज करें। रूट की तुलना Bifrost संदर्भ लागत से करें और सेवा अवधि के अनुसार सदस्यता बिल दर्ज करें।",
+    "Rekod bil dalam mata wang asal. Bandingkan laluan penggunaan dengan kos Bifrost dan rekod bil langganan mengikut tempoh perkhidmatan.",
+    "บันทึกบิลในสกุลเงินเดิม เปรียบเทียบเส้นทางตามการใช้งานกับต้นทุน Bifrost และบันทึกบิลสมัครใช้บริการตามช่วงบริการ"
+  ],
   "按账单原币登记供应商实际费用，并列展示同一供应商、模型及期间的 Bifrost USD 参考成本。两者独立列示，不折算、不相减、不重复计入总成本。财务按登记时间汇总，服务期间结束时间不包含在统计内。": [
     "按账单原币登记供应商实际费用，并列展示同一供应商、模型及期间的 Bifrost USD 参考成本。两者独立列示，不折算、不相减、不重复计入总成本。财务按登记时间汇总，服务期间结束时间不包含在统计内。",
     "Record actual supplier costs in the invoice currency alongside Bifrost USD reference costs for the same supplier, model, and period. They remain separate, without conversion, subtraction, or duplicate cost totals. Financial reports use the recording time; the service period end is exclusive.",
@@ -24496,6 +24568,15 @@
     "खरीद राशि के लिए स्तरीय बोनस, डिलीवर क्रेडिट और निकास शर्तों की समीक्षा करें।",
     "Semak bonus berperingkat, kredit diserahkan dan terma keluar untuk jumlah pembelian.",
     "ตรวจสอบโบนัสตามระดับ เครดิตที่จะส่งมอบ และเงื่อนไขการออกสำหรับจำนวนเงินจัดซื้อ"
+  ],
+  "按量连接可选 Bifrost 参考价目。": [
+    "按量连接可选 Bifrost 参考价目。",
+    "Usage-based connections can use a Bifrost reference price.",
+    "従量課金の接続では Bifrost の参考料金を選べます。",
+    "Для подключений с оплатой по потреблению доступна эталонная цена Bifrost.",
+    "उपयोग-आधारित कनेक्शन Bifrost संदर्भ मूल्य इस्तेमाल कर सकते हैं।",
+    "Sambungan mengikut penggunaan boleh menggunakan harga rujukan Bifrost.",
+    "การเชื่อมต่อคิดตามการใช้งานสามารถเลือกราคาอ้างอิง Bifrost ได้"
   ],
   "按金额采购": [
     "按金额采购",
@@ -26990,6 +27071,24 @@
     "ID unik dijana untuk entri baharu dan dikekalkan semasa mengedit. Ia mengenal pasti harga atau laluan ini; ia bukan ID model awam dan tidak mengubah keupayaan model.",
     "ระบบสร้าง ID ที่ไม่ซ้ำกันสำหรับรายการใหม่และคงไว้เมื่อแก้ไข ใช้ระบุราคาหรือเส้นทางนี้ ไม่ใช่ ID โมเดลสาธารณะและไม่เปลี่ยนความสามารถโมเดล"
   ],
+  "新建账号池": [
+    "新建账号池",
+    "New account pool",
+    "アカウントプールを作成",
+    "Создать пул аккаунтов",
+    "नया खाता पूल",
+    "Kumpulan akaun baharu",
+    "สร้างกลุ่มบัญชี"
+  ],
+  "新建账号池并加入一个已授权的订阅账号即可开始。": [
+    "新建账号池并加入一个已授权的订阅账号即可开始。",
+    "Create a pool and add an authorized account to get started.",
+    "プールを作成し、認証済みアカウントを追加します。",
+    "Для начала создайте пул и добавьте авторизованный аккаунт.",
+    "शुरू करने के लिए पूल बनाएँ और एक अधिकृत खाता जोड़ें।",
+    "Cipta kumpulan dan tambah akaun yang dibenarkan untuk bermula.",
+    "สร้างกลุ่มและเพิ่มบัญชีที่ได้รับอนุญาตเพื่อเริ่มใช้งาน"
+  ],
   "新用户完成注册时确认邀请关系和所属经营方。": [
     "新用户完成注册时确认邀请关系和所属经营方。",
     "New users confirm their inviter and operator when completing registration.",
@@ -27566,6 +27665,15 @@
     "Tiada rekod pengambilalihan saluran.",
     "ไม่มีบันทึกการรับช่วงช่องทาง"
   ],
+  "暂无订阅账号池": [
+    "暂无订阅账号池",
+    "No subscription account pools",
+    "サブスクリプションアカウントプールがありません",
+    "Пулов аккаунтов с подпиской пока нет",
+    "कोई सदस्यता खाता पूल नहीं है",
+    "Tiada kumpulan akaun langganan",
+    "ยังไม่มีกลุ่มบัญชีสมัครใช้บริการ"
+  ],
   "暂无记录": [
     "暂无记录",
     "No records",
@@ -27889,6 +27997,15 @@
     "अंतिम सफल सिंक",
     "Penyegerakan berjaya terakhir",
     "ซิงก์สำเร็จล่าสุด"
+  ],
+  "最近登记的订阅账单": [
+    "最近登记的订阅账单",
+    "Latest recorded subscription bill",
+    "最後に登録したサブスクリプション請求",
+    "Последний зарегистрированный счёт за подписку",
+    "सबसे हाल में दर्ज सदस्यता बिल",
+    "Bil langganan terakhir direkodkan",
+    "บิลสมัครใช้บริการที่บันทึกล่าสุด"
   ],
   "最近调用": [
     "最近调用",
@@ -32219,6 +32336,15 @@
     "Kes ini ditutup. Semak tanggungjawab asal dan bukti pembayaran sebenar.",
     "กรณีนี้ปิดแล้ว ตรวจสอบภาระเดิมและหลักฐานการชำระเงินจริง"
   ],
+  "此供应商模型缺少可核实的 Token 上限，请同步 Bifrost 价目后核对模型名称。": [
+    "此供应商模型缺少可核实的 Token 上限，请同步 Bifrost 价目后核对模型名称。",
+    "Token limits for this supplier model are unavailable. Sync the Bifrost price sheet and check the model name.",
+    "この供給元モデルのトークン上限を確認できません。Bifrost の料金表を同期し、モデル名を確認してください。",
+    "Лимиты токенов для модели поставщика недоступны. Синхронизируйте прайс-лист Bifrost и проверьте название модели.",
+    "इस आपूर्तिकर्ता मॉडल की टोकन सीमाएँ उपलब्ध नहीं हैं। Bifrost मूल्य सूची सिंक करें और मॉडल का नाम जाँचें।",
+    "Had token model pembekal ini tidak tersedia. Segerakkan jadual harga Bifrost dan semak nama model.",
+    "ไม่มีข้อมูลขีดจำกัดโทเคนของโมเดลนี้ ซิงค์ตารางราคา Bifrost แล้วตรวจสอบชื่อโมเดล"
+  ],
   "此入口仅用于渠道客户邀请": [
     "此入口仅用于渠道客户邀请",
     "This endpoint is only for channel customer invitations.",
@@ -32327,6 +32453,15 @@
     "Pesanan ini telah tamat. Jika anda telah membayar tetapi belum menerima kredit, hubungi pengendali dengan pesanan ini. Jangan pindahkan dana kepada pesanan asal lagi.",
     "คำสั่งซื้อนี้สิ้นสุดแล้ว หากคุณชำระเงินจริงแต่ยังไม่ได้รับเครดิต โปรดติดต่อผู้ดำเนินงานโดยอ้างอิงคำสั่งซื้อนี้ อย่าโอนเงินไปยังคำสั่งซื้อเดิมอีก"
   ],
+  "此订阅账单已登记，请在已有记录中修改。": [
+    "此订阅账单已登记，请在已有记录中修改。",
+    "This subscription bill has already been recorded. Edit the existing entry.",
+    "このサブスクリプション請求は記録済みです。既存の記録を編集してください。",
+    "Этот счёт за подписку уже зарегистрирован. Измените существующую запись.",
+    "यह सदस्यता बिल पहले से दर्ज है। मौजूदा रिकॉर्ड संपादित करें।",
+    "Bil langganan ini sudah direkodkan. Sunting rekod sedia ada.",
+    "บันทึกบิลสมัครใช้บริการนี้แล้ว โปรดแก้ไขรายการเดิม"
+  ],
   "此请求有费用纠正，查看原始与净额": [
     "此请求有费用纠正，查看原始与净额",
     "This request has corrections — view original and net amounts",
@@ -32344,6 +32479,15 @@
     "इस खाते की दो कार्यक्षेत्रों तक पहुँच है। इस कार्य के लिए एक चुनें।",
     "Akaun ini mempunyai akses kepada dua ruang kerja. Pilih yang sesuai untuk tugas ini.",
     "บัญชีนี้เข้าถึงพื้นที่ทำงานได้สองแห่ง เลือกแห่งที่ใช้สำหรับงานนี้"
+  ],
+  "此账号已在当前账号池中。": [
+    "此账号已在当前账号池中。",
+    "This account is already in the pool.",
+    "このアカウントは既にプールにあります。",
+    "Этот аккаунт уже входит в пул.",
+    "यह खाता पहले से पूल में है।",
+    "Akaun ini sudah berada dalam kumpulan.",
+    "บัญชีนี้อยู่ในกลุ่มแล้ว"
   ],
   "此邮箱已在当前品牌注册，请登录原账号；邀请码不能改变已有归属": [
     "此邮箱已在当前品牌注册，请登录原账号；邀请码不能改变已有归属",
@@ -33505,6 +33649,15 @@
     "शुल्क जोड़ें",
     "Tambah caj",
     "เพิ่มรายการคิดค่าบริการ"
+  ],
+  "添加账号": [
+    "添加账号",
+    "Add account",
+    "アカウントを追加",
+    "Добавить аккаунт",
+    "खाता जोड़ें",
+    "Tambah akaun",
+    "เพิ่มบัญชี"
   ],
   "添加赠送阶梯": [
     "添加赠送阶梯",
@@ -36089,6 +36242,15 @@
     "Sahkan masa pembayaran sebenar yang disahkan secara bebas dan tempoh penilaian yang meliputinya. Hanya mengkreditkan penerimaan asal sekali; tidak mencipta penerimaan baharu atau penyerahan berulang.",
     "ยืนยันเวลาชำระเงินจริงที่ตรวจสอบโดยอิสระและช่วงประเมินมูลค่าที่ครอบคลุมเวลานั้น ลงบัญชีเงินรับเดิมเพียงครั้งเดียว ไม่สร้างเงินรับใหม่หรือส่งมอบซ้ำ"
   ],
+  "确认移除": [
+    "确认移除",
+    "Confirm removal",
+    "削除を確定",
+    "Подтвердить удаление",
+    "हटाने की पुष्टि करें",
+    "Sahkan pengalihan keluar",
+    "ยืนยันการนำออก"
+  ],
   "确认等待天数": [
     "确认等待天数",
     "Confirmation wait days",
@@ -36332,6 +36494,15 @@
     "Alat ruang kerja mudah alih",
     "เครื่องมือพื้นที่ทำงานบนมือถือ"
   ],
+  "移除": [
+    "移除",
+    "Remove",
+    "削除",
+    "Удалить",
+    "हटाएँ",
+    "Alih keluar",
+    "นำออก"
+  ],
   "移除{item} {index}": [
     "移除{item} {index}",
     "Remove {item} {index}",
@@ -36350,6 +36521,15 @@
     "Buang entri {item} {index}",
     "ลบรายการ {item} {index}"
   ],
+  "移除「{name}」后，账号将退出调度，已保存的授权凭据同时清除。": [
+    "移除「{name}」后，账号将退出调度，已保存的授权凭据同时清除。",
+    "Removing “{name}” stops it from receiving requests and clears its saved credentials.",
+    "「{name}」を削除すると、リクエストの振り分けが停止され、保存済みの認証情報が消去されます。",
+    "После удаления «{name}» запросы на этот аккаунт прекратятся, а сохранённые данные авторизации будут удалены.",
+    "“{name}” को हटाने पर उसे अनुरोध मिलने बंद हो जाएँगे और सहेजे गए क्रेडेंशियल मिट जाएँगे।",
+    "Mengalih keluar “{name}” menghentikan permintaan kepadanya dan memadam bukti kelayakan yang disimpan.",
+    "การนำ “{name}” ออกจะหยุดส่งคำขอไปยังบัญชีและล้างข้อมูลรับรองที่บันทึกไว้"
+  ],
   "移除分辨率 {index}": [
     "移除分辨率 {index}",
     "Remove resolution {index}",
@@ -36367,6 +36547,15 @@
     "शुल्क {index} हटाएँ",
     "Buang caj {index}",
     "นำรายการคิดค่าบริการ {index} ออก"
+  ],
+  "移除账号": [
+    "移除账号",
+    "Remove account",
+    "アカウントを削除",
+    "Удалить аккаунт",
+    "खाता हटाएँ",
+    "Alih keluar akaun",
+    "นำบัญชีออก"
   ],
   "稍后核实": [
     "稍后核实",
@@ -36692,6 +36881,15 @@
     "Urus model tersenarai dan harga panggilan pada setiap peringkat",
     "จัดการโมเดลที่ลงรายการและราคาเรียกใช้แต่ละระดับ"
   ],
+  "管理上游订阅账号和可用状态。账号池可以用作供应商模型的连接。": [
+    "管理上游订阅账号和可用状态。账号池可以用作供应商模型的连接。",
+    "Manage subscription accounts used to connect supplier models.",
+    "供給元モデルに接続するサブスクリプションアカウントを管理します。",
+    "Управляйте аккаунтами с подпиской для подключения моделей поставщиков.",
+    "आपूर्तिकर्ता मॉडल से कनेक्ट करने वाले सदस्यता खातों का प्रबंधन करें।",
+    "Urus akaun langganan yang digunakan untuk menyambung model pembekal.",
+    "จัดการบัญชีสมัครใช้บริการสำหรับเชื่อมต่อโมเดลของผู้ให้บริการ"
+  ],
   "管理全部": [
     "管理全部",
     "Manage all",
@@ -36907,6 +37105,24 @@
     "आपूर्तिकर्ता से मिली Key पेस्ट करें। सहेजने के बाद पृष्ठ इसे फिर नहीं दिखाता।",
     "Tampal kunci daripada pembekal. Selepas disimpan, halaman tidak memaparkannya lagi.",
     "วางคีย์จากผู้จัดหา หลังบันทึกแล้วหน้านี้จะไม่แสดงคีย์อีก"
+  ],
+  "粘贴已授权的 Claude Code Setup Token 或授权 JSON。": [
+    "粘贴已授权的 Claude Code Setup Token 或授权 JSON。",
+    "Paste an authorized Claude Code Setup Token or authorization JSON.",
+    "認証済みの Claude Code Setup Token または認証 JSON を貼り付けます。",
+    "Вставьте Claude Code Setup Token или JSON авторизации.",
+    "अधिकृत Claude Code Setup Token या प्राधिकरण JSON पेस्ट करें।",
+    "Tampal Claude Code Setup Token atau JSON kebenaran yang telah dibenarkan.",
+    "วาง Claude Code Setup Token หรือ JSON การอนุญาตที่ได้รับอนุญาต"
+  ],
+  "粘贴已授权的 Codex auth.json 内容。": [
+    "粘贴已授权的 Codex auth.json 内容。",
+    "Paste the authorized Codex auth.json contents.",
+    "認証済みの Codex auth.json の内容を貼り付けます。",
+    "Вставьте содержимое auth.json авторизованного аккаунта Codex.",
+    "अधिकृत Codex auth.json की सामग्री पेस्ट करें।",
+    "Tampal kandungan Codex auth.json yang telah dibenarkan.",
+    "วางเนื้อหา Codex auth.json ที่ได้รับอนุญาต"
   ],
   "精确值": [
     "精确值",
@@ -38456,6 +38672,15 @@
     "ID",
     "ID"
   ],
+  "编辑": [
+    "编辑",
+    "Edit",
+    "編集",
+    "Изменить",
+    "संपादित करें",
+    "Sunting",
+    "แก้ไข"
+  ],
   "编辑 Key 配置": [
     "编辑 Key 配置",
     "Edit Key settings",
@@ -38509,6 +38734,24 @@
     "वेबसाइट की दिखावट संपादित करें",
     "Edit rupa laman web",
     "แก้ไขรูปลักษณ์เว็บไซต์"
+  ],
+  "编辑账号": [
+    "编辑账号",
+    "Edit account",
+    "アカウントを編集",
+    "Изменить аккаунт",
+    "खाता संपादित करें",
+    "Sunting akaun",
+    "แก้ไขบัญชี"
+  ],
+  "编辑账号池": [
+    "编辑账号池",
+    "Edit account pool",
+    "アカウントプールを編集",
+    "Изменить пул аккаунтов",
+    "खाता पूल संपादित करें",
+    "Sunting kumpulan akaun",
+    "แก้ไขกลุ่มบัญชี"
   ],
   "编辑路由": [
     "编辑路由",
@@ -39320,6 +39563,15 @@
     "Catatan pengesahan liputan",
     "หมายเหตุการตรวจสอบความครอบคลุม"
   ],
+  "覆盖账号": [
+    "覆盖账号",
+    "Accounts covered",
+    "対象アカウント",
+    "Аккаунты в счёте",
+    "शामिल खाते",
+    "Akaun yang diliputi",
+    "บัญชีที่ครอบคลุม"
+  ],
   "观察时间": [
     "观察时间",
     "Observed at",
@@ -40030,6 +40282,87 @@
     "ऑर्डर विवरण",
     "Butiran pesanan",
     "รายละเอียดคำสั่งซื้อ"
+  ],
+  "订阅到期": [
+    "订阅到期",
+    "Subscription expiry",
+    "サブスクリプションの有効期限",
+    "Окончание подписки",
+    "सदस्यता की समाप्ति",
+    "Tamat tempoh langganan",
+    "วันหมดอายุการสมัครใช้บริการ"
+  ],
+  "订阅到期（可选）": [
+    "订阅到期（可选）",
+    "Subscription expiry (optional)",
+    "サブスクリプションの有効期限（任意）",
+    "Окончание подписки (необязательно)",
+    "सदस्यता की समाप्ति (वैकल्पिक)",
+    "Tamat tempoh langganan (pilihan)",
+    "วันหมดอายุการสมัครใช้บริการ (ไม่บังคับ)"
+  ],
+  "订阅实际账单": [
+    "订阅实际账单",
+    "Actual subscription bills",
+    "サブスクリプションの実請求額",
+    "Фактические счета за подписки",
+    "सदस्यता के वास्तविक बिल",
+    "Bil langganan sebenar",
+    "บิลสมัครใช้บริการจริง"
+  ],
+  "订阅已到期": [
+    "订阅已到期",
+    "Subscription expired",
+    "サブスクリプション期限切れ",
+    "Срок подписки истёк",
+    "सदस्यता समाप्त",
+    "Langganan tamat tempoh",
+    "การสมัครใช้บริการหมดอายุ"
+  ],
+  "订阅授权": [
+    "订阅授权",
+    "Subscription authorization",
+    "サブスクリプション認証",
+    "Авторизация подписки",
+    "सदस्यता प्राधिकरण",
+    "Kebenaran langganan",
+    "การอนุญาตสมัครใช้บริการ"
+  ],
+  "订阅授权（可选）": [
+    "订阅授权（可选）",
+    "Subscription authorization (optional)",
+    "サブスクリプション認証（任意）",
+    "Авторизация подписки (необязательно)",
+    "सदस्यता प्राधिकरण (वैकल्पिक)",
+    "Kebenaran langganan (pilihan)",
+    "การอนุญาตสมัครใช้บริการ (ไม่บังคับ)"
+  ],
+  "订阅计费": [
+    "订阅计费",
+    "Subscription billing",
+    "サブスクリプション課金",
+    "Оплата по подписке",
+    "सदस्यता बिलिंग",
+    "Pengebilan langganan",
+    "การเรียกเก็บเงินแบบสมัครใช้บริการ"
+  ],
+  "订阅账单编号": [
+    "订阅账单编号",
+    "Subscription bill reference",
+    "サブスクリプション請求番号",
+    "Номер счёта за подписку",
+    "सदस्यता बिल का संदर्भ",
+    "Rujukan bil langganan",
+    "เลขอ้างอิงบิลสมัครใช้บริการ"
+  ],
+  "订阅账号池": [
+    "订阅账号池",
+    "Subscription account pools",
+    "サブスクリプションアカウントプール",
+    "Пулы аккаунтов с подпиской",
+    "सदस्यता खाते के पूल",
+    "Kumpulan akaun langganan",
+    "กลุ่มบัญชีสมัครใช้บริการ"
   ],
   "让利 {points} 个百分点": [
     "让利 {points} 个百分点",
@@ -41957,6 +42290,15 @@
     "Pengesahan penggunaan & kos",
     "ตรวจสอบการใช้งานและต้นทุน"
   ],
+  "调用中": [
+    "调用中",
+    "In use",
+    "使用中",
+    "Используется",
+    "उपयोग में",
+    "Sedang digunakan",
+    "กำลังใช้งาน"
+  ],
   "调用价格与服务范围": [
     "调用价格与服务范围",
     "Request pricing and service scope",
@@ -42254,6 +42596,15 @@
     "Akaun & keselamatan",
     "บัญชีและความปลอดภัย"
   ],
+  "账号名称": [
+    "账号名称",
+    "Account name",
+    "アカウント名",
+    "Название аккаунта",
+    "खाते का नाम",
+    "Nama akaun",
+    "ชื่อบัญชี"
+  ],
   "账号已停用": [
     "账号已停用",
     "This account has been disabled.",
@@ -42290,6 +42641,15 @@
     "Akaun atau kata laluan salah.",
     "บัญชีหรือรหัสผ่านไม่ถูกต้อง"
   ],
+  "账号池名称": [
+    "账号池名称",
+    "Account pool name",
+    "アカウントプール名",
+    "Название пула аккаунтов",
+    "खाता पूल का नाम",
+    "Nama kumpulan akaun",
+    "ชื่อกลุ่มบัญชี"
+  ],
   "账号由当前品牌识别。客户与经营人员使用各自的登录权限。": [
     "账号由当前品牌识别。客户与经营人员使用各自的登录权限。",
     "Accounts are identified by the current brand. Customers and operator staff use their respective sign-in permissions.",
@@ -42298,6 +42658,15 @@
     "खातों की पहचान वर्तमान ब्रांड से होती है। ग्राहक और संचालक कर्मचारी अपनी-अपनी साइन इन अनुमतियाँ उपयोग करते हैं।",
     "Akaun dikenal pasti oleh jenama semasa. Pelanggan dan kakitangan pengendali menggunakan kebenaran log masuk masing-masing.",
     "บัญชีระบุตามแบรนด์ปัจจุบัน ลูกค้าและพนักงานผู้ดำเนินงานใช้สิทธิ์ลงชื่อเข้าใช้ของตน"
+  ],
+  "账号管理": [
+    "账号管理",
+    "Manage accounts",
+    "アカウント管理",
+    "Управление аккаунтами",
+    "खाते प्रबंधित करें",
+    "Urus akaun",
+    "จัดการบัญชี"
   ],
   "账号设置": [
     "账号设置",
@@ -44045,6 +44414,15 @@
     "Belum ada permintaan",
     "ยังไม่มีคำขอ"
   ],
+  "还没有账号。": [
+    "还没有账号。",
+    "No accounts yet.",
+    "アカウントがありません。",
+    "Аккаунтов пока нет.",
+    "अभी कोई खाता नहीं है।",
+    "Belum ada akaun.",
+    "ยังไม่มีบัญชี"
+  ],
   "还没有购买或充值订单": [
     "还没有购买或充值订单",
     "No purchase or top-up orders yet",
@@ -44891,6 +45269,15 @@
     "Selepas kaedah pembayaran dipilih, pelanggan mesti memberikan butiran penerima kaedah tersebut. Permintaan sedia ada mengekalkan butiran semasa ia dihantar.",
     "หลังเลือกวิธีชำระเงิน ลูกค้าต้องระบุรายละเอียดผู้รับเงินที่วิธีนั้นกำหนด คำขอที่มีอยู่ยังคงข้อมูล ณ เวลาที่ส่ง"
   ],
+  "选择 API 密钥或订阅账号池连接供应商模型，随后在路由配置中绑定公开模型。": [
+    "选择 API 密钥或订阅账号池连接供应商模型，随后在路由配置中绑定公开模型。",
+    "Connect each supplier model with an API key or subscription account pool, then bind it to a public model in Routing.",
+    "API キーまたはサブスクリプションアカウントプールで供給元モデルに接続し、ルーティングで公開モデルに関連付けます。",
+    "Подключите модель поставщика ключом API или пулом аккаунтов с подпиской, затем привяжите её к публичной модели в настройках маршрутизации.",
+    "आपूर्तिकर्ता मॉडल को API कुंजी या सदस्यता खाता पूल से कनेक्ट करें, फिर रूटिंग में उसे सार्वजनिक मॉडल से जोड़ें।",
+    "Sambungkan model pembekal dengan kunci API atau kumpulan akaun langganan, kemudian ikat pada model awam dalam Penghalaan.",
+    "เชื่อมต่อโมเดลผู้ให้บริการด้วยคีย์ API หรือกลุ่มบัญชีสมัครใช้บริการ แล้วผูกกับโมเดลสาธารณะในการกำหนดเส้นทาง"
+  ],
   "选择一笔尚未分配的收款，系统按该笔 结算币种 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。": [
     "选择一笔尚未分配的收款，系统按该笔 结算币种 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。",
     "Select one unallocated receipt. Its settlement currency value and this quote determine purchased and bonus ATG; the order and delivery complete together.",
@@ -44926,6 +45313,15 @@
     "आपूर्तिकर्ता कनेक्शन, API प्रोटोकॉल, आपूर्तिकर्ता मॉडल, मूल्य संदर्भ और समर्थित क्षमताएँ चुनें।",
     "Pilih sambungan pembekal, protokol API, model pembekal, rujukan harga dan keupayaan yang disokong.",
     "เลือกการเชื่อมต่อผู้จัดหา โปรโตคอล API โมเดลผู้จัดหา ราคาอ้างอิง และความสามารถที่รองรับ"
+  ],
+  "选择供应商连接、模型和能力。按量连接可选 Bifrost 参考价目。": [
+    "选择供应商连接、模型和能力。按量连接可选 Bifrost 参考价目。",
+    "Select the supplier connection, model and capabilities. Usage-based connections can use a Bifrost reference price.",
+    "供給元の接続、モデル、機能を選びます。従量課金の接続では Bifrost の参考料金を選べます。",
+    "Укажите подключение поставщика, модель и возможности. Для подключений с оплатой по потреблению доступна эталонная цена Bifrost.",
+    "आपूर्तिकर्ता कनेक्शन, मॉडल और क्षमताएँ चुनें। उपयोग-आधारित कनेक्शन Bifrost संदर्भ मूल्य इस्तेमाल कर सकते हैं।",
+    "Pilih sambungan pembekal, model dan keupayaan. Sambungan mengikut penggunaan boleh menggunakan harga rujukan Bifrost.",
+    "เลือกการเชื่อมต่อผู้ให้บริการ โมเดล และความสามารถ การเชื่อมต่อคิดตามการใช้งานสามารถเลือกราคาอ้างอิง Bifrost ได้"
   ],
   "选择供应商连接与模型，确认实际能力，并选择用于成本核算的参考计价模型。": [
     "选择供应商连接与模型，确认实际能力，并选择用于成本核算的参考计价模型。",
@@ -45484,6 +45880,15 @@
     "इस ऑर्डर की देय राशि से मेल खाता पूरा भुगतान चुनें। डिलीवरी अपने आप होती है।",
     "Pilih satu pembayaran penuh yang sepadan dengan jumlah pesanan ini. Penyerahan menyusul secara automatik.",
     "เลือกการชำระเงินทั้งรายการที่ตรงกับยอดชำระของคำสั่งซื้อนี้ แล้วจะส่งมอบโดยอัตโนมัติ"
+  ],
+  "选择预估最低成本且存在订阅线路时，按列表顺序选路。": [
+    "选择预估最低成本且存在订阅线路时，按列表顺序选路。",
+    "If a subscription route is eligible, lowest estimated cost follows the configured order.",
+    "サブスクリプションルートが候補にある場合、推定最低コストでは設定順に選択します。",
+    "Если доступен маршрут по подписке, стратегия минимальной расчётной стоимости использует порядок списка.",
+    "यदि सदस्यता रूट उपलब्ध है, तो न्यूनतम अनुमानित लागत वाला विकल्प तय क्रम का पालन करता है।",
+    "Jika laluan langganan layak, strategi kos anggaran terendah mengikut turutan yang ditetapkan.",
+    "หากมีเส้นทางแบบสมัครใช้บริการที่ใช้ได้ กลยุทธ์ต้นทุนประมาณการต่ำสุดจะเลือกตามลำดับที่ตั้งไว้"
   ],
   "选路与熔断": [
     "选路与熔断",
@@ -47240,6 +47645,15 @@
     "Buka Gkash semula",
     "เปิด Gkash อีกครั้ง"
   ],
+  "重新授权": [
+    "重新授权",
+    "Reauthorize",
+    "再認証する",
+    "Авторизовать повторно",
+    "दोबारा अधिकृत करें",
+    "Benarkan semula",
+    "อนุญาตใหม่"
+  ],
   "重新检查": [
     "重新检查",
     "Check again",
@@ -48221,6 +48635,15 @@
     "Pemegang akaun mesti mengesahkan semula",
     "เจ้าของบัญชีต้องยืนยันอีกครั้ง"
   ],
+  "需重新授权": [
+    "需重新授权",
+    "Authorization required",
+    "再認証が必要",
+    "Требуется повторная авторизация",
+    "दोबारा प्राधिकरण ज़रूरी",
+    "Perlu kebenaran semula",
+    "ต้องอนุญาตใหม่"
+  ],
   "非缓存输入": [
     "非缓存输入",
     "Uncached input",
@@ -48661,6 +49084,15 @@
     "जोखिम अलर्ट",
     "Amaran risiko",
     "การแจ้งเตือนความเสี่ยง"
+  ],
+  "首个账号": [
+    "首个账号",
+    "First account",
+    "最初のアカウント",
+    "Первый аккаунт",
+    "पहला खाता",
+    "Akaun pertama",
+    "บัญชีแรก"
   ],
   "首次创建必须填写。以后只修改名称或启用状态时留空，已保存的密钥保持不变。": [
     "首次创建必须填写。以后只修改名称或启用状态时留空，已保存的密钥保持不变。",

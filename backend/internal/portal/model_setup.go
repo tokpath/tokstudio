@@ -43,7 +43,7 @@ func (a *Application) modelSettingsCommand(c *gin.Context, op organization.Opera
 	jsonResponse(c, raw, e)
 }
 func (a *Application) actualCostResource(c *gin.Context, p gin.H, base string) {
-	rows, e := a.ModelPricing.Actuals(c.Request.Context())
+	rows, e := a.ModelPricing.Actuals(c.Request.Context(), c.Query("record"))
 	if e != nil {
 		handleError(c, e)
 		return
@@ -80,32 +80,45 @@ func (a *Application) actualCostResource(c *gin.Context, p gin.H, base string) {
 		if row.SupplierModelID != "" {
 			q = q.Where("supplier_model_id=?", row.SupplierModelID)
 		}
-		if e = q.Select("ROUND(COALESCE(sum(reference_cost_amount) FILTER(WHERE reference_cost_currency='USD'),0),18)::text AS cost,count(*) FILTER (WHERE reference_cost_amount IS NULL) AS pending").Scan(&totals).Error; e != nil {
+		if row.SubscriptionKind == "" {
+			e = q.Select("ROUND(COALESCE(sum(reference_cost_amount) FILTER(WHERE reference_cost_currency='USD'),0),18)::text AS cost,count(*) FILTER (WHERE cost_status='pending') AS pending").Scan(&totals).Error
+		}
+		if e != nil {
 			handleError(c, e)
 			return
 		}
 		values := item["values"].(gin.H)
 		values["provider_name"] = names[row.ProviderID]
-		if row.SupplierModelID == "" {
+		if row.SubscriptionKind != "" {
+			values["model_name"] = "订阅计费"
+		} else if row.SupplierModelID == "" {
 			values["model_name"] = "供应商整体"
 		} else {
 			values["model_name"] = modelNames[row.SupplierModelID]
 		}
 		item["presentation"] = gin.H{"title": humanJoin(names[row.ProviderID], fmt.Sprint(values["model_name"]))}
-		values["reference_currency"] = "USD"
-		values["reference_amount"] = totals.Cost
-		values["pending_count"] = totals.Pending
+		if row.SubscriptionKind == "" {
+			values["reference_currency"] = "USD"
+			values["reference_amount"] = totals.Cost
+			values["pending_count"] = totals.Pending
+		}
 		items = append(items, item)
 	}
 	p["title"] = "真实上游成本"
-	p["description"] = "按账单原币登记供应商实际费用，并列展示同一供应商、模型及期间的 Bifrost USD 参考成本。两者独立列示，不折算、不相减、不重复计入总成本。财务按登记时间汇总，服务期间结束时间不包含在统计内。"
+	p["description"] = "按账单原币登记供应商实际费用。按量线路可对照 Bifrost 参考成本，订阅账号池按服务期间登记实际账单。"
 	p["items"] = items
-	p["columns"] = []gin.H{col("provider_name", "供应商", "text"), col("model_name", "供应商模型", "text"), col("starts_at", "期间开始", "datetime"), col("ends_at", "期间结束", "datetime"), col("reference_currency", "参考币种", "text"), col("reference_amount", "Bifrost 参考成本", "decimal"), col("currency", "账单币种", "text"), col("amount", "登记实际成本", "decimal"), col("pending_count", "未取得核算金额的调用", "text"), col("note", "备注", "text")}
+	p["columns"] = []gin.H{col("provider_name", "供应商", "text"), col("model_name", "供应商模型", "text"), col("starts_at", "期间开始", "datetime"), col("ends_at", "期间结束", "datetime"), col("reference_currency", "参考币种", "text"), col("reference_amount", "Bifrost 参考成本", "decimal"), col("currency", "账单币种", "text"), col("amount", "登记实际成本", "decimal"), col("pending_count", "未取得核算金额的调用", "text"), col("statement_reference", "订阅账单编号", "text"), col("account_coverage", "覆盖账号", "text"), col("note", "备注", "text")}
 	supplier := f("provider_id", "供应商", "text")
 	supplier.LookupURL = "/api/v1/operators/" + c.Param("operatorId") + "/references/cost-suppliers"
 	model := optional("supplier_model_id", "供应商模型（留空表示供应商整体）", "text")
 	model.LookupURL = "/api/v1/operators/" + c.Param("operatorId") + "/references/cost-models"
-	fields := []field{supplier, model, f("starts_at", "期间开始", "datetime"), f("ends_at", "期间结束", "datetime"), f("currency", "账单原币币种", "text"), f("amount", "账单原币实际费用", "decimal"), optional("note", "备注", "textarea")}
+	model.VisibleWhen = &fieldVisibility{Field: "subscription_kind", Values: []string{"codex", "claude"}, Not: true}
+	statement := f("statement_reference", "订阅账单编号", "text")
+	statement.VisibleWhen = &fieldVisibility{Field: "subscription_kind", Values: []string{"codex", "claude"}}
+	coverage := optional("account_coverage", "覆盖账号", "text")
+	coverage.VisibleWhen = statement.VisibleWhen
+	coverage.Help = "填写账单覆盖的账号名称。空白代表整个账号池。"
+	fields := []field{supplier, optional("subscription_kind", "订阅计费", "hidden"), model, statement, coverage, f("starts_at", "期间开始", "datetime"), f("ends_at", "期间结束", "datetime"), f("currency", "账单原币币种", "text"), f("amount", "账单原币实际费用", "decimal"), optional("note", "备注", "textarea")}
 	p["row_operations"] = []operation{{Name: "edit", Label: "修改登记", Method: "POST", Path: base, Fields: append([]field{optional("id", "记录", "hidden"), defaultField("expected_version", "当前版本", "hidden", 0)}, fields...)}}
 	p["operations"] = []operation{{Name: "record", Label: "登记实际费用", Method: "POST", Path: base, Fields: fields}}
 	a.resourceResponse(c, p)

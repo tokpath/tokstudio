@@ -13,5 +13,6 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   if (section.length === 1 && section[0] === "procurement-invoices") redirect(`/manage/${encodeURIComponent(operatorId)}/invoices?section=received`);
   if (section[0] === "exits") redirect(`/manage/${encodeURIComponent(operatorId)}/takeovers`);
   const record = typeof search.record === "string" ? search.record : undefined;
-  return <ManagementPage operatorID={operatorId} resource={section.map(encodeURIComponent).join("/")} record={record} />;
+  const supplierPool = section.length === 1 && section[0] === "providers" && typeof search.pool === "string" && (search.pool_kind === "codex" || search.pool_kind === "claude") ? { id: search.pool, kind: search.pool_kind } as const : undefined;
+  return <ManagementPage operatorID={operatorId} resource={section.map(encodeURIComponent).join("/")} record={record} supplierPool={supplierPool} />;
 }

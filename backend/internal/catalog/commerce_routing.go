@@ -52,13 +52,15 @@ type RouteHealth struct {
 func (RouteHealth) TableName() string { return "tokenhub_route_health" }
 
 type routeLease struct {
-	AttemptID             string `gorm:"primaryKey"`
-	UpstreamID, RequestID string
-	Epoch                 int64
-	Probe                 bool
-	Limits                json.RawMessage `gorm:"type:jsonb"`
-	StartedAt, ExpiresAt  time.Time
-	FinishedAt            *time.Time
+	AttemptID                  string `gorm:"primaryKey"`
+	UpstreamID, RequestID      string
+	Epoch                      int64
+	Probe                      bool
+	Limits                     json.RawMessage `gorm:"type:jsonb"`
+	StartedAt, ExpiresAt       time.Time
+	FinishedAt                 *time.Time
+	SubscriptionAccountID      *string
+	SubscriptionAccountVersion *uint64
 }
 
 func (routeLease) TableName() string { return "tokenhub_route_leases" }
@@ -152,6 +154,13 @@ func (s CommerceCatalog) rankRoutes(ctx context.Context, q *ModelQuote) error {
 	}
 	if p.Strategy == "priority" {
 		return nil
+	}
+	if p.Strategy == "lowest_cost" {
+		for _, candidate := range q.Candidates {
+			if candidate.SubscriptionKind != "" {
+				return nil
+			}
+		}
 	}
 	health, _, e := s.routeHealth(ctx, q.ModelID)
 	if e != nil {
@@ -295,6 +304,12 @@ func (s CommerceCatalog) ObserveRoute(ctx context.Context, attempt string, resul
 		var now time.Time
 		if e = t.Raw("SELECT clock_timestamp()").Row().Scan(&now); e != nil {
 			return e
+		}
+		if lease.SubscriptionAccountID != nil && modelruntime.SubscriptionRejection(result) {
+			if e = observeSubscriptionAccount(t, lease, result, now); e != nil {
+				return e
+			}
+			return t.Model(&routeLease{}).Where("attempt_id=?", attempt).Update("finished_at", now).Error
 		}
 		if result.State == "not_dispatched" {
 			return t.Model(&routeLease{}).Where("attempt_id=?", attempt).Update("finished_at", now).Error

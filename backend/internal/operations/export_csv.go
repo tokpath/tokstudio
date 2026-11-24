@@ -101,6 +101,7 @@ func financialExportRows(r FinancialReport) ([]json.RawMessage, error) {
 		add("原币供应商成本", "供应商报告成本（观察）", c.SupplierReportedCost, c.Currency)
 		add("原币供应商成本", "Bifrost 参考成本（观察）", c.SupplierReferenceCost, c.Currency)
 		add("原币供应商成本", "登记实际账单成本", c.SupplierActualCost, c.Currency)
+		add("原币供应商成本", "订阅实际账单", c.SubscriptionActualCost, c.Currency)
 	}
 	add("统计范围", "清算币种", r.SettlementCurrency, "")
 	add("统计范围", "开始时间", r.From.Format("2006-01-02T15:04:05Z07:00"), "")

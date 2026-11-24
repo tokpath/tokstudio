@@ -36,6 +36,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/platform/mail"
 	"github.com/tokpath/tokstudio/backend/internal/platform/objectstore"
 	"github.com/tokpath/tokstudio/backend/internal/remediation"
+	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 	"github.com/tokpath/tokstudio/backend/internal/usage"
 	"gorm.io/gorm"
 )
@@ -80,6 +81,14 @@ func handleError(c *gin.Context, err error) {
 	}
 	status, code, msg, retry := 500, "internal_error", "处理失败，请沿用本次操作编号重试", true
 	switch {
+	case errors.Is(err, subscriptionauth.ErrCredential):
+		status, code, msg, retry = 400, "invalid_subscription_credential", "凭据格式无效，请使用所选供应商的订阅授权。", false
+	case errors.Is(err, catalog.ErrSubscriptionAccountExists):
+		status, code, msg, retry = 409, "subscription_account_exists", "此账号已在当前账号池中。", false
+	case errors.Is(err, modelpricing.ErrStatementExists):
+		status, code, msg, retry = 409, "subscription_statement_exists", "此订阅账单已登记，请在已有记录中修改。", false
+	case errors.Is(err, catalog.ErrSubscriptionModelLimits):
+		status, code, msg, retry = 400, "subscription_model_limits_missing", "此供应商模型缺少可核实的 Token 上限，请同步 Bifrost 价目后核对模型名称。", false
 	case errors.Is(err, branding.ErrDomainBound):
 		status, code, msg, retry = 409, "domain_bound", "这个域名已登记，请核对现有域名记录。", false
 	case errors.Is(err, branding.ErrDomainUnverified):
@@ -148,7 +157,7 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 409, "in_progress", "原请求仍在处理中，请查询原请求状态", true
 	case errors.Is(err, remediation.ErrTakeoverBlocked):
 		status, code, msg, retry = 409, "takeover_awaits_drain", "接管正在等待已受理请求、订单、退款和补货排空，请查看原事项后刷新快照", true
-	case errors.Is(err, catalog.ErrRouteUnavailable):
+	case errors.Is(err, catalog.ErrRouteUnavailable), errors.Is(err, modelruntime.ErrSubscriptionReauth), errors.Is(err, modelruntime.ErrSubscriptionAuthUnavailable):
 		status, code, msg, retry = 503, "route_unavailable", "已验证候选暂不可用或达到容量，请稍后重试；未扩大候选或更改价格", true
 	case errors.Is(err, objectstore.ErrUnavailable):
 		status, code, msg, retry = 503, "object_store_unavailable", "私有对象存储暂不可用，请保留当前事项稍后重试", true

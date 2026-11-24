@@ -221,10 +221,15 @@ func TestFinancialSupplierStatementsUseRegistrationTimeAndRemainIndependentOfCas
 	if _, err := cat.SaveCredential(f.ctx, f.operator, "supplier-key", "supplier", "Statement supplier", "test-secret", true, 0); err != nil {
 		t.Fatal(err)
 	}
+	poolID, err := cat.SaveSubscriptionPool(f.ctx, f.operator, catalog.SubscriptionPoolInput{Name: "Subscription pool", Kind: "codex", Enabled: true})
+	if err != nil {
+		t.Fatal(err)
+	}
 	pricing := modelpricing.Service{DB: f.db}
 	for _, statement := range []modelpricing.ActualCost{
 		{ID: "cny-statement", ProviderID: "supplier", Currency: "CNY", Amount: ledger.FromInt64(72)},
 		{ID: "usdt-statement", ProviderID: "supplier", Currency: "USDT", Amount: ledger.FromInt64(10)},
+		{ID: "codex-statement", ProviderID: poolID, Currency: "CNY", Amount: ledger.FromInt64(96), StatementReference: "CODEX-2026-11"},
 	} {
 		// An old service period and an untrusted client timestamp must not hide
 		// a newly registered statement from the current report.
@@ -236,7 +241,7 @@ func TestFinancialSupplierStatementsUseRegistrationTimeAndRemainIndependentOfCas
 	}
 	report := f.report(t, f.operator)
 	cny, usdt := nativeTotal(t, report, "CNY"), nativeTotal(t, report, "USDT")
-	if len(report.OriginalCurrencyTotals) != 2 || cny.SupplierActualCost.String() != "72" || usdt.SupplierActualCost.String() != "10" || !cny.Income.IsZero() || !cny.Expense.IsZero() || !usdt.Expense.IsZero() || !report.Costs.TotalMoney.IsZero() || !report.Cash.RecordedOutMoney.IsZero() {
+	if len(report.OriginalCurrencyTotals) != 2 || cny.SupplierActualCost.String() != "72" || cny.SubscriptionActualCost.String() != "96" || usdt.SupplierActualCost.String() != "10" || !usdt.SubscriptionActualCost.IsZero() || !cny.Income.IsZero() || !cny.Expense.IsZero() || !usdt.Expense.IsZero() || !report.Costs.TotalMoney.IsZero() || !report.Cash.RecordedOutMoney.IsZero() {
 		t.Fatalf("registered statements were converted, posted as cash, or counted in settlement cost: %+v", report)
 	}
 	var supplierPostings int64

@@ -73,16 +73,31 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
         next.expected_version=typeof defaults?.expected_version === "number" ? defaults.expected_version : 0;
       }
       if (key === "operation" && data.action === "billing") next.billing=modelMetadata[String(selected)] || {input:[],output:[]};
-      if (key === "credential_id" && typeof defaults?.provider_id === "string" && defaults.provider_id.trim()) next.provider_id = defaults.provider_id;
+      if (key === "credential_id") {
+        next.provider_id = String(defaults?.provider_id || "");
+        next.subscription_kind = String(defaults?.subscription_kind || "");
+        if (next.subscription_kind === "codex" || next.subscription_kind === "claude") {
+          const codex = next.subscription_kind === "codex";
+          next.provider = codex ? "openai" : "anthropic";
+          next.capabilities = [{ operation: codex ? "responses" : "chat", streaming: true }];
+          next.base_url = "";
+          next.pricing_reference = "";
+          next.cost_provider = "";
+          next.cost_model = "";
+        } else if (data.subscription_kind) {
+          next.capabilities = [];
+        }
+      }
       if (key === "model_id" && (data.action === "listing" || data.action === "authorization")) {
         const version = defaults?.[data.action === "authorization" ? "authorization_version" : "listing_version"];
         next.expected_version = typeof version === "number" && Number.isSafeInteger(version) && version >= 0 ? version : "";
       }
       change(next);
     };
+    const poolOperation = data.subscription_kind === "codex" ? "responses" : data.subscription_kind === "claude" ? "chat" : "";
     const children = <div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([key, child]) => !child.hidden && !child.readOnly && !child.generated && !(key === "action" && data.action === "listing" && referenceContext?.allow_downstream === false) && !(key === "scope" && fieldPath === "price" && referenceContext?.allow_downstream === false) && !(key === "mode" && data.mode === "manual" && referenceContext?.allow_follow === false) && key !== "version" && key !== "expected_version" && !key.endsWith("_version") && nodeVisible(child, data)).map(([key, child]) => <div key={key} className={["object", "array", "record", "textarea"].includes(child.kind) ? "min-w-0 sm:col-span-2" : "min-w-0"}><NodeEditor
-      node={key==="mode" && referenceContext?.allow_follow===false && child.options?.some(([key])=>key==="follow") ? {...child,options:child.options.filter(([key])=>key!=="follow")} : data.action==="billing" && key==="operation" && Object.keys(modelMetadata).length ? {...child,options:child.options?.filter(([op])=>Object.hasOwn(modelMetadata,op))} : key==="template" && typeof data.modality==="string" ? {...child,options:child.options?.filter(([template])=>(data.modality==="all"?["tokens"]:data.modality==="text"?["tokens","characters"]:data.modality==="image"?["tokens","images","megapixels"]:["tokens","seconds"]).includes(template))} : child.lookupBy ? {...child,lookup:child.lookupBy.values[String(data[child.lookupBy.field])]} : child.lookupWhen && !child.lookupWhen.values.includes(String(data[child.lookupWhen.field])) ? { ...child, lookup: undefined } : child}
-      value={data[key]} disabled={disabled || !!child.readOnly} operatorID={operatorID} referenceContext={{ ...(referenceContext || {}), ...data }}
+      node={key === "capabilities" && poolOperation ? { ...child, options: child.options?.filter(([operation]) => operation === poolOperation) } : key==="mode" && referenceContext?.allow_follow===false && child.options?.some(([key])=>key==="follow") ? {...child,options:child.options.filter(([key])=>key!=="follow")} : data.action==="billing" && key==="operation" && Object.keys(modelMetadata).length ? {...child,options:child.options?.filter(([op])=>Object.hasOwn(modelMetadata,op))} : key==="template" && typeof data.modality==="string" ? {...child,options:child.options?.filter(([template])=>(data.modality==="all"?["tokens"]:data.modality==="text"?["tokens","characters"]:data.modality==="image"?["tokens","images","megapixels"]:["tokens","seconds"]).includes(template))} : child.lookupBy ? {...child,lookup:child.lookupBy.values[String(data[child.lookupBy.field])]} : child.lookupWhen && !child.lookupWhen.values.includes(String(data[child.lookupWhen.field])) ? { ...child, lookup: undefined } : child}
+      value={data[key]} disabled={disabled || !!child.readOnly || (key === "provider" && !!poolOperation)} operatorID={operatorID} referenceContext={{ ...(referenceContext || {}), ...data }}
       context={root ? context : [context, t(node.label)].filter(Boolean).join(" · ")} fieldPath={fieldPath ? `${fieldPath}.${key}` : key}
       change={next => update(key, next)} choose={(selected, defaults) => update(key, selected, defaults)}
     /></div>)}</div>;

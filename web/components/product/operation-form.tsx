@@ -61,11 +61,10 @@ function initial(field: CommandField, operation: Operation, row?: Entity, contex
   // A result action sets the next state, not the record's current state.
   if (field.name === "state" && field.kind === "hidden" && /\/invoices\/\{id\}\/register$/.test(operation.path)) return fieldString(field, field.default_value);
   const supplied = context?.[field.name] ?? nested(context, field.name);
-  if (supplied !== undefined) return fieldString(field, supplied);
   if (field.kind === "json") {
     const schema = configurationSchema(operation, operatorID);
     if (schema) {
-      let source = nested(row?.values, field.name) ?? field.default_value;
+      let source = supplied ?? nested(row?.values, field.name) ?? field.default_value;
       if (row && /\/catalog$/.test(operation.path)) source = { model: row.values, expected_version: row.version ?? 0 };
       if (row && /\/routes$/.test(operation.path)) source = { route: row.values, expected_version: row.version ?? 0 };
       if (row && /\/providers$/.test(operation.path) && operation.name === "model") source = presentSupplierConfiguration({ supplier_model: row.values, expected_version: row.version ?? 0 });
@@ -74,14 +73,15 @@ function initial(field: CommandField, operation: Operation, row?: Entity, contex
       return JSON.stringify(retainKnownFields(merged, schema));
     }
   }
+  if (supplied !== undefined) return fieldString(field, supplied);
   if ((fieldName(field) === "expected_version" || fieldName(field) === "version") && row?.version !== undefined) return String(row.version);
   return fieldString(field, nested(row?.values, field.name) ?? field.default_value);
 }
 function matchesVisibility(field: CommandField, values: Record<string, string>, row?: Entity) {
   if (!field.visible_when) return true;
   const condition = field.visible_when;
-  const value = [condition.field, ...(condition.fallback_fields || [])].map(name => values[name] || nested(row?.values, name)).find(value => value !== undefined && value !== null && String(value).trim() !== "");
-  const matches = condition.values.includes(String(value || "").trim().toUpperCase());
+  const value = [condition.field, ...(condition.fallback_fields || [])].map(name => values[name] ?? nested(row?.values, name)).find(value => value !== undefined && value !== null && String(value).trim() !== "");
+  const matches = condition.values.some(item => item.toUpperCase() === String(value || "").trim().toUpperCase());
   // Visibility follows explicit server field metadata.
   return condition.not ? !matches : condition.values.includes(String(value || ""));
 }
@@ -180,7 +180,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   }
   function change(name: string, value: string) {
     if (disabled || lockedFields.includes(name)) return;
-    setValues(previous => ({ ...previous, [name]: value, ...(/\/supplier-costs$/.test(operation.path) && name === "provider_id" ? {supplier_model_id:""} : {}) }));
+    setValues(previous => ({ ...previous, [name]: value, ...(/\/supplier-costs$/.test(operation.path) && name === "provider_id" ? {supplier_model_id:"", subscription_kind:"", statement_reference:"", account_coverage:""} : {}) }));
     setConfirmed(false);
     if (invalidField === name) { setInvalidField(undefined); setValidationError(undefined); }
   }
@@ -384,6 +384,7 @@ function ReferenceField({ field, value, disabled, invalid, change, choose, onLab
     if (fieldName(field) === "receipt_id" && /\/receipts$/.test(path)) ["amount_money", "currency", "issuer_id"].forEach(key => permitted.add(key));
     if (field.name === "lines.0.order_id" && /\/invoice-orders$/.test(path)) ["issuer_id", "supplier_id"].forEach(key => permitted.add(key));
     if (field.name === "scope_id" && /\/scope-subjects$/.test(path)) permitted.add("scope_kind");
+    if (field.name === "provider_id" && /\/cost-suppliers$/.test(path)) permitted.add("subscription_kind");
     choose(Object.fromEntries(Object.entries(defaults).filter(([key]) => permitted.has(key) && !["id", "version", "expected_version"].includes(key))));
   }
   const options: RecordChoice[] = (data.data?.items || []).map(item => ({ value: item.value, label: translateLabel(item.label), defaults: item.defaults }));

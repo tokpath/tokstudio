@@ -89,6 +89,17 @@ export const SettlementSchema = z.object({ id: ID, status: z.string(), amount_mo
 export const ActivitySchema = z.object({ id: ID, name: z.string(), plan_id: ID, status: z.string(), benefit_points: Decimal, starts_at: z.string(), ends_at: z.string(), per_customer_limit: z.number().int(), total_limit: z.number().int().nullable(), version: z.number().int() });
 
 export function collection<T extends z.ZodTypeAny>(item: T) { return z.object({ items: z.array(item), next_cursor: z.string().nullable().optional() }); }
+export const SubscriptionVendorSchema = z.enum(["codex", "claude"]);
+export const SubscriptionAccountSchema = z.object({
+  id: ID, name: z.string(), enabled: z.boolean(), version: z.number().int(), status: z.string(),
+  subscription_ends_at: z.string().optional(), cooldown_until: z.string().optional(),
+});
+export const SubscriptionPoolSchema = z.object({
+  id: ID, name: z.string(), subscription_kind: SubscriptionVendorSchema,
+  enabled: z.boolean(), version: z.number().int(), accounts: z.array(SubscriptionAccountSchema),
+  latest_statement: z.object({ id: ID, statement_reference: z.string(), amount: Decimal, currency: z.string() }).optional(),
+});
+export const SubscriptionPoolsSchema = collection(SubscriptionPoolSchema);
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue };
 export const JSONValueSchema: z.ZodType<JSONValue> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(JSONValueSchema), z.record(JSONValueSchema)]));
 export const EntitySchema = z.object({ presentation: z.object({ title: z.string().optional(), title_kind:z.string().optional(), subtitle: z.string().optional(), labels: z.record(z.string()) }).optional(), id: ID, status: z.string().optional(), version: z.number().int().optional(), values: z.record(JSONValueSchema), allowed_actions: z.array(z.string()).optional() });
@@ -136,7 +147,7 @@ export const ExitNoticeSchema=z.object({id:ID,operator_id:ID,operator_name:z.str
 export type ExitNotice=z.infer<typeof ExitNoticeSchema>;
 export const TakeoversSchema=z.object({notices:z.array(ExitNoticeSchema).default([]),can_notify:z.boolean().default(false),items:z.array(TakeoverSchema),channels:z.array(z.object({id:ID,name:z.string(),legal_name:z.string(),lifecycle:z.string()}))});
 export const FinancialReportSchema=z.object({operator_id:z.string(),from:z.string(),to:z.string(),captured_at:z.string(),status:z.string(),settlement_currency:z.string(),
- original_currency_totals:z.array(z.object({currency:z.string(),income:SignedDecimal,expense:SignedDecimal,receipt_fees:SignedDecimal,net_receipts:SignedDecimal,pending_receipt_fees:z.number().int(),supplier_reported_cost:SignedDecimal,supplier_reference_cost:SignedDecimal,supplier_actual_cost:SignedDecimal})).default([]),
+ original_currency_totals:z.array(z.object({currency:z.string(),income:SignedDecimal,expense:SignedDecimal,receipt_fees:SignedDecimal,net_receipts:SignedDecimal,pending_receipt_fees:z.number().int(),supplier_reported_cost:SignedDecimal,supplier_reference_cost:SignedDecimal,supplier_actual_cost:SignedDecimal,subscription_actual_cost:SignedDecimal.optional()})).default([]),
  sales:z.object({completed_sales:z.number().int(),sales_money:SignedDecimal,wallet_top_ups:z.number().int(),wallet_top_up_money:SignedDecimal,pending_deliveries:z.number().int()}),
  procurement:z.object({purchase_orders:z.number().int(),purchases_money:SignedDecimal,wholesale_orders:z.number().int(),wholesale_sales_money:SignedDecimal}),
  usage:z.object({completed_requests:z.number().int(),charged_atg:SignedDecimal,net_charged_atg:SignedDecimal,correction_atg:SignedDecimal,shortfall_atg:SignedDecimal}),

@@ -60,6 +60,10 @@ export function FinancialReportScreen({ operatorID }: { operatorID: string }) {
         { label: t("供应商报告成本"), align: "right", cell: row => <Money value={row.supplier_reported_cost} unit={row.currency} /> },
         { label: t("供应商参考成本"), align: "right", cell: row => <Money value={row.supplier_reference_cost} unit={row.currency} /> },
         { label: t("供应商实际账单"), align: "right", cell: row => <Money value={row.supplier_actual_cost} unit={row.currency} /> },
+        ...(report.original_currency_totals.some(row => Number(row.subscription_actual_cost) > 0) ? [{
+          label: t("订阅实际账单"), align: "right" as const,
+          cell: (row: typeof report.original_currency_totals[number]) => <Money value={row.subscription_actual_cost ?? "0"} unit={row.currency} />,
+        }] : []),
       ]} /></Card>
       {!!report.takeover_flows?.length && <details className="mb-6 rounded-card border border-hairline bg-canvas-raised p-5"><summary className="cursor-pointer font-medium">{t("接管权益变动")}</summary><div className="mt-5"><Table rows={report.takeover_flows} getID={row => row.purpose + ":" + row.kind + ":" + row.unit} columns={[{ label: t("账务事项"), cell: row => resourceValueText(row.purpose, "purpose", locale) + " · " + resourceValueText(row.kind, "kind", locale) }, { label: t("账面增加"), cell: row => <Money value={row.increase} unit={row.unit} /> }, { label: t("账面减少"), cell: row => <Money value={row.decrease} unit={row.unit} /> }]} /></div></details>}
       <p className="text-xs leading-6 text-ink-mute">{t("余额按所选结束时点计算；待核实、退款等事项按本次查询时点列出。")}</p>

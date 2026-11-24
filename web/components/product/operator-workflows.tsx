@@ -10,7 +10,7 @@ import { request } from "@/lib/api-client";
 import { EntitySchema, OperationSchema, ResourcePageSchema, SignedDecimal, type Entity, type JSONValue, type ResourcePage } from "@/lib/contracts";
 import { canReadResource, operatorResourcePath, resourceLabel } from "@/lib/navigation";
 import { useProduct } from "./context";
-import { ResourceCollection, ResourceScreen, OperatorPanel, OperatorPage, ResourceValue, ReadFacts } from "./operator-resources";
+import { ResourceCollection, ResourceScreen, OperatorPanel, OperatorPage, ResourceValue, ReadFacts, type SupplierPoolSelection } from "./operator-resources";
 import { Heading, Empty, ErrorPanel, Loading, Money, Notice, Stat, Status, When } from "./shared";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import { OperatorCommissionsScreen } from "./operator-commissions";
 import { ReadinessAction, ReadinessSchema } from "./readiness";
 import { CustomerContextFilters, emptyCustomerContextFilters, type CustomerContextFilterValues } from "./customer-context-filters";
 
-export function OperatorWorkflowScreen({ operatorID, resource, record }: { operatorID: string; resource: string; record?: string }) {
+export function OperatorWorkflowScreen({ operatorID, resource, record, supplierPool }: { operatorID: string; resource: string; record?: string; supplierPool?: SupplierPoolSelection }) {
   const { t } = useI18n();
   const [subject, setSubject] = useState<{ resource: "customers" | "orders"; row: Entity } | undefined>(() => record && (resource === "customers" || resource === "orders") ? { resource, row: { id: record, values: {} } } : undefined);
   const { session } = useProduct();
@@ -38,7 +38,7 @@ export function OperatorWorkflowScreen({ operatorID, resource, record }: { opera
     <div hidden={!!subject}>
       {workflow && <><Heading eyebrow={t(workflow.eyebrow)} title={t(resourceLabel(resource))} description={t(workflow.description)} />{!["business-status","staff","restrictions","notifications","marketing","commissions","gifts","plans","pricing","catalog","providers","routes","operators","procurement","coverage","orders","payments","refunds","withdrawals","disputes","invoices","reconciliation","ledger"].includes(resource) && <WorkflowGuide operatorID={operatorID} resource={resource} />}</>}
       {resource === "customers" && <ChannelInvitationCard operatorID={operatorID} />}
-      <ResourceScreen key={`${operatorID}:${resource}`} operatorID={operatorID} resource={resource} record={resource === "customers" || resource === "orders" ? undefined : record} embedded={!!workflow} layout={cardResources.has(resource) ? "cards" : "table"} inspectionLinks onInspect={(name, row) => { if (name === "customers" || name === "orders") { const returnTo = window.location.pathname + window.location.search; window.history.pushState(window.history.state, "", subjectURL(operatorID, name, row.id, returnTo)); setSubject({ resource: name, row }); } }} />
+      <ResourceScreen key={`${operatorID}:${resource}:${supplierPool?.id ?? ""}`} operatorID={operatorID} resource={resource} supplierPool={supplierPool} record={resource === "customers" || resource === "orders" ? undefined : record} embedded={!!workflow} layout={cardResources.has(resource) ? "cards" : "table"} inspectionLinks onInspect={(name, row) => { if (name === "customers" || name === "orders") { const returnTo = window.location.pathname + window.location.search; window.history.pushState(window.history.state, "", subjectURL(operatorID, name, row.id, returnTo)); setSubject({ resource: name, row }); } }} />
     </div>
     {subject && <OperatorSubjectContent key={`${subject.resource}:${subject.row.id}`} operatorID={operatorID} resource={subject.resource} row={subject.row} close={close} fullPage />}
   </>;
@@ -346,7 +346,7 @@ const workflows: Record<string, Workflow> = {
   coverage: { eyebrow: "采购与合作", title: "看清销售责任，提前安排补货", description: "采购余额、已承诺服务与待交付责任共同影响销售承载。超卖授权用于销售管理，真实调用必须采购余额充足。", steps: [["核对当前责任", "查看购买与赠送服务所需的实际采购覆盖。"], ["设置授权和缓冲", "按明确权限设置销售超卖与预警缓冲。"], ["采购与风险处置", "承载不足时补货或限制新增销售，保留存量责任。"]], links: ["procurement", "alerts", "business-status"] },
   operators: { eyebrow: "采购与合作", title: "开通合作主体，明确各自经营责任", description: "平台可创建 OEM 和直属渠道，OEM 可创建自己的直属渠道。渠道没有下级经营方。", steps: [["确定主体与品牌", "明确实际经营主体、品牌和直接供货关系。"], ["邀请负责人", "合作主体负责人在自己的空间配置人员和收款。"], ["定制并开业", "上级按授权定制域名及外观，开通不自动开放营业。"]], links: ["contracts", "domains", "channel-themes", "takeovers"] },
   "business-status": { eyebrow: "设置 · 营业", title: "按真实依赖逐项开放营业", description: "直接开启或暂停各项业务，系统会自动核对所需配置。暂停新增业务后仍需处理已有权益和资金责任。", steps: [["准备必要配置", "核对商品、收款、模型授权、价格和采购余额。"], ["逐项检查开放", "分别控制注册、新购、续费、调用、活动与结算。"], ["持续处理存量", "遇到风险按项目暂停，继续处理退款、佣金和账单。"]], links: ["payment-methods", "plans", "pricing", "coverage"] },
-  providers: { eyebrow: "平台技术", title: "登记供应商和供应商模型", description: "先登记供应商密钥，再添加供应商模型和能力。Bifrost 参考价目仅用于成本核算，对客 ATG 价格在商品与定价设置。", steps: [["管理密钥", "填写名称和密钥。修改已有密钥时，密钥留空表示不更换。"], ["添加供应商模型", "选择密钥、协议和模型名称，勾选能力，按需选择参考成本模型。"], ["再到路由配置绑定", "把这些供应商模型绑到公开模型，并选择选路策略。"]], links: ["catalog", "routes", "pricing"] },
+  providers: { eyebrow: "平台技术", title: "登记供应商和供应商模型", description: "选择 API 密钥或订阅账号池连接供应商模型，随后在路由配置中绑定公开模型。", steps: [["管理密钥", "填写名称和密钥。修改已有密钥时，密钥留空表示不更换。"], ["添加供应商模型", "选择密钥、协议和模型名称，勾选能力，按需选择参考成本模型。"], ["再到路由配置绑定", "把这些供应商模型绑到公开模型，并选择选路策略。"]], links: ["catalog", "routes", "pricing"] },
   catalog: { eyebrow: "平台技术", title: "登记公开模型", description: "公开模型标识就是客户请求里使用的名字。这里填写标识并勾选能力。是否开放在列表里切换。", steps: [["填写标识", "填写客户请求里使用的公开模型标识。"], ["勾选能力", "勾选对话、图片、语音或视频。"], ["在列表里开放", "配好路由后，回到列表打开开关。没有路由时开关是灰的，打不开。"]], links: ["providers", "routes", "pricing"] },
   routes: { eyebrow: "平台技术", title: "把供应商模型绑到公开模型", description: "一个公开模型可以使用多个供应商模型。按列表顺序、最低延迟或预估最低成本选路，故障暂停与恢复由系统自动处理。", steps: [["选择公开模型", "选择客户请求里使用的那个模型。"], ["绑定供应商模型", "选择支持相应能力的供应商模型，上下移动调整优先顺序。"], ["选择策略", "固定优先级、已测到的最低延迟，或按最大用量估算的最低成本。"]], links: ["providers", "catalog", "pricing", "requests"] },
 };

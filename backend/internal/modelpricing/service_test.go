@@ -121,7 +121,7 @@ func TestPostgresActualCostRegistrationStaysSimpleAndScoped(t *testing.T) {
 	if e := s.SaveActual(ctx, row, 0); e != nil {
 		t.Fatal(e)
 	}
-	records, e := s.Actuals(ctx)
+	records, e := s.Actuals(ctx, "")
 	if e != nil || len(records) != 1 || records[0].Amount.String() != "92" || records[0].Currency != "CNY" || records[0].CreatedAt.Before(beforeRegistration) {
 		t.Fatal(records, e)
 	}

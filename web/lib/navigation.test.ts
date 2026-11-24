@@ -8,8 +8,8 @@ describe("task navigation and organization boundaries", () => {
   });
   it("keeps every established operator capability reachable once without duplicate risk or content storage settings", () => {
     const resources = operatorNav.flatMap(section => section.items.map(([resource]) => resource));
-    expect(resources).toHaveLength(40);
-    expect(new Set(resources).size).toBe(40);
+    expect(resources).toHaveLength(41);
+    expect(new Set(resources).size).toBe(resources.length);
     expect(resources).not.toContain("withdrawals");
     expect(resources).not.toContain("procurement-invoices");
     expect(resources).toContain("routes");
@@ -18,6 +18,9 @@ describe("task navigation and organization boundaries", () => {
     expect(resources).not.toContain("payment-assets");
     for(const kind of ["platform","oem","channel"]) expect(canReadResource({operator:{kind},permissions:["*"]},"payment-assets")).toBe(false);
     expect(sectionForResource(operatorNav,"payment-quotes")?.id).toBe("technology");
+    expect(sectionForResource(operatorNav,"subscription-pools")?.id).toBe("technology");
+    expect(canReadResource({operator:{kind:"platform"},permissions:["subscription-pools.read"]},"subscription-pools")).toBe(true);
+    for (const kind of ["oem", "channel"]) expect(canReadResource({operator:{kind},permissions:["*"]},"subscription-pools")).toBe(false);
     for(const kind of ["platform","oem","channel"]) expect(canReadResource({operator:{kind},permissions:["*"]},"audit")).toBe(false);
     for(const kind of ["oem","channel"]) expect(canReadResource({operator:{kind},permissions:["*"]},"payment-quotes")).toBe(false);
     expect(resources).toContain("pricing");

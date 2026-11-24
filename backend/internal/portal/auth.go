@@ -87,12 +87,12 @@ func navigationPermissions(domain []string, kind organization.OperatorKind) []st
 			return []string{"*"}
 		}
 	}
-	resources := []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "payment-quotes", "evidence", "valuations", "receipt-valuations", "pricing", "gifts", "marketing", "commissions", "ledger", "refunds", "balance-withdrawals", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "contracts", "procurement", "procurement-invoices", "coverage", "alerts", "takeovers", "exits", "branding", "domains", "channel-themes", "staff", "restrictions", "notifications", "business-status", "providers", "catalog", "routes", "requests", "jobs", "mail", "bifrost", "supplier-costs"}
+	resources := []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "payment-quotes", "evidence", "valuations", "receipt-valuations", "pricing", "gifts", "marketing", "commissions", "ledger", "refunds", "balance-withdrawals", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "contracts", "procurement", "procurement-invoices", "coverage", "alerts", "takeovers", "exits", "branding", "domains", "channel-themes", "staff", "restrictions", "notifications", "business-status", "providers", "catalog", "routes", "requests", "jobs", "mail", "bifrost", "supplier-costs", "subscription-pools"}
 	for _, resource := range resources {
 		if resource == "mail" && kind == organization.Channel {
 			continue
 		}
-		if resource == "payment-quotes" && kind != organization.Platform {
+		if (resource == "payment-quotes" || resource == "subscription-pools") && kind != organization.Platform {
 			continue
 		}
 		if (resource == "alerts" || resource == "procurement-invoices") && kind == organization.Platform {

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,6 +31,7 @@ var credentialNameSchema string
 //go:embed commerce_schema_05_drop_notice_policies.sql
 //go:embed commerce_schema_06_automatic_circuit.sql
 //go:embed commerce_schema_07_effective_prices.sql
+//go:embed commerce_schema_08_subscription_pools.sql
 var commerceMigrationFS embed.FS
 
 //go:embed commerce_schema_03_supplier_models.sql
@@ -47,10 +49,13 @@ var automaticCircuitSchema string
 //go:embed commerce_schema_07_effective_prices.sql
 var effectivePricesSchema string
 
+//go:embed commerce_schema_08_subscription_pools.sql
+var subscriptionPoolsSchema string
+
 func CommerceMigrations() (string, fs.FS) { return "catalog_v2", commerceMigrationFS }
 
 func CommerceSchema() string {
-	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema + "\n" + automaticCircuitSchema + "\n" + effectivePricesSchema
+	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema + "\n" + automaticCircuitSchema + "\n" + effectivePricesSchema + "\n" + subscriptionPoolsSchema
 }
 
 var ErrCatalogForbidden = errors.New("catalog action outside operator authority")
@@ -97,22 +102,26 @@ type UpstreamModel struct {
 	Model         string `json:"model"`
 	CredentialID  string `json:"credential_id"`
 	// Endpoints are exact verified URLs, not customer-controlled base URLs.
-	Endpoints       map[modelruntime.Operation]string `json:"endpoints,omitempty"`
-	Capabilities    []modelruntime.Capability         `json:"capabilities"`
-	Enabled         bool                              `json:"enabled"`
-	Healthy         bool                              `json:"healthy"`
-	Priority        int                               `json:"priority"`
-	Detached        bool                              `json:"route_detached,omitempty"`
-	SupplierModelID string                            `json:"supplier_model_id,omitempty"`
-	Version         uint64                            `json:"version"`
+	Endpoints               map[modelruntime.Operation]string `json:"endpoints,omitempty"`
+	Capabilities            []modelruntime.Capability         `json:"capabilities"`
+	Enabled                 bool                              `json:"enabled"`
+	Healthy                 bool                              `json:"healthy"`
+	Priority                int                               `json:"priority"`
+	Detached                bool                              `json:"route_detached,omitempty"`
+	SupplierModelID         string                            `json:"supplier_model_id,omitempty"`
+	SubscriptionKind        string                            `json:"subscription_kind,omitempty"`
+	SubscriptionInputLimit  int64                             `json:"subscription_input_limit,omitempty"`
+	SubscriptionOutputLimit int64                             `json:"subscription_output_limit,omitempty"`
+	Version                 uint64                            `json:"version"`
 }
 type CredentialView struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	ProviderID  string `json:"provider_id"`
-	Fingerprint string `json:"fingerprint"`
-	Enabled     bool   `json:"enabled"`
-	Version     uint64 `json:"version"`
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	ProviderID       string `json:"provider_id"`
+	Fingerprint      string `json:"fingerprint"`
+	Enabled          bool   `json:"enabled"`
+	Version          uint64 `json:"version"`
+	SubscriptionKind string `json:"subscription_kind,omitempty"`
 }
 type catalogJSONRow struct {
 	ID         string
@@ -357,7 +366,7 @@ func (s CommerceCatalog) saveCredential(ctx context.Context, actor, id, provider
 	var e error
 	if secret == "" {
 		var row struct{ Ciphertext, Fingerprint string }
-		e = s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Select("ciphertext,fingerprint").Where("id=? AND provider_id=? AND version=?", id, providerID, expected).Take(&row).Error
+		e = s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Select("ciphertext,fingerprint").Where("id=? AND provider_id=? AND version=? AND subscription_kind=''", id, providerID, expected).Take(&row).Error
 		if e != nil {
 			return CredentialView{}, ErrCatalogVersion
 		}
@@ -374,7 +383,7 @@ func (s CommerceCatalog) saveCredential(ctx context.Context, actor, id, provider
 		e = s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Create(fields).Error
 	} else {
 		delete(fields, "id")
-		r := s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Where("id=? AND provider_id=? AND version=?", id, providerID, expected).Updates(fields)
+		r := s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Where("id=? AND provider_id=? AND version=? AND subscription_kind=''", id, providerID, expected).Updates(fields)
 		e = r.Error
 		if e == nil && r.RowsAffected != 1 {
 			e = ErrCatalogVersion
@@ -390,7 +399,7 @@ func (s CommerceCatalog) ResolveCredential(ctx context.Context, upstreamID, cred
 		ID, ProviderID, Ciphertext string
 		Enabled                    bool
 	}
-	e := s.DB.WithContext(ctx).Table("tokenhub_provider_credentials AS c").Select("c.id,c.provider_id,c.ciphertext,c.enabled").Joins("JOIN tokenhub_upstreams u ON u.provider_id=c.provider_id AND u.id=? AND u.definition->>'credential_id'=c.id AND (u.definition->>'enabled')::boolean=true", upstreamID).Where("c.id=? AND c.enabled=true", credentialID).Take(&row).Error
+	e := s.DB.WithContext(ctx).Table("tokenhub_provider_credentials AS c").Select("c.id,c.provider_id,c.ciphertext,c.enabled").Joins("JOIN tokenhub_upstreams u ON u.provider_id=c.provider_id AND u.id=? AND u.definition->>'credential_id'=c.id AND (u.definition->>'enabled')::boolean=true", upstreamID).Where("c.id=? AND c.enabled=true AND c.subscription_kind=''", credentialID).Take(&row).Error
 	if e != nil {
 		return modelruntime.Credential{}, e
 	}
@@ -557,7 +566,7 @@ func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r m
 	}
 	out := upstreams[:0]
 	for _, u := range upstreams {
-		if requestSupported(u.Capabilities, r) {
+		if _, err := SelectCapability(u, r); err == nil {
 			out = append(out, u)
 		}
 	}
@@ -580,6 +589,7 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 		Joins("JOIN tokenhub_provider_credentials c ON c.id=u.definition->>'credential_id' AND c.provider_id=u.provider_id AND c.enabled").
 		Joins("LEFT JOIN tokenhub_route_health h ON h.upstream_id=u.id").
 		Where("u.public_model_id=? AND u.definition->>'enabled'='true' AND u.definition->>'healthy'='true' AND u.definition->>'identity'=? AND (h.open_until IS NULL OR h.open_until<=clock_timestamp())", m.ID, m.Identity).
+		Where("c.subscription_kind='' OR EXISTS (SELECT 1 FROM tokenhub_subscription_accounts a WHERE a.pool_id=c.id AND " + subscriptionSchedulable + ")").
 		Order("u.id").Scan(&rows).Error; e != nil {
 		return nil, e
 	}
@@ -595,6 +605,9 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 				p = modelruntime.DefaultBilling(c.Operation)
 			}
 			u.Capabilities[i] = p.Capability(c.Operation, c.Streaming)
+			if u.SubscriptionKind != "" {
+				u.Capabilities[i] = subscriptionBounds(u, u.Capabilities[i])
+			}
 		}
 		out = append(out, u)
 	}
@@ -603,12 +616,31 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 
 // SelectCapability returns the exact verified capability admitted for a request.
 func SelectCapability(u UpstreamModel, r modelruntime.Request) (modelruntime.Capability, error) {
+	if u.SubscriptionKind != "" && modelruntime.ValidateSubscriptionRequest(u.SubscriptionKind, u.SubscriptionOutputLimit, r) != nil {
+		return modelruntime.Capability{}, modelruntime.ErrUnsupported
+	}
 	for _, c := range u.Capabilities {
 		if requestSupported([]modelruntime.Capability{c}, r) {
 			return c, nil
 		}
 	}
 	return modelruntime.Capability{}, modelruntime.ErrUnsupported
+}
+
+func subscriptionBounds(u UpstreamModel, c modelruntime.Capability) modelruntime.Capability {
+	for _, rule := range c.UsageRules {
+		if rule.Unit != "token" || u.SubscriptionInputLimit <= 0 || u.SubscriptionOutputLimit <= 0 {
+			// A subscription connection is a token-metered text capability.
+			c.BillableBounds = nil
+			return c
+		}
+		limit := u.SubscriptionInputLimit
+		if strings.HasPrefix(rule.Component, "output") {
+			limit = u.SubscriptionOutputLimit
+		}
+		c.BillableBounds[rule.Component] = strconv.FormatInt(limit, 10)
+	}
+	return c
 }
 func requestSupported(capabilities []modelruntime.Capability, r modelruntime.Request) bool {
 	for _, c := range capabilities {
@@ -696,6 +728,11 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 	}
 	retail = activePrice(retail, active.BillableBounds)
 	q := ModelQuote{Billing: active, CatalogVersion: revision, ModelID: r.PublicModel, AcceptedAt: at, Retail: retail, Bounds: map[string]string{}, Candidates: upstreams}
+	if upstreams[0].SubscriptionKind != "" && active.Billing != nil {
+		// Keep the normal customer estimate. Procurement still reserves the
+		// verified maximum from each candidate below.
+		q.Billing = active.Billing.Capability(active.Operation, active.Streaming)
+	}
 	for _, u := range upstreams {
 		cap, e := SelectCapability(u, r)
 		if e != nil {
@@ -713,6 +750,9 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 			if e != nil || n.Cmp(prev) > 0 {
 				q.Bounds[key] = raw
 			}
+		}
+		if u.SubscriptionKind != "" {
+			continue
 		}
 		var snapshot json.RawMessage
 		if s.Costs != nil {

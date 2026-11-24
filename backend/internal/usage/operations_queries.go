@@ -31,6 +31,7 @@ type OperationalUsage struct {
 	SupplierReferenceCosts []modelruntime.Money `json:"supplier_reference_costs,omitempty" gorm:"-"`
 	SupplierReportedCosts  []modelruntime.Money `json:"supplier_reported_costs,omitempty" gorm:"-"`
 	UnverifiedAttempts     *int64               `json:"unverified_attempts,omitempty"`
+	SubscriptionAccounts   string               `json:"subscription_accounts,omitempty"`
 	AcceptedAt             time.Time            `json:"accepted_at"`
 }
 
@@ -51,7 +52,10 @@ func (s *Service) OperationalRequests(ctx context.Context, tx *gorm.DB, operator
 		fields := `r.id,r.customer_id,r.model_id,r.operation,r.status,r.reason,r.actual_atg::text,r.charged_atg::text,r.corrected_atg::text,r.corrected_charged_atg::text,(r.actual_atg-r.corrected_atg)::text AS net_actual_atg,(r.charged_atg-r.corrected_charged_atg)::text AS net_charged_atg,r.merchant_shortfall::text,r.accepted_at`
 		q := t.Table("usage_requests r").Where("r.operator_id=? AND r.accepted_at>=? AND r.accepted_at<?", operator, from, to)
 		if operator == s.Catalog.PlatformOperatorID {
-			fields += `,r.estimate_atg::text,0::text AS fulfillment_cost_money,COALESCE(a.pending,0) AS unverified_attempts`
+			fields += `,r.estimate_atg::text,0::text AS fulfillment_cost_money,COALESCE(a.pending,0) AS unverified_attempts,
+			 COALESCE((SELECT string_agg(DISTINCT p.name||' · '||a.name, '、')
+			 FROM usage_attempts u JOIN tokenhub_subscription_accounts a ON a.id=u.definition->>'subscription_account_id'
+			 JOIN tokenhub_provider_credentials p ON p.id=a.pool_id WHERE u.request_id=r.id AND u.cost_status='subscription'),'') AS subscription_accounts`
 			q = q.Joins(`LEFT JOIN LATERAL (SELECT count(*) FILTER(WHERE cost_status='pending')pending FROM usage_attempts WHERE request_id=r.id)a ON true`)
 		} else {
 			// A downstream merchant can export its own historical procurement

@@ -82,7 +82,7 @@ func (a *Application) references(c *gin.Context) {
 		seen := map[string]bool{}
 		for _, r := range rows {
 			if !seen[r.ProviderID] {
-				add(r.ProviderID, r.Name, nil)
+				add(r.ProviderID, r.Name, gin.H{"subscription_kind": r.SubscriptionKind})
 				seen[r.ProviderID] = true
 			}
 		}
@@ -505,7 +505,11 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		for _, r := range rows {
-			add(r.ID, credentialChoiceLabel(r.Name, r.ProviderID, r.Fingerprint), gin.H{"id": r.ID, "name": r.Name, "provider_id": r.ProviderID, "enabled": r.Enabled, "expected_version": r.Version})
+			label := credentialChoiceLabel(r.Name, r.ProviderID, r.Fingerprint)
+			if r.SubscriptionKind != "" {
+				label = humanJoin(label, "订阅账号池")
+			}
+			add(r.ID, label, gin.H{"id": r.ID, "name": r.Name, "provider_id": r.ProviderID, "enabled": r.Enabled, "expected_version": r.Version, "subscription_kind": r.SubscriptionKind})
 		}
 	case "merchants":
 		if customer {

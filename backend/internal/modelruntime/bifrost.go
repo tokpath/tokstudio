@@ -13,18 +13,21 @@ import (
 
 	bifrost "github.com/maximhq/bifrost/core"
 	"github.com/maximhq/bifrost/core/schemas"
+	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 )
 
 // BifrostConfig permits platform-owned credentials only. EndpointGuard must
 // enforce the platform's URL allowlist and DNS/private-network policy for a
 // configured endpoint. It is deliberately not supplied by customer requests.
 type BifrostConfig struct {
-	Costs             CostMeter
-	Providers         []string
-	Credentials       CredentialSource
-	EndpointGuard     func(context.Context, string) error
-	ResourceGuard     func(context.Context, string) error
-	AllowTestLoopback bool
+	Costs                     CostMeter
+	Providers                 []string
+	Credentials               CredentialSource
+	Subscriptions             SubscriptionCredentialSource
+	EndpointGuard             func(context.Context, string) error
+	ResourceGuard             func(context.Context, string) error
+	AllowTestLoopback         bool
+	subscriptionTestEndpoints map[string]string
 }
 type Bifrost struct {
 	client *bifrost.Bifrost
@@ -129,6 +132,11 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 	if err = ValidateRequest(a, r); err != nil {
 		return out, err
 	}
+	if a.SubscriptionKind != "" {
+		if err = ValidateSubscriptionRequest(a.SubscriptionKind, a.SubscriptionOutputLimit, r); err != nil {
+			return out, err
+		}
+	}
 	if !time.Now().Before(a.Deadline) {
 		return out, context.DeadlineExceeded
 	}
@@ -165,10 +173,6 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 			}
 		}
 	}
-	credential, err := b.config.Credentials.ResolveCredential(ctx, a.UpstreamID, a.CredentialID)
-	if err != nil || credential.ID != a.CredentialID || strings.TrimSpace(credential.Secret) == "" {
-		return out, fmt.Errorf("selected platform credential unavailable")
-	}
 	ctx, cancel := context.WithDeadline(ctx, a.Deadline)
 	defer cancel()
 	bc := schemas.NewBifrostContext(ctx, schemas.NoDeadline)
@@ -176,7 +180,18 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		bc.SetValue(schemas.BifrostContextKeyAllowPerRequestRawOverride, true)
 		bc.SetValue(schemas.BifrostContextKeySendBackRawResponse, true)
 	}
-	bc.SetValue(schemas.BifrostContextKeyDirectKey, schemas.Key{ID: credential.ID, Name: credential.ID, Value: *schemas.NewSecretVar(credential.Secret), Models: schemas.WhiteList{a.UpstreamModel}, Weight: 1})
+	if a.SubscriptionKind != "" {
+		if err = b.subscriptionContext(ctx, bc, a); err != nil {
+			out.ErrorCode = Diagnostic(err)
+			return out, err
+		}
+	} else {
+		credential, err := b.config.Credentials.ResolveCredential(ctx, a.UpstreamID, a.CredentialID)
+		if err != nil || credential.ID != a.CredentialID || strings.TrimSpace(credential.Secret) == "" {
+			return out, fmt.Errorf("selected platform credential unavailable")
+		}
+		bc.SetValue(schemas.BifrostContextKeyDirectKey, schemas.Key{ID: credential.ID, Name: credential.ID, Value: *schemas.NewSecretVar(credential.Secret), Models: schemas.WhiteList{a.UpstreamModel}, Weight: 1})
+	}
 	if a.BaseURL != "" {
 		u, e := url.Parse(a.BaseURL)
 		if e != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && u.Scheme != "http") || b.config.EndpointGuard == nil {
@@ -204,6 +219,10 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		if err = decodePreserved(r.Params, q.Params); err != nil {
 			return out, err
 		}
+		if a.SubscriptionKind == subscriptionauth.Claude && q.Params.MaxCompletionTokens == nil {
+			limit := int(min(a.SubscriptionOutputLimit, 4096))
+			q.Params.MaxCompletionTokens = &limit
+		}
 		if r.Stream {
 			out.State = "failed"
 			out.ErrorCode = ""
@@ -224,7 +243,24 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		if err = decodePreserved(r.Params, q.Params); err != nil {
 			return out, err
 		}
-		if r.Stream {
+		if a.SubscriptionKind == subscriptionauth.Codex {
+			store := false
+			q.Params.Store = &store
+			if q.Params.Instructions == nil {
+				instructions := "You are a helpful assistant."
+				q.Params.Instructions = &instructions
+			}
+			out.State, out.ErrorCode = "failed", ""
+			stream, failure = b.client.ResponsesStreamRequest(bc, &q)
+			if !r.Stream && failure == nil {
+				response, failure, err = finishSubscriptionResponse(ctx, stream, a)
+				if err != nil {
+					out.State = "outcome_unknown"
+					out.ErrorCode = Diagnostic(err)
+					return out, err
+				}
+			}
+		} else if r.Stream {
 			out.State = "failed"
 			out.ErrorCode = ""
 			stream, failure = b.client.ResponsesStreamRequest(bc, &q)
@@ -342,6 +378,9 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		return out, ErrUnsupported
 	}
 	if failure != nil {
+		if a.SubscriptionKind != "" && failure.StatusCode != nil && *failure.StatusCode == 429 {
+			out.SubscriptionRetryAt = subscriptionRetryAt(bc)
+		}
 		return executionFailure(out, failure)
 	}
 	if r.Stream {
@@ -367,6 +406,9 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 					continue
 				}
 				if chunk.BifrostError != nil {
+					if a.SubscriptionKind != "" && chunk.BifrostError.StatusCode != nil && *chunk.BifrostError.StatusCode == 429 {
+						out.SubscriptionRetryAt = subscriptionRetryAt(bc)
+					}
 					return executionFailure(out, chunk.BifrostError)
 				}
 				if err = verifyRouting(chunk, a); err != nil {
@@ -379,7 +421,7 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 					return out, e
 				}
 				usage := measurements.measure(ctx, b, chunk, a.Capability, r)
-				if b.config.Costs != nil {
+				if b.config.Costs != nil && a.SubscriptionKind == "" {
 					observation := measurements.cost(ctx, b.config.Costs, a, chunk)
 					if observation != nil && (observation.ReportedCost != nil || observation.ReferenceCost != nil || chunk.BifrostImageGenerationStreamResponse != nil) {
 						out.Cost = observation
@@ -412,7 +454,7 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 	}
 	measured := b.measurableResponse(ctx, response, a.Capability)
 	out.Usage = extractBilledUsage(measured, a.Capability, r)
-	if b.config.Costs != nil {
+	if b.config.Costs != nil && a.SubscriptionKind == "" {
 		costResponse := measured
 		if _, ok := measured.(map[string]any); ok {
 			costResponse = response

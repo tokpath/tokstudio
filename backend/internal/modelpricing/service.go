@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/maximhq/bifrost/core/network"
 	"github.com/maximhq/bifrost/framework/configstore"
 	"github.com/maximhq/bifrost/framework/configstore/tables"
@@ -40,6 +41,7 @@ func Migrations() (string, fs.FS) { f, _ := fs.Sub(migrations, "migrate"); retur
 
 var ErrInput = errors.New("invalid model pricing input")
 var ErrVersion = errors.New("model pricing version conflict")
+var ErrStatementExists = errors.New("subscription statement already registered")
 
 type Settings struct {
 	ID            string     `json:"id"`
@@ -69,16 +71,19 @@ type Snapshot struct {
 	Rows       []tables.TableModelPricing `json:"rows"`
 }
 type ActualCost struct {
-	ID              string         `json:"id"`
-	ProviderID      string         `json:"provider_id"`
-	SupplierModelID string         `json:"supplier_model_id"`
-	StartsAt        time.Time      `json:"starts_at"`
-	EndsAt          time.Time      `json:"ends_at"`
-	Currency        string         `json:"currency"`
-	Amount          ledger.Decimal `json:"amount"`
-	Note            string         `json:"note"`
-	Version         uint64         `json:"version"`
-	CreatedAt       time.Time      `json:"created_at"`
+	ID                 string         `json:"id"`
+	ProviderID         string         `json:"provider_id"`
+	SupplierModelID    string         `json:"supplier_model_id"`
+	StartsAt           time.Time      `json:"starts_at"`
+	EndsAt             time.Time      `json:"ends_at"`
+	Currency           string         `json:"currency"`
+	Amount             ledger.Decimal `json:"amount"`
+	Note               string         `json:"note"`
+	SubscriptionKind   string         `json:"subscription_kind,omitempty"`
+	StatementReference string         `json:"statement_reference,omitempty"`
+	AccountCoverage    string         `json:"account_coverage,omitempty"`
+	Version            uint64         `json:"version"`
+	CreatedAt          time.Time      `json:"created_at"`
 }
 
 func (ActualCost) TableName() string { return "model_actual_costs" }
@@ -319,14 +324,25 @@ func (s *Service) SaveActual(ctx context.Context, in ActualCost, expected uint64
 	if in.ProviderID == "" || in.StartsAt.IsZero() || !in.EndsAt.After(in.StartsAt) || !in.Amount.Valid() || in.Amount.Sign() < 0 || !validCurrency(in.Currency) || len(in.Note) > 2000 {
 		return ErrInput
 	}
-	var count int64
-	if e := s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Where("provider_id=?", in.ProviderID).Count(&count).Error; e != nil {
+	var supplier struct{ SubscriptionKind string }
+	if e := s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Select("subscription_kind").
+		Where("provider_id=?", in.ProviderID).Take(&supplier).Error; errors.Is(e, gorm.ErrRecordNotFound) {
+		return ErrInput
+	} else if e != nil {
 		return e
 	}
-	if count == 0 {
+	in.SubscriptionKind = supplier.SubscriptionKind
+	in.StatementReference = strings.TrimSpace(in.StatementReference)
+	in.AccountCoverage = strings.TrimSpace(in.AccountCoverage)
+	if in.SubscriptionKind != "" {
+		if in.SupplierModelID != "" || in.StatementReference == "" || len([]rune(in.StatementReference)) > 160 || len([]rune(in.AccountCoverage)) > 500 {
+			return ErrInput
+		}
+	} else if in.StatementReference != "" || in.AccountCoverage != "" {
 		return ErrInput
 	}
 	if in.SupplierModelID != "" {
+		var count int64
 		if e := s.DB.WithContext(ctx).Table("tokenhub_supplier_models").Where("id=? AND provider_id=?", in.SupplierModelID, in.ProviderID).Count(&count).Error; e != nil {
 			return e
 		}
@@ -344,21 +360,62 @@ func (s *Service) SaveActual(ctx context.Context, in ActualCost, expected uint64
 		if e := s.DB.WithContext(ctx).Raw("SELECT clock_timestamp()").Scan(&in.CreatedAt).Error; e != nil {
 			return e
 		}
-		return s.DB.WithContext(ctx).Create(&in).Error
+		return actualCostError(s.DB.WithContext(ctx).Create(&in).Error)
 	}
-	r := s.DB.WithContext(ctx).Model(&ActualCost{}).Where("id=? AND version=?", in.ID, expected).Updates(map[string]any{"provider_id": in.ProviderID, "supplier_model_id": in.SupplierModelID, "starts_at": in.StartsAt, "ends_at": in.EndsAt, "currency": in.Currency, "amount": in.Amount, "note": strings.TrimSpace(in.Note), "version": in.Version})
+	r := s.DB.WithContext(ctx).Model(&ActualCost{}).Where("id=? AND version=?", in.ID, expected).
+		Updates(map[string]any{
+			"provider_id": in.ProviderID, "supplier_model_id": in.SupplierModelID,
+			"starts_at": in.StartsAt, "ends_at": in.EndsAt, "currency": in.Currency, "amount": in.Amount,
+			"note": in.Note, "version": in.Version, "subscription_kind": in.SubscriptionKind,
+			"statement_reference": in.StatementReference, "account_coverage": in.AccountCoverage,
+		})
 	if r.Error != nil {
-		return r.Error
+		return actualCostError(r.Error)
 	}
 	if r.RowsAffected != 1 {
 		return ErrVersion
 	}
 	return nil
 }
-func (s *Service) Actuals(ctx context.Context) ([]ActualCost, error) {
+
+func actualCostError(err error) error {
+	var pg *pgconn.PgError
+	if errors.As(err, &pg) && pg.ConstraintName == "model_actual_cost_unique_subscription_statement" {
+		return ErrStatementExists
+	}
+	return err
+}
+func (s *Service) Actuals(ctx context.Context, id string) ([]ActualCost, error) {
 	var out []ActualCost
-	e := s.DB.WithContext(ctx).Order("created_at DESC,id DESC").Limit(100).Find(&out).Error
+	q := s.DB.WithContext(ctx).Order("created_at DESC,id DESC").Limit(100)
+	if id != "" {
+		q = q.Where("id=?", id)
+	}
+	e := q.Find(&out).Error
 	return out, e
+}
+
+type SubscriptionStatement struct {
+	ID                 string         `json:"id"`
+	ProviderID         string         `json:"-"`
+	StatementReference string         `json:"statement_reference"`
+	Currency           string         `json:"currency"`
+	Amount             ledger.Decimal `json:"amount"`
+}
+
+func (s *Service) LatestSubscriptionStatements(ctx context.Context) (map[string]SubscriptionStatement, error) {
+	var rows []SubscriptionStatement
+	err := s.DB.WithContext(ctx).Model(&ActualCost{}).
+		Select("DISTINCT ON (provider_id) id,provider_id,statement_reference,currency,amount").
+		Where("subscription_kind<>''").Order("provider_id,created_at DESC,id DESC").Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]SubscriptionStatement, len(rows))
+	for _, row := range rows {
+		out[row.ProviderID] = row
+	}
+	return out, nil
 }
 
 func rowStore(ctx context.Context, snapshot Snapshot) (*datasheet.Store, error) {

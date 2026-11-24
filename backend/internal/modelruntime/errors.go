@@ -5,6 +5,11 @@ import (
 	"errors"
 )
 
+var (
+	ErrSubscriptionReauth          = errors.New("subscription authorization must be replaced")
+	ErrSubscriptionAuthUnavailable = errors.New("subscription authorization unavailable")
+)
+
 // UpstreamFailure deliberately cannot hold supplier-controlled text. Keeping
 // only a status makes Error(), logs and wrapped errors safe by construction.
 type UpstreamFailure struct {
@@ -41,6 +46,7 @@ func SafeErrorCode(code string) string {
 	case "", "upstream_error", "upstream_authentication_failed", "rate_limited",
 		"upstream_timeout", "request_cancelled", "request_not_dispatched",
 		"input_quantity_unavailable", "route_contract_violation",
+		"subscription_reauth_required", "subscription_auth_unavailable",
 		"unsupported_capability", "invalid_model_request", "usage_unavailable",
 		"usage_bound_exceeded", "model_execution_failed", "usage_unverified_before_deadline":
 		return code
@@ -69,10 +75,32 @@ func Diagnostic(err error) string {
 		{ErrInvalidRequest, "invalid_model_request"},
 		{ErrUsageUnknown, "usage_unavailable"},
 		{ErrBoundExceeded, "usage_bound_exceeded"},
+		{ErrSubscriptionReauth, "subscription_reauth_required"},
+		{ErrSubscriptionAuthUnavailable, "subscription_auth_unavailable"},
 	} {
 		if errors.Is(err, item.err) {
 			return item.code
 		}
 	}
 	return "model_execution_failed"
+}
+
+// An explicit rejection may try another pooled account before any output or
+// usage is observed. Ambiguous outcomes use the original settlement path.
+func SubscriptionRejection(result Result) bool {
+	if result.OutputDelivered || result.Usage.Reliable {
+		return false
+	}
+	if result.State == "not_dispatched" {
+		return result.ErrorCode == "subscription_reauth_required" || result.ErrorCode == "subscription_auth_unavailable"
+	}
+	if result.State != "failed" {
+		return false
+	}
+	switch result.ProviderStatus {
+	case 401, 402, 403, 429:
+		return true
+	default:
+		return false
+	}
 }

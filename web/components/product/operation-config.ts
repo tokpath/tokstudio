@@ -124,13 +124,14 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
   if (/\/providers$/.test(operation.path) && operation.name === "model") return object("供应商模型", {
     supplier_model: object("供应商模型与成本价", {
       id: { ...text("供应商模型标识"), generated: "uuid", readOnly: true },
-      credential_id: { ...text("供应商密钥"), lookup: "credentials" },
-      provider_id: { ...text("供应商引用（选择密钥后自动带入）", false), readOnly: true },
+      credential_id: { ...text("供应商连接"), lookup: "credentials" },
+      provider_id: { ...text("供应商引用（选择连接后自动带入）", false), readOnly: true },
+      subscription_kind: { ...text("订阅计费", false), hidden: true },
       provider: select("接口协议", [["openai", "OpenAI 兼容"], ["anthropic", "Claude"], ["gemini", "Gemini"], ["openrouter", "OpenRouter"], ["elevenlabs", "ElevenLabs"]], "openai"),
       model: text("供应商模型名称", true, "供应商要求填写的模型名。客户请求里的名字写在公开模型上。"),
       enabled: { ...boolean("启用这个供应商模型"), default: true },
-      base_url: { ...text("API Base URL", false, "官方供应商通常留空。兼容服务填写供应商公布的 API Base URL，具体调用路径由系统生成。"), when: {field:"provider",values:["openai","anthropic","openrouter"]} },
-      pricing_reference: { ...text("Bifrost 参考计价模型", false), lookup: "pricing-models", help: "选择参考价目中的供应商与模型，用于系统核算成本。未匹配的成本会标为待核实，不会记成免费。" },
+      base_url: { ...text("API Base URL", false, "官方供应商通常留空。兼容服务填写供应商公布的 API Base URL，具体调用路径由系统生成。"), when: {field:"provider",values:["openai","anthropic","openrouter"]}, hideWhen: { field: "subscription_kind", values: ["codex", "claude"] } },
+      pricing_reference: { ...text("Bifrost 参考计价模型", false), lookup: "pricing-models", help: "选择参考价目中的供应商与模型，用于系统核算成本。未匹配的成本会标为待核实，不会记成免费。", hideWhen: { field: "subscription_kind", values: ["codex", "claude"] } },
       cost_provider: { ...text("参考价目供应商", false), readOnly: true },
       cost_model: { ...text("参考计价模型", false), readOnly: true },
       capabilities: { ...array("供应商支持的能力", capability, "勾选供应商实际支持的能力；支持流式的能力可以单独开启。"), presentation: "supplier-operations", options: operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download") },
@@ -140,7 +141,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
   if (/\/routes$/.test(operation.path)) return object("路由配置", {
     route: object("公开模型的路由", {
       public_model_id: { ...text("公开模型"), lookup: "models", lookupPurpose: "routing" },
-      strategy: select("选路策略", [["priority", "按列表顺序优先"], ["lowest_latency", "最低延迟"], ["lowest_cost", "预估最低成本"]], "priority"),
+      strategy: { ...select("选路策略", [["priority", "按列表顺序优先"], ["lowest_latency", "最低延迟"], ["lowest_cost", "预估最低成本"]], "priority"), help: "选择预估最低成本且存在订阅线路时，按列表顺序选路。" },
       bindings: { ...array("绑定的供应商模型", object("绑定", {
         id: { ...text("绑定标识"), generated: "uuid", readOnly: true },
         supplier_model_id: { ...text("供应商模型"), lookup: "supplier-models" },

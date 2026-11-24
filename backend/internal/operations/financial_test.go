@@ -20,7 +20,7 @@ func TestOperatingRecognitionDoesNotDoubleCountPrepaymentOrGifts(t *testing.T) {
 func TestFinancialExportSeparatesNativeCostsAndOmitsProfit(t *testing.T) {
 	report := FinancialReport{SettlementCurrency: "CNY", OriginalCurrencyTotals: []OriginalCurrencyTotal{
 		{Currency: "USD", SupplierReferenceCost: ledger.MustDecimal("2.5")},
-		{Currency: "EUR", SupplierActualCost: ledger.MustDecimal("3")},
+		{Currency: "EUR", SupplierActualCost: ledger.MustDecimal("3"), SubscriptionActualCost: ledger.MustDecimal("20")},
 		{Currency: "CNY", Income: ledger.MustDecimal("100"), Expense: ledger.MustDecimal("7"), SupplierReportedCost: ledger.MustDecimal("9")},
 	}}
 	raw, err := json.Marshal(report)
@@ -48,7 +48,7 @@ func TestFinancialExportSeparatesNativeCostsAndOmitsProfit(t *testing.T) {
 			t.Fatal("profit exported", string(row))
 		}
 	}
-	if found["Bifrost 参考成本（观察）:USD"] != "\"2.5\"" || found["登记实际账单成本:EUR"] != "\"3\"" || found["供应商报告成本（观察）:CNY"] != "\"9\"" {
+	if found["Bifrost 参考成本（观察）:USD"] != "\"2.5\"" || found["登记实际账单成本:EUR"] != "\"3\"" || found["订阅实际账单:EUR"] != "\"20\"" || found["供应商报告成本（观察）:CNY"] != "\"9\"" {
 		t.Fatal("original cost currency or basis lost", found)
 	}
 }

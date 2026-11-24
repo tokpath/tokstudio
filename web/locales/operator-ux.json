@@ -1941,5 +1941,389 @@
     "hi": "भुगतान प्रदाता के कोटेशन को प्राथमिकता दी जाती है; कोटेशन न होने पर Frankfurter की संदर्भ दरें ली जाती हैं। पहली बार विदेशी मुद्रा में भुगतान पर दर ली और कैश की जाती है, फिर तय अंतराल पर अपडेट होती है। कोटेशन केवल इस ऑर्डर की भुगतान राशि तय करता है; परिसंपत्तियों, आपूर्तिकर्ता लागत या लाभ का रूपांतरण नहीं करता।",
     "ms": "Sebut harga penyedia pembayaran diutamakan; kadar rujukan Frankfurter digunakan jika tiada sebut harga daripada penyedia. Kadar diambil dan dicache pada penggunaan mata wang asing pertama, kemudian dikemas kini mengikut selang yang ditetapkan. Sebut harga hanya menentukan amaun pembayaran pesanan ini, tanpa menukar nilai aset, kos pembekal atau keuntungan.",
     "th": "ใช้ราคาจากผู้ให้บริการชำระเงินก่อน หากไม่มีจึงใช้อัตราอ้างอิง Frankfurter ระบบจะดึงและแคชอัตราเมื่อชำระด้วยสกุลเงินต่างประเทศครั้งแรก แล้วอัปเดตอัตโนมัติตามช่วงเวลาที่ตั้งไว้ ราคาใช้กำหนดยอดชำระของคำสั่งซื้อนี้เท่านั้น ไม่ใช้แปลงมูลค่าสินทรัพย์ ต้นทุนผู้ให้บริการ หรือกำไร"
+  },
+  "冷却中": {
+    "en": "Cooling down",
+    "ja": "クールダウン中",
+    "ru": "Ожидание повторного доступа",
+    "hi": "कूलडाउन में",
+    "ms": "Sedang menunggu",
+    "th": "กำลังพักการเรียก"
+  },
+  "需重新授权": {
+    "en": "Authorization required",
+    "ja": "再認証が必要",
+    "ru": "Требуется повторная авторизация",
+    "hi": "दोबारा प्राधिकरण ज़रूरी",
+    "ms": "Perlu kebenaran semula",
+    "th": "ต้องอนุญาตใหม่"
+  },
+  "订阅已到期": {
+    "en": "Subscription expired",
+    "ja": "サブスクリプション期限切れ",
+    "ru": "Срок подписки истёк",
+    "hi": "सदस्यता समाप्त",
+    "ms": "Langganan tamat tempoh",
+    "th": "การสมัครใช้บริการหมดอายุ"
+  },
+  "调用中": {
+    "en": "In use",
+    "ja": "使用中",
+    "ru": "Используется",
+    "hi": "उपयोग में",
+    "ms": "Sedang digunakan",
+    "th": "กำลังใช้งาน"
+  },
+  "订阅账号池": {
+    "en": "Subscription account pools",
+    "ja": "サブスクリプションアカウントプール",
+    "ru": "Пулы аккаунтов с подпиской",
+    "hi": "सदस्यता खाते के पूल",
+    "ms": "Kumpulan akaun langganan",
+    "th": "กลุ่มบัญชีสมัครใช้บริการ"
+  },
+  "管理上游订阅账号和可用状态。账号池可以用作供应商模型的连接。": {
+    "en": "Manage subscription accounts used to connect supplier models.",
+    "ja": "供給元モデルに接続するサブスクリプションアカウントを管理します。",
+    "ru": "Управляйте аккаунтами с подпиской для подключения моделей поставщиков.",
+    "hi": "आपूर्तिकर्ता मॉडल से कनेक्ट करने वाले सदस्यता खातों का प्रबंधन करें।",
+    "ms": "Urus akaun langganan yang digunakan untuk menyambung model pembekal.",
+    "th": "จัดการบัญชีสมัครใช้บริการสำหรับเชื่อมต่อโมเดลของผู้ให้บริการ"
+  },
+  "新建账号池": {
+    "en": "New account pool",
+    "ja": "アカウントプールを作成",
+    "ru": "Создать пул аккаунтов",
+    "hi": "नया खाता पूल",
+    "ms": "Kumpulan akaun baharu",
+    "th": "สร้างกลุ่มบัญชี"
+  },
+  "暂无订阅账号池": {
+    "en": "No subscription account pools",
+    "ja": "サブスクリプションアカウントプールがありません",
+    "ru": "Пулов аккаунтов с подпиской пока нет",
+    "hi": "कोई सदस्यता खाता पूल नहीं है",
+    "ms": "Tiada kumpulan akaun langganan",
+    "th": "ยังไม่มีกลุ่มบัญชีสมัครใช้บริการ"
+  },
+  "新建账号池并加入一个已授权的订阅账号即可开始。": {
+    "en": "Create a pool and add an authorized account to get started.",
+    "ja": "プールを作成し、認証済みアカウントを追加します。",
+    "ru": "Для начала создайте пул и добавьте авторизованный аккаунт.",
+    "hi": "शुरू करने के लिए पूल बनाएँ और एक अधिकृत खाता जोड़ें।",
+    "ms": "Cipta kumpulan dan tambah akaun yang dibenarkan untuk bermula.",
+    "th": "สร้างกลุ่มและเพิ่มบัญชีที่ได้รับอนุญาตเพื่อเริ่มใช้งาน"
+  },
+  "{available} / {total} 个账号可用": {
+    "en": "{available} of {total} accounts available",
+    "ja": "{total} 件中 {available} 件のアカウントが利用可能",
+    "ru": "Доступно аккаунтов: {available} из {total}",
+    "hi": "{total} में से {available} खाते उपलब्ध",
+    "ms": "{available} daripada {total} akaun tersedia",
+    "th": "มีบัญชีพร้อมใช้ {available} จาก {total} บัญชี"
+  },
+  "账号管理": {
+    "en": "Manage accounts",
+    "ja": "アカウント管理",
+    "ru": "Управление аккаунтами",
+    "hi": "खाते प्रबंधित करें",
+    "ms": "Urus akaun",
+    "th": "จัดการบัญชี"
+  },
+  "添加账号": {
+    "en": "Add account",
+    "ja": "アカウントを追加",
+    "ru": "Добавить аккаунт",
+    "hi": "खाता जोड़ें",
+    "ms": "Tambah akaun",
+    "th": "เพิ่มบัญชี"
+  },
+  "编辑账号池": {
+    "en": "Edit account pool",
+    "ja": "アカウントプールを編集",
+    "ru": "Изменить пул аккаунтов",
+    "hi": "खाता पूल संपादित करें",
+    "ms": "Sunting kumpulan akaun",
+    "th": "แก้ไขกลุ่มบัญชี"
+  },
+  "账号名称": {
+    "en": "Account name",
+    "ja": "アカウント名",
+    "ru": "Название аккаунта",
+    "hi": "खाते का नाम",
+    "ms": "Nama akaun",
+    "th": "ชื่อบัญชี"
+  },
+  "订阅到期": {
+    "en": "Subscription expiry",
+    "ja": "サブスクリプションの有効期限",
+    "ru": "Окончание подписки",
+    "hi": "सदस्यता की समाप्ति",
+    "ms": "Tamat tempoh langganan",
+    "th": "วันหมดอายุการสมัครใช้บริการ"
+  },
+  "重新授权": {
+    "en": "Reauthorize",
+    "ja": "再認証する",
+    "ru": "Авторизовать повторно",
+    "hi": "दोबारा अधिकृत करें",
+    "ms": "Benarkan semula",
+    "th": "อนุญาตใหม่"
+  },
+  "编辑": {
+    "en": "Edit",
+    "ja": "編集",
+    "ru": "Изменить",
+    "hi": "संपादित करें",
+    "ms": "Sunting",
+    "th": "แก้ไข"
+  },
+  "移除": {
+    "en": "Remove",
+    "ja": "削除",
+    "ru": "Удалить",
+    "hi": "हटाएँ",
+    "ms": "Alih keluar",
+    "th": "นำออก"
+  },
+  "还没有账号。": {
+    "en": "No accounts yet.",
+    "ja": "アカウントがありません。",
+    "ru": "Аккаунтов пока нет.",
+    "hi": "अभी कोई खाता नहीं है।",
+    "ms": "Belum ada akaun.",
+    "th": "ยังไม่มีบัญชี"
+  },
+  "移除账号": {
+    "en": "Remove account",
+    "ja": "アカウントを削除",
+    "ru": "Удалить аккаунт",
+    "hi": "खाता हटाएँ",
+    "ms": "Alih keluar akaun",
+    "th": "นำบัญชีออก"
+  },
+  "编辑账号": {
+    "en": "Edit account",
+    "ja": "アカウントを編集",
+    "ru": "Изменить аккаунт",
+    "hi": "खाता संपादित करें",
+    "ms": "Sunting akaun",
+    "th": "แก้ไขบัญชี"
+  },
+  "移除「{name}」后，账号将退出调度，已保存的授权凭据同时清除。": {
+    "en": "Removing “{name}” stops it from receiving requests and clears its saved credentials.",
+    "ja": "「{name}」を削除すると、リクエストの振り分けが停止され、保存済みの認証情報が消去されます。",
+    "ru": "После удаления «{name}» запросы на этот аккаунт прекратятся, а сохранённые данные авторизации будут удалены.",
+    "hi": "“{name}” को हटाने पर उसे अनुरोध मिलने बंद हो जाएँगे और सहेजे गए क्रेडेंशियल मिट जाएँगे।",
+    "ms": "Mengalih keluar “{name}” menghentikan permintaan kepadanya dan memadam bukti kelayakan yang disimpan.",
+    "th": "การนำ “{name}” ออกจะหยุดส่งคำขอไปยังบัญชีและล้างข้อมูลรับรองที่บันทึกไว้"
+  },
+  "确认移除": {
+    "en": "Confirm removal",
+    "ja": "削除を確定",
+    "ru": "Подтвердить удаление",
+    "hi": "हटाने की पुष्टि करें",
+    "ms": "Sahkan pengalihan keluar",
+    "th": "ยืนยันการนำออก"
+  },
+  "首个账号": {
+    "en": "First account",
+    "ja": "最初のアカウント",
+    "ru": "Первый аккаунт",
+    "hi": "पहला खाता",
+    "ms": "Akaun pertama",
+    "th": "บัญชีแรก"
+  },
+  "账号池名称": {
+    "en": "Account pool name",
+    "ja": "アカウントプール名",
+    "ru": "Название пула аккаунтов",
+    "hi": "खाता पूल का नाम",
+    "ms": "Nama kumpulan akaun",
+    "th": "ชื่อกลุ่มบัญชี"
+  },
+  "保存": {
+    "en": "Save",
+    "ja": "保存",
+    "ru": "Сохранить",
+    "hi": "सहेजें",
+    "ms": "Simpan",
+    "th": "บันทึก"
+  },
+  "订阅到期（可选）": {
+    "en": "Subscription expiry (optional)",
+    "ja": "サブスクリプションの有効期限（任意）",
+    "ru": "Окончание подписки (необязательно)",
+    "hi": "सदस्यता की समाप्ति (वैकल्पिक)",
+    "ms": "Tamat tempoh langganan (pilihan)",
+    "th": "วันหมดอายุการสมัครใช้บริการ (ไม่บังคับ)"
+  },
+  "粘贴已授权的 Codex auth.json 内容。": {
+    "en": "Paste the authorized Codex auth.json contents.",
+    "ja": "認証済みの Codex auth.json の内容を貼り付けます。",
+    "ru": "Вставьте содержимое auth.json авторизованного аккаунта Codex.",
+    "hi": "अधिकृत Codex auth.json की सामग्री पेस्ट करें।",
+    "ms": "Tampal kandungan Codex auth.json yang telah dibenarkan.",
+    "th": "วางเนื้อหา Codex auth.json ที่ได้รับอนุญาต"
+  },
+  "粘贴已授权的 Claude Code Setup Token 或授权 JSON。": {
+    "en": "Paste an authorized Claude Code Setup Token or authorization JSON.",
+    "ja": "認証済みの Claude Code Setup Token または認証 JSON を貼り付けます。",
+    "ru": "Вставьте Claude Code Setup Token или JSON авторизации.",
+    "hi": "अधिकृत Claude Code Setup Token या प्राधिकरण JSON पेस्ट करें।",
+    "ms": "Tampal Claude Code Setup Token atau JSON kebenaran yang telah dibenarkan.",
+    "th": "วาง Claude Code Setup Token หรือ JSON การอนุญาตที่ได้รับอนุญาต"
+  },
+  "订阅授权（可选）": {
+    "en": "Subscription authorization (optional)",
+    "ja": "サブスクリプション認証（任意）",
+    "ru": "Авторизация подписки (необязательно)",
+    "hi": "सदस्यता प्राधिकरण (वैकल्पिक)",
+    "ms": "Kebenaran langganan (pilihan)",
+    "th": "การอนุญาตสมัครใช้บริการ (ไม่บังคับ)"
+  },
+  "订阅授权": {
+    "en": "Subscription authorization",
+    "ja": "サブスクリプション認証",
+    "ru": "Авторизация подписки",
+    "hi": "सदस्यता प्राधिकरण",
+    "ms": "Kebenaran langganan",
+    "th": "การอนุญาตสมัครใช้บริการ"
+  },
+  "订阅计费": {
+    "en": "Subscription billing",
+    "ja": "サブスクリプション課金",
+    "ru": "Оплата по подписке",
+    "hi": "सदस्यता बिलिंग",
+    "ms": "Pengebilan langganan",
+    "th": "การเรียกเก็บเงินแบบสมัครใช้บริการ"
+  },
+  "供应商连接": {
+    "en": "Supplier connection",
+    "ja": "供給元への接続",
+    "ru": "Подключение поставщика",
+    "hi": "आपूर्तिकर्ता कनेक्शन",
+    "ms": "Sambungan pembekal",
+    "th": "การเชื่อมต่อผู้ให้บริการ"
+  },
+  "订阅实际账单": {
+    "en": "Actual subscription bills",
+    "ja": "サブスクリプションの実請求額",
+    "ru": "Фактические счета за подписки",
+    "hi": "सदस्यता के वास्तविक बिल",
+    "ms": "Bil langganan sebenar",
+    "th": "บิลสมัครใช้บริการจริง"
+  },
+  "覆盖账号": {
+    "en": "Accounts covered",
+    "ja": "対象アカウント",
+    "ru": "Аккаунты в счёте",
+    "hi": "शामिल खाते",
+    "ms": "Akaun yang diliputi",
+    "th": "บัญชีที่ครอบคลุม"
+  },
+  "订阅账单编号": {
+    "en": "Subscription bill reference",
+    "ja": "サブスクリプション請求番号",
+    "ru": "Номер счёта за подписку",
+    "hi": "सदस्यता बिल का संदर्भ",
+    "ms": "Rujukan bil langganan",
+    "th": "เลขอ้างอิงบิลสมัครใช้บริการ"
+  },
+  "按账单原币登记供应商实际费用。按量线路可对照 Bifrost 参考成本，订阅账号池按服务期间登记实际账单。": {
+    "en": "Record supplier bills in their original currency. Compare usage-based routes with Bifrost reference costs and record subscription bills by service period.",
+    "ja": "供給元の実費を請求通貨で記録します。従量課金ルートは Bifrost の参考料金と照合でき、サブスクリプションは利用期間ごとに記録します。",
+    "ru": "Регистрируйте счета поставщиков в исходной валюте. Сверяйте маршруты с эталонной стоимостью Bifrost, а подписки регистрируйте по периоду обслуживания.",
+    "hi": "आपूर्तिकर्ता के बिल मूल मुद्रा में दर्ज करें। रूट की तुलना Bifrost संदर्भ लागत से करें और सेवा अवधि के अनुसार सदस्यता बिल दर्ज करें।",
+    "ms": "Rekod bil dalam mata wang asal. Bandingkan laluan penggunaan dengan kos Bifrost dan rekod bil langganan mengikut tempoh perkhidmatan.",
+    "th": "บันทึกบิลในสกุลเงินเดิม เปรียบเทียบเส้นทางตามการใช้งานกับต้นทุน Bifrost และบันทึกบิลสมัครใช้บริการตามช่วงบริการ"
+  },
+  "填写账单覆盖的账号名称。空白代表整个账号池。": {
+    "en": "Enter the account names covered by this bill. Leave blank for the whole pool.",
+    "ja": "請求対象のアカウント名を入力します。空欄の場合はプール全体が対象です。",
+    "ru": "Введите названия аккаунтов в счёте. Оставьте поле пустым для всего пула.",
+    "hi": "इस बिल में शामिल खातों के नाम दर्ज करें। पूरे पूल के लिए खाली छोड़ें।",
+    "ms": "Masukkan nama akaun yang diliputi oleh bil ini. Biarkan kosong untuk seluruh kumpulan.",
+    "th": "กรอกชื่อบัญชีที่อยู่ในบิลนี้ เว้นว่างหากครอบคลุมทั้งกลุ่ม"
+  },
+  "选择预估最低成本且存在订阅线路时，按列表顺序选路。": {
+    "en": "If a subscription route is eligible, lowest estimated cost follows the configured order.",
+    "ja": "サブスクリプションルートが候補にある場合、推定最低コストでは設定順に選択します。",
+    "ru": "Если доступен маршрут по подписке, стратегия минимальной расчётной стоимости использует порядок списка.",
+    "hi": "यदि सदस्यता रूट उपलब्ध है, तो न्यूनतम अनुमानित लागत वाला विकल्प तय क्रम का पालन करता है।",
+    "ms": "Jika laluan langganan layak, strategi kos anggaran terendah mengikut turutan yang ditetapkan.",
+    "th": "หากมีเส้นทางแบบสมัครใช้บริการที่ใช้ได้ กลยุทธ์ต้นทุนประมาณการต่ำสุดจะเลือกตามลำดับที่ตั้งไว้"
+  },
+  "凭据格式无效，请使用所选供应商的订阅授权。": {
+    "en": "Invalid credential format. Use the subscription authorization for the selected supplier.",
+    "ja": "認証情報の形式が無効です。選択した供給元のサブスクリプション認証を使用してください。",
+    "ru": "Неверный формат авторизации. Используйте данные подписки выбранного поставщика.",
+    "hi": "क्रेडेंशियल का प्रारूप अमान्य है। चुने गए आपूर्तिकर्ता का सदस्यता प्राधिकरण इस्तेमाल करें।",
+    "ms": "Format bukti kelayakan tidak sah. Gunakan kebenaran langganan untuk pembekal yang dipilih.",
+    "th": "รูปแบบข้อมูลรับรองไม่ถูกต้อง ใช้การอนุญาตสำหรับผู้ให้บริการที่เลือก"
+  },
+  "此账号已在当前账号池中。": {
+    "en": "This account is already in the pool.",
+    "ja": "このアカウントは既にプールにあります。",
+    "ru": "Этот аккаунт уже входит в пул.",
+    "hi": "यह खाता पहले से पूल में है।",
+    "ms": "Akaun ini sudah berada dalam kumpulan.",
+    "th": "บัญชีนี้อยู่ในกลุ่มแล้ว"
+  },
+  "此订阅账单已登记，请在已有记录中修改。": {
+    "en": "This subscription bill has already been recorded. Edit the existing entry.",
+    "ja": "このサブスクリプション請求は記録済みです。既存の記録を編集してください。",
+    "ru": "Этот счёт за подписку уже зарегистрирован. Измените существующую запись.",
+    "hi": "यह सदस्यता बिल पहले से दर्ज है। मौजूदा रिकॉर्ड संपादित करें।",
+    "ms": "Bil langganan ini sudah direkodkan. Sunting rekod sedia ada.",
+    "th": "บันทึกบิลสมัครใช้บริการนี้แล้ว โปรดแก้ไขรายการเดิม"
+  },
+  "供应商引用（选择连接后自动带入）": {
+    "en": "Supplier reference (filled from the connection)",
+    "ja": "供給元参照（接続から自動入力）",
+    "ru": "Идентификатор поставщика (из подключения)",
+    "hi": "आपूर्तिकर्ता संदर्भ (कनेक्शन से अपने आप भरा जाता है)",
+    "ms": "Rujukan pembekal (diisi daripada sambungan)",
+    "th": "ข้อมูลอ้างอิงผู้ให้บริการ (กรอกอัตโนมัติจากการเชื่อมต่อ)"
+  },
+  "最近登记的订阅账单": {
+    "en": "Latest recorded subscription bill",
+    "ja": "最後に登録したサブスクリプション請求",
+    "ru": "Последний зарегистрированный счёт за подписку",
+    "hi": "सबसे हाल में दर्ज सदस्यता बिल",
+    "ms": "Bil langganan terakhir direkodkan",
+    "th": "บิลสมัครใช้บริการที่บันทึกล่าสุด"
+  },
+  "选择 API 密钥或订阅账号池连接供应商模型，随后在路由配置中绑定公开模型。": {
+    "en": "Connect each supplier model with an API key or subscription account pool, then bind it to a public model in Routing.",
+    "ja": "API キーまたはサブスクリプションアカウントプールで供給元モデルに接続し、ルーティングで公開モデルに関連付けます。",
+    "ru": "Подключите модель поставщика ключом API или пулом аккаунтов с подпиской, затем привяжите её к публичной модели в настройках маршрутизации.",
+    "hi": "आपूर्तिकर्ता मॉडल को API कुंजी या सदस्यता खाता पूल से कनेक्ट करें, फिर रूटिंग में उसे सार्वजनिक मॉडल से जोड़ें।",
+    "ms": "Sambungkan model pembekal dengan kunci API atau kumpulan akaun langganan, kemudian ikat pada model awam dalam Penghalaan.",
+    "th": "เชื่อมต่อโมเดลผู้ให้บริการด้วยคีย์ API หรือกลุ่มบัญชีสมัครใช้บริการ แล้วผูกกับโมเดลสาธารณะในการกำหนดเส้นทาง"
+  },
+  "按量连接可选 Bifrost 参考价目。": {
+    "en": "Usage-based connections can use a Bifrost reference price.",
+    "ja": "従量課金の接続では Bifrost の参考料金を選べます。",
+    "ru": "Для подключений с оплатой по потреблению доступна эталонная цена Bifrost.",
+    "hi": "उपयोग-आधारित कनेक्शन Bifrost संदर्भ मूल्य इस्तेमाल कर सकते हैं।",
+    "ms": "Sambungan mengikut penggunaan boleh menggunakan harga rujukan Bifrost.",
+    "th": "การเชื่อมต่อคิดตามการใช้งานสามารถเลือกราคาอ้างอิง Bifrost ได้"
+  },
+  "选择供应商连接、模型和能力。按量连接可选 Bifrost 参考价目。": {
+    "en": "Select the supplier connection, model and capabilities. Usage-based connections can use a Bifrost reference price.",
+    "ja": "供給元の接続、モデル、機能を選びます。従量課金の接続では Bifrost の参考料金を選べます。",
+    "ru": "Укажите подключение поставщика, модель и возможности. Для подключений с оплатой по потреблению доступна эталонная цена Bifrost.",
+    "hi": "आपूर्तिकर्ता कनेक्शन, मॉडल और क्षमताएँ चुनें। उपयोग-आधारित कनेक्शन Bifrost संदर्भ मूल्य इस्तेमाल कर सकते हैं।",
+    "ms": "Pilih sambungan pembekal, model dan keupayaan. Sambungan mengikut penggunaan boleh menggunakan harga rujukan Bifrost.",
+    "th": "เลือกการเชื่อมต่อผู้ให้บริการ โมเดล และความสามารถ การเชื่อมต่อคิดตามการใช้งานสามารถเลือกราคาอ้างอิง Bifrost ได้"
+  },
+  "此供应商模型缺少可核实的 Token 上限，请同步 Bifrost 价目后核对模型名称。": {
+    "en": "Token limits for this supplier model are unavailable. Sync the Bifrost price sheet and check the model name.",
+    "ja": "この供給元モデルのトークン上限を確認できません。Bifrost の料金表を同期し、モデル名を確認してください。",
+    "ru": "Лимиты токенов для модели поставщика недоступны. Синхронизируйте прайс-лист Bifrost и проверьте название модели.",
+    "hi": "इस आपूर्तिकर्ता मॉडल की टोकन सीमाएँ उपलब्ध नहीं हैं। Bifrost मूल्य सूची सिंक करें और मॉडल का नाम जाँचें।",
+    "ms": "Had token model pembekal ini tidak tersedia. Segerakkan jadual harga Bifrost dan semak nama model.",
+    "th": "ไม่มีข้อมูลขีดจำกัดโทเคนของโมเดลนี้ ซิงค์ตารางราคา Bifrost แล้วตรวจสอบชื่อโมเดล"
   }
 }

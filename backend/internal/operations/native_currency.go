@@ -13,15 +13,16 @@ import (
 // OriginalCurrencyTotal preserves distinct bases. Income and expense are actual
 // external transfers, not recognized revenue or inferred settlement equivalents.
 type OriginalCurrencyTotal struct {
-	Currency              string         `json:"currency"`
-	Income                ledger.Decimal `json:"income"`
-	Expense               ledger.Decimal `json:"expense"`
-	ReceiptFees           ledger.Decimal `json:"receipt_fees"`
-	NetReceipts           ledger.Decimal `json:"net_receipts"`
-	PendingReceiptFees    int64          `json:"pending_receipt_fees"`
-	SupplierReportedCost  ledger.Decimal `json:"supplier_reported_cost"`
-	SupplierReferenceCost ledger.Decimal `json:"supplier_reference_cost"`
-	SupplierActualCost    ledger.Decimal `json:"supplier_actual_cost"`
+	Currency               string         `json:"currency"`
+	Income                 ledger.Decimal `json:"income"`
+	Expense                ledger.Decimal `json:"expense"`
+	ReceiptFees            ledger.Decimal `json:"receipt_fees"`
+	NetReceipts            ledger.Decimal `json:"net_receipts"`
+	PendingReceiptFees     int64          `json:"pending_receipt_fees"`
+	SupplierReportedCost   ledger.Decimal `json:"supplier_reported_cost"`
+	SupplierReferenceCost  ledger.Decimal `json:"supplier_reference_cost"`
+	SupplierActualCost     ledger.Decimal `json:"supplier_actual_cost"`
+	SubscriptionActualCost ledger.Decimal `json:"subscription_actual_cost"`
 }
 
 // A posted receipt supersedes its provider observation. Before posting, a
@@ -95,16 +96,20 @@ func originalCurrencyFacts(ctx context.Context, tx *gorm.DB, op string, from, to
 			totals[c.Currency] = r
 		}
 		var actuals []struct {
-			Currency string
-			Amount   ledger.Decimal
+			Currency     string
+			Amount       ledger.Decimal
+			Subscription ledger.Decimal
 		}
-		if err = tx.WithContext(ctx).Table("model_actual_costs").Select("currency,sum(amount)::text AS amount").Where("created_at>=? AND created_at<?", from, to).Group("currency").Scan(&actuals).Error; err != nil {
+		if err = tx.WithContext(ctx).Table("model_actual_costs").
+			Select("currency,COALESCE(sum(amount) FILTER(WHERE subscription_kind=''),0)::text AS amount,COALESCE(sum(amount) FILTER(WHERE subscription_kind<>''),0)::text AS subscription").
+			Where("created_at>=? AND created_at<?", from, to).Group("currency").Scan(&actuals).Error; err != nil {
 			return nil, err
 		}
 		for _, c := range actuals {
 			r := totals[c.Currency]
 			r.Currency = c.Currency
 			r.SupplierActualCost = c.Amount
+			r.SubscriptionActualCost = c.Subscription
 			totals[c.Currency] = r
 		}
 	}

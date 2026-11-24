@@ -3062,7 +3062,7 @@
   {
     "resource": "providers",
     "confirmation": "",
-    "description": "选择已保存的供应商密钥，配置协议、模型与能力；可选择 Bifrost 参考价目身份。供应商成本与经营方 ATG 定价分开。",
+    "description": "选择供应商连接、模型和能力。按量连接可选 Bifrost 参考价目。",
     "fields": [
       {
         "name": "configuration",
@@ -3397,10 +3397,50 @@
         "required": true
       },
       {
+        "name": "subscription_kind",
+        "label": "订阅计费",
+        "kind": "hidden",
+        "required": false
+      },
+      {
         "name": "supplier_model_id",
         "label": "供应商模型（留空表示供应商整体）",
         "kind": "text",
-        "required": false
+        "required": false,
+        "visible_when": {
+          "field": "subscription_kind",
+          "values": [
+            "codex",
+            "claude"
+          ],
+          "not": true
+        }
+      },
+      {
+        "name": "statement_reference",
+        "label": "订阅账单编号",
+        "kind": "text",
+        "required": true,
+        "visible_when": {
+          "field": "subscription_kind",
+          "values": [
+            "codex",
+            "claude"
+          ]
+        }
+      },
+      {
+        "name": "account_coverage",
+        "label": "覆盖账号",
+        "kind": "text",
+        "required": false,
+        "visible_when": {
+          "field": "subscription_kind",
+          "values": [
+            "codex",
+            "claude"
+          ]
+        }
       },
       {
         "name": "starts_at",
@@ -3435,7 +3475,7 @@
     ],
     "include_version": false,
     "confirmation": "",
-    "description": "按账单原币独立登记实际成本；Bifrost USD参考成本和供应商报告成本分别观察，不折算、不相减、不计入清算币种成本总计。财报按数据库登记时间汇总，服务期间单独保留。"
+    "description": "按账单原币独立登记实际成本。订阅账号池按服务期间登记原币订阅账单。财报按登记时间汇总，服务期间单独保留。"
   },
   {
     "resource": "supplier-costs",
@@ -3464,10 +3504,50 @@
         "required": true
       },
       {
+        "name": "subscription_kind",
+        "label": "订阅计费",
+        "kind": "hidden",
+        "required": false
+      },
+      {
         "name": "supplier_model_id",
         "label": "供应商模型（留空表示供应商整体）",
         "kind": "text",
-        "required": false
+        "required": false,
+        "visible_when": {
+          "field": "subscription_kind",
+          "values": [
+            "codex",
+            "claude"
+          ],
+          "not": true
+        }
+      },
+      {
+        "name": "statement_reference",
+        "label": "订阅账单编号",
+        "kind": "text",
+        "required": true,
+        "visible_when": {
+          "field": "subscription_kind",
+          "values": [
+            "codex",
+            "claude"
+          ]
+        }
+      },
+      {
+        "name": "account_coverage",
+        "label": "覆盖账号",
+        "kind": "text",
+        "required": false,
+        "visible_when": {
+          "field": "subscription_kind",
+          "values": [
+            "codex",
+            "claude"
+          ]
+        }
       },
       {
         "name": "starts_at",
@@ -3502,7 +3582,7 @@
     ],
     "include_version": false,
     "confirmation": "",
-    "description": "按账单原币独立登记实际成本；Bifrost USD参考成本和供应商报告成本分别观察，不折算、不相减、不计入清算币种成本总计。财报按数据库登记时间汇总，服务期间单独保留。"
+    "description": "按账单原币独立登记实际成本。订阅账号池按服务期间登记原币订阅账单。财报按登记时间汇总，服务期间单独保留。"
   },
   {
     "resource": "procurement",

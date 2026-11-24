@@ -94,20 +94,23 @@ type Request struct {
 // Attempt contains references only. Secret resolution is platform owned and is
 // performed immediately before execution, never exposed through request JSON.
 type Attempt struct {
-	InputFacts    map[string]string `json:"input_facts,omitempty"`
-	BillingParams json.RawMessage   `json:"billing_params,omitempty"`
-	CostSnapshot  json.RawMessage   `json:"cost_snapshot,omitempty"`
-	ID            string            `json:"attempt_id"`
-	RequestID     string            `json:"request_id"`
-	UpstreamID    string            `json:"upstream_id"`
-	Provider      string            `json:"provider"`
-	UpstreamModel string            `json:"upstream_model"`
-	PublicModel   string            `json:"public_model"`
-	CredentialID  string            `json:"credential_id"`
-	BaseURL       string            `json:"-"`
-	Deadline      time.Time         `json:"deadline"`
-	Capability    Capability        `json:"capability"`
-	TaskID        string            `json:"task_id,omitempty"`
+	InputFacts              map[string]string `json:"input_facts,omitempty"`
+	BillingParams           json.RawMessage   `json:"billing_params,omitempty"`
+	CostSnapshot            json.RawMessage   `json:"cost_snapshot,omitempty"`
+	ID                      string            `json:"attempt_id"`
+	RequestID               string            `json:"request_id"`
+	UpstreamID              string            `json:"upstream_id"`
+	Provider                string            `json:"provider"`
+	UpstreamModel           string            `json:"upstream_model"`
+	PublicModel             string            `json:"public_model"`
+	CredentialID            string            `json:"credential_id"`
+	SubscriptionKind        string            `json:"subscription_kind,omitempty"`
+	SubscriptionAccountID   string            `json:"subscription_account_id,omitempty"`
+	SubscriptionOutputLimit int64             `json:"subscription_output_limit,omitempty"`
+	BaseURL                 string            `json:"-"`
+	Deadline                time.Time         `json:"deadline"`
+	Capability              Capability        `json:"capability"`
+	TaskID                  string            `json:"task_id,omitempty"`
 }
 type Credential struct {
 	ID     string
@@ -115,6 +118,15 @@ type Credential struct {
 }
 type CredentialSource interface {
 	ResolveCredential(context.Context, string, string) (Credential, error)
+}
+
+type SubscriptionCredential struct {
+	AccessToken string
+	AccountID   string
+}
+
+type SubscriptionCredentialSource interface {
+	ResolveSubscriptionCredential(context.Context, Attempt) (SubscriptionCredential, error)
 }
 
 type Measurement struct {
@@ -143,7 +155,8 @@ type Result struct {
 	ErrorCode         string            `json:"error_code,omitempty"`
 	// Only the HTTP status and a system-owned ErrorCode cross the SDK boundary.
 	// Supplier error text is never returned or recorded.
-	ProviderStatus int `json:"provider_status,omitempty"`
+	ProviderStatus      int        `json:"provider_status,omitempty"`
+	SubscriptionRetryAt *time.Time `json:"-"`
 }
 
 // Money preserves the currency documented by the source. Supplier observations

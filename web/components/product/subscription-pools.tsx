@@ -82,24 +82,31 @@ export function SubscriptionPoolsScreen({ operatorID }: { operatorID: string }) 
       <Empty title={t("暂无订阅账号池")}>{t("新建账号池并加入一个已授权的订阅账号即可开始。")}</Empty> :
       <div className="space-y-4">{pools.map(pool => <Card key={pool.id}>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold [overflow-wrap:anywhere]">{pool.name}</h2>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-base font-semibold [overflow-wrap:anywhere]">{pool.name}</h2>
+              <Status value={pool.enabled ? "enabled" : "disabled"} />
+            </div>
             <p className="mt-1 text-sm text-ink-mute">{subscriptionVendors[pool.subscription_kind].label} · {t("{available} / {total} 个账号可用", {
               available: pool.enabled ? pool.accounts.filter(account => account.status === "available").length : 0, total: pool.accounts.length,
             })}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Status value={pool.enabled ? "enabled" : "disabled"} />
             <Button asChild size="sm" variant="outline"><Link href={`${operatorResourcePath(operatorID, "providers")}?pool=${encodeURIComponent(pool.id)}&pool_kind=${pool.subscription_kind}`}>{t("添加供应商模型")}</Link></Button>
-          </div>
-        </div>
-        <details open={pools.length === 1 || search.get("pool") === pool.id} className="mt-4 border-t border-hairline pt-3">
-          <summary className="w-fit cursor-pointer py-2 text-sm font-medium">{t("账号管理")}</summary>
-          <div className="my-3 flex flex-wrap gap-2">
-            <Button type="button" size="sm" onClick={() => open({ mode: "account", pool })}>{t("添加账号")}</Button>
             <Button type="button" size="sm" variant="outline" onClick={() => open({ mode: "pool", pool })}>{t("编辑账号池")}</Button>
             {canReadResource(workspace, "supplier-costs") && <Button asChild size="sm" variant="ghost"><Link href={operatorResourcePath(operatorID, "supplier-costs")}>{t("真实上游成本")}</Link></Button>}
           </div>
+        </div>
+        {pool.latest_statement && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+          <div className="flex min-w-0 flex-wrap gap-x-2">
+            <span className="text-ink-mute">{t("最近登记的订阅账单")}</span>
+            <Link className="text-brand-emphasis underline [overflow-wrap:anywhere]" href={`${operatorResourcePath(operatorID, "supplier-costs")}?record=${encodeURIComponent(pool.latest_statement.id)}`}>{pool.latest_statement.statement_reference}</Link>
+          </div>
+          <Money value={pool.latest_statement.amount} unit={pool.latest_statement.currency} />
+        </div>}
+        <details open={pools.length === 1 || search.get("pool") === pool.id} className="mt-4 border-t border-hairline pt-3">
+          <summary className="w-fit cursor-pointer py-2 text-sm font-medium">{t("账号管理")}</summary>
+          <Button type="button" size="sm" className="my-3" onClick={() => open({ mode: "account", pool })}>{t("添加账号")}</Button>
           {pool.accounts.length ? <Table rows={pool.accounts} getID={account => account.id} columns={[
             { label: t("账号名称"), cell: account => <span className="font-medium [overflow-wrap:anywhere]">{account.name}</span> },
             { label: t("状态"), cell: account => <><Status value={account.status} labels={accountStates} />{account.status === "cooldown" && <p className="mt-1 text-xs text-ink-mute"><When value={account.cooldown_until} /></p>}</> },
@@ -109,13 +116,6 @@ export function SubscriptionPoolsScreen({ operatorID }: { operatorID: string }) 
               <Button size="sm" variant="ghost" onClick={() => open({ mode: "remove", pool, account })}>{t("移除")}</Button>
             </div> },
           ]} /> : <p className="py-4 text-sm text-ink-mute">{t("还没有账号。")}</p>}
-          {pool.latest_statement && <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3 text-sm">
-            <div className="flex min-w-0 flex-wrap gap-x-2">
-              <span className="text-ink-mute">{t("最近登记的订阅账单")}</span>
-              <Link className="text-brand-emphasis underline [overflow-wrap:anywhere]" href={`${operatorResourcePath(operatorID, "supplier-costs")}?record=${encodeURIComponent(pool.latest_statement.id)}`}>{pool.latest_statement.statement_reference}</Link>
-            </div>
-            <Money value={pool.latest_statement.amount} unit={pool.latest_statement.currency} />
-          </div>}
         </details>
       </Card>)}</div>}
     {selection && <OperatorPanel open blocked={blocked} close={close} description="" title={t(selection.mode === "pool" ? selection.pool ? "编辑账号池" : "新建账号池" : selection.mode === "remove" ? "移除账号" : selection.account ? "编辑账号" : "添加账号")}>

@@ -102,6 +102,8 @@ test("a platform subscription pool opens the existing supplier form and records 
   await expect(page.getByLabel("19.95 EUR", { exact: true })).toBeVisible();
 
   await technology.getByRole("link", { name: "订阅账号池", exact: true }).click();
+  await page.getByText("账号管理", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "添加账号", exact: true })).toBeHidden();
   await page.getByRole("link", { name: statement.statement_reference, exact: true }).click();
   await expect(page).toHaveURL(`${manage}/supplier-costs?record=${statement.id}`);
 });
@@ -135,15 +137,24 @@ test("browser authorization is the primary action and returns to the selected su
     await route.fulfill({ status: 303, headers: { location: new URL(`${manage}/subscription-pools?oauth=saved&pool=${grok.id}`, baseURL).toString() } });
   });
 
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${manage}/subscription-pools`);
   const card = page.locator("section").filter({ has: page.getByRole("heading", { name: grok.name, exact: true }) }).filter({ has: page.getByText("账号管理", { exact: true }) }).last();
   const modelEntry = card.getByRole("link", { name: "添加供应商模型", exact: true });
+  const editPool = card.getByRole("button", { name: "编辑账号池", exact: true });
+  const accountManagement = card.locator("details");
   await expect(modelEntry).toBeVisible();
   await expect(modelEntry).toHaveAttribute("href", `${manage}/providers?pool=${grok.id}&pool_kind=grok`);
-  await expect(card.getByRole("button", { name: "添加账号", exact: true })).toBeHidden();
-  await card.getByText("账号管理", { exact: true }).click();
-  await card.getByRole("button", { name: "添加账号", exact: true }).click();
+  await expect(card.getByRole("link", { name: "真实上游成本", exact: true })).toHaveAttribute("href", `${manage}/supplier-costs`);
+  await expect(accountManagement.getByRole("button", { name: "添加账号", exact: true })).toBeHidden();
+  await editPool.click();
   let dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel("账号池名称", { exact: true })).toHaveValue(grok.name);
+  await dialog.getByRole("button", { name: "关闭办理面板", exact: true }).click();
+  await card.getByText("账号管理", { exact: true }).click();
+  await expect(accountManagement.getByRole("link")).toHaveCount(0);
+  await expect(accountManagement.getByRole("button", { name: "编辑账号池", exact: true })).toHaveCount(0);
+  await accountManagement.getByRole("button", { name: "添加账号", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "在浏览器中授权" })).toBeEnabled();
   await expect(dialog.locator('input[type="password"]')).toHaveCount(0);
   await dialog.getByLabel("账号名称", { exact: true }).fill(account.name);

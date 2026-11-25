@@ -54,7 +54,7 @@ func grokMediaInput(a Attempt, r Request) ([]byte, error) {
 		InputReference string               `json:"input_reference"`
 		VideoURI       string               `json:"video_uri"`
 	}
-	if json.Unmarshal(r.Input, &input) != nil || strings.TrimSpace(input.Prompt) == "" || input.VideoURI != "" || r.Stream {
+	if json.Unmarshal(r.Input, &input) != nil || strings.TrimSpace(input.Prompt) == "" || r.Stream {
 		return nil, ErrInvalidRequest
 	}
 	var params map[string]json.RawMessage
@@ -62,6 +62,20 @@ func grokMediaInput(a Attempt, r Request) ([]byte, error) {
 		return nil, ErrInvalidRequest
 	}
 	payload := map[string]any{"model": a.UpstreamModel, "prompt": input.Prompt}
+	if r.VideoAction != "" {
+		if r.Operation != Video || r.VideoAction != a.VideoAction || a.UpstreamModel != grokVideoEditModel || input.VideoURI == "" ||
+			r.VideoAction != VideoEdit && r.VideoAction != VideoExtend {
+			return nil, ErrUnsupported
+		}
+		payload["video"] = map[string]string{"url": input.VideoURI}
+		if r.VideoAction == VideoExtend {
+			payload["duration"] = params["duration"]
+		}
+		return json.Marshal(payload)
+	}
+	if input.VideoURI != "" {
+		return nil, ErrInvalidRequest
+	}
 	for name, value := range params {
 		switch name {
 		case "aspect_ratio", "resolution":
@@ -97,7 +111,7 @@ func grokMediaInput(a Attempt, r Request) ([]byte, error) {
 		}
 	}
 	if r.Operation == Video && input.InputReference != "" {
-		if !validImageURL(input.InputReference) && !(strings.HasPrefix(input.InputReference, "data:image/") && len(assetBytes(input.InputReference)) > 0) {
+		if !validMediaURL(input.InputReference) && !(strings.HasPrefix(input.InputReference, "data:image/") && len(assetBytes(input.InputReference)) > 0) {
 			return nil, ErrInvalidRequest
 		}
 		payload["image"] = map[string]string{"url": input.InputReference}
@@ -196,14 +210,20 @@ func (b *Bifrost) grokVideoResult(ctx context.Context, a Attempt, r Request, raw
 		return out, nil
 	}
 	duration := string(task.Video.Duration)
-	native := map[string]any{"status": "completed", "duration": task.Video.Duration}
+	if seconds, ok := numeric(task.Video.Duration); !ok || seconds.Sign() <= 0 {
+		measured := mp4Seconds(clip)
+		if measured == nil || measured.Sign() <= 0 {
+			out.TaskID, out.State = task.ID, "submitted"
+			return out, nil
+		}
+		duration = measured.FloatString(18)
+	}
+	native := map[string]any{"status": "completed", "duration": duration}
 	response := &schemas.BifrostVideoGenerationResponse{
 		ID: task.ID, Model: a.UpstreamModel, Object: "video", Status: schemas.VideoStatusCompleted,
 		Videos:      []schemas.VideoOutput{{Type: "url", URL: &task.Video.URL, ContentType: "video/mp4"}},
 		ExtraFields: schemas.BifrostResponseExtraFields{RawResponse: native},
-	}
-	if duration != "" {
-		response.Seconds = &duration
+		Seconds:     &duration,
 	}
 	if task.Video.Width > 0 && task.Video.Height > 0 {
 		response.Size = strconv.Itoa(task.Video.Width) + "x" + strconv.Itoa(task.Video.Height)
@@ -212,11 +232,6 @@ func (b *Bifrost) grokVideoResult(ctx context.Context, a Attempt, r Request, raw
 	}
 	if response.Size != "" {
 		native["size"] = response.Size
-	}
-	if duration == "" {
-		if measured := mp4Seconds(clip); measured != nil {
-			native["duration"] = measured.FloatString(18)
-		}
 	}
 	if profile := a.Capability.Billing; profile != nil && response.Size == "" {
 		for _, item := range profile.Output {

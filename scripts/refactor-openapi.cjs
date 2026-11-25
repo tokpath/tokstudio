@@ -96,7 +96,8 @@ const messages = add('post','/v1/messages','Execute an Anthropic Messages reques
 },['model','messages','max_tokens']),'model');
 messages.description = 'Available for public Responses models routed through an eligible Codex or Grok subscription pool. The response uses the Anthropic Messages format and billing uses verified upstream Responses usage. The request must fit the upstream connection parameters. Codex can accept max_tokens only when it covers the verified model output limit. Reuse an optional Idempotency-Key to replay the same request without another charge.';
 messages.security = [{ModelKey:[]},{MessagesKey:[]}];
-messages.parameters = [{name:'Idempotency-Key',in:'header',required:false,schema:{type:'string',maxLength:150}}];
+const modelIdempotency = {name:'Idempotency-Key',in:'header',required:false,schema:{type:'string',maxLength:150}};
+messages.parameters = [modelIdempotency];
 messages.responses['200'].headers = chat.responses['200'].headers;
 messages.responses['200'].content = {
  ...json({}),
@@ -130,7 +131,76 @@ const imageStatus=add('get','/v1/images/tasks/{id}','Retrieve temporary results 
 imageStatus.description='Use the original API Key and the task ID or X-TokenHub-Request-ID. Completed results contain private base64 images for the retention window. Polling does not rerun or charge the request.';
 imageStatus.responses['410']={description:'Temporary result expired',content:json('APIError')};
 imageStatus.responses['503']={description:'Result temporarily unavailable inside the retention window',content:json('APIError')};
+const responsesSocket = add('get','/v1/responses','Open a Responses WebSocket connection',{},null,'model');
+responsesSocket.description = 'Send flat JSON response.create events. Each inference turn checks budget, reserves credits and settles verified Responses usage. Closing the socket does not cancel accepted turns. The latest completed response in a stream can supply context on this connection. Use the same event_id or idempotency_key and payload to retrieve a retained terminal response after reconnecting.';
+delete responsesSocket.responses['200'];
+responsesSocket.responses['101'] = {description:'WebSocket connection accepted'};
+responsesSocket.responses['426'] = {description:'WebSocket upgrade required',content:json('APIError')};
+responsesSocket['x-websocket-client-message'] = {
+ ...obj({type:{const:'response.create'},model:str,input:{},previous_response_id:{type:['string','null']},
+  idempotency_key:{...str,maxLength:120},event_id:{...str,maxLength:120},stream_id:{...str,maxLength:120},generate:bool},
+ ['type','model']),additionalProperties:true,
+};
+
+const batchPath = '/v1/images/batches';
+const batchStatus = obj({
+ id:uuid,object:{const:'image.batch'},model:str,task_name:str,
+ status:{enum:['queued','in_progress','completed','partial_failed','cancelled','failed']},
+ created_at:integer,delivered_at:timestamp,item_count:integer,success_count:integer,fail_count:integer,cancelled_count:integer,
+ estimate_atg:decimal,charged_atg:decimal,
+});
+const batchItem = obj({custom_id:str,request_id:uuid,status:str,reason:str,cancel_requested:bool,charged_atg:decimal});
+const batchImageReference = obj({
+ file_uri:{...str,format:'uri'},data:{...str,contentEncoding:'base64'},mime_type:str,
+},[]);
+batchImageReference.oneOf = [{required:['data']},{required:['file_uri']}];
+const submitBatch = add('post',batchPath,'Accept an image batch and reserve all its items',{},obj({
+ model:str,task_name:{...str,maxLength:80},size:str,quality:str,
+ items:{...array(obj({
+  custom_id:{...str,pattern:'^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}$'},prompt:str,
+  output_count:{type:'integer',minimum:1,maximum:10,default:1},
+  reference_images:{...array(batchImageReference),maxItems:10},
+ },['custom_id','prompt'])),minItems:1,maxItems:20},
+},['model','items']),'model');
+submitBatch.parameters = [modelIdempotency];
+submitBatch.description = 'Acceptance freezes each item price and atomically reserves the whole batch. HTTP 202 records delivery. Items with reference images use image editing. Individual requests settle with verified usage and results are private to the submitting API key.';
+delete submitBatch.responses['200'];
+submitBatch.responses['202'] = {description:'Batch accepted',headers:{Location:{schema:str},'Retry-After':{schema:integer}},content:json(batchStatus)};
+const batches = add('get',batchPath,'List this API key’s image batches',obj({
+ object:{const:'list'},data:array(batchStatus),has_more:bool,next_cursor:str,
+}),null,'model');
+batches.parameters.push(query('cursor','The next cursor from the previous page'),{name:'limit',in:'query',schema:{type:'integer',minimum:1,maximum:50,default:20}});
+add('get',batchPath+'/{id}','Read the status, estimate and settled charge of an image batch',batchStatus,null,'model');
+add('get',batchPath+'/{id}/items','List original requests and charges inside an image batch',obj({
+ object:{const:'list'},data:array(batchItem),has_more:{const:false},
+}),null,'model');
+const cancelBatch = add('post',batchPath+'/{id}/cancel','Request cancellation of unfinished image items',batchStatus,null,'model');
+cancelBatch.parameters = cancelBatch.parameters.filter(p=>!p.$ref);
+const batchContent = add('get',batchPath+'/{id}/items/{custom_id}/content','Download one private image from a batch item',{},null,'model');
+batchContent.parameters.push({name:'image_index',in:'query',schema:{...integer,default:0}});
+const binaryFile = {schema:{type:'string',contentEncoding:'binary'}};
+batchContent.responses['200'].content = Object.fromEntries(['image/png','image/jpeg','image/webp','image/gif'].map(type=>[type,binaryFile]));
+batchContent.responses['410'] = {description:'The item result expired',content:json('APIError')};
+const batchZip = add('get',batchPath+'/{id}/download','Download available batch images and a manifest as a ZIP',{},null,'model');
+batchZip.responses['200'].content = {'application/zip':binaryFile};
+batchZip.responses['410'] = {description:'The available results have expired',content:json('APIError')};
+
 add('get','/v1/models','List public model IDs permitted for this brand-bound API key',obj({object:{const:'list'},data:array(obj({id:str,object:{const:'model'},owned_by:str}))}),null,'model');
+add('get',batchPath+'/models','List callable public image models permitted for this API key',obj({object:{const:'list'},data:array(obj({id:str,object:{const:'model'},owned_by:str}))}),null,'model');
+const videoSubmit = paths['/v1/videos'].post;
+const videoGenerate = add('post','/v1/videos/generations','Submit a video generation task',{},videoSubmit.requestBody.content['application/json'].schema,'model');
+videoGenerate.parameters = videoSubmit.parameters;
+videoGenerate.requestBody = videoSubmit.requestBody;
+videoGenerate.responses = videoSubmit.responses;
+for (const [path, title] of [['edits','Edit a Grok video'],['extensions','Extend a Grok video']]) {
+ const body = obj({model:str,prompt:str,video:obj({url:{...str,format:'uri'}}),
+  ...(path==='extensions'?{duration:{type:'integer',minimum:2,maximum:10,default:6}}:{})},['model','prompt','video']);
+ const op = add('post','/v1/videos/'+path,title,{},body,'model');
+ op.parameters = [modelIdempotency];
+ op.description = 'Accepts a video from an approved HTTPS URL or an inline MP4. The task uses an eligible Grok video subscription route. The platform reserves the possible total output duration and settles the verified duration and configured specification of the finished clip. Read results through the original task ID.';
+ op.responses['202'] = videoSubmit.responses['202'];
+ op.responses['200'].headers = videoSubmit.responses['200'].headers;
+}
 add('post','/v1/me/refunds/legs/{id}/responsible-destination','Customer explicitly authorizes the remaining refund through the current responsible operator','CommandResult','DestinationProposal');
 add('get','/v1/videos/{id}','Query own original asynchronous task without resubmission',obj({id:str,object:{const:'video'},status:str,model:str,created_at:integer,delivered_at:{anyOf:[timestamp,{type:'null'}]},reason:str},['id','object','status','model','created_at']),null,'model');const download=add('get','/v1/videos/{id}/content','Download own completed private temporary video',{},null,'model');download.responses['200'].content={'application/octet-stream':{schema:{type:'string',contentEncoding:'binary'}}};add('delete','/v1/videos/{id}','Request cancellation of own original asynchronous task',obj({id:str,status:str,cancel_requested:bool}),null,'model');
 const hook=add('post','/v1/payments/webhooks/{merchantId}','Persist and verify original signed provider callback before recoverable receipt handling',{},null,'webhook');hook.description='Provider-specific raw request body and headers. Stripe HMAC, Alipay RSA2, WeChat RSA/AES-GCM are verified by configured real driver. Duplicate stable external fact IDs are idempotent. This is not a browser command and does not accept browser CSRF or synthetic success flags.';hook.requestBody={required:true,content:{'application/json':{schema:{}},'application/x-www-form-urlencoded':{schema:{type:'object',additionalProperties:true}}}};

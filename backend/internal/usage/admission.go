@@ -45,6 +45,10 @@ func Estimate(q catalog.ModelQuote, r modelruntime.Request) (ledger.Decimal, err
 // and reserves the customer estimate and every upstream procurement maximum.
 // No network model request happens until this transaction commits.
 func (s *Service) Admit(ctx context.Context, authenticated Key, businessKey string, r modelruntime.Request) (Request, bool, error) {
+	return s.admit(ctx, nil, authenticated, businessKey, r, time.Time{})
+}
+
+func (s *Service) admit(ctx context.Context, tx *gorm.DB, authenticated Key, businessKey string, r modelruntime.Request, at time.Time) (Request, bool, error) {
 	ctx, span := otel.Tracer("tokenhub/usage").Start(ctx, "usage.admit")
 	defer span.End()
 	var committedWork trace.Span
@@ -58,11 +62,8 @@ func (s *Service) Admit(ctx context.Context, authenticated Key, businessKey stri
 	if businessKey == "" || len(businessKey) > 160 || s.Ledger == nil || s.Organization == nil || s.Cooperation == nil || s.GrantObserver == nil || s.EncryptionKey == "" {
 		return out, false, ErrNotReady
 	}
-	originalID := r.ID
-	r.ID = ""
-	fp := s.fingerprint(r)
-	r.ID = originalID
-	e := s.within(ctx, nil, func(t *gorm.DB) error {
+	fp := s.requestFingerprint(r)
+	e := s.within(ctx, tx, func(t *gorm.DB) error {
 		ownership, e := s.Organization.CurrentOwnership(ctx, t, authenticated.CustomerID)
 		if e != nil {
 			return e
@@ -135,9 +136,12 @@ func (s *Service) Admit(ctx context.Context, authenticated Key, businessKey stri
 				return ErrKey
 			}
 		}
-		now, e := s.businessTime(t)
-		if e != nil {
-			return e
+		now := at
+		if now.IsZero() {
+			now, e = s.businessTime(t)
+			if e != nil {
+				return e
+			}
 		}
 		var count int64
 		var durableRateCount int64
@@ -232,7 +236,7 @@ func (s *Service) Admit(ctx context.Context, authenticated Key, businessKey stri
 		out.Candidates, _ = json.Marshal(quote.Candidates)
 		// The durable transaction rolls all reservations back when Redis is
 		// unavailable. Already accepted requests can still settle without Redis.
-		if s.AdmissionLimiter != nil {
+		if s.AdmissionLimiter != nil && tx == nil {
 			if e = s.AdmissionLimiter.Check(ctx, k.ID, out.ID, k.RateLimitRPM, durableRateCount); e != nil {
 				return e
 			}

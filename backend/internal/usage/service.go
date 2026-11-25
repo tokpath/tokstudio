@@ -85,6 +85,14 @@ func (s *Service) fingerprint(v any) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+func (s *Service) requestFingerprint(r modelruntime.Request) string {
+	if len(r.WebSocketInput) > 0 {
+		return s.fingerprint(struct{ WebSocket json.RawMessage }{r.WebSocketInput})
+	}
+	r.ID = ""
+	return s.fingerprint(r)
+}
+
 type SupplyHold struct {
 	BuyerID string         `json:"buyer_id"`
 	HoldID  string         `json:"hold_id,omitempty"`

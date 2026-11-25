@@ -483,7 +483,7 @@ func TestExternalStripeReceiptCallbackTopup(t *testing.T) {
 		t.Fatal("customer did not see the corrected charge", out["net_charged_atg"])
 	}
 }
-func (f *testApp) configureExternalCatalog(t *testing.T, lab string) string {
+func (f *testApp) configureExternalCatalog(t *testing.T, lab string, operations ...modelruntime.Operation) string {
 	t.Helper()
 	ctx := context.Background()
 	cat := f.a.Catalog
@@ -492,7 +492,17 @@ func (f *testApp) configureExternalCatalog(t *testing.T, lab string) string {
 	upstreamID := uuid.NewString()
 	providerID := uuid.NewString()
 	credentialID := uuid.NewString()
-	cap := modelruntime.Capability{Operation: modelruntime.Chat, BillableBounds: map[string]string{"input": "1000", "output": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}}
+	op, path := modelruntime.Chat, "/v1/chat/completions"
+	if len(operations) > 0 {
+		op = operations[0]
+		switch op {
+		case modelruntime.Responses:
+			path = "/v1/responses"
+		case modelruntime.Image:
+			path = "/v1/images/generations"
+		}
+	}
+	cap := modelruntime.DefaultBilling(op).Capability(op, op == modelruntime.Responses)
 	m := catalog.PublicModel{ID: modelID, Identity: modelID, Capabilities: []modelruntime.Capability{cap}}
 	if e := cat.SavePublicModel(ctx, platform, m, 0); e != nil {
 		t.Fatal(e)
@@ -500,7 +510,7 @@ func (f *testApp) configureExternalCatalog(t *testing.T, lab string) string {
 	if _, e := cat.SaveCredential(ctx, platform, credentialID, providerID, "fixture provider key", "fixture-provider-key", true, 0); e != nil {
 		t.Fatal(e)
 	}
-	upstream := catalog.UpstreamModel{ID: upstreamID, PublicModelID: modelID, Identity: modelID, ProviderID: providerID, Provider: "openai", Model: "test-chat", CredentialID: credentialID, Endpoints: map[modelruntime.Operation]string{modelruntime.Chat: lab + "/v1/chat/completions"}, Capabilities: m.Capabilities, Enabled: true, Healthy: true}
+	upstream := catalog.UpstreamModel{ID: upstreamID, PublicModelID: modelID, Identity: modelID, ProviderID: providerID, Provider: "openai", Model: "test-chat", CredentialID: credentialID, Endpoints: map[modelruntime.Operation]string{op: lab + path}, Capabilities: []modelruntime.Capability{cap}, Enabled: true, Healthy: true}
 	if e := cat.SaveUpstream(ctx, platform, upstream, 0); e != nil {
 		t.Fatal(e)
 	}
@@ -513,6 +523,9 @@ func (f *testApp) configureExternalCatalog(t *testing.T, lab string) string {
 	}
 	for _, scope := range []catalog.PriceScope{{Kind: "retail", SellerID: platform}} {
 		price := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: modelID, Layer: "regular", EffectiveAt: time.Now().Add(-time.Hour), Published: true, NoticeID: "explicit synthetic protocol terms", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "output", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "cache", Unit: "token", Per: "1", Rate: "0.001"}}}}
+		if op == modelruntime.Image {
+			price.Rule.Components = []catalog.ComponentRate{{Key: "output_image_images", Unit: "image", Per: "1", Rate: "0.25"}}
+		}
 		if e := cat.PublishPrice(ctx, platform, price, func(ctx context.Context, tx *gorm.DB, _ catalog.PriceVersion) error {
 			_, e := f.a.Cooperation.Coverage(ctx, tx, platform, time.Now())
 			return e

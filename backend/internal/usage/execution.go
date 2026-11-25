@@ -13,11 +13,14 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	platformcrypto "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
+	"github.com/tokpath/tokstudio/backend/internal/platform/objectstore"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+const shortResultRetention = 5 * time.Minute
 
 type AttemptRecord struct {
 	SupplierModelID                       string
@@ -70,6 +73,35 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 	}
 	span.SetAttributes(attribute.String("tokenhub.request_id", req.ID), attribute.String("tokenhub.model_id", req.ModelID), attribute.String("tokenhub.operation", string(req.Operation)), attribute.Bool("tokenhub.replay", !created))
 	return s.executeAdmitted(ctx, req, input, emit, !created)
+}
+
+// ReplayResponseTurn looks up an existing WebSocket request before the caller
+// needs to expand connection-local history. It never claims a new dispatch.
+func (s *Service) ReplayResponseTurn(ctx context.Context, key Key, businessKey string, input modelruntime.Request) (Execution, bool, error) {
+	var result Execution
+	err := s.DB.WithContext(ctx).Table("usage_requests r").Select("r.*").
+		Joins("JOIN usage_keys k ON k.id=r.key_id AND k.status='active' AND k.token_hash=?", key.TokenHash).
+		Where("r.key_id=? AND r.customer_id=? AND r.brand_id=? AND r.business_key=?", key.ID, key.CustomerID, key.BrandID, businessKey).
+		Take(&result.Request).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return result, false, nil
+	}
+	if err != nil {
+		return result, false, err
+	}
+	if result.Request.Fingerprint != s.requestFingerprint(input) {
+		return Execution{}, true, ErrConflict
+	}
+	result.Replay = true
+	if !terminal(result.Request.Status) {
+		return result, true, ErrInProgress
+	}
+	result.Result, err = s.ReadResult(ctx, key.CustomerID, result.Request.ID)
+	if errors.Is(err, ErrResultUnavailable) && result.Request.Status == "completed" && result.Request.CompletedAt != nil &&
+		result.Request.CompletedAt.Add(shortResultRetention).After(s.wallNow()) {
+		err = objectstore.ErrUnavailable
+	}
+	return result, true, err
 }
 
 func (s *Service) executeAdmitted(ctx context.Context, req Request, input modelruntime.Request, emit modelruntime.Emit, replay bool) (Execution, error) {
@@ -158,6 +190,7 @@ routes:
 				BaseURL: upstream.Endpoints[input.Operation], Deadline: req.UsageDeadline, Capability: capability,
 				BillingParams: billingParams, CostSnapshot: costs[upstream.ID],
 				SubscriptionKind: upstream.SubscriptionKind, SubscriptionOutputLimit: upstream.SubscriptionOutputLimit,
+				VideoAction: input.VideoAction,
 			}
 			row := AttemptRecord{SupplierModelID: upstream.SupplierModelID, ID: attempt.ID, RequestID: req.ID, UpstreamID: upstream.ID,
 				ProviderID: upstream.ProviderID, State: "dispatching", CostStatus: "pending", StartedAt: s.wallNow()}
@@ -440,7 +473,7 @@ func (s *Service) StoreResult(ctx context.Context, r Request, result modelruntim
 	if e != nil {
 		return e
 	}
-	ttl := 5 * time.Minute
+	ttl := shortResultRetention
 	if r.Operation == modelruntime.Video || r.AsyncImage || r.Operation.IsImage() && r.Streaming {
 		ttl = s.ResultRetention
 	}

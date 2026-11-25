@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -123,6 +124,7 @@ type UpstreamModel struct {
 	SubscriptionKind        string                            `json:"subscription_kind,omitempty"`
 	SubscriptionInputLimit  int64                             `json:"subscription_input_limit,omitempty"`
 	SubscriptionOutputLimit int64                             `json:"subscription_output_limit,omitempty"`
+	VideoActions            []modelruntime.Operation          `json:"video_actions,omitempty"`
 	Version                 uint64                            `json:"version"`
 }
 type CredentialView struct {
@@ -632,6 +634,7 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 		if e := json.Unmarshal(row.Definition, &u); e != nil {
 			return nil, e
 		}
+		u.VideoActions = nil
 		var capabilities []modelruntime.Capability
 		for _, c := range u.Capabilities {
 			if subscriptionauth.MediaAllowed(u.SubscriptionKind, string(c.Operation)) {
@@ -639,6 +642,9 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 				endpoint, ok := connection.MediaEndpoint(string(c.Operation))
 				if !row.MediaReady || !ok || c.Streaming && !endpoint.Streaming {
 					continue
+				}
+				if u.SubscriptionKind == subscriptionauth.Grok && c.Operation == modelruntime.Video && !c.Streaming {
+					u.VideoActions = modelruntime.GrokVideoActions(u.Model, connection)
 				}
 			}
 			p, ok := m.Billing[c.Operation]
@@ -659,6 +665,9 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 
 // SelectCapability returns the exact verified capability admitted for a request.
 func SelectCapability(u UpstreamModel, r modelruntime.Request) (modelruntime.Capability, error) {
+	if r.VideoAction != "" && !slices.Contains(u.VideoActions, r.VideoAction) {
+		return modelruntime.Capability{}, modelruntime.ErrUnsupported
+	}
 	if r.ClientProtocol != "" && u.SubscriptionKind != subscriptionauth.Codex && u.SubscriptionKind != subscriptionauth.Grok {
 		return modelruntime.Capability{}, modelruntime.ErrUnsupported
 	}
@@ -666,6 +675,16 @@ func SelectCapability(u UpstreamModel, r modelruntime.Request) (modelruntime.Cap
 		return modelruntime.Capability{}, modelruntime.ErrUnsupported
 	}
 	for _, c := range u.Capabilities {
+		if r.VideoAction != "" {
+			if c.Operation != modelruntime.Video || c.Streaming {
+				continue
+			}
+			var ok bool
+			c, ok = modelruntime.GrokVideoActionCapability(c, r)
+			if !ok {
+				continue
+			}
+		}
 		if requestSupported([]modelruntime.Capability{c}, r) {
 			return c, nil
 		}

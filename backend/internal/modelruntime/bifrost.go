@@ -488,6 +488,12 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 				}
 				if usage.Reliable {
 					out.Usage = usage
+					if len(r.WebSocketInput) > 0 && len(events) == 1 && chunk.BifrostResponsesStreamResponse != nil {
+						switch chunk.BifrostResponsesStreamResponse.Type {
+						case schemas.ResponsesStreamResponseTypeCompleted, schemas.ResponsesStreamResponseTypeIncomplete:
+							out.Output, out.ContentType = events[0].Data, "application/json"
+						}
+					}
 				}
 				for _, event := range events {
 					if usage.Reliable {

@@ -121,7 +121,11 @@ func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, atte
 	endpoint := connection.InferenceURL
 	var protocol string
 	if subscriptionauth.MediaAllowed(attempt.SubscriptionKind, string(operation)) {
-		media, ok := connection.MediaEndpoint(string(operation))
+		mediaOperation := operation
+		if operation == modelruntime.Video && attempt.VideoAction != "" {
+			mediaOperation = attempt.VideoAction
+		}
+		media, ok := connection.MediaEndpoint(string(mediaOperation))
 		if operation == modelruntime.VideoDownload && !ok {
 			media, ok = connection.MediaEndpoint(subscriptionauth.VideoRetrieve)
 			ok = ok && media.Protocol == "xai"

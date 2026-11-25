@@ -343,7 +343,11 @@ func (s *Service) failUndispatched(ctx context.Context, id string, reasons ...st
 		if count != 0 {
 			return ErrInProgress
 		}
-		return s.release(t, ctx, &out, reason, "failed")
+		status := "failed"
+		if out.CancelRequested && reason == "request_cancelled_before_dispatch" {
+			status = "cancelled"
+		}
+		return s.release(t, ctx, &out, reason, status)
 	})
 	return out, e
 }

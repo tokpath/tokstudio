@@ -25,6 +25,8 @@ const (
 	Speech        Operation = "speech"
 	Transcription Operation = "transcription"
 	Video         Operation = "video_generation"
+	VideoEdit     Operation = "video_edit"
+	VideoExtend   Operation = "video_extension"
 	VideoRetrieve Operation = "video_retrieve"
 	VideoDownload Operation = "video_download"
 )
@@ -82,6 +84,7 @@ func (c Capability) Verified() bool {
 
 type Request struct {
 	InputFacts     map[string]string `json:"-"`
+	WebSocketInput json.RawMessage   `json:"-"`
 	ID             string            `json:"request_id"`
 	PublicModel    string            `json:"model"`
 	Operation      Operation         `json:"operation"`
@@ -89,11 +92,38 @@ type Request struct {
 	Async          bool              `json:"async,omitempty"`
 	ClientProtocol Operation         `json:"client_protocol,omitempty"`
 	IncludeUsage   bool              `json:"include_usage,omitempty"`
+	VideoAction    Operation         `json:"video_action,omitempty"`
 	// Input and Params use Bifrost's canonical protocol schema. DecodeProtocol
 	// below accepts standard endpoint bodies without losing unsupported fields.
 	Input      json.RawMessage `json:"input"`
 	Params     json.RawMessage `json:"params"`
 	InputTypes []string        `json:"input_types"`
+}
+
+// ResponsesContext expands a connection-local previous response for HTTP/SSE
+// upstreams. Admission must estimate usage against the expanded input.
+func (r *Request) ResponsesContext(previous []json.RawMessage) error {
+	var items []json.RawMessage
+	if len(r.Input) > 0 && json.Unmarshal(r.Input, &items) != nil {
+		return ErrInvalidRequest
+	}
+	size := 2
+	for _, item := range previous {
+		size += len(item) + 1
+	}
+	for _, item := range items {
+		if len(item) == 0 || item[0] != '{' {
+			return ErrInvalidRequest
+		}
+		size += len(item) + 1
+	}
+	if size > 16<<20 {
+		return ErrInvalidRequest
+	}
+	items = append(append([]json.RawMessage{}, previous...), items...)
+	r.Input, _ = json.Marshal(items)
+	r.InputTypes = detectInputTypes(r.Input)
+	return nil
 }
 
 // Attempt contains references only. Secret resolution is platform owned and is
@@ -117,6 +147,7 @@ type Attempt struct {
 	Deadline                time.Time         `json:"deadline"`
 	Capability              Capability        `json:"capability"`
 	TaskID                  string            `json:"task_id,omitempty"`
+	VideoAction             Operation         `json:"video_action,omitempty"`
 }
 type Credential struct {
 	ID     string
@@ -315,6 +346,8 @@ func DecodeProtocol(id string, op Operation, body []byte) (Request, error) {
 			}
 		}
 		r.Input, _ = json.Marshal(in)
+	case VideoEdit, VideoExtend:
+		return decodeGrokVideoAction(r, fields)
 	case ImageEdit:
 		in, err := decodeImageEdit(fields)
 		if err != nil {

@@ -16,7 +16,8 @@ import (
 func ValidateSubscriptionRequest(kind string, outputLimit int64, r Request) error {
 	if subscriptionauth.MediaAllowed(kind, string(r.Operation)) {
 		for _, input := range r.InputTypes {
-			if input != "text" && !(input == "image" && (r.Operation == ImageEdit || r.Operation == Video)) {
+			if input != "text" && !(input == "image" && (r.Operation == ImageEdit || r.Operation == Video)) &&
+				!(input == "video" && kind == subscriptionauth.Grok && r.Operation == Video && r.VideoAction != "") {
 				return ErrUnsupported
 			}
 		}

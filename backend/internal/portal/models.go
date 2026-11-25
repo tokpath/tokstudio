@@ -21,11 +21,16 @@ import (
 
 func (a *Application) modelRoutes(r *gin.RouterGroup) {
 	r.GET("/models", a.apiModels)
+	r.GET("/responses", a.responsesWebSocket)
 	for path, op := range map[string]modelruntime.Operation{"/chat/completions": modelruntime.Chat, "/responses": modelruntime.Responses, "/messages": modelruntime.Messages, "/embeddings": modelruntime.Embedding, "/images/generations": modelruntime.Image, "/images/edits": modelruntime.ImageEdit, "/audio/speech": modelruntime.Speech, "/audio/transcriptions": modelruntime.Transcription, "/videos": modelruntime.Video} {
 		r.POST(path, a.executeModel(op, false))
 	}
 	r.POST("/images/generations/async", a.executeModel(modelruntime.Image, true))
 	r.POST("/images/edits/async", a.executeModel(modelruntime.ImageEdit, true))
+	a.imageBatchRoutes(r.Group("/images/batches"))
+	r.POST("/videos/generations", a.executeModel(modelruntime.Video, false))
+	r.POST("/videos/edits", a.executeModel(modelruntime.VideoEdit, false))
+	r.POST("/videos/extensions", a.executeModel(modelruntime.VideoExtend, false))
 	r.GET("/images/tasks/:id", a.imageTaskStatus)
 	r.GET("/videos/:id", a.videoStatus)
 	r.GET("/videos/:id/content", a.videoContent)
@@ -148,12 +153,8 @@ func (a *Application) executeModel(op modelruntime.Operation, async bool) gin.Ha
 		if !ok {
 			return
 		}
-		businessKey := c.GetHeader("Idempotency-Key")
-		if businessKey == "" {
-			businessKey = uuid.NewString()
-		}
-		if len(businessKey) > 150 {
-			fail(c, 400, "invalid_idempotency_key", "请求编号过长", false)
+		businessKey, ok := modelBusinessKey(c)
+		if !ok {
 			return
 		}
 		raw, e := modelBody(c, op)
@@ -227,12 +228,12 @@ func (a *Application) executeModel(op modelruntime.Operation, async bool) gin.Ha
 			return
 		}
 		c.Header("X-TokenHub-Request-ID", out.Request.ID)
-		if len(out.Result.Binary) > 0 && (op != modelruntime.Video || len(out.Result.Output) == 0) {
+		if len(out.Result.Binary) > 0 && (input.Operation != modelruntime.Video || len(out.Result.Output) == 0) {
 			c.Data(200, out.Result.ContentType, out.Result.Binary)
 			return
 		}
 		if len(out.Result.Output) > 0 {
-			if op == modelruntime.Video {
+			if input.Operation == modelruntime.Video {
 				var video map[string]any
 				if json.Unmarshal(out.Result.Output, &video) == nil {
 					video["id"] = out.Request.ID
@@ -247,6 +248,19 @@ func (a *Application) executeModel(op modelruntime.Operation, async bool) gin.Ha
 		c.JSON(202, gin.H{"id": out.Request.ID, "object": "video", "status": videoProtocolStatus(out.Request.Status), "model": out.Request.ModelID, "created_at": out.Request.AcceptedAt.Unix(), "delivered_at": out.Request.DeliveredAt})
 	}
 }
+
+func modelBusinessKey(c *gin.Context) (string, bool) {
+	value := c.GetHeader("Idempotency-Key")
+	if value == "" {
+		return uuid.NewString(), true
+	}
+	if len(value) > 150 {
+		fail(c, 400, "invalid_idempotency_key", "请求编号过长", false)
+		return "", false
+	}
+	return value, true
+}
+
 func writeModelEvent(c *gin.Context, kind string, data []byte) error {
 	if kind != "" {
 		if _, err := fmt.Fprintf(c.Writer, "event: %s\n", kind); err != nil {
@@ -600,6 +614,10 @@ func videoProtocolStatus(status string) string {
 
 // apiModels exposes only this verified key's current authorized public models.
 func (a *Application) apiModels(c *gin.Context) {
+	a.writeAPIModels(c, false)
+}
+
+func (a *Application) writeAPIModels(c *gin.Context, imagesOnly bool) {
 	k, ok := a.apiKey(c)
 	if !ok {
 		return
@@ -629,6 +647,15 @@ func (a *Application) apiModels(c *gin.Context) {
 	for _, m := range rows {
 		if m.Status != "available" {
 			continue
+		}
+		if imagesOnly {
+			var images bool
+			for _, capability := range m.Capabilities {
+				images = images || capability.Operation.IsImage()
+			}
+			if !images {
+				continue
+			}
 		}
 		permitted := allowed == nil
 		for _, id := range allowed {

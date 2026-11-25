@@ -58,7 +58,7 @@ func decodeImageEdit(fields map[string]json.RawMessage) (json.RawMessage, error)
 				return nil, ErrInvalidRequest
 			}
 		}
-		if image.URL != "" && !validImageURL(image.URL) {
+		if image.URL != "" && !validMediaURL(image.URL) {
 			return nil, ErrInvalidRequest
 		}
 		input.Images = append(input.Images, image)
@@ -69,7 +69,7 @@ func decodeImageEdit(fields map[string]json.RawMessage) (json.RawMessage, error)
 	return json.Marshal(input)
 }
 
-func validImageURL(raw string) bool {
+func validMediaURL(raw string) bool {
 	u, err := url.Parse(raw)
 	return err == nil && u.Scheme == "https" && u.Hostname() != "" && u.User == nil && u.Fragment == ""
 }

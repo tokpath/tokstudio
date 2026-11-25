@@ -175,3 +175,32 @@ func TestGrokVideoUsesVerifiedDurationAndPrivateBytes(t *testing.T) {
 		t.Fatalf("video did not meter the actual clip: %+v, %v", out.Usage, err)
 	}
 }
+
+func TestGrokVideoActionsEncodeNativeVideoInput(t *testing.T) {
+	for _, sample := range []struct {
+		op     Operation
+		params string
+		want   int
+	}{
+		{VideoEdit, "", 0},
+		{VideoExtend, `,"duration":5`, 5},
+		{VideoExtend, "", 6},
+	} {
+		body := `{"model":"public-model","prompt":"red filter","video":{"url":"https://example.com/clip.mp4"}` + sample.params + "}"
+		r, err := DecodeProtocol("request", sample.op, []byte(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		a := Attempt{UpstreamModel: "grok-imagine-video", VideoAction: sample.op}
+		encoded, err := grokMediaInput(a, r)
+		var native struct {
+			Duration int
+			Model    string
+			Video    struct{ URL string }
+		}
+		if err != nil || json.Unmarshal(encoded, &native) != nil || native.Video.URL != "https://example.com/clip.mp4" ||
+			native.Model != "grok-imagine-video" || native.Duration != sample.want {
+			t.Fatalf("wrong Grok payload for %s: %s %v", sample.op, encoded, err)
+		}
+	}
+}

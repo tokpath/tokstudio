@@ -10,6 +10,8 @@ const (
 	ImageGeneration = "image_generation"
 	ImageEdit       = "image_edit"
 	VideoGeneration = "video_generation"
+	VideoEdit       = "video_edit"
+	VideoExtend     = "video_extension"
 	VideoRetrieve   = "video_retrieve"
 	VideoDownload   = "video_download"
 )
@@ -24,7 +26,7 @@ func MediaAllowed(kind, operation string) bool {
 	switch operation {
 	case ImageGeneration, ImageEdit:
 		return kind == Codex || kind == Grok || kind == Gemini || kind == Antigravity
-	case VideoGeneration, VideoRetrieve, VideoDownload:
+	case VideoGeneration, VideoEdit, VideoExtend, VideoRetrieve, VideoDownload:
 		return kind == Grok
 	default:
 		return false
@@ -72,13 +74,17 @@ func (c Connection) presetMediaEndpoint(operation string) (MediaEndpoint, bool) 
 			protocol = "openai"
 		}
 		return MediaEndpoint{URL: base + path, Protocol: protocol, Streaming: protocol == "openai"}, true
-	case VideoGeneration, VideoRetrieve, VideoDownload:
+	case VideoGeneration, VideoEdit, VideoExtend, VideoRetrieve, VideoDownload:
 		if c.MediaPreset != "xai" {
 			return MediaEndpoint{}, false
 		}
 		switch operation {
 		case VideoGeneration:
 			return MediaEndpoint{URL: base + "/videos/generations", Protocol: "xai"}, true
+		case VideoEdit:
+			return MediaEndpoint{URL: base + "/videos/edits", Protocol: "xai"}, true
+		case VideoExtend:
+			return MediaEndpoint{URL: base + "/videos/extensions", Protocol: "xai"}, true
 		case VideoRetrieve:
 			return MediaEndpoint{URL: base + "/videos/{task_id}", Protocol: "xai"}, true
 		}
@@ -133,7 +139,7 @@ func (c Connection) validateMedia(kind string, loopback bool) error {
 			return ErrOAuthNotConfigured
 		}
 	}
-	for _, op := range []string{ImageGeneration, ImageEdit, VideoGeneration, VideoRetrieve, VideoDownload} {
+	for _, op := range []string{ImageGeneration, ImageEdit, VideoGeneration, VideoEdit, VideoExtend, VideoRetrieve, VideoDownload} {
 		e, ok := c.MediaEndpoint(op)
 		if !ok {
 			continue
@@ -142,10 +148,14 @@ func (c Connection) validateMedia(kind string, loopback bool) error {
 			e.Streaming && (e.Protocol != "openai" || op != ImageGeneration && op != ImageEdit) {
 			return ErrOAuthNotConfigured
 		}
+		if (op == VideoEdit || op == VideoExtend) && e.Protocol != "xai" {
+			return ErrOAuthNotConfigured
+		}
 		u, _ := url.Parse(e.URL)
 		want := map[string]string{
 			ImageGeneration: "/images/generations", ImageEdit: "/images/edits",
-			VideoGeneration: "/videos", VideoRetrieve: "/videos/{task_id}", VideoDownload: "/videos/{task_id}/content",
+			VideoGeneration: "/videos", VideoEdit: "/videos/edits", VideoExtend: "/videos/extensions",
+			VideoRetrieve: "/videos/{task_id}", VideoDownload: "/videos/{task_id}/content",
 		}[op]
 		switch e.Protocol {
 		case "openai":
@@ -173,8 +183,11 @@ func (c Connection) validateMedia(kind string, loopback bool) error {
 	create, hasCreate := c.MediaEndpoint(VideoGeneration)
 	retrieve, hasRetrieve := c.MediaEndpoint(VideoRetrieve)
 	download, hasDownload := c.MediaEndpoint(VideoDownload)
+	_, hasEdit := c.MediaEndpoint(VideoEdit)
+	_, hasExtend := c.MediaEndpoint(VideoExtend)
 	if hasCreate != hasRetrieve || hasRetrieve && create.Protocol != retrieve.Protocol ||
 		hasCreate && create.Protocol == "openai" && !hasDownload ||
+		(hasEdit || hasExtend) && (!hasRetrieve || retrieve.Protocol != "xai") ||
 		hasDownload && (!hasCreate || download.Protocol != create.Protocol) {
 		return ErrOAuthNotConfigured
 	}

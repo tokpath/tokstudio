@@ -171,6 +171,9 @@ func TestGrokVideoTaskRemainsOnOriginalPoolAccount(t *testing.T) {
 		t.Fatal("media model could not use the existing route form", err)
 	}
 	var selected string
+	var expectedPath = "/v1/videos/generations"
+	var expectedDuration = "4"
+	var expectedAction modelruntime.Operation
 	calls := 0
 	f.s.Runtime = subscriptionTestRuntime(func(ctx context.Context, a modelruntime.Attempt, r modelruntime.Request, _ modelruntime.Emit) (modelruntime.Result, error) {
 		calls++
@@ -180,6 +183,9 @@ func TestGrokVideoTaskRemainsOnOriginalPoolAccount(t *testing.T) {
 		}
 		switch r.Operation {
 		case modelruntime.Video:
+			if auth.Endpoint != origin+expectedPath || a.VideoAction != expectedAction || r.VideoAction != expectedAction {
+				t.Fatalf("selected the wrong video action or upstream address: %s, %s", a.VideoAction, auth.Endpoint)
+			}
 			selected = a.SubscriptionAccountID
 			return modelruntime.Result{State: "submitted", TaskID: "native-video"}, nil
 		case modelruntime.VideoRetrieve:
@@ -189,7 +195,7 @@ func TestGrokVideoTaskRemainsOnOriginalPoolAccount(t *testing.T) {
 			return modelruntime.Result{
 				State: "completed", TaskID: a.TaskID, Binary: []byte("test video"), ContentType: "video/mp4",
 				Usage: modelruntime.Usage{Source: "normalized_quantities", Reliable: true, Measurements: []modelruntime.Measurement{
-					{Component: "output_video_seconds", Unit: "second", Quantity: "4"},
+					{Component: "output_video_seconds", Unit: "second", Quantity: expectedDuration},
 				}},
 			}, nil
 		default:
@@ -222,6 +228,29 @@ func TestGrokVideoTaskRemainsOnOriginalPoolAccount(t *testing.T) {
 	if err := f.db.Where("request_id=?", done.ID).Take(&row).Error; err != nil ||
 		row.CostStatus != "subscription" || row.ReferenceCostAmount != nil || row.ReportedCostAmount != nil {
 		t.Fatal("attempt received a per-call vendor price", err)
+	}
+	for _, test := range []struct {
+		operation                                modelruntime.Operation
+		path, params, duration, estimate, charge string
+	}{
+		{modelruntime.VideoEdit, "/v1/videos/edits", "", "6", "0.087", "0.06"},
+		{modelruntime.VideoExtend, "/v1/videos/extensions", `,"duration":5`, "15", "0.2", "0.15"},
+	} {
+		expectedAction, expectedPath, expectedDuration = test.operation, test.path, test.duration
+		body := `{"model":"public-model","prompt":"Synthetic fixture","video":{"url":"https://allowed.example/source.mp4"}` + test.params + "}"
+		input, err := modelruntime.DecodeProtocol("", test.operation, []byte(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		created, err := f.s.Execute(f.ctx, f.key.Key, string(test.operation), input, nil)
+		if err != nil || created.Request.Status != "submitted" || created.Request.DeliveredAt == nil ||
+			created.Request.EstimateATG.String() != test.estimate || created.Request.Operation != modelruntime.Video {
+			t.Fatalf("did not reserve the whole possible clip for %s: %s %s %v", test.operation, created.Request.Status, created.Request.EstimateATG, err)
+		}
+		done, err := f.s.RefreshAsync(f.ctx, created.Request.ID)
+		if err != nil || done.Status != "completed" || done.ChargedATG.String() != test.charge {
+			t.Fatalf("did not settle the verified completed length of %s: %s %s %v", test.operation, done.Status, done.ChargedATG, err)
+		}
 	}
 }
 

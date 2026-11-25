@@ -88,14 +88,16 @@ export function SubscriptionPoolsScreen({ operatorID }: { operatorID: string }) 
               available: pool.enabled ? pool.accounts.filter(account => account.status === "available").length : 0, total: pool.accounts.length,
             })}</p>
           </div>
-          <Status value={pool.enabled ? "enabled" : "disabled"} />
+          <div className="flex flex-wrap items-center gap-2">
+            <Status value={pool.enabled ? "enabled" : "disabled"} />
+            <Button asChild size="sm" variant="outline"><Link href={`${operatorResourcePath(operatorID, "providers")}?pool=${encodeURIComponent(pool.id)}&pool_kind=${pool.subscription_kind}`}>{t("添加供应商模型")}</Link></Button>
+          </div>
         </div>
         <details open={pools.length === 1 || search.get("pool") === pool.id} className="mt-4 border-t border-hairline pt-3">
           <summary className="w-fit cursor-pointer py-2 text-sm font-medium">{t("账号管理")}</summary>
           <div className="my-3 flex flex-wrap gap-2">
             <Button type="button" size="sm" onClick={() => open({ mode: "account", pool })}>{t("添加账号")}</Button>
             <Button type="button" size="sm" variant="outline" onClick={() => open({ mode: "pool", pool })}>{t("编辑账号池")}</Button>
-            <Button asChild size="sm" variant="outline"><Link href={`${operatorResourcePath(operatorID, "providers")}?pool=${encodeURIComponent(pool.id)}&pool_kind=${pool.subscription_kind}`}>{t("添加供应商模型")}</Link></Button>
             {canReadResource(workspace, "supplier-costs") && <Button asChild size="sm" variant="ghost"><Link href={operatorResourcePath(operatorID, "supplier-costs")}>{t("真实上游成本")}</Link></Button>}
           </div>
           {pool.accounts.length ? <Table rows={pool.accounts} getID={account => account.id} columns={[

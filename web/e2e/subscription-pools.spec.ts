@@ -109,6 +109,7 @@ test("a platform subscription pool opens the existing supplier form and records 
 test("browser authorization is the primary action and returns to the selected subscription pool", async ({ page, baseURL }) => {
   const grok = { id: "grok-pool", name: "Grok 订阅", enabled: true, version: 1, subscription_kind: "grok", browser_oauth: true };
   const account = { id: "grok-account", name: "运营账号", enabled: true, version: 1, status: "available" };
+  const existingAccount = { ...account, id: "grok-backup", name: "备用账号" };
   const authorizeURL = "https://oauth.supplier.example/authorize";
   let authorized = false;
   await page.route("**/api/v1/**", async route => {
@@ -118,7 +119,7 @@ test("browser authorization is the primary action and returns to the selected su
       "/api/v1/public/context": { operator, brand, theme: {}, availability: [], payment_methods: [] },
       "/api/v1/auth/me": { kind: "staff", staff: { id: "test-owner", email: "owner@example.test", display_name: "平台负责人" }, workspaces: [{ operator, permissions: ["*"] }], active_operator_id: operator.id, csrf_token: "test_csrf" },
       [`${api}/notifications/unread-count`]: { count: 0 },
-      [`${api}/subscription-pools`]: { items: [{ ...grok, accounts: authorized ? [account] : [] }, { ...pool, accounts: [] }] },
+      [`${api}/subscription-pools`]: { items: [{ ...grok, accounts: authorized ? [existingAccount, account] : [existingAccount] }, { ...pool, accounts: [] }] },
     };
     if (path === `${api}/subscription-pools/oauth/start`) {
       expect(request.method()).toBe("POST");
@@ -136,6 +137,10 @@ test("browser authorization is the primary action and returns to the selected su
 
   await page.goto(`${manage}/subscription-pools`);
   const card = page.locator("section").filter({ has: page.getByRole("heading", { name: grok.name, exact: true }) }).filter({ has: page.getByText("账号管理", { exact: true }) }).last();
+  const modelEntry = card.getByRole("link", { name: "添加供应商模型", exact: true });
+  await expect(modelEntry).toBeVisible();
+  await expect(modelEntry).toHaveAttribute("href", `${manage}/providers?pool=${grok.id}&pool_kind=grok`);
+  await expect(card.getByRole("button", { name: "添加账号", exact: true })).toBeHidden();
   await card.getByText("账号管理", { exact: true }).click();
   await card.getByRole("button", { name: "添加账号", exact: true }).click();
   let dialog = page.getByRole("dialog");
@@ -146,6 +151,8 @@ test("browser authorization is the primary action and returns to the selected su
 
   await expect(page.getByRole("status").filter({ hasText: "账号已授权" })).toBeVisible();
   await expect(card.getByText(account.name, { exact: true })).toBeVisible();
+  await expect(card.getByText(existingAccount.name, { exact: true })).toBeVisible();
+  await expect(modelEntry).toHaveCount(1);
   await card.getByRole("button", { name: "添加账号", exact: true }).click();
   dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "导入凭据", exact: true }).click();

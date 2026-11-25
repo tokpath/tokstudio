@@ -231,8 +231,8 @@ export function resourceFilterStatusLabel(resource: string, status: string): str
   return ({ partial: "部分付款", anonymized: "已匿名", open: "正常" } as Record<string, string>)[status] || statusLabels[status] || status;
 }
 
-const publicCapabilityOrder = ["chat", "responses", "embedding", "image_generation", "speech", "transcription", "video_generation"];
-const publicCapabilityLabels: Record<string, string> = { chat: "对话", responses: "Responses", embedding: "向量", image_generation: "图片生成", speech: "语音生成", transcription: "语音转写", video_generation: "视频生成" };
+const publicCapabilityOrder = ["chat", "responses", "embedding", "image_generation", "image_edit", "speech", "transcription", "video_generation"];
+const publicCapabilityLabels: Record<string, string> = { chat: "对话", responses: "Responses", embedding: "向量", image_generation: "图片生成", image_edit: "图片编辑", speech: "语音生成", transcription: "语音转写", video_generation: "视频生成" };
 function PublicModelCapabilities({ value }: { value: JSONValue | undefined }) {
   const { t } = useI18n();
   const selected = new Set<string>();

@@ -13,6 +13,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
+	platformcrypto "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm"
@@ -33,7 +34,7 @@ func ceiling(v *big.Rat) (ledger.Decimal, error) {
 // Estimate is the customer reservation for this request. Visible quantities
 // come from the original body; unknown quantities use the registered bound.
 func Estimate(q catalog.ModelQuote, r modelruntime.Request) (ledger.Decimal, error) {
-	exact, e := q.Retail.Charge(reservationQuantities(q, r))
+	exact, e := reservationCharge(q.Retail, q, r, reservationQuantities(q, r))
 	if e != nil {
 		return ledger.Zero(), e
 	}
@@ -180,6 +181,20 @@ func (s *Service) Admit(ctx context.Context, authenticated Key, businessKey stri
 			}
 		}
 		out = Request{ID: r.ID, CustomerID: k.CustomerID, OperatorID: ownership.OperatorID, BrandID: k.BrandID, OwnershipVersion: ownership.Version, KeyID: k.ID, BusinessKey: businessKey, Fingerprint: fp, ModelID: r.PublicModel, Operation: r.Operation, Streaming: r.Stream, Status: "accepted", AcceptedAt: now, UsageDeadline: now.Add(s.UsageTimeout), WindowStart: window.Start, WindowEnd: window.End, EstimateATG: estimate}
+		if r.Async {
+			if !r.Operation.IsImage() || r.Stream {
+				return modelruntime.ErrUnsupported
+			}
+			raw, err := json.Marshal(r)
+			if err != nil {
+				return err
+			}
+			sealed, err := platformcrypto.Seal(s.EncryptionKey, string(raw))
+			if err != nil {
+				return err
+			}
+			out.AsyncImage, out.AsyncInput, out.DeliveredAt = true, sealed, &now
+		}
 		out.BudgetLimit = k.BudgetLimit
 		if estimate.Sign() > 0 {
 			hold, e := s.Ledger.ReserveCredits(ctx, t, ledger.CreditReservation{OperatorID: out.OperatorID, CustomerID: out.CustomerID, BusinessKey: "usage:" + out.ID, Estimate: estimate, At: now, ExpiresAt: out.UsageDeadline})
@@ -191,7 +206,7 @@ func (s *Service) Admit(ctx context.Context, authenticated Key, businessKey stri
 		holds := []SupplyHold{}
 		reserved := reservationQuantities(quote, r)
 		for _, price := range quote.Supply {
-			exact, e := price.Charge(reserved)
+			exact, e := reservationCharge(price, quote, r, reserved)
 			if e != nil {
 				return e
 			}

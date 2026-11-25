@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -181,9 +182,17 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		bc.SetValue(schemas.BifrostContextKeySendBackRawResponse, true)
 	}
 	if a.SubscriptionKind != "" {
-		if err = b.subscriptionContext(ctx, bc, a); err != nil {
+		var credential SubscriptionCredential
+		credential, err = b.subscriptionContext(ctx, bc, a, r.Operation)
+		if err != nil {
 			out.ErrorCode = Diagnostic(err)
 			return out, err
+		}
+		switch credential.Protocol {
+		case "xai":
+			return b.grokMedia(ctx, a, r, credential, out)
+		case "gemini":
+			return b.geminiMedia(ctx, a, r, credential, out)
 		}
 	} else {
 		credential, err := b.config.Credentials.ResolveCredential(ctx, a.UpstreamID, a.CredentialID)
@@ -303,6 +312,26 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 			out.ErrorCode = ""
 			response, failure = b.client.ImageGenerationRequest(bc, &q)
 		}
+	case ImageEdit:
+		q := schemas.BifrostImageEditRequest{Provider: provider, Model: a.UpstreamModel, Input: &schemas.ImageEditInput{}, Params: &schemas.ImageEditParameters{}}
+		if err = decodePreserved(r.Input, q.Input); err != nil {
+			return out, err
+		}
+		if err = decodePreserved(r.Params, q.Params); err != nil {
+			return out, err
+		}
+		if provider == schemas.Gemini && len(q.Params.Mask) > 0 {
+			return out, ErrUnsupported
+		}
+		if err = b.loadEditImages(ctx, q.Input); err != nil {
+			return out, err
+		}
+		out.State, out.ErrorCode = "failed", ""
+		if r.Stream {
+			stream, failure = b.client.ImageEditStreamRequest(bc, &q)
+		} else {
+			response, failure = b.client.ImageEditRequest(bc, &q)
+		}
 	case Speech:
 		q := schemas.BifrostSpeechRequest{Provider: provider, Model: a.UpstreamModel, Input: &schemas.SpeechInput{}, Params: &schemas.SpeechParameters{}}
 		if err = decodePreserved(r.Input, q.Input); err != nil {
@@ -389,6 +418,27 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 			return out, fmt.Errorf("empty upstream stream")
 		}
 		measurements := billingStream{}
+		if r.Operation.IsImage() {
+			defer func() {
+				if !out.Usage.Reliable || len(measurements.images) == 0 {
+					return
+				}
+				indexes := make([]int, 0, len(measurements.images))
+				for index := range measurements.images {
+					indexes = append(indexes, index)
+				}
+				sort.Ints(indexes)
+				images := &schemas.BifrostImageGenerationResponse{}
+				for _, index := range indexes {
+					images.Data = append(images.Data, measurements.images[index])
+				}
+				retainCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+				defer cancel()
+				if retained, e := b.retainImageResponse(retainCtx, images); e == nil {
+					out.Output, _ = publicOutput(retained, r.PublicModel)
+				}
+			}()
+		}
 		for {
 			select {
 			case <-ctx.Done():
@@ -447,6 +497,11 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		out.ErrorCode = "route_contract_violation"
 		return out, err
 	}
+	return b.finishResponse(ctx, response, a, r, out)
+}
+
+func (b *Bifrost) finishResponse(ctx context.Context, response any, a Attempt, r Request, out Result) (Result, error) {
+	var err error
 	out.Output, err = publicOutput(response, r.PublicModel)
 	if err != nil {
 		out.State = "outcome_unknown"
@@ -462,6 +517,17 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		out.Cost = b.config.Costs.Observe(ctx, a, costResponse)
 	}
 	out.State = "completed"
+	if r.Operation.IsImage() && r.Async {
+		out.Output = nil
+		retained, e := b.retainImageResponse(ctx, response)
+		if e != nil {
+			return out, e
+		}
+		out.Output, err = publicOutput(retained, r.PublicModel)
+		if err != nil {
+			return out, err
+		}
+	}
 	if speech, ok := response.(*schemas.BifrostSpeechResponse); ok && speech != nil {
 		out.Binary = speech.Audio
 		out.ContentType = "audio/mpeg"

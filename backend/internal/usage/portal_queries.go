@@ -25,7 +25,7 @@ func (s *Service) ListRequestsPage(ctx context.Context, customer, cursor, query 
 	if _, e := uuid.Parse(customer); e != nil || limit < 1 || limit > 100 {
 		return nil, ErrKey
 	}
-	q := s.DB.WithContext(ctx).Where("customer_id=?", customer)
+	q := s.DB.WithContext(ctx).Omit("async_input").Where("customer_id=?", customer)
 	if cursor != "" {
 		raw, e := base64.RawURLEncoding.DecodeString(cursor)
 		if e != nil {

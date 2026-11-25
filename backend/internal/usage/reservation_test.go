@@ -64,3 +64,27 @@ func TestReservationOnlyOccupiesSelectedSpecification(t *testing.T) {
 		}
 	}
 }
+
+func TestImageReservationWithoutSizeCoversHighestConfiguredRate(t *testing.T) {
+	profile := modelruntime.DefaultBilling(modelruntime.ImageEdit)
+	profile.Output[0].Variants = []modelruntime.BillingVariant{
+		{ID: "small", Name: "Small", Size: "512x512"},
+		{ID: "large", Name: "Large", Size: "1024x1024"},
+	}
+	q := catalog.ModelQuote{Billing: profile.Capability(modelruntime.ImageEdit, false)}
+	price := catalog.ResolvedPrice{FactorNumerator: "1", FactorDenominator: "1", Components: []catalog.ComponentRate{
+		{Key: "output_image_images", Unit: "image", Rate: "0.25", Per: "1"},
+		{Key: "output_image_images:small", Unit: "image", Rate: "0.3", Per: "1"},
+		{Key: "output_image_images:large", Unit: "image", Rate: "0.4", Per: "1"},
+	}}
+	for _, sample := range []struct{ params, want string }{
+		{`{"n":2,"size":"auto"}`, "4/5"},
+		{`{"n":2,"size":"512x512"}`, "3/5"},
+	} {
+		r := modelruntime.Request{Operation: modelruntime.ImageEdit, Params: []byte(sample.params)}
+		got, err := reservationCharge(price, q, r, reservationQuantities(q, r))
+		if err != nil || got.RatString() != sample.want {
+			t.Fatalf("reservation for %s = %v, %v", sample.params, got, err)
+		}
+	}
+}

@@ -122,6 +122,11 @@ test("browser authorization is the primary action and returns to the selected su
       "/api/v1/auth/me": { kind: "staff", staff: { id: "test-owner", email: "owner@example.test", display_name: "平台负责人" }, workspaces: [{ operator, permissions: ["*"] }], active_operator_id: operator.id, csrf_token: "test_csrf" },
       [`${api}/notifications/unread-count`]: { count: 0 },
       [`${api}/subscription-pools`]: { items: [{ ...grok, accounts: authorized ? [existingAccount, account] : [existingAccount] }, { ...pool, accounts: [] }] },
+      [`${api}/providers`]: resource("providers", "模型供应商"),
+      [`${api}/references/credentials`]: { items: [{
+        value: grok.id, label: grok.name,
+        defaults: { provider_id: grok.id, subscription_kind: "grok", subscription_media: { image_generation: true, image_edit: false, video_generation: false } },
+      }] },
     };
     if (path === `${api}/subscription-pools/oauth/start`) {
       expect(request.method()).toBe("POST");
@@ -168,4 +173,13 @@ test("browser authorization is the primary action and returns to the selected su
   dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "导入凭据", exact: true }).click();
   await expect(dialog.locator('input[type="password"]')).toBeVisible();
+  await dialog.getByRole("button", { name: "关闭办理面板", exact: true }).click();
+  await modelEntry.click();
+  await expect(dialog.getByRole("checkbox", { name: "图片生成", exact: true })).toBeVisible();
+  await dialog.getByRole("checkbox", { name: "图片生成", exact: true }).check();
+  await expect(dialog.getByRole("checkbox", { name: "图片生成支持流式输出", exact: true })).toBeEnabled();
+  await dialog.getByRole("checkbox", { name: "图片编辑", exact: true }).check();
+  await expect(dialog.getByRole("checkbox", { name: "图片编辑支持流式输出", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("checkbox", { name: "视频生成", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("checkbox", { name: "向量", exact: true })).toHaveCount(0);
 });

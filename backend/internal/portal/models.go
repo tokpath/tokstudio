@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -19,9 +21,12 @@ import (
 
 func (a *Application) modelRoutes(r *gin.RouterGroup) {
 	r.GET("/models", a.apiModels)
-	for path, op := range map[string]modelruntime.Operation{"/chat/completions": modelruntime.Chat, "/responses": modelruntime.Responses, "/embeddings": modelruntime.Embedding, "/images/generations": modelruntime.Image, "/audio/speech": modelruntime.Speech, "/audio/transcriptions": modelruntime.Transcription, "/videos": modelruntime.Video} {
-		r.POST(path, a.executeModel(op))
+	for path, op := range map[string]modelruntime.Operation{"/chat/completions": modelruntime.Chat, "/responses": modelruntime.Responses, "/embeddings": modelruntime.Embedding, "/images/generations": modelruntime.Image, "/images/edits": modelruntime.ImageEdit, "/audio/speech": modelruntime.Speech, "/audio/transcriptions": modelruntime.Transcription, "/videos": modelruntime.Video} {
+		r.POST(path, a.executeModel(op, false))
 	}
+	r.POST("/images/generations/async", a.executeModel(modelruntime.Image, true))
+	r.POST("/images/edits/async", a.executeModel(modelruntime.ImageEdit, true))
+	r.GET("/images/tasks/:id", a.imageTaskStatus)
 	r.GET("/videos/:id", a.videoStatus)
 	r.GET("/videos/:id/content", a.videoContent)
 	r.DELETE("/videos/:id", a.videoCancel)
@@ -39,13 +44,16 @@ func (a *Application) apiKey(c *gin.Context) (usage.Key, bool) {
 	}
 	return k, true
 }
-func modelBody(c *gin.Context) ([]byte, error) {
+func modelBody(c *gin.Context, op modelruntime.Operation) ([]byte, error) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16<<20)
 	if strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
 		if e := c.Request.ParseMultipartForm(16 << 20); e != nil {
 			return nil, e
 		}
 		defer c.Request.MultipartForm.RemoveAll()
+		if op == modelruntime.ImageEdit {
+			return multipartImageEdit(c)
+		}
 		obj := map[string]any{}
 		for k, v := range c.Request.MultipartForm.Value {
 			if len(v) != 1 {
@@ -68,7 +76,67 @@ func modelBody(c *gin.Context) ([]byte, error) {
 	}
 	return io.ReadAll(c.Request.Body)
 }
-func (a *Application) executeModel(op modelruntime.Operation) gin.HandlerFunc {
+func multipartImageEdit(c *gin.Context) ([]byte, error) {
+	form := c.Request.MultipartForm
+	body := make(map[string]any, len(form.Value)+2)
+	for key, vals := range form.Value {
+		if len(vals) != 1 {
+			return nil, modelruntime.ErrInvalidRequest
+		}
+		switch key {
+		case "n", "output_compression", "partial_images":
+			value, err := strconv.Atoi(vals[0])
+			if err != nil {
+				return nil, modelruntime.ErrInvalidRequest
+			}
+			body[key] = value
+		case "stream":
+			if vals[0] != "true" && vals[0] != "false" {
+				return nil, modelruntime.ErrInvalidRequest
+			}
+			body[key] = vals[0] == "true"
+		default:
+			body[key] = vals[0]
+		}
+	}
+	images := make([]map[string][]byte, 0)
+	if len(form.File["image"]) > 0 && len(form.File["image[]"]) > 0 {
+		return nil, modelruntime.ErrInvalidRequest
+	}
+	for key, files := range form.File {
+		if key != "image" && key != "image[]" && key != "mask" || key == "mask" && len(files) != 1 {
+			return nil, modelruntime.ErrInvalidRequest
+		}
+		for _, header := range files {
+			f, err := header.Open()
+			if err != nil {
+				return nil, err
+			}
+			raw, err := io.ReadAll(io.LimitReader(f, (16<<20)+1))
+			_ = f.Close()
+			if err != nil || len(raw) == 0 || len(raw) > 16<<20 {
+				return nil, modelruntime.ErrInvalidRequest
+			}
+			if key == "mask" {
+				if body["mask"] != nil {
+					return nil, modelruntime.ErrInvalidRequest
+				}
+				body["mask"] = raw
+			} else {
+				images = append(images, map[string][]byte{"image": raw})
+			}
+		}
+	}
+	if len(images) > 0 {
+		if body["image"] != nil || body["images"] != nil {
+			return nil, modelruntime.ErrInvalidRequest
+		}
+		body["images"] = images
+	}
+	return json.Marshal(body)
+}
+
+func (a *Application) executeModel(op modelruntime.Operation, async bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		k, ok := a.apiKey(c)
 		if !ok {
@@ -82,7 +150,7 @@ func (a *Application) executeModel(op modelruntime.Operation) gin.HandlerFunc {
 			fail(c, 400, "invalid_idempotency_key", "请求编号过长", false)
 			return
 		}
-		raw, e := modelBody(c)
+		raw, e := modelBody(c, op)
 		if e != nil {
 			handleError(c, modelruntime.ErrInvalidRequest)
 			return
@@ -90,6 +158,19 @@ func (a *Application) executeModel(op modelruntime.Operation) gin.HandlerFunc {
 		input, e := modelruntime.DecodeProtocol(uuid.NewString(), op, raw)
 		if e != nil {
 			handleError(c, e)
+			return
+		}
+		if async {
+			request, err := a.Usage.SubmitImage(c.Request.Context(), k, businessKey, input)
+			if err != nil {
+				handleError(c, err)
+				return
+			}
+			path := "/v1/images/tasks/" + request.ID
+			c.Header("Location", path)
+			c.Header("Retry-After", "3")
+			c.Header("X-TokenHub-Request-ID", request.ID)
+			c.JSON(http.StatusAccepted, imageTaskView(request))
 			return
 		}
 		streamed := false
@@ -103,6 +184,9 @@ func (a *Application) executeModel(op modelruntime.Operation) gin.HandlerFunc {
 					c.Header("X-TokenHub-Request-ID", event.RequestID)
 					c.Status(200)
 					streamed = true
+				}
+				if c.Request.Context().Err() != nil {
+					return c.Request.Context().Err()
 				}
 				if ctx.Err() != nil {
 					return ctx.Err()
@@ -129,7 +213,7 @@ func (a *Application) executeModel(op modelruntime.Operation) gin.HandlerFunc {
 			return
 		}
 		c.Header("X-TokenHub-Request-ID", out.Request.ID)
-		if len(out.Result.Binary) > 0 {
+		if len(out.Result.Binary) > 0 && (op != modelruntime.Video || len(out.Result.Output) == 0) {
 			c.Data(200, out.Result.ContentType, out.Result.Binary)
 			return
 		}
@@ -146,10 +230,10 @@ func (a *Application) executeModel(op modelruntime.Operation) gin.HandlerFunc {
 			c.Data(200, "application/json", out.Result.Output)
 			return
 		}
-		c.JSON(202, gin.H{"id": out.Request.ID, "object": "video", "status": out.Request.Status, "model": out.Request.ModelID, "created_at": out.Request.AcceptedAt.Unix()})
+		c.JSON(202, gin.H{"id": out.Request.ID, "object": "video", "status": videoProtocolStatus(out.Request.Status), "model": out.Request.ModelID, "created_at": out.Request.AcceptedAt.Unix(), "delivered_at": out.Request.DeliveredAt})
 	}
 }
-func (a *Application) videoRequest(c *gin.Context) (usage.Request, bool) {
+func (a *Application) modelRequestForKey(c *gin.Context) (usage.Request, bool) {
 	key, ok := a.apiKey(c)
 	if !ok {
 		return usage.Request{}, false
@@ -161,8 +245,56 @@ func (a *Application) videoRequest(c *gin.Context) (usage.Request, bool) {
 	}
 	return r, true
 }
+
+func imageTaskView(r usage.Request) gin.H {
+	return gin.H{"id": r.ID, "object": "image.task", "status": videoProtocolStatus(r.Status),
+		"model": r.ModelID, "created_at": r.AcceptedAt.Unix(), "delivered_at": r.DeliveredAt}
+}
+
+func (a *Application) imageTaskStatus(c *gin.Context) {
+	r, ok := a.modelRequestForKey(c)
+	if !ok {
+		return
+	}
+	if !r.Operation.IsImage() || !r.AsyncImage && !r.Streaming {
+		handleError(c, modelruntime.ErrInvalidRequest)
+		return
+	}
+	view := imageTaskView(r)
+	if r.Status == "completed" {
+		ctx := c.Request.Context()
+		meta, err := a.Usage.ResultMetadata(ctx, r.CustomerID, r.ID)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		if meta == nil {
+			if r.CompletedAt != nil && r.CompletedAt.Add(a.Usage.ResultRetention).After(time.Now()) {
+				fail(c, http.StatusServiceUnavailable, "result_unavailable", "结果暂不可用，请使用原请求编号重试", true)
+			} else {
+				handleError(c, usage.ErrResultUnavailable)
+			}
+			return
+		}
+		result, err := a.Usage.ReadResult(ctx, r.CustomerID, r.ID)
+		if err != nil || len(result.Output) == 0 {
+			if errors.Is(err, usage.ErrResultUnavailable) && !meta.ExpiresAt.After(time.Now()) {
+				handleError(c, err)
+			} else {
+				fail(c, http.StatusServiceUnavailable, "result_unavailable", "结果暂不可用，请使用原请求编号重试", true)
+			}
+			return
+		}
+		view["result"], view["expires_at"] = result.Output, meta.ExpiresAt.Unix()
+	}
+	if r.Reason != "" && r.Status != "completed" {
+		view["reason"] = r.Reason
+	}
+	c.JSON(http.StatusOK, view)
+}
+
 func (a *Application) videoStatus(c *gin.Context) {
-	r, ok := a.videoRequest(c)
+	r, ok := a.modelRequestForKey(c)
 	if !ok {
 		return
 	}
@@ -174,10 +306,10 @@ func (a *Application) videoStatus(c *gin.Context) {
 	if e == nil {
 		r = updated
 	}
-	c.JSON(200, gin.H{"id": r.ID, "object": "video", "status": videoProtocolStatus(r.Status), "model": r.ModelID, "created_at": r.AcceptedAt.Unix(), "reason": r.Reason})
+	c.JSON(200, gin.H{"id": r.ID, "object": "video", "status": videoProtocolStatus(r.Status), "model": r.ModelID, "created_at": r.AcceptedAt.Unix(), "delivered_at": r.DeliveredAt, "reason": r.Reason})
 }
 func (a *Application) videoContent(c *gin.Context) {
-	r, ok := a.videoRequest(c)
+	r, ok := a.modelRequestForKey(c)
 	if !ok {
 		return
 	}
@@ -189,7 +321,7 @@ func (a *Application) videoContent(c *gin.Context) {
 	c.Data(200, result.ContentType, result.Binary)
 }
 func (a *Application) videoCancel(c *gin.Context) {
-	r, ok := a.videoRequest(c)
+	r, ok := a.modelRequestForKey(c)
 	if !ok {
 		return
 	}
@@ -211,6 +343,9 @@ func (a *Application) requestDTO(ctx context.Context, r usage.Request) (gin.H, e
 		name = key.Name
 	}
 	out := gin.H{"id": r.ID, "model_id": r.ModelID, "key_name": name, "status": r.Status, "actual_atg": r.ActualATG, "charged_atg": r.ChargedATG, "corrected_atg": r.CorrectedATG, "corrected_charged_atg": r.CorrectedChargedATG, "net_actual_atg": r.ActualATG.Sub(r.CorrectedATG), "net_charged_atg": r.ChargedATG.Sub(r.CorrectedChargedATG), "held_atg": held, "created_at": r.AcceptedAt, "reason": r.Reason}
+	if r.DeliveredAt != nil {
+		out["delivered_at"] = r.DeliveredAt
+	}
 	meta, e := a.Usage.ResultMetadata(ctx, r.CustomerID, r.ID)
 	if e != nil {
 		return nil, e
@@ -281,7 +416,7 @@ func (a *Application) cancelRequest(c *gin.Context) {
 	c.JSON(200, commandResult(r.ID, "cancellation_requested"))
 }
 func (a *Application) playground(c *gin.Context) {
-	raw, e := modelBody(c)
+	raw, e := modelBody(c, modelruntime.Transcription)
 	if e != nil {
 		handleError(c, modelruntime.ErrInvalidRequest)
 		return
@@ -344,6 +479,9 @@ func (a *Application) playground(c *gin.Context) {
 		obj["input"] = in.Input
 	case modelruntime.Image:
 		obj["prompt"] = in.Input
+	case modelruntime.ImageEdit:
+		obj["prompt"] = in.Input
+		obj["image"] = gin.H{"image": in.File}
 	case modelruntime.Speech:
 		obj["input"] = in.Input
 		if in.Voice != "" {
@@ -375,7 +513,7 @@ func (a *Application) playground(c *gin.Context) {
 			return
 		}
 		for name, value := range parameters {
-			if contains([]string{"model", "messages", "input", "prompt", "file", "filename", "stream"}, name) {
+			if contains([]string{"model", "messages", "input", "prompt", "file", "filename", "image", "images", "stream"}, name) {
 				handleError(c, modelruntime.ErrUnsupported)
 				return
 			}

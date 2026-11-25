@@ -240,6 +240,7 @@ func (s *Service) release(t *gorm.DB, ctx context.Context, out *Request, reason,
 	}
 	out.Status = status
 	out.Reason = reason
+	out.AsyncInput = ""
 	out.CompletedAt = &now
 	if e := t.Save(out).Error; e != nil {
 		return e
@@ -281,6 +282,9 @@ func (s *Service) ResolveTimeout(ctx context.Context, id string) (Request, error
 		}
 		if e := t.Clauses(clause.Locking{Strength: "UPDATE"}).First(&out, "id=?", id).Error; e != nil {
 			return e
+		}
+		if terminal(out.Status) {
+			return nil
 		}
 		if e := s.release(t, ctx, &out, "usage_unverified_before_deadline", "free"); e != nil {
 			return e

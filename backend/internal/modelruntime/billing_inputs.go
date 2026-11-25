@@ -84,7 +84,7 @@ func sources(r Request) inputSources {
 				}
 			}
 		}
-	case Image, Video:
+	case Image, ImageEdit, Video:
 		input, _ := root.(map[string]any)
 		out.text = append(out.text, str(input["prompt"]))
 		if value := str(input["input_reference"]); value != "" {
@@ -92,6 +92,16 @@ func sources(r Request) inputSources {
 		}
 		if value := str(input["video_uri"]); value != "" {
 			out.video = append(out.video, value)
+		}
+		if images, ok := input["images"].([]any); ok {
+			for _, raw := range images {
+				image, _ := raw.(map[string]any)
+				source := str(image["url"])
+				if source == "" {
+					source = str(image["image"])
+				}
+				out.images = append(out.images, source)
+			}
 		}
 	case Speech:
 		input, _ := root.(map[string]any)

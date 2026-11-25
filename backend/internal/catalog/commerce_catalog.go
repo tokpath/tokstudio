@@ -606,16 +606,26 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 		if e := json.Unmarshal(row.Definition, &u); e != nil {
 			return nil, e
 		}
-		for i, c := range u.Capabilities {
+		var capabilities []modelruntime.Capability
+		for _, c := range u.Capabilities {
+			if subscriptionauth.MediaAllowed(u.SubscriptionKind, string(c.Operation)) {
+				connection := s.SubscriptionConnections[u.SubscriptionKind]
+				endpoint, ok := connection.MediaEndpoint(string(c.Operation))
+				if !ok || c.Streaming && !endpoint.Streaming {
+					continue
+				}
+			}
 			p, ok := m.Billing[c.Operation]
 			if !ok {
 				p = modelruntime.DefaultBilling(c.Operation)
 			}
-			u.Capabilities[i] = p.Capability(c.Operation, c.Streaming)
+			verified := p.Capability(c.Operation, c.Streaming)
 			if u.SubscriptionKind != "" {
-				u.Capabilities[i] = subscriptionBounds(u, u.Capabilities[i])
+				verified = subscriptionBounds(u, verified)
 			}
+			capabilities = append(capabilities, verified)
 		}
+		u.Capabilities = capabilities
 		out = append(out, u)
 	}
 	return out, nil
@@ -635,6 +645,9 @@ func SelectCapability(u UpstreamModel, r modelruntime.Request) (modelruntime.Cap
 }
 
 func subscriptionBounds(u UpstreamModel, c modelruntime.Capability) modelruntime.Capability {
+	if subscriptionauth.MediaAllowed(u.SubscriptionKind, string(c.Operation)) {
+		return c
+	}
 	for _, rule := range c.UsageRules {
 		if rule.Unit != "token" || u.SubscriptionInputLimit <= 0 || u.SubscriptionOutputLimit <= 0 {
 			// A subscription connection is a token-metered text capability.
@@ -735,7 +748,7 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 	}
 	retail = activePrice(retail, active.BillableBounds)
 	q := ModelQuote{Billing: active, CatalogVersion: revision, ModelID: r.PublicModel, AcceptedAt: at, Retail: retail, Bounds: map[string]string{}, Candidates: upstreams}
-	if upstreams[0].SubscriptionKind != "" && active.Billing != nil {
+	if upstreams[0].SubscriptionKind != "" && active.Billing != nil && !subscriptionauth.MediaAllowed(upstreams[0].SubscriptionKind, string(r.Operation)) {
 		// Keep the normal customer estimate. Procurement still reserves the
 		// verified maximum from each candidate below.
 		q.Billing = active.Billing.Capability(active.Operation, active.Streaming)

@@ -3,9 +3,6 @@ package modelruntime
 import (
 	"context"
 	"encoding/json"
-	"math"
-	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +14,14 @@ import (
 // subscription route. The native Codex endpoint does not accept the public
 // API's requested output cap. Its verified model limit is reserved separately.
 func ValidateSubscriptionRequest(kind string, outputLimit int64, r Request) error {
+	if subscriptionauth.MediaAllowed(kind, string(r.Operation)) {
+		for _, input := range r.InputTypes {
+			if input != "text" && !(input == "image" && (r.Operation == ImageEdit || r.Operation == Video)) {
+				return ErrUnsupported
+			}
+		}
+		return nil
+	}
 	if outputLimit <= 0 || string(r.Operation) != subscriptionauth.Operation(kind) {
 		return ErrUnsupported
 	}
@@ -62,50 +67,48 @@ func withinSubscriptionLimit(raw json.RawMessage, limit int64) bool {
 func subscriptionRetryAt(bc *schemas.BifrostContext) *time.Time {
 	headers, _ := bc.Value(schemas.BifrostContextKeyProviderResponseHeaders).(map[string]string)
 	for name, value := range headers {
-		if !strings.EqualFold(name, "Retry-After") {
-			continue
-		}
-		value = strings.TrimSpace(value)
-		if seconds, err := strconv.ParseInt(value, 10, 64); err == nil && seconds > 0 && seconds <= math.MaxInt64/int64(time.Second) {
-			at := time.Now().Add(time.Duration(seconds) * time.Second)
-			return &at
-		}
-		if at, err := http.ParseTime(value); err == nil && at.After(time.Now()) {
-			return &at
+		if strings.EqualFold(name, "Retry-After") {
+			return subscriptionRetryHeader(value)
 		}
 	}
 	return nil
 }
 
-func (b *Bifrost) subscriptionContext(ctx context.Context, bc *schemas.BifrostContext, a Attempt) error {
+func (b *Bifrost) subscriptionContext(ctx context.Context, bc *schemas.BifrostContext, a Attempt, op Operation) (SubscriptionCredential, error) {
 	if b.config.Subscriptions == nil || a.SubscriptionAccountID == "" || a.Provider != subscriptionauth.Protocol(a.SubscriptionKind) || a.BaseURL != "" {
-		return ErrSubscriptionAuthUnavailable
+		return SubscriptionCredential{}, ErrSubscriptionAuthUnavailable
 	}
-	credential, err := b.config.Subscriptions.ResolveSubscriptionCredential(ctx, a)
+	credential, err := b.config.Subscriptions.ResolveSubscriptionCredential(ctx, a, op)
 	if err != nil {
-		return err
+		return credential, err
 	}
 	if credential.AccessToken == "" {
-		return ErrSubscriptionReauth
+		return credential, ErrSubscriptionReauth
 	}
 	endpoint := credential.Endpoint
 	if endpoint == "" {
+		if subscriptionauth.MediaAllowed(a.SubscriptionKind, string(op)) {
+			return credential, ErrSubscriptionAuthUnavailable
+		}
 		switch a.SubscriptionKind {
 		case subscriptionauth.Codex:
 			endpoint = "https://chatgpt.com/backend-api/codex/responses"
 		case subscriptionauth.Claude:
 			endpoint = "https://api.anthropic.com/v1/messages"
 		default:
-			return ErrSubscriptionAuthUnavailable
+			return credential, ErrSubscriptionAuthUnavailable
 		}
 		if testEndpoint := b.config.subscriptionTestEndpoints[a.SubscriptionKind]; testEndpoint != "" && b.config.AllowTestLoopback {
 			endpoint = testEndpoint
 		}
 	}
 	if b.config.EndpointGuard == nil || b.config.EndpointGuard(ctx, endpoint) != nil {
-		return ErrSubscriptionAuthUnavailable
+		return credential, ErrSubscriptionAuthUnavailable
 	}
 	bc.SetValue(schemas.BifrostContextKeyURLPath, endpoint)
+	if credential.Protocol == "xai" || credential.Protocol == "gemini" {
+		return credential, nil
+	}
 	if a.SubscriptionKind == subscriptionauth.Claude {
 		bc.SetValue(schemas.BifrostContextKeySkipKeySelection, true)
 		headers := map[string][]string{"Authorization": {"Bearer " + credential.AccessToken}}
@@ -113,19 +116,19 @@ func (b *Bifrost) subscriptionContext(ctx context.Context, bc *schemas.BifrostCo
 			headers["anthropic-beta"] = []string{"oauth-2025-04-20"}
 		}
 		bc.SetValue(schemas.BifrostContextKeyPassthroughHeaders, headers)
-		return nil
+		return credential, nil
 	}
 	bc.SetValue(schemas.BifrostContextKeyDirectKey, schemas.Key{ID: a.CredentialID, Name: a.CredentialID, Value: *schemas.NewSecretVar(credential.AccessToken), Models: schemas.WhiteList{a.UpstreamModel}, Weight: 1})
 	if a.SubscriptionKind == subscriptionauth.Codex && credential.Endpoint == "" {
 		if credential.AccountID == "" {
-			return ErrSubscriptionReauth
+			return credential, ErrSubscriptionReauth
 		}
 		bc.SetValue(schemas.BifrostContextKeyExtraHeaders, map[string][]string{
 			"ChatGPT-Account-Id": {credential.AccountID},
 			"OpenAI-Beta":        {"responses=experimental"},
 		})
 	}
-	return nil
+	return credential, nil
 }
 
 func finishSubscriptionResponse(ctx context.Context, stream <-chan *schemas.BifrostStreamChunk, a Attempt) (*schemas.BifrostResponsesResponse, *schemas.BifrostError, error) {

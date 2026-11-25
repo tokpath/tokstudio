@@ -63,7 +63,7 @@ func (s *Service) Estimate(ctx context.Context, snapshot json.RawMessage, r mode
 		response = &schemas.BifrostResponsesResponse{}
 	case modelruntime.Embedding:
 		response = &schemas.BifrostEmbeddingResponse{}
-	case modelruntime.Image:
+	case modelruntime.Image, modelruntime.ImageEdit:
 		response = &schemas.BifrostImageGenerationResponse{}
 	case modelruntime.Speech:
 		response = &schemas.BifrostSpeechResponse{}
@@ -94,6 +94,8 @@ func requestType(op modelruntime.Operation) schemas.RequestType {
 		return schemas.EmbeddingRequest
 	case modelruntime.Image:
 		return schemas.ImageGenerationRequest
+	case modelruntime.ImageEdit:
+		return schemas.ImageEditRequest
 	case modelruntime.Speech:
 		return schemas.SpeechRequest
 	case modelruntime.Transcription:

@@ -2,7 +2,7 @@
 // Reviewed alongside internal/portal handlers; no raw arbitrary command envelope.
 module.exports=function({root,schemas,paths,add,obj,str,bool,integer,uuid,decimal,priceDecimal,ref,array,json}){
  const fs=require('node:fs'),path=require('node:path'),time={type:'string',format:'date-time'};
- const operations=['chat','responses','embedding','image_generation','speech','transcription','video_generation'];
+ const operations=['chat','responses','embedding','image_generation','image_edit','speech','transcription','video_generation'];
  schemas.PublicCapability=obj({operation:{enum:operations}},['operation']);
  schemas.SupplierCapability=obj({operation:{enum:operations},streaming:bool},['operation']);
  schemas.BillingVariant=obj({id:str,name:str,size:str,quality:str},['id','name']);

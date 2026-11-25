@@ -111,7 +111,7 @@ func costResponse(response any) *schemas.BifrostResponse {
 			}
 			if v.BifrostImageGenerationStreamResponse != nil {
 				c := *v.BifrostImageGenerationStreamResponse
-				if c.Type != schemas.ImageGenerationEventTypeCompleted || c.URL == "" && c.B64JSON == "" {
+				if c.Type != schemas.ImageGenerationEventTypeCompleted && c.Type != schemas.ImageEditEventTypeCompleted || c.URL == "" && c.B64JSON == "" {
 					return nil
 				}
 				// The SDK stream calculator does not infer an image count. A

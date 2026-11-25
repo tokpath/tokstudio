@@ -139,6 +139,12 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 	if capability.Operation == modelruntime.Video {
 		upstream.Model = "test-video"
 		upstream.Endpoints = map[modelruntime.Operation]string{modelruntime.Video: base + "/v1/videos", modelruntime.VideoRetrieve: base + "/v1/videos/{task_id}", modelruntime.VideoDownload: base + "/v1/videos/{task_id}/content"}
+	} else if capability.Operation.IsImage() {
+		path := "/v1/images/generations"
+		if capability.Operation == modelruntime.ImageEdit {
+			path = "/v1/images/edits"
+		}
+		upstream.Endpoints = map[modelruntime.Operation]string{capability.Operation: base + path}
 	}
 	if e = cat.SaveUpstream(ctx, p.Operator.ID, upstream, 0); e != nil {
 		t.Fatal(e)
@@ -154,6 +160,8 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 		price := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: model.ID, Layer: "regular", EffectiveAt: time.Now().Add(-time.Hour), Published: true, NoticeID: "fixture-published-terms", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "output", Unit: "token", Per: "1", Rate: "0.001"}, catalog.ComponentRate{Key: "cache", Unit: "token", Per: "1", Rate: "0.001"}}}}
 		if capability.Operation == modelruntime.Video {
 			price.Rule.Components = []catalog.ComponentRate{{Key: "output_video_seconds", Unit: "second", Per: "1", Rate: "0.01"}}
+		} else if capability.Operation.IsImage() {
+			price.Rule.Components = []catalog.ComponentRate{{Key: "output_image_images", Unit: "image", Per: "1", Rate: "0.25"}}
 		}
 		// Fixture bootstrap has no sold liabilities. The production callback uses
 		// CatalogRates and emits coverage risk facts for affected operators.

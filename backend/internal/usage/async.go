@@ -66,6 +66,19 @@ func (s *Service) RefreshAsync(ctx context.Context, id string) (Request, error) 
 				return request, e
 			}
 		}
+		if attempt.SubscriptionKind != "" && len(result.Binary) == 0 {
+			download, input, err := s.lifecycleAttempt(request, row, modelruntime.VideoDownload)
+			if err != nil {
+				return request, err
+			}
+			result, err = s.Runtime.Execute(recordCtx, download, input, nil)
+			if err != nil {
+				return request, err
+			}
+			if len(result.Binary) == 0 {
+				return request, ErrResultUnavailable
+			}
+		}
 		if e = s.StoreResult(recordCtx, request, result); e != nil {
 			return request, e
 		}
@@ -115,7 +128,17 @@ func (s *Service) DownloadAsync(ctx context.Context, customer, id string) (model
 	// does not extend the retention promise displayed by this service.
 	var retained resultRow
 	if e = s.DB.WithContext(ctx).First(&retained, "request_id=? AND state='ready' AND expires_at>?", id, s.wallNow()).Error; e != nil {
+		if errors.Is(e, gorm.ErrRecordNotFound) {
+			if request.CompletedAt != nil && request.CompletedAt.Add(s.ResultRetention).After(s.wallNow()) {
+				return modelruntime.Result{}, ErrNotReady
+			}
+			return modelruntime.Result{}, ErrResultUnavailable
+		}
 		return modelruntime.Result{}, e
+	}
+	result, e := s.ReadResult(ctx, customer, id)
+	if e != nil || len(result.Binary) > 0 {
+		return result, e
 	}
 	var row AttemptRecord
 	if e = s.DB.WithContext(ctx).Where("request_id=? AND task_id<>''", id).Order("started_at DESC").First(&row).Error; e != nil {
@@ -166,6 +189,6 @@ func (s *Service) PendingRequests(ctx context.Context, limit int) ([]Request, er
 		limit = 50
 	}
 	var rows []Request
-	e := s.DB.WithContext(ctx).Where("status IN ('accepted','executing','submitted','awaiting_usage')").Order("usage_deadline,id").Limit(limit).Find(&rows).Error
+	e := s.DB.WithContext(ctx).Omit("async_input").Where("status IN ('accepted','executing','submitted','awaiting_usage')").Order("usage_deadline,id").Limit(limit).Find(&rows).Error
 	return rows, e
 }

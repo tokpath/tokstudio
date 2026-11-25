@@ -97,7 +97,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
     };
     const poolOperation = subscriptionVendor(data.subscription_kind)?.operation;
     const children = <div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([key, child]) => !child.hidden && !child.readOnly && !child.generated && !(key === "action" && data.action === "listing" && referenceContext?.allow_downstream === false) && !(key === "scope" && fieldPath === "price" && referenceContext?.allow_downstream === false) && !(key === "mode" && data.mode === "manual" && referenceContext?.allow_follow === false) && key !== "version" && key !== "expected_version" && !key.endsWith("_version") && nodeVisible(child, data)).map(([key, child]) => <div key={key} className={["object", "array", "record", "textarea"].includes(child.kind) ? "min-w-0 sm:col-span-2" : "min-w-0"}><NodeEditor
-      node={key === "capabilities" && poolOperation ? { ...child, options: child.options?.filter(([operation]) => operation === poolOperation) } : key==="mode" && referenceContext?.allow_follow===false && child.options?.some(([key])=>key==="follow") ? {...child,options:child.options.filter(([key])=>key!=="follow")} : data.action==="billing" && key==="operation" && Object.keys(modelMetadata).length ? {...child,options:child.options?.filter(([op])=>Object.hasOwn(modelMetadata,op))} : key==="template" && typeof data.modality==="string" ? {...child,options:child.options?.filter(([template])=>(data.modality==="all"?["tokens"]:data.modality==="text"?["tokens","characters"]:data.modality==="image"?["tokens","images","megapixels"]:["tokens","seconds"]).includes(template))} : child.lookupBy ? {...child,lookup:child.lookupBy.values[String(data[child.lookupBy.field])]} : child.lookupWhen && !child.lookupWhen.values.includes(String(data[child.lookupWhen.field])) ? { ...child, lookup: undefined } : child}
+      node={key==="mode" && referenceContext?.allow_follow===false && child.options?.some(([key])=>key==="follow") ? {...child,options:child.options.filter(([key])=>key!=="follow")} : data.action==="billing" && key==="operation" && Object.keys(modelMetadata).length ? {...child,options:child.options?.filter(([op])=>Object.hasOwn(modelMetadata,op))} : key==="template" && typeof data.modality==="string" ? {...child,options:child.options?.filter(([template])=>(data.modality==="all"?["tokens"]:data.modality==="text"?["tokens","characters"]:data.modality==="image"?["tokens","images","megapixels"]:["tokens","seconds"]).includes(template))} : child.lookupBy ? {...child,lookup:child.lookupBy.values[String(data[child.lookupBy.field])]} : child.lookupWhen && !child.lookupWhen.values.includes(String(data[child.lookupWhen.field])) ? { ...child, lookup: undefined } : child}
       value={data[key]} disabled={disabled || !!child.readOnly || (key === "provider" && !!poolOperation)} operatorID={operatorID} referenceContext={{ ...(referenceContext || {}), ...data }}
       context={root ? context : [context, t(node.label)].filter(Boolean).join(" · ")} fieldPath={fieldPath ? `${fieldPath}.${key}` : key}
       change={next => update(key, next)} choose={(selected, defaults) => update(key, selected, defaults)}
@@ -105,10 +105,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
     return root ? children : <fieldset className="min-w-0 rounded-control border border-hairline bg-canvas/40 p-4"><legend className="px-2 text-sm font-semibold">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}</legend>{children}</fieldset>;
   }
   if (node.kind === "array" && (node.presentation === "operations" || node.presentation === "supplier-operations")) {
-    const items = Array.isArray(value) ? value : [];
-    const selected = new Map(items.map(item => { const cap = asObject(item); return [String(cap.operation || ""), cap]; }));
-    const choose = (key: string, checked: boolean) => change((node.options || []).filter(([op]) => op === key ? checked : selected.has(op)).map(([op]) => selected.get(op) || { operation: op, ...(node.presentation === "supplier-operations" ? {streaming:false} : {}) }));
-    return <fieldset data-config-path={fieldPath} className="min-w-0 text-sm sm:col-span-2"><legend className="text-sm font-medium">{label}{help && <FieldHelp title={label}>{t(help)}</FieldHelp>}</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{(node.options || []).map(([key, text]) => <div key={key} className="rounded-control border border-hairline px-3 py-2"><label className="flex min-h-11 items-center gap-3"><input type="checkbox" aria-label={t(text)} checked={selected.has(key)} disabled={disabled} onChange={event => choose(key, event.target.checked)} />{t(text)}</label>{node.presentation === "supplier-operations" && selected.has(key) && !["embedding","video_generation"].includes(key) && <label className="ml-7 flex min-h-11 items-center gap-3 text-xs text-ink-secondary"><input type="checkbox" aria-label={t("{ability}支持流式输出", {ability:t(text)})} checked={selected.get(key)?.streaming === true} disabled={disabled} onChange={event => change(items.map(item => asObject(item).operation === key ? {...asObject(item),streaming:event.target.checked} : item))} />{t("支持流式输出")}</label>}</div>)}</div></fieldset>;
+    return <CapabilityEditor node={node} value={value} label={label} fieldPath={fieldPath} help={help} disabled={disabled} change={change} operatorID={operatorID} context={referenceContext} />;
   }
   if (node.kind === "array") {
     const items = Array.isArray(value) ? value : [];
@@ -143,12 +140,49 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
   </div>;
 }
 
+function CapabilityEditor({ node, value, label, fieldPath, help, disabled, change, operatorID, context }: { node: ConfigNode; value: JSONValue | undefined; label: string; fieldPath: string; help?: string; disabled: boolean; change: (value: JSONValue) => void; operatorID?: string; context?: Record<string, JSONValue> }) {
+  const { t } = useI18n();
+  const supplier = node.presentation === "supplier-operations";
+  const pool = supplier ? subscriptionVendor(context?.subscription_kind) : undefined;
+  const credential = String(context?.credential_id || "");
+  const path = `/api/v1/operators/${encodeURIComponent(operatorID || "")}/references/credentials`;
+  const reference = useReferenceLabel(path, credential, !!(operatorID && pool));
+  const media = reference.data?.items.find(item => item.value === credential)?.defaults?.subscription_media;
+  const poolMedia = media && typeof media === "object" && !Array.isArray(media) ? media as Record<string, unknown> : {};
+  const items = Array.isArray(value) ? value : [];
+  const selected = new Map(items.map(item => { const cap = asObject(item); return [String(cap.operation || ""), cap]; }));
+  const configured = (op: string) => !pool || op === pool.operation || typeof poolMedia[op] === "boolean";
+  const choices = (node.options || []).filter(([op]) => configured(op) || selected.has(op));
+  const choose = (op: string, checked: boolean) => change(choices.filter(([key]) => key === op ? checked : selected.has(key)).map(([key]) => selected.get(key) || { operation: key, ...(supplier ? { streaming: false } : {}) }));
+  return <fieldset data-config-path={fieldPath} className="min-w-0 text-sm sm:col-span-2">
+    <legend className="text-sm font-medium">{label}{help && <FieldHelp title={label}>{t(help)}</FieldHelp>}</legend>
+    <div className="mt-2 grid gap-2 sm:grid-cols-2">{choices.map(([key, text]) => {
+      const canStream = !pool || key === pool.operation || poolMedia[key] === true;
+      const streaming = selected.get(key)?.streaming === true;
+      return <div key={key} className="rounded-control border border-hairline px-3 py-2">
+        <label className="flex min-h-11 items-center gap-3"><input type="checkbox" aria-label={t(text)} checked={selected.has(key)} disabled={disabled} onChange={event => choose(key, event.target.checked)} />{t(text)}</label>
+        {supplier && selected.has(key) && (canStream || streaming) && !["embedding", "video_generation"].includes(key) && <label className="ml-7 flex min-h-11 items-center gap-3 text-xs text-ink-secondary">
+          <input type="checkbox" aria-label={t("{ability}支持流式输出", { ability: t(text) })} checked={streaming} disabled={disabled} onChange={event => change(items.map(item => asObject(item).operation === key ? { ...asObject(item), streaming: event.target.checked } : item))} />{t("支持流式输出")}
+        </label>}
+      </div>;
+    })}</div>
+  </fieldset>;
+}
+
 function ResolutionPrices({ fieldPath, help, rows, disabled, change }: { fieldPath: string; help?: string; rows: JSONValue[]; disabled: boolean; change: (rows: JSONValue[]) => void }) {
   const { t } = useI18n();
   return <section className="mt-4 space-y-3 border-t border-hairline pt-4"><div className="flex flex-wrap items-center justify-between gap-3"><h5 className="text-sm font-medium">{t("分辨率价格（可选）")}{help && <FieldHelp title={t("分辨率价格（可选）")}>{t(help)}</FieldHelp>}</h5><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => change([...rows, { size: "", rate: "" }])}><Plus aria-hidden="true" />{t("添加分辨率")}</Button></div>{rows.map((row, index) => { const item = asObject(row); const update = (key: string, next: string) => change(rows.map((previous, i) => i === index ? { ...asObject(previous), [key]: next } : previous)); return <div key={index} className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"><div data-config-path={`${fieldPath}.resolutions.${index}.size`}><label className="text-xs text-ink-secondary">{t("分辨率")}<Input aria-label={t("分辨率 {index}", { index: index + 1 })} className="mt-2" value={String(item.size || "")} disabled={disabled} placeholder="1024x1024" onChange={event => update("size", event.target.value)} /></label></div><div data-config-path={`${fieldPath}.resolutions.${index}.rate`}><label className="text-xs text-ink-secondary">{t("该分辨率的 ATG 单价")}<Input aria-label={t("该分辨率的 ATG 单价 {index}", { index: index + 1 })} className="mt-2" inputMode="decimal" value={String(item.rate || "")} disabled={disabled} onChange={event => update("rate", event.target.value)} /></label></div><Button type="button" variant="ghost" size="icon" aria-label={t("移除分辨率 {index}", { index: index + 1 })} disabled={disabled} onClick={() => change(rows.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></div>; })}</section>;
 }
 
 const ReferenceSchema = z.object({ items: z.array(z.object({ value: z.string(), label: z.string(), defaults: z.record(z.unknown()).optional() })), next_cursor: z.string().optional() });
+function useReferenceLabel(path: string, value: string, enabled: boolean, buyerID = "", extra = "") {
+  return useQuery({
+    queryKey: ["reference-label", path, value, buyerID, extra],
+    enabled: enabled && !!value && value !== "*",
+    queryFn: ({ signal }) => request(`${path}?q=${encodeURIComponent(value)}${extra}${buyerID ? `&buyer_id=${encodeURIComponent(buyerID)}` : ""}`, ReferenceSchema, { signal }),
+  });
+}
+
 function ConfigReference({ node, label, value, operatorID, disabled, change, referenceContext }: { node: ConfigNode; label: string; value: string; operatorID: string; disabled: boolean; change: (value: string, defaults: Record<string, unknown>) => void; referenceContext?: Record<string, JSONValue> }) {
   const { t } = useI18n();
   const pendingChanged = useContext(ReferencePending);
@@ -161,7 +195,7 @@ function ConfigReference({ node, label, value, operatorID, disabled, change, ref
   const modelID = node.lookup === "supplier-models" ? String(referenceContext?.public_model_id || "") : "";
   const extra = `${node.lookupPurpose ? `&purpose=${node.lookupPurpose}` : ""}${modelID ? `&public_model_id=${encodeURIComponent(modelID)}` : ""}`;
   const data = useQuery({ queryKey: ["references", path, deferred, cursor, buyerID, extra], enabled: ready, queryFn: ({ signal }) => request(`${path}?q=${encodeURIComponent(deferred)}&cursor=${encodeURIComponent(cursor)}${extra}${needsBuyer ? `&buyer_id=${encodeURIComponent(buyerID)}` : ""}`, ReferenceSchema, { signal }) });
-  const selected = useQuery({ queryKey: ["reference-label", path, value, buyerID, extra], enabled: ready && !!value && value !== "*" && !data.data?.items.some(item => item.value === value), queryFn: ({ signal }) => request(`${path}?q=${encodeURIComponent(value)}${extra}${needsBuyer ? `&buyer_id=${encodeURIComponent(buyerID)}` : ""}`, ReferenceSchema, { signal }) });
+  const selected = useReferenceLabel(path, value, ready && !data.data?.items.some(item => item.value === value), buyerID, extra);
   const currentLabel = !value ? "" : value === "*" ? t("全部已授权模型（跟随上级）") : data.data?.items.find(item => item.value === value)?.label || selected.data?.items.find(item => item.value === value)?.label || selectedLabel || t(selected.isPending ? "正在读取关联记录名称…" : "已选择关联记录");
   const options: RecordChoice[] = (data.data?.items || []).map(item => ({ value: item.value, label: item.label, defaults: item.defaults }));
   async function selectChoice(choice: RecordChoice | null) {

@@ -79,6 +79,7 @@ func EstimateUsage(c Capability, r Request) map[string]string {
 						q.Mul(q, big.NewRat(int64(len(layout.images)), 1))
 					}
 					if direction == "output" {
+						q.Mul(q, count)
 						if size, ok := params["size"].(string); ok {
 							var w, h int64
 							if parseSize(size, &w, &h) {

@@ -105,7 +105,7 @@ func extractUsage(response any, c Capability) Usage {
 		fields["completion_tokens"] = json.RawMessage(strconv.Itoa(llm.CompletionTokens))
 		raw, _ = json.Marshal(fields)
 	}
-	if (len(raw) == 0 || string(raw) == "null") && c.Operation == Image {
+	if (len(raw) == 0 || string(raw) == "null") && c.Operation.IsImage() {
 		var data []json.RawMessage
 		if json.Unmarshal(body["data"], &data) != nil || len(data) == 0 {
 			return unknown
@@ -130,7 +130,7 @@ func extractUsage(response any, c Capability) Usage {
 		facts["provider"] = map[string]any{"seconds": videoNativeSeconds}
 		source = "provider_metadata"
 	}
-	if c.Operation == Image {
+	if c.Operation.IsImage() {
 		var data []json.RawMessage
 		if json.Unmarshal(body["data"], &data) == nil && len(data) > 0 {
 			facts["output_count"] = json.Number(strconv.Itoa(len(data)))

@@ -19,6 +19,8 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+const imageTaskQueue = "portal-image-tasks"
+
 type scheduledTask struct {
 	ID, Kind             string
 	Payload              json.RawMessage `gorm:"type:jsonb"`
@@ -63,7 +65,11 @@ func (a *Application) schedule(ctx context.Context, kind, subject string, p work
 				return nil
 			}
 		}
-		job, e := a.Jobs.EnqueueTx(tx, jobs.Input{Queue: "portal-maintenance", Kind: kind, BusinessKey: id + ":" + fmt.Sprint(s.NextDueAt.UnixNano()), Payload: raw, AvailableAt: now, MaxAttempts: 12})
+		queue := "portal-maintenance"
+		if kind == "image_task" {
+			queue = imageTaskQueue
+		}
+		job, e := a.Jobs.EnqueueTx(tx, jobs.Input{Queue: queue, Kind: kind, BusinessKey: id + ":" + fmt.Sprint(s.NextDueAt.UnixNano()), Payload: raw, AvailableAt: now, MaxAttempts: 12})
 		if e != nil {
 			return e
 		}
@@ -199,7 +205,11 @@ func (a *Application) DiscoverWorkerTasks(ctx context.Context) error {
 	}
 	next = ""
 	for _, r := range requests {
-		if e = a.schedule(ctx, "usage", r.ID, workerPayload{ID: r.ID, CustomerID: r.CustomerID}, 15*time.Second); e != nil {
+		kind := "usage"
+		if r.AsyncImage {
+			kind = "image_task"
+		}
+		if e = a.schedule(ctx, kind, r.ID, workerPayload{ID: r.ID, CustomerID: r.CustomerID}, 15*time.Second); e != nil {
 			return e
 		}
 		next = r.ID
@@ -363,6 +373,16 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 			return e
 		}
 		return nil
+	case "image_task":
+		r, e := a.Usage.GetRequest(ctx, p.CustomerID, p.ID)
+		if e != nil {
+			return e
+		}
+		if !time.Now().Before(r.UsageDeadline) {
+			_, e = a.Usage.ResolveTimeout(ctx, r.ID)
+			return e
+		}
+		return a.Usage.RunImageTask(ctx, r)
 	case "delivery":
 		o, e := a.Commerce.GetOrder(ctx, nil, p.CustomerID, p.ID)
 		if e != nil {
@@ -422,7 +442,14 @@ func (a *Application) runPortalJobs(ctx context.Context, queue, owner string, li
 			return nil
 		}
 		job := claimed[0]
-		taskCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
+		limit := 45 * time.Second
+		if job.Kind == "image_task" {
+			limit = a.Usage.UsageTimeout
+			if e = a.Jobs.ExtendLease(ctx, job.ID, owner, job.Fence, limit+15*time.Second); e != nil {
+				return e
+			}
+		}
+		taskCtx, cancel := context.WithTimeout(ctx, limit)
 		e = a.runMaintenance(taskCtx, job)
 		cancel()
 		a.Metrics.Job(job.Kind, e != nil)
@@ -454,6 +481,23 @@ func (a *Application) RunWorker(ctx context.Context, concurrency int, onError fu
 		}
 	}
 	var workers sync.WaitGroup
+	for i := 0; i < min(concurrency, 4); i++ {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			owner := "image-worker:" + uuid.NewString()
+			ticker := time.NewTicker(time.Second)
+			defer ticker.Stop()
+			for ctx.Err() == nil {
+				report("image_task", a.runPortalJobs(ctx, imageTaskQueue, owner, 1))
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+				}
+			}
+		}()
+	}
 	if a.ModelPricing != nil {
 		workers.Add(1)
 		go func() {

@@ -33,7 +33,7 @@ type BillingComponent struct {
 
 func DefaultBilling(op Operation) BillingProfile {
 	switch op {
-	case Image:
+	case Image, ImageEdit:
 		return BillingProfile{Output: []BillingItem{{Modality: "image", Template: "images"}}}
 	case Speech:
 		return BillingProfile{Input: []BillingItem{{Modality: "text", Template: "characters"}}}
@@ -49,7 +49,7 @@ func DefaultBilling(op Operation) BillingProfile {
 }
 func (p BillingProfile) Valid(op Operation) bool {
 	switch op {
-	case Chat, Responses, Embedding, Image, Speech, Transcription, Video:
+	case Chat, Responses, Embedding, Image, ImageEdit, Speech, Transcription, Video:
 	default:
 		return false
 	}
@@ -131,6 +131,8 @@ func capabilityName(op Operation) string {
 		return "向量"
 	case Image:
 		return "图片生成"
+	case ImageEdit:
+		return "图片编辑"
 	case Speech:
 		return "语音生成"
 	case Transcription:

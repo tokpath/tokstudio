@@ -33,6 +33,25 @@ func (b *Bifrost) metadataBytes(ctx context.Context, target, byteRange string) (
 	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
+	client := b.mediaClient()
+	defer client.CloseIdleConnections()
+	req, e := http.NewRequestWithContext(ctx, "GET", target, nil)
+	if e != nil {
+		return nil, e
+	}
+	req.Header.Set("Range", byteRange)
+	resp, e := client.Do(req)
+	if e != nil {
+		return nil, e
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 && resp.StatusCode != 206 {
+		return nil, ErrUsageUnknown
+	}
+	return io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+}
+
+func (b *Bifrost) mediaClient() *http.Client {
 	transport := &http.Transport{DialContext: func(c context.Context, kind, address string) (net.Conn, error) {
 		host, port, e := net.SplitHostPort(address)
 		if e != nil {
@@ -54,22 +73,7 @@ func (b *Bifrost) metadataBytes(ctx context.Context, target, byteRange string) (
 		}
 		return nil, ErrInvalidRequest
 	}}
-	defer transport.CloseIdleConnections()
-	client := &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	req, e := http.NewRequestWithContext(ctx, "GET", target, nil)
-	if e != nil {
-		return nil, e
-	}
-	req.Header.Set("Range", byteRange)
-	resp, e := client.Do(req)
-	if e != nil {
-		return nil, e
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 && resp.StatusCode != 206 {
-		return nil, ErrUsageUnknown
-	}
-	return io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	return &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 }
 
 // measurableResponse supplies verified file metadata to the quantity adapter.

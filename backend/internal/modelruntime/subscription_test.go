@@ -15,7 +15,7 @@ import (
 
 type testSubscriptionCredential struct{ endpoint string }
 
-func (c testSubscriptionCredential) ResolveSubscriptionCredential(context.Context, Attempt) (SubscriptionCredential, error) {
+func (c testSubscriptionCredential) ResolveSubscriptionCredential(context.Context, Attempt, Operation) (SubscriptionCredential, error) {
 	return SubscriptionCredential{AccessToken: "mock-subscription-token", AccountID: "mock-account", Endpoint: c.endpoint}, nil
 }
 

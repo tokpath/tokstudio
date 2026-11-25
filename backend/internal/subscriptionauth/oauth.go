@@ -23,16 +23,17 @@ var ErrOAuthNotConfigured = errors.New("subscription OAuth client is not configu
 // A connection is provisioned on the server from the supplier's authorization
 // for this platform. Account imports and customer requests cannot set its URLs.
 type Connection struct {
-	AuthorizationURL string `json:"authorization_url"`
-	TokenURL         string `json:"token_url"`
-	InferenceURL     string `json:"inference_url"`
-	Issuer           string `json:"issuer,omitempty"`
-	UserInfoURL      string `json:"userinfo_url,omitempty"`
-	ClientID         string `json:"client_id"`
-	ClientSecret     string `json:"client_secret,omitempty"`
-	TokenAuthMethod  string `json:"token_auth_method,omitempty"`
-	Scope            string `json:"scope"`
-	Resource         string `json:"resource,omitempty"`
+	AuthorizationURL string                   `json:"authorization_url"`
+	TokenURL         string                   `json:"token_url"`
+	InferenceURL     string                   `json:"inference_url"`
+	Issuer           string                   `json:"issuer,omitempty"`
+	UserInfoURL      string                   `json:"userinfo_url,omitempty"`
+	ClientID         string                   `json:"client_id"`
+	ClientSecret     string                   `json:"client_secret,omitempty"`
+	TokenAuthMethod  string                   `json:"token_auth_method,omitempty"`
+	Scope            string                   `json:"scope"`
+	Resource         string                   `json:"resource,omitempty"`
+	Media            map[string]MediaEndpoint `json:"media,omitempty"`
 }
 
 type Connections map[string]Connection
@@ -88,7 +89,7 @@ func (c Connection) Validate(kind string, loopback bool) error {
 	if !strings.HasSuffix(endpoint.Path, want) {
 		return ErrOAuthNotConfigured
 	}
-	return nil
+	return c.validateMedia(kind, loopback)
 }
 
 func validEndpoint(raw string, loopback bool) bool {

@@ -33,7 +33,7 @@ export function usePublicModels() {
   });
 }
 
-export const capabilityLabels: Record<string, string> = { chat: "文本对话", responses: "Responses", embedding: "向量", image: "图像生成", speech: "语音合成", transcription: "语音转写", video: "视频生成" };
+export const capabilityLabels: Record<string, string> = { chat: "文本对话", responses: "Responses", embedding: "向量", image: "图像生成", image_edit: "图片编辑", speech: "语音合成", transcription: "语音转写", video: "视频生成" };
 const modelTerms: Record<string, string> = {
  "普通输入":"普通输入","输入文本":"输入文本","输入图片":"输入图片","输入音频":"输入音频","输入视频":"输入视频","输出文本":"输出文本","输出图片":"输出图片","输出音频":"输出音频","输出视频":"输出视频","缓存读取":"缓存读取","全部模态":"全部模态","文本":"文本","图片":"图片","音频":"音频","视频":"视频",
 
@@ -43,7 +43,7 @@ const modelTerms: Record<string, string> = {
 // parameter names and provider-specific units exactly as supplied.
 export function modelTerm(value: string, t: Translator) { if(value.includes(" · "))return value.split(" · ").map(part=>modelTerms[part]?t(modelTerms[part]):part).join(" · ");return modelTerms[value] ? t(modelTerms[value]) : value; }
 export function browserCapability(operation: string) { return ({ image_generation: "image", video_generation: "video" } as Record<string, string>)[operation] || operation; }
-const paths: Record<string, string> = { chat: "chat/completions", responses: "responses", embedding: "embeddings", image: "images/generations", speech: "audio/speech", transcription: "audio/transcriptions", video: "videos" };
+const paths: Record<string, string> = { chat: "chat/completions", responses: "responses", embedding: "embeddings", image: "images/generations", image_edit: "images/edits", speech: "audio/speech", transcription: "audio/transcriptions", video: "videos" };
 export function apiExample(baseURL: string, modelID: string, operation: string, language: "curl" | "python", locale: Locale = "zh", parameters: Record<string, unknown> = {}) {
   if (!baseURL.trim()) return "";
   const t = (source: string) => translate(locale, source);
@@ -51,7 +51,14 @@ export function apiExample(baseURL: string, modelID: string, operation: string, 
   const endpoint = `${baseURL.replace(/\/+$/, "")}/${paths[operation] || "chat/completions"}`;
   const body = operation === "chat" ? { model: modelID, messages: [{ role: "user", content: t("你好") }] } : operation === "responses" || operation === "embedding" ? { model: modelID, input: t("你好") } : operation === "speech" ? { model: modelID, input: t("你好"), voice: t("<模型支持的音色>") } : { model: modelID, prompt: t("<你的描述>") };
   const requestBody = { ...body, ...parameters };
-  if (operation === "transcription") return language === "curl" ? `curl ${JSON.stringify(endpoint)} \\\n  -H "Authorization: Bearer $TOKENHUB_API_KEY" \\\n  -H "Idempotency-Key: ${t("<为本次请求生成唯一编号>")}" \\\n  -F ${JSON.stringify(`model=${modelID}`)} \\\n  -F "file=@${t("<本地音频路径>")}"` : `import os, uuid, requests\n\nwith open("${t("<本地音频路径>")}", "rb") as audio:\n    response = requests.post(\n        ${JSON.stringify(endpoint)},\n        headers={"Authorization": "Bearer " + os.environ["TOKENHUB_API_KEY"],\n                 "Idempotency-Key": str(uuid.uuid4())},\n        data={"model": ${JSON.stringify(modelID)}},\n        files={"file": audio},\n    )\n    response.raise_for_status()\n    print(response.json())`;
+  if (operation === "transcription" || operation === "image_edit") {
+    const edit = operation === "image_edit";
+    const field = edit ? "image" : "file";
+    const file = t(edit ? "<本地图片路径>" : "<本地音频路径>");
+    const form = { model: modelID, ...(edit ? { prompt: t("<你的描述>") } : {}) };
+    const fields = Object.entries(form).map(([key, value]) => `-F ${JSON.stringify(`${key}=${value}`)}`);
+    return language === "curl" ? `curl ${JSON.stringify(endpoint)} \\\n  -H "Authorization: Bearer $TOKENHUB_API_KEY" \\\n  -H "Idempotency-Key: ${t("<为本次请求生成唯一编号>")}" \\\n  ${fields.join(" ")} \\\n  -F "${field}=@${file}"` : `import os, uuid, requests\n\nwith open(${JSON.stringify(file)}, "rb") as upload:\n    response = requests.post(\n        ${JSON.stringify(endpoint)},\n        headers={"Authorization": "Bearer " + os.environ["TOKENHUB_API_KEY"],\n                 "Idempotency-Key": str(uuid.uuid4())},\n        data=${JSON.stringify(form)},\n        files={${JSON.stringify(field)}: upload},\n    )\n    response.raise_for_status()\n    print(response.json())`;
+  }
   return language === "curl" ? `curl ${JSON.stringify(endpoint)} \\\n  -H "Authorization: Bearer $TOKENHUB_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -H "Idempotency-Key: ${t("<为本次请求生成唯一编号>")}" \\\n  -d '${JSON.stringify(requestBody, null, 2).replace(/'/g, "'\\''")}'` : `import json, os, uuid, urllib.request\n\nbody = ${JSON.stringify(requestBody, null, 2)}\nrequest = urllib.request.Request(\n    ${JSON.stringify(endpoint)},\n    data=json.dumps(body).encode(),\n    headers={"Authorization": "Bearer " + os.environ["TOKENHUB_API_KEY"],\n             "Content-Type": "application/json",\n             "Idempotency-Key": str(uuid.uuid4())},\n)\nwith urllib.request.urlopen(request) as response:\n    ${operation === "speech" ? 'open("speech.bin", "wb").write(response.read())' : "print(json.load(response))"}`;
 }
 export function ConnectionGuide({ models, initialModel, compact = false, onSelect, locked = false, onLockChange, onEditorChange }: { models: Model[]; initialModel?: string; compact?: boolean; onSelect?: (id: string) => void; locked?: boolean; onLockChange?: (locked: boolean) => void; onEditorChange?: (open: boolean) => void }) {

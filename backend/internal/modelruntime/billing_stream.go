@@ -19,6 +19,10 @@ type billingStream struct {
 	outputModalities map[string]bool
 }
 
+func completedImageEvent(event *schemas.BifrostImageGenerationStreamResponse) bool {
+	return event != nil && (event.Type == schemas.ImageGenerationEventTypeCompleted || event.Type == schemas.ImageEditEventTypeCompleted)
+}
+
 func (s *billingStream) measure(ctx context.Context, b *Bifrost, chunk *schemas.BifrostStreamChunk, c Capability, r Request) Usage {
 	if c.Billing == nil {
 		return extractUsage(chunk, c)
@@ -81,14 +85,17 @@ func (s *billingStream) measure(ctx context.Context, b *Bifrost, chunk *schemas.
 		body["_measured_output_characters"] = json.Number(strconv.FormatInt(s.textCharacters, 10))
 		return extractBilledUsage(body, c, r)
 	}
-	if image := chunk.BifrostImageGenerationStreamResponse; image != nil && !c.Billing.Has("output", "image", "tokens") {
-		if image.Type != schemas.ImageGenerationEventTypeCompleted {
+	if image := chunk.BifrostImageGenerationStreamResponse; image != nil {
+		if !completedImageEvent(image) {
 			return Usage{Source: "unknown"}
 		}
 		if s.images == nil {
 			s.images = map[int]schemas.ImageData{}
 		}
 		s.images[image.Index] = schemas.ImageData{B64JSON: image.B64JSON, URL: image.URL}
+		if c.Billing.Has("output", "image", "tokens") {
+			return extractBilledUsage(chunk, c, r)
+		}
 		images := make([]schemas.ImageData, 0, len(s.images))
 		for _, image := range s.images {
 			images = append(images, image)
@@ -116,7 +123,7 @@ func (s *billingStream) measure(ctx context.Context, b *Bifrost, chunk *schemas.
 func (s *billingStream) cost(ctx context.Context, meter CostMeter, a Attempt, chunk *schemas.BifrostStreamChunk) *CostObservation {
 	observation := meter.Observe(ctx, a, chunk)
 	image := chunk.BifrostImageGenerationStreamResponse
-	if image == nil || image.Type != schemas.ImageGenerationEventTypeCompleted {
+	if !completedImageEvent(image) {
 		return observation
 	}
 	if s.imageCosts == nil {

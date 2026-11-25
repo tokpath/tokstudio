@@ -113,7 +113,7 @@ func (f tokenFacts) part(direction, modality string, r Request, body map[string]
 	kinds := sources(r).kinds()
 	if direction == "output" {
 		switch r.Operation {
-		case Image:
+		case Image, ImageEdit:
 			kinds = []string{"image"}
 		case Speech:
 			kinds = []string{"audio"}

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
@@ -61,10 +62,10 @@ func TestPostgresSubscriptionPoolRetriesAndSettlesOnce(t *testing.T) {
 			}
 			var calls []modelruntime.Attempt
 			retryAt := time.Now().Add(2 * time.Minute)
-			f.s.Runtime = subscriptionTestRuntime(func(ctx context.Context, a modelruntime.Attempt, _ modelruntime.Request, _ modelruntime.Emit) (modelruntime.Result, error) {
+			f.s.Runtime = subscriptionTestRuntime(func(ctx context.Context, a modelruntime.Attempt, r modelruntime.Request, _ modelruntime.Emit) (modelruntime.Result, error) {
 				calls = append(calls, a)
 				if a.SubscriptionKind != "" {
-					if _, err := f.cat.ResolveSubscriptionCredential(ctx, a); err != nil {
+					if _, err := f.cat.ResolveSubscriptionCredential(ctx, a, r.Operation); err != nil {
 						t.Fatal("leased subscription credential could not be resolved", err)
 					}
 					if a.CostSnapshot != nil {
@@ -135,5 +136,94 @@ func TestPostgresSubscriptionPoolRetriesAndSettlesOnce(t *testing.T) {
 				t.Fatal("duplicate charge or unreleased hold", err)
 			}
 		})
+	}
+}
+
+func TestGrokVideoTaskRemainsOnOriginalPoolAccount(t *testing.T) {
+	f := setup(t, "100", nil, modelruntime.DefaultBilling(modelruntime.Video).Capability(modelruntime.Video, false))
+	f.s.ResultStore = imageTestStore{}
+	const origin = "https://approved-grok.example"
+	connection := subscriptionauth.Connection{InferenceURL: origin + "/v1/responses", Media: map[string]subscriptionauth.MediaEndpoint{
+		subscriptionauth.VideoGeneration: {URL: origin + "/v1/videos/generations", Protocol: "xai"},
+		subscriptionauth.VideoRetrieve:   {URL: origin + "/v1/videos/{task_id}", Protocol: "xai"},
+	}}
+	f.cat.SubscriptionConnections = map[string]subscriptionauth.Connection{subscriptionauth.Grok: connection}
+	f.s.Catalog = f.cat
+	pool, err := f.cat.SaveSubscriptionPool(f.ctx, f.operator, catalog.SubscriptionPoolInput{Name: "Grok video", Kind: subscriptionauth.Grok, Enabled: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	accounts := map[string]string{}
+	for _, token := range []string{"account-one", "account-two"} {
+		id, err := f.cat.SaveAuthorizedSubscriptionAccount(f.ctx, f.operator, subscriptionauth.Grok,
+			catalog.SubscriptionAccountInput{PoolID: pool, Name: token, Enabled: true},
+			subscriptionauth.Credential{Connection: connection.Fingerprint(), AccountID: token, AccessToken: token, ExpiresAt: time.Now().Add(time.Hour)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		accounts[id] = token
+	}
+	model := catalog.SupplierModel{ID: uuid.NewString(), CredentialID: pool, Provider: "openai", Model: "grok-imagine-video", Enabled: true,
+		Capabilities: []modelruntime.Capability{{Operation: modelruntime.Video}}}
+	if err := f.cat.SaveSupplierModel(f.ctx, f.operator, model, 0); err != nil {
+		t.Fatal("verified subscription media model did not save", err)
+	}
+	if err := f.cat.SaveRouteConfiguration(f.ctx, f.operator, catalog.RouteConfiguration{
+		PublicModelID: "public-model", Strategy: "priority", Bindings: []catalog.RouteBinding{{SupplierModelID: model.ID, Enabled: true}},
+	}, 0); err != nil {
+		t.Fatal("media model could not use the existing route form", err)
+	}
+	var selected string
+	calls := 0
+	f.s.Runtime = subscriptionTestRuntime(func(ctx context.Context, a modelruntime.Attempt, r modelruntime.Request, _ modelruntime.Emit) (modelruntime.Result, error) {
+		calls++
+		auth, err := f.cat.ResolveSubscriptionCredential(ctx, a, r.Operation)
+		if err != nil || auth.AccessToken != accounts[a.SubscriptionAccountID] || auth.Protocol != "xai" || a.CostSnapshot != nil {
+			t.Fatal("incorrect account or vendor billing for subscription video", err)
+		}
+		switch r.Operation {
+		case modelruntime.Video:
+			selected = a.SubscriptionAccountID
+			return modelruntime.Result{State: "submitted", TaskID: "native-video"}, nil
+		case modelruntime.VideoRetrieve:
+			if a.SubscriptionAccountID != selected || auth.Endpoint != origin+"/v1/videos/native-video" {
+				t.Fatal("poll moved away from the original account or task")
+			}
+			return modelruntime.Result{
+				State: "completed", TaskID: a.TaskID, Binary: []byte("test video"), ContentType: "video/mp4",
+				Usage: modelruntime.Usage{Source: "normalized_quantities", Reliable: true, Measurements: []modelruntime.Measurement{
+					{Component: "output_video_seconds", Unit: "second", Quantity: "4"},
+				}},
+			}, nil
+		default:
+			t.Fatal("download went back to a supplier after the clip was retained")
+			return modelruntime.Result{}, modelruntime.ErrUnsupported
+		}
+	})
+	input, err := modelruntime.DecodeProtocol("incoming", modelruntime.Video, []byte(`{"model":"public-model","prompt":"native video","seconds":"4"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	started, err := f.s.Execute(f.ctx, f.key.Key, "grok-accepted-video", input, nil)
+	if err != nil || started.Request.Status != "submitted" || started.Request.DeliveredAt == nil || !started.Request.ChargedATG.IsZero() {
+		t.Fatal("failed to accept one charge-pending video delivery", started.Request.Status, err)
+	}
+	if _, err = f.cat.SaveSubscriptionAccount(f.ctx, f.operator, catalog.SubscriptionAccountInput{
+		ID: selected, PoolID: pool, Name: accounts[selected], Enabled: false, ExpectedVersion: 1,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	done, err := f.s.RefreshAsync(f.ctx, started.Request.ID)
+	if err != nil || done.Status != "completed" || done.ChargedATG.String() != "0.04" {
+		t.Fatal("background poll could not settle the original video", done.Status, err)
+	}
+	download, err := f.s.DownloadAsync(f.ctx, f.customer, done.ID)
+	if err != nil || string(download.Binary) != "test video" || calls != 2 {
+		t.Fatal("clip retention did not serve the original result", err)
+	}
+	var row AttemptRecord
+	if err := f.db.Where("request_id=?", done.ID).Take(&row).Error; err != nil ||
+		row.CostStatus != "subscription" || row.ReferenceCostAmount != nil || row.ReportedCostAmount != nil {
+		t.Fatal("attempt received a per-call vendor price", err)
 	}
 }

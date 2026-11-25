@@ -20,6 +20,7 @@ const (
 	Responses     Operation = "responses"
 	Embedding     Operation = "embedding"
 	Image         Operation = "image_generation"
+	ImageEdit     Operation = "image_edit"
 	Speech        Operation = "speech"
 	Transcription Operation = "transcription"
 	Video         Operation = "video_generation"
@@ -84,6 +85,7 @@ type Request struct {
 	PublicModel string            `json:"model"`
 	Operation   Operation         `json:"operation"`
 	Stream      bool              `json:"stream"`
+	Async       bool              `json:"async,omitempty"`
 	// Input and Params use Bifrost's canonical protocol schema. DecodeProtocol
 	// below accepts standard endpoint bodies without losing unsupported fields.
 	Input      json.RawMessage `json:"input"`
@@ -106,6 +108,7 @@ type Attempt struct {
 	CredentialID            string            `json:"credential_id"`
 	SubscriptionKind        string            `json:"subscription_kind,omitempty"`
 	SubscriptionAccountID   string            `json:"subscription_account_id,omitempty"`
+	SubscriptionIdentity    string            `json:"subscription_identity,omitempty"`
 	SubscriptionOutputLimit int64             `json:"subscription_output_limit,omitempty"`
 	BaseURL                 string            `json:"-"`
 	Deadline                time.Time         `json:"deadline"`
@@ -124,10 +127,11 @@ type SubscriptionCredential struct {
 	AccessToken string
 	AccountID   string
 	Endpoint    string
+	Protocol    string
 }
 
 type SubscriptionCredentialSource interface {
-	ResolveSubscriptionCredential(context.Context, Attempt) (SubscriptionCredential, error)
+	ResolveSubscriptionCredential(context.Context, Attempt, Operation) (SubscriptionCredential, error)
 }
 
 type Measurement struct {
@@ -261,6 +265,10 @@ func member(values []string, key string) bool {
 	return false
 }
 
+func (op Operation) IsImage() bool {
+	return op == Image || op == ImageEdit
+}
+
 // DecodeProtocol separates endpoint fields from the rest of the body without
 // dropping customer parameters. Managed routing fields are rejected later;
 // every other parameter is forwarded as the customer sent it.
@@ -303,6 +311,13 @@ func DecodeProtocol(id string, op Operation, body []byte) (Request, error) {
 			}
 		}
 		r.Input, _ = json.Marshal(in)
+	case ImageEdit:
+		in, err := decodeImageEdit(fields)
+		if err != nil {
+			return Request{}, err
+		}
+		r.Input = in
+		r.InputTypes = []string{"text", "image"}
 	case Speech:
 		r.Input, _ = json.Marshal(map[string]json.RawMessage{"input": fields["input"]})
 		delete(fields, "input")
@@ -330,6 +345,12 @@ func DecodeProtocol(id string, op Operation, body []byte) (Request, error) {
 	}
 	if op == Chat || op == Responses {
 		r.InputTypes = detectInputTypes(r.Input)
+	}
+	if raw, exists := fields["n"]; op.IsImage() && exists {
+		var count int
+		if json.Unmarshal(raw, &count) != nil || count < 1 || count > 10 {
+			return Request{}, ErrInvalidRequest
+		}
 	}
 	r.Params, _ = json.Marshal(fields)
 	return r, nil

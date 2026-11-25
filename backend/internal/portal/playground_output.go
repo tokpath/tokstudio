@@ -47,7 +47,7 @@ func playgroundOutput(out gin.H, operation modelruntime.Operation, data []byte) 
 	if len(texts) > 0 {
 		out["text"] = strings.Join(texts, "\n")
 	}
-	if operation == modelruntime.Image {
+	if operation.IsImage() {
 		images := []string{}
 		items, _ := value["data"].([]any)
 		for _, item := range items {

@@ -2,14 +2,16 @@ package portal
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
-	"strings"
-	"time"
+	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 )
 
 type referenceChoice struct {
@@ -506,10 +508,19 @@ func (a *Application) references(c *gin.Context) {
 		}
 		for _, r := range rows {
 			label := credentialChoiceLabel(r.Name, r.ProviderID, r.Fingerprint)
+			defaults := gin.H{"id": r.ID, "name": r.Name, "provider_id": r.ProviderID, "enabled": r.Enabled, "expected_version": r.Version, "subscription_kind": r.SubscriptionKind}
 			if r.SubscriptionKind != "" {
 				label = humanJoin(label, "订阅账号池")
+				connection := a.Config.SubscriptionConnections[r.SubscriptionKind]
+				options := make(map[string]bool, 3)
+				for _, operation := range []string{subscriptionauth.ImageGeneration, subscriptionauth.ImageEdit, subscriptionauth.VideoGeneration} {
+					if media, ok := connection.MediaEndpoint(operation); ok {
+						options[operation] = media.Streaming
+					}
+				}
+				defaults["subscription_media"] = options
 			}
-			add(r.ID, label, gin.H{"id": r.ID, "name": r.Name, "provider_id": r.ProviderID, "enabled": r.Enabled, "expected_version": r.Version, "subscription_kind": r.SubscriptionKind})
+			add(r.ID, label, defaults)
 		}
 	case "merchants":
 		if customer {

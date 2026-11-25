@@ -102,6 +102,9 @@ type Request struct {
 	ModelID             string                 `json:"model_id"`
 	Operation           modelruntime.Operation `json:"operation"`
 	Streaming           bool                   `json:"streaming"`
+	AsyncImage          bool                   `json:"async_image,omitempty"`
+	AsyncInput          string                 `json:"-"`
+	DeliveredAt         *time.Time             `json:"delivered_at,omitempty"`
 	Status              string                 `json:"status"`
 	AcceptedAt          time.Time              `json:"accepted_at"`
 	UsageDeadline       time.Time              `json:"usage_deadline"`

@@ -69,14 +69,20 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 		return Execution{}, e
 	}
 	span.SetAttributes(attribute.String("tokenhub.request_id", req.ID), attribute.String("tokenhub.model_id", req.ModelID), attribute.String("tokenhub.operation", string(req.Operation)), attribute.Bool("tokenhub.replay", !created))
-	out := Execution{Request: req, Replay: !created}
+	return s.executeAdmitted(ctx, req, input, emit, !created)
+}
+
+func (s *Service) executeAdmitted(ctx context.Context, req Request, input modelruntime.Request, emit modelruntime.Emit, replay bool) (Execution, error) {
+	var e error
+	out := Execution{Request: req, Replay: replay}
 	if terminal(req.Status) {
-		out.Result, e = s.ReadResult(ctx, key.CustomerID, req.ID)
+		out.Result, e = s.ReadResult(ctx, req.CustomerID, req.ID)
 		return out, e
 	}
 	// Persist dispatch intent before external work. A process loss after this
 	// point never causes an automatic second generation of the same request.
-	claim := s.DB.WithContext(ctx).Model(&Request{}).Where("id=? AND status='accepted' AND cancel_requested=false", req.ID).Update("status", "executing")
+	claim := s.DB.WithContext(ctx).Model(&Request{}).Where("id=? AND status='accepted' AND cancel_requested=false", req.ID).
+		Updates(map[string]any{"status": "executing", "async_input": ""})
 	if claim.Error != nil {
 		return out, claim.Error
 	}
@@ -84,6 +90,11 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 		return out, ErrInProgress
 	}
 	input.ID = req.ID
+	if input.Operation.IsImage() && input.Stream {
+		// A client leaving the response stream does not abandon the accepted
+		// generation. The request deadline and explicit cancellation still apply.
+		ctx = context.WithoutCancel(ctx)
+	}
 	var candidates []catalog.UpstreamModel
 	if e = json.Unmarshal(req.Candidates, &candidates); e != nil {
 		return out, e
@@ -169,7 +180,7 @@ routes:
 			if e != nil {
 				return out, e
 			}
-			result, runtimeErr, recordErr := s.executeAttempt(executionCtx, attempt, input, emit, upstream.ProviderID)
+			result, runtimeErr, recordErr := s.executeAttempt(executionCtx, req, attempt, input, emit, upstream.ProviderID)
 			if recordErr != nil {
 				return out, recordErr
 			}
@@ -236,14 +247,14 @@ routes:
 		}
 		e = s.DB.WithContext(finishCtx).Model(&Request{}).Where("id=? AND status='executing'", req.ID).Updates(map[string]any{"status": state, "reason": reason}).Error
 		if e == nil {
-			out.Request, e = s.GetRequest(finishCtx, key.CustomerID, req.ID)
+			out.Request, e = s.GetRequest(finishCtx, req.CustomerID, req.ID)
 		}
 	}
 	out.Result = last
 	if e != nil {
 		return out, e
 	}
-	if out.Request.Status == "completed" && (len(last.Output) > 0 || len(last.Binary) > 0) {
+	if out.Request.Status == "completed" && !retainsImage(req) && (len(last.Output) > 0 || len(last.Binary) > 0) {
 		if e = s.StoreResult(finishCtx, out.Request, last); e != nil && req.Operation == modelruntime.Video {
 			return out, e
 		}
@@ -253,17 +264,37 @@ routes:
 	return out, lastErr
 }
 
-func (s *Service) executeAttempt(ctx context.Context, attempt modelruntime.Attempt, input modelruntime.Request, emit modelruntime.Emit, providerID string) (modelruntime.Result, error, error) {
+func retainsImage(req Request) bool {
+	return req.Operation.IsImage() && (req.AsyncImage || req.Streaming)
+}
+
+func (s *Service) executeAttempt(ctx context.Context, req Request, attempt modelruntime.Attempt, input modelruntime.Request, emit modelruntime.Emit, providerID string) (modelruntime.Result, error, error) {
 	delivered := false
+	detached := false
 	wrapped := func(c context.Context, event modelruntime.Event) error {
 		if emit == nil {
 			return modelruntime.ErrInvalidRequest
 		}
 		event.RequestID = attempt.RequestID
-		if e := emit(c, event); e != nil {
-			return e
+		if detached {
+			return nil
 		}
-		delivered = delivered || len(event.Data) > 0
+		if e := emit(c, event); e != nil {
+			if !input.Operation.IsImage() {
+				return e
+			}
+			detached = true
+			return nil
+		}
+		if !delivered && len(event.Data) > 0 {
+			delivered = true
+			if input.Operation.IsImage() {
+				stamp, cancel := context.WithTimeout(context.WithoutCancel(c), 5*time.Second)
+				defer cancel()
+				// A later attempt record can stamp delivery if this write fails.
+				_ = s.DB.WithContext(stamp).Model(&Request{}).Where("id=? AND delivered_at IS NULL", req.ID).Update("delivered_at", s.wallNow()).Error
+			}
+		}
 		return nil
 	}
 	attemptCtx, span := otel.Tracer("tokenhub/usage").Start(ctx, "model.upstream_attempt")
@@ -276,7 +307,20 @@ func (s *Service) executeAttempt(ctx context.Context, attempt modelruntime.Attem
 	}
 	span.SetAttributes(attribute.String("tokenhub.outcome", result.State), attribute.Bool("tokenhub.usage_reliable", result.Usage.Reliable))
 	span.End()
-	result.OutputDelivered = result.OutputDelivered || delivered
+	result.OutputDelivered = result.OutputDelivered || delivered ||
+		err == nil && (result.State == "completed" || result.State == "submitted" && result.TaskID != "")
+	if input.Operation.IsImage() && input.Stream && detached && !delivered {
+		result.OutputDelivered = false
+	}
+	if retainsImage(req) && result.Usage.Reliable && (result.State == "completed" || result.OutputDelivered) && len(result.Output) > 0 {
+		storeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+		ready := s.wallNow()
+		req.Status, req.CompletedAt = "completed", &ready
+		if storeErr := s.StoreResult(storeCtx, req, result); storeErr != nil && err == nil {
+			err = storeErr
+		}
+		cancel()
+	}
 	// Keep attempt recording independent of caller cancellation.
 	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 	defer cancel()
@@ -358,6 +402,11 @@ func (s *Service) RecordAttempt(ctx context.Context, requestID, attemptID string
 		if e := t.Model(&AttemptRecord{}).Where("id=?", row.ID).Updates(updates).Error; e != nil {
 			return e
 		}
+		if result.OutputDelivered && request.DeliveredAt == nil {
+			if e := t.Model(&Request{}).Where("id=? AND delivered_at IS NULL", requestID).Update("delivered_at", now).Error; e != nil {
+				return e
+			}
+		}
 		return s.Catalog.WithDB(t).ObserveRoute(ctx, attemptID, result)
 	})
 }
@@ -386,7 +435,7 @@ func (s *Service) StoreResult(ctx context.Context, r Request, result modelruntim
 		return e
 	}
 	ttl := 5 * time.Minute
-	if r.Operation == modelruntime.Video {
+	if r.Operation == modelruntime.Video || r.AsyncImage || r.Operation.IsImage() && r.Streaming {
 		ttl = s.ResultRetention
 	}
 	now := s.wallNow()
@@ -467,14 +516,14 @@ func (s *Service) ReadResult(ctx context.Context, customer, id string) (modelrun
 }
 func (s *Service) GetRequest(ctx context.Context, customer, id string) (Request, error) {
 	var row Request
-	e := s.DB.WithContext(ctx).First(&row, "id=? AND customer_id=?", id, customer).Error
+	e := s.DB.WithContext(ctx).Omit("async_input").First(&row, "id=? AND customer_id=?", id, customer).Error
 	return row, e
 }
 func (s *Service) ListRequests(ctx context.Context, customer string, limit int, before *time.Time) ([]Request, error) {
 	if limit < 1 || limit > 100 {
 		limit = 50
 	}
-	q := s.DB.WithContext(ctx).Where("customer_id=?", customer)
+	q := s.DB.WithContext(ctx).Omit("async_input").Where("customer_id=?", customer)
 	if before != nil {
 		q = q.Where("accepted_at<?", *before)
 	}

@@ -10,6 +10,7 @@ import (
 	platformcrypto "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const subscriptionSchedulable = `a.enabled AND NOT a.removed AND NOT a.reauth_required
@@ -35,10 +36,11 @@ func (s CommerceCatalog) ClaimSubscriptionAccount(ctx context.Context, attempt *
 	}
 	db := s.DB.WithContext(ctx)
 	var account struct {
-		ID      string
-		Version uint64
+		ID           string
+		Version      uint64
+		IdentityHash string
 	}
-	q := db.Table("tokenhub_subscription_accounts a").Select("a.id,a.version").
+	q := db.Table("tokenhub_subscription_accounts a").Select("a.id,a.version,a.identity_hash").
 		Where("a.pool_id=? AND "+subscriptionSchedulable, pool.ID).
 		Where(`NOT EXISTS (SELECT 1 FROM tokenhub_route_leases l WHERE l.subscription_account_id=a.id
 		 AND l.finished_at IS NULL AND l.expires_at>clock_timestamp())`).
@@ -60,22 +62,33 @@ func (s CommerceCatalog) ClaimSubscriptionAccount(ctx context.Context, attempt *
 		return err
 	}
 	attempt.SubscriptionAccountID = account.ID
+	attempt.SubscriptionIdentity = account.IdentityHash
 	return nil
 }
 
-func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, attempt modelruntime.Attempt) (modelruntime.SubscriptionCredential, error) {
+func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, attempt modelruntime.Attempt, operation modelruntime.Operation) (modelruntime.SubscriptionCredential, error) {
 	unavailable := modelruntime.ErrSubscriptionAuthUnavailable
 	var row struct {
 		Ciphertext string
 		Version    uint64
 	}
-	err := s.DB.WithContext(ctx).Table("tokenhub_subscription_accounts a").Select("a.ciphertext,a.version").
-		Joins("JOIN tokenhub_provider_credentials c ON c.id=a.pool_id AND c.enabled AND c.subscription_kind=?", attempt.SubscriptionKind).
-		Joins("JOIN tokenhub_upstreams u ON u.provider_id=c.provider_id AND u.definition->>'credential_id'=c.id AND u.definition->>'enabled'='true'").
-		Joins("JOIN tokenhub_route_leases l ON l.upstream_id=u.id AND l.subscription_account_id=a.id AND l.subscription_account_version=a.version").
-		Where("a.id=? AND c.id=? AND u.id=? AND l.attempt_id=? AND l.request_id=? AND l.finished_at IS NULL AND l.expires_at>clock_timestamp()",
-			attempt.SubscriptionAccountID, attempt.CredentialID, attempt.UpstreamID, attempt.ID, attempt.RequestID).
-		Where(subscriptionSchedulable).Take(&row).Error
+	db := s.DB.WithContext(ctx)
+	accounts := db.Table("tokenhub_subscription_accounts a").Select("a.ciphertext,a.version").
+		Joins("JOIN tokenhub_provider_credentials c ON c.id=a.pool_id AND c.subscription_kind=?", attempt.SubscriptionKind).
+		Where("a.id=? AND c.id=?", attempt.SubscriptionAccountID, attempt.CredentialID)
+	lifecycle := operation == modelruntime.VideoRetrieve || operation == modelruntime.VideoDownload
+	if lifecycle {
+		accounts = accounts.Where("NOT a.removed AND a.identity_hash=? AND EXISTS ("+
+			"SELECT 1 FROM usage_attempts run WHERE run.id=? AND run.request_id=? AND run.upstream_id=? AND run.task_id=? "+
+			"AND run.definition->>'subscription_account_id'=a.id AND run.definition->>'subscription_identity'=a.identity_hash)",
+			attempt.SubscriptionIdentity, attempt.ID, attempt.RequestID, attempt.UpstreamID, attempt.TaskID)
+	} else {
+		accounts = accounts.Joins("JOIN tokenhub_upstreams u ON u.provider_id=c.provider_id AND u.definition->>'credential_id'=c.id AND u.definition->>'enabled'='true'").
+			Joins("JOIN tokenhub_route_leases l ON l.upstream_id=u.id AND l.subscription_account_id=a.id AND l.subscription_account_version=a.version").
+			Where("c.enabled AND u.id=? AND l.attempt_id=? AND l.request_id=? AND l.finished_at IS NULL AND l.expires_at>clock_timestamp()",
+				attempt.UpstreamID, attempt.ID, attempt.RequestID).Where(subscriptionSchedulable)
+	}
+	err := accounts.Take(&row).Error
 	if err != nil || subscriptionauth.Protocol(attempt.SubscriptionKind) != attempt.Provider {
 		return modelruntime.SubscriptionCredential{}, unavailable
 	}
@@ -91,36 +104,82 @@ func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, atte
 			return modelruntime.SubscriptionCredential{}, modelruntime.ErrSubscriptionReauth
 		}
 		connection = profile
-	} else if attempt.SubscriptionKind != subscriptionauth.Codex && attempt.SubscriptionKind != subscriptionauth.Claude {
+	} else if subscriptionauth.MediaAllowed(attempt.SubscriptionKind, string(operation)) ||
+		attempt.SubscriptionKind != subscriptionauth.Codex && attempt.SubscriptionKind != subscriptionauth.Claude {
 		return modelruntime.SubscriptionCredential{}, modelruntime.ErrSubscriptionReauth
 	}
-	now := time.Now()
-	if !credential.ExpiresAt.IsZero() && (credential.ExpiresAt.Before(now) || credential.RefreshToken != "" && credential.ExpiresAt.Before(now.Add(time.Minute))) {
-		if credential.Connection != "" {
-			credential, err = connection.Refresh(ctx, credential, s.SubscriptionGuard)
-		} else {
-			credential, err = subscriptionauth.Refresh(ctx, attempt.SubscriptionKind, credential)
+	endpoint := connection.InferenceURL
+	var protocol string
+	if subscriptionauth.MediaAllowed(attempt.SubscriptionKind, string(operation)) {
+		media, ok := connection.MediaEndpoint(string(operation))
+		if operation == modelruntime.VideoDownload && !ok {
+			media, ok = connection.MediaEndpoint(subscriptionauth.VideoRetrieve)
+			ok = ok && media.Protocol == "xai"
 		}
-		if errors.Is(err, subscriptionauth.ErrReauth) {
-			return modelruntime.SubscriptionCredential{}, modelruntime.ErrSubscriptionReauth
-		}
-		if err != nil || !credential.ExpiresAt.After(now) {
+		if !ok || attempt.Capability.Streaming && !media.Streaming {
 			return modelruntime.SubscriptionCredential{}, unavailable
 		}
-		cipher, err := s.sealSubscriptionCredential(credential)
+		endpoint, err = media.Resolve(attempt.UpstreamModel, attempt.TaskID)
 		if err != nil {
 			return modelruntime.SubscriptionCredential{}, unavailable
 		}
-		persist, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		protocol = media.Protocol
+	}
+	if refreshSubscriptionGrant(credential, time.Now()) {
+		// Lifecycle polls and the worker can need the same rotating refresh
+		// token. Re-read it under the account lock before contacting the issuer.
+		persist, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
 		defer cancel()
-		result := s.DB.WithContext(persist).Table("tokenhub_subscription_accounts").
-			Where("id=? AND version=? AND ciphertext=? AND enabled AND NOT removed", attempt.SubscriptionAccountID, row.Version, row.Ciphertext).
-			Updates(map[string]any{"ciphertext": cipher, "expires_at": credential.ExpiresAt, "refreshable": credential.RefreshToken != ""})
-		if subscriptionVersion(result) != nil {
+		err := s.DB.WithContext(persist).Transaction(func(tx *gorm.DB) error {
+			account := tx.Table("tokenhub_subscription_accounts").
+				Where("id=? AND version=? AND NOT removed AND (enabled OR ?)", attempt.SubscriptionAccountID, row.Version, lifecycle)
+			var current struct{ Ciphertext string }
+			if err := account.Select("ciphertext").Clauses(clause.Locking{Strength: "UPDATE"}).Take(&current).Error; err != nil {
+				return unavailable
+			}
+			if current.Ciphertext != row.Ciphertext {
+				plain, err := platformcrypto.Open(s.EncryptionKey, current.Ciphertext)
+				var refreshed subscriptionauth.Credential
+				if err != nil || json.Unmarshal([]byte(plain), &refreshed) != nil || refreshed.AccessToken == "" {
+					return modelruntime.ErrSubscriptionReauth
+				}
+				credential = refreshed
+				if !refreshSubscriptionGrant(credential, time.Now()) {
+					return nil
+				}
+			}
+			var refreshErr error
+			if credential.Connection != "" {
+				credential, refreshErr = connection.Refresh(persist, credential, s.SubscriptionGuard)
+			} else {
+				credential, refreshErr = subscriptionauth.Refresh(persist, attempt.SubscriptionKind, credential)
+			}
+			if errors.Is(refreshErr, subscriptionauth.ErrReauth) {
+				return modelruntime.ErrSubscriptionReauth
+			}
+			if refreshErr != nil || !credential.ExpiresAt.After(time.Now()) {
+				return unavailable
+			}
+			cipher, err := s.sealSubscriptionCredential(credential)
+			if err != nil {
+				return unavailable
+			}
+			return subscriptionVersion(tx.Table("tokenhub_subscription_accounts").Where("id=?", attempt.SubscriptionAccountID).
+				Updates(map[string]any{"ciphertext": cipher, "expires_at": credential.ExpiresAt, "refreshable": credential.RefreshToken != ""}))
+		})
+		if errors.Is(err, modelruntime.ErrSubscriptionReauth) {
+			return modelruntime.SubscriptionCredential{}, err
+		}
+		if err != nil {
 			return modelruntime.SubscriptionCredential{}, unavailable
 		}
 	}
-	return modelruntime.SubscriptionCredential{AccessToken: credential.AccessToken, AccountID: credential.AccountID, Endpoint: connection.InferenceURL}, nil
+	return modelruntime.SubscriptionCredential{AccessToken: credential.AccessToken, AccountID: credential.AccountID, Endpoint: endpoint, Protocol: protocol}, nil
+}
+
+func refreshSubscriptionGrant(credential subscriptionauth.Credential, now time.Time) bool {
+	return !credential.ExpiresAt.IsZero() && (credential.ExpiresAt.Before(now) ||
+		credential.RefreshToken != "" && credential.ExpiresAt.Before(now.Add(time.Minute)))
 }
 
 func observeSubscriptionAccount(db *gorm.DB, lease routeLease, result modelruntime.Result, now time.Time) error {

@@ -51,7 +51,7 @@ type RouteConfiguration struct {
 
 func publicOperation(op modelruntime.Operation) bool {
 	switch op {
-	case modelruntime.Chat, modelruntime.Responses, modelruntime.Embedding, modelruntime.Image, modelruntime.Speech, modelruntime.Transcription, modelruntime.Video:
+	case modelruntime.Chat, modelruntime.Responses, modelruntime.Embedding, modelruntime.Image, modelruntime.ImageEdit, modelruntime.Speech, modelruntime.Transcription, modelruntime.Video:
 		return true
 	default:
 		return false
@@ -252,11 +252,25 @@ func (s CommerceCatalog) prepareSubscriptionModel(ctx context.Context, model *Su
 	if model.Provider != subscriptionauth.Protocol(model.SubscriptionKind) || model.BaseURL != "" || model.PricingReference != "" {
 		return ErrInvalidInput
 	}
-	operation := modelruntime.Operation(subscriptionauth.Operation(model.SubscriptionKind))
+	textOperation := modelruntime.Operation(subscriptionauth.Operation(model.SubscriptionKind))
+	connection := s.SubscriptionConnections[model.SubscriptionKind]
+	usesText := false
 	for _, capability := range model.Capabilities {
-		if capability.Operation != operation {
+		if capability.Operation == textOperation {
+			usesText = true
+			continue
+		}
+		op := string(capability.Operation)
+		endpoint, ok := connection.MediaEndpoint(op)
+		if !subscriptionauth.MediaAllowed(model.SubscriptionKind, op) || !ok || capability.Streaming && !endpoint.Streaming {
 			return modelruntime.ErrUnsupported
 		}
+		if _, err := endpoint.Resolve(model.Model, ""); err != nil {
+			return ErrInvalidInput
+		}
+	}
+	if !usesText {
+		return nil
 	}
 	var bounds struct {
 		InputLimit  int64
@@ -369,7 +383,7 @@ func supplierEndpoints(model SupplierModel) map[modelruntime.Operation]string {
 		return out
 	}
 	base := strings.TrimRight(model.BaseURL, "/")
-	paths := map[modelruntime.Operation]string{modelruntime.Chat: "/chat/completions", modelruntime.Responses: "/responses", modelruntime.Embedding: "/embeddings", modelruntime.Image: "/images/generations", modelruntime.Speech: "/audio/speech", modelruntime.Transcription: "/audio/transcriptions", modelruntime.Video: "/videos", modelruntime.VideoRetrieve: "/videos/{task_id}", modelruntime.VideoDownload: "/videos/{task_id}/content"}
+	paths := map[modelruntime.Operation]string{modelruntime.Chat: "/chat/completions", modelruntime.Responses: "/responses", modelruntime.Embedding: "/embeddings", modelruntime.Image: "/images/generations", modelruntime.ImageEdit: "/images/edits", modelruntime.Speech: "/audio/speech", modelruntime.Transcription: "/audio/transcriptions", modelruntime.Video: "/videos", modelruntime.VideoRetrieve: "/videos/{task_id}", modelruntime.VideoDownload: "/videos/{task_id}/content"}
 	if model.Provider == "anthropic" {
 		paths[modelruntime.Chat] = "/messages"
 		paths[modelruntime.Responses] = "/messages"

@@ -115,7 +115,23 @@ func extractBilledUsage(response any, c Capability, r Request) Usage {
 			if quantity == nil {
 				return Usage{Source: "unknown"}
 			}
-			selected, e := item.SelectVariant(r.Params)
+			selector := r.Params
+			if item.Modality == "video" && len(item.Variants) > 0 {
+				if size, ok := nativeBody(body)["size"].(string); ok && size != "" {
+					var params map[string]json.RawMessage
+					if json.Unmarshal(r.Params, &params) != nil || params == nil {
+						params = map[string]json.RawMessage{}
+					}
+					var requested string
+					_ = json.Unmarshal(params["size"], &requested)
+					if requested != "" && requested != "auto" && requested != size {
+						return Usage{Source: "unknown"}
+					}
+					params["size"], _ = json.Marshal(size)
+					selector, _ = json.Marshal(params)
+				}
+			}
+			selected, e := item.SelectVariant(selector)
 			if e != nil {
 				return Usage{Source: "unknown"}
 			}

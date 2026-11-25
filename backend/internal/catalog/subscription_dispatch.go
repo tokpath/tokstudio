@@ -24,6 +24,9 @@ func (s CommerceCatalog) ClaimSubscriptionAccount(ctx context.Context, attempt *
 	if attempt.SubscriptionKind == "" {
 		return nil
 	}
+	if string(attempt.Capability.Operation) != subscriptionauth.Operation(attempt.SubscriptionKind) {
+		return ErrSubscriptionUnavailable
+	}
 	pool, err := s.lockSubscriptionPool(ctx, attempt.CredentialID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return ErrSubscriptionUnavailable
@@ -36,11 +39,10 @@ func (s CommerceCatalog) ClaimSubscriptionAccount(ctx context.Context, attempt *
 	}
 	db := s.DB.WithContext(ctx)
 	var account struct {
-		ID           string
-		Version      uint64
-		IdentityHash string
+		ID      string
+		Version uint64
 	}
-	q := db.Table("tokenhub_subscription_accounts a").Select("a.id,a.version,a.identity_hash").
+	q := db.Table("tokenhub_subscription_accounts a").Select("a.id,a.version").
 		Where("a.pool_id=? AND "+subscriptionSchedulable, pool.ID).
 		Where(`NOT EXISTS (SELECT 1 FROM tokenhub_route_leases l WHERE l.subscription_account_id=a.id
 		 AND l.finished_at IS NULL AND l.expires_at>clock_timestamp())`).
@@ -48,13 +50,6 @@ func (s CommerceCatalog) ClaimSubscriptionAccount(ctx context.Context, attempt *
 			SQL:  "jsonb_exists(a.discovered_models, ?) DESC, a.last_selected_at ASC NULLS FIRST, a.id",
 			Vars: []any{attempt.UpstreamModel},
 		}})
-	if subscriptionauth.MediaAllowed(attempt.SubscriptionKind, string(attempt.Capability.Operation)) {
-		connection, ok := s.SubscriptionConnections[attempt.SubscriptionKind]
-		if !ok {
-			return ErrSubscriptionUnavailable
-		}
-		q = q.Where("a.connection_hash=?", connection.Fingerprint())
-	}
 	if len(exclude) > 0 {
 		q = q.Where("a.id NOT IN ?", exclude)
 	}
@@ -72,34 +67,28 @@ func (s CommerceCatalog) ClaimSubscriptionAccount(ctx context.Context, attempt *
 		return err
 	}
 	attempt.SubscriptionAccountID = account.ID
-	attempt.SubscriptionIdentity = account.IdentityHash
 	return nil
 }
 
 func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, attempt modelruntime.Attempt, operation modelruntime.Operation) (modelruntime.SubscriptionCredential, error) {
 	unavailable := modelruntime.ErrSubscriptionAuthUnavailable
+	if attempt.SubscriptionKind == "" || string(operation) != subscriptionauth.Operation(attempt.SubscriptionKind) ||
+		subscriptionauth.Protocol(attempt.SubscriptionKind) != attempt.Provider {
+		return modelruntime.SubscriptionCredential{}, unavailable
+	}
 	var row struct {
 		Ciphertext string
 		Version    uint64
 	}
 	db := s.DB.WithContext(ctx)
-	accounts := db.Table("tokenhub_subscription_accounts a").Select("a.ciphertext,a.version").
+	err := db.Table("tokenhub_subscription_accounts a").Select("a.ciphertext,a.version").
 		Joins("JOIN tokenhub_provider_credentials c ON c.id=a.pool_id AND c.subscription_kind=?", attempt.SubscriptionKind).
-		Where("a.id=? AND c.id=?", attempt.SubscriptionAccountID, attempt.CredentialID)
-	lifecycle := operation == modelruntime.VideoRetrieve || operation == modelruntime.VideoDownload
-	if lifecycle {
-		accounts = accounts.Where("NOT a.removed AND a.identity_hash=? AND EXISTS ("+
-			"SELECT 1 FROM usage_attempts run WHERE run.id=? AND run.request_id=? AND run.upstream_id=? AND run.task_id=? "+
-			"AND run.definition->>'subscription_account_id'=a.id AND run.definition->>'subscription_identity'=a.identity_hash)",
-			attempt.SubscriptionIdentity, attempt.ID, attempt.RequestID, attempt.UpstreamID, attempt.TaskID)
-	} else {
-		accounts = accounts.Joins("JOIN tokenhub_upstreams u ON u.provider_id=c.provider_id AND u.definition->>'credential_id'=c.id AND u.definition->>'enabled'='true'").
-			Joins("JOIN tokenhub_route_leases l ON l.upstream_id=u.id AND l.subscription_account_id=a.id AND l.subscription_account_version=a.version").
-			Where("c.enabled AND u.id=? AND l.attempt_id=? AND l.request_id=? AND l.finished_at IS NULL AND l.expires_at>clock_timestamp()",
-				attempt.UpstreamID, attempt.ID, attempt.RequestID).Where(subscriptionSchedulable)
-	}
-	err := accounts.Take(&row).Error
-	if err != nil || subscriptionauth.Protocol(attempt.SubscriptionKind) != attempt.Provider {
+		Joins("JOIN tokenhub_upstreams u ON u.provider_id=c.provider_id AND u.definition->>'credential_id'=c.id AND u.definition->>'enabled'='true'").
+		Joins("JOIN tokenhub_route_leases l ON l.upstream_id=u.id AND l.subscription_account_id=a.id AND l.subscription_account_version=a.version").
+		Where("a.id=? AND c.id=? AND c.enabled AND u.id=? AND l.attempt_id=? AND l.request_id=? AND l.finished_at IS NULL AND l.expires_at>clock_timestamp()",
+			attempt.SubscriptionAccountID, attempt.CredentialID, attempt.UpstreamID, attempt.ID, attempt.RequestID).
+		Where(subscriptionSchedulable).Take(&row).Error
+	if err != nil {
 		return modelruntime.SubscriptionCredential{}, unavailable
 	}
 	plain, err := platformcrypto.Open(s.EncryptionKey, row.Ciphertext)
@@ -114,39 +103,16 @@ func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, atte
 			return modelruntime.SubscriptionCredential{}, modelruntime.ErrSubscriptionReauth
 		}
 		connection = profile
-	} else if subscriptionauth.MediaAllowed(attempt.SubscriptionKind, string(operation)) ||
-		attempt.SubscriptionKind != subscriptionauth.Codex && attempt.SubscriptionKind != subscriptionauth.Claude {
+	} else if attempt.SubscriptionKind != subscriptionauth.Codex && attempt.SubscriptionKind != subscriptionauth.Claude {
 		return modelruntime.SubscriptionCredential{}, modelruntime.ErrSubscriptionReauth
 	}
-	endpoint := connection.InferenceURL
-	var protocol string
-	if subscriptionauth.MediaAllowed(attempt.SubscriptionKind, string(operation)) {
-		mediaOperation := operation
-		if operation == modelruntime.Video && attempt.VideoAction != "" {
-			mediaOperation = attempt.VideoAction
-		}
-		media, ok := connection.MediaEndpoint(string(mediaOperation))
-		if operation == modelruntime.VideoDownload && !ok {
-			media, ok = connection.MediaEndpoint(subscriptionauth.VideoRetrieve)
-			ok = ok && media.Protocol == "xai"
-		}
-		if !ok || attempt.Capability.Streaming && !media.Streaming {
-			return modelruntime.SubscriptionCredential{}, unavailable
-		}
-		endpoint, err = media.Resolve(attempt.UpstreamModel, attempt.TaskID)
-		if err != nil {
-			return modelruntime.SubscriptionCredential{}, unavailable
-		}
-		protocol = media.Protocol
-	}
 	if refreshSubscriptionGrant(credential, time.Now()) {
-		// Lifecycle polls and the worker can need the same rotating refresh
-		// token. Re-read it under the account lock before contacting the issuer.
+		// Re-read the rotating refresh token under the account lock.
 		persist, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
 		defer cancel()
 		err := s.DB.WithContext(persist).Transaction(func(tx *gorm.DB) error {
 			account := tx.Table("tokenhub_subscription_accounts").
-				Where("id=? AND version=? AND NOT removed AND (enabled OR ?)", attempt.SubscriptionAccountID, row.Version, lifecycle)
+				Where("id=? AND version=? AND NOT removed AND enabled", attempt.SubscriptionAccountID, row.Version)
 			var current struct{ Ciphertext string }
 			if err := account.Select("ciphertext").Clauses(clause.Locking{Strength: "UPDATE"}).Take(&current).Error; err != nil {
 				return unavailable
@@ -188,7 +154,7 @@ func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, atte
 			return modelruntime.SubscriptionCredential{}, unavailable
 		}
 	}
-	return modelruntime.SubscriptionCredential{AccessToken: credential.AccessToken, AccountID: credential.AccountID, Endpoint: endpoint, Protocol: protocol}, nil
+	return modelruntime.SubscriptionCredential{AccessToken: credential.AccessToken, AccountID: credential.AccountID, Endpoint: connection.InferenceURL}, nil
 }
 
 func refreshSubscriptionGrant(credential subscriptionauth.Credential, now time.Time) bool {

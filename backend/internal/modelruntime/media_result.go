@@ -28,8 +28,7 @@ func (b *Bifrost) fetchMedia(ctx context.Context, target string, limit int64) ([
 	if err != nil {
 		return nil, ErrUsageUnknown
 	}
-	// Result links can be issued by a CDN. Only the verified inference
-	// endpoint ever receives the account's bearer token.
+	// Result links can be issued by a CDN and are fetched without credentials.
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, ErrUsageUnknown
@@ -39,40 +38,6 @@ func (b *Bifrost) fetchMedia(ctx context.Context, target string, limit int64) ([
 		return nil, ErrUsageUnknown
 	}
 	return readMediaBody(resp.Body, limit)
-}
-
-func (b *Bifrost) requestSubscriptionMedia(ctx context.Context, credential SubscriptionCredential, method string, body []byte, out Result) ([]byte, string, Result, error) {
-	req, err := http.NewRequestWithContext(ctx, method, credential.Endpoint, bytes.NewReader(body))
-	if err != nil {
-		return nil, "", out, ErrInvalidRequest
-	}
-	req.Header.Set("Authorization", "Bearer "+credential.AccessToken)
-	req.Header.Set("Accept", "application/json")
-	if method == http.MethodPost {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	client := b.mediaClient()
-	defer client.CloseIdleConnections()
-	out.State, out.ErrorCode = "outcome_unknown", ""
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, "", out, &UpstreamFailure{}
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
-		if resp.StatusCode < 500 && resp.StatusCode != http.StatusRequestTimeout {
-			out.State = "failed"
-		}
-		if resp.StatusCode == http.StatusTooManyRequests {
-			out.SubscriptionRetryAt = subscriptionRetryHeader(resp.Header.Get("Retry-After"))
-		}
-		return nil, "", out, &UpstreamFailure{Status: resp.StatusCode}
-	}
-	if resp.StatusCode >= 300 {
-		return nil, "", out, &UpstreamFailure{}
-	}
-	raw, err := readMediaBody(resp.Body, 32<<20)
-	return raw, resp.Header.Get("Content-Type"), out, err
 }
 
 func readMediaBody(body io.Reader, limit int64) ([]byte, error) {

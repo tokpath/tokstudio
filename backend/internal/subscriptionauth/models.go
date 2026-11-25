@@ -5,27 +5,26 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
+	"regexp"
 	"slices"
-	"sort"
+	"strings"
 	"time"
 )
 
-type DiscoveredModel struct {
-	ID           string
-	Capabilities []string
-}
+const CodexResponsesURL = "https://chatgpt.com/backend-api/codex/responses"
+
+var discoveredModelID = regexp.MustCompile(`^[a-zA-Z0-9_-][a-zA-Z0-9._-]{0,95}(/[a-zA-Z0-9_-][a-zA-Z0-9._-]{0,95}){0,2}$`)
 
 type modelListing struct {
-	ID              string          `json:"id"`
-	Slug            string          `json:"slug"`
-	SupportedInAPI  *bool           `json:"supported_in_api"`
-	Capabilities    json.RawMessage `json:"capabilities"`
-	InputModalities []string        `json:"input_modalities"`
+	ID             string `json:"id"`
+	Slug           string `json:"slug"`
+	SupportedInAPI *bool  `json:"supported_in_api"`
 }
 
 // DiscoverModels reads the authorized account's model catalog. A connection
 // may omit this API; authorization and existing routes still work.
-func (c Connection) DiscoverModels(ctx context.Context, grant Credential, guard DestinationGuard) []DiscoveredModel {
+func (c Connection) DiscoverModels(ctx context.Context, grant Credential, guard DestinationGuard) []string {
 	base, ok := c.inferenceBase()
 	if !ok || guard == nil || grant.Connection != c.Fingerprint() || !safeToken(grant.AccessToken) {
 		return nil
@@ -33,51 +32,42 @@ func (c Connection) DiscoverModels(ctx context.Context, grant Credential, guard 
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	var account string
-	if NativeCodexEndpoint(c.InferenceURL) {
+	if c.InferenceURL == CodexResponsesURL {
 		account = CodexRoutingAccount(grant.AccessToken)
 		if account == "" {
 			return nil
 		}
 	}
-	type listingSource struct{ path, operation string }
-	sources := []listingSource{{path: "/models"}}
-	if c.MediaPreset == "xai" {
-		sources = append(sources, listingSource{"/image-generation-models", ImageGeneration},
-			listingSource{"/video-generation-models", VideoGeneration})
-	}
-	models := make(map[string]DiscoveredModel)
-	for _, source := range sources {
-		for _, model := range fetchModelListing(ctx, base+source.path, grant.AccessToken, account, guard) {
-			if model.SupportedInAPI != nil && !*model.SupportedInAPI {
-				continue
-			}
-			id := model.ID
-			if id == "" {
-				id = model.Slug
-			}
-			if !discoveredModelID.MatchString(id) {
-				continue
-			}
-			var capabilities []string
-			_ = json.Unmarshal(model.Capabilities, &capabilities)
-			saved := models[id]
-			saved.ID = id
-			saved.Capabilities = append(saved.Capabilities, capabilities...)
-			if source.operation != "" {
-				saved.Capabilities = append(saved.Capabilities, source.operation)
-			}
-			if source.operation == ImageGeneration && slices.Contains(model.InputModalities, "image") {
-				saved.Capabilities = append(saved.Capabilities, ImageEdit)
-			}
-			models[id] = saved
+	var models []string
+	for _, model := range fetchModelListing(ctx, base+"/models", grant.AccessToken, account, guard) {
+		if model.SupportedInAPI != nil && !*model.SupportedInAPI {
+			continue
+		}
+		id := model.ID
+		if id == "" {
+			id = model.Slug
+		}
+		if discoveredModelID.MatchString(id) {
+			models = append(models, id)
 		}
 	}
-	result := make([]DiscoveredModel, 0, len(models))
-	for _, model := range models {
-		result = append(result, model)
+	slices.Sort(models)
+	models = slices.Compact(models)
+	return models[:min(len(models), 100)]
+}
+
+// Derive the listing endpoint from the approved inference origin and prefix.
+func (c Connection) inferenceBase() (string, bool) {
+	u, err := url.Parse(c.InferenceURL)
+	if err != nil || u.Host == "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || u.User != nil {
+		return "", false
 	}
-	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
-	return result[:min(len(result), 100)]
+	for _, suffix := range []string{"/responses", "/chat/completions", "/messages"} {
+		if base, ok := strings.CutSuffix(c.InferenceURL, suffix); ok {
+			return base, true
+		}
+	}
+	return "", false
 }
 
 func fetchModelListing(ctx context.Context, endpoint, token, account string, guard DestinationGuard) []modelListing {

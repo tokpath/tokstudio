@@ -181,7 +181,7 @@ routes:
 	for _, upstream := range candidates {
 		capability, e := catalog.SelectCapability(upstream, input)
 		if e != nil {
-			return out, e
+			continue
 		}
 		for executionCtx.Err() == nil {
 			attempt := modelruntime.Attempt{
@@ -190,7 +190,6 @@ routes:
 				BaseURL: upstream.Endpoints[input.Operation], Deadline: req.UsageDeadline, Capability: capability,
 				BillingParams: billingParams, CostSnapshot: costs[upstream.ID],
 				SubscriptionKind: upstream.SubscriptionKind, SubscriptionOutputLimit: upstream.SubscriptionOutputLimit,
-				VideoAction: input.VideoAction,
 			}
 			row := AttemptRecord{SupplierModelID: upstream.SupplierModelID, ID: attempt.ID, RequestID: req.ID, UpstreamID: upstream.ID,
 				ProviderID: upstream.ProviderID, State: "dispatching", CostStatus: "pending", StartedAt: s.wallNow()}

@@ -192,15 +192,6 @@ const videoGenerate = add('post','/v1/videos/generations','Submit a video genera
 videoGenerate.parameters = videoSubmit.parameters;
 videoGenerate.requestBody = videoSubmit.requestBody;
 videoGenerate.responses = videoSubmit.responses;
-for (const [path, title] of [['edits','Edit a Grok video'],['extensions','Extend a Grok video']]) {
- const body = obj({model:str,prompt:str,video:obj({url:{...str,format:'uri'}}),
-  ...(path==='extensions'?{duration:{type:'integer',minimum:2,maximum:10,default:6}}:{})},['model','prompt','video']);
- const op = add('post','/v1/videos/'+path,title,{},body,'model');
- op.parameters = [modelIdempotency];
- op.description = 'Accepts a video from an approved HTTPS URL or an inline MP4. The task uses an eligible Grok video subscription route. The platform reserves the possible total output duration and settles the verified duration and configured specification of the finished clip. Read results through the original task ID.';
- op.responses['202'] = videoSubmit.responses['202'];
- op.responses['200'].headers = videoSubmit.responses['200'].headers;
-}
 add('post','/v1/me/refunds/legs/{id}/responsible-destination','Customer explicitly authorizes the remaining refund through the current responsible operator','CommandResult','DestinationProposal');
 add('get','/v1/videos/{id}','Query own original asynchronous task without resubmission',obj({id:str,object:{const:'video'},status:str,model:str,created_at:integer,delivered_at:{anyOf:[timestamp,{type:'null'}]},reason:str},['id','object','status','model','created_at']),null,'model');const download=add('get','/v1/videos/{id}/content','Download own completed private temporary video',{},null,'model');download.responses['200'].content={'application/octet-stream':{schema:{type:'string',contentEncoding:'binary'}}};add('delete','/v1/videos/{id}','Request cancellation of own original asynchronous task',obj({id:str,status:str,cancel_requested:bool}),null,'model');
 const hook=add('post','/v1/payments/webhooks/{merchantId}','Persist and verify original signed provider callback before recoverable receipt handling',{},null,'webhook');hook.description='Provider-specific raw request body and headers. Stripe HMAC, Alipay RSA2, WeChat RSA/AES-GCM are verified by configured real driver. Duplicate stable external fact IDs are idempotent. This is not a browser command and does not accept browser CSRF or synthetic success flags.';hook.requestBody={required:true,content:{'application/json':{schema:{}},'application/x-www-form-urlencoded':{schema:{type:'object',additionalProperties:true}}}};

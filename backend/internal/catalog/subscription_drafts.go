@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (s CommerceCatalog) prepareSubscriptionDrafts(ctx context.Context, actor string, pool CredentialView, discovered []subscriptionauth.DiscoveredModel) error {
+func (s CommerceCatalog) prepareSubscriptionDrafts(ctx context.Context, actor string, pool CredentialView, discovered []string) error {
 	if len(discovered) == 0 {
 		return nil
 	}
@@ -25,18 +25,18 @@ func (s CommerceCatalog) prepareSubscriptionDrafts(ctx context.Context, actor st
 	}
 	ids := make([]string, 0, len(discovered))
 	for _, model := range discovered {
-		ids = append(ids, priceID(model.ID))
+		ids = append(ids, priceID(model))
 	}
-	var prices []struct{ Model, Mode string }
+	var prices []string
 	db := s.DB.WithContext(ctx)
-	if err := db.Table("model_pricing_rows").Distinct("model", "mode").
-		Where("provider=? AND model IN ? AND COALESCE(definition->>'is_deprecated','false')='false'", provider, ids).
-		Find(&prices).Error; err != nil {
+	if err := db.Table("model_pricing_rows").Distinct("model").
+		Where("provider=? AND model IN ? AND mode IN ('chat','responses') AND COALESCE(definition->>'is_deprecated','false')='false'", provider, ids).
+		Pluck("model", &prices).Error; err != nil {
 		return err
 	}
-	modes := make(map[string][]string)
-	for _, row := range prices {
-		modes[row.Model] = append(modes[row.Model], row.Mode)
+	priced := make(map[string]bool, len(prices))
+	for _, model := range prices {
+		priced[model] = true
 	}
 	var saved []string
 	if err := db.Raw("SELECT definition->>'model' FROM tokenhub_supplier_models WHERE provider_id=?", pool.ID).Scan(&saved).Error; err != nil {
@@ -46,54 +46,23 @@ func (s CommerceCatalog) prepareSubscriptionDrafts(ctx context.Context, actor st
 	for _, model := range saved {
 		existing[model] = true
 	}
-	connection := s.SubscriptionConnections[kind]
 	textOp := modelruntime.Operation(subscriptionauth.Operation(kind))
 	for _, model := range discovered {
-		if existing[model.ID] {
+		if existing[model] || !priced[priceID(model)] {
 			continue
-		}
-		hasText := false
-		media := make(map[string]bool)
-		for _, mode := range modes[priceID(model.ID)] {
-			if mode == "chat" || mode == "responses" {
-				hasText = true
-			} else {
-				media[mode] = true
-			}
-		}
-		for _, op := range model.Capabilities {
-			media[op] = true
-		}
-		// GPT Image models advertised for generation also expose editing.
-		if kind == subscriptionauth.Codex && strings.HasPrefix(model.ID, "gpt-image-") && media[subscriptionauth.ImageGeneration] {
-			media[subscriptionauth.ImageEdit] = true
 		}
 		draft := SupplierModel{
-			ID: uuid.NewString(), CredentialID: pool.ID, Provider: subscriptionauth.Protocol(kind), Model: model.ID,
-		}
-		if hasText {
-			draft.Capabilities = append(draft.Capabilities, modelruntime.Capability{Operation: textOp, Streaming: true})
-		}
-		for _, op := range []string{subscriptionauth.ImageGeneration, subscriptionauth.ImageEdit, subscriptionauth.VideoGeneration} {
-			if endpoint, ok := connection.MediaEndpoint(op); ok && media[op] {
-				draft.Capabilities = append(draft.Capabilities, modelruntime.Capability{Operation: modelruntime.Operation(op), Streaming: endpoint.Streaming})
-			}
-		}
-		if len(draft.Capabilities) == 0 {
-			continue
+			ID: uuid.NewString(), CredentialID: pool.ID, Provider: subscriptionauth.Protocol(kind), Model: model,
+			Capabilities: []modelruntime.Capability{{Operation: textOp, Streaming: true}},
 		}
 		err := s.saveSupplierModel(ctx, actor, draft, 0)
-		if errors.Is(err, ErrSubscriptionModelLimits) && len(draft.Capabilities) > 1 {
-			draft.Capabilities = draft.Capabilities[1:]
-			err = s.saveSupplierModel(ctx, actor, draft, 0)
-		}
 		if errors.Is(err, ErrSubscriptionModelLimits) || errors.Is(err, ErrInvalidInput) {
 			continue
 		}
 		if err != nil {
 			return err
 		}
-		existing[model.ID] = true
+		existing[model] = true
 		if err := s.prepareInitialSubscriptionRoute(ctx, actor, draft); err != nil {
 			return err
 		}

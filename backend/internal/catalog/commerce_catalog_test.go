@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
+	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -84,6 +85,93 @@ func seedCommerceModel(t *testing.T, s CommerceCatalog) {
 	m.Enabled = true
 	if e := s.SavePublicModel(ctx, "platform", m, 1); e != nil {
 		t.Fatal(e)
+	}
+}
+
+func TestSubscriptionMediaMigrationKeepsTextAndMeteredRoutes(t *testing.T) {
+	s := newCommerceTestStore(t)
+	ctx := t.Context()
+	pool, err := s.SaveSubscriptionPool(ctx, "platform", SubscriptionPoolInput{Name: "Codex", Kind: subscriptionauth.Codex, Enabled: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.SaveCredential(ctx, "platform", "metered", "metered", "Metered", "test-key", true, 0); err != nil {
+		t.Fatal(err)
+	}
+	text := modelruntime.Capability{Operation: modelruntime.Responses, Streaming: true}
+	image := modelruntime.Capability{Operation: modelruntime.Image}
+	for _, public := range []PublicModel{
+		{ID: "mixed", Identity: "model", Capabilities: []modelruntime.Capability{text, image}},
+		{ID: "image-only", Identity: "model", Capabilities: []modelruntime.Capability{image}},
+	} {
+		if err = s.SavePublicModel(ctx, "platform", public, 0); err != nil {
+			t.Fatal(err)
+		}
+		if err = s.writeRoutingPolicy(ctx, RoutingPolicy{ModelID: public.ID, Strategy: "priority"}, 0); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mixed := SupplierModel{ID: "subscription-mixed", ProviderID: pool, CredentialID: pool, Provider: "openai", Model: "mixed",
+		SubscriptionKind: subscriptionauth.Codex, Capabilities: []modelruntime.Capability{text, image}, Enabled: true, Version: 1}
+	pure := mixed
+	pure.ID, pure.Model, pure.Capabilities = "subscription-image", "image", []modelruntime.Capability{image}
+	metered := pure
+	metered.ID, metered.ProviderID, metered.CredentialID, metered.SubscriptionKind = "metered-image", "metered", "metered", ""
+	if err = s.SaveSupplierModel(ctx, "platform", pure, 0); !errors.Is(err, modelruntime.ErrUnsupported) {
+		t.Fatal("supplier model accepted a new subscription image capability", err)
+	}
+	for _, model := range []SupplierModel{mixed, pure, metered} {
+		if err = s.saveDefinition(ctx, "tokenhub_supplier_models", model.ID, model, 0, map[string]any{"provider_id": model.ProviderID}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, sample := range []struct {
+		public, id string
+		model      SupplierModel
+	}{
+		{"mixed", "keep-text", mixed}, {"mixed", "retire-image", pure}, {"image-only", "detach-mismatch", mixed}, {"mixed", "keep-metered", metered},
+	} {
+		route := UpstreamModel{ID: sample.id, PublicModelID: sample.public, Enabled: true, Healthy: true, Version: 1}
+		applySupplierModel(&route, sample.model, "model")
+		if err = s.saveDefinition(ctx, "tokenhub_upstreams", route.ID, route, 0, map[string]any{"provider_id": route.ProviderID, "public_model_id": route.PublicModelID}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err = s.DB.Exec(`ALTER TABLE tokenhub_subscription_accounts ADD COLUMN connection_hash text NOT NULL DEFAULT '';` + subscriptionTextOnlySchema).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.SupplierModel(ctx, pure.ID); !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatal("media-only subscription model survived migration", err)
+	}
+	for _, sample := range []struct {
+		id        string
+		operation modelruntime.Operation
+		version   uint64
+	}{{mixed.ID, modelruntime.Responses, 2}, {metered.ID, modelruntime.Image, 1}} {
+		model, err := s.SupplierModel(ctx, sample.id)
+		if err != nil || !model.Enabled || model.Version != sample.version || len(model.Capabilities) != 1 || model.Capabilities[0].Operation != sample.operation {
+			t.Fatalf("incorrect model %s after migration: %+v %v", sample.id, model, err)
+		}
+	}
+	for _, public := range []string{"mixed", "image-only"} {
+		routes, err := s.upstreams(ctx, public)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, route := range routes {
+			detached := route.ID == "retire-image" || route.ID == "detach-mismatch"
+			if route.Detached != detached || route.Enabled == detached || route.Healthy == detached {
+				t.Fatalf("incorrect route %s status after migration: %+v", route.ID, route)
+			}
+			if route.ID == "keep-text" && (route.Version != 2 || len(route.Capabilities) != 1 || !route.Capabilities[0].Streaming || route.Capabilities[0].Operation != modelruntime.Responses) ||
+				route.ID == "keep-metered" && (route.Version != 1 || len(route.Capabilities) != 1 || route.Capabilities[0].Operation != modelruntime.Image) {
+				t.Fatalf("incorrect route %s capabilities after migration: %+v", route.ID, route)
+			}
+		}
+		policy, err := s.RoutingPolicy(ctx, public)
+		if err != nil || policy.Version != 2 {
+			t.Fatal("route version did not advance", policy, err)
+		}
 	}
 }
 func TestCommerceAuthorizationListingIdentityAndCredentials(t *testing.T) {

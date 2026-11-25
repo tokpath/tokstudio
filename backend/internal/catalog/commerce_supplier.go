@@ -253,24 +253,10 @@ func (s CommerceCatalog) prepareSubscriptionModel(ctx context.Context, model *Su
 		return ErrInvalidInput
 	}
 	textOperation := modelruntime.Operation(subscriptionauth.Operation(model.SubscriptionKind))
-	connection := s.SubscriptionConnections[model.SubscriptionKind]
-	usesText := false
 	for _, capability := range model.Capabilities {
-		if capability.Operation == textOperation {
-			usesText = true
-			continue
-		}
-		op := string(capability.Operation)
-		endpoint, ok := connection.MediaEndpoint(op)
-		if !subscriptionauth.MediaAllowed(model.SubscriptionKind, op) || !ok || capability.Streaming && !endpoint.Streaming {
+		if capability.Operation != textOperation {
 			return modelruntime.ErrUnsupported
 		}
-		if _, err := endpoint.Resolve(model.Model, ""); err != nil {
-			return ErrInvalidInput
-		}
-	}
-	if !usesText {
-		return nil
 	}
 	var bounds struct {
 		InputLimit  int64

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -36,6 +35,7 @@ var credentialNameSchema string
 //go:embed commerce_schema_08_subscription_pools.sql
 //go:embed commerce_schema_09_subscription_vendors.sql
 //go:embed commerce_schema_10_subscription_connections.sql
+//go:embed commerce_schema_11_subscription_text_only.sql
 var commerceMigrationFS embed.FS
 
 //go:embed commerce_schema_03_supplier_models.sql
@@ -62,10 +62,13 @@ var subscriptionVendorsSchema string
 //go:embed commerce_schema_10_subscription_connections.sql
 var subscriptionConnectionsSchema string
 
+//go:embed commerce_schema_11_subscription_text_only.sql
+var subscriptionTextOnlySchema string
+
 func CommerceMigrations() (string, fs.FS) { return "catalog_v2", commerceMigrationFS }
 
 func CommerceSchema() string {
-	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema + "\n" + automaticCircuitSchema + "\n" + effectivePricesSchema + "\n" + subscriptionPoolsSchema + "\n" + subscriptionVendorsSchema + "\n" + subscriptionConnectionsSchema
+	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema + "\n" + automaticCircuitSchema + "\n" + effectivePricesSchema + "\n" + subscriptionPoolsSchema + "\n" + subscriptionVendorsSchema + "\n" + subscriptionConnectionsSchema + "\n" + subscriptionTextOnlySchema
 }
 
 var ErrCatalogForbidden = errors.New("catalog action outside operator authority")
@@ -124,7 +127,6 @@ type UpstreamModel struct {
 	SubscriptionKind        string                            `json:"subscription_kind,omitempty"`
 	SubscriptionInputLimit  int64                             `json:"subscription_input_limit,omitempty"`
 	SubscriptionOutputLimit int64                             `json:"subscription_output_limit,omitempty"`
-	VideoActions            []modelruntime.Operation          `json:"video_actions,omitempty"`
 	Version                 uint64                            `json:"version"`
 }
 type CredentialView struct {
@@ -293,6 +295,9 @@ func (s CommerceCatalog) saveUpstream(ctx context.Context, actor string, in Upst
 	for i, c := range in.Capabilities {
 		if !publicOperation(c.Operation) {
 			return ErrInvalidInput
+		}
+		if in.SubscriptionKind != "" && string(c.Operation) != subscriptionauth.Operation(in.SubscriptionKind) {
+			return modelruntime.ErrUnsupported
 		}
 		p, ok := model.Billing[c.Operation]
 		if !ok {
@@ -610,18 +615,9 @@ func (s CommerceCatalog) routes(ctx context.Context, brand, operator string, r *
 func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) ([]UpstreamModel, error) {
 	var rows []struct {
 		Definition json.RawMessage
-		MediaReady bool
 	}
-	profiles := map[string]string{}
-	for kind, connection := range s.SubscriptionConnections {
-		if connection.MediaPreset != "" || len(connection.Media) > 0 {
-			profiles[kind] = connection.Fingerprint()
-		}
-	}
-	hashes, _ := json.Marshal(profiles)
-	mediaReady := "EXISTS (SELECT 1 FROM tokenhub_subscription_accounts a WHERE a.pool_id=c.id AND a.connection_hash=(?::jsonb->>c.subscription_kind) AND " + subscriptionSchedulable + ")"
-	if e := s.DB.WithContext(ctx).Table("tokenhub_upstreams u").Select("u.definition, "+mediaReady+" AS media_ready", string(hashes)).
-		Joins("JOIN tokenhub_provider_credentials c ON c.id=u.definition->>'credential_id' AND c.provider_id=u.provider_id AND c.enabled").
+	if e := s.DB.WithContext(ctx).Table("tokenhub_upstreams u").Select("u.definition").
+		Joins("JOIN tokenhub_provider_credentials c ON c.id=u.definition->>'credential_id' AND c.provider_id=u.provider_id AND c.enabled AND c.subscription_kind=COALESCE(u.definition->>'subscription_kind','')").
 		Joins("LEFT JOIN tokenhub_route_health h ON h.upstream_id=u.id").
 		Where("u.public_model_id=? AND u.definition->>'enabled'='true' AND u.definition->>'healthy'='true' AND u.definition->>'identity'=? AND (h.open_until IS NULL OR h.open_until<=clock_timestamp())", m.ID, m.Identity).
 		Where("c.subscription_kind='' OR EXISTS (SELECT 1 FROM tokenhub_subscription_accounts a WHERE a.pool_id=c.id AND " + subscriptionSchedulable + ")").
@@ -634,18 +630,10 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 		if e := json.Unmarshal(row.Definition, &u); e != nil {
 			return nil, e
 		}
-		u.VideoActions = nil
 		var capabilities []modelruntime.Capability
 		for _, c := range u.Capabilities {
-			if subscriptionauth.MediaAllowed(u.SubscriptionKind, string(c.Operation)) {
-				connection := s.SubscriptionConnections[u.SubscriptionKind]
-				endpoint, ok := connection.MediaEndpoint(string(c.Operation))
-				if !row.MediaReady || !ok || c.Streaming && !endpoint.Streaming {
-					continue
-				}
-				if u.SubscriptionKind == subscriptionauth.Grok && c.Operation == modelruntime.Video && !c.Streaming {
-					u.VideoActions = modelruntime.GrokVideoActions(u.Model, connection)
-				}
+			if u.SubscriptionKind != "" && string(c.Operation) != subscriptionauth.Operation(u.SubscriptionKind) {
+				continue
 			}
 			p, ok := m.Billing[c.Operation]
 			if !ok {
@@ -657,6 +645,9 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 			}
 			capabilities = append(capabilities, verified)
 		}
+		if len(capabilities) == 0 {
+			continue
+		}
 		u.Capabilities = capabilities
 		out = append(out, u)
 	}
@@ -665,9 +656,6 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 
 // SelectCapability returns the exact verified capability admitted for a request.
 func SelectCapability(u UpstreamModel, r modelruntime.Request) (modelruntime.Capability, error) {
-	if r.VideoAction != "" && !slices.Contains(u.VideoActions, r.VideoAction) {
-		return modelruntime.Capability{}, modelruntime.ErrUnsupported
-	}
 	if r.ClientProtocol != "" && u.SubscriptionKind != subscriptionauth.Codex && u.SubscriptionKind != subscriptionauth.Grok {
 		return modelruntime.Capability{}, modelruntime.ErrUnsupported
 	}
@@ -675,16 +663,6 @@ func SelectCapability(u UpstreamModel, r modelruntime.Request) (modelruntime.Cap
 		return modelruntime.Capability{}, modelruntime.ErrUnsupported
 	}
 	for _, c := range u.Capabilities {
-		if r.VideoAction != "" {
-			if c.Operation != modelruntime.Video || c.Streaming {
-				continue
-			}
-			var ok bool
-			c, ok = modelruntime.GrokVideoActionCapability(c, r)
-			if !ok {
-				continue
-			}
-		}
 		if requestSupported([]modelruntime.Capability{c}, r) {
 			return c, nil
 		}
@@ -693,9 +671,6 @@ func SelectCapability(u UpstreamModel, r modelruntime.Request) (modelruntime.Cap
 }
 
 func subscriptionBounds(u UpstreamModel, c modelruntime.Capability) modelruntime.Capability {
-	if subscriptionauth.MediaAllowed(u.SubscriptionKind, string(c.Operation)) {
-		return c
-	}
 	for _, rule := range c.UsageRules {
 		if rule.Unit != "token" || u.SubscriptionInputLimit <= 0 || u.SubscriptionOutputLimit <= 0 {
 			// A subscription connection is a token-metered text capability.
@@ -801,7 +776,7 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 	if r.Operation != originalOperation {
 		q.PreparedRequest = &r
 	}
-	if r.ClientProtocol == "" && upstreams[0].SubscriptionKind != "" && active.Billing != nil && !subscriptionauth.MediaAllowed(upstreams[0].SubscriptionKind, string(r.Operation)) {
+	if r.ClientProtocol == "" && upstreams[0].SubscriptionKind != "" && active.Billing != nil {
 		// Keep the normal customer estimate. Procurement still reserves the
 		// verified maximum from each candidate below.
 		q.Billing = active.Billing.Capability(active.Operation, active.Streaming)

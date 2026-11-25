@@ -8,8 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/platform/objectstore"
+	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 )
 
 type imageTestStore map[string][]byte
@@ -118,6 +120,71 @@ func TestAsyncImageWorkerSettlesWithoutCustomerPolling(t *testing.T) {
 	f.s.now = func() time.Time { return time.Now().Add(f.s.ResultRetention + time.Hour) }
 	if _, err = f.s.ReadResult(f.ctx, f.customer, accepted.ID); !errors.Is(err, ErrResultUnavailable) {
 		t.Fatal("expired image was still retrievable", err)
+	}
+}
+
+func TestRetiredSubscriptionImageTasksReleaseOrUseExistingMeteredRoute(t *testing.T) {
+	f := setup(t, "10", nil, modelruntime.DefaultBilling(modelruntime.Image).Capability(modelruntime.Image, false))
+	f.s.ResultStore = imageTestStore{}
+	calls := 0
+	f.s.Runtime = subscriptionTestRuntime(func(_ context.Context, a modelruntime.Attempt, _ modelruntime.Request, _ modelruntime.Emit) (modelruntime.Result, error) {
+		if a.SubscriptionKind != "" {
+			t.Fatal("worker dispatched to a retired subscription route")
+		}
+		calls++
+		return imageResultForTest(), nil
+	})
+	input := imageForTest(t, false)
+	sole, err := f.s.SubmitImage(f.ctx, f.key.Key, "old-subscription-image", input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mixed, err := f.s.SubmitImage(f.ctx, f.key.Key, "existing-metered-fallback", input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var candidates []catalog.UpstreamModel
+	if err = json.Unmarshal(mixed.Candidates, &candidates); err != nil || len(candidates) != 1 {
+		t.Fatal("expected one metered fixture route", err)
+	}
+	retired := candidates[0]
+	retired.ID, retired.SubscriptionKind = "retired-subscription-route", subscriptionauth.Grok
+	for _, sample := range []struct {
+		id     string
+		routes []catalog.UpstreamModel
+	}{{sole.ID, []catalog.UpstreamModel{retired}}, {mixed.ID, []catalog.UpstreamModel{retired, candidates[0]}}} {
+		definition, err := json.Marshal(sample.routes)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = f.db.Model(&Request{}).Where("id=?", sample.id).Update("candidates", string(definition)).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	migration, err := migrations.ReadFile("migrate/0014_retire_subscription_media_tasks.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.db.Exec(string(migration)).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, sample := range []struct {
+		id, status, charge string
+	}{{sole.ID, "free", "0"}, {mixed.ID, "completed", "0.5"}} {
+		request, err := f.s.GetRequest(f.ctx, f.customer, sample.id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = f.s.RunImageTask(f.ctx, request); err != nil {
+			t.Fatal(err)
+		}
+		request, err = f.s.GetRequest(f.ctx, f.customer, request.ID)
+		if err != nil || request.Status != sample.status || request.ChargedATG.String() != sample.charge || request.AsyncInput != "" {
+			t.Fatalf("unexpected migrated task %s: %s, %s, %v", sample.id, request.Status, request.ChargedATG, err)
+		}
+	}
+	if calls != 1 {
+		t.Fatalf("metered fallback dispatched %d times", calls)
 	}
 }
 

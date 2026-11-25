@@ -105,7 +105,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
     return root ? children : <fieldset className="min-w-0 rounded-control border border-hairline bg-canvas/40 p-4"><legend className="px-2 text-sm font-semibold">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}</legend>{children}</fieldset>;
   }
   if (node.kind === "array" && (node.presentation === "operations" || node.presentation === "supplier-operations")) {
-    return <CapabilityEditor node={node} value={value} label={label} fieldPath={fieldPath} help={help} disabled={disabled} change={change} operatorID={operatorID} context={referenceContext} />;
+    return <CapabilityEditor node={node} value={value} label={label} fieldPath={fieldPath} help={help} disabled={disabled} change={change} context={referenceContext} />;
   }
   if (node.kind === "array") {
     const items = Array.isArray(value) ? value : [];
@@ -140,28 +140,21 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
   </div>;
 }
 
-function CapabilityEditor({ node, value, label, fieldPath, help, disabled, change, operatorID, context }: { node: ConfigNode; value: JSONValue | undefined; label: string; fieldPath: string; help?: string; disabled: boolean; change: (value: JSONValue) => void; operatorID?: string; context?: Record<string, JSONValue> }) {
+function CapabilityEditor({ node, value, label, fieldPath, help, disabled, change, context }: { node: ConfigNode; value: JSONValue | undefined; label: string; fieldPath: string; help?: string; disabled: boolean; change: (value: JSONValue) => void; context?: Record<string, JSONValue> }) {
   const { t } = useI18n();
   const supplier = node.presentation === "supplier-operations";
   const pool = supplier ? subscriptionVendor(context?.subscription_kind) : undefined;
-  const credential = String(context?.credential_id || "");
-  const path = `/api/v1/operators/${encodeURIComponent(operatorID || "")}/references/credentials`;
-  const reference = useReferenceLabel(path, credential, !!(operatorID && pool));
-  const media = reference.data?.items.find(item => item.value === credential)?.defaults?.subscription_media;
-  const poolMedia = media && typeof media === "object" && !Array.isArray(media) ? media as Record<string, unknown> : {};
   const items = Array.isArray(value) ? value : [];
   const selected = new Map(items.map(item => { const cap = asObject(item); return [String(cap.operation || ""), cap]; }));
-  const configured = (op: string) => !pool || op === pool.operation || typeof poolMedia[op] === "boolean";
-  const choices = (node.options || []).filter(([op]) => configured(op) || selected.has(op));
+  const choices = (node.options || []).filter(([op]) => !pool || op === pool.operation);
   const choose = (op: string, checked: boolean) => change(choices.filter(([key]) => key === op ? checked : selected.has(key)).map(([key]) => selected.get(key) || { operation: key, ...(supplier ? { streaming: false } : {}) }));
   return <fieldset data-config-path={fieldPath} className="min-w-0 text-sm sm:col-span-2">
     <legend className="text-sm font-medium">{label}{help && <FieldHelp title={label}>{t(help)}</FieldHelp>}</legend>
     <div className="mt-2 grid gap-2 sm:grid-cols-2">{choices.map(([key, text]) => {
-      const canStream = !pool || key === pool.operation || poolMedia[key] === true;
       const streaming = selected.get(key)?.streaming === true;
       return <div key={key} className="rounded-control border border-hairline px-3 py-2">
         <label className="flex min-h-11 items-center gap-3"><input type="checkbox" aria-label={t(text)} checked={selected.has(key)} disabled={disabled} onChange={event => choose(key, event.target.checked)} />{t(text)}</label>
-        {supplier && selected.has(key) && (canStream || streaming) && !["embedding", "video_generation"].includes(key) && <label className="ml-7 flex min-h-11 items-center gap-3 text-xs text-ink-secondary">
+        {supplier && selected.has(key) && !["embedding", "video_generation"].includes(key) && <label className="ml-7 flex min-h-11 items-center gap-3 text-xs text-ink-secondary">
           <input type="checkbox" aria-label={t("{ability}支持流式输出", { ability: t(text) })} checked={streaming} disabled={disabled} onChange={event => change(items.map(item => asObject(item).operation === key ? { ...asObject(item), streaming: event.target.checked } : item))} />{t("支持流式输出")}
         </label>}
       </div>;

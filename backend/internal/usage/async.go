@@ -66,19 +66,6 @@ func (s *Service) RefreshAsync(ctx context.Context, id string) (Request, error) 
 				return request, e
 			}
 		}
-		if attempt.SubscriptionKind != "" && len(result.Binary) == 0 {
-			download, input, err := s.lifecycleAttempt(request, row, modelruntime.VideoDownload)
-			if err != nil {
-				return request, err
-			}
-			result, err = s.Runtime.Execute(recordCtx, download, input, nil)
-			if err != nil {
-				return request, err
-			}
-			if len(result.Binary) == 0 {
-				return request, ErrResultUnavailable
-			}
-		}
 		if e = s.StoreResult(recordCtx, request, result); e != nil {
 			return request, e
 		}
@@ -89,6 +76,9 @@ func (s *Service) lifecycleAttempt(request Request, row AttemptRecord, operation
 	var attempt modelruntime.Attempt
 	if e := json.Unmarshal(row.Definition, &attempt); e != nil {
 		return attempt, modelruntime.Request{}, e
+	}
+	if attempt.SubscriptionKind != "" {
+		return attempt, modelruntime.Request{}, ErrResultUnavailable
 	}
 	var candidates []catalog.UpstreamModel
 	if e := json.Unmarshal(request.Candidates, &candidates); e != nil {

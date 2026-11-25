@@ -29,8 +29,6 @@ func (a *Application) modelRoutes(r *gin.RouterGroup) {
 	r.POST("/images/edits/async", a.executeModel(modelruntime.ImageEdit, true))
 	a.imageBatchRoutes(r.Group("/images/batches"))
 	r.POST("/videos/generations", a.executeModel(modelruntime.Video, false))
-	r.POST("/videos/edits", a.executeModel(modelruntime.VideoEdit, false))
-	r.POST("/videos/extensions", a.executeModel(modelruntime.VideoExtend, false))
 	r.GET("/images/tasks/:id", a.imageTaskStatus)
 	r.GET("/videos/:id", a.videoStatus)
 	r.GET("/videos/:id/content", a.videoContent)
@@ -228,12 +226,12 @@ func (a *Application) executeModel(op modelruntime.Operation, async bool) gin.Ha
 			return
 		}
 		c.Header("X-TokenHub-Request-ID", out.Request.ID)
-		if len(out.Result.Binary) > 0 && (input.Operation != modelruntime.Video || len(out.Result.Output) == 0) {
+		if len(out.Result.Binary) > 0 && (op != modelruntime.Video || len(out.Result.Output) == 0) {
 			c.Data(200, out.Result.ContentType, out.Result.Binary)
 			return
 		}
 		if len(out.Result.Output) > 0 {
-			if input.Operation == modelruntime.Video {
+			if op == modelruntime.Video {
 				var video map[string]any
 				if json.Unmarshal(out.Result.Output, &video) == nil {
 					video["id"] = out.Request.ID

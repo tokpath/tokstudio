@@ -19,6 +19,27 @@ func (c testSubscriptionCredential) ResolveSubscriptionCredential(context.Contex
 	return SubscriptionCredential{AccessToken: "mock-subscription-token", AccountID: "mock-account", Endpoint: c.endpoint}, nil
 }
 
+func TestSubscriptionRoutesRejectMediaGeneration(t *testing.T) {
+	for _, kind := range []string{subscriptionauth.Codex, subscriptionauth.Claude, subscriptionauth.Grok, subscriptionauth.Gemini, subscriptionauth.Antigravity} {
+		for _, operation := range []Operation{Image, ImageEdit, Video, VideoRetrieve, VideoDownload} {
+			if err := ValidateSubscriptionRequest(kind, 100, Request{Operation: operation}); !errors.Is(err, ErrUnsupported) {
+				t.Fatalf("%s accepted %s: %v", kind, operation, err)
+			}
+		}
+	}
+	for _, params := range []string{`{"tools":[{"type":"image_generation"}]}`, `{"tool_choice":{"type":"video_generation"}}`} {
+		request := Request{Operation: Responses, Params: json.RawMessage(params)}
+		if err := ValidateSubscriptionRequest(subscriptionauth.Codex, 100, request); !errors.Is(err, ErrUnsupported) {
+			t.Fatalf("Responses accepted a hosted media tool: %v", err)
+		}
+	}
+	request := Request{Operation: Responses, InputTypes: []string{"text", "image"},
+		Params: json.RawMessage(`{"tools":[{"type":"function","name":"image_generation"}],"tool_choice":"auto"}`)}
+	if err := ValidateSubscriptionRequest(subscriptionauth.Codex, 100, request); err != nil {
+		t.Fatal("Responses rejected image input or a client-side function", err)
+	}
+}
+
 func TestSubscriptionBifrostNativeContracts(t *testing.T) {
 	for _, sample := range []struct {
 		kind, provider, path, raw string

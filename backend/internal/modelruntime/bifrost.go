@@ -182,17 +182,9 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		bc.SetValue(schemas.BifrostContextKeySendBackRawResponse, true)
 	}
 	if a.SubscriptionKind != "" {
-		var credential SubscriptionCredential
-		credential, err = b.subscriptionContext(ctx, bc, a, r.Operation)
-		if err != nil {
+		if err = b.subscriptionContext(ctx, bc, a, r.Operation); err != nil {
 			out.ErrorCode = Diagnostic(err)
 			return out, err
-		}
-		switch credential.Protocol {
-		case "xai":
-			return b.grokMedia(ctx, a, r, credential, out)
-		case "gemini":
-			return b.geminiMedia(ctx, a, r, credential, out)
 		}
 	} else {
 		credential, err := b.config.Credentials.ResolveCredential(ctx, a.UpstreamID, a.CredentialID)

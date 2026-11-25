@@ -25,8 +25,6 @@ const (
 	Speech        Operation = "speech"
 	Transcription Operation = "transcription"
 	Video         Operation = "video_generation"
-	VideoEdit     Operation = "video_edit"
-	VideoExtend   Operation = "video_extension"
 	VideoRetrieve Operation = "video_retrieve"
 	VideoDownload Operation = "video_download"
 )
@@ -92,7 +90,6 @@ type Request struct {
 	Async          bool              `json:"async,omitempty"`
 	ClientProtocol Operation         `json:"client_protocol,omitempty"`
 	IncludeUsage   bool              `json:"include_usage,omitempty"`
-	VideoAction    Operation         `json:"video_action,omitempty"`
 	// Input and Params use Bifrost's canonical protocol schema. DecodeProtocol
 	// below accepts standard endpoint bodies without losing unsupported fields.
 	Input      json.RawMessage `json:"input"`
@@ -141,13 +138,11 @@ type Attempt struct {
 	CredentialID            string            `json:"credential_id"`
 	SubscriptionKind        string            `json:"subscription_kind,omitempty"`
 	SubscriptionAccountID   string            `json:"subscription_account_id,omitempty"`
-	SubscriptionIdentity    string            `json:"subscription_identity,omitempty"`
 	SubscriptionOutputLimit int64             `json:"subscription_output_limit,omitempty"`
 	BaseURL                 string            `json:"-"`
 	Deadline                time.Time         `json:"deadline"`
 	Capability              Capability        `json:"capability"`
 	TaskID                  string            `json:"task_id,omitempty"`
-	VideoAction             Operation         `json:"video_action,omitempty"`
 }
 type Credential struct {
 	ID     string
@@ -161,7 +156,6 @@ type SubscriptionCredential struct {
 	AccessToken string
 	AccountID   string
 	Endpoint    string
-	Protocol    string
 }
 
 type SubscriptionCredentialSource interface {
@@ -346,8 +340,6 @@ func DecodeProtocol(id string, op Operation, body []byte) (Request, error) {
 			}
 		}
 		r.Input, _ = json.Marshal(in)
-	case VideoEdit, VideoExtend:
-		return decodeGrokVideoAction(r, fields)
 	case ImageEdit:
 		in, err := decodeImageEdit(fields)
 		if err != nil {

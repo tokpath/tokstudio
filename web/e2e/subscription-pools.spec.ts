@@ -130,7 +130,7 @@ test("browser authorization is the primary action and returns to the selected su
     };
     if (path === `${api}/subscription-pools/oauth/start`) {
       expect(request.method()).toBe("POST");
-      expect(request.postDataJSON()).toMatchObject({ pool_id: grok.id, name: account.name, enabled: true, expected_version: 0 });
+      expect(request.postDataJSON()).toMatchObject({ pool_id: grok.id, name: "", enabled: true, expected_version: 0 });
       expect(request.postDataJSON()).not.toHaveProperty("credential");
       await route.fulfill({ json: { url: authorizeURL } });
       return;
@@ -162,7 +162,7 @@ test("browser authorization is the primary action and returns to the selected su
   await accountManagement.getByRole("button", { name: "添加账号", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "在浏览器中授权" })).toBeEnabled();
   await expect(dialog.locator('input[type="password"]')).toHaveCount(0);
-  await dialog.getByLabel("账号名称", { exact: true }).fill(account.name);
+  await expect(dialog.getByLabel("账号名称", { exact: true })).toHaveCount(0);
   await dialog.getByRole("button", { name: "在浏览器中授权" }).click();
 
   await expect(page.getByRole("status").filter({ hasText: "账号已授权" })).toBeVisible();

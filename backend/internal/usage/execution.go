@@ -79,6 +79,12 @@ func (s *Service) executeAdmitted(ctx context.Context, req Request, input modelr
 		out.Result, e = s.ReadResult(ctx, req.CustomerID, req.ID)
 		return out, e
 	}
+	if req.Operation == modelruntime.Responses && input.Operation != modelruntime.Responses {
+		input, e = modelruntime.ResponsesFromClient(input)
+		if e != nil {
+			return out, e
+		}
+	}
 	// Persist dispatch intent before external work. A process loss after this
 	// point never causes an automatic second generation of the same request.
 	claim := s.DB.WithContext(ctx).Model(&Request{}).Where("id=? AND status='accepted' AND cancel_requested=false", req.ID).

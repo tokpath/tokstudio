@@ -56,9 +56,24 @@ type identity struct {
 	Staff    Staff
 }
 
+const messagesModelAPI = "messages_model_api"
+
 func fail(c *gin.Context, status int, code, message string, retry bool) {
 	message = httpx.LocalizedErrorMessage(httpx.RequestLocale(c.Request), code, message)
+	if c.GetBool(messagesModelAPI) {
+		c.AbortWithStatusJSON(status, messagesError(status, message, c.GetString("request_id")))
+		return
+	}
 	c.AbortWithStatusJSON(status, gin.H{"error": gin.H{"code": code, "message": message, "retryable": retry, "request_id": c.GetString("request_id")}})
+}
+
+func messagesError(status int, message, requestID string) gin.H {
+	kind := map[int]string{400: "invalid_request_error", 401: "authentication_error", 403: "permission_error",
+		404: "not_found_error", 413: "request_too_large", 429: "rate_limit_error", 529: "overloaded_error"}[status]
+	if kind == "" {
+		kind = "api_error"
+	}
+	return gin.H{"type": "error", "error": gin.H{"type": kind, "message": message}, "request_id": requestID}
 }
 func handleError(c *gin.Context, err error) {
 	if err == nil {

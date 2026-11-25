@@ -143,10 +143,7 @@ func TestGrokVideoTaskRemainsOnOriginalPoolAccount(t *testing.T) {
 	f := setup(t, "100", nil, modelruntime.DefaultBilling(modelruntime.Video).Capability(modelruntime.Video, false))
 	f.s.ResultStore = imageTestStore{}
 	const origin = "https://approved-grok.example"
-	connection := subscriptionauth.Connection{InferenceURL: origin + "/v1/responses", Media: map[string]subscriptionauth.MediaEndpoint{
-		subscriptionauth.VideoGeneration: {URL: origin + "/v1/videos/generations", Protocol: "xai"},
-		subscriptionauth.VideoRetrieve:   {URL: origin + "/v1/videos/{task_id}", Protocol: "xai"},
-	}}
+	connection := subscriptionauth.Connection{InferenceURL: origin + "/v1/responses", MediaPreset: "xai"}
 	f.cat.SubscriptionConnections = map[string]subscriptionauth.Connection{subscriptionauth.Grok: connection}
 	f.s.Catalog = f.cat
 	pool, err := f.cat.SaveSubscriptionPool(f.ctx, f.operator, catalog.SubscriptionPoolInput{Name: "Grok video", Kind: subscriptionauth.Grok, Enabled: true})
@@ -225,5 +222,83 @@ func TestGrokVideoTaskRemainsOnOriginalPoolAccount(t *testing.T) {
 	if err := f.db.Where("request_id=?", done.ID).Take(&row).Error; err != nil ||
 		row.CostStatus != "subscription" || row.ReferenceCostAmount != nil || row.ReportedCostAmount != nil {
 		t.Fatal("attempt received a per-call vendor price", err)
+	}
+}
+
+func TestPostgresSubscriptionTextBridgesReuseRouteAndSettleOnce(t *testing.T) {
+	f := setup(t, "100", nil, modelruntime.DefaultBilling(modelruntime.Responses).Capability(modelruntime.Responses, false))
+	f.s.ResultStore = imageTestStore{}
+	connection := subscriptionauth.Connection{InferenceURL: "https://approved-grok.example/v1/responses"}
+	f.cat.SubscriptionConnections = subscriptionauth.Connections{subscriptionauth.Grok: connection}
+	f.s.Catalog = f.cat
+	pool, err := f.cat.SaveSubscriptionPool(f.ctx, f.operator, catalog.SubscriptionPoolInput{
+		Name: "Grok pool", Kind: subscriptionauth.Grok, Enabled: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	account, err := f.cat.SaveAuthorizedSubscriptionAccount(f.ctx, f.operator, subscriptionauth.Grok,
+		catalog.SubscriptionAccountInput{PoolID: pool, Enabled: true},
+		subscriptionauth.Credential{AccountID: "native-grok-account", AccessToken: "test-token", Connection: connection.Fingerprint(), ExpiresAt: time.Now().Add(time.Hour)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.cat.SaveAuthorizedSubscriptionAccount(f.ctx, f.operator, subscriptionauth.Grok,
+		catalog.SubscriptionAccountInput{PoolID: pool, Enabled: true},
+		subscriptionauth.Credential{AccountID: "older-account", AccessToken: "older-token", Connection: connection.Fingerprint(), ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.db.Exec(`UPDATE tokenhub_subscription_accounts
+		SET discovered_models='["verified-grok-model"]'::jsonb,last_selected_at=clock_timestamp() WHERE id=?`, account).Error; err != nil {
+		t.Fatal(err)
+	}
+	upstream := catalog.UpstreamModel{
+		ID: "grok-responses", PublicModelID: "public-model", Identity: "vendor/test@1",
+		ProviderID: pool, Provider: "openai", Model: "verified-grok-model", CredentialID: pool,
+		SubscriptionKind: subscriptionauth.Grok, SubscriptionInputLimit: 4096, SubscriptionOutputLimit: 30,
+		Capabilities: []modelruntime.Capability{{Operation: modelruntime.Responses}}, Enabled: true, Healthy: true, Priority: 10,
+	}
+	if err := f.cat.SaveUpstream(f.ctx, f.operator, upstream, 0); err != nil {
+		t.Fatal(err)
+	}
+	var calls int
+	var selected modelruntime.Operation
+	f.s.Runtime = subscriptionTestRuntime(func(ctx context.Context, a modelruntime.Attempt, r modelruntime.Request, _ modelruntime.Emit) (modelruntime.Result, error) {
+		calls++
+		auth, err := f.cat.ResolveSubscriptionCredential(ctx, a, r.Operation)
+		if err != nil || auth.Endpoint != connection.InferenceURL || a.SubscriptionAccountID != account || a.CostSnapshot != nil ||
+			a.Capability.Operation != modelruntime.Responses || r.Operation != modelruntime.Responses || r.ClientProtocol != selected {
+			t.Fatal("compatibility endpoint bypassed the original subscription Responses route", err)
+		}
+		return modelruntime.Result{State: "completed", Output: json.RawMessage(`{"model":"public-model"}`), Usage: measured("12", "5")}, nil
+	})
+	for _, sample := range []struct {
+		protocol modelruntime.Operation
+		body     string
+	}{
+		{modelruntime.Chat, `{"model":"public-model","max_tokens":20,"messages":[{"role":"user","content":"Hello"},{"role":"assistant","content":"Hi"},{"role":"user","content":"Bye"}]}`},
+		{modelruntime.Messages, `{"model":"public-model","max_tokens":20,"messages":[{"role":"user","content":"Hello"},{"role":"assistant","content":"Hi"},{"role":"user","content":"Bye"}]}`},
+	} {
+		selected = sample.protocol
+		input, err := modelruntime.DecodeProtocol("incoming", sample.protocol, []byte(sample.body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		key := string(sample.protocol)
+		first, err := f.s.Execute(f.ctx, f.key.Key, key, input, nil)
+		if err != nil || first.Request.Status != "completed" || first.Request.Operation != modelruntime.Responses || first.Request.ChargedATG.String() != "0.017" {
+			t.Fatalf("bridge %s state=%s charge=%s err=%v", sample.protocol, first.Request.Status, first.Request.ChargedATG, err)
+		}
+		retry, err := modelruntime.DecodeProtocol("retry", sample.protocol, []byte(sample.body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		replay, err := f.s.Execute(f.ctx, f.key.Key, key, retry, nil)
+		if err != nil || !replay.Replay || replay.Request.ID != first.Request.ID {
+			t.Fatalf("replay changed the admitted request %s: %v", sample.protocol, err)
+		}
+	}
+	if calls != 2 {
+		t.Fatalf("expected exactly two paid requests, got %d", calls)
 	}
 }

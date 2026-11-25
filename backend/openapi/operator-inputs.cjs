@@ -26,7 +26,7 @@ module.exports=function({root,schemas,paths,add,obj,str,bool,integer,uuid,decima
   obj({action:{const:'remove_account'},account:obj({id:str,pool_id:str,expected_version:integer})}),
  ]},'browser',poolPermission);
  add('post',subscriptionPath+'/oauth/start','Start browser authorization for a subscription pool account','SubscriptionOAuthStart',
-  obj(subscriptionAccountFields,['pool_id','name','enabled','expected_version']),'browser',poolPermission);
+  obj(subscriptionAccountFields,['pool_id','enabled','expected_version']),'browser',poolPermission);
  const callback=add('get','/v1/subscription-oauth/{kind}/callback','Finish supplier browser authorization and return to subscription pools',{},null,'browser',
   {...poolPermission,tags:['Operator browser API']});
  callback.parameters[0].schema=ref('SubscriptionVendor');

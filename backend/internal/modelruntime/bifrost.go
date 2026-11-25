@@ -255,6 +255,14 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		if a.SubscriptionKind == subscriptionauth.Codex {
 			store := false
 			q.Params.Store = &store
+			if r.ClientProtocol != "" {
+				q.Params.MaxOutputTokens = nil
+				for i := range q.Input {
+					if item := &q.Input[i]; item.Role != nil && *item.Role == schemas.ResponsesInputMessageRoleSystem {
+						item.Role = schemas.Ptr(schemas.ResponsesInputMessageRoleDeveloper)
+					}
+				}
+			}
 			if q.Params.Instructions == nil {
 				instructions := "You are a helpful assistant."
 				q.Params.Instructions = &instructions
@@ -418,6 +426,7 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 			return out, fmt.Errorf("empty upstream stream")
 		}
 		measurements := billingStream{}
+		streamClient := responseStreamClient{request: r, ctx: schemas.NewBifrostContext(ctx, schemas.NoDeadline)}
 		if r.Operation.IsImage() {
 			defer func() {
 				if !out.Usage.Reliable || len(measurements.images) == 0 {
@@ -466,7 +475,7 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 					out.ErrorCode = "route_contract_violation"
 					return out, err
 				}
-				body, e := publicOutput(chunk, r.PublicModel)
+				events, e := streamClient.events(chunk)
 				if e != nil {
 					return out, e
 				}
@@ -480,15 +489,16 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 				if usage.Reliable {
 					out.Usage = usage
 				}
-				event := Event{Data: body}
-				if usage.Reliable {
-					event.Usage = &usage
+				for _, event := range events {
+					if usage.Reliable {
+						event.Usage = &usage
+					}
+					if e = emit(ctx, event); e != nil {
+						out.State = "outcome_unknown"
+						return out, e
+					}
+					out.OutputDelivered = true
 				}
-				if e = emit(ctx, event); e != nil {
-					out.State = "outcome_unknown"
-					return out, e
-				}
-				out.OutputDelivered = true
 			}
 		}
 	}
@@ -502,7 +512,7 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 
 func (b *Bifrost) finishResponse(ctx context.Context, response any, a Attempt, r Request, out Result) (Result, error) {
 	var err error
-	out.Output, err = publicOutput(response, r.PublicModel)
+	out.Output, err = clientModelOutput(ctx, response, r)
 	if err != nil {
 		out.State = "outcome_unknown"
 		return out, err

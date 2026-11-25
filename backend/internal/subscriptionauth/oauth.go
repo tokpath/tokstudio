@@ -33,6 +33,7 @@ type Connection struct {
 	TokenAuthMethod  string                   `json:"token_auth_method,omitempty"`
 	Scope            string                   `json:"scope"`
 	Resource         string                   `json:"resource,omitempty"`
+	MediaPreset      string                   `json:"media_preset,omitempty"`
 	Media            map[string]MediaEndpoint `json:"media,omitempty"`
 }
 

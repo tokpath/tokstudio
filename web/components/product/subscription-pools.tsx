@@ -162,14 +162,15 @@ function PoolForm({ pool, blocked, save }: { pool?: Pool; blocked: boolean; save
 function AccountForm({ pool, account, blocked, save, authorize }: { pool: Pool; account?: Account; blocked: boolean; save: (body: object) => Promise<void>; authorize: (body: object) => Promise<void> }) {
   const { t } = useI18n();
   const [mode, setMode] = useState<"settings" | "browser" | "import">(account && account.status !== "reauth_required" ? "settings" : "browser");
+  const authorizeNewAccount = mode === "browser" && !account;
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     const endsAt = String(values.get("ends_at") || "");
     const draft = {
-      id: account?.id, pool_id: pool.id, name: values.get("name"),
+      id: account?.id, pool_id: pool.id, name: String(values.get("name") || ""),
       subscription_ends_at: endsAt ? new Date(endsAt).toISOString() : null,
-      enabled: values.get("enabled") === "on", expected_version: account?.version ?? 0,
+      enabled: authorizeNewAccount || values.get("enabled") === "on", expected_version: account?.version ?? 0,
     };
     if (mode === "browser") {
       if (pool.browser_oauth) void authorize(draft);
@@ -180,10 +181,12 @@ function AccountForm({ pool, account, blocked, save, authorize }: { pool: Pool; 
   const end = account?.subscription_ends_at ? new Date(account.subscription_ends_at) : undefined;
   const localEnd = end ? new Date(end.getTime() - end.getTimezoneOffset() * 60_000).toISOString().slice(0, 16) : "";
   return <form className="space-y-4" onSubmit={submit}>
-    <label className="block text-sm">{t("账号名称")}<Input name="name" className="mt-2" defaultValue={account?.name} disabled={blocked} required maxLength={80} /></label>
+    {!authorizeNewAccount && <label className="block text-sm">{t("账号名称")}<Input name="name" className="mt-2" defaultValue={account?.name} disabled={blocked} required maxLength={80} /></label>}
     {mode === "import" && <CredentialField vendor={pool.subscription_kind} blocked={blocked} />}
-    <label className="block text-sm">{t("订阅到期（可选）")}<Input name="ends_at" type="datetime-local" className="mt-2" defaultValue={localEnd} disabled={blocked} /></label>
-    <label className="flex items-center gap-2 text-sm"><input name="enabled" type="checkbox" defaultChecked={account?.enabled ?? true} disabled={blocked} />{t("启用")}</label>
+    {!authorizeNewAccount && <>
+      <label className="block text-sm">{t("订阅到期（可选）")}<Input name="ends_at" type="datetime-local" className="mt-2" defaultValue={localEnd} disabled={blocked} /></label>
+      <label className="flex items-center gap-2 text-sm"><input name="enabled" type="checkbox" defaultChecked={account?.enabled ?? true} disabled={blocked} />{t("启用")}</label>
+    </>}
     {mode === "browser" && !pool.browser_oauth && <p className="text-sm text-ink-mute">{t("此供应商的浏览器授权尚未配置。")}</p>}
     <div className="flex flex-wrap items-center gap-2">
       <Button type="submit" disabled={blocked || mode === "browser" && !pool.browser_oauth}>{t(mode === "browser" ? "在浏览器中授权" : "保存")}</Button>

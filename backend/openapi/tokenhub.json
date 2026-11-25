@@ -23158,7 +23158,7 @@
             }
           }
         },
-        "description": "OpenAI-shaped call for a capability this public model offers. Customer parameters are forwarded unchanged. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
+        "description": "OpenAI-shaped call for a capability this public model offers. Customer parameters are forwarded unchanged. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded. A public model that offers Responses instead of Chat Completions can accept supported Chat requests through an eligible Codex or Grok subscription pool. Restrictions on the upstream fields still apply."
       }
     },
     "/v1/responses": {
@@ -24257,6 +24257,458 @@
           }
         },
         "description": "OpenAI-shaped call for a capability this public model offers. Customer parameters are forwarded unchanged. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
+      }
+    },
+    "/v1/messages": {
+      "post": {
+        "operationId": "post__v1_messages",
+        "summary": "Execute an Anthropic Messages request through a subscription pool",
+        "tags": [
+          "Model API"
+        ],
+        "security": [
+          {
+            "ModelKey": []
+          },
+          {
+            "MessagesKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+              }
+            },
+            "headers": {
+              "X-TokenHub-Request-ID": {
+                "description": "Platform request ID used by the customer usage and billing records.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "error"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "error",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "error"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "error",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "error"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "error",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "error"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "error",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "error"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "error",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "error"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "error",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "error"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "error",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "error"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "error",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  },
+                  "max_tokens": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "system": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      }
+                    ]
+                  },
+                  "stream": {
+                    "type": "boolean"
+                  },
+                  "tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  },
+                  "tool_choice": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "thinking": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "output_config": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "output_format": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "temperature": {
+                    "type": "number"
+                  },
+                  "top_p": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "model",
+                  "messages",
+                  "max_tokens"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "description": "Available for public Responses models routed through an eligible Codex or Grok subscription pool. The response uses the Anthropic Messages format and billing uses verified upstream Responses usage. The request must fit the upstream connection parameters. Codex can accept max_tokens only when it covers the verified model output limit. Reuse an optional Idempotency-Key to replay the same request without another charge."
       }
     },
     "/v1/images/edits": {
@@ -26924,7 +27376,6 @@
                 },
                 "required": [
                   "pool_id",
-                  "name",
                   "enabled",
                   "expected_version"
                 ],
@@ -35038,6 +35489,12 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "TokenHub API Key"
+      },
+      "MessagesKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Api-Key",
+        "description": "Brand-bound TokenHub API key for Anthropic Messages clients."
       }
     },
     "parameters": {

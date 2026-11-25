@@ -141,7 +141,7 @@ func (s CommerceCatalog) SaveSubscriptionPool(ctx context.Context, actor string,
 		}
 		first := *in.FirstAccount
 		first.ID, first.PoolID, first.ExpectedVersion, first.Enabled = uuid.NewString(), in.ID, 0, true
-		return tx.saveSubscriptionAccount(ctx, in.Kind, first, nil)
+		return tx.saveSubscriptionAccount(ctx, in.Kind, first, nil, nil)
 	})
 	return in.ID, err
 }
@@ -150,8 +150,8 @@ func (s CommerceCatalog) SaveSubscriptionAccount(ctx context.Context, actor stri
 	return s.saveAccountInPool(ctx, actor, in, "", nil)
 }
 
-func (s CommerceCatalog) SaveAuthorizedSubscriptionAccount(ctx context.Context, actor, kind string, in SubscriptionAccountInput, grant subscriptionauth.Credential) (string, error) {
-	return s.saveAccountInPool(ctx, actor, in, kind, &grant)
+func (s CommerceCatalog) SaveAuthorizedSubscriptionAccount(ctx context.Context, actor, kind string, in SubscriptionAccountInput, grant subscriptionauth.Credential, models ...subscriptionauth.DiscoveredModel) (string, error) {
+	return s.saveAccountInPool(ctx, actor, in, kind, &grant, models...)
 }
 
 func (s CommerceCatalog) SubscriptionPoolKind(ctx context.Context, actor string, poolID string) (string, error) {
@@ -164,7 +164,7 @@ func (s CommerceCatalog) SubscriptionPoolKind(ctx context.Context, actor string,
 	return pool.SubscriptionKind, err
 }
 
-func (s CommerceCatalog) saveAccountInPool(ctx context.Context, actor string, in SubscriptionAccountInput, grantKind string, grant *subscriptionauth.Credential) (string, error) {
+func (s CommerceCatalog) saveAccountInPool(ctx context.Context, actor string, in SubscriptionAccountInput, grantKind string, grant *subscriptionauth.Credential, models ...subscriptionauth.DiscoveredModel) (string, error) {
 	if !s.platform(actor) {
 		return "", ErrCatalogForbidden
 	}
@@ -182,13 +182,19 @@ func (s CommerceCatalog) saveAccountInPool(ctx context.Context, actor string, in
 				return ErrInvalidInput
 			}
 		}
-		return tx.saveSubscriptionAccount(ctx, pool.SubscriptionKind, in, grant)
+		if err := tx.saveSubscriptionAccount(ctx, pool.SubscriptionKind, in, grant, models); err != nil {
+			return err
+		}
+		return tx.prepareSubscriptionDrafts(ctx, actor, pool, models)
 	})
 	return in.ID, err
 }
 
-func (s CommerceCatalog) saveSubscriptionAccount(ctx context.Context, kind string, in SubscriptionAccountInput, grant *subscriptionauth.Credential) error {
+func (s CommerceCatalog) saveSubscriptionAccount(ctx context.Context, kind string, in SubscriptionAccountInput, grant *subscriptionauth.Credential, models []subscriptionauth.DiscoveredModel) error {
 	in.Name = strings.TrimSpace(in.Name)
+	if in.Name == "" && grant != nil && in.ExpectedVersion == 0 {
+		in.Name = "账号 " + strings.SplitN(in.ID, "-", 2)[0]
+	}
 	if in.ID == "" || in.Name == "" || len([]rune(in.Name)) > 80 || (in.ExpectedVersion == 0 && in.Credential == "" && grant == nil) {
 		return ErrInvalidInput
 	}
@@ -211,6 +217,13 @@ func (s CommerceCatalog) saveSubscriptionAccount(ctx context.Context, kind strin
 		}
 		fields["ciphertext"] = cipher
 		fields["identity_hash"] = platformcrypto.HashToken(identity)
+		fields["connection_hash"] = grant.Connection
+		ids := make([]string, 0, len(models))
+		for _, model := range models {
+			ids = append(ids, model.ID)
+		}
+		discovered, _ := json.Marshal(ids)
+		fields["discovered_models"] = string(discovered)
 		fields["expires_at"] = optionalTime(grant.ExpiresAt)
 		fields["refreshable"] = grant.RefreshToken != ""
 		fields["reauth_required"] = false
@@ -245,7 +258,7 @@ func (s CommerceCatalog) RemoveSubscriptionAccount(ctx context.Context, actor, p
 			return err
 		}
 		r := tx.DB.WithContext(ctx).Table("tokenhub_subscription_accounts").Where("pool_id=? AND id=? AND version=? AND NOT removed", poolID, accountID, version).
-			Updates(map[string]any{"removed": true, "enabled": false, "ciphertext": "", "identity_hash": accountID, "version": version + 1})
+			Updates(map[string]any{"removed": true, "enabled": false, "ciphertext": "", "connection_hash": "", "discovered_models": "[]", "identity_hash": accountID, "version": version + 1})
 		return subscriptionVersion(r)
 	})
 }

@@ -18,6 +18,7 @@ type Operation string
 const (
 	Chat          Operation = "chat"
 	Responses     Operation = "responses"
+	Messages      Operation = "messages"
 	Embedding     Operation = "embedding"
 	Image         Operation = "image_generation"
 	ImageEdit     Operation = "image_edit"
@@ -80,12 +81,14 @@ func (c Capability) Verified() bool {
 }
 
 type Request struct {
-	InputFacts  map[string]string `json:"-"`
-	ID          string            `json:"request_id"`
-	PublicModel string            `json:"model"`
-	Operation   Operation         `json:"operation"`
-	Stream      bool              `json:"stream"`
-	Async       bool              `json:"async,omitempty"`
+	InputFacts     map[string]string `json:"-"`
+	ID             string            `json:"request_id"`
+	PublicModel    string            `json:"model"`
+	Operation      Operation         `json:"operation"`
+	Stream         bool              `json:"stream"`
+	Async          bool              `json:"async,omitempty"`
+	ClientProtocol Operation         `json:"client_protocol,omitempty"`
+	IncludeUsage   bool              `json:"include_usage,omitempty"`
 	// Input and Params use Bifrost's canonical protocol schema. DecodeProtocol
 	// below accepts standard endpoint bodies without losing unsupported fields.
 	Input      json.RawMessage `json:"input"`
@@ -183,6 +186,7 @@ type Event struct {
 	Data      json.RawMessage
 	Usage     *Usage
 	RequestID string
+	Type      string
 }
 
 // Emit returns only after the downstream consumes the event. A non-nil error
@@ -289,7 +293,7 @@ func DecodeProtocol(id string, op Operation, body []byte) (Request, error) {
 		delete(fields, "stream")
 	}
 	switch op {
-	case Chat:
+	case Chat, Messages:
 		r.Input = fields["messages"]
 		delete(fields, "messages")
 	case Responses:

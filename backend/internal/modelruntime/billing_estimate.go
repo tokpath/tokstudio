@@ -64,7 +64,7 @@ func EstimateUsage(c Capability, r Request) map[string]string {
 					if strings.HasPrefix(component.Key, "cache") {
 						q = new(big.Rat)
 					} else if direction == "output" {
-						if limit.Sign() > 0 {
+						if limit.Sign() > 0 && (r.ClientProtocol == "" || limit.Cmp(q) < 0) {
 							q = new(big.Rat).Mul(limit, count)
 						}
 					} else if item.Modality == "text" || len(layout.kinds()) <= 1 && len(layout.text) > 0 {

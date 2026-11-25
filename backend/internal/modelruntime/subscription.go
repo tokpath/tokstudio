@@ -26,7 +26,7 @@ func ValidateSubscriptionRequest(kind string, outputLimit int64, r Request) erro
 		return ErrUnsupported
 	}
 	for _, input := range r.InputTypes {
-		if input != "text" {
+		if input != "text" && !(kind == subscriptionauth.Codex && input == "image") {
 			return ErrUnsupported
 		}
 	}
@@ -36,6 +36,13 @@ func ValidateSubscriptionRequest(kind string, outputLimit int64, r Request) erro
 	}
 	switch kind {
 	case subscriptionauth.Codex:
+		if raw, ok := params["max_output_tokens"]; r.ClientProtocol != "" && ok {
+			var max int64
+			if json.Unmarshal(raw, &max) != nil || max < outputLimit {
+				return ErrUnsupported
+			}
+			delete(params, "max_output_tokens")
+		}
 		for _, name := range []string{"max_output_tokens", "max_completion_tokens", "max_tool_calls", "temperature", "top_p",
 			"background", "conversation", "metadata", "prompt", "prompt_cache_retention", "safety_identifier", "truncation", "user", "top_logprobs"} {
 			if _, supplied := params[name]; supplied {
@@ -119,12 +126,16 @@ func (b *Bifrost) subscriptionContext(ctx context.Context, bc *schemas.BifrostCo
 		return credential, nil
 	}
 	bc.SetValue(schemas.BifrostContextKeyDirectKey, schemas.Key{ID: a.CredentialID, Name: a.CredentialID, Value: *schemas.NewSecretVar(credential.AccessToken), Models: schemas.WhiteList{a.UpstreamModel}, Weight: 1})
-	if a.SubscriptionKind == subscriptionauth.Codex && credential.Endpoint == "" {
-		if credential.AccountID == "" {
+	if a.SubscriptionKind == subscriptionauth.Codex && (credential.Endpoint == "" || subscriptionauth.NativeCodexEndpoint(endpoint)) {
+		account := credential.AccountID
+		if credential.Endpoint != "" {
+			account = subscriptionauth.CodexRoutingAccount(credential.AccessToken)
+		}
+		if account == "" {
 			return credential, ErrSubscriptionReauth
 		}
 		bc.SetValue(schemas.BifrostContextKeyExtraHeaders, map[string][]string{
-			"ChatGPT-Account-Id": {credential.AccountID},
+			"ChatGPT-Account-Id": {account},
 			"OpenAI-Beta":        {"responses=experimental"},
 		})
 	}

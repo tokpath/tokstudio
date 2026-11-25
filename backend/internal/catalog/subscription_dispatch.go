@@ -44,7 +44,17 @@ func (s CommerceCatalog) ClaimSubscriptionAccount(ctx context.Context, attempt *
 		Where("a.pool_id=? AND "+subscriptionSchedulable, pool.ID).
 		Where(`NOT EXISTS (SELECT 1 FROM tokenhub_route_leases l WHERE l.subscription_account_id=a.id
 		 AND l.finished_at IS NULL AND l.expires_at>clock_timestamp())`).
-		Order("a.last_selected_at ASC NULLS FIRST,a.id")
+		Order(clause.OrderBy{Expression: clause.Expr{
+			SQL:  "jsonb_exists(a.discovered_models, ?) DESC, a.last_selected_at ASC NULLS FIRST, a.id",
+			Vars: []any{attempt.UpstreamModel},
+		}})
+	if subscriptionauth.MediaAllowed(attempt.SubscriptionKind, string(attempt.Capability.Operation)) {
+		connection, ok := s.SubscriptionConnections[attempt.SubscriptionKind]
+		if !ok {
+			return ErrSubscriptionUnavailable
+		}
+		q = q.Where("a.connection_hash=?", connection.Fingerprint())
+	}
 	if len(exclude) > 0 {
 		q = q.Where("a.id NOT IN ?", exclude)
 	}

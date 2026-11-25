@@ -33,15 +33,111 @@ func MediaAllowed(kind, operation string) bool {
 
 func (c Connection) MediaEndpoint(operation string) (MediaEndpoint, bool) {
 	e, ok := c.Media[operation]
-	if e.Protocol == "" {
+	if ok && e.Protocol == "" {
 		e.Protocol = "openai"
 	}
-	return e, ok
+	if ok {
+		return e, true
+	}
+	return c.presetMediaEndpoint(operation)
+}
+
+func (c Connection) presetMediaEndpoint(operation string) (MediaEndpoint, bool) {
+	if c.MediaPreset == "" {
+		return MediaEndpoint{}, false
+	}
+	base, ok := c.inferenceBase()
+	if !ok {
+		return MediaEndpoint{}, false
+	}
+	switch operation {
+	case ImageGeneration, ImageEdit:
+		if c.MediaPreset == "gemini" {
+			root, ok := strings.CutSuffix(base, "/endpoints/openapi")
+			if ok {
+				return MediaEndpoint{URL: root + "/publishers/google/models/{model}:generateContent", Protocol: "gemini"}, true
+			}
+			root, ok = strings.CutSuffix(base, "/openai")
+			if ok {
+				return MediaEndpoint{URL: root + "/models/{model}:generateContent", Protocol: "gemini"}, true
+			}
+			return MediaEndpoint{}, false
+		}
+		path := "/images/generations"
+		if operation == ImageEdit {
+			path = "/images/edits"
+		}
+		protocol := c.MediaPreset
+		if protocol == "codex" {
+			protocol = "openai"
+		}
+		return MediaEndpoint{URL: base + path, Protocol: protocol, Streaming: protocol == "openai"}, true
+	case VideoGeneration, VideoRetrieve, VideoDownload:
+		if c.MediaPreset != "xai" {
+			return MediaEndpoint{}, false
+		}
+		switch operation {
+		case VideoGeneration:
+			return MediaEndpoint{URL: base + "/videos/generations", Protocol: "xai"}, true
+		case VideoRetrieve:
+			return MediaEndpoint{URL: base + "/videos/{task_id}", Protocol: "xai"}, true
+		}
+	}
+	return MediaEndpoint{}, false
+}
+
+// Derive sibling endpoints only from the same configured inference origin
+// and path prefix. Query parameters cannot be inherited or reinterpreted.
+func (c Connection) inferenceBase() (string, bool) {
+	u, err := url.Parse(c.InferenceURL)
+	if err != nil || u.Host == "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || u.User != nil {
+		return "", false
+	}
+	for _, suffix := range []string{"/responses", "/chat/completions", "/messages"} {
+		if base, ok := strings.CutSuffix(c.InferenceURL, suffix); ok {
+			return base, true
+		}
+	}
+	return "", false
 }
 
 func (c Connection) validateMedia(kind string, loopback bool) error {
+	switch c.MediaPreset {
+	case "":
+	case "openai":
+		if !MediaAllowed(kind, ImageGeneration) {
+			return ErrOAuthNotConfigured
+		}
+	case "codex":
+		if kind != Codex || !NativeCodexEndpoint(c.InferenceURL) {
+			return ErrOAuthNotConfigured
+		}
+	case "xai":
+		if kind != Grok {
+			return ErrOAuthNotConfigured
+		}
+	case "gemini":
+		if kind != Gemini && kind != Antigravity {
+			return ErrOAuthNotConfigured
+		}
+	default:
+		return ErrOAuthNotConfigured
+	}
+	if c.MediaPreset != "" {
+		if _, ok := c.presetMediaEndpoint(ImageGeneration); !ok {
+			return ErrOAuthNotConfigured
+		}
+	}
 	for op := range c.Media {
-		e, _ := c.MediaEndpoint(op)
+		if !MediaAllowed(kind, op) {
+			return ErrOAuthNotConfigured
+		}
+	}
+	for _, op := range []string{ImageGeneration, ImageEdit, VideoGeneration, VideoRetrieve, VideoDownload} {
+		e, ok := c.MediaEndpoint(op)
+		if !ok {
+			continue
+		}
 		if !MediaAllowed(kind, op) || !validEndpoint(e.URL, loopback) ||
 			e.Streaming && (e.Protocol != "openai" || op != ImageGeneration && op != ImageEdit) {
 			return ErrOAuthNotConfigured
@@ -85,7 +181,18 @@ func (c Connection) validateMedia(kind string, loopback bool) error {
 	return nil
 }
 
+func NativeCodexEndpoint(endpoint string) bool {
+	switch endpoint {
+	case "https://chatgpt.com/backend-api/codex/responses",
+		"https://chatgpt.com/backend-api/codex/images/generations",
+		"https://chatgpt.com/backend-api/codex/images/edits":
+		return true
+	}
+	return false
+}
+
 var mediaPathID = regexp.MustCompile(`^[a-zA-Z0-9_-][a-zA-Z0-9._-]{0,255}$`)
+var discoveredModelID = regexp.MustCompile(`^[a-zA-Z0-9_-][a-zA-Z0-9._-]{0,95}(/[a-zA-Z0-9_-][a-zA-Z0-9._-]{0,95}){0,2}$`)
 
 func (e MediaEndpoint) Resolve(model, task string) (string, error) {
 	if strings.Contains(e.URL, "{model}") {

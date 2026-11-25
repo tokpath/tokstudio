@@ -163,6 +163,9 @@ func (s *Service) Admit(ctx context.Context, authenticated Key, businessKey stri
 		if e != nil {
 			return e
 		}
+		if quote.PreparedRequest != nil {
+			r = *quote.PreparedRequest
+		}
 		estimate, e := Estimate(quote, r)
 		if e != nil {
 			return e

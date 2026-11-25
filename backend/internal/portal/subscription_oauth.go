@@ -41,7 +41,7 @@ func (a *Application) subscriptionOAuthStart(c *gin.Context) {
 		return
 	}
 	in.Name = strings.TrimSpace(in.Name)
-	if in.PoolID == "" || in.Name == "" || len([]rune(in.Name)) > 80 || in.Credential != "" ||
+	if in.PoolID == "" || in.ExpectedVersion > 0 && in.Name == "" || len([]rune(in.Name)) > 80 || in.Credential != "" ||
 		(in.ExpectedVersion == 0) != (in.ID == "") {
 		handleError(c, catalog.ErrInvalidInput)
 		return
@@ -142,7 +142,8 @@ func (a *Application) subscriptionOAuthCallback(c *gin.Context) {
 		finish("failed", draft.Account.PoolID)
 		return
 	}
-	_, err = a.Catalog.SaveAuthorizedSubscriptionAccount(ctx, opID, kind, draft.Account, grant)
+	models := connection.DiscoverModels(ctx, grant, a.guardEndpoint)
+	_, err = a.Catalog.SaveAuthorizedSubscriptionAccount(ctx, opID, kind, draft.Account, grant, models...)
 	switch {
 	case err == nil:
 		finish("saved", draft.Account.PoolID)

@@ -147,6 +147,13 @@ type tokenClaims struct {
 	ExpiresAt time.Time
 }
 
+// CodexRoutingAccount is a routing hint. The configured upstream verifies the
+// bearer token and its entitlement.
+func CodexRoutingAccount(token string) string {
+	claims, _ := codexClaims(token)
+	return claims.AccountID
+}
+
 func codexClaims(token string) (tokenClaims, bool) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {

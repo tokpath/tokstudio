@@ -21,7 +21,7 @@ import (
 
 func (a *Application) modelRoutes(r *gin.RouterGroup) {
 	r.GET("/models", a.apiModels)
-	for path, op := range map[string]modelruntime.Operation{"/chat/completions": modelruntime.Chat, "/responses": modelruntime.Responses, "/embeddings": modelruntime.Embedding, "/images/generations": modelruntime.Image, "/images/edits": modelruntime.ImageEdit, "/audio/speech": modelruntime.Speech, "/audio/transcriptions": modelruntime.Transcription, "/videos": modelruntime.Video} {
+	for path, op := range map[string]modelruntime.Operation{"/chat/completions": modelruntime.Chat, "/responses": modelruntime.Responses, "/messages": modelruntime.Messages, "/embeddings": modelruntime.Embedding, "/images/generations": modelruntime.Image, "/images/edits": modelruntime.ImageEdit, "/audio/speech": modelruntime.Speech, "/audio/transcriptions": modelruntime.Transcription, "/videos": modelruntime.Video} {
 		r.POST(path, a.executeModel(op, false))
 	}
 	r.POST("/images/generations/async", a.executeModel(modelruntime.Image, true))
@@ -33,6 +33,9 @@ func (a *Application) modelRoutes(r *gin.RouterGroup) {
 }
 func (a *Application) apiKey(c *gin.Context) (usage.Key, bool) {
 	header := c.GetHeader("Authorization")
+	if header == "" && c.GetBool(messagesModelAPI) && c.GetHeader("X-Api-Key") != "" {
+		header = "Bearer " + c.GetHeader("X-Api-Key")
+	}
 	if !strings.HasPrefix(header, "Bearer ") {
 		fail(c, 401, "invalid_api_key", "请使用当前品牌 API Key", false)
 		return usage.Key{}, false
@@ -138,6 +141,9 @@ func multipartImageEdit(c *gin.Context) ([]byte, error) {
 
 func (a *Application) executeModel(op modelruntime.Operation, async bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if op == modelruntime.Messages {
+			c.Set(messagesModelAPI, true)
+		}
 		k, ok := a.apiKey(c)
 		if !ok {
 			return
@@ -191,7 +197,7 @@ func (a *Application) executeModel(op modelruntime.Operation, async bool) gin.Ha
 				if ctx.Err() != nil {
 					return ctx.Err()
 				}
-				if _, e := fmt.Fprintf(c.Writer, "data: %s\n\n", event.Data); e != nil {
+				if e := writeModelEvent(c, event.Type, event.Data); e != nil {
 					return e
 				}
 				c.Writer.Flush()
@@ -201,10 +207,18 @@ func (a *Application) executeModel(op modelruntime.Operation, async bool) gin.Ha
 		out, e := a.Usage.Execute(c.Request.Context(), k, businessKey, input, emit)
 		if streamed {
 			if e != nil {
-				b, _ := json.Marshal(gin.H{"error": gin.H{"code": "request_interrupted", "message": "请求中断或用量待核实，请查询原请求", "request_id": out.Request.ID}})
-				_, _ = fmt.Fprintf(c.Writer, "data: %s\n\n", b)
+				message := "请求中断或用量待核实，请查询原请求"
+				if op == modelruntime.Messages {
+					b, _ := json.Marshal(messagesError(http.StatusBadGateway, message, out.Request.ID))
+					_ = writeModelEvent(c, "error", b)
+				} else {
+					b, _ := json.Marshal(gin.H{"error": gin.H{"code": "request_interrupted", "message": message, "request_id": out.Request.ID}})
+					_ = writeModelEvent(c, "", b)
+				}
 			}
-			_, _ = fmt.Fprint(c.Writer, "data: [DONE]\n\n")
+			if op != modelruntime.Messages {
+				_ = writeModelEvent(c, "", []byte("[DONE]"))
+			}
 			c.Writer.Flush()
 			return
 		}
@@ -232,6 +246,15 @@ func (a *Application) executeModel(op modelruntime.Operation, async bool) gin.Ha
 		}
 		c.JSON(202, gin.H{"id": out.Request.ID, "object": "video", "status": videoProtocolStatus(out.Request.Status), "model": out.Request.ModelID, "created_at": out.Request.AcceptedAt.Unix(), "delivered_at": out.Request.DeliveredAt})
 	}
+}
+func writeModelEvent(c *gin.Context, kind string, data []byte) error {
+	if kind != "" {
+		if _, err := fmt.Fprintf(c.Writer, "event: %s\n", kind); err != nil {
+			return err
+		}
+	}
+	_, err := fmt.Fprintf(c.Writer, "data: %s\n\n", data)
+	return err
 }
 func (a *Application) modelRequestForKey(c *gin.Context) (usage.Request, bool) {
 	key, ok := a.apiKey(c)

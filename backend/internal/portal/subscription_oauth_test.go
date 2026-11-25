@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 )
 
@@ -54,11 +53,17 @@ func TestPostgresSubscriptionBrowserOAuth(t *testing.T) {
 		{subscriptionauth.Antigravity, "/v1/chat/completions", "antigravity-test-model", "gemini"},
 	} {
 		t.Run(sample.kind, func(t *testing.T) {
-			var exchanges atomic.Int64
+			var exchanges, discoveries atomic.Int64
 			supplier := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				if r.URL.Path == "/userinfo" && r.Header.Get("Authorization") == "Bearer private-access" {
 					fmt.Fprint(w, `{"sub":"supplier-account"}`)
+					return
+				}
+				if r.Method == http.MethodGet && r.URL.Path == "/v1/models" &&
+					r.Header.Get("Authorization") == "Bearer private-access" {
+					discoveries.Add(1)
+					fmt.Fprintf(w, `{"data":[{"id":%q},{"id":"unverified-model"}]}`, sample.model)
 					return
 				}
 				if r.URL.Path != "/token" || r.Method != http.MethodPost || r.ParseForm() != nil {
@@ -99,10 +104,18 @@ func TestPostgresSubscriptionBrowserOAuth(t *testing.T) {
 			f.a.Config.SubscriptionConnections = profiles
 			f.a.Catalog.SubscriptionConnections = profiles
 
+			if err := f.a.DB.Exec(`INSERT INTO model_pricing_rows (id,provider,model,mode,definition)
+				VALUES (?,?,?,'chat','{"max_input_tokens":32768,"max_output_tokens":2048}'::jsonb)`,
+				sample.kind, sample.pricingProvider, strings.TrimPrefix(sample.model, "google/")).Error; err != nil {
+				t.Fatal(err)
+			}
+			operation := subscriptionauth.Operation(sample.kind)
+			public := sample.model
+			post(base+"/catalog", map[string]any{"model": map[string]any{"id": public, "capabilities": []map[string]any{{"operation": operation}}}})
 			pool := post(pools, map[string]any{"action": "save_pool", "pool": map[string]any{
 				"name": sample.kind, "subscription_kind": sample.kind, "enabled": true,
 			}})["id"].(string)
-			draft := map[string]any{"pool_id": pool, "name": "Browser account", "enabled": true, "expected_version": 0}
+			draft := map[string]any{"pool_id": pool, "enabled": true, "expected_version": 0}
 			start := func() url.Values {
 				t.Helper()
 				out := post(pools+"/oauth/start", draft)
@@ -129,6 +142,14 @@ func TestPostgresSubscriptionBrowserOAuth(t *testing.T) {
 			if exchanges.Load() != 2 {
 				t.Fatalf("expected one exchange for each accepted state, got %d", exchanges.Load())
 			}
+			if discoveries.Load() != 2 {
+				t.Fatalf("expected a model lookup under each OAuth grant, got %d", discoveries.Load())
+			}
+			var discovered int64
+			if err := f.a.DB.Table("tokenhub_subscription_accounts").Where("pool_id=? AND jsonb_exists(discovered_models, ?)", pool, sample.model).
+				Count(&discovered).Error; err != nil || discovered != 1 {
+				t.Fatalf("saved account did not retain its discovered model, got %d: %v", discovered, err)
+			}
 
 			imported, _ := json.Marshal(subscriptionauth.Credential{
 				AccountID: "imported-account", AccessToken: "private-import", ExpiresAt: time.Now().Add(time.Hour),
@@ -142,7 +163,13 @@ func TestPostgresSubscriptionBrowserOAuth(t *testing.T) {
 			for _, item := range page["items"].([]any) {
 				current := item.(map[string]any)
 				if current["id"] == pool {
-					found = current["browser_oauth"] == true && len(current["accounts"].([]any)) == 2
+					accounts := current["accounts"].([]any)
+					for _, item := range accounts {
+						account := item.(map[string]any)
+						if strings.HasPrefix(account["name"].(string), "账号 ") {
+							found = current["browser_oauth"] == true && account["enabled"] == true && len(accounts) == 2
+						}
+					}
 				}
 			}
 			if !found {
@@ -153,21 +180,36 @@ func TestPostgresSubscriptionBrowserOAuth(t *testing.T) {
 				t.Fatal("pool exposed authorization data")
 			}
 
-			if err := f.a.DB.Exec(`INSERT INTO model_pricing_rows (id,provider,model,mode,definition)
-				VALUES (?,?,?,'chat','{"max_input_tokens":32768,"max_output_tokens":2048}'::jsonb)`,
-				sample.kind, sample.pricingProvider, strings.TrimPrefix(sample.model, "google/")).Error; err != nil {
+			actor := f.a.Installation.OperatorID
+			models, err := f.a.Catalog.AdminSupplierModels(t.Context(), actor)
+			if err != nil {
 				t.Fatal(err)
 			}
-			operation := subscriptionauth.Operation(sample.kind)
-			model := post(base+"/providers", map[string]any{"action": "model", "supplier_model": map[string]any{
-				"id": uuid.NewString(), "credential_id": pool, "provider": subscriptionauth.Protocol(sample.kind), "model": sample.model, "enabled": true,
-				"capabilities": []map[string]any{{"operation": operation, "streaming": true}},
-			}})["id"].(string)
-			public := "oauth-" + sample.kind
-			post(base+"/catalog", map[string]any{"model": map[string]any{"id": public, "capabilities": []map[string]any{{"operation": operation}}}})
+			matches, model := 0, ""
+			for _, item := range models {
+				if item.CredentialID == pool {
+					matches++
+					model = item.ID
+					if item.Enabled || item.Model != sample.model || item.SubscriptionOutputLimit != 2048 {
+						t.Fatalf("unexpected supplier model draft %+v", item)
+					}
+					item.Enabled = true
+					if err := f.a.Catalog.SaveSupplierModel(t.Context(), actor, item, item.Version); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			routes, err := f.a.Catalog.AdminUpstreams(t.Context(), actor, public)
+			if err != nil || matches != 1 || len(routes) != 1 || routes[0].Enabled || routes[0].SupplierModelID != model {
+				t.Fatalf("expected one disabled initial route and supplier model, got %+v, error %v", routes, err)
+			}
+			policy, err := f.a.Catalog.RoutingPolicy(t.Context(), public)
+			if err != nil {
+				t.Fatal(err)
+			}
 			post(base+"/routes", map[string]any{"route": map[string]any{
 				"public_model_id": public, "strategy": "priority", "bindings": []map[string]any{{"supplier_model_id": model, "enabled": true}},
-			}})
+			}, "expected_version": policy.Version})
 			now := time.Now()
 			post(base+"/supplier-costs", map[string]any{"provider_id": pool, "statement_reference": "OAUTH-STATEMENT",
 				"starts_at": now.Add(-time.Hour), "ends_at": now, "currency": "EUR", "amount": "21.30"})

@@ -34,6 +34,7 @@ var credentialNameSchema string
 //go:embed commerce_schema_07_effective_prices.sql
 //go:embed commerce_schema_08_subscription_pools.sql
 //go:embed commerce_schema_09_subscription_vendors.sql
+//go:embed commerce_schema_10_subscription_connections.sql
 var commerceMigrationFS embed.FS
 
 //go:embed commerce_schema_03_supplier_models.sql
@@ -57,10 +58,13 @@ var subscriptionPoolsSchema string
 //go:embed commerce_schema_09_subscription_vendors.sql
 var subscriptionVendorsSchema string
 
+//go:embed commerce_schema_10_subscription_connections.sql
+var subscriptionConnectionsSchema string
+
 func CommerceMigrations() (string, fs.FS) { return "catalog_v2", commerceMigrationFS }
 
 func CommerceSchema() string {
-	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema + "\n" + automaticCircuitSchema + "\n" + effectivePricesSchema + "\n" + subscriptionPoolsSchema + "\n" + subscriptionVendorsSchema
+	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema + "\n" + automaticCircuitSchema + "\n" + effectivePricesSchema + "\n" + subscriptionPoolsSchema + "\n" + subscriptionVendorsSchema + "\n" + subscriptionConnectionsSchema
 }
 
 var ErrCatalogForbidden = errors.New("catalog action outside operator authority")
@@ -539,6 +543,10 @@ func (s CommerceCatalog) requireModelAuthorization(ctx context.Context, operator
 // upstream identity, all requested parameters and a finite charging upper bound.
 // It does not inspect parent listings: authorizing supply is separate from retail.
 func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r modelruntime.Request) ([]UpstreamModel, error) {
+	return s.routes(ctx, brand, operator, &r)
+}
+
+func (s CommerceCatalog) routes(ctx context.Context, brand, operator string, r *modelruntime.Request) ([]UpstreamModel, error) {
 	if s.Operators == nil {
 		return nil, ErrCatalogForbidden
 	}
@@ -564,8 +572,15 @@ func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r m
 	if count != 1 {
 		return nil, ErrModelNotVisible
 	}
-	if !operationOffered(m.Capabilities, r) {
-		return nil, modelruntime.ErrUnsupported
+	if !operationOffered(m.Capabilities, *r) {
+		if !upstreamOffers(m.Capabilities, modelruntime.Responses) {
+			return nil, modelruntime.ErrUnsupported
+		}
+		converted, err := modelruntime.ResponsesFromClient(*r)
+		if err != nil {
+			return nil, err
+		}
+		*r = converted
 	}
 	upstreams, e := s.eligibleUpstreams(ctx, m)
 	if e != nil {
@@ -573,7 +588,7 @@ func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r m
 	}
 	out := upstreams[:0]
 	for _, u := range upstreams {
-		if _, err := SelectCapability(u, r); err == nil {
+		if _, err := SelectCapability(u, *r); err == nil {
 			out = append(out, u)
 		}
 	}
@@ -591,8 +606,19 @@ func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r m
 
 // eligibleUpstreams shares the operational route checks with the public catalog.
 func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) ([]UpstreamModel, error) {
-	var rows []catalogJSONRow
-	if e := s.DB.WithContext(ctx).Table("tokenhub_upstreams u").Select("u.definition").
+	var rows []struct {
+		Definition json.RawMessage
+		MediaReady bool
+	}
+	profiles := map[string]string{}
+	for kind, connection := range s.SubscriptionConnections {
+		if connection.MediaPreset != "" || len(connection.Media) > 0 {
+			profiles[kind] = connection.Fingerprint()
+		}
+	}
+	hashes, _ := json.Marshal(profiles)
+	mediaReady := "EXISTS (SELECT 1 FROM tokenhub_subscription_accounts a WHERE a.pool_id=c.id AND a.connection_hash=(?::jsonb->>c.subscription_kind) AND " + subscriptionSchedulable + ")"
+	if e := s.DB.WithContext(ctx).Table("tokenhub_upstreams u").Select("u.definition, "+mediaReady+" AS media_ready", string(hashes)).
 		Joins("JOIN tokenhub_provider_credentials c ON c.id=u.definition->>'credential_id' AND c.provider_id=u.provider_id AND c.enabled").
 		Joins("LEFT JOIN tokenhub_route_health h ON h.upstream_id=u.id").
 		Where("u.public_model_id=? AND u.definition->>'enabled'='true' AND u.definition->>'healthy'='true' AND u.definition->>'identity'=? AND (h.open_until IS NULL OR h.open_until<=clock_timestamp())", m.ID, m.Identity).
@@ -611,7 +637,7 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 			if subscriptionauth.MediaAllowed(u.SubscriptionKind, string(c.Operation)) {
 				connection := s.SubscriptionConnections[u.SubscriptionKind]
 				endpoint, ok := connection.MediaEndpoint(string(c.Operation))
-				if !ok || c.Streaming && !endpoint.Streaming {
+				if !row.MediaReady || !ok || c.Streaming && !endpoint.Streaming {
 					continue
 				}
 			}
@@ -633,6 +659,9 @@ func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) (
 
 // SelectCapability returns the exact verified capability admitted for a request.
 func SelectCapability(u UpstreamModel, r modelruntime.Request) (modelruntime.Capability, error) {
+	if r.ClientProtocol != "" && u.SubscriptionKind != subscriptionauth.Codex && u.SubscriptionKind != subscriptionauth.Grok {
+		return modelruntime.Capability{}, modelruntime.ErrUnsupported
+	}
 	if u.SubscriptionKind != "" && modelruntime.ValidateSubscriptionRequest(u.SubscriptionKind, u.SubscriptionOutputLimit, r) != nil {
 		return modelruntime.Capability{}, modelruntime.ErrUnsupported
 	}
@@ -709,15 +738,16 @@ func (s CommerceCatalog) HasPriceHistory(ctx context.Context, scope PriceScope, 
 }
 
 type ModelQuote struct {
-	Billing        modelruntime.Capability `json:"billing"`
-	CatalogVersion uint64                  `json:"catalog_version"`
-	ModelID        string                  `json:"model_id"`
-	AcceptedAt     time.Time               `json:"accepted_at"`
-	Retail         ResolvedPrice           `json:"retail"`
-	Supply         []ResolvedPrice         `json:"supply"` // serving operator outward to platform
-	Supplier       []SupplierPriceSnapshot `json:"supplier"`
-	Bounds         map[string]string       `json:"bounds"`
-	Candidates     []UpstreamModel         `json:"-"`
+	Billing         modelruntime.Capability `json:"billing"`
+	CatalogVersion  uint64                  `json:"catalog_version"`
+	ModelID         string                  `json:"model_id"`
+	AcceptedAt      time.Time               `json:"accepted_at"`
+	Retail          ResolvedPrice           `json:"retail"`
+	Supply          []ResolvedPrice         `json:"supply"` // serving operator outward to platform
+	Supplier        []SupplierPriceSnapshot `json:"supplier"`
+	Bounds          map[string]string       `json:"bounds"`
+	Candidates      []UpstreamModel         `json:"-"`
+	PreparedRequest *modelruntime.Request   `json:"-"`
 }
 type SupplierPriceSnapshot struct {
 	EstimateMoney *string         `json:"estimate_money,omitempty"`
@@ -733,7 +763,8 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 	if e != nil {
 		return ModelQuote{}, e
 	}
-	upstreams, e := s.Routes(ctx, brand, operator, r)
+	originalOperation := r.Operation
+	upstreams, e := s.routes(ctx, brand, operator, &r)
 	if e != nil {
 		return ModelQuote{}, e
 	}
@@ -748,7 +779,10 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 	}
 	retail = activePrice(retail, active.BillableBounds)
 	q := ModelQuote{Billing: active, CatalogVersion: revision, ModelID: r.PublicModel, AcceptedAt: at, Retail: retail, Bounds: map[string]string{}, Candidates: upstreams}
-	if upstreams[0].SubscriptionKind != "" && active.Billing != nil && !subscriptionauth.MediaAllowed(upstreams[0].SubscriptionKind, string(r.Operation)) {
+	if r.Operation != originalOperation {
+		q.PreparedRequest = &r
+	}
+	if r.ClientProtocol == "" && upstreams[0].SubscriptionKind != "" && active.Billing != nil && !subscriptionauth.MediaAllowed(upstreams[0].SubscriptionKind, string(r.Operation)) {
 		// Keep the normal customer estimate. Procurement still reserves the
 		// verified maximum from each candidate below.
 		q.Billing = active.Billing.Capability(active.Operation, active.Streaming)
@@ -786,6 +820,9 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 			estimate = s.Costs.Estimate(ctx, snapshot, r, cap)
 		}
 		q.Supplier = append(q.Supplier, SupplierPriceSnapshot{UpstreamID: u.ID, Snapshot: snapshot, EstimateMoney: estimate})
+	}
+	if r.ClientProtocol != "" {
+		q.Billing.BillableBounds = q.Bounds
 	}
 	if _, e = retail.MaximumCharge(q.Bounds); e != nil {
 		return ModelQuote{}, e

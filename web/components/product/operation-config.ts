@@ -1,4 +1,4 @@
-import { Decimal, type JSONValue, type Operation } from "@/lib/contracts";
+import { Decimal, SubscriptionVendorSchema, type JSONValue, type Operation } from "@/lib/contracts";
 import { compareDecimal } from "@/lib/decimal";
 import { translate, type Locale } from "@/lib/i18n";
 
@@ -130,8 +130,8 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
       provider: select("接口协议", [["openai", "OpenAI 兼容"], ["anthropic", "Claude"], ["gemini", "Gemini"], ["openrouter", "OpenRouter"], ["elevenlabs", "ElevenLabs"]], "openai"),
       model: text("供应商模型名称", true, "供应商要求填写的模型名。客户请求里的名字写在公开模型上。"),
       enabled: { ...boolean("启用这个供应商模型"), default: true },
-      base_url: { ...text("API Base URL", false, "官方供应商通常留空。兼容服务填写供应商公布的 API Base URL，具体调用路径由系统生成。"), when: {field:"provider",values:["openai","anthropic","openrouter"]}, hideWhen: { field: "subscription_kind", values: ["codex", "claude"] } },
-      pricing_reference: { ...text("Bifrost 参考计价模型", false), lookup: "pricing-models", help: "选择参考价目中的供应商与模型，用于系统核算成本。未匹配的成本会标为待核实，不会记成免费。", hideWhen: { field: "subscription_kind", values: ["codex", "claude"] } },
+      base_url: { ...text("API Base URL", false, "官方供应商通常留空。兼容服务填写供应商公布的 API Base URL，具体调用路径由系统生成。"), when: {field:"provider",values:["openai","anthropic","openrouter"]}, hideWhen: { field: "subscription_kind", values: SubscriptionVendorSchema.options } },
+      pricing_reference: { ...text("Bifrost 参考计价模型", false), lookup: "pricing-models", help: "选择参考价目中的供应商与模型，用于系统核算成本。未匹配的成本会标为待核实，不会记成免费。", hideWhen: { field: "subscription_kind", values: SubscriptionVendorSchema.options } },
       cost_provider: { ...text("参考价目供应商", false), readOnly: true },
       cost_model: { ...text("参考计价模型", false), readOnly: true },
       capabilities: { ...array("供应商支持的能力", capability, "勾选供应商实际支持的能力；支持流式的能力可以单独开启。"), presentation: "supplier-operations", options: operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download") },

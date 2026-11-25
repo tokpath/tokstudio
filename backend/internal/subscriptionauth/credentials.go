@@ -13,8 +13,11 @@ import (
 )
 
 const (
-	Codex  = "codex"
-	Claude = "claude"
+	Codex       = "codex"
+	Claude      = "claude"
+	Grok        = "grok"
+	Gemini      = "gemini"
+	Antigravity = "antigravity"
 )
 
 var (
@@ -28,16 +31,39 @@ type Credential struct {
 	RefreshToken string    `json:"refresh_token,omitempty"`
 	AccountID    string    `json:"account_id,omitempty"`
 	ExpiresAt    time.Time `json:"expires_at,omitempty"`
+	Connection   string    `json:"connection,omitempty"`
 }
 
 func Protocol(kind string) string {
 	switch kind {
-	case Codex:
+	case Codex, Grok, Gemini, Antigravity:
 		return "openai"
 	case Claude:
 		return "anthropic"
 	default:
 		return ""
+	}
+}
+
+func Operation(kind string) string {
+	switch kind {
+	case Codex, Grok:
+		return "responses"
+	case Claude, Gemini, Antigravity:
+		return "chat"
+	default:
+		return ""
+	}
+}
+
+func PricingProvider(kind string) string {
+	switch kind {
+	case Grok:
+		return "xai"
+	case Gemini, Antigravity:
+		return "gemini"
+	default:
+		return Protocol(kind)
 	}
 }
 
@@ -94,7 +120,10 @@ func Parse(kind, raw string) (Credential, error) {
 		if !strings.HasPrefix(c.AccessToken, "sk-ant-oat") {
 			return Credential{}, ErrCredential
 		}
+	default:
+		return Credential{}, ErrCredential
 	}
+	c.Connection = ""
 	if !safeToken(c.AccessToken) || c.RefreshToken != "" && !safeToken(c.RefreshToken) {
 		return Credential{}, ErrCredential
 	}

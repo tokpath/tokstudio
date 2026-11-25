@@ -26,10 +26,12 @@ func (a *Application) subscriptionPoolsResource(c *gin.Context, op organization.
 	type poolView struct {
 		catalog.SubscriptionPool
 		LatestStatement *modelpricing.SubscriptionStatement `json:"latest_statement,omitempty"`
+		BrowserOAuth    bool                                `json:"browser_oauth"`
 	}
 	items := make([]poolView, 0, len(rows))
 	for _, row := range rows {
-		item := poolView{SubscriptionPool: row}
+		_, configured := a.Config.SubscriptionConnections[row.SubscriptionKind]
+		item := poolView{SubscriptionPool: row, BrowserOAuth: configured && a.subscriptionCallbackURI(c, row.SubscriptionKind) != ""}
 		if statement, ok := statements[row.ProviderID]; ok {
 			item.LatestStatement = &statement
 		}

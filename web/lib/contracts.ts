@@ -89,14 +89,16 @@ export const SettlementSchema = z.object({ id: ID, status: z.string(), amount_mo
 export const ActivitySchema = z.object({ id: ID, name: z.string(), plan_id: ID, status: z.string(), benefit_points: Decimal, starts_at: z.string(), ends_at: z.string(), per_customer_limit: z.number().int(), total_limit: z.number().int().nullable(), version: z.number().int() });
 
 export function collection<T extends z.ZodTypeAny>(item: T) { return z.object({ items: z.array(item), next_cursor: z.string().nullable().optional() }); }
-export const SubscriptionVendorSchema = z.enum(["codex", "claude"]);
+export const SubscriptionVendorSchema = z.enum(["codex", "claude", "grok", "gemini", "antigravity"]);
+export type SubscriptionVendor = z.infer<typeof SubscriptionVendorSchema>;
+export const SubscriptionOAuthStartSchema = z.object({ url: z.string().url() });
 export const SubscriptionAccountSchema = z.object({
   id: ID, name: z.string(), enabled: z.boolean(), version: z.number().int(), status: z.string(),
   subscription_ends_at: z.string().optional(), cooldown_until: z.string().optional(),
 });
 export const SubscriptionPoolSchema = z.object({
   id: ID, name: z.string(), subscription_kind: SubscriptionVendorSchema,
-  enabled: z.boolean(), version: z.number().int(), accounts: z.array(SubscriptionAccountSchema),
+  enabled: z.boolean(), version: z.number().int(), browser_oauth: z.boolean(), accounts: z.array(SubscriptionAccountSchema),
   latest_statement: z.object({ id: ID, statement_reference: z.string(), amount: Decimal, currency: z.string() }).optional(),
 });
 export const SubscriptionPoolsSchema = collection(SubscriptionPoolSchema);

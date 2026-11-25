@@ -1,4 +1,5 @@
 import { ManagementPage } from "@/components/product/management";
+import { SubscriptionVendorSchema } from "@/lib/contracts";
 import { redirect } from "next/navigation";
 export default async function Page({ params, searchParams }: { params: Promise<{ operatorId: string; section: string[] }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { operatorId, section } = await params;
@@ -13,6 +14,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   if (section.length === 1 && section[0] === "procurement-invoices") redirect(`/manage/${encodeURIComponent(operatorId)}/invoices?section=received`);
   if (section[0] === "exits") redirect(`/manage/${encodeURIComponent(operatorId)}/takeovers`);
   const record = typeof search.record === "string" ? search.record : undefined;
-  const supplierPool = section.length === 1 && section[0] === "providers" && typeof search.pool === "string" && (search.pool_kind === "codex" || search.pool_kind === "claude") ? { id: search.pool, kind: search.pool_kind } as const : undefined;
+  const kind = SubscriptionVendorSchema.safeParse(search.pool_kind);
+  const supplierPool = section.length === 1 && section[0] === "providers" && typeof search.pool === "string" && kind.success ? { id: search.pool, kind: kind.data } : undefined;
   return <ManagementPage operatorID={operatorId} resource={section.map(encodeURIComponent).join("/")} record={record} supplierPool={supplierPool} />;
 }

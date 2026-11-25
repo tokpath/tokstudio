@@ -14489,6 +14489,15 @@
     "Tetapkan hadiah pendaftaran dan peraturan KOL di sini. Lihat pendapatan pelanggan dan urus akses rujukan dalam ruang kerja pelanggan.",
     "ตั้งค่าของขวัญลงทะเบียนและกฎ KOL ที่นี่ ดูรายได้ลูกค้าและจัดการสิทธิ์การแนะนำในพื้นที่ทำงานลูกค้า"
   ],
+  "在浏览器中授权": [
+    "在浏览器中授权",
+    "Authorize in browser",
+    "ブラウザーで認証",
+    "Авторизовать в браузере",
+    "ब्राउज़र में अनुमति दें",
+    "Beri kebenaran dalam pelayar",
+    "อนุญาตในเบราว์เซอร์"
+  ],
   "在线体验": [
     "在线体验",
     "Playground",
@@ -17900,6 +17909,15 @@
     "Penyesuaian selesai. Tiada perbezaan dan tiada data tidak normal ditemui. Senarai kosong selepas itu ialah hasil yang dijangka.",
     "กระทบยอดเสร็จแล้ว ไม่พบส่วนต่างหรือข้อมูลผิดปกติ รายการที่ยังว่างหลังจากนั้นเป็นผลลัพธ์ที่คาดไว้"
   ],
+  "导入凭据": [
+    "导入凭据",
+    "Import credentials",
+    "認証情報をインポート",
+    "Импортировать данные доступа",
+    "क्रेडेंशियल आयात करें",
+    "Import kelayakan",
+    "นำเข้าข้อมูลการรับรอง"
+  ],
   "导出业务": [
     "导出业务",
     "Export domain",
@@ -18934,6 +18952,15 @@
     "रद्द",
     "Dibatalkan",
     "ยกเลิกแล้ว"
+  ],
+  "已取消授权": [
+    "已取消授权",
+    "Authorization canceled",
+    "認証をキャンセルしました",
+    "Авторизация отменена",
+    "अनुमति रद्द कर दी गई",
+    "Kebenaran dibatalkan",
+    "ยกเลิกการอนุญาตแล้ว"
   ],
   "已取消未付款": [
     "已取消未付款",
@@ -24685,6 +24712,15 @@
     "मॉडल अधिकृत करें या सूचीबद्ध करें",
     "Benarkan atau senaraikan model",
     "อนุญาตหรือลงรายการโมเดล"
+  ],
+  "授权未完成，请在账号池中重试。": [
+    "授权未完成，请在账号池中重试。",
+    "Authorization did not complete. Try again from the account pool.",
+    "認証が完了しませんでした。アカウントプールから再試行してください。",
+    "Не удалось завершить авторизацию. Повторите попытку в пуле аккаунтов.",
+    "अनुमति पूरी नहीं हुई। खाता पूल से फिर कोशिश करें।",
+    "Kebenaran tidak selesai. Cuba lagi daripada kumpulan akaun.",
+    "การอนุญาตไม่สำเร็จ ลองอีกครั้งจากกลุ่มบัญชี"
   ],
   "授权结果待核实，请重试原授权；当前选择已锁定。": [
     "授权结果待核实，请重试原授权；当前选择已锁定。",
@@ -32345,6 +32381,24 @@
     "Had token model pembekal ini tidak tersedia. Segerakkan jadual harga Bifrost dan semak nama model.",
     "ไม่มีข้อมูลขีดจำกัดโทเคนของโมเดลนี้ ซิงค์ตารางราคา Bifrost แล้วตรวจสอบชื่อโมเดล"
   ],
+  "此供应商的浏览器授权尚未配置。": [
+    "此供应商的浏览器授权尚未配置。",
+    "Browser authorization is not configured for this supplier.",
+    "この供給元のブラウザー認証は設定されていません。",
+    "Для этого поставщика не настроена авторизация в браузере.",
+    "इस आपूर्तिकर्ता के लिए ब्राउज़र अनुमति कॉन्फ़िगर नहीं है।",
+    "Kebenaran pelayar belum dikonfigurasi untuk pembekal ini.",
+    "ยังไม่ได้ตั้งค่าการอนุญาตผ่านเบราว์เซอร์สำหรับผู้ให้บริการรายนี้"
+  ],
+  "此供应商的订阅连接尚未配置。": [
+    "此供应商的订阅连接尚未配置。",
+    "The subscription connection for this supplier is not configured.",
+    "この供給元のサブスクリプション接続は設定されていません。",
+    "Подключение по подписке для этого поставщика не настроено.",
+    "इस आपूर्तिकर्ता का सदस्यता कनेक्शन कॉन्फ़िगर नहीं है।",
+    "Sambungan langganan untuk pembekal ini belum dikonfigurasi.",
+    "ยังไม่ได้ตั้งค่าการเชื่อมต่อแบบสมัครใช้บริการสำหรับผู้ให้บริการรายนี้"
+  ],
   "此入口仅用于渠道客户邀请": [
     "此入口仅用于渠道客户邀请",
     "This endpoint is only for channel customer invitations.",
@@ -37096,6 +37150,15 @@
     "प्रकार",
     "Jenis",
     "ประเภท"
+  ],
+  "粘贴供应商授权的凭据 JSON。": [
+    "粘贴供应商授权的凭据 JSON。",
+    "Paste the credential JSON authorized by the supplier.",
+    "供給元が許可した認証情報の JSON を貼り付けてください。",
+    "Вставьте JSON с данными доступа, разрешёнными поставщиком.",
+    "आपूर्तिकर्ता से अधिकृत क्रेडेंशियल का JSON पेस्ट करें।",
+    "Tampal JSON kelayakan yang dibenarkan oleh pembekal.",
+    "วาง JSON ของข้อมูลการรับรองที่ผู้ให้บริการอนุญาต"
   ],
   "粘贴供应商提供的密钥。保存后页面不再显示原文。": [
     "粘贴供应商提供的密钥。保存后页面不再显示原文。",
@@ -42622,6 +42685,24 @@
     "खाता बना। स्वामी को लॉगिन URL, ईमेल और प्रारंभिक पासवर्ड दें। पहले लॉगिन पर उन्हें पासवर्ड बदलना होगा।",
     "Akaun dicipta. Berikan URL log masuk, e-mel dan kata laluan awal kepada pemilik. Mereka mesti menukar kata laluan pada log masuk pertama.",
     "สร้างบัญชีแล้ว ส่ง URL เข้าสู่ระบบ อีเมล และรหัสผ่านเริ่มต้นให้เจ้าของ โดยต้องเปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก"
+  ],
+  "账号已授权": [
+    "账号已授权",
+    "Account authorized",
+    "アカウントの認証が完了しました",
+    "Аккаунт авторизован",
+    "खाता अधिकृत हो गया",
+    "Akaun dibenarkan",
+    "อนุญาตบัญชีแล้ว"
+  ],
+  "账号已被修改，请刷新后重新授权。": [
+    "账号已被修改，请刷新后重新授权。",
+    "The account has changed. Refresh the page and authorize it again.",
+    "アカウントが更新されました。ページを再読み込みしてから、もう一度認証してください。",
+    "Аккаунт изменён. Обновите страницу и авторизуйте его снова.",
+    "खाता बदल गया है। पेज रीफ़्रेश करें और फिर से अनुमति दें।",
+    "Akaun telah berubah. Muat semula halaman dan beri kebenaran sekali lagi.",
+    "บัญชีมีการเปลี่ยนแปลง รีเฟรชหน้าแล้วอนุญาตอีกครั้ง"
   ],
   "账号或 IBAN": [
     "账号或 IBAN",

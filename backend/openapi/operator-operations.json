@@ -3411,7 +3411,10 @@
           "field": "subscription_kind",
           "values": [
             "codex",
-            "claude"
+            "claude",
+            "grok",
+            "gemini",
+            "antigravity"
           ],
           "not": true
         }
@@ -3425,7 +3428,10 @@
           "field": "subscription_kind",
           "values": [
             "codex",
-            "claude"
+            "claude",
+            "grok",
+            "gemini",
+            "antigravity"
           ]
         }
       },
@@ -3438,7 +3444,10 @@
           "field": "subscription_kind",
           "values": [
             "codex",
-            "claude"
+            "claude",
+            "grok",
+            "gemini",
+            "antigravity"
           ]
         }
       },
@@ -3518,7 +3527,10 @@
           "field": "subscription_kind",
           "values": [
             "codex",
-            "claude"
+            "claude",
+            "grok",
+            "gemini",
+            "antigravity"
           ],
           "not": true
         }
@@ -3532,7 +3544,10 @@
           "field": "subscription_kind",
           "values": [
             "codex",
-            "claude"
+            "claude",
+            "grok",
+            "gemini",
+            "antigravity"
           ]
         }
       },
@@ -3545,7 +3560,10 @@
           "field": "subscription_kind",
           "values": [
             "codex",
-            "claude"
+            "claude",
+            "grok",
+            "gemini",
+            "antigravity"
           ]
         }
       },

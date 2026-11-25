@@ -6,7 +6,7 @@ const operator = { id: "platform-test", name: "平台", legal_name: "测试平�
 const brand = { id: operator.brand_id, name: "测试平台", api_base_url: "https://api.example.test/v1", theme: {} };
 const api = `/api/v1/operators/${operator.id}`;
 const manage = `/manage/${operator.id}`;
-const pool = { id: "pool-test", name: "Claude 订阅", enabled: true, version: 1, subscription_kind: "claude" };
+const pool = { id: "pool-test", name: "Claude 订阅", enabled: true, version: 1, subscription_kind: "claude", browser_oauth: false };
 const poolReference = { value: pool.id, label: pool.name, defaults: { provider_id: pool.id, subscription_kind: pool.subscription_kind } };
 
 function resource(name: string, title: string, items: unknown[] = []) {
@@ -104,4 +104,50 @@ test("a platform subscription pool opens the existing supplier form and records 
   await technology.getByRole("link", { name: "订阅账号池", exact: true }).click();
   await page.getByRole("link", { name: statement.statement_reference, exact: true }).click();
   await expect(page).toHaveURL(`${manage}/supplier-costs?record=${statement.id}`);
+});
+
+test("browser authorization is the primary action and returns to the selected subscription pool", async ({ page, baseURL }) => {
+  const grok = { id: "grok-pool", name: "Grok 订阅", enabled: true, version: 1, subscription_kind: "grok", browser_oauth: true };
+  const account = { id: "grok-account", name: "运营账号", enabled: true, version: 1, status: "available" };
+  const authorizeURL = "https://oauth.supplier.example/authorize";
+  let authorized = false;
+  await page.route("**/api/v1/**", async route => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    const responses: Record<string, unknown> = {
+      "/api/v1/public/context": { operator, brand, theme: {}, availability: [], payment_methods: [] },
+      "/api/v1/auth/me": { kind: "staff", staff: { id: "test-owner", email: "owner@example.test", display_name: "平台负责人" }, workspaces: [{ operator, permissions: ["*"] }], active_operator_id: operator.id, csrf_token: "test_csrf" },
+      [`${api}/notifications/unread-count`]: { count: 0 },
+      [`${api}/subscription-pools`]: { items: [{ ...grok, accounts: authorized ? [account] : [] }, { ...pool, accounts: [] }] },
+    };
+    if (path === `${api}/subscription-pools/oauth/start`) {
+      expect(request.method()).toBe("POST");
+      expect(request.postDataJSON()).toMatchObject({ pool_id: grok.id, name: account.name, enabled: true, expected_version: 0 });
+      expect(request.postDataJSON()).not.toHaveProperty("credential");
+      await route.fulfill({ json: { url: authorizeURL } });
+      return;
+    }
+    await route.fulfill({ json: responses[path] || { items: [] } });
+  });
+  await page.route(authorizeURL, async route => {
+    authorized = true;
+    await route.fulfill({ status: 303, headers: { location: new URL(`${manage}/subscription-pools?oauth=saved&pool=${grok.id}`, baseURL).toString() } });
+  });
+
+  await page.goto(`${manage}/subscription-pools`);
+  const card = page.locator("section").filter({ has: page.getByRole("heading", { name: grok.name, exact: true }) }).filter({ has: page.getByText("账号管理", { exact: true }) }).last();
+  await card.getByText("账号管理", { exact: true }).click();
+  await card.getByRole("button", { name: "添加账号", exact: true }).click();
+  let dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("button", { name: "在浏览器中授权" })).toBeEnabled();
+  await expect(dialog.locator('input[type="password"]')).toHaveCount(0);
+  await dialog.getByLabel("账号名称", { exact: true }).fill(account.name);
+  await dialog.getByRole("button", { name: "在浏览器中授权" }).click();
+
+  await expect(page.getByRole("status").filter({ hasText: "账号已授权" })).toBeVisible();
+  await expect(card.getByText(account.name, { exact: true })).toBeVisible();
+  await card.getByRole("button", { name: "添加账号", exact: true }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "导入凭据", exact: true }).click();
+  await expect(dialog.locator('input[type="password"]')).toBeVisible();
 });

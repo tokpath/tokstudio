@@ -13,20 +13,24 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 )
 
-type testSubscriptionCredential struct{}
+type testSubscriptionCredential struct{ endpoint string }
 
-func (testSubscriptionCredential) ResolveSubscriptionCredential(context.Context, Attempt) (SubscriptionCredential, error) {
-	return SubscriptionCredential{AccessToken: "mock-subscription-token", AccountID: "mock-account"}, nil
+func (c testSubscriptionCredential) ResolveSubscriptionCredential(context.Context, Attempt) (SubscriptionCredential, error) {
+	return SubscriptionCredential{AccessToken: "mock-subscription-token", AccountID: "mock-account", Endpoint: c.endpoint}, nil
 }
 
 func TestSubscriptionBifrostNativeContracts(t *testing.T) {
 	for _, sample := range []struct {
 		kind, provider, path, raw string
 		op                        Operation
+		configured                bool
 	}{
-		{subscriptionauth.Codex, "openai", "/backend-api/codex/responses", `{"model":"public-model","input":"hello"}`, Responses},
-		{subscriptionauth.Codex, "openai", "/backend-api/codex/responses", `{"model":"public-model","input":"hello","stream":true}`, Responses},
-		{subscriptionauth.Claude, "anthropic", "/v1/messages", `{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`, Chat},
+		{subscriptionauth.Codex, "openai", "/backend-api/codex/responses", `{"model":"public-model","input":"hello"}`, Responses, false},
+		{subscriptionauth.Codex, "openai", "/backend-api/codex/responses", `{"model":"public-model","input":"hello","stream":true}`, Responses, false},
+		{subscriptionauth.Claude, "anthropic", "/v1/messages", `{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`, Chat, false},
+		{subscriptionauth.Grok, "openai", "/v1/responses", `{"model":"public-model","input":"hello","max_output_tokens":20}`, Responses, true},
+		{subscriptionauth.Gemini, "openai", "/v1/chat/completions", `{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`, Chat, true},
+		{subscriptionauth.Antigravity, "openai", "/v1/chat/completions", `{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`, Chat, true},
 	} {
 		t.Run(sample.kind+"/"+sample.raw, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +43,24 @@ func TestSubscriptionBifrostNativeContracts(t *testing.T) {
 				}
 				if string(body["model"]) != `"upstream-exact-model"` {
 					t.Error("vendor model was changed")
+				}
+				if sample.configured {
+					if r.Header.Get("ChatGPT-Account-Id") != "" || r.Header.Get("Anthropic-Beta") != "" {
+						t.Error("another supplier's account headers were forwarded")
+					}
+					w.Header().Set("Content-Type", "application/json")
+					if sample.op == Responses {
+						if string(body["max_output_tokens"]) != "20" {
+							t.Error("Grok requested output cap was changed")
+						}
+						fmt.Fprint(w, `{"id":"resp_test","object":"response","model":"upstream-exact-model","status":"completed","output":[{"id":"msg_test","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"ok","annotations":[]}]}],"usage":{"input_tokens":2,"output_tokens":1,"total_tokens":3}}`)
+					} else {
+						if string(body["max_completion_tokens"]) != "20" {
+							t.Error("chat request had no output cap")
+						}
+						fmt.Fprint(w, `{"id":"msg_test","object":"chat.completion","model":"upstream-exact-model","choices":[{"message":{"role":"assistant","content":"ok"},"index":0,"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":1,"total_tokens":3}}`)
+					}
+					return
 				}
 				if sample.kind == subscriptionauth.Claude {
 					if !strings.Contains(r.Header.Get("Anthropic-Beta"), "oauth-2025-04-20") || string(body["max_tokens"]) != "20" {
@@ -56,9 +78,13 @@ func TestSubscriptionBifrostNativeContracts(t *testing.T) {
 			}))
 			t.Cleanup(server.Close)
 			endpoint := server.URL + sample.path
+			credentials := testSubscriptionCredential{}
+			if sample.configured {
+				credentials.endpoint = endpoint
+			}
 			ctx := context.Background()
 			b, err := NewBifrost(ctx, BifrostConfig{
-				Providers: []string{sample.provider}, Credentials: testCredentials{}, Subscriptions: testSubscriptionCredential{},
+				Providers: []string{sample.provider}, Credentials: testCredentials{}, Subscriptions: credentials,
 				AllowTestLoopback: true, subscriptionTestEndpoints: map[string]string{sample.kind: endpoint},
 				EndpointGuard: func(_ context.Context, url string) error {
 					if url != endpoint {

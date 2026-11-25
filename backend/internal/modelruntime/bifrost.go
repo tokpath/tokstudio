@@ -219,7 +219,7 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		if err = decodePreserved(r.Params, q.Params); err != nil {
 			return out, err
 		}
-		if a.SubscriptionKind == subscriptionauth.Claude && q.Params.MaxCompletionTokens == nil {
+		if a.SubscriptionKind != "" && q.Params.MaxCompletionTokens == nil {
 			limit := int(min(a.SubscriptionOutputLimit, 4096))
 			q.Params.MaxCompletionTokens = &limit
 		}

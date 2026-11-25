@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type JSONValue } from "@/lib/contracts";
 import { request } from "@/lib/api-client";
+import { subscriptionVendor } from "@/lib/subscription-vendors";
 import { configDefaults, groupResolutionPrices, nodeVisible, resolutionPriceable, retainKnownFields, type ConfigNode } from "./operation-config";
 import { RecordPicker, type RecordChoice } from "./record-picker";
 import { BillingTemplateEditor } from "./billing-template-editor";
@@ -76,10 +77,10 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
       if (key === "credential_id") {
         next.provider_id = String(defaults?.provider_id || "");
         next.subscription_kind = String(defaults?.subscription_kind || "");
-        if (next.subscription_kind === "codex" || next.subscription_kind === "claude") {
-          const codex = next.subscription_kind === "codex";
-          next.provider = codex ? "openai" : "anthropic";
-          next.capabilities = [{ operation: codex ? "responses" : "chat", streaming: true }];
+        const vendor = subscriptionVendor(next.subscription_kind);
+        if (vendor) {
+          next.provider = vendor.provider;
+          next.capabilities = [{ operation: vendor.operation, streaming: true }];
           next.base_url = "";
           next.pricing_reference = "";
           next.cost_provider = "";
@@ -94,7 +95,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
       }
       change(next);
     };
-    const poolOperation = data.subscription_kind === "codex" ? "responses" : data.subscription_kind === "claude" ? "chat" : "";
+    const poolOperation = subscriptionVendor(data.subscription_kind)?.operation;
     const children = <div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([key, child]) => !child.hidden && !child.readOnly && !child.generated && !(key === "action" && data.action === "listing" && referenceContext?.allow_downstream === false) && !(key === "scope" && fieldPath === "price" && referenceContext?.allow_downstream === false) && !(key === "mode" && data.mode === "manual" && referenceContext?.allow_follow === false) && key !== "version" && key !== "expected_version" && !key.endsWith("_version") && nodeVisible(child, data)).map(([key, child]) => <div key={key} className={["object", "array", "record", "textarea"].includes(child.kind) ? "min-w-0 sm:col-span-2" : "min-w-0"}><NodeEditor
       node={key === "capabilities" && poolOperation ? { ...child, options: child.options?.filter(([operation]) => operation === poolOperation) } : key==="mode" && referenceContext?.allow_follow===false && child.options?.some(([key])=>key==="follow") ? {...child,options:child.options.filter(([key])=>key!=="follow")} : data.action==="billing" && key==="operation" && Object.keys(modelMetadata).length ? {...child,options:child.options?.filter(([op])=>Object.hasOwn(modelMetadata,op))} : key==="template" && typeof data.modality==="string" ? {...child,options:child.options?.filter(([template])=>(data.modality==="all"?["tokens"]:data.modality==="text"?["tokens","characters"]:data.modality==="image"?["tokens","images","megapixels"]:["tokens","seconds"]).includes(template))} : child.lookupBy ? {...child,lookup:child.lookupBy.values[String(data[child.lookupBy.field])]} : child.lookupWhen && !child.lookupWhen.values.includes(String(data[child.lookupWhen.field])) ? { ...child, lookup: undefined } : child}
       value={data[key]} disabled={disabled || !!child.readOnly || (key === "provider" && !!poolOperation)} operatorID={operatorID} referenceContext={{ ...(referenceContext || {}), ...data }}

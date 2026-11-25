@@ -112,9 +112,10 @@ func (a *Application) actualCostResource(c *gin.Context, p gin.H, base string) {
 	supplier.LookupURL = "/api/v1/operators/" + c.Param("operatorId") + "/references/cost-suppliers"
 	model := optional("supplier_model_id", "供应商模型（留空表示供应商整体）", "text")
 	model.LookupURL = "/api/v1/operators/" + c.Param("operatorId") + "/references/cost-models"
-	model.VisibleWhen = &fieldVisibility{Field: "subscription_kind", Values: []string{"codex", "claude"}, Not: true}
+	subscriptionKinds := []string{"codex", "claude", "grok", "gemini", "antigravity"}
+	model.VisibleWhen = &fieldVisibility{Field: "subscription_kind", Values: subscriptionKinds, Not: true}
 	statement := f("statement_reference", "订阅账单编号", "text")
-	statement.VisibleWhen = &fieldVisibility{Field: "subscription_kind", Values: []string{"codex", "claude"}}
+	statement.VisibleWhen = &fieldVisibility{Field: "subscription_kind", Values: subscriptionKinds}
 	coverage := optional("account_coverage", "覆盖账号", "text")
 	coverage.VisibleWhen = statement.VisibleWhen
 	coverage.Help = "填写账单覆盖的账号名称。空白代表整个账号池。"

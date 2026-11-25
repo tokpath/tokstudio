@@ -141,12 +141,30 @@ func (s CommerceCatalog) SaveSubscriptionPool(ctx context.Context, actor string,
 		}
 		first := *in.FirstAccount
 		first.ID, first.PoolID, first.ExpectedVersion, first.Enabled = uuid.NewString(), in.ID, 0, true
-		return tx.saveSubscriptionAccount(ctx, in.Kind, first)
+		return tx.saveSubscriptionAccount(ctx, in.Kind, first, nil)
 	})
 	return in.ID, err
 }
 
 func (s CommerceCatalog) SaveSubscriptionAccount(ctx context.Context, actor string, in SubscriptionAccountInput) (string, error) {
+	return s.saveAccountInPool(ctx, actor, in, "", nil)
+}
+
+func (s CommerceCatalog) SaveAuthorizedSubscriptionAccount(ctx context.Context, actor, kind string, in SubscriptionAccountInput, grant subscriptionauth.Credential) (string, error) {
+	return s.saveAccountInPool(ctx, actor, in, kind, &grant)
+}
+
+func (s CommerceCatalog) SubscriptionPoolKind(ctx context.Context, actor string, poolID string) (string, error) {
+	if !s.platform(actor) {
+		return "", ErrCatalogForbidden
+	}
+	var pool CredentialView
+	err := s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Select("subscription_kind").
+		Where("id=? AND subscription_kind<>''", poolID).Take(&pool).Error
+	return pool.SubscriptionKind, err
+}
+
+func (s CommerceCatalog) saveAccountInPool(ctx context.Context, actor string, in SubscriptionAccountInput, grantKind string, grant *subscriptionauth.Credential) (string, error) {
 	if !s.platform(actor) {
 		return "", ErrCatalogForbidden
 	}
@@ -158,34 +176,43 @@ func (s CommerceCatalog) SaveSubscriptionAccount(ctx context.Context, actor stri
 		if err != nil {
 			return err
 		}
-		return tx.saveSubscriptionAccount(ctx, pool.SubscriptionKind, in)
+		if grant != nil {
+			connection, ok := tx.SubscriptionConnections[pool.SubscriptionKind]
+			if grantKind != pool.SubscriptionKind || !ok || grant.Connection != connection.Fingerprint() || in.Credential != "" {
+				return ErrInvalidInput
+			}
+		}
+		return tx.saveSubscriptionAccount(ctx, pool.SubscriptionKind, in, grant)
 	})
 	return in.ID, err
 }
 
-func (s CommerceCatalog) saveSubscriptionAccount(ctx context.Context, kind string, in SubscriptionAccountInput) error {
+func (s CommerceCatalog) saveSubscriptionAccount(ctx context.Context, kind string, in SubscriptionAccountInput, grant *subscriptionauth.Credential) error {
 	in.Name = strings.TrimSpace(in.Name)
-	if in.ID == "" || in.Name == "" || len([]rune(in.Name)) > 80 || (in.ExpectedVersion == 0 && in.Credential == "") {
+	if in.ID == "" || in.Name == "" || len([]rune(in.Name)) > 80 || (in.ExpectedVersion == 0 && in.Credential == "" && grant == nil) {
 		return ErrInvalidInput
 	}
 	fields := map[string]any{"name": in.Name, "enabled": in.Enabled, "version": in.ExpectedVersion + 1, "subscription_ends_at": in.SubscriptionEndsAt}
 	if in.Credential != "" {
-		credential, err := subscriptionauth.Parse(kind, in.Credential)
+		credential, err := subscriptionauth.Import(kind, in.Credential, s.SubscriptionConnections)
 		if err != nil {
 			return err
 		}
-		cipher, err := s.sealSubscriptionCredential(credential)
+		grant = &credential
+	}
+	if grant != nil {
+		cipher, err := s.sealSubscriptionCredential(*grant)
 		if err != nil {
 			return err
 		}
-		identity := credential.AccountID
+		identity := grant.AccountID
 		if identity == "" {
-			identity = credential.AccessToken
+			identity = grant.AccessToken
 		}
 		fields["ciphertext"] = cipher
 		fields["identity_hash"] = platformcrypto.HashToken(identity)
-		fields["expires_at"] = optionalTime(credential.ExpiresAt)
-		fields["refreshable"] = credential.RefreshToken != ""
+		fields["expires_at"] = optionalTime(grant.ExpiresAt)
+		fields["refreshable"] = grant.RefreshToken != ""
 		fields["reauth_required"] = false
 		fields["cooldown_until"] = nil
 	}

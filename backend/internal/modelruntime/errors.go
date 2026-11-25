@@ -98,7 +98,7 @@ func SubscriptionRejection(result Result) bool {
 		return false
 	}
 	switch result.ProviderStatus {
-	case 401, 402, 403, 429:
+	case 401, 402, 429:
 		return true
 	default:
 		return false

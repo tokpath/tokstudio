@@ -123,6 +123,7 @@ type CredentialSource interface {
 type SubscriptionCredential struct {
 	AccessToken string
 	AccountID   string
+	Endpoint    string
 }
 
 type SubscriptionCredentialSource interface {

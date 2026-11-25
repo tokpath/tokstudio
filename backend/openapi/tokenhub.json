@@ -25466,11 +25466,6 @@
                           "name": {
                             "type": "string"
                           },
-                          "credential": {
-                            "type": "string",
-                            "writeOnly": true,
-                            "maxLength": 65536
-                          },
                           "enabled": {
                             "type": "boolean"
                           },
@@ -25488,6 +25483,11 @@
                           "expected_version": {
                             "type": "integer",
                             "minimum": 0
+                          },
+                          "credential": {
+                            "type": "string",
+                            "writeOnly": true,
+                            "maxLength": 65536
                           }
                         },
                         "required": [
@@ -25544,6 +25544,317 @@
             }
           }
         }
+      }
+    },
+    "/v1/operators/{operatorId}/subscription-pools/oauth/start": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_subscription_pools_oauth_start",
+        "summary": "Start browser authorization for a subscription pool account",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionOAuthStart"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "catalog.manage",
+        "x-platform-only": true,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "pool_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "subscription_ends_at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "expected_version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "pool_id",
+                  "name",
+                  "enabled",
+                  "expected_version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/subscription-oauth/{kind}/callback": {
+      "get": {
+        "operationId": "get__v1_subscription_oauth_kind_callback",
+        "summary": "Finish supplier browser authorization and return to subscription pools",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SubscriptionVendor"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Return to subscription pools with the result of the one-time authorization",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "catalog.manage",
+        "x-platform-only": true
       }
     },
     "/v1/operators/{operatorId}/receipt-valuations/{id}/confirm": {
@@ -37994,8 +38305,24 @@
         "type": "string",
         "enum": [
           "codex",
-          "claude"
+          "claude",
+          "grok",
+          "gemini",
+          "antigravity"
         ]
+      },
+      "SubscriptionOAuthStart": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": true
       },
       "SubscriptionAccount": {
         "type": "object",
@@ -38046,7 +38373,10 @@
             "type": "string",
             "enum": [
               "codex",
-              "claude"
+              "claude",
+              "grok",
+              "gemini",
+              "antigravity"
             ]
           },
           "enabled": {
@@ -38054,6 +38384,9 @@
           },
           "version": {
             "type": "integer"
+          },
+          "browser_oauth": {
+            "type": "boolean"
           },
           "accounts": {
             "type": "array",
@@ -38126,6 +38459,7 @@
           "subscription_kind",
           "enabled",
           "version",
+          "browser_oauth",
           "accounts"
         ],
         "additionalProperties": true
@@ -38149,7 +38483,10 @@
                   "type": "string",
                   "enum": [
                     "codex",
-                    "claude"
+                    "claude",
+                    "grok",
+                    "gemini",
+                    "antigravity"
                   ]
                 },
                 "enabled": {
@@ -38157,6 +38494,9 @@
                 },
                 "version": {
                   "type": "integer"
+                },
+                "browser_oauth": {
+                  "type": "boolean"
                 },
                 "accounts": {
                   "type": "array",
@@ -38229,6 +38569,7 @@
                 "subscription_kind",
                 "enabled",
                 "version",
+                "browser_oauth",
                 "accounts"
               ],
               "additionalProperties": true
@@ -50262,7 +50603,10 @@
             "enum": [
               "",
               "codex",
-              "claude"
+              "claude",
+              "grok",
+              "gemini",
+              "antigravity"
             ]
           },
           "supplier_model_id": {
@@ -50272,7 +50616,10 @@
               "field": "subscription_kind",
               "values": [
                 "codex",
-                "claude"
+                "claude",
+                "grok",
+                "gemini",
+                "antigravity"
               ],
               "not": true
             },
@@ -50285,7 +50632,10 @@
               "field": "subscription_kind",
               "values": [
                 "codex",
-                "claude"
+                "claude",
+                "grok",
+                "gemini",
+                "antigravity"
               ]
             },
             "x-required-when-visible": true,
@@ -50298,7 +50648,10 @@
               "field": "subscription_kind",
               "values": [
                 "codex",
-                "claude"
+                "claude",
+                "grok",
+                "gemini",
+                "antigravity"
               ]
             },
             "x-required-when-visible": false,
@@ -50343,7 +50696,10 @@
                 "subscription_kind": {
                   "enum": [
                     "codex",
-                    "claude"
+                    "claude",
+                    "grok",
+                    "gemini",
+                    "antigravity"
                   ]
                 }
               },
@@ -50384,7 +50740,10 @@
             "enum": [
               "",
               "codex",
-              "claude"
+              "claude",
+              "grok",
+              "gemini",
+              "antigravity"
             ]
           },
           "supplier_model_id": {
@@ -50394,7 +50753,10 @@
               "field": "subscription_kind",
               "values": [
                 "codex",
-                "claude"
+                "claude",
+                "grok",
+                "gemini",
+                "antigravity"
               ],
               "not": true
             },
@@ -50407,7 +50769,10 @@
               "field": "subscription_kind",
               "values": [
                 "codex",
-                "claude"
+                "claude",
+                "grok",
+                "gemini",
+                "antigravity"
               ]
             },
             "x-required-when-visible": true,
@@ -50420,7 +50785,10 @@
               "field": "subscription_kind",
               "values": [
                 "codex",
-                "claude"
+                "claude",
+                "grok",
+                "gemini",
+                "antigravity"
               ]
             },
             "x-required-when-visible": false,
@@ -50467,7 +50835,10 @@
                 "subscription_kind": {
                   "enum": [
                     "codex",
-                    "claude"
+                    "claude",
+                    "grok",
+                    "gemini",
+                    "antigravity"
                   ]
                 }
               },

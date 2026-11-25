@@ -19,10 +19,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { pricingRefetchInterval } from "./pricing-refresh";
 import { X, ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 import { request } from "@/lib/api-client";
-import { CommandResultSchema, CreditsSchema, Decimal, ResourcePageSchema, type Entity, type Operation, type JSONValue, type ResourcePage } from "@/lib/contracts";
+import { CommandResultSchema, CreditsSchema, Decimal, ResourcePageSchema, type Entity, type Operation, type JSONValue, type ResourcePage, type SubscriptionVendor } from "@/lib/contracts";
 import { compareDecimal } from "@/lib/decimal";
 import { canReadResource, operatorResourcePath, resourceLabel } from "@/lib/navigation";
 import { useNavigationBlock } from "@/lib/navigation-guard";
+import { subscriptionVendors } from "@/lib/subscription-vendors";
 import { useProduct } from "./context";
 import { InvoiceFiles } from "./invoice-files";
 import { AppearanceForm, AppearanceCard, DomainCard } from "./branding";
@@ -92,7 +93,7 @@ function useParentPanelLock(blocked: boolean) {
   const id = useId();
   useEffect(() => { update?.(id, blocked); return () => update?.(id, false); }, [update, id, blocked]);
 }
-export type SupplierPoolSelection = { id: string; kind: "codex" | "claude" };
+export type SupplierPoolSelection = { id: string; kind: SubscriptionVendor };
 
 type ResourceOptions = {
   supplierPool?: SupplierPoolSelection;
@@ -306,10 +307,10 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const selectOperation = (operation: Operation, row?: Entity) => setSelection({ operation, row: row || (currentRecordOperations[resourceName]?.includes(operation.name) ? page.items[0] : undefined) });
   const savedValues: Record<string, JSONValue> = selection?.row && ["branding", "channel-themes"].includes(resourceName) ? { values: selection.row.values } : {};
   if (supplierPool && selection?.operation.name === "model" && !selection.row) {
-    const codex = supplierPool.kind === "codex";
+    const { provider, operation } = subscriptionVendors[supplierPool.kind];
     savedValues.configuration = { supplier_model: {
       credential_id: supplierPool.id, provider_id: supplierPool.id, subscription_kind: supplierPool.kind,
-      provider: codex ? "openai" : "anthropic", capabilities: [{ operation: codex ? "responses" : "chat", streaming: true }],
+      provider, capabilities: [{ operation, streaming: true }],
     } };
   }
   if (selection?.row && resourceName === "coverage") {

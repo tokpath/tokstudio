@@ -252,10 +252,7 @@ func (s CommerceCatalog) prepareSubscriptionModel(ctx context.Context, model *Su
 	if model.Provider != subscriptionauth.Protocol(model.SubscriptionKind) || model.BaseURL != "" || model.PricingReference != "" {
 		return ErrInvalidInput
 	}
-	operation := modelruntime.Responses
-	if model.SubscriptionKind == subscriptionauth.Claude {
-		operation = modelruntime.Chat
-	}
+	operation := modelruntime.Operation(subscriptionauth.Operation(model.SubscriptionKind))
 	for _, capability := range model.Capabilities {
 		if capability.Operation != operation {
 			return modelruntime.ErrUnsupported
@@ -265,11 +262,16 @@ func (s CommerceCatalog) prepareSubscriptionModel(ctx context.Context, model *Su
 		InputLimit  int64
 		OutputLimit int64
 	}
+	pricingProvider := subscriptionauth.PricingProvider(model.SubscriptionKind)
+	pricingModel := model.Model
+	if pricingProvider == "gemini" {
+		pricingModel = strings.TrimPrefix(pricingModel, "google/")
+	}
 	err := s.DB.WithContext(ctx).Raw(`SELECT
 		COALESCE(MAX(GREATEST((definition->>'max_input_tokens')::bigint,(definition->>'context_length')::bigint)),0) AS input_limit,
 		COALESCE(MAX((definition->>'max_output_tokens')::bigint),0) AS output_limit
 		FROM model_pricing_rows WHERE provider=? AND model=? AND mode IN ('chat','responses')
-		AND COALESCE(definition->>'is_deprecated','false')='false'`, model.Provider, model.Model).
+		AND COALESCE(definition->>'is_deprecated','false')='false'`, pricingProvider, pricingModel).
 		Scan(&bounds).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err

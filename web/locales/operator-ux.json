@@ -2325,5 +2325,77 @@
     "hi": "इस आपूर्तिकर्ता मॉडल की टोकन सीमाएँ उपलब्ध नहीं हैं। Bifrost मूल्य सूची सिंक करें और मॉडल का नाम जाँचें।",
     "ms": "Had token model pembekal ini tidak tersedia. Segerakkan jadual harga Bifrost dan semak nama model.",
     "th": "ไม่มีข้อมูลขีดจำกัดโทเคนของโมเดลนี้ ซิงค์ตารางราคา Bifrost แล้วตรวจสอบชื่อโมเดล"
+  },
+  "账号已授权": {
+    "en": "Account authorized",
+    "ja": "アカウントの認証が完了しました",
+    "ru": "Аккаунт авторизован",
+    "hi": "खाता अधिकृत हो गया",
+    "ms": "Akaun dibenarkan",
+    "th": "อนุญาตบัญชีแล้ว"
+  },
+  "已取消授权": {
+    "en": "Authorization canceled",
+    "ja": "認証をキャンセルしました",
+    "ru": "Авторизация отменена",
+    "hi": "अनुमति रद्द कर दी गई",
+    "ms": "Kebenaran dibatalkan",
+    "th": "ยกเลิกการอนุญาตแล้ว"
+  },
+  "账号已被修改，请刷新后重新授权。": {
+    "en": "The account has changed. Refresh the page and authorize it again.",
+    "ja": "アカウントが更新されました。ページを再読み込みしてから、もう一度認証してください。",
+    "ru": "Аккаунт изменён. Обновите страницу и авторизуйте его снова.",
+    "hi": "खाता बदल गया है। पेज रीफ़्रेश करें और फिर से अनुमति दें।",
+    "ms": "Akaun telah berubah. Muat semula halaman dan beri kebenaran sekali lagi.",
+    "th": "บัญชีมีการเปลี่ยนแปลง รีเฟรชหน้าแล้วอนุญาตอีกครั้ง"
+  },
+  "授权未完成，请在账号池中重试。": {
+    "en": "Authorization did not complete. Try again from the account pool.",
+    "ja": "認証が完了しませんでした。アカウントプールから再試行してください。",
+    "ru": "Не удалось завершить авторизацию. Повторите попытку в пуле аккаунтов.",
+    "hi": "अनुमति पूरी नहीं हुई। खाता पूल से फिर कोशिश करें।",
+    "ms": "Kebenaran tidak selesai. Cuba lagi daripada kumpulan akaun.",
+    "th": "การอนุญาตไม่สำเร็จ ลองอีกครั้งจากกลุ่มบัญชี"
+  },
+  "此供应商的浏览器授权尚未配置。": {
+    "en": "Browser authorization is not configured for this supplier.",
+    "ja": "この供給元のブラウザー認証は設定されていません。",
+    "ru": "Для этого поставщика не настроена авторизация в браузере.",
+    "hi": "इस आपूर्तिकर्ता के लिए ब्राउज़र अनुमति कॉन्फ़िगर नहीं है।",
+    "ms": "Kebenaran pelayar belum dikonfigurasi untuk pembekal ini.",
+    "th": "ยังไม่ได้ตั้งค่าการอนุญาตผ่านเบราว์เซอร์สำหรับผู้ให้บริการรายนี้"
+  },
+  "在浏览器中授权": {
+    "en": "Authorize in browser",
+    "ja": "ブラウザーで認証",
+    "ru": "Авторизовать в браузере",
+    "hi": "ब्राउज़र में अनुमति दें",
+    "ms": "Beri kebenaran dalam pelayar",
+    "th": "อนุญาตในเบราว์เซอร์"
+  },
+  "导入凭据": {
+    "en": "Import credentials",
+    "ja": "認証情報をインポート",
+    "ru": "Импортировать данные доступа",
+    "hi": "क्रेडेंशियल आयात करें",
+    "ms": "Import kelayakan",
+    "th": "นำเข้าข้อมูลการรับรอง"
+  },
+  "粘贴供应商授权的凭据 JSON。": {
+    "en": "Paste the credential JSON authorized by the supplier.",
+    "ja": "供給元が許可した認証情報の JSON を貼り付けてください。",
+    "ru": "Вставьте JSON с данными доступа, разрешёнными поставщиком.",
+    "hi": "आपूर्तिकर्ता से अधिकृत क्रेडेंशियल का JSON पेस्ट करें।",
+    "ms": "Tampal JSON kelayakan yang dibenarkan oleh pembekal.",
+    "th": "วาง JSON ของข้อมูลการรับรองที่ผู้ให้บริการอนุญาต"
+  },
+  "此供应商的订阅连接尚未配置。": {
+    "en": "The subscription connection for this supplier is not configured.",
+    "ja": "この供給元のサブスクリプション接続は設定されていません。",
+    "ru": "Подключение по подписке для этого поставщика не настроено.",
+    "hi": "इस आपूर्तिकर्ता का सदस्यता कनेक्शन कॉन्फ़िगर नहीं है।",
+    "ms": "Sambungan langganan untuk pembekal ini belum dikonfigurasi.",
+    "th": "ยังไม่ได้ตั้งค่าการเชื่อมต่อแบบสมัครใช้บริการสำหรับผู้ให้บริการรายนี้"
   }
 }

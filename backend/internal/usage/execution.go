@@ -173,6 +173,12 @@ routes:
 			if recordErr != nil {
 				return out, recordErr
 			}
+			if attempt.SubscriptionKind != "" && result.State == "failed" && result.ProviderStatus == 403 && !result.OutputDelivered && !result.Usage.Reliable {
+				if !requiresSettlement {
+					last, lastErr = result, runtimeErr
+				}
+				break routes
+			}
 			rejected := attempt.SubscriptionAccountID != "" && modelruntime.SubscriptionRejection(result)
 			if rejected {
 				excluded[upstream.CredentialID] = append(excluded[upstream.CredentialID], attempt.SubscriptionAccountID)

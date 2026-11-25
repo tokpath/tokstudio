@@ -81,6 +81,8 @@ func handleError(c *gin.Context, err error) {
 	}
 	status, code, msg, retry := 500, "internal_error", "处理失败，请沿用本次操作编号重试", true
 	switch {
+	case errors.Is(err, subscriptionauth.ErrOAuthNotConfigured):
+		status, code, msg, retry = 409, "subscription_oauth_not_configured", "此供应商的订阅连接尚未配置。", false
 	case errors.Is(err, subscriptionauth.ErrCredential):
 		status, code, msg, retry = 400, "invalid_subscription_credential", "凭据格式无效，请使用所选供应商的订阅授权。", false
 	case errors.Is(err, catalog.ErrSubscriptionAccountExists):
@@ -313,6 +315,7 @@ func (a *Application) Router() *gin.Engine {
 	v.POST("/auth/google/start", a.originGuard, a.googleStart)
 	v.POST("/auth/google/test", a.originGuard, a.googleTestStart)
 	v.POST("/auth/google/finish", a.originGuard, a.googleFinish)
+	v.GET("/subscription-oauth/:kind/callback", a.loadIdentity(false), a.subscriptionOAuthCallback)
 	v.POST("/auth/registrations", a.originGuard, a.monetaryTransactionGuard, a.register)
 	v.POST("/auth/verify", a.originGuard, a.monetaryTransactionGuard, a.verify)
 	v.POST("/auth/password-resets", a.originGuard, a.passwordReset)

@@ -3,13 +3,14 @@ package portal
 import (
 	"context"
 	"errors"
-	"github.com/tokpath/tokstudio/backend/internal/platform/objectstore"
 	"net"
 	"net/url"
 	"os"
 	"strings"
 
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
+	"github.com/tokpath/tokstudio/backend/internal/platform/objectstore"
+	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 )
 
 type Config struct {
@@ -27,6 +28,7 @@ type Config struct {
 	DomainCNAMETarget                                string
 	MetricsToken                                     string
 	TestLoopback                                     bool
+	SubscriptionConnections                          subscriptionauth.Connections
 }
 
 func LoadConfig() (Config, error) {
@@ -35,6 +37,10 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 	c := Config{Config: base, OfficialHost: os.Getenv("TOKENHUB_OFFICIAL_HOST"), AppKey: os.Getenv("TOKENHUB_APP_KEY"), BootstrapEmail: os.Getenv("TOKENHUB_BOOTSTRAP_STAFF_EMAIL"), BootstrapPassword: os.Getenv("TOKENHUB_BOOTSTRAP_STAFF_PASSWORD"), BootstrapName: os.Getenv("TOKENHUB_BOOTSTRAP_STAFF_NAME"), BrandName: os.Getenv("TOKENHUB_BRAND_NAME"), OperatorName: os.Getenv("TOKENHUB_OPERATOR_NAME"), LegalName: os.Getenv("TOKENHUB_LEGAL_NAME"), TestLoopback: os.Getenv("TOKENHUB_INTEGRATION_TEST_LOOPBACK") == "true"}
+	c.SubscriptionConnections, err = subscriptionauth.LoadConnections(os.Getenv("TOKENHUB_SUBSCRIPTION_CONNECTIONS"), c.TestLoopback)
+	if err != nil {
+		return Config{}, err
+	}
 	c.CloudflareToken = os.Getenv("TOKENHUB_CLOUDFLARE_API_TOKEN")
 	c.CloudflareZone = os.Getenv("TOKENHUB_CLOUDFLARE_ZONE_ID")
 	c.CloudflareCNAME = os.Getenv("TOKENHUB_CLOUDFLARE_CNAME_TARGET")

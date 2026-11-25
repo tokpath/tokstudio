@@ -299,6 +299,7 @@ func (a *Application) operatorRoutes(r *gin.RouterGroup) {
 	r.POST("/:resource/:id/replacement", a.replaceInvoice)
 	r.POST("/mail/test", a.testMail)
 	r.POST("/branding/logo", a.uploadLogo)
+	r.POST("/subscription-pools/oauth/start", a.subscriptionOAuthStart)
 	r.GET("/branding/assets/:id/content", a.ownLogo)
 	r.GET("/:resource", a.operatorResource)
 	r.POST("/:resource", a.operatorCommand)

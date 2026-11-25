@@ -14,6 +14,7 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	platformcrypto "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
+	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -32,6 +33,7 @@ var credentialNameSchema string
 //go:embed commerce_schema_06_automatic_circuit.sql
 //go:embed commerce_schema_07_effective_prices.sql
 //go:embed commerce_schema_08_subscription_pools.sql
+//go:embed commerce_schema_09_subscription_vendors.sql
 var commerceMigrationFS embed.FS
 
 //go:embed commerce_schema_03_supplier_models.sql
@@ -52,10 +54,13 @@ var effectivePricesSchema string
 //go:embed commerce_schema_08_subscription_pools.sql
 var subscriptionPoolsSchema string
 
+//go:embed commerce_schema_09_subscription_vendors.sql
+var subscriptionVendorsSchema string
+
 func CommerceMigrations() (string, fs.FS) { return "catalog_v2", commerceMigrationFS }
 
 func CommerceSchema() string {
-	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema + "\n" + automaticCircuitSchema + "\n" + effectivePricesSchema + "\n" + subscriptionPoolsSchema
+	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema + "\n" + automaticCircuitSchema + "\n" + effectivePricesSchema + "\n" + subscriptionPoolsSchema + "\n" + subscriptionVendorsSchema
 }
 
 var ErrCatalogForbidden = errors.New("catalog action outside operator authority")
@@ -74,11 +79,13 @@ type OperatorDirectory interface {
 // CommerceCatalog is the new brand/operator catalog. Caller identities must be
 // obtained from authenticated server context; JSON operator IDs are never actors.
 type CommerceCatalog struct {
-	DB                 *gorm.DB
-	Operators          OperatorDirectory
-	PlatformOperatorID string
-	EncryptionKey      string
-	Costs              interface {
+	DB                      *gorm.DB
+	Operators               OperatorDirectory
+	PlatformOperatorID      string
+	EncryptionKey           string
+	SubscriptionConnections subscriptionauth.Connections
+	SubscriptionGuard       subscriptionauth.DestinationGuard
+	Costs                   interface {
 		Snapshot(context.Context, string, string, time.Time) (json.RawMessage, error)
 		Estimate(context.Context, json.RawMessage, modelruntime.Request, modelruntime.Capability) *string
 	}

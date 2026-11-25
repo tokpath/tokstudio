@@ -84,9 +84,23 @@ func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, atte
 	if err != nil || json.Unmarshal([]byte(plain), &credential) != nil || credential.AccessToken == "" {
 		return modelruntime.SubscriptionCredential{}, modelruntime.ErrSubscriptionReauth
 	}
+	var connection subscriptionauth.Connection
+	if credential.Connection != "" {
+		profile, ok := s.SubscriptionConnections[attempt.SubscriptionKind]
+		if !ok || profile.Fingerprint() != credential.Connection {
+			return modelruntime.SubscriptionCredential{}, modelruntime.ErrSubscriptionReauth
+		}
+		connection = profile
+	} else if attempt.SubscriptionKind != subscriptionauth.Codex && attempt.SubscriptionKind != subscriptionauth.Claude {
+		return modelruntime.SubscriptionCredential{}, modelruntime.ErrSubscriptionReauth
+	}
 	now := time.Now()
 	if !credential.ExpiresAt.IsZero() && (credential.ExpiresAt.Before(now) || credential.RefreshToken != "" && credential.ExpiresAt.Before(now.Add(time.Minute))) {
-		credential, err = subscriptionauth.Refresh(ctx, attempt.SubscriptionKind, credential)
+		if credential.Connection != "" {
+			credential, err = connection.Refresh(ctx, credential, s.SubscriptionGuard)
+		} else {
+			credential, err = subscriptionauth.Refresh(ctx, attempt.SubscriptionKind, credential)
+		}
 		if errors.Is(err, subscriptionauth.ErrReauth) {
 			return modelruntime.SubscriptionCredential{}, modelruntime.ErrSubscriptionReauth
 		}
@@ -106,7 +120,7 @@ func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, atte
 			return modelruntime.SubscriptionCredential{}, unavailable
 		}
 	}
-	return modelruntime.SubscriptionCredential{AccessToken: credential.AccessToken, AccountID: credential.AccountID}, nil
+	return modelruntime.SubscriptionCredential{AccessToken: credential.AccessToken, AccountID: credential.AccountID, Endpoint: connection.InferenceURL}, nil
 }
 
 func observeSubscriptionAccount(db *gorm.DB, lease routeLease, result modelruntime.Result, now time.Time) error {

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"gorm.io/gorm"
@@ -62,7 +63,8 @@ func TestPostgresImageBatchSettlesOriginalItemsAndReplaysOnce(t *testing.T) {
 		t.Fatalf("batch replay created new work %+v %v calls=%d", replay, err, calls)
 	}
 	if replay.Items[0].Status != "completed" || replay.Items[0].ChargedATG.String() != "0.5" ||
-		!replay.Items[1].ChargedATG.IsZero() || !replay.Items[2].ChargedATG.IsZero() || replay.Items[2].Status != "cancelled" {
+		replay.Items[1].Status != "failed" || !replay.Items[1].ChargedATG.IsZero() ||
+		replay.Items[2].Status != "cancelled" || !replay.Items[2].ChargedATG.IsZero() {
 		t.Fatalf("wrong batch settlement %+v", replay.Items)
 	}
 	budget, err := f.s.KeyBudget(f.ctx, nil, f.key.Key, f.s.wallNow())
@@ -79,6 +81,20 @@ func TestPostgresImageBatchSettlesOriginalItemsAndReplaysOnce(t *testing.T) {
 	}
 	if _, err := f.s.ReadImageBatch(f.ctx, other.Key, accepted.ID); !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatal("batch was visible with another key", err)
+	}
+	queued, err := f.s.SubmitImage(f.ctx, f.key.Key, "standalone-image-without-route", initial)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.db.Exec(`UPDATE tokenhub_upstreams SET definition=jsonb_set(definition,'{enabled}','false') WHERE id='upstream'`).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err = f.s.RunImageTask(f.ctx, queued); !errors.Is(err, catalog.ErrRouteUnavailable) || calls != 2 {
+		t.Fatalf("unavailable route reported a worker outcome or dispatched generation: calls=%d, err=%v", calls, err)
+	}
+	queued, err = f.s.GetRequest(f.ctx, f.customer, queued.ID)
+	if err != nil || queued.Status != "failed" || queued.Reason != "route_capacity_or_health_unavailable" || !queued.ChargedATG.IsZero() {
+		t.Fatalf("unroutable standalone image did not release as a failed request: %+v, %v", queued, err)
 	}
 }
 

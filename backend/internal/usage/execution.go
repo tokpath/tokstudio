@@ -278,6 +278,11 @@ routes:
 		if reservationErr != nil {
 			return out, reservationErr
 		}
+		if last.State == "not_dispatched" {
+			// An adapter may return a definitive outcome without a transport error.
+			// The failed request is final and should not fail the worker job.
+			return out, nil
+		}
 		return out, catalog.ErrRouteUnavailable
 	}
 	settlesUsage := last.Usage.Reliable && (last.State == "completed" || last.OutputDelivered)

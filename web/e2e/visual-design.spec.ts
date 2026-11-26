@@ -7,7 +7,7 @@ const plan = { id: "plan-visual", name: "应用开发套餐", price_money: "80",
 const models = [{ id: "chat-pro", name: "Chat Pro", capabilities: ["chat"], status: "published", prices: [{ component: "输入", amount_atg: "0.000002", unit: "token" }] }, { id: "reasoning", name: "Reasoning", capabilities: ["chat"], status: "published", prices: [] }, { id: "vision", name: "Vision", capabilities: ["image"], status: "published", prices: [] }];
 const customer = { kind: "customer", customer: { id: "customer-visual", email: "lin@example.test", display_name: "林同学" }, brand, operator, csrf_token: "visual-csrf" };
 const staff = { kind: "staff", staff: { id: "staff-visual", email: "admin@example.test", display_name: "平台负责人" }, workspaces: [{ operator, permissions: ["*"] }], active_operator_id: operator.id, csrf_token: "visual-csrf" };
-const order = { id: "order-visual", kind: "package", status: "awaiting_payment", operator_name: operator.name, plan_name: plan.name, amount_money: "80", paid_money: "0", purchase_atg: "80", gift_atg: "20", created_at: "2026-10-20T08:00:00Z", payment_action: { kind: "form", url: "https://payments.example.test/gkash", fields: { transaction: "synthetic-order" }, amount: "352.80", currency: "MYR" } };
+const order = { id: "order-visual", kind: "package", status: "awaiting_payment", operator_name: operator.name, plan_name: plan.name, amount_money: "80", paid_money: "0", purchase_atg: "80", gift_atg: "20", created_at: "2026-10-20T08:00:00Z", payment_action: { kind: "form", gkash_opened: false, amount: "352.80", currency: "MYR" } };
 const pageResource = { title: "客户服务", description: "按姓名、邮箱查找本经营方客户，查看订单、资产及服务记录。", search_supported: true, status_supported: true, items: ["林同学", "合成客户", "开发团队"].map((name, i) => ({ id: `customer-${i}`, status: "active", presentation: { title: name, labels: {} }, values: { email: `customer${i}@example.test`, registered_at: "2026-10-20T08:00:00Z" } })), columns: [{ key: "email", label: "邮箱", kind: "text" }, { key: "registered_at", label: "注册", kind: "datetime" }], operations: [{ name: "gift", label: "人工赠送与补偿", method: "POST", path: `/api/v1/operators/${operator.id}/customers`, fields: [{ name: "name", label: "名称", kind: "text", required: true }, { name: "amount_atg", label: "赠送 ATG", kind: "decimal", required: true }], confirmation: "确认赠送额度与适用客户。" }], row_operations: [] };
 async function api(page: Page, session: unknown) {
   await page.route("**/api/v1/**", route => {
@@ -98,13 +98,75 @@ test("OEM workspace and portalled form use its own palette on the platform login
 });
 
 test("KVoucher keeps the order principal and delegates the final payable amount to its payment page", async ({ page }, info) => {
-  await api(page, customer); await page.goto("/workspace/orders?record=order-visual");
+  const paymentURL = "https://payments.example.test/gkash";
+  const orderURL = "/workspace/orders?record=order-visual";
+  const openCalls: number[] = [], gatewayPosts: string[] = [];
+  let generation = 0;
+  async function detail(tab: Page) {
+    await api(tab, customer);
+    await tab.route("**/api/v1/me/orders/order-visual", route => route.fulfill({ json: {
+      ...order, payment_action: { ...order.payment_action, gkash_opened: generation > 0, gkash_generation: generation, url: paymentURL, fields: { v_cartid: "stale-cart" } },
+    } }));
+    await tab.route("**/api/v1/me/orders/order-visual/payment/open", route => {
+      expect(route.request().method()).toBe("POST");
+      const expected = route.request().postDataJSON().expected_generation;
+      openCalls.push(expected);
+      if (expected !== generation) return route.fulfill({ json: { id: order.id, status: "payment_already_opened", gkash_generation: generation } });
+      generation++;
+      return route.fulfill({ json: {
+        id: order.id,
+        status: "payment_ready",
+        gkash_generation: generation,
+        payment_action: { kind: "form", url: paymentURL, fields: { v_cartid: `fresh-cart-${generation}` } },
+      } });
+    });
+  }
+  await detail(page);
+  await page.context().route(paymentURL, route => {
+    expect(route.request().method()).toBe("POST");
+    gatewayPosts.push(route.request().postData() || "");
+    return route.fulfill({ contentType: "text/html; charset=utf-8", body: "<h1>合成付款方式选择</h1>" });
+  });
+  await page.goto(orderURL);
   await expect(page.getByLabel("80 USD", { exact: true }).first()).toBeVisible();
   await expect(page.getByLabel("352.80 MYR", { exact: true })).toHaveCount(0);
   await expect(page.getByText("请在 Gkash 付款页确认最终金额。未付款可更换付款方式；已经付款请等待核实，勿重复付款。", { exact: true })).toBeVisible();
-  const form = page.locator('form[target="tokpath-gkash"]'); await expect(form).toHaveAttribute("action", order.payment_action.url);
+  await expect(page.locator(`form[action="${paymentURL}"]`)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "我已付款，核实原通道" })).toBeVisible();
   await page.screenshot({ path: info.outputPath("kvoucher-order.png"), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 }); await noOverflow(page);
   await page.screenshot({ path: info.outputPath("kvoucher-mobile.png"), fullPage: true });
+  const [payment] = await Promise.all([
+    page.waitForEvent("popup"),
+    page.getByRole("button", { name: "前往 GKash 付款", exact: true }).click(),
+  ]);
+  await expect(payment.getByRole("heading", { name: "合成付款方式选择" })).toBeVisible();
+  await page.getByRole("button", { name: "重新打开 GKash 付款", exact: true }).click();
+  expect(page.context().pages()).toHaveLength(2);
+  expect(openCalls).toEqual([0]);
+  expect(gatewayPosts).toEqual(["v_cartid=fresh-cart-1"]);
+
+  await payment.close();
+  const [reopened] = await Promise.all([
+    page.waitForEvent("popup"),
+    page.getByRole("button", { name: "重新打开 GKash 付款", exact: true }).click(),
+  ]);
+  await expect(reopened.getByRole("heading", { name: "合成付款方式选择" })).toBeVisible();
+  expect(openCalls).toEqual([0, 1]);
+  expect(gatewayPosts).toEqual(["v_cartid=fresh-cart-1", "v_cartid=fresh-cart-2"]);
+
+  await page.reload();
+  await expect(page.getByRole("button", { name: "重新打开 GKash 付款", exact: true })).toBeVisible();
+  const otherTab = await page.context().newPage();
+  await detail(otherTab);
+  await otherTab.goto(orderURL);
+  await expect(otherTab.getByRole("button", { name: "前往 GKash 付款", exact: true })).toHaveCount(0);
+  await expect(otherTab.locator(`form[action="${paymentURL}"]`)).toHaveCount(0);
+  const [crossTabPayment] = await Promise.all([
+    otherTab.waitForEvent("popup"),
+    otherTab.getByRole("button", { name: "重新打开 GKash 付款", exact: true }).click(),
+  ]);
+  await expect(crossTabPayment.getByRole("heading", { name: "合成付款方式选择" })).toBeVisible();
+  expect(openCalls).toEqual([0, 1, 2]);
+  expect(gatewayPosts).toEqual(["v_cartid=fresh-cart-1", "v_cartid=fresh-cart-2", "v_cartid=fresh-cart-3"]);
 });

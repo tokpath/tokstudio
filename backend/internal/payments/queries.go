@@ -148,14 +148,16 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 }
 
 type IntentView struct {
-	FeeQuote   *paymentmethods.Quote `json:"-"`
-	Problem    string                `json:"problem,omitempty"`
-	Driver     string                `json:"driver"`
-	OrderID    string                `json:"order_id"`
-	MerchantID string                `json:"merchant_id"`
-	ProviderID string                `json:"provider_id,omitempty"`
-	State      string                `json:"state"`
-	Checkout   *Checkout             `json:"checkout,omitempty"`
+	FeeQuote               *paymentmethods.Quote `json:"-"`
+	Problem                string                `json:"problem,omitempty"`
+	Driver                 string                `json:"driver"`
+	OrderID                string                `json:"order_id"`
+	MerchantID             string                `json:"merchant_id"`
+	ProviderID             string                `json:"provider_id,omitempty"`
+	State                  string                `json:"state"`
+	Checkout               *Checkout             `json:"checkout,omitempty"`
+	KVoucherFormState      string                `json:"-"`
+	KVoucherFormGeneration int64                 `json:"-"`
 }
 
 func (i IntentView) AllowsMethodChange() bool {
@@ -188,19 +190,28 @@ func (s *Service) PaymentIntent(ctx context.Context, operator, merchant, order s
 	}
 	view.Driver = snapshot.PaymentDriver
 	view.FeeQuote = snapshot.FeeQuote
+	view.KVoucherFormGeneration = row.CheckoutGeneration
 	_, supportedCurrency := fiatMinorDigits(snapshot.Money.Currency)
 	if s.Drivers[view.Driver] == nil || !supportedCurrency {
 		return view, nil
 	}
 	if (row.State == "created" || row.State == "outcome_unknown" || row.State == "failed") && row.CheckoutCiphertext != "" {
-		var checkout Checkout
-		if e := s.open(row.CheckoutCiphertext, &checkout); e != nil {
+		var saved storedCheckout
+		if e := s.open(row.CheckoutCiphertext, &saved); e != nil {
 			return view, e
 		}
+		checkout := saved.Checkout
 		if checkout.Problem == CheckoutAmountMismatch {
 			view.Problem = checkout.Problem
 		}
 		if row.State == "created" {
+			if view.Driver == "kvoucher" {
+				view.KVoucherFormState = saved.kvoucherFormState(row.CheckoutClaimedAt)
+				if row.CheckoutIssueUntil != nil && time.Now().Before(*row.CheckoutIssueUntil) {
+					view.KVoucherFormState = KVoucherFormPreparing
+				}
+				checkout = checkout.withoutForm()
+			}
 			view.Checkout = &checkout
 		}
 	}

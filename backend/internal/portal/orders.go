@@ -392,31 +392,7 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 		}
 		if e == nil && o.Status == "pending" && !hasReceipt && intent.Checkout != nil {
 			ch := intent.Checkout
-			action := gin.H{}
-			switch {
-			case intent.Driver == "manual":
-				action = gin.H{"kind": "offline", "address": ch.PaymentAddress, "instructions": ch.Instructions}
-			case ch.ClientSecret != "":
-				action = gin.H{"kind": "stripe", "client_secret": ch.ClientSecret, "publishable_key": ch.PublishableKey}
-			case ch.URL != "" && len(ch.FormFields) > 0:
-				action = gin.H{"kind": "form", "url": ch.URL, "fields": ch.FormFields, "instructions": ch.Instructions}
-			case ch.URL != "":
-				action = gin.H{"kind": "redirect", "url": ch.URL}
-			case ch.PaymentAddress != "":
-				action = gin.H{"kind": "offline", "address": ch.PaymentAddress}
-			default:
-				action = gin.H{"kind": "offline"}
-			}
-			if ch.PayMoney != nil {
-				action["amount"] = ch.PayMoney.Amount.String()
-				action["currency"] = ch.PayMoney.Currency
-			}
-			action["settlement_money"] = ch.SettlementMoney
-			action["fee_quote"] = ch.FeeQuote
-			action["payment_quote"] = ch.PaymentQuote
-			if ch.Instructions != "" {
-				action["instructions"] = ch.Instructions
-			}
+			action := checkoutPaymentAction(intent, *ch)
 			if err := a.simplifyOfflineAction(ctx, o.OperatorID, intent.Driver, ch.FeeQuote, action); err != nil {
 				return nil, err
 			}
@@ -515,7 +491,7 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 	ctx := c.Request.Context()
 	// Query an existing open payment before replacing its instructions. Keep
 	// the original intent for callbacks and late receipts; never mark it failed.
-	unpaidMerchant := ""
+	var unpaidCheckout payments.IntentView
 	previous, err := a.Commerce.GetOrder(ctx, nil, id.Customer.Customer.ID, c.Param("id"))
 	if err != nil {
 		handleError(c, err)
@@ -530,7 +506,7 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		intent, intentErr := a.Payments.PaymentIntent(ctx, previous.OperatorID, *previousCheckout.MerchantID, previous.ID)
 		if intentErr == nil && intent.State == "created" {
 			if _, checkErr := a.Payments.Reconcile(ctx, previous.OperatorID, *previousCheckout.MerchantID, previous.ID); errors.Is(checkErr, payments.ErrUnpaid) {
-				unpaidMerchant = *previousCheckout.MerchantID
+				unpaidCheckout = intent
 			} else if !errors.Is(checkErr, payments.ErrPaymentClosed) {
 				handleError(c, commerce.ErrPaymentUnknown)
 				return
@@ -538,7 +514,7 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		}
 	}
 	raw, e := a.command(c, "payment-method:"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
-		if e := payments.LockOrderPayment(tx, c.Param("id")); e != nil {
+		if e := payments.LockOrderPayment(tx, previous.ID); e != nil {
 			return nil, e
 		}
 		o, e := a.Commerce.GetOrder(ctx, tx, id.Customer.Customer.ID, c.Param("id"))
@@ -569,7 +545,7 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		}
 		if cr.MerchantID != nil && *cr.MerchantID != m.ID {
 			intent, err := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
-			if err != nil || !intent.AllowsMethodChange() || (intent.State == "created" && unpaidMerchant != *cr.MerchantID) {
+			if err != nil || !intent.AllowsMethodChange() || (intent.State == "created" && !sameCheckedPayment(intent, unpaidCheckout)) {
 				return nil, commerce.ErrPaymentUnknown
 			}
 			found, err := payments.HasOrderReceipt(ctx, tx, o.OperatorID, o.ID)
@@ -829,7 +805,11 @@ func (a *Application) reconcileOrder(c *gin.Context) {
 			return
 		}
 		if errors.Is(e, payments.ErrNotFinal) || errors.Is(e, payments.ErrUnpaid) {
-			c.JSON(200, gin.H{"id": o.ID, "status": "pending_payment", "message": "原通道尚未确认收款。未付款可继续原订单付款；已经付款请稍后刷新原订单，无须再次付款。"})
+			message := "原通道尚未确认收款。未付款可继续原订单付款；已经付款请稍后刷新原订单，无须再次付款。"
+			if intent, err := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID); err == nil && intent.Driver == "kvoucher" && intent.KVoucherFormState != payments.KVoucherFormReady {
+				message = "原通道尚未确认这笔收款。请稍后再查询，不要另付一笔。"
+			}
+			c.JSON(200, gin.H{"id": o.ID, "status": "pending_payment", "message": message})
 			return
 		}
 		handleError(c, e)

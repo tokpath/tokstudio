@@ -24,6 +24,7 @@ var schema string
 //go:embed schema.sql zz_refund_executions.sql zz_refund_fact_bindings.sql zz_supported_assets.sql zz_refund_closures.sql zzz_receipt_valuations.sql zzzz_receipt_fact_recovery.sql zzzzz_native_settlement.sql zzzzzz_payment_quotes.sql zzzzzzz_shared_payment_methods.sql zzzzzzzz_method_catalog.sql zzzzzzzzz_method_capabilities.sql zzzzzzzzzz_simple_withdrawals.sql zzzzzzzzzzz_fx_refresh_interval.sql
 //go:embed zzzzzzzzzzzz_order_payment_indexes.sql
 //go:embed zzzzzzzzzzzzz_refund_callback_recovery.sql
+//go:embed zzzzzzzzzzzzzz_kvoucher_checkout_claim.sql
 var migrationFS embed.FS
 
 //go:embed zz_refund_executions.sql
@@ -71,10 +72,13 @@ var orderPaymentIndexesSchema string
 //go:embed zzzzzzzzzzzzz_refund_callback_recovery.sql
 var refundCallbackRecoverySchema string
 
+//go:embed zzzzzzzzzzzzzz_kvoucher_checkout_claim.sql
+var kvoucherCheckoutClaimSchema string
+
 func Migrations() (string, fs.FS) { return "payments", migrationFS }
 
 func Schema() string {
-	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema + "\n" + sharedMethodsSchema + "\n" + methodCatalogSchema + "\n" + methodCapabilitiesSchema + "\n" + simpleWithdrawalsSchema + "\n" + fxRefreshIntervalSchema + "\n" + orderPaymentIndexesSchema + "\n" + refundCallbackRecoverySchema
+	return schema + "\n" + refundExecutionSchema + "\n" + refundFactBindingSchema + "\n" + supportedAssetSchema + "\n" + refundClosureSchema + "\n" + receiptValuationSchema + "\n" + receiptRecoverySchema + "\n" + nativeSettlementSchema + "\n" + paymentQuoteSchema + "\n" + sharedMethodsSchema + "\n" + methodCatalogSchema + "\n" + methodCapabilitiesSchema + "\n" + simpleWithdrawalsSchema + "\n" + fxRefreshIntervalSchema + "\n" + orderPaymentIndexesSchema + "\n" + refundCallbackRecoverySchema + "\n" + kvoucherCheckoutClaimSchema
 }
 
 type Authorizer interface {
@@ -264,6 +268,8 @@ func fingerprint(value any) string {
 type intentRow struct {
 	MerchantID, OrderID, OperatorID, Fingerprint, State, OrderCiphertext, CheckoutCiphertext, ProviderID string
 	CreatedAt, UpdatedAt                                                                                 time.Time
+	CheckoutClaimedAt, CheckoutIssueUntil                                                                *time.Time
+	CheckoutGeneration                                                                                   int64
 }
 
 // Create durably claims the logical operation before contacting the provider.
@@ -373,10 +379,11 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 		}
 		if saved.State == "created" && saved.CheckoutCiphertext != "" {
 			var checkout Checkout
-			if e = s.open(saved.CheckoutCiphertext, &checkout); e != nil {
-				return checkout, e
+			e = s.open(saved.CheckoutCiphertext, &checkout)
+			if m.Driver == "kvoucher" {
+				checkout = checkout.withoutForm()
 			}
-			return checkout, nil
+			return checkout, e
 		}
 		return Checkout{}, ErrOutcomeUnknown
 	}
@@ -414,9 +421,12 @@ func (s *Service) Create(ctx context.Context, operator, merchant string, o Order
 	if sealErr != nil {
 		return Checkout{}, sealErr
 	}
-	cipher, sealErr := s.seal(checkout)
+	cipher, sealErr := s.seal(storedCheckout{Checkout: checkout, KVoucherSingleUse: m.Driver == "kvoucher" && callErr == nil})
 	if sealErr != nil {
 		return Checkout{}, sealErr
+	}
+	if m.Driver == "kvoucher" {
+		checkout = checkout.withoutForm()
 	}
 	persistCtx, cancelPersist := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancelPersist()

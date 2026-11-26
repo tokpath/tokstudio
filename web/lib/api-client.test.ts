@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { APIError, request, setCSRFToken, warmConnection } from "./api-client";
-import { CommandResultSchema, CreditsSchema, OrderSchema } from "./contracts";
+import { CommandResultSchema, CreditsSchema, GkashOpenResultSchema, OrderSchema } from "./contracts";
 afterEach(() => { vi.unstubAllGlobals(); setCSRFToken(); });
 describe("validated business HTTP client", () => {
   it("sends cookies, CSRF and exact decimal strings with the caller's stable key", async () => {
@@ -16,24 +16,31 @@ describe("validated business HTTP client", () => {
     await expect(request("/api/v1/me/orders", CommandResultSchema, { method: "POST", actionKey: "a", body: {} })).rejects.toMatchObject({ code: "insufficient_balance", requestId: "req-1", retryable: false });
   });
   it("does not disguise malformed successful responses as a completed action", async () => { vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ customer_atg: { available: 0.1 } }), { status: 200 }))); await expect(request("/api/v1/me/credits", CreditsSchema)).rejects.toBeInstanceOf(APIError); });
-  it("preserves KVoucher form fields and rejects a malformed payment response as a contract mismatch", async () => {
+  it("accepts signed fields only from the Gkash open response and rejects malformed fields", async () => {
     const fields = { CID: "test-merchant", v_amount: "40.02", signature: "test-signature" };
     const order = {
       id: "order-1", status: "pending_payment", kind: "package", operator_name: "Test Operator",
       amount_money: "80", paid_money: "0", created_at: "2026-11-25T12:00:00Z",
       payment_action: { kind: "form", url: "https://payments.example.test/checkout", fields },
     };
-    const invalidOrder = { ...order, payment_action: { ...order.payment_action, fields: { ...fields, v_amount: 40.02 } } };
+    const opened = { id: order.id, status: "payment_ready", gkash_generation: 1, payment_action: order.payment_action };
+    const malformed = { ...opened, payment_action: { ...opened.payment_action, fields: { ...fields, v_amount: 40.02 } } };
     const fetch = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: order.id, status: order.status, order })))
-      .mockResolvedValueOnce(new Response(JSON.stringify(invalidOrder), { headers: { "X-Request-ID": "req-payment" } }));
+      .mockResolvedValueOnce(Response.json(order))
+      .mockResolvedValueOnce(Response.json(opened))
+      .mockResolvedValueOnce(Response.json(malformed, { headers: { "X-Request-ID": "req-payment" } }));
     vi.stubGlobal("fetch", fetch);
 
-    await expect(request("/api/v1/me/orders", CommandResultSchema, { method: "POST", actionKey: "checkout-1" }))
-      .resolves.toMatchObject({ order: { payment_action: { fields } } });
     await expect(request(`/api/v1/me/orders/${order.id}`, OrderSchema))
+      .resolves.toMatchObject({ payment_action: { kind: "form" } });
+    const detail = OrderSchema.parse(order);
+    expect(detail.payment_action).not.toHaveProperty("fields");
+    const path = `/api/v1/me/orders/${order.id}/payment/open`;
+    await expect(request(path, GkashOpenResultSchema, { method: "POST", actionKey: "open-1" }))
+      .resolves.toMatchObject({ payment_action: { fields } });
+    await expect(request(path, GkashOpenResultSchema, { method: "POST", actionKey: "open-2" }))
       .rejects.toMatchObject({ code: "contract_mismatch", requestId: "req-payment", retryable: false });
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(3);
   });
   it("retries a read once after a dropped connection", async () => {
     const fetch = vi.fn().mockRejectedValueOnce(new TypeError("offline")).mockResolvedValueOnce(new Response(JSON.stringify({ id: "order-1", status: "pending" }), { status: 200 }));

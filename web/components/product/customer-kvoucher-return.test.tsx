@@ -9,7 +9,7 @@ import { PaymentAction } from "./customer-plans";
 
 vi.mock("./context", () => ({ useProduct: () => ({ session: { kind: "customer" }, context: { payment_methods: [] } }) }));
 
-const order = { id: "order-one", status: "pending", kind: "package", operator_name: "TokenHub 平台", plan_name: "测试套餐", amount_money: "80", paid_money: "0", created_at: "2026-10-29T12:00:00Z", payment_action: { kind: "form" as const, url: "https://api.gkash.my/api/PaymentForm.aspx", currency: "MYR", amount: "40.02", fields: { CID: "merchant", v_amount: "40.02" }, instructions: "请在 Gkash 完成付款。" } };
+const order = { id: "order-one", status: "pending", kind: "package", operator_name: "TokenHub 平台", plan_name: "测试套餐", amount_money: "80", paid_money: "0", created_at: "2026-10-29T12:00:00Z", payment_action: { kind: "form" as const, gkash_opened: false, currency: "MYR", amount: "40.02", instructions: "请在 Gkash 完成付款。" } };
 const paid = { ...order, status: "completed", paid_money: "80", delivered_at: "2026-10-29T12:05:00Z" };
 const response = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
 
@@ -19,7 +19,7 @@ function mount(value: Order = order) {
   return render(<PaymentAction order={value} />, { wrapper });
 }
 
-afterEach(() => { cleanup(); sessionStorage.clear(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.unstubAllGlobals(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 it("leaves a KVoucher order unpaid until the payment page has been opened", async () => {
   const fetch = vi.fn(async () => response(order));
@@ -73,6 +73,66 @@ it("shows an unpaid channel result as a normal status after an explicit check", 
   expect(await screen.findByText(message)).toBeTruthy();
   expect(fetch.mock.calls.filter(call => call[1]?.method === "POST")).toHaveLength(1);
   expect(screen.queryByText(/payment_not_final/)).toBeNull();
+});
+
+it("reopens Gkash on a new browser using the order's generation and only posts the newly issued form", async () => {
+  const opened = {
+    ...order,
+    payment_action: {
+      ...order.payment_action, gkash_opened: true, gkash_generation: 4,
+      url: "https://payments.example.test/checkout", fields: { v_cartid: "stale-cart" },
+    },
+  };
+  const fetch = vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => response(init?.method === "POST" ? {
+    id: opened.id, status: "payment_ready", gkash_generation: 5,
+    payment_action: { kind: "form", url: "https://payments.example.test/checkout", fields: { v_cartid: "new-cart" } },
+  } : opened));
+  vi.stubGlobal("fetch", fetch);
+  const popup = { closed: false, focus: vi.fn(), close: vi.fn() };
+  const open = vi.spyOn(window, "open").mockReturnValue(popup as unknown as Window);
+  const submitted: FormData[] = [];
+  vi.spyOn(HTMLFormElement.prototype, "submit").mockImplementation(function (this: HTMLFormElement) { submitted.push(new FormData(this)); });
+  mount(opened);
+  expect(screen.queryByRole("button", { name: "前往 GKash 付款" })).toBeNull();
+  const reopen = screen.getByRole("button", { name: "重新打开 GKash 付款", exact: true });
+  act(() => { fireEvent.click(reopen); fireEvent.click(reopen); });
+  await waitFor(() => expect(submitted.map(form => form.get("v_cartid"))).toEqual(["new-cart"]));
+  const posts = fetch.mock.calls.filter(([, init]) => init?.method === "POST");
+  expect(posts).toHaveLength(1);
+  expect(posts[0][0]).toBe("/api/v1/me/orders/order-one/payment/open");
+  expect(JSON.parse(String(posts[0][1]?.body))).toEqual({ expected_generation: 4 });
+  expect(open).toHaveBeenCalledTimes(1);
+  popup.closed = true;
+});
+
+it.each([
+  ["payment_not_final", "原通道尚未确认这笔收款。请稍后再查询，不要另付一笔。"],
+  ["payment_outcome_unknown", "原支付结果尚待核实，请查询原交易，重试将沿用原业务编号"],
+  ["payment_closed", "原通道已关闭本次付款，未收到款项。"],
+  ["payment_checkout_cart_reused", "原通道暂未签发新的付款页。请稍后重试或核实原付款状态。"],
+])("closes the empty window and shows %s after a declined reopen", async (code, message) => {
+  const opened = { ...order, id: `reopen-${code}`, payment_action: { ...order.payment_action, gkash_opened: true, gkash_generation: 2 } };
+  const fetch = vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => init?.method === "POST"
+    ? Response.json({ error: { code, message, request_id: "test-request", retryable: false } }, { status: 409 })
+    : response(opened));
+  vi.stubGlobal("fetch", fetch);
+  const popup = { closed: false, close: vi.fn() };
+  vi.spyOn(window, "open").mockReturnValue(popup as unknown as Window);
+  const submit = vi.spyOn(HTMLFormElement.prototype, "submit");
+  mount(opened);
+  fireEvent.click(screen.getByRole("button", { name: "重新打开 GKash 付款", exact: true }));
+  expect((await screen.findByRole("alert")).textContent).toContain(message);
+  expect(popup.close).toHaveBeenCalledTimes(1);
+  expect(submit).not.toHaveBeenCalled();
+  expect(fetch.mock.calls.filter(([, init]) => init?.method === "POST")).toHaveLength(1);
+});
+
+it.each(["partially_paid", "paid_pending_delivery", "completed"])("does not open a stale Gkash form for a %s order", status => {
+  const received = { ...order, status, paid_money: status === "partially_paid" ? "1" : "80" };
+  vi.stubGlobal("fetch", vi.fn(async () => response(received)));
+  mount(received);
+  expect(screen.queryByRole("button", { name: "前往 GKash 付款" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "重新打开 GKash 付款" })).toBeNull();
 });
 
 it("keeps cancellation available when the provider definitively failed before payment", async () => {

@@ -1818,8 +1818,8 @@
     "ms": "Mata wang atau amaun daripada penyedia pembayaran berbeza daripada sebut harga pesanan ini. Pembayaran dihentikan sementara. Simpan pesanan ini dan hubungi pengendali untuk semakan.",
     "th": "สกุลเงินหรือจำนวนเงินที่ผู้ให้บริการชำระเงินส่งกลับมาไม่ตรงกับราคาที่เสนอสำหรับคำสั่งซื้อนี้ จึงระงับการชำระเงินไว้ โปรดเก็บคำสั่งซื้อเดิมและติดต่อผู้ดำเนินการเพื่อตรวจสอบ"
   },
-  "前往 Gkash 付款": {
-    "zh": "前往 Gkash 付款",
+  "前往 GKash 付款": {
+    "zh": "前往 GKash 付款",
     "en": "Pay with Gkash",
     "ja": "Gkash で支払う",
     "ru": "Оплатить через Gkash",

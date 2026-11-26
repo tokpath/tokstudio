@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -41,6 +42,8 @@ func setupCheckoutWithPaymentState(t *testing.T, scenario string, paid *atomic.B
 		t.Fatal(err)
 	}
 	calls := &atomic.Int32{}
+	var signedForms atomic.Int32
+	var usedCarts sync.Map
 	var upstream *httptest.Server
 	upstream = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -61,7 +64,11 @@ func setupCheckoutWithPaymentState(t *testing.T, scenario string, paid *atomic.B
 			if scenario == "mismatch" {
 				currency = "USD"
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "data": map[string]any{"payment": map[string]any{"action": upstream.URL + "/test-payment", "method": "POST", "fields": map[string]string{"v_amount": amount, "v_currency": currency, "Signature": "synthetic-private-signature"}}}})
+			cart := fmt.Sprintf("synthetic-cart-%d", 50+signedForms.Add(1))
+			if scenario == "same-cart" {
+				cart = "synthetic-cart-51"
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "data": map[string]any{"payment": map[string]any{"action": upstream.URL + "/test-payment", "method": "POST", "fields": map[string]string{"v_amount": amount, "v_currency": currency, "v_cartid": cart, "Signature": "synthetic-private-signature"}}}})
 		case "/api/kv/merchant/v1/orders/51":
 			status := "pending_payment"
 			if scenario == "submitted" {
@@ -80,6 +87,11 @@ func setupCheckoutWithPaymentState(t *testing.T, scenario string, paid *atomic.B
 		case "/test-payment":
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			_ = r.ParseForm()
+			if _, reused := usedCarts.LoadOrStore(r.Form.Get("v_cartid"), true); reused {
+				w.WriteHeader(http.StatusConflict)
+				_, _ = fmt.Fprint(w, "<!doctype html><title>Duplicate Cart ID</title><h1>Duplicate Cart ID</h1>")
+				return
+			}
 			_, _ = fmt.Fprintf(w, "<!doctype html><title>模拟付款页面</title><h1>模拟付款页面</h1><p>应付 %s MYR</p><p>未付款。仅供隔离测试，不发生真实转账。</p>", html.EscapeString(r.Form.Get("v_amount")))
 		default:
 			http.NotFound(w, r)
@@ -224,6 +236,134 @@ func TestPostgresUnpaidKVoucherCheckIsANormalPendingResult(t *testing.T) {
 	}
 }
 
+func assertKVoucherPaymentSummary(t *testing.T, order map[string]any, opened bool, generation float64) {
+	t.Helper()
+	action, ok := order["payment_action"].(map[string]any)
+	if !ok || action["kind"] != "form" || action["amount"] != "8.71" || action["currency"] != "MYR" || action["gkash_opened"] != opened || action["gkash_generation"] != generation || action["url"] != nil || action["fields"] != nil {
+		t.Fatal("order did not return an unsigned checkout summary", order)
+	}
+}
+
+func TestPostgresCustomerKVoucherFormIsIssuedOncePerGeneration(t *testing.T) {
+	f, merchant, rule, providerOrders := setupCheckoutApp(t, "success")
+	input := map[string]any{"amount_money": "2", "external_method_id": merchant, "fee_rule_id": rule}
+	orderKey := uuid.NewString()
+	status, result, _ := f.call(t, "POST", "/v1/me/topups", input, orderKey)
+	mustOK(t, status, result)
+	id := result["id"].(string)
+	assertKVoucherPaymentSummary(t, result["order"].(map[string]any), false, 0)
+	path := "/v1/me/orders/" + id
+	status, detail, _ := f.call(t, "GET", path, nil, "")
+	mustOK(t, status, detail)
+	assertKVoucherPaymentSummary(t, detail, false, 0)
+
+	openKey := uuid.NewString()
+	results := make(chan map[string]any, 2)
+	var requests sync.WaitGroup
+	for range 2 {
+		requests.Go(func() {
+			status, result, headers := f.call(t, "POST", path+"/payment/open", map[string]any{"expected_generation": 0}, openKey)
+			if status != http.StatusOK || headers.Get("Cache-Control") != "no-store" {
+				t.Errorf("unexpected checkout response: %d %v", status, result)
+			}
+			results <- result
+		})
+	}
+	requests.Wait()
+	close(results)
+	issued, alreadyOpened := 0, 0
+	for result := range results {
+		switch result["status"] {
+		case "payment_ready":
+			issued++
+			action := result["payment_action"].(map[string]any)
+			fields := action["fields"].(map[string]any)
+			if result["id"] != id || result["gkash_generation"] != float64(1) || action["kind"] != "form" || !strings.HasSuffix(action["url"].(string), "/test-payment") || fields["Signature"] != "synthetic-private-signature" || fields["v_cartid"] != "synthetic-cart-51" {
+				t.Fatal("first open lost the original signed form", result)
+			}
+		case "payment_already_opened":
+			alreadyOpened++
+			if result["id"] != id || result["payment_action"] != nil {
+				t.Fatal("concurrent reopen exposed the form", result)
+			}
+		default:
+			t.Fatal("unexpected status", result)
+		}
+	}
+	if issued != 1 || alreadyOpened != 1 || providerOrders.Load() != 1 {
+		t.Fatal("concurrent opens did not share the original order and form", issued, alreadyOpened, providerOrders.Load())
+	}
+	status, replay, _ := f.call(t, "POST", path+"/payment/open", map[string]any{"expected_generation": 0}, uuid.NewString())
+	mustOK(t, status, replay)
+	if replay["status"] != "payment_already_opened" || replay["payment_action"] != nil {
+		t.Fatal("new request key reissued the form", replay)
+	}
+	status, detail, _ = f.call(t, "GET", path, nil, "")
+	mustOK(t, status, detail)
+	assertKVoucherPaymentSummary(t, detail, true, 1)
+	status, replay, _ = f.call(t, "POST", "/v1/me/topups", input, orderKey)
+	mustOK(t, status, replay)
+	assertKVoucherPaymentSummary(t, replay["order"].(map[string]any), true, 1)
+
+	status, replay, _ = f.call(t, "POST", path+"/payment/open", map[string]any{"expected_generation": 1}, openKey)
+	mustOK(t, status, replay)
+	if replay["status"] != "payment_already_opened" || replay["payment_action"] != nil {
+		t.Fatal("retained action key reopened checkout with a new generation", replay)
+	}
+	reopenKey := uuid.NewString()
+	status, reopened, _ := f.call(t, "POST", path+"/payment/open", map[string]any{"expected_generation": 1}, reopenKey)
+	mustOK(t, status, reopened)
+	if reopened["id"] != id || reopened["status"] != "payment_ready" || reopened["gkash_generation"] != float64(2) || reopened["payment_action"].(map[string]any)["fields"].(map[string]any)["v_cartid"] != "synthetic-cart-52" {
+		t.Fatal("verified unpaid order did not receive a fresh original checkout", reopened)
+	}
+	status, replay, _ = f.call(t, "POST", path+"/payment/open", map[string]any{"expected_generation": 1}, reopenKey)
+	mustOK(t, status, replay)
+	if replay["status"] != "payment_already_opened" || replay["gkash_generation"] != float64(2) || replay["payment_action"] != nil {
+		t.Fatal("replayed reopen received the newly issued form", replay)
+	}
+	status, detail, _ = f.call(t, "GET", path, nil, "")
+	mustOK(t, status, detail)
+	assertKVoucherPaymentSummary(t, detail, true, 2)
+	if providerOrders.Load() != 1 {
+		t.Fatal("reopen created another provider order", providerOrders.Load())
+	}
+}
+
+func TestPostgresCustomerKVoucherReopenRequiresUnpaidOrderAndFreshCart(t *testing.T) {
+	for _, test := range []struct{ scenario, code string }{{"submitted", "payment_not_final"}, {"same-cart", "payment_checkout_cart_reused"}} {
+		t.Run(test.scenario, func(t *testing.T) {
+			f, merchant, rule, providerOrders := setupCheckoutApp(t, test.scenario)
+			status, result, _ := f.call(t, "POST", "/v1/me/topups", map[string]any{"amount_money": "2", "external_method_id": merchant, "fee_rule_id": rule}, uuid.NewString())
+			mustOK(t, status, result)
+			path := "/v1/me/orders/" + result["id"].(string) + "/payment/open"
+			status, first, _ := f.call(t, "POST", path, map[string]any{"expected_generation": 0}, uuid.NewString())
+			mustOK(t, status, first)
+			if first["status"] != "payment_ready" {
+				t.Fatal("missing initial checkout", first)
+			}
+			status, second, _ := f.call(t, "POST", path, map[string]any{"expected_generation": 1}, uuid.NewString())
+			failure, _ := second["error"].(map[string]any)
+			if status != http.StatusConflict || failure["code"] != test.code || second["payment_action"] != nil || providerOrders.Load() != 1 {
+				t.Fatal("reopened checkout when not eligible", status, second, providerOrders.Load())
+			}
+		})
+	}
+}
+
+func TestPostgresCustomerKVoucherOpenRejectsVerifiedReceipt(t *testing.T) {
+	f, merchant, rule, _ := setupCheckoutApp(t, "paid")
+	status, result, _ := f.call(t, "POST", "/v1/me/topups", map[string]any{"amount_money": "2", "external_method_id": merchant, "fee_rule_id": rule}, uuid.NewString())
+	mustOK(t, status, result)
+	id := result["id"].(string)
+	if _, err := f.a.Payments.Reconcile(t.Context(), f.a.Installation.OperatorID, merchant, id); err != nil {
+		t.Fatal(err)
+	}
+	status, result, _ = f.call(t, "POST", "/v1/me/orders/"+id+"/payment/open", map[string]any{"expected_generation": 0}, uuid.NewString())
+	if status != http.StatusConflict || result["payment_action"] != nil {
+		t.Fatal("verified receipt still allowed payment checkout", status, result)
+	}
+}
+
 func TestPostgresKVoucherProviderFeesAndVoucherReceiptDoNotChangeWalletCredit(t *testing.T) {
 	f, merchant, rule, _ := setupCheckoutApp(t, "paid")
 	status, result, _ := f.call(t, "POST", "/v1/me/topups", map[string]any{"amount_money": "2", "external_method_id": merchant, "fee_rule_id": rule}, uuid.NewString())
@@ -349,12 +489,14 @@ func TestPostgresProcurementPaymentSwitchRequiresConfirmedUnpaid(t *testing.T) {
 			base := "/v1/operators/" + child.Operator.ID + "/procurement"
 			status, result, _ := f.call(t, "POST", base+"/"+order.ID+"/checkout", map[string]any{"merchant_id": merchant, "fee_rule_id": rule}, uuid.NewString())
 			mustOK(t, status, result)
+			assertKVoucherPaymentSummary(t, result["order"].(map[string]any), false, 0)
 			status, page, _ := f.call(t, "GET", base+"?view=buyer&section=orders&record="+order.ID, nil, "")
 			mustOK(t, status, page)
 			found := false
 			for _, raw := range page["items"].([]any) {
 				row := raw.(map[string]any)
 				if row["id"] == order.ID {
+					assertKVoucherPaymentSummary(t, row["values"].(map[string]any)["payment_order"].(map[string]any), false, 0)
 					for _, action := range row["allowed_actions"].([]any) {
 						if action == "checkout" {
 							found = true
@@ -364,6 +506,28 @@ func TestPostgresProcurementPaymentSwitchRequiresConfirmedUnpaid(t *testing.T) {
 			}
 			if !found {
 				t.Fatal("existing payment has no usable method selector", page)
+			}
+			if scenario == "success" {
+				status, result, _ = f.call(t, "POST", "/v1/operators/"+op+"/procurement/"+order.ID+"/open_payment", map[string]any{"expected_generation": 0}, uuid.NewString())
+				if status != http.StatusForbidden || result["payment_action"] != nil {
+					t.Fatal("supplier could open the buyer's payment form", status, result)
+				}
+				path := base + "/" + order.ID + "/open_payment"
+				status, result, _ = f.call(t, "POST", path, map[string]any{"expected_generation": 0}, uuid.NewString())
+				mustOK(t, status, result)
+				if result["status"] != "payment_ready" || result["payment_action"] == nil {
+					t.Fatal("buyer could not open the original checkout", result)
+				}
+				status, result, _ = f.call(t, "POST", path, map[string]any{"expected_generation": 0}, uuid.NewString())
+				mustOK(t, status, result)
+				if result["status"] != "payment_already_opened" || result["payment_action"] != nil {
+					t.Fatal("procurement retry exposed a consumed form", result)
+				}
+				status, result, _ = f.call(t, "POST", path, map[string]any{"expected_generation": 1}, uuid.NewString())
+				mustOK(t, status, result)
+				if result["status"] != "payment_ready" || result["gkash_generation"] != float64(2) || result["payment_action"].(map[string]any)["fields"].(map[string]any)["v_cartid"] != "synthetic-cart-52" {
+					t.Fatal("buyer could not reopen the same unpaid order with a fresh cart", result)
+				}
 			}
 			status, result, _ = f.call(t, "POST", base+"/"+order.ID+"/checkout", map[string]any{"merchant_id": offline.ID, "fee_rule_id": nextRule.ID}, uuid.NewString())
 			if scenario != "success" {

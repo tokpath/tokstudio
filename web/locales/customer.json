@@ -3175,7 +3175,7 @@
     "ms": "Pergi ke penyedia pembayaran",
     "th": "ไปยังผู้ให้บริการชำระเงิน"
   },
-  "前往 Gkash 付款": {
+  "前往 GKash 付款": {
     "en": "Continue to Gkash",
     "ja": "Gkash で支払う",
     "ru": "Перейти к оплате в Gkash",
@@ -3183,13 +3183,37 @@
     "ms": "Teruskan ke Gkash",
     "th": "ดำเนินการต่อไปยัง Gkash"
   },
-  "重新打开 Gkash 付款": {
-    "en": "Open Gkash again",
-    "ja": "Gkash を開き直す",
-    "ru": "Открыть Gkash снова",
-    "hi": "Gkash फिर खोलें",
-    "ms": "Buka Gkash semula",
-    "th": "เปิด Gkash อีกครั้ง"
+  "重新打开 GKash 付款": {
+    "en": "Reopen Gkash payment",
+    "ja": "Gkash の支払いページを開き直す",
+    "ru": "Снова открыть оплату в Gkash",
+    "hi": "Gkash भुगतान फिर से खोलें",
+    "ms": "Buka semula pembayaran Gkash",
+    "th": "เปิดหน้าชำระเงิน Gkash อีกครั้ง"
+  },
+  "正在打开 Gkash 付款页…": {
+    "en": "Opening the Gkash payment page…",
+    "ja": "Gkash の支払いページを開いています…",
+    "ru": "Открываем страницу оплаты Gkash…",
+    "hi": "Gkash भुगतान पेज खोला जा रहा है…",
+    "ms": "Membuka halaman pembayaran Gkash…",
+    "th": "กำลังเปิดหน้าชำระเงิน Gkash…"
+  },
+  "付款窗口未能打开。请允许弹出窗口后从原订单继续。": {
+    "en": "The payment window could not open. Allow pop-ups and continue from this order.",
+    "ja": "支払いウィンドウを開けませんでした。ポップアップを許可し、この注文から続けてください。",
+    "ru": "Не удалось открыть окно оплаты. Разрешите всплывающие окна и продолжите из этого заказа.",
+    "hi": "भुगतान विंडो नहीं खुल सकी। पॉप-अप की अनुमति दें और इसी ऑर्डर से जारी रखें।",
+    "ms": "Tetingkap pembayaran tidak dapat dibuka. Benarkan tetingkap timbul dan teruskan daripada pesanan ini.",
+    "th": "เปิดหน้าต่างชำระเงินไม่ได้ โปรดอนุญาตหน้าต่างป๊อปอัปแล้วดำเนินการต่อจากคำสั่งซื้อนี้"
+  },
+  "原 Gkash 付款页已打开过。请核实原付款状态。": {
+    "en": "The Gkash payment page for this order was already opened. Check the original payment status.",
+    "ja": "この注文の Gkash 支払いページは既に開かれています。元の支払い状況を確認してください。",
+    "ru": "Страница оплаты Gkash для этого заказа уже открывалась. Проверьте статус исходного платежа.",
+    "hi": "इस ऑर्डर का Gkash भुगतान पेज पहले खोला जा चुका है। मूल भुगतान की स्थिति जाँचें।",
+    "ms": "Halaman pembayaran Gkash untuk pesanan ini sudah pernah dibuka. Semak status pembayaran asal.",
+    "th": "หน้าชำระเงิน Gkash ของคำสั่งซื้อนี้เคยเปิดแล้ว โปรดตรวจสอบสถานะการชำระเงินเดิม"
   },
   "改用其它付款方式": {
     "en": "Choose another payment method",

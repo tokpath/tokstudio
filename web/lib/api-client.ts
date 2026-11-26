@@ -78,7 +78,7 @@ function uploadWithProgress<Output>(path: string, schema: z.ZodType<Output>, opt
   });
 }
 
-export async function request<Output>(path: string, schema: z.ZodType<Output>, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; actionKey?: string; signal?: AbortSignal; onUploadProgress?: (loaded: number, total: number) => void } = {}): Promise<Output> {
+export async function request<Output>(path: string, schema: z.ZodType<Output>, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; actionKey?: string; signal?: AbortSignal; timeoutMs?: number; onUploadProgress?: (loaded: number, total: number) => void } = {}): Promise<Output> {
   const method = options.method || "GET";
   if (!path.startsWith("/api/v1/")) throw new Error("Business API path must start with /api/v1/");
   const headers = new Headers({ Accept: "application/json", "Accept-Language": getClientLocale() });
@@ -91,11 +91,12 @@ export async function request<Output>(path: string, schema: z.ZodType<Output>, o
   }
   if (multipart && options.onUploadProgress) return uploadWithProgress(path, schema, options);
   const attempts = method === "GET" ? 2 : 1;
+  const timeout = options.timeoutMs ?? (multipart ? uploadTimeoutMs : /\/domains\/[^/]+\/verify$/.test(path) ? 60_000 : requestTimeoutMs);
   let lastError: unknown;
   for (let attempt = 0; attempt < attempts; attempt++) {
     const controller = new AbortController();
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, multipart ? uploadTimeoutMs : /\/domains\/[^/]+\/verify$/.test(path) ? 60_000 : requestTimeoutMs);
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeout);
     const stop = () => controller.abort();
     options.signal?.addEventListener("abort", stop);
     try {

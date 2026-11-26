@@ -5,23 +5,29 @@ import {afterEach,expect,it,vi} from "vitest";
 import {OperationForm} from "./operation-form";
 import { MonetaryProvider } from "./monetary";
 import type {Operation,Entity,JSONValue} from "@/lib/contracts";
-afterEach(()=>{cleanup();vi.unstubAllGlobals();vi.restoreAllMocks();vi.useRealTimers()});
+afterEach(()=>{cleanup();sessionStorage.clear();vi.unstubAllGlobals();vi.restoreAllMocks();vi.useRealTimers()});
 function show(operation:Operation,row?:Entity){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><MonetaryProvider value={{currency:"USD",atg_per_unit:"1",status:"locked",version:1}}><OperationForm operatorID={operation.path.startsWith("/api/v1/me/")?undefined:"operator-one"} operation={operation} row={row}/></MonetaryProvider></QueryClientProvider>)}
 
+const topupOperation: Operation = {name:"topup",label:"创建充值订单",method:"POST",path:"/api/v1/me/topups",fields:[{name:"amount_money",label:"充值金额",kind:"decimal",required:true,default_value:"2"},{name:"external_method_id",label:"收款方式",kind:"select",required:true,default_value:"kvoucher",options:[{value:"kvoucher",label:"KVoucher"}]}]};
 it.each(["created", "outcome_unknown"])("reserves a payment tab on submit and preserves the %s order", async payment_state => {
   const open = vi.spyOn(window, "open").mockReturnValue(null);
   const notice = "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。";
-  const order = { id: "topup-window-test", kind: "topup", status: "pending", payment_state, operator_name: "Test", amount_money: "2", paid_money: "0", created_at: new Date().toISOString(), ...(payment_state === "created" ? {payment_action:{kind:"form",url:"https://pay.example.test",currency:"MYR",amount:"8.26",fields:{v_amount:"8.26",v_currency:"MYR"}}} : {payment_notice:notice}) };
-  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({id:order.id,status:order.status,order,...(payment_state === "outcome_unknown" ? {message:notice} : {})}),{status:200})));
-  show({name:"topup",label:"创建充值订单",method:"POST",path:"/api/v1/me/topups",fields:[{name:"amount_money",label:"充值金额",kind:"decimal",required:true,default_value:"2"},{name:"external_method_id",label:"收款方式",kind:"select",required:true,default_value:"kvoucher",options:[{value:"kvoucher",label:"KVoucher"}]}]});
+  const order = { id: "topup-window-test", kind: "topup", status: "pending", payment_state, operator_name: "Test", amount_money: "2", paid_money: "0", created_at: new Date().toISOString(), ...(payment_state === "created" ? {payment_action:{kind:"form",gkash_opened:false,currency:"MYR",amount:"8.26"}} : {payment_notice:notice}) };
+  const fetch = vi.fn(async () => Response.json({id:order.id,status:order.status,order,...(payment_state === "outcome_unknown" ? {message:notice} : {})}));
+  vi.stubGlobal("fetch", fetch);
+  show(topupOperation);
   fireEvent.click(screen.getByRole("button",{name:"创建充值订单",exact:true}));
   expect(await screen.findByText(order.id)).toBeTruthy();
   expect(open).toHaveBeenCalledTimes(1);
-  if (payment_state === "created") expect(screen.getByRole("button",{name:"前往 Gkash 付款",exact:true})).toBeTruthy();
+  if (payment_state === "created") {
+    expect(await screen.findByText("付款窗口未能打开。请允许弹出窗口后从原订单继续。")).toBeTruthy();
+    expect(screen.getByRole("button",{name:"前往 GKash 付款",exact:true})).toBeTruthy();
+  }
   else {
     expect(screen.getAllByText(notice).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("button",{name:"前往 Gkash 付款",exact:true})).toBeNull();
+    expect(screen.queryByRole("button",{name:"前往 GKash 付款",exact:true})).toBeNull();
   }
+  expect(fetch).toHaveBeenCalledTimes(1);
 });
 
 const receiptOperation: Operation = {name:"receipt",label:"登记人工核实收款",method:"POST",path:"/api/v1/operators/operator-one/payments",fields:[
@@ -270,6 +276,37 @@ function purchasePage(status: string) {
 function paymentUnknown() {
   return new Response(JSON.stringify({ error: { code: "payment_outcome_unknown", message: "原支付结果尚待核实，请查询原交易，重试将沿用原业务编号", request_id: "request-one", retryable: true } }), { status: 409 });
 }
+
+it.each([
+  { kind: "topup", operation: topupOperation, path: "/api/v1/me/topups", openPath: "/api/v1/me/orders/auto-topup/payment/open" },
+  { kind: "procurement", operation: procurementCheckout, path: "/api/v1/operators/operator-one/procurement/auto-procurement/checkout", openPath: "/api/v1/operators/operator-one/procurement/auto-procurement/open_payment" },
+])("opens a fresh Gkash form automatically for $kind", async ({ kind, operation, path, openPath }) => {
+  const id = `auto-${kind}`;
+  const order = { id, kind, status: "pending", payment_state: "created", operator_name: "Test", amount_money: "2", paid_money: "0", created_at: "2026-11-12T00:00:00Z", payment_action: { kind: "form", gkash_opened: false } };
+  const popup = { closed: false, focus: vi.fn() };
+  const open = vi.spyOn(window, "open").mockReturnValue(popup as unknown as Window);
+  const submitted: FormData[] = [];
+  vi.spyOn(HTMLFormElement.prototype, "submit").mockImplementation(function (this: HTMLFormElement) { submitted.push(new FormData(this)); });
+  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "GET") return Response.json({
+      ...purchasePage("awaiting_payment"),
+      items: [{ id, status: "awaiting_payment", values: { payment_order: order }, allowed_actions: ["checkout", "query_payment"] }],
+    });
+    if (String(input) === openPath) return Response.json({
+      id, status: "payment_ready", gkash_generation: 1, payment_action: { kind: "form", url: "https://payments.example.test/checkout", fields: { v_cartid: `${kind}-cart` } },
+    });
+    return Response.json({ id, status: order.status, order });
+  });
+  vi.stubGlobal("fetch", fetch);
+  show(operation, kind === "procurement" ? { id, values: {} } : undefined);
+  fireEvent.click(screen.getByRole("button", { name: operation.label, exact: true }));
+  fireEvent.click(await screen.findByRole("button", { name: "重新打开 GKash 付款", exact: true }));
+  expect(fetch.mock.calls.filter(([, init]) => init?.method === "POST").map(([input]) => input)).toEqual([path, openPath]);
+  expect(open).toHaveBeenCalledTimes(1);
+  expect(popup.focus).toHaveBeenCalledTimes(1);
+  expect(submitted.map(form => form.get("v_cartid"))).toEqual([`${kind}-cart`]);
+  popup.closed = true;
+});
 
 it("returns an unpaid procurement to its existing method selector without creating another order", async () => {
   vi.spyOn(window, "open").mockReturnValue(null);

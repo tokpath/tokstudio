@@ -10,7 +10,7 @@ import { Checkout, CustomerPlans, PaymentAction } from "./customer-plans";
 
 const { stripeLoader } = vi.hoisted(() => ({ stripeLoader: vi.fn() }));
 vi.mock("@stripe/stripe-js", () => ({ loadStripe: stripeLoader }));
-vi.mock("./context", () => ({ useProduct: () => ({ context: { payment_methods: [{ id: "bank", name: "银行转账", status: "ready" }] } }) }));
+vi.mock("./context", () => ({ useProduct: () => ({ context: { payment_methods: [{ id: "bank", name: "银行转账", status: "ready" }, { id: "voucher", name: "kvoucher", status: "ready" }] } }) }));
 const credits = { customer_atg: { available: "0", held: "0", purchased_remaining: "0", gift_remaining: "0" }, money_balance: { available: "3.000000000000000001", held: "0" }, commission_money: { available: "2.000000000000000001", held: "0", frozen: "50", recovery_due: "0" }, qualification: { confirmed_money: "0", pending_money: "0", threshold_money: "100", qualified_at: null, function_status: "normal" } };
 const quote: Quote = { id: "quote-one", plan_id: "plan-one", plan_name: "通用套餐", operator_name: "本次经营方", amount_money: "10.000000000000000001", purchase_atg: "20", plan_gift_atg: "2", operator_gift_atg: "0", kol_gift_atg: "0", total_atg: "22", validity: "month", terms_version: "terms-one", terms_summary: "按成交订单内购赠比例耗用。", expires_at: "2099-10-18T00:00:00Z", warnings: [] };
 const order = { id: "order-one", status: "pending_payment", kind: "package", operator_name: "本次经营方", amount_money: quote.amount_money, paid_money: "0", created_at: "2026-10-18T00:00:00Z", payment_action: { kind: "offline", instructions: "请核对原订单后付款" } };
@@ -22,7 +22,7 @@ function mount(children: ReactNode) {
 }
 function terms() { return screen.getByLabelText(/我确认本次价格/); }
 beforeEach(() => { HTMLElement.prototype.scrollIntoView = vi.fn(); });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); vi.restoreAllMocks(); document.cookie = "NEXT_LOCALE=; Max-Age=0; Path=/"; document.documentElement.lang = "zh-CN"; });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.unstubAllGlobals(); vi.useRealTimers(); vi.restoreAllMocks(); document.cookie = "NEXT_LOCALE=; Max-Age=0; Path=/"; document.documentElement.lang = "zh-CN"; });
 
 it("keeps the Stripe form mounted while using supported payment locales for Hindi, Malay and Thai", async () => {
   const element = { mount: vi.fn(), destroy: vi.fn(), on: vi.fn((event: string, callback: () => void) => { if (event === "ready") callback(); }) };
@@ -119,18 +119,54 @@ it("keeps payment instructions hidden for expired and refunded orders", () => {
   expect(screen.getByText(/此订单已结束/)).toBeTruthy();
 });
 
-it("keeps the order page and posts Gkash into a separate window", () => {
+it("opens a new Gkash form once and returns to the same payment window", async () => {
   const change = vi.fn();
-  mount(<PaymentAction onChangeMethod={change} order={{ ...order, method_change_allowed: true, payment_action: { kind: "form", url: "https://api.gkash.my/api/PaymentForm.aspx", currency: "MYR", amount: "4.18", fields: { CID: "merchant", v_amount: "4.18" }, instructions: "请在 Gkash 完成付款。" } }} />);
-  const form = document.querySelector("form");
-  expect(form?.getAttribute("target")).toBe("tokpath-gkash");
-  expect(form?.getAttribute("method")?.toLowerCase()).toBe("post");
-  expect(form?.getAttribute("action")).toBe("https://api.gkash.my/api/PaymentForm.aspx");
-  expect(screen.getByRole("button", { name: "前往 Gkash 付款" })).toBeTruthy();
-  expect(screen.queryByText("付款页金额")).toBeNull();
-  expect(screen.queryByText("merchant")).toBeNull();
+  const payment = { ...order, method_change_allowed: true, payment_action: { kind: "form", gkash_opened: false, currency: "MYR", amount: "4.18", instructions: "请在 Gkash 完成付款。" } };
+  const windowHandle = { closed: false, focus: vi.fn() };
+  const open = vi.spyOn(window, "open").mockReturnValue(windowHandle as unknown as Window);
+  const submit = vi.spyOn(HTMLFormElement.prototype, "submit").mockImplementation(() => {});
+  const fetch = vi.fn(async () => response({
+    id: payment.id, status: "payment_ready", gkash_generation: 1, payment_action: { kind: "form", url: "https://payments.example.test/checkout", fields: { v_cartid: "fresh-cart" } },
+  }));
+  vi.stubGlobal("fetch", fetch);
+  const { rerender } = mount(<PaymentAction onChangeMethod={change} order={payment} />);
+  expect(document.querySelector("form[action]")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "前往 GKash 付款" }));
+  fireEvent.click(await screen.findByRole("button", { name: "重新打开 GKash 付款" }));
+  expect(windowHandle.focus).toHaveBeenCalledTimes(1);
+  expect(open).toHaveBeenCalledTimes(1);
+  expect(submit).toHaveBeenCalledTimes(1);
+  expect(fetch).toHaveBeenCalledTimes(1);
   fireEvent.click(screen.getByRole("button", { name: "改用其它付款方式" }));
   expect(change).toHaveBeenCalledTimes(1);
+  rerender(<PaymentAction order={{ ...payment, status: "completed", paid_money: payment.amount_money }} />);
+  expect(screen.queryByRole("button", { name: "重新打开 GKash 付款" })).toBeNull();
+  windowHandle.closed = true;
+});
+
+it("opens the server-issued form after creating a package order", async () => {
+  const payment = { ...order, id: "auto-package", payment_action: { kind: "form", gkash_opened: false } };
+  const windowHandle = { closed: false, focus: vi.fn() };
+  const open = vi.spyOn(window, "open").mockReturnValue(windowHandle as unknown as Window);
+  const submitted: FormData[] = [];
+  vi.spyOn(HTMLFormElement.prototype, "submit").mockImplementation(function (this: HTMLFormElement) { submitted.push(new FormData(this)); });
+  const fetch = vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method !== "POST") return response(credits);
+    if (String(path) === "/api/v1/me/orders") return response(payment);
+    return response({ id: payment.id, status: "payment_ready", gkash_generation: 1, payment_action: { kind: "form", url: "https://payments.example.test/checkout", fields: { v_cartid: "auto-cart" } } });
+  });
+  vi.stubGlobal("fetch", fetch);
+  mount(<Checkout quote={quote} supportsRenewal={false} changeOffers={vi.fn()} />);
+  fireEvent.change(screen.getByRole("combobox", { name: "支付方式" }), { target: { value: "voucher" } });
+  fireEvent.click(terms());
+  fireEvent.click(screen.getByRole("button", { name: "确认订单，继续支付" }));
+  await screen.findByRole("button", { name: "重新打开 GKash 付款" });
+  expect(fetch.mock.calls.filter(([, options]) => options?.method === "POST").map(([path]) => path)).toEqual([
+    "/api/v1/me/orders", "/api/v1/me/orders/auto-package/payment/open",
+  ]);
+  expect(open).toHaveBeenCalledTimes(1);
+  expect(submitted.map(form => form.get("v_cartid"))).toEqual(["auto-cart"]);
+  windowHandle.closed = true;
 });
 
 it("lets the customer cancel an unpaid order before sending money", async () => {

@@ -4,17 +4,21 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/components/i18n";
 import { Button } from "@/components/ui/button";
 import { request } from "@/lib/api-client";
-import { CommandResultSchema, ResourcePageSchema, type Order } from "@/lib/contracts";
+import { CommandResultSchema, OrderSchema, ResourcePageSchema, type Order } from "@/lib/contracts";
 import { PaymentAction } from "./customer-plans";
+import type { GkashLaunchState } from "./gkash-pay";
 import { ErrorPanel, Notice, Status, useCommand } from "./shared";
 
 // The purchase and its checkout are durable before contacting the provider.
 // Read that exact purchase after an ambiguous response; never create another
 // checkout merely to discover whether the original payment finished.
-export function ProcurementPayment({ path, orderID, initialOrder, error, onClose, onChangeMethod }: {
+export function ProcurementPayment({ path, orderID, initialOrder, gkashOpenPath, automaticGkash, creatingOrder, error, onClose, onChangeMethod }: {
   path: string;
   orderID: string;
   initialOrder?: Order;
+  gkashOpenPath?: string;
+  automaticGkash?: GkashLaunchState;
+  creatingOrder?: boolean;
   error?: unknown;
   onClose?: () => void;
   onChangeMethod?: () => void;
@@ -36,8 +40,11 @@ export function ProcurementPayment({ path, orderID, initialOrder, error, onClose
   const reconcile = useCommand(`${base}/${encodeURIComponent(orderID)}/query_payment`, CommandResultSchema);
   const status = original.data?.status;
   const paymentState = original.data?.values.payment_state;
-  const checkoutUnavailable = paymentState === "closed" || paymentState === "failed";
+  const checkoutEnded = paymentState === "closed" || paymentState === "failed";
+  const checkoutUnavailable = checkoutEnded || ["executing", "outcome_unknown", "awaiting_settlement"].includes(String(paymentState));
   const canSelectMethod = status === "awaiting_payment" && original.data?.allowed_actions?.includes("checkout");
+  const current = OrderSchema.safeParse(original.data?.values.payment_order);
+  const paymentOrder = current.success && current.data.id === orderID ? current.data : canSelectMethod ? initialOrder : undefined;
   const completed = status === "completed";
   const paid = status === "paid";
   const ended = completed || status === "closed" || status === "exception";
@@ -55,10 +62,15 @@ export function ProcurementPayment({ path, orderID, initialOrder, error, onClose
     </div>
     {!!error && !paid && !ended && <ErrorPanel error={error} />}
     {original.isError && <ErrorPanel error={original.error} retry={() => void original.refetch()} />}
-    {/* A current server read must still permit payment before showing a saved form. */}
-    {canSelectMethod && !checkoutUnavailable && initialOrder?.payment_action && <PaymentAction order={initialOrder} onChangeMethod={onChangeMethod} />}
+    {status === "awaiting_payment" && !checkoutUnavailable && paymentOrder?.payment_action && <PaymentAction
+      order={paymentOrder}
+      onChangeMethod={canSelectMethod ? onChangeMethod : undefined}
+      gkashOpenPath={gkashOpenPath}
+      automaticGkash={automaticGkash}
+      creatingOrder={creatingOrder}
+    />}
     {paymentState === "closed" && <Notice>{t("原通道已关闭本次付款，未收到款项。")}</Notice>}
-    {canSelectMethod && checkoutUnavailable && onChangeMethod && <Button type="button" variant="outline" onClick={onChangeMethod}>{t("改用其它付款方式")}</Button>}
+    {canSelectMethod && checkoutEnded && onChangeMethod && <Button type="button" variant="outline" onClick={onChangeMethod}>{t("改用其它付款方式")}</Button>}
     {!ended && <Notice>{t("查询只核实原付款，不会发起新的扣款。")}</Notice>}
     {!!reconcile.error && !paid && !ended && <ErrorPanel error={reconcile.error} />}
     <div className="flex flex-wrap gap-3">

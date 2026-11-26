@@ -5455,6 +5455,14 @@
     "ms": "Saluran asal belum mengesahkan pembayaran ini. Semak semula sebentar lagi, dan jangan bayar kali kedua.",
     "th": "ช่องทางเดิมยังไม่ยืนยันการชำระเงินนี้ โปรดตรวจสอบอีกครั้งในภายหลังและอย่าชำระซ้ำ"
   },
+  "原通道暂未签发新的付款页。请稍后重试或核实原付款状态。": {
+    "en": "The original payment provider has not issued a new checkout page. Try again later or check the original payment status.",
+    "ja": "元の決済サービスは新しい支払いページをまだ発行していません。時間をおいて再試行するか、元の支払い状況を確認してください。",
+    "ru": "Платёжный сервис ещё не выпустил новую страницу оплаты. Попробуйте позже или проверьте статус исходного платежа.",
+    "hi": "मूल भुगतान प्रदाता ने अभी नया भुगतान पेज जारी नहीं किया है। बाद में फिर कोशिश करें या मूल भुगतान की स्थिति जाँचें।",
+    "ms": "Penyedia pembayaran asal belum mengeluarkan halaman pembayaran baharu. Cuba lagi nanti atau semak status pembayaran asal.",
+    "th": "ผู้ให้บริการชำระเงินเดิมยังไม่ได้ออกหน้าชำระเงินใหม่ โปรดลองอีกครั้งภายหลังหรือตรวจสอบสถานะการชำระเงินเดิม"
+  },
   "原支付结果尚待核实，请查询原交易，重试将沿用原业务编号": {
     "en": "The original payment outcome is unverified. Check the original transaction; retries use the original business ID.",
     "ja": "元の支払結果は確認待ちです。元の取引を照会してください。再試行でも元の業務 ID を使用します。",

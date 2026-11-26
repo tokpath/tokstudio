@@ -76,11 +76,7 @@ func (k KVoucher) Create(ctx context.Context, m Merchant, o Order) (Checkout, er
 	if json.Unmarshal(created, &order) != nil || order.ID == "" {
 		return Checkout{}, ErrProvider
 	}
-	paid, e := k.order(ctx, m, http.MethodPost, "/orders/"+url.PathEscape(order.ID.String())+"/gkash-pay", nil)
-	if e != nil {
-		return Checkout{}, e
-	}
-	form, e := gkashForm(paid)
+	form, e := k.gkashCheckout(ctx, m, order.ID.String())
 	if e != nil {
 		return Checkout{}, e
 	}
@@ -90,25 +86,74 @@ func (k KVoucher) Create(ctx context.Context, m Merchant, o Order) (Checkout, er
 	checkout := Checkout{ProviderID: order.ID.String(), State: "pending", URL: form.Action, FormFields: form.Fields, Instructions: instructions, PayMoney: form.Money, SettlementMoney: &settlement}
 	return checkout, nil
 }
-func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
-	if o.ProviderID == "" {
-		return Fact{}, ErrNotFinal
+
+type kvoucherOrder struct {
+	ID       json.Number                `json:"id"`
+	OrderNo  string                     `json:"order_no"`
+	Status   string                     `json:"status"`
+	Currency string                     `json:"currency"`
+	Metadata map[string]json.RawMessage `json:"metadata"`
+	Items    []struct {
+		Denomination json.Number `json:"denomination"`
+		Qty          int         `json:"qty"`
+	} `json:"items"`
+}
+
+func (k KVoucher) readOrder(ctx context.Context, m Merchant, providerID string) (kvoucherOrder, error) {
+	var order kvoucherOrder
+	if providerID == "" {
+		return order, ErrNotFinal
 	}
-	raw, e := k.order(ctx, m, http.MethodGet, "/orders/"+url.PathEscape(o.ProviderID), nil)
+	raw, e := k.order(ctx, m, http.MethodGet, "/orders/"+url.PathEscape(providerID), nil)
 	if e != nil {
-		return Fact{}, e
-	}
-	var order struct {
-		ID      json.Number `json:"id"`
-		OrderNo string      `json:"order_no"`
-		Status  string      `json:"status"`
-		Items   []struct {
-			Denomination json.Number `json:"denomination"`
-			Qty          int         `json:"qty"`
-		} `json:"items"`
+		return order, e
 	}
 	if json.Unmarshal(raw, &order) != nil || order.Status == "" {
-		return Fact{}, ErrProvider
+		return order, ErrProvider
+	}
+	if order.ID.String() != providerID {
+		return order, ErrConflict
+	}
+	return order, nil
+}
+
+func (order kvoucherOrder) denominationFor(o Order) (ledger.Decimal, error) {
+	if len(order.Items) != 1 || order.Items[0].Qty != 1 || order.Items[0].Denomination == "" {
+		return ledger.Decimal{}, ErrProvider
+	}
+	amount, e := ledger.ParseDecimal(order.Items[0].Denomination.String())
+	if e != nil || o.Money.Currency != "MYR" || amount.Cmp(o.Money.Amount) != 0 {
+		return ledger.Decimal{}, ErrConflict
+	}
+	return amount, nil
+}
+
+// checkRetryOrder checks payment eligibility without fetching voucher stock.
+func (k KVoucher) checkRetryOrder(ctx context.Context, m Merchant, o Order) error {
+	order, e := k.readOrder(ctx, m, o.ProviderID)
+	if e != nil {
+		return e
+	}
+	if order.Status != "pending_payment" {
+		return ErrNotFinal
+	}
+	if ref, exists := order.Metadata["order_ref"]; exists {
+		var orderRef string
+		if json.Unmarshal(ref, &orderRef) != nil || orderRef != o.ID {
+			return ErrConflict
+		}
+	}
+	if order.Currency != "" && order.Currency != o.Money.Currency {
+		return ErrConflict
+	}
+	_, e = order.denominationFor(o)
+	return e
+}
+
+func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error) {
+	order, e := k.readOrder(ctx, m, o.ProviderID)
+	if e != nil {
+		return Fact{}, e
 	}
 	switch order.Status {
 	case "rejected", "refunded", "expired":
@@ -127,15 +172,9 @@ func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error)
 			return Fact{}, ErrNotFinal
 		}
 	}
-	if order.ID.String() != o.ProviderID {
-		return Fact{}, ErrConflict
-	}
-	if len(order.Items) != 1 || order.Items[0].Qty != 1 || order.Items[0].Denomination == "" {
-		return Fact{}, ErrProvider
-	}
-	amount, e := ledger.ParseDecimal(order.Items[0].Denomination.String())
-	if e != nil || o.Money.Currency != "MYR" || amount.Cmp(o.Money.Amount) != 0 {
-		return Fact{}, ErrConflict
+	amount, e := order.denominationFor(o)
+	if e != nil {
+		return Fact{}, e
 	}
 	pins, e := k.pins(ctx, m, o.ID, order.Items[0].Denomination.String(), order.Items[0].Qty)
 	if e != nil {
@@ -385,6 +424,14 @@ type gkashCheckout struct {
 	Money  *Money
 }
 
+func (k KVoucher) gkashCheckout(ctx context.Context, m Merchant, providerID string) (gkashCheckout, error) {
+	raw, e := k.order(ctx, m, http.MethodPost, "/orders/"+url.PathEscape(providerID)+"/gkash-pay", nil)
+	if e != nil {
+		return gkashCheckout{}, e
+	}
+	return gkashForm(raw)
+}
+
 func gkashForm(raw []byte) (gkashCheckout, error) {
 	var payment struct {
 		Action string                     `json:"action"`
@@ -396,8 +443,15 @@ func gkashForm(raw []byte) (gkashCheckout, error) {
 	}
 	fields := map[string]string{}
 	for key, value := range payment.Fields {
-		text := strings.Trim(string(value), `"`)
-		if text == "" || text == "null" {
+		var text string
+		if json.Unmarshal(value, &text) != nil {
+			var number json.Number
+			if json.Unmarshal(value, &number) != nil {
+				return gkashCheckout{}, ErrProvider
+			}
+			text = number.String()
+		}
+		if text == "" {
 			return gkashCheckout{}, ErrProvider
 		}
 		fields[key] = text

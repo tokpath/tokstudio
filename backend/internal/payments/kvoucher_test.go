@@ -204,7 +204,7 @@ func TestKVoucherSandboxBooksACodeBeforeTheGatewayLeavesPending(t *testing.T) {
 		booked  bool
 	}{
 		{name: "sandbox pending", status: "pending_payment", sandbox: true, booked: true},
-		{name: "live pending", status: "pending_payment", want: ErrNotFinal},
+		{name: "live pending", status: "pending_payment", want: ErrUnpaid},
 		{name: "expired", status: "expired", sandbox: true, want: ErrProvider},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -245,5 +245,39 @@ func TestKVoucherSandboxBooksACodeBeforeTheGatewayLeavesPending(t *testing.T) {
 				t.Fatal(fact, err, retrieved)
 			}
 		})
+	}
+}
+
+func TestKVoucherLookupRejectsPendingStatusForADifferentOrder(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/kv/merchant/v1/orders/30" {
+			t.Errorf("unexpected KVoucher request: %s %s", r.Method, r.URL.Path)
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"ok":true,"data":{"order":{"id":31,"status":"pending_payment"}}}`))
+	}))
+	t.Cleanup(server.Close)
+	m := Merchant{ID: "merchant", OperatorID: "operator", Driver: "kvoucher", Enabled: true, APIBaseURL: server.URL + "/api/kv/merchant/v1", Credentials: map[string]string{"kvoucher_api_key": "key", "kvoucher_api_secret": "secret"}}
+	o := paymentTestOrder(m, "MYR")
+	o.ProviderID = "30"
+	k := KVoucher{HTTP: &Transport{Client: server.Client(), AllowTestLoopback: true}}
+
+	fact, err := k.Lookup(t.Context(), m, o)
+	if !errors.Is(err, ErrConflict) || fact.Verified() {
+		t.Fatal(fact, err)
+	}
+}
+
+func TestGkashFormDecodesStringsAndPreservesNumericFieldText(t *testing.T) {
+	form, err := gkashForm([]byte(`{"action":"https://pay.example.test/form","method":"POST","fields":{"callbackurl":"https:\/\/merchant.example.test\/return?a=1\u0026b=2","v_amount":8.30,"v_currency":"MYR"}}`))
+	if err != nil || form.Fields["callbackurl"] != "https://merchant.example.test/return?a=1&b=2" || form.Fields["v_amount"] != "8.30" {
+		t.Fatal("form fields did not retain the decoded string and original decimal text", err)
+	}
+	for _, invalid := range []string{"true", "{}", "[]", "null"} {
+		_, err := gkashForm([]byte(`{"action":"https://pay.example.test/form","method":"POST","fields":{"callbackurl":` + invalid + `}}`))
+		if !errors.Is(err, ErrProvider) {
+			t.Fatal("accepted a non-string or non-number form field", invalid, err)
+		}
 	}
 }

@@ -206,6 +206,9 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 						if intent.AllowsMethodChange() {
 							actions = append(actions, "checkout")
 						}
+						if intent.Driver == "kvoucher" && intent.Checkout != nil && o.AllocatedMoney.IsZero() {
+							v["payment_order"] = procurementPaymentOrder(o, intent, *intent.Checkout, checkoutPaymentAction(intent, *intent.Checkout))
+						}
 					}
 				}
 			}
@@ -240,6 +243,7 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 				}
 				if received {
 					actions = []string{}
+					delete(v, "payment_order")
 					v["reserved_note"] = "通道已确认收到款项，系统正在核实并关联原订单。请勿重复付款。"
 				}
 			}
@@ -442,6 +446,10 @@ func (a *Application) procurementAction(c *gin.Context, op organization.Operator
 	businessKey, _ := key(c)
 	if action == "checkout" {
 		a.procurementPayment(c, op, actor)
+		return
+	}
+	if action == "open_payment" {
+		a.openProcurementKVoucherPayment(c, op, actor)
 		return
 	}
 	if action == "disable_quote" || action == "enable_quote" {
@@ -659,7 +667,8 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		handleError(c, organization.ErrForbidden)
 		return
 	}
-	unpaidMerchant := ""
+	id = o.ID
+	var unpaidCheckout payments.IntentView
 	var previous procurementCheckout
 	if err := a.DB.WithContext(ctx).Where("order_id=?", id).Limit(1).Find(&previous).Error; err != nil {
 		handleError(c, err)
@@ -669,7 +678,7 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		intent, err := a.Payments.PaymentIntent(ctx, o.SupplierID, previous.MerchantID, id)
 		if err == nil && intent.State == "created" {
 			if _, err = a.Payments.Reconcile(ctx, o.SupplierID, previous.MerchantID, id); errors.Is(err, payments.ErrUnpaid) {
-				unpaidMerchant = previous.MerchantID
+				unpaidCheckout = intent
 			} else if !errors.Is(err, payments.ErrPaymentClosed) {
 				handleError(c, commerce.ErrPaymentUnknown)
 				return
@@ -708,7 +717,7 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 				return nil
 			}
 			intent, err := a.Payments.PaymentIntent(ctx, o.SupplierID, saved.MerchantID, id)
-			if err != nil || !intent.AllowsMethodChange() || (intent.State == "created" && unpaidMerchant != saved.MerchantID) {
+			if err != nil || !intent.AllowsMethodChange() || (intent.State == "created" && !sameCheckedPayment(intent, unpaidCheckout)) {
 				return commerce.ErrPaymentUnknown
 			}
 		}
@@ -763,20 +772,17 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		handleError(c, e)
 		return
 	}
-	action := procurementPaymentAction(checkout)
 	intent, e := a.Payments.PaymentIntent(ctx, po.OperatorID, saved.MerchantID, id)
 	if e != nil {
 		handleError(c, e)
 		return
 	}
-	if intent.Driver == "manual" {
-		action["kind"], action["instructions"] = "offline", checkout.Instructions
-	}
+	action := checkoutPaymentAction(intent, checkout)
 	if e := a.simplifyOfflineAction(ctx, po.OperatorID, intent.Driver, checkout.FeeQuote, action); e != nil {
 		handleError(c, e)
 		return
 	}
-	c.JSON(200, gin.H{"id": id, "status": checkout.State, "message": "Pay the original checkout, then verify actual receipt and delivery.", "order": gin.H{"monetary_snapshot": o.MonetarySnapshot, "id": id, "status": checkout.State, "kind": "procurement", "method_change_allowed": intent.State == "created" && o.Status == "awaiting_payment" && o.AllocatedMoney.IsZero(), "operator_name": po.OperatorID, "amount_money": o.DueMoney, "paid_money": o.AllocatedMoney, "created_at": o.CreatedAt, "fee_quote": checkout.FeeQuote, "payment_action": action}})
+	c.JSON(200, gin.H{"id": id, "status": checkout.State, "message": "Pay the original checkout, then verify actual receipt and delivery.", "order": procurementPaymentOrder(o, intent, checkout, action)})
 }
 func (a *Application) deliverProcurementReceipt(ctx context.Context, supplier, orderID, receiptID string) error {
 	err := a.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -807,31 +813,13 @@ func (a *Application) deliverProcurementReceipt(ctx context.Context, supplier, o
 
 var _ commerce.Order
 
-func procurementPaymentAction(ch payments.Checkout) gin.H {
-	p := gin.H{}
-	switch {
-	case ch.ClientSecret != "":
-		p = gin.H{"kind": "stripe", "client_secret": ch.ClientSecret, "publishable_key": ch.PublishableKey}
-	case ch.URL != "" && len(ch.FormFields) > 0:
-		p = gin.H{"kind": "form", "url": ch.URL, "fields": ch.FormFields, "instructions": ch.Instructions}
-	case ch.URL != "":
-		p = gin.H{"kind": "redirect", "url": ch.URL}
-	case ch.PaymentAddress != "":
-		p = gin.H{"kind": "offline", "address": ch.PaymentAddress}
-	default:
-		p = gin.H{"kind": "offline"}
+func procurementPaymentOrder(order cooperation.PurchaseOrder, intent payments.IntentView, checkout payments.Checkout, action gin.H) gin.H {
+	return gin.H{
+		"monetary_snapshot": order.MonetarySnapshot, "id": order.ID, "status": checkout.State, "kind": "procurement",
+		"payment_state": intent.State, "method_change_allowed": intent.State == "created" && order.Status == "awaiting_payment" && order.AllocatedMoney.IsZero(),
+		"operator_name": order.SupplierID, "amount_money": order.DueMoney, "paid_money": order.AllocatedMoney,
+		"created_at": order.CreatedAt, "fee_quote": checkout.FeeQuote, "payment_action": action,
 	}
-	p["settlement_money"] = ch.SettlementMoney
-	p["fee_quote"] = ch.FeeQuote
-	p["payment_quote"] = ch.PaymentQuote
-	if ch.Instructions != "" {
-		p["instructions"] = ch.Instructions
-	}
-	if ch.PayMoney != nil {
-		p["amount"] = ch.PayMoney.Amount.String()
-		p["currency"] = ch.PayMoney.Currency
-	}
-	return p
 }
 
 func (a *Application) procurementPartyNames(ctx context.Context, v gin.H, supplierID, buyerID string) {

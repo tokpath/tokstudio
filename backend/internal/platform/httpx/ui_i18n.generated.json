@@ -5147,6 +5147,15 @@
     "Rujukan pembayaran atau nombor resit (pilihan)",
     "ข้อมูลอ้างอิงการชำระเงินหรือเลขที่ใบเสร็จ (ไม่บังคับ)"
   ],
+  "付款窗口未能打开。请允许弹出窗口后从原订单继续。": [
+    "付款窗口未能打开。请允许弹出窗口后从原订单继续。",
+    "The payment window could not open. Allow pop-ups and continue from this order.",
+    "支払いウィンドウを開けませんでした。ポップアップを許可し、この注文から続けてください。",
+    "Не удалось открыть окно оплаты. Разрешите всплывающие окна и продолжите из этого заказа.",
+    "भुगतान विंडो नहीं खुल सकी। पॉप-अप की अनुमति दें और इसी ऑर्डर से जारी रखें।",
+    "Tetingkap pembayaran tidak dapat dibuka. Benarkan tetingkap timbul dan teruskan daripada pesanan ini.",
+    "เปิดหน้าต่างชำระเงินไม่ได้ โปรดอนุญาตหน้าต่างป๊อปอัปแล้วดำเนินการต่อจากคำสั่งซื้อนี้"
+  ],
   "付款结果待核实": [
     "付款结果待核实",
     "Payment outcome unknown",
@@ -9917,8 +9926,8 @@
     "Muat semula rekod",
     "รีเฟรชระเบียน"
   ],
-  "前往 Gkash 付款": [
-    "前往 Gkash 付款",
+  "前往 GKash 付款": [
+    "前往 GKash 付款",
     "Pay with Gkash",
     "Gkash で支払う",
     "Оплатить через Gkash",
@@ -10663,6 +10672,15 @@
     "ऐतिहासिक अलर्ट नियम",
     "Peraturan amaran sejarah",
     "กฎแจ้งเตือนในอดีต"
+  ],
+  "原 Gkash 付款页已打开过。请核实原付款状态。": [
+    "原 Gkash 付款页已打开过。请核实原付款状态。",
+    "The Gkash payment page for this order was already opened. Check the original payment status.",
+    "この注文の Gkash 支払いページは既に開かれています。元の支払い状況を確認してください。",
+    "Страница оплаты Gkash для этого заказа уже открывалась. Проверьте статус исходного платежа.",
+    "इस ऑर्डर का Gkash भुगतान पेज पहले खोला जा चुका है। मूल भुगतान की स्थिति जाँचें।",
+    "Halaman pembayaran Gkash untuk pesanan ini sudah pernah dibuka. Semak status pembayaran asal.",
+    "หน้าชำระเงิน Gkash ของคำสั่งซื้อนี้เคยเปิดแล้ว โปรดตรวจสอบสถานะการชำระเงินเดิม"
   ],
   "原业务编号": [
     "原业务编号",
@@ -11428,6 +11446,15 @@
     "मूल भुगतान सेवा ने राशि प्राप्त किए बिना भुगतान बंद कर दिया। उपलब्ध विकल्प देखने के लिए ऑर्डर रीफ़्रेश करें।",
     "Penyedia asal menutup pembayaran tanpa menerima dana. Muat semula pesanan untuk melihat tindakan yang tersedia.",
     "ผู้ให้บริการเดิมปิดรายการโดยยังไม่ได้รับเงิน รีเฟรชคำสั่งซื้อเพื่อดูการดำเนินการที่ทำได้"
+  ],
+  "原通道暂未签发新的付款页。请稍后重试或核实原付款状态。": [
+    "原通道暂未签发新的付款页。请稍后重试或核实原付款状态。",
+    "The original payment provider has not issued a new checkout page. Try again later or check the original payment status.",
+    "元の決済サービスは新しい支払いページをまだ発行していません。時間をおいて再試行するか、元の支払い状況を確認してください。",
+    "Платёжный сервис ещё не выпустил новую страницу оплаты. Попробуйте позже или проверьте статус исходного платежа.",
+    "मूल भुगतान प्रदाता ने अभी नया भुगतान पेज जारी नहीं किया है। बाद में फिर कोशिश करें या मूल भुगतान की स्थिति जाँचें।",
+    "Penyedia pembayaran asal belum mengeluarkan halaman pembayaran baharu. Cuba lagi nanti atau semak status pembayaran asal.",
+    "ผู้ให้บริการชำระเงินเดิมยังไม่ได้ออกหน้าชำระเงินใหม่ โปรดลองอีกครั้งภายหลังหรือตรวจสอบสถานะการชำระเงินเดิม"
   ],
   "原采购付款或交付尚未核实，系统持续核对原记录，不会重复发起收款。原因：": [
     "原采购付款或交付尚未核实，系统持续核对原记录，不会重复发起收款。原因：",
@@ -32129,6 +32156,15 @@
     "Mencipta pesanan…",
     "กำลังสร้างคำสั่งซื้อ…"
   ],
+  "正在打开 Gkash 付款页…": [
+    "正在打开 Gkash 付款页…",
+    "Opening the Gkash payment page…",
+    "Gkash の支払いページを開いています…",
+    "Открываем страницу оплаты Gkash…",
+    "Gkash भुगतान पेज खोला जा रहा है…",
+    "Membuka halaman pembayaran Gkash…",
+    "กำลังเปิดหน้าชำระเงิน Gkash…"
+  ],
   "正在提交": [
     "正在提交",
     "Submitting",
@@ -47771,14 +47807,14 @@
     "Penyeimbangan kredit perolehan",
     "บัญชีปรับสมดุลเครดิตการจัดซื้อ"
   ],
-  "重新打开 Gkash 付款": [
-    "重新打开 Gkash 付款",
-    "Open Gkash again",
-    "Gkash を開き直す",
-    "Открыть Gkash снова",
-    "Gkash फिर खोलें",
-    "Buka Gkash semula",
-    "เปิด Gkash อีกครั้ง"
+  "重新打开 GKash 付款": [
+    "重新打开 GKash 付款",
+    "Reopen Gkash payment",
+    "Gkash の支払いページを開き直す",
+    "Снова открыть оплату в Gkash",
+    "Gkash भुगतान फिर से खोलें",
+    "Buka semula pembayaran Gkash",
+    "เปิดหน้าชำระเงิน Gkash อีกครั้ง"
   ],
   "重新授权": [
     "重新授权",

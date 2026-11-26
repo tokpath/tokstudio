@@ -99,9 +99,13 @@ func (a *Application) notifications(c *gin.Context) {
 	items := []any{}
 	for _, n := range rows {
 		item := gin.H{"id": n.ID, "title": n.Title, "body": n.Body, "category": n.Category, "necessary": n.Category == "mandatory", "system_generated": n.SystemGenerated(), "read_at": n.ReadAt, "created_at": n.CreatedAt}
-		if ref, ok := strings.CutPrefix(n.Reference, "order:"); ok && n.SystemGenerated() {
+		if kind, ref, ok := strings.Cut(n.Reference, ":"); ok && (kind == "order" || kind == "topup") && n.SystemGenerated() {
 			if _, err := uuid.Parse(ref); err == nil {
-				item["action_url"] = "/workspace/orders?record=" + url.QueryEscape(ref)
+				section := "orders"
+				if kind == "topup" {
+					section = "topups"
+				}
+				item["action_url"] = "/workspace/" + section + "?record=" + url.QueryEscape(ref)
 			}
 		}
 		items = append(items, item)

@@ -2,7 +2,9 @@
 import { billingLabel } from "@/lib/model-billing";
 import { useI18n } from "@/components/i18n";
 import { localizeNumberText } from "@/lib/i18n";
+import { customerOrderRecordHref, customerOrderSection, type CustomerOrderSection } from "@/lib/customer-order-navigation";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Search, X } from "lucide-react";
@@ -10,11 +12,12 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { downloadCSV, request } from "@/lib/api-client";
 import { collection, OrderSchema, RequestSchema, CommandResultSchema } from "@/lib/contracts";
 import { compareDecimal, safeAssetURL } from "@/lib/decimal";
+import { customerOrderStatus, customerOrderStatusLabels, paymentDeadlinePassed } from "@/lib/customer-order-status";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Empty, ErrorPanel, Heading, Loading, Money, Notice, Status, statusLabels, Table, When, useCommand } from "./shared";
-import { ContextHelp, CopyButton, DetailPairs } from "./customer-ui";
+import { ContextHelp, CopyButton, DetailPairs, useOrderDeadlineClock } from "./customer-ui";
 import { modelTerm } from "./customer-models";
 import { CancelUnpaidOrder, PaymentAction } from "./customer-plans";
 import { ReportPeriod, monthRange, type ReportRange } from "./report-period";
@@ -28,12 +31,12 @@ export function useCursor(namespace: string) {
     setCursor(""); setHistory([]); setSearch(value);
   }, path: (base: string) => { const params = new URLSearchParams(); if (cursor) params.set("cursor", cursor); if (search) params.set("q", search); return `${base}${params.size ? `?${params}` : ""}`; }, next: (value: string) => { setHistory(previous => [...previous, cursor]); setCursor(value); }, previous: () => { const prior = [...history]; setCursor(prior.pop() || ""); setHistory(prior); } };
 }
-export function RecordSearch({ paging, placeholder = "搜索业务编号、模型或关联记录", statuses, hint }: { paging: ReturnType<typeof useCursor>; placeholder?: string; statuses?: string[]; hint?: string }) {
+export function RecordSearch({ paging, placeholder = "搜索业务编号、模型或关联记录", statuses, statusNames, hint }: { paging: ReturnType<typeof useCursor>; placeholder?: string; statuses?: string[]; statusNames?: Record<string, string>; hint?: string }) {
   const { t } = useI18n();
   const [value, setValue] = useState(paging.search);
   const hintID = useId();
   useEffect(() => { setValue(paging.search); }, [paging.search]);
-  return <div className="mb-5"><form role="search" className="flex flex-wrap gap-3" onSubmit={event => { event.preventDefault(); paging.setSearch(value.trim()); }}><div className="relative min-w-0 flex-1 sm:max-w-xl"><Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-ink-mute" /><Input type="search" aria-label={t("搜索明细")} aria-describedby={hint ? hintID : undefined} placeholder={t(placeholder)} className="pl-10" maxLength={200} value={value} onChange={event => setValue(event.target.value)} /></div><Button type="submit" variant="outline" aria-busy={paging.refreshing}>{t("查询")}</Button>{statuses && <select aria-label={t("快捷查询状态")} className="h-11 max-w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm" value={statuses.includes(paging.search) ? paging.search : ""} onChange={event => paging.setSearch(event.target.value)}><option value="">{t("快捷查询状态")}</option>{statuses.map(status => <option key={status} value={status}>{t(statusLabels[status] || status)}</option>)}</select>}{(paging.search || value) && <Button type="button" variant="ghost" onClick={() => { setValue(""); paging.setSearch(""); }}>{t("清除")}</Button>}</form>{hint && <p id={hintID} className="mt-2 text-xs leading-6 text-ink-mute">{t(hint)}</p>}</div>;
+  return <div className="mb-5"><form role="search" className="flex flex-wrap gap-3" onSubmit={event => { event.preventDefault(); paging.setSearch(value.trim()); }}><div className="relative min-w-0 flex-1 sm:max-w-xl"><Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-ink-mute" /><Input type="search" aria-label={t("搜索明细")} aria-describedby={hint ? hintID : undefined} placeholder={t(placeholder)} className="pl-10" maxLength={200} value={value} onChange={event => setValue(event.target.value)} /></div><Button type="submit" variant="outline" aria-busy={paging.refreshing}>{t("查询")}</Button>{statuses && <select aria-label={t("快捷查询状态")} className="h-11 max-w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm" value={statuses.includes(paging.search) ? paging.search : ""} onChange={event => paging.setSearch(event.target.value)}><option value="">{t("快捷查询状态")}</option>{statuses.map(status => <option key={status} value={status}>{t(statusNames?.[status] || statusLabels[status] || status)}</option>)}</select>}{(paging.search || value) && <Button type="button" variant="ghost" onClick={() => { setValue(""); paging.setSearch(""); }}>{t("清除")}</Button>}</form>{hint && <p id={hintID} className="mt-2 text-xs leading-6 text-ink-mute">{t(hint)}</p>}</div>;
 }
 export function CursorControls({ paging, next }: { paging: ReturnType<typeof useCursor>; next?: string | null }) {
   const { t } = useI18n();
@@ -44,31 +47,81 @@ function useSelectedRecord() {
   useEffect(() => { const value = new URLSearchParams(window.location.search).get("record"); if (value) setSelected(value); }, []);
   return [selected, (value: string | undefined) => { setSelected(value); const url = new URL(window.location.href); if (value) url.searchParams.set("record", value); else url.searchParams.delete("record"); window.history.replaceState(null, "", url); }] as const;
 }
+export function useCustomerOrderRecord() {
+  const selected = useSearchParams()?.get("record") || undefined;
+  return [selected, (value?: string) => {
+    const url = new URL(window.location.href);
+    if (value) url.searchParams.set("record", value);
+    else url.searchParams.delete("record");
+    window.history.replaceState(null, "", url);
+  }] as const;
+}
 export function CustomerOrders() {
   const { t } = useI18n();
-  const paging = useCursor("orders"), [selected, setSelected] = useSelectedRecord();
+  const paging = useCursor("orders"), [selected, setSelected] = useCustomerOrderRecord();
   const data = useQuery({ queryKey: ["orders", paging.cursor, paging.search], queryFn: ({signal}) => request(paging.path("/api/v1/me/orders"), collection(OrderSchema), {signal}), refetchInterval: query => query.state.data?.items.some(item => ["pending", "pending_payment", "partially_paid", "paid", "paid_pending_delivery", "pending_verification"].includes(item.status)) ? 5000 : false });
-  return <><Heading title={t("订单与到账")} description={t("从付款到交付，核对每笔套餐购买和续费。已收款未交付时继续处理原订单。余额充值记录在充值页面查看。")} actions={<Button asChild><Link href="/workspace/plans">{t("购买套餐")}</Link></Button>} /><RecordSearch paging={paging} placeholder={t("搜索订单编号、订单类型或状态")} statuses={["pending_payment", "paid_pending_delivery", "fulfilled", "pending_verification", "refunded"]} hint={t("查询套餐购买和续费；选择状态会替换当前关键词。")} />
-    <OrderDetailDrawer orderID={selected} onClose={() => setSelected(undefined)} />
-    {data.isPending ? <Loading /> : data.isError ? <ErrorPanel error={data.error} retry={() => void data.refetch()} /> : !data.data.items.length ? <Empty title={paging.search ? t("没有找到匹配订单") : t("还没有购买记录")}>{paging.search ? t("检查订单编号或清除搜索后重试。") : <><p>{t("购买套餐后，订单会显示在这里。余额充值记录在充值页面查看。")}</p><Button asChild variant="outline" className="mt-4"><Link href="/workspace/plans">{t("查看可购买套餐")}</Link></Button></>}</Empty> : <div className="space-y-3">{data.data.items.map(item => <Card key={item.id} className={item.id === selected ? "border-brand" : ""}><div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><h2 className="font-medium">{item.plan_name || (item.kind === "topup" ? t("结算币种 余额充值") : t("套餐订单"))}</h2><p className="mt-2 break-all font-mono text-xs text-ink-mute">{item.id}</p><p className="mt-2 text-xs text-ink-secondary">{item.operator_name} · <When value={item.created_at} /></p></div><Status value={item.status} /></div><div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-hairline pt-4"><div className="flex flex-wrap gap-x-8 gap-y-3"><div><p className="mb-1 text-xs text-ink-mute">{t("订单本金")}</p><Money value={item.amount_money} unit={item.monetary_snapshot?.currency || "MONEY"} /></div><div><p className="mb-1 text-xs text-ink-mute">{t("已核实本金")}</p><Money value={item.paid_money} unit={item.monetary_snapshot?.currency || "MONEY"} /></div></div><div className="flex flex-wrap items-center gap-2">{item.cancel_allowed && <CancelUnpaidOrder orderID={item.id} onCancelled={() => { setSelected(item.id); void data.refetch(); }} />}<Button variant="outline" size="sm" onClick={() => setSelected(item.id)}>{["pending", "pending_payment", "partially_paid"].includes(item.status) ? t("继续付款 / 查看详情") : t("查看订单详情")}<ArrowRight /></Button></div></div></Card>)}</div>}<CursorControls paging={paging} next={data.data?.next_cursor} /><div className="mt-6"><ContextHelp title={t("付款成功后为什么还未到账")}><p>{t("足额付款和资产交付是两个步骤。请先刷新原订单记录；已收款未交付不需要重新支付。金额、时间或币种存在差异时，经营方将保留异常记录继续核实。")}</p></ContextHelp></div></>;
+  const now = useOrderDeadlineClock(data.data?.items.flatMap(item => [item.expires_at, item.payment_action?.payment_quote?.expires_at]) || []);
+  return <>
+    <Heading title={t("订单与到账")} description={t("从付款到交付，核对每笔套餐购买和续费。已收款未交付时继续处理原订单。余额充值记录在充值页面查看。")} actions={<Button asChild><Link href="/workspace/plans">{t("购买套餐")}</Link></Button>} />
+    <RecordSearch paging={paging} placeholder={t("搜索订单编号、订单类型或状态")} statuses={["pending_payment", "paid_pending_delivery", "fulfilled", "pending_verification", "expired", "refunded"]} statusNames={customerOrderStatusLabels} hint={t("查询套餐购买和续费；选择状态会替换当前关键词。")} />
+    <OrderDetailDrawer section="orders" orderID={selected} onClose={setSelected} />
+    {data.isPending ? <Loading /> : data.isError ? <ErrorPanel error={data.error} retry={() => void data.refetch()} /> : !data.data.items.length ? <Empty title={paging.search ? t("没有找到匹配订单") : t("还没有购买记录")}>{paging.search ? t("检查订单编号或清除搜索后重试。") : <><p>{t("购买套餐后，订单会显示在这里。余额充值记录在充值页面查看。")}</p><Button asChild variant="outline" className="mt-4"><Link href="/workspace/plans">{t("查看可购买套餐")}</Link></Button></>}</Empty> : <div className="space-y-3">
+      {data.data.items.map(item => {
+        const status = customerOrderStatus(item, now);
+        const deadlinePassed = paymentDeadlinePassed(item, now);
+        const canContinuePayment = ["pending", "pending_payment", "awaiting_payment"].includes(status) && !deadlinePassed;
+        return <Card key={item.id} className={item.id === selected ? "border-brand" : ""}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="font-medium">{item.plan_name || t("套餐订单")}</h2>
+              <p className="mt-2 break-all font-mono text-xs text-ink-mute">{item.id}</p>
+              <p className="mt-2 text-xs text-ink-secondary">{item.operator_name} · <When value={item.created_at} /></p>
+            </div>
+            <Status value={status} labels={customerOrderStatusLabels} />
+          </div>
+          <div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-hairline pt-4">
+            <div className="flex flex-wrap gap-x-8 gap-y-3">
+              <div><p className="mb-1 text-xs text-ink-mute">{t("订单本金")}</p><Money value={item.amount_money} unit={item.monetary_snapshot?.currency || "MONEY"} /></div>
+              <div><p className="mb-1 text-xs text-ink-mute">{t("已核实本金")}</p><Money value={item.paid_money} unit={item.monetary_snapshot?.currency || "MONEY"} /></div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {item.cancel_allowed && !deadlinePassed && !item.has_verified_receipt && <CancelUnpaidOrder orderID={item.id} onCancelled={() => { setSelected(item.id); void data.refetch(); }} />}
+              <Button variant="outline" size="sm" onClick={() => setSelected(item.id)}>{canContinuePayment ? t("继续付款 / 查看详情") : t("查看订单详情")}<ArrowRight /></Button>
+            </div>
+          </div>
+        </Card>;
+      })}
+    </div>}
+    <CursorControls paging={paging} next={data.data?.next_cursor} />
+    <div className="mt-6"><ContextHelp title={t("付款成功后为什么还未到账")}><p>{t("足额付款和资产交付是两个步骤。请先刷新原订单记录；已收款未交付不需要重新支付。金额、时间或币种存在差异时，经营方将保留异常记录继续核实。")}</p></ContextHelp></div>
+  </>;
 }
-export function OrderDetailDrawer({ orderID, onClose }: { orderID?: string; onClose: () => void }) {
+export function OrderDetailDrawer({ section, orderID, onClose }: { section: CustomerOrderSection; orderID?: string; onClose: () => void }) {
   const { t } = useI18n();
-  const detail = useQuery({ queryKey: ["order-detail", orderID], queryFn: () => request(`/api/v1/me/orders/${encodeURIComponent(orderID || "")}`, OrderSchema), enabled: !!orderID });
-  return <Dialog.Root open={!!orderID} onOpenChange={open => { if (!open) onClose(); }}>
+  const router = useRouter();
+  const detail = useQuery({ queryKey: ["order-detail", orderID], queryFn: ({ signal }) => request(`/api/v1/me/orders/${encodeURIComponent(orderID || "")}`, OrderSchema, { signal }), enabled: !!orderID });
+  const order = detail.data;
+  const destination = order && customerOrderSection(order.kind) !== section ? customerOrderRecordHref(order.kind, order.id) : undefined;
+  useEffect(() => {
+    if (destination) router.replace(destination);
+  }, [destination, router]);
+  if (!orderID || destination) return null;
+  const topup = section === "topups";
+  const description = detail.isPending ? t("正在加载当前记录…") : topup ? t("结算币种 余额充值") : t("从付款到交付，核对每笔套餐购买和续费。已收款未交付时继续处理原订单。余额充值记录在充值页面查看。");
+  return <Dialog.Root open onOpenChange={open => { if (!open) onClose(); }}>
     <Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-40 bg-scrim" />
       <Dialog.Content className="th-operation-panel fixed inset-y-0 right-0 z-50 w-full max-w-3xl overflow-y-auto border-l border-hairline bg-canvas-raised p-5 focus:outline-none sm:p-8">
         <div className="mb-6 flex items-start justify-between gap-4 border-b border-hairline pb-5">
-          <div className="min-w-0 pr-8"><Dialog.Title className="text-xl font-semibold">{t("订单详情")}</Dialog.Title><Dialog.Description className="mt-2 text-sm leading-6 text-ink-mute">{t("从付款到交付，核对每笔套餐购买和续费。已收款未交付时继续处理原订单。余额充值记录在充值页面查看。")}</Dialog.Description></div>
+          <div className="min-w-0 pr-8"><Dialog.Title className="text-xl font-semibold">{t("订单详情")}</Dialog.Title><Dialog.Description className="mt-2 text-sm leading-6 text-ink-mute">{description}</Dialog.Description></div>
           <Dialog.Close asChild><Button variant="ghost" size="icon" aria-label={t("收起详情")}><X /></Button></Dialog.Close>
         </div>
-        {detail.isPending ? <Loading /> : detail.isError ? <ErrorPanel error={detail.error} retry={() => void detail.refetch()} /> : detail.data ? <PaymentAction order={detail.data} /> : null}
-        {detail.data && <div className="mt-5 flex flex-wrap gap-5 text-sm text-brand-emphasis">
-          <a href={`/api/v1/me/orders/${encodeURIComponent(detail.data.id)}/voucher/order`} className="underline" download>{t("下载订单凭证")}</a>
-          {detail.data.receipt_voucher_available && <a href={`/api/v1/me/orders/${encodeURIComponent(detail.data.id)}/voucher/receipt`} className="underline" download>{t("下载收款凭证")}</a>}
+        {detail.isPending ? <Loading /> : detail.isError ? <ErrorPanel error={detail.error} retry={() => void detail.refetch()} /> : order && <PaymentAction key={order.id} order={order} />}
+        {order && <div className="mt-5 flex flex-wrap gap-5 text-sm text-brand-emphasis">
+          <a href={`/api/v1/me/orders/${encodeURIComponent(order.id)}/voucher/order`} className="underline" download>{t("下载订单凭证")}</a>
+          {order.receipt_voucher_available && <a href={`/api/v1/me/orders/${encodeURIComponent(order.id)}/voucher/receipt`} className="underline" download>{t("下载收款凭证")}</a>}
         </div>}
-        <div className="mt-5 flex flex-wrap gap-5 border-t border-hairline pt-5 text-sm text-brand-emphasis"><Link href="/workspace/credit-sources" className="underline">{t("额度与到期记录")}</Link><Link href="/workspace/invoices" className="underline">{t("开票与交易凭证")}</Link><Link href="/workspace/refunds" className="underline">{t("余额提现")}</Link></div>
+        <div className="mt-5 flex flex-wrap gap-5 border-t border-hairline pt-5 text-sm text-brand-emphasis">{!topup && <><Link href="/workspace/credit-sources" className="underline">{t("额度与到期记录")}</Link><Link href="/workspace/invoices" className="underline">{t("开票与交易凭证")}</Link></>}<Link href="/workspace/refunds" className="underline">{t("余额提现")}</Link></div>
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog.Root>;

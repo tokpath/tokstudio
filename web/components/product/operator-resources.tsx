@@ -21,6 +21,8 @@ import { X, ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 import { request } from "@/lib/api-client";
 import { CommandResultSchema, CreditsSchema, Decimal, ResourcePageSchema, type Entity, type Operation, type JSONValue, type ResourcePage, type SubscriptionVendor } from "@/lib/contracts";
 import { compareDecimal } from "@/lib/decimal";
+import { customerOrderStatus, customerOrderStatusLabels } from "@/lib/customer-order-status";
+import { customerOrderRecordHref } from "@/lib/customer-order-navigation";
 import { canReadResource, operatorResourcePath, resourceLabel } from "@/lib/navigation";
 import { useNavigationBlock } from "@/lib/navigation-guard";
 import { subscriptionVendors } from "@/lib/subscription-vendors";
@@ -30,6 +32,7 @@ import { AppearanceForm, AppearanceCard, DomainCard } from "./branding";
 import { PaymentMethodForm } from "./payment-method-form";
 import { OperationForm } from "./operation-form";
 import { CustomerWithdrawalApplications, CustomerWithdrawalRequest } from "./customer-withdrawal-request";
+import { useOrderDeadlineClock } from "./customer-ui";
 import { Empty, ErrorPanel, Heading, Loading, Money, Notice, Stat, Status, Table, useCommand, When, refundStatusLabels, statusLabels, withdrawalStatusLabels } from "./shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,11 +110,13 @@ type ResourceOptions = {
   inspectionLinks?: boolean;
   businessView?: string;
   controlledView?: string;
+  createTopup?: boolean;
+  onCreateTopupOpen?: () => void;
   procurementSection?: string;
   onProcurementSection?: (section:string)=>void;
 };
 
-export function ResourceScreen({ operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, record, inspectionLinks, controlledView, supplierPool }: ResourceOptions) {
+export function ResourceScreen({ operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, record, inspectionLinks, controlledView, supplierPool, createTopup, onCreateTopupOpen }: ResourceOptions) {
   const { t } = useI18n();
   const cache = useQueryClient();
   const { session } = useProduct();
@@ -161,10 +166,25 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   const canRead = customer ? session?.kind === "customer" : canReadResource(workspace, resourceName);
   const keyFor = (state: typeof filters) => ["resource", scope, resource, state.cursor, state.q, state.view, state.status, state.section, state.include_auxiliary || "", record || ""];
   const data = useQuery({ queryKey: keyFor(filters), queryFn: ({ signal }) => request(`${scope}/${resource}${parameters.size ? `?${parameters}` : ""}`, ResourcePageSchema, { signal }), enabled: canRead && appliedPath !== "" && appliedPath === loadedPath, refetchInterval: query => resourceName === "pricing" ? pricingRefetchInterval(query.state.data) : ["domains", "jobs"].includes(resourceName) ? 15_000 : false });
+  const topupRows = customer && resourceName === "topups" ? data.data?.items : undefined;
+  const now = useOrderDeadlineClock(topupRows?.map(row => String(row.values.expires_at ?? "")) || []);
   if (!canRead) return <Empty title={t("没有查看权限")}>{t("此页面需要当前经营方明确授予相应权限。")}</Empty>;
   if (data.isPending) return <Loading />;
   if (data.isError) return <ErrorPanel error={data.error} retry={() => void data.refetch()} />;
-  const page = data.data;
+  const page = topupRows ? { ...data.data, items: topupRows.map(row => {
+    const paid = Decimal.safeParse(row.values.paid_money ?? row.values.external_allocated_money);
+    const amount = Decimal.safeParse(row.values.due_money);
+    const status = customerOrderStatus({
+      status: row.status,
+      expires_at: String(row.values.expires_at ?? ""),
+      delivered_at: typeof row.values.completed_at === "string" ? row.values.completed_at : undefined,
+      paid_money: paid.data,
+      amount_money: amount.data,
+      has_verified_receipt: row.values.has_verified_receipt === true,
+      payment_state: typeof row.values.payment_state === "string" ? row.values.payment_state : undefined,
+    }, now);
+    return status && status !== row.status ? { ...row, status } : row;
+  }) } : data.data;
   const serverSearch = page.search_supported === true;
   const statusFilter = page.status_supported === true;
   const apply = (next: Partial<ResourceFilter>) => {
@@ -178,7 +198,7 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   return <>
     {record && <div className="mb-5"><Notice><div className="flex flex-wrap items-center justify-between gap-3"><span>{t("正在办理关联事项")}</span><Link className="text-brand-emphasis underline" href={operatorID ? operatorResourcePath(operatorID, resource) : `/workspace/${resource}`}>{t("返回全部记录")}</Link></div></Notice></div>}
     {controlledView === undefined && page.views && <div aria-label={t("业务视图")} className="mb-5 flex flex-wrap gap-2">{page.views.map(item => <Button key={item.value} variant={(filters.view || page.views?.[0]?.value) === item.value ? "default" : "outline"} onClick={() => apply({ view: item.value, ...(resourceName==="procurement" ? {section:"orders",status:""} : {}) })}>{t(item.label)}</Button>)}</div>}
-    <ResourceCollection page={page} operatorID={operatorID} resource={resource} supplierPool={supplierPool} customer={customer} embedded={embedded} layout={layout} onInspect={onInspect} inspectionLinks={inspectionLinks} businessView={filters.view || page.views?.[0]?.value} procurementSection={record ? (page.items[0]?.values.record_kind==="quote" ? "quotes" : ["authorization","replenishment_attempt"].includes(String(page.items[0]?.values.record_kind)) ? "automatic" : "orders") : filters.section || "orders"} onProcurementSection={section=>apply({section,status:""})} record={record} toolbar={serverSearch || statusFilter ? <div className="min-w-0 flex-1 basis-[32rem]"><form onSubmit={event => { event.preventDefault(); apply({ q: query.trim() }); }}>
+    <ResourceCollection page={page} operatorID={operatorID} resource={resource} supplierPool={supplierPool} customer={customer} embedded={embedded} layout={layout} onInspect={onInspect} inspectionLinks={inspectionLinks} createTopup={createTopup} onCreateTopupOpen={onCreateTopupOpen} businessView={filters.view || page.views?.[0]?.value} procurementSection={record ? (page.items[0]?.values.record_kind==="quote" ? "quotes" : ["authorization","replenishment_attempt"].includes(String(page.items[0]?.values.record_kind)) ? "automatic" : "orders") : filters.section || "orders"} onProcurementSection={section=>apply({section,status:""})} record={record} toolbar={serverSearch || statusFilter ? <div className="min-w-0 flex-1 basis-[32rem]"><form onSubmit={event => { event.preventDefault(); apply({ q: query.trim() }); }}>
       <div className="flex flex-wrap items-center gap-2">{serverSearch && <div className="relative min-w-48 flex-1"><Search size={15} aria-hidden className="absolute left-3 top-3.5 text-ink-mute" /><Input aria-label={t("搜索记录")} aria-describedby={searchDescription} placeholder={resourceName === "notifications" ? t("搜索通知标题、正文或关联事项") : resourceName === "customers" ? t("搜索客户名称或邮箱") : resourceName === "procurement-invoices" ? t("搜索供货方、发票编号或采购订单编号") : resourceName === "invoices" ? t(customer ? "搜索发票编号或购买订单编号" : "搜索申请人、邮箱、发票编号或购买订单编号") : resourceName === "gifts" ? t("搜索赠送编号、客户邮箱、客户名称或赠送说明") : resourceName === "ledger" ? t("搜索主体名称、邮箱、账户用途或单位") : t("搜索业务编号、名称或关联记录")} value={query} onChange={event => setQuery(event.target.value)} className="pl-9" /></div>}
       {resourceName === "ledger" && filters.view !== "journals" && <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={filters.include_auxiliary === "true"} onChange={event => apply({ include_auxiliary: event.target.checked ? "true" : "" })} />{t("包含记账辅助账户")}</label>}
       {statusFilter && <label className="flex items-center gap-2 text-xs text-ink-secondary"><span>{t("状态")}</span><select className="min-h-11 rounded-control border border-hairline bg-canvas-raised px-3 text-sm" aria-label={t("筛选状态")} value={filters.status} onChange={event => apply({ status: event.target.value })}><option value="">{t("全部状态")}</option>{statuses.map(status => <option key={status} value={status}>{t(resourceFilterStatusLabel(resourceName, status))}</option>)}</select></label>}
@@ -214,6 +234,7 @@ const disputeStatusLabels: Record<string, string> = {
 };
 
 function recordStatusLabels(resource: string) {
+  if (resource === "topups") return customerOrderStatusLabels;
   if (["invoices","procurement-invoices"].includes(resource)) return invoiceStatusLabels;
   if (resource === "refunds") return refundStatusLabels;
   if (resource === "disputes") return disputeStatusLabels;
@@ -222,6 +243,7 @@ function recordStatusLabels(resource: string) {
   return undefined;
 }
 export function resourceFilterStatusLabel(resource: string, status: string): string {
+  if (resource === "topups" && status === "expired") return customerOrderStatusLabels.expired;
   if (["invoices","procurement-invoices"].includes(resource) && invoiceStatusLabels[status]) return invoiceStatusLabels[status];
   if ((resource === "withdrawals" || resource === "balance-withdrawals") && withdrawalStatusLabels[status]) return withdrawalStatusLabels[status];
   if (resource === "refunds" && refundStatusLabels[status]) return refundStatusLabels[status];
@@ -275,7 +297,7 @@ function CustomerWithdrawalBar({ minimum, wallet }: { minimum?: { value: string;
   ];
   return <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-8 gap-y-3">{amounts.map(item => <div key={item.label} className="min-w-0"><p className="text-xs text-ink-mute">{t(item.label)}</p>{item.money && item.value ? <p className="mt-1 text-lg font-semibold"><Money value={item.value} unit="MONEY" /></p> : <p className="mt-1 text-lg font-semibold">{item.value ? t(item.value) : t("尚未读取")}</p>}</div>)}<p className="w-full text-xs leading-6 text-ink-mute">{t("提现手续费由你承担。经营方单人审批后付款。")}</p></div>;
 }
-export function ResourceCollection({ page, operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, toolbar, initialValues, actionsOnly = false, record, inspectionLinks, businessView, procurementSection, onProcurementSection, supplierPool }: ResourceOptions & { page: ResourcePage; toolbar?: ReactNode; initialValues?: Record<string, JSONValue>; actionsOnly?: boolean }) {
+export function ResourceCollection({ page, operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, toolbar, initialValues, actionsOnly = false, record, inspectionLinks, businessView, procurementSection, onProcurementSection, supplierPool, createTopup, onCreateTopupOpen }: ResourceOptions & { page: ResourcePage; toolbar?: ReactNode; initialValues?: Record<string, JSONValue>; actionsOnly?: boolean }) {
   const { t, locale } = useI18n();
   const { session } = useProduct();
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
@@ -290,6 +312,12 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const procurementTab=procurementSection || localProcurementTab;
   const setProcurementTab=(next:string)=>{setLocalProcurementTab(next);onProcurementSection?.(next);};
   const resourceName = resource.split("/")[0];
+  const topupOperation = customer && resourceName === "topups" && createTopup ? page.operations.find(operation => operation.name === "topup") : undefined;
+  useEffect(() => {
+    if (!topupOperation || blocked) return;
+    setSelection({ operation: topupOperation });
+    onCreateTopupOpen?.();
+  }, [topupOperation, blocked, onCreateTopupOpen]);
   if (resourceName === "alerts" && operatorID) return <RiskSettings operatorID={operatorID} page={page} />;
   if (resourceName === "ledger") return <LedgerCollection page={page} view={businessView || "accounts"} toolbar={toolbar} />;
   const canOperate = (operation: Operation) => canRunOperatorAction(workspace,operation.path) && (!operation.permission || !!workspace?.permissions.includes("*") || !!workspace?.permissions.includes(operation.permission));
@@ -319,7 +347,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   }
   const scope = operatorID ? `/api/v1/operators/${encodeURIComponent(operatorID)}` : "/api/v1/me";
   const inspect = (row: Entity) => onInspect && ["customers", "orders"].includes(resourceName) ? onInspect(resourceName, row) : setFacts(row);
-  const showInspect = !["catalog", "providers", "branding", "channel-themes", "domains", "jobs"].includes(resourceName);
+  const showInspect = !["catalog", "providers", "branding", "channel-themes", "domains", "jobs", "topups"].includes(resourceName);
   const inspectLabel = resourceName === "customers" ? t("客户工作台") : resourceName === "orders" ? t("查看并办理") : t("查看详情");
   const kinds = [...new Set(page.items.map(row => row.values.record_kind).filter((value): value is string => typeof value === "string"))];
   const procurementGroups: Record<string, string[]> = { orders: ["order"], quotes: ["quote"], automatic: ["authorization", "replenishment_attempt"] };
@@ -345,7 +373,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const linkedRefundIDs = new Set(refundCases.flatMap(row => { const legs = rows.filter(leg => leg.values.record_kind === "leg" && leg.values.case_id === row.id); return [row.id, ...legs.map(leg => leg.id), ...rows.filter(payment => legs.some(leg => payment.values.leg_id === leg.id)).map(payment => payment.id)]; }));
   const orphanRefunds = rows.filter(row => !linkedRefundIDs.has(row.id));
   const actions = (row: Entity) => <div className="flex flex-wrap items-center gap-1 text-brand-emphasis">
-    {customer && resourceName === "topups" && <Button asChild variant="ghost" size="sm"><Link href={`/workspace/orders?record=${encodeURIComponent(row.id)}`}>{t("查看订单详情")}</Link></Button>}
+    {customer && resourceName === "topups" && <Button asChild variant="ghost" size="sm"><Link href={customerOrderRecordHref("topup", row.id)}>{t("查看订单详情")}</Link></Button>}
     {showInspect && (inspectionLinks && operatorID && ["customers", "orders"].includes(resourceName) ? <Button asChild variant="ghost" size="sm"><Link href={subjectURL(operatorID, resourceName, row.id, typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined)} onClick={event => { if (onInspect && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.button === 0) { event.preventDefault(); inspect(row); } }}>{inspectLabel}<ArrowUpRight size={13} aria-hidden className="ml-1" /></Link></Button> : <Button type="button" variant="ghost" size="sm" onClick={() => inspect(row)}>{inspectLabel}<ArrowUpRight size={13} aria-hidden className="ml-1" /></Button>)}{editOperation && (!row.allowed_actions || row.allowed_actions.includes(editOperation.name)) && <Button type="button" variant="ghost" size="sm" onClick={() => selectOperation({ ...editOperation, label: editable.label }, row)}>{t(editable.label)}
     </Button>}{rowOperations(row).map(operation => <Button key={operation.name} type="button" variant="ghost" size="sm" onClick={() => selectOperation(operation, row)}>{t(operation.label)}
     </Button>)}{(customer || resourceName === "procurement-invoices") && ["invoices", "procurement-invoices"].includes(resourceName) && ["issued", "review_required", "voided"].includes(row.status || "") && <Button type="button" variant="ghost" size="sm" onClick={() => setInvoiceID(row.id)}>{t("文件与下载")}</Button>}

@@ -3103,6 +3103,22 @@
     "ms": "Pilih pakej",
     "th": "เลือกแพ็กเกจ"
   },
+  "重新充值": {
+    "en": "Start a new top-up",
+    "ja": "チャージし直す",
+    "ru": "Начать новое пополнение",
+    "hi": "नया टॉप-अप शुरू करें",
+    "ms": "Mulakan tambah nilai baharu",
+    "th": "เริ่มเติมเงินใหม่"
+  },
+  "重新选择套餐": {
+    "en": "Choose a package again",
+    "ja": "プランを選び直す",
+    "ru": "Выбрать пакет заново",
+    "hi": "पैकेज फिर से चुनें",
+    "ms": "Pilih pakej semula",
+    "th": "เลือกแพ็กเกจอีกครั้ง"
+  },
   "查看接入代码": {
     "en": "View integration code",
     "ja": "接続コードを確認",
@@ -3134,6 +3150,22 @@
     "hi": "भुगतान समयसीमा बीत गई। भुगतान से पहले मूल ऑर्डर रीफ़्रेश करें और प्राप्तियाँ सत्यापित करें; समाप्त निर्देशों का पालन न करें। पहले से चुकाई गई निधि इसी ऑर्डर के तहत संभाली जाएगी।",
     "ms": "Tarikh akhir pembayaran telah berlalu. Muat semula pesanan asal dan sahkan penerimaan sebelum membayar; jangan ikut arahan yang tamat tempoh. Dana yang telah dibayar masih diurus di bawah pesanan ini.",
     "th": "พ้นกำหนดชำระแล้ว โปรดรีเฟรชคำสั่งซื้อเดิมและตรวจสอบเงินรับก่อนชำระ อย่าใช้คำแนะนำที่หมดอายุ เงินที่ชำระแล้วจะยังจัดการตามคำสั่งซื้อนี้"
+  },
+  "付款期限已过。如已付款，请保留付款凭证并核实原订单。": {
+    "en": "The payment deadline has passed. If you already paid, keep your proof of payment and check the original order.",
+    "ja": "支払期限を過ぎています。支払済みの場合は、支払証明を保管し、元の注文を確認してください。",
+    "ru": "Срок оплаты истёк. Если вы уже заплатили, сохраните подтверждение оплаты и проверьте исходный заказ.",
+    "hi": "भुगतान की समयसीमा बीत चुकी है। अगर आपने भुगतान कर दिया है, तो भुगतान का प्रमाण रखें और मूल ऑर्डर देखें।",
+    "ms": "Tarikh akhir pembayaran telah berlalu. Jika anda sudah membayar, simpan bukti pembayaran dan semak pesanan asal.",
+    "th": "พ้นกำหนดชำระเงินแล้ว หากชำระเงินแล้ว โปรดเก็บหลักฐานการชำระเงินและตรวจสอบคำสั่งซื้อเดิม"
+  },
+  "原通道尚未确认这笔收款。付款期限已过。若已付款，请稍后刷新原订单。": {
+    "en": "The original payment provider has yet to confirm receipt. The payment deadline has passed. If you already paid, refresh the original order later.",
+    "ja": "元の決済サービスでは入金を確認できていません。支払期限を過ぎています。支払済みの場合は、しばらくしてから元の注文を更新してください。",
+    "ru": "Платёжная система пока не подтвердила поступление средств. Срок оплаты истёк. Если вы уже заплатили, обновите исходный заказ позже.",
+    "hi": "मूल भुगतान प्रदाता ने अभी तक रकम मिलने की पुष्टि नहीं की है। भुगतान की समयसीमा बीत चुकी है। अगर आपने भुगतान कर दिया है, तो बाद में मूल ऑर्डर रीफ़्रेश करें।",
+    "ms": "Penyedia pembayaran asal belum mengesahkan penerimaan. Tarikh akhir pembayaran telah berlalu. Jika anda sudah membayar, muat semula pesanan asal kemudian.",
+    "th": "ผู้ให้บริการชำระเงินเดิมยังไม่ได้ยืนยันการรับเงิน พ้นกำหนดชำระเงินแล้ว หากชำระเงินแล้ว โปรดกลับมารีเฟรชคำสั่งซื้อเดิมในภายหลัง"
   },
   "目前仅核实部分款项，请按原订单核对付款。": {
     "en": "Only part of the payment is verified. Check payment against the original order.",

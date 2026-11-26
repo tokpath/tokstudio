@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { useI18n } from "@/components/i18n";
 import { Button } from "@/components/ui/button";
 import { OrderSchema, type Order } from "@/lib/contracts";
+import { paymentDeadlinePassed } from "@/lib/customer-order-status";
 import { closePaymentWindow, customerGkashOpenPath, focusPaymentWindow, openGkashPayment, type PaymentWindow, type PaymentWindowState } from "@/lib/payment-window";
 import { ErrorPanel, Notice, useCommand } from "./shared";
 import { useProduct } from "./context";
@@ -54,15 +55,19 @@ export function GkashPay({ order, windowState, openPath, launch, busy, onChangeM
   const customerCanSwitch = order.method_change_allowed === true && session?.kind === "customer" && others.length > 0;
   const label = busy ? "正在打开 Gkash 付款页…" : windowState === "unopened" ? "前往 GKash 付款" : "重新打开 GKash 付款";
   function open() {
-    if (busy || replace.busy || focusPaymentWindow(order.id) || !openPath) return;
+    if (busy || replace.busy || paymentDeadlinePassed(order) || focusPaymentWindow(order.id) || !openPath) return;
     void launch.run(order, undefined, openPath);
   }
   return <div className="space-y-5">
     <Notice>{t("请在 Gkash 付款页确认最终金额。未付款可更换付款方式；已经付款请等待核实，勿重复付款。")}</Notice>
     {(windowState === "open" || openPath) && <Button type="button" onClick={open} disabled={busy || replace.busy}>{t(label)}<ArrowRight /></Button>}
     {(customerCanSwitch || order.method_change_allowed === true && onChangeMethod) && <div className="space-y-3 border-t border-hairline pt-4">
-      {!choosing && <Button type="button" variant="outline" disabled={busy} onClick={() => onChangeMethod ? onChangeMethod() : setChoosing(true)}>{t("改用其它付款方式")}</Button>}
-      {choosing && customerCanSwitch && <form className="space-y-3" onSubmit={async event => { event.preventDefault(); if (!nextMethod || replace.busy || busy) return; await replace.run({ external_method_id: nextMethod,fee_rule_id:others.find(item=>item.id===nextMethod)?.fee_rule_id }); setChoosing(false); }}>
+      {!choosing && <Button type="button" variant="outline" disabled={busy} onClick={() => {
+        if (paymentDeadlinePassed(order)) return;
+        if (onChangeMethod) onChangeMethod();
+        else setChoosing(true);
+      }}>{t("改用其它付款方式")}</Button>}
+      {choosing && customerCanSwitch && <form className="space-y-3" onSubmit={async event => { event.preventDefault(); if (!nextMethod || replace.busy || busy || paymentDeadlinePassed(order)) return; await replace.run({ external_method_id: nextMethod,fee_rule_id:others.find(item=>item.id===nextMethod)?.fee_rule_id }); setChoosing(false); }}>
         <label className="block text-sm">{t("选择其它付款方式")}<select required value={nextMethod} onChange={event => setNextMethod(event.target.value)} className="mt-2 h-11 w-full rounded-control border border-hairline bg-canvas-raised px-3"><option value="">{t("选择已就绪的支付方式")}</option>{others.map(item => <option key={item.id} value={item.id}>{item.display_name || item.name}</option>)}</select></label>
         <div className="flex flex-wrap gap-3"><Button type="submit" disabled={replace.busy || busy || !nextMethod}>{replace.busy ? t("正在更换付款方式…") : t("确认更换付款方式")}</Button><Button type="button" variant="ghost" onClick={() => setChoosing(false)}>{t("留下当前付款方式")}</Button></div>
       </form>}

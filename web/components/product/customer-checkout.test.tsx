@@ -119,6 +119,34 @@ it("keeps payment instructions hidden for expired and refunded orders", () => {
   expect(screen.getByText(/此订单已结束/)).toBeTruthy();
 });
 
+it("removes payment and method changes when a displayed package order reaches its deadline", async () => {
+  vi.useFakeTimers();
+  const expiring = {
+    ...order, expires_at: new Date(Date.now() + 1000).toISOString(), method_change_allowed: true,
+    payment_action: { kind: "form" as const, gkash_opened: false },
+  };
+  mount(<PaymentAction order={expiring} onChangeMethod={vi.fn()} />);
+  expect(screen.getByRole("button", { name: "前往 GKash 付款" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "改用其它付款方式" })).toBeTruthy();
+
+  await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+  expect(screen.getByText("已过期")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "前往 GKash 付款" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "改用其它付款方式" })).toBeNull();
+  expect(screen.getByRole("link", { name: "重新选择套餐" }).getAttribute("href")).toBe("/workspace/plans#buy-plans");
+});
+
+it.each([
+  { state: { status: "pending", paid_money: "1" }, label: "部分付款" },
+  { state: { status: "expired", has_verified_receipt: true }, label: "待核实" },
+  { state: { status: "expired", payment_state: "awaiting_settlement" }, label: "待核实结算金额" },
+])("preserves $label for a receipt on an order past its deadline", ({ state, label }) => {
+  mount(<PaymentAction order={{ ...order, ...state, expires_at: "2000-01-01T00:00:00Z" }} />);
+  expect(screen.getByText(label)).toBeTruthy();
+  expect(screen.queryByText("完成本订单付款")).toBeNull();
+  expect(screen.queryByRole("link", { name: "重新选择套餐" })).toBeNull();
+});
+
 it("opens a new Gkash form once and returns to the same payment window", async () => {
   const change = vi.fn();
   const payment = { ...order, method_change_allowed: true, payment_action: { kind: "form", gkash_opened: false, currency: "MYR", amount: "4.18", instructions: "请在 Gkash 完成付款。" } };

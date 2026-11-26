@@ -14,6 +14,7 @@ import { useDeferredValue, useEffect, useId, useRef, useState, type FormEvent } 
 import { request } from "@/lib/api-client";
 import { CommandResultSchema, Decimal, SignedDecimal, JSONValueSchema, type CommandField, type Entity, type Operation, type JSONValue } from "@/lib/contracts";
 import { compareDecimal } from "@/lib/decimal";
+import { paymentDeadlinePassed } from "@/lib/customer-order-status";
 import { localizeNumberText } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -145,7 +146,8 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   // queryable without trapping the user in an ambiguous checkout response.
   const procurementPayment = /\/procurement\/[^/]+\/(checkout|query_payment)$/.test(path);
   const procurementOpenPath = procurementPayment ? path.replace(/\/(checkout|query_payment)$/, "/open_payment") : undefined;
-  const autoOpenPayment = path === "/api/v1/me/topups" || procurementPayment && operation.name === "checkout";
+  const topup = path === "/api/v1/me/topups";
+  const autoOpenPayment = topup || procurementPayment && operation.name === "checkout";
   const canLeave = procurementPayment || /\/(catalog|providers|routes)$/.test(operation.path);
   const busy = command.busy || !!gkash.state?.busy;
   const frozen = busy || command.unresolved || !!command.result;
@@ -249,7 +251,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
       });
       payWindow = kvoucher ? reservePaymentWindow() : null;
       const result = Object.keys(activeFiles).length ? await command.run((() => { const data = new FormData(); for (const [key, value] of Object.entries(payload)) data.append(key, typeof value === "string" ? value : JSON.stringify(value)); for (const [key, file] of Object.entries(activeFiles)) data.append(key, file); return data; })()) : await command.run(payload);
-      if (autoOpenPayment && result?.order?.payment_action?.kind === "form" && !result.order.payment_action.gkash_opened) await gkash.run(result.order, payWindow, procurementOpenPath);
+      if (autoOpenPayment && result?.order?.payment_action?.kind === "form" && !result.order.payment_action.gkash_opened && !paymentDeadlinePassed(result.order)) await gkash.run(result.order, payWindow, procurementOpenPath);
       else closePaymentWindow(payWindow);
     } catch (error) {
       closePaymentWindow(payWindow);
@@ -282,7 +284,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
       {command.result && <div role="status" className="rounded-control border border-success/30 bg-success/5 p-5"><CheckCircle2 className="mb-3 size-6 text-success" aria-hidden="true" /><h3 className="font-semibold">{operation.name === "reconcile" ? t("对账已完成") : t("{operation}已受理", { operation: t(operation.label) })}</h3><p className="mt-2 text-sm leading-7 text-ink-secondary">{t(command.result.message || "本次办理已保存。返回业务记录即可查看最新进展及后续可办理事项。")}</p>{command.result.access_url && <AccessHandoff url={command.result.access_url} email={command.result.email} password={values.initial_password} requiresPasswordChange={command.result.requires_password_change} />}</div>}
       <div className="th-form-actions"><Button type="submit" disabled={command.busy || configurationPending || evidencePending || !scoped || !!command.result}>{command.busy ? t("正在提交，请稍候…") : command.unresolved ? t("重试本次操作") : command.result ? t("本次操作已完成，关闭后查看最新记录") : t(operation.label)}</Button>{!command.result && <p className="text-xs leading-6 text-ink-mute">{command.busy ? t("正在保存，请保持页面。") : command.unresolved ? (canLeave ? t("可以放弃并关闭，回到列表后重新填写。") : t("原提交内容已锁定，等待核实。")) : t(/\/(pricing|plans)$/.test(operation.path) ? "保存后系统会自动处理版本与通知，已购权益不重算。" : finance ? "保存后可查看最新办理结果。" : /\/domains(?:\/|$)/.test(operation.path) ? "域名状态以页面检查结果和平台启用结果为准。" : simpleProduct ? "保存后配置生效。" : "请先核对填写内容与实际凭证。")}</p>}</div>
       </div>
-    </form>{command.result?.order && <PaymentAction order={command.result.order} automaticGkash={gkash.state} creatingOrder={command.busy} onChangeMethod={operation.name === "checkout" ? () => command.reset() : undefined} />}</>}</>;
+    </form>{command.result?.order && <PaymentAction order={command.result.order} automaticGkash={gkash.state} creatingOrder={command.busy} onChangeMethod={operation.name === "checkout" ? () => command.reset() : undefined} onRestartOrder={topup ? () => { setConfirmed(false); command.reset(); } : undefined} />}</>}</>;
   return embedded ? <section className="min-w-0">{content}</section> : <Card className="my-5">{content}</Card>;
 }
 

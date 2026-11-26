@@ -75,6 +75,26 @@ it("shows an unpaid channel result as a normal status after an explicit check", 
   expect(screen.queryByText(/payment_not_final/)).toBeNull();
 });
 
+it("can check the original payment after expiry and surfaces a subsequently verified receipt", async () => {
+  const expired = { ...order, status: "expired", payment_state: "created", can_reconcile_payment: true };
+  let current = expired;
+  const fetch = vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "POST") {
+      current = { ...expired, payment_state: "awaiting_settlement", can_reconcile_payment: false };
+      return response({ id: order.id, status: "reconciliation_queued" });
+    }
+    return response(current);
+  });
+  vi.stubGlobal("fetch", fetch);
+  mount(expired);
+  expect(screen.getByText("已过期")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "我已付款，核实原通道", exact: true }));
+  expect(await screen.findByText("待核实结算金额")).toBeTruthy();
+  expect(fetch.mock.calls).toEqual(expect.arrayContaining([["/api/v1/me/orders/order-one/reconcile", expect.objectContaining({ method: "POST" })]]));
+  expect(screen.queryByRole("link", { name: "重新选择套餐" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "前往 GKash 付款" })).toBeNull();
+});
+
 it("reopens Gkash on a new browser using the order's generation and only posts the newly issued form", async () => {
   const opened = {
     ...order,

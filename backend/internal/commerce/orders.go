@@ -275,6 +275,15 @@ func (s *Service) CloseOrder(ctx context.Context, tx *gorm.DB, customerID, order
 		if o.Status != "pending" || o.ExternalAllocatedMoney.Sign() > 0 {
 			return ErrOrderState
 		}
+		if proof.PaymentExpired {
+			var expired bool
+			if err := tx.Raw("SELECT ?::timestamptz <= clock_timestamp()", o.ExpiresAt).Scan(&expired).Error; err != nil {
+				return err
+			}
+			if !expired {
+				return ErrOrderState
+			}
+		}
 		if o.InternalStatus == "held" && o.HoldID != nil {
 			if o.CommissionMoney.Sign() > 0 {
 				if s.commissionFunding == nil {
@@ -309,6 +318,7 @@ func (s *Service) CloseOrder(ctx context.Context, tx *gorm.DB, customerID, order
 		now := s.now()
 		o.Status = "closed"
 		o.ClosedAt = &now
+		o.ClosedForPaymentExpiry = proof.PaymentExpired
 		r = orderRow(o)
 		if err := tx.Save(&r).Error; err != nil {
 			return err

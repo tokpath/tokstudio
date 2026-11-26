@@ -109,6 +109,22 @@ it("preserves the first server claim when the browser blocks the popup", async (
   expect(paymentWindowState({ id: "blocked-order" })).toBe("unopened");
 });
 
+it("does not submit a Gkash form that arrives after the order's deadline", async () => {
+  vi.useFakeTimers();
+  const order = { id: "rollover-order", expires_at: new Date(Date.now() + 1_000).toISOString() };
+  const popup = fakeWindow();
+  vi.spyOn(window, "open").mockReturnValue(popup as unknown as Window);
+  vi.stubGlobal("fetch", () => new Promise<Response>(resolve => {
+    setTimeout(() => resolve(paymentReady(order.id, "rollover-cart")), 1_001);
+  }));
+  const submit = vi.spyOn(HTMLFormElement.prototype, "submit");
+  const outcome = expect(openGkashPayment(order, customerGkashOpenPath(order.id))).rejects.toThrow("付款期限已过");
+  await vi.advanceTimersByTimeAsync(1_001);
+  await outcome;
+  expect(popup.close).toHaveBeenCalledTimes(1);
+  expect(submit).not.toHaveBeenCalled();
+});
+
 it("keeps the payment window reserved while the server verifies and signs on a slow connection", async () => {
   vi.useFakeTimers();
   const order = { id: "slow-order" };

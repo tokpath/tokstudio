@@ -113,8 +113,22 @@ func TestPostgresClosedProviderReleasesExpiredRetailOrder(t *testing.T) {
 	checkExpiry()
 	status, pending, _ := f.call(t, "GET", "/v1/me/orders/"+id, nil, "")
 	mustOK(t, status, pending)
-	if pending["status"] != "pending" || observed.Load() != 1 {
+	if pending["status"] != "expired" || pending["payment_action"] != nil || pending["cancel_allowed"] != false || pending["method_change_allowed"] != false || pending["can_reconcile_payment"] != true || observed.Load() != 1 {
 		t.Fatal(pending, observed.Load())
+	}
+	stored, err := f.a.Commerce.GetOrder(ctx, nil, customer, id)
+	if err != nil || stored.Status != "pending" || stored.InternalStatus != "held" || stored.ClosedForPaymentExpiry {
+		t.Fatal("unresolved payment lost the original order or reservation", stored, err)
+	}
+	status, list, _ := f.call(t, "GET", "/v1/me/orders?q=expired", nil, "")
+	mustOK(t, status, list)
+	if !listHasID(list, id) {
+		t.Fatal("expired package missing from customer history", list)
+	}
+	status, list, _ = f.call(t, "GET", "/v1/me/orders?q=pending", nil, "")
+	mustOK(t, status, list)
+	if listHasID(list, id) {
+		t.Fatal("expired package included in pending customer history", list)
 	}
 	closed.Store(true)
 	checkExpiry()
@@ -123,8 +137,12 @@ func TestPostgresClosedProviderReleasesExpiredRetailOrder(t *testing.T) {
 	status, balance, _ := f.call(t, "GET", "/v1/me/credits", nil, "")
 	mustOK(t, status, balance)
 	wallet := balance["money_balance"].(map[string]any)
-	if observed.Load() != 2 || view["status"] != "closed" || view["payment_state"] != "closed" || view["payment_action"] != nil || wallet["held"] != "0" || wallet["available"] != "20" {
+	if observed.Load() != 2 || view["status"] != "expired" || view["payment_state"] != "closed" || view["payment_action"] != nil || view["can_reconcile_payment"] != false || wallet["held"] != "0" || wallet["available"] != "20" {
 		t.Fatal(view, wallet, observed.Load())
+	}
+	stored, err = f.a.Commerce.GetOrder(ctx, nil, customer, id)
+	if err != nil || stored.Status != "closed" || !stored.ClosedForPaymentExpiry {
+		t.Fatal("verified unpaid expiry was not recorded", stored, err)
 	}
 }
 

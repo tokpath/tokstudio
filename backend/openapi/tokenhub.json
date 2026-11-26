@@ -5434,7 +5434,7 @@
             }
           },
           "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "description": "Business state, configuration, version, or unknown outcome requires review. Expired orders return order_expired. A new payment requires a new order.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5999,7 +5999,7 @@
             }
           },
           "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "description": "Business state, configuration, version, or unknown outcome requires review. Expired orders return order_expired. A new payment requires a new order.",
             "content": {
               "application/json": {
                 "schema": {
@@ -39696,6 +39696,12 @@
           "order": {
             "type": "object",
             "properties": {
+              "has_verified_receipt": {
+                "type": "boolean"
+              },
+              "can_reconcile_payment": {
+                "type": "boolean"
+              },
               "receipt_voucher_available": {
                 "type": "boolean"
               },
@@ -40690,6 +40696,14 @@
       "Order": {
         "type": "object",
         "properties": {
+          "has_verified_receipt": {
+            "type": "boolean",
+            "description": "A verified receipt or receipt fact exists for this order, including amounts awaiting settlement or matching."
+          },
+          "can_reconcile_payment": {
+            "type": "boolean",
+            "description": "The original online payment can still be checked with the provider after the payment deadline."
+          },
           "receipt_voucher_available": {
             "type": "boolean"
           },
@@ -40820,7 +40834,8 @@
             "minLength": 1
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "description": "Unpaid orders with an elapsed payment deadline have status expired. Actual receipts continue to be verified against their original order."
           },
           "kind": {
             "type": "string"

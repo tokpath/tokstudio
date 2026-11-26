@@ -218,6 +218,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 409, "receipt_amount_conflict", "收款金额不足、已被使用或超出订单应付，请核对原收款和订单", false
 	case errors.Is(err, cooperation.ErrCoverage):
 		status, code, msg, retry = 409, "sales_coverage_insufficient", "供货方或当前经营方剩余销售空间不足以承接这笔订单。请核对已有权益、未付款订单占用和超卖额度，补货或释放占用后重试。", false
+	case errors.Is(err, commerce.ErrOrderExpired):
+		status, code, msg, retry = 409, "order_expired", "付款期限已过。请新建订单付款。", false
 	case errors.Is(err, cooperation.ErrLiability), errors.Is(err, remediation.ErrState), errors.Is(err, commerce.ErrOrderState), errors.Is(err, commerce.ErrNotPaid), errors.Is(err, incentives.ErrWithdrawalState):
 		status, code, msg, retry = 409, "state_restricted", "当前业务状态或资金条件不允许此操作，请查询原记录", false
 	case errors.Is(err, ledger.ErrInsufficient):

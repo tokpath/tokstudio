@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
@@ -74,12 +75,17 @@ func (a *Application) customerOrderVoucher(c *gin.Context) {
 	kind := c.Param("kind")
 	switch kind {
 	case "order":
+		paymentByOrder, err := a.customerOrderPayments(ctx, customer.ID, []commerce.Order{order})
+		if err != nil {
+			handleError(c, err)
+			return
+		}
 		paid := order.ExternalAllocatedMoney
 		if order.InternalStatus == "captured" {
 			paid = paid.Add(order.InternalMoney).Add(order.CommissionMoney)
 		}
 		customerCSV(c, "order-"+order.ID, []string{"订单编号", "实际经营方", "业务类型", "状态", "订单本金", "已核实本金", "币种", "创建时间", "交付时间"},
-			[][]string{{order.ID, merchant, customerExportLabel(c, "kind", order.Kind), customerExportLabel(c, "status", order.Status), order.DueMoney.String(), paid.String(), currency, statementTime(&order.CreatedAt), statementTime(order.CompletedAt)}})
+			[][]string{{order.ID, merchant, customerExportLabel(c, "kind", order.Kind), customerExportLabel(c, "status", paymentByOrder[order.ID].Status), order.DueMoney.String(), paid.String(), currency, statementTime(&order.CreatedAt), statementTime(order.CompletedAt)}})
 	case "receipt":
 		var receipts []struct {
 			ID, Currency, OriginalAmount string

@@ -20,6 +20,7 @@ var (
 	ErrNotReady          = errors.New("commerce: required business adapter is not configured")
 	ErrNotPaid           = errors.New("commerce: order is not fully funded")
 	ErrOrderState        = errors.New("commerce: order state does not permit this action")
+	ErrOrderExpired      = errors.New("commerce: order payment deadline has passed")
 	ErrLatePayment       = errors.New("commerce: actual payment occurred after order expiry; receipt remains unallocated")
 	ErrTimingUnverified  = errors.New("commerce: timely payment cannot be proven; receipt remains unallocated")
 	ErrExcessAllocation  = errors.New("commerce: allocation exceeds receipt or order remainder")
@@ -107,6 +108,7 @@ type Order struct {
 	CycleDueAt               *time.Time              `json:"cycle_due_at"`
 	ExpiresAt                time.Time               `json:"expires_at"`
 	ClosedAt                 *time.Time              `json:"closed_at"`
+	ClosedForPaymentExpiry   bool                    `json:"closed_for_payment_expiry,omitempty"`
 	CreatedAt                time.Time               `json:"created_at"`
 	CompletedAt              *time.Time              `json:"completed_at"`
 }
@@ -260,6 +262,7 @@ type Delivery struct {
 type PaymentClosureProof struct {
 	VerifiedUnpaid    bool   `json:"verified_unpaid"`
 	EvidenceReference string `json:"evidence_reference"`
+	PaymentExpired    bool   `json:"payment_expired,omitempty"`
 }
 type Subscription struct {
 	ID                    string     `json:"id"`

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -21,8 +20,8 @@ func (a *Application) openCustomerKVoucherPayment(c *gin.Context) {
 		if err != nil {
 			return "", "", err
 		}
-		if order.Status != "pending" || !order.ExternalAllocatedMoney.IsZero() || !time.Now().Before(order.ExpiresAt) {
-			return "", "", commerce.ErrOrderState
+		if err := requireOpenCustomerOrder(ctx, tx, order); err != nil {
+			return "", "", err
 		}
 		var checkout checkoutRow
 		if err := tx.First(&checkout, "order_id=? AND customer_id=?", order.ID, customerID).Error; err != nil {

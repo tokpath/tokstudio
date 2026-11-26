@@ -2,7 +2,7 @@
 import { useI18n } from "@/components/i18n";
 import Link from "next/link";
 import { useNavigationBlock } from "@/lib/navigation-guard";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ArrowRight, Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -27,4 +27,25 @@ export function useCustomerPendingGuard(active: boolean) {
   const { t } = useI18n();
   const blocked = useNavigationBlock(active);
   return blocked ? t("本次操作正在处理或结果待核实，请先完成原操作核实，再离开此页。") : undefined;
+}
+
+export function useOrderDeadlineClock(deadlines: readonly (string | null | undefined)[]) {
+  const [now, setNow] = useState(Date.now);
+  const next = deadlines.reduce((earliest, value) => {
+    const deadline = Date.parse(value ?? "");
+    return deadline > now ? Math.min(earliest, deadline) : earliest;
+  }, Infinity);
+
+  useEffect(() => {
+    if (!Number.isFinite(next)) return;
+    const update = () => setNow(Date.now());
+    const timer = window.setTimeout(update, Math.min(Math.max(1, next - Date.now()), 2_147_483_647));
+    window.addEventListener("focus", update);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", update);
+    };
+  }, [next, now]);
+
+  return now;
 }

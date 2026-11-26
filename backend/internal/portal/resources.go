@@ -116,9 +116,22 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 			handleError(c, e)
 			return
 		}
+		paymentByOrder, e := a.customerOrderPayments(ctx, customer, rows)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
 		items := []any{}
 		for _, o := range rows {
-			items = append(items, entity(o.ID, o.Status, 1, o))
+			payment := paymentByOrder[o.ID]
+			v := values(o)
+			v["status"] = payment.Status
+			v["has_verified_receipt"] = payment.HasVerifiedReceipt
+			v["can_reconcile_payment"] = payment.canReconcile()
+			if payment.PaymentState != "" {
+				v["payment_state"] = payment.PaymentState
+			}
+			items = append(items, gin.H{"id": o.ID, "status": payment.Status, "version": int64(1), "values": v})
 		}
 		p["items"] = items
 		p["columns"] = []gin.H{col("id", "订单", "text"), col("due_money", "应付", "money"), col("external_allocated_money", "已分配", "money"), col("created_at", "创建时间", "datetime")}

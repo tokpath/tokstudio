@@ -2,6 +2,7 @@ package commerce
 
 import (
 	"context"
+
 	"gorm.io/gorm"
 )
 
@@ -23,6 +24,9 @@ func (s *Service) EventAudience(ctx context.Context, tx *gorm.DB, e Event) (cust
 			}
 			customer = o.CustomerID
 			reference = "order:" + o.ID
+			if o.Kind == "topup" {
+				reference = "topup:" + o.ID
+			}
 		case "renewal.authorized", "renewal.cancelled", "renewal.reconfirmed", "renewal.confirmation_required", "renewal.insufficient_funds":
 			var r subscriptionRow
 			if e := t.First(&r, "id=? AND (operator_id=? OR original_operator_id=?)", e.AggregateID, e.OperatorID, e.OperatorID).Error; e != nil {

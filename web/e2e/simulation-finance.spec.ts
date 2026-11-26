@@ -80,7 +80,7 @@ test("finance records a whole payment, customer downloads vouchers, and private 
     // Finance allocates verified receipts; the durable worker delivers the
     // funded order. Allow its discovery interval and the shared queue backlog.
     await expect.poll(async () => (await (await customer.request.get("/api/v1/me/credits")).json()).money_balance.available, { timeout: 60_000 }).toBe(String(startingBalance + 100));
-    const orderURL = `/workspace/orders?record=${orderID}`;
+    const orderURL = `/workspace/topups?record=${orderID}`;
     await customer.goto("/workspace/notifications");
     const linkedOrder = customer.locator(`a[href="${orderURL}"]`).first();
     await expect(linkedOrder).toBeVisible({ timeout: 60_000 });

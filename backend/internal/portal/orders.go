@@ -259,10 +259,10 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 		if err != nil {
 			return err
 		}
-		if current.Status != "pending" {
-			reuse = true
-			return nil
+		if err := requireOpenCustomerOrder(ctx, tx, current); err != nil {
+			return err
 		}
+		o = current
 		if e := tx.First(&cr, "order_id=? AND customer_id=?", o.ID, o.CustomerID).Error; e != nil {
 			return e
 		}
@@ -324,11 +324,26 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 	return e
 }
 func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, error) {
+	paymentByOrder, e := a.customerOrderPayments(ctx, o.CustomerID, []commerce.Order{o})
+	if e != nil {
+		return nil, e
+	}
+	return a.customerOrderDTO(ctx, o, paymentByOrder[o.ID])
+}
+
+func (a *Application) customerOrderDTO(ctx context.Context, o commerce.Order, payment customerOrderPayment) (gin.H, error) {
 	op, e := a.Organization.GetOperator(ctx, nil, o.OperatorID)
 	if e != nil {
 		return nil, e
 	}
-	dto := gin.H{"id": o.ID, "status": o.Status, "kind": o.Kind, "operator_name": op.Name, "amount_money": o.DueMoney, "paid_money": o.ExternalAllocatedMoney, "delivered_at": o.CompletedAt, "created_at": o.CreatedAt, "expires_at": o.ExpiresAt, "purchase_atg": o.PaidATG, "gift_atg": o.PackageGiftATG.Add(o.MerchantGiftATG).Add(o.KOLGiftATG)}
+	dto := gin.H{
+		"id": o.ID, "status": payment.Status, "kind": o.Kind, "operator_name": op.Name,
+		"amount_money": o.DueMoney, "paid_money": o.ExternalAllocatedMoney,
+		"delivered_at": o.CompletedAt, "created_at": o.CreatedAt, "expires_at": o.ExpiresAt,
+		"purchase_atg": o.PaidATG, "gift_atg": o.PackageGiftATG.Add(o.MerchantGiftATG).Add(o.KOLGiftATG),
+		"has_verified_receipt": payment.HasVerifiedReceipt, "can_reconcile_payment": payment.canReconcile(),
+		"cancel_allowed": false, "method_change_allowed": false,
+	}
 	if o.MonetarySnapshot.Version > 0 {
 		dto["monetary_snapshot"] = o.MonetarySnapshot
 	}
@@ -349,55 +364,53 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 	if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
 		return nil, e
 	}
-	allowed, err := a.customerOrderMayCancel(ctx, a.DB, o)
-	if err != nil {
-		return nil, err
-	}
 	if len(cr.FeeQuote) > 0 {
 		var q paymentmethods.Quote
-		if err = json.Unmarshal(cr.FeeQuote, &q); err != nil {
+		if err := json.Unmarshal(cr.FeeQuote, &q); err != nil {
 			return nil, err
 		}
 		dto["fee_quote"] = q
 	}
-	dto["cancel_allowed"] = allowed
-	hasReceipt := false
-	if o.Status == "pending" && cr.MerchantID != nil {
-		hasReceipt, err = payments.HasOrderReceipt(ctx, a.DB, o.OperatorID, o.ID)
-		if err != nil {
+	if payment.PaymentState != "" && payment.Status != "completed" {
+		dto["payment_state"] = payment.PaymentState
+	}
+	if payment.PaymentState == "awaiting_settlement" && payment.Status != "completed" {
+		dto["payment_notice"] = "原币实际款已保留，等待收款方核实本笔交易对应的订单清算金额，请勿重复付款。"
+	} else if payment.HasVerifiedReceipt && (payment.Status == "pending" || payment.Status == "expired") {
+		dto["payment_notice"] = "通道已确认收到款项，系统正在核实并关联原订单。请勿重复付款。"
+	}
+	if payment.Status != "pending" || payment.DeadlinePassed || payment.HasVerifiedReceipt || !o.ExternalAllocatedMoney.IsZero() || o.InternalStatus == "captured" {
+		return dto, nil
+	}
+	dto["cancel_allowed"], e = a.customerOrderMayCancel(ctx, a.DB, o)
+	if e != nil {
+		return nil, e
+	}
+	if cr.MerchantID == nil || payment.PaymentState == "" {
+		return dto, nil
+	}
+	intent, e := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
+	if errors.Is(e, gorm.ErrRecordNotFound) {
+		return dto, nil
+	}
+	if e != nil {
+		return nil, e
+	}
+	dto["method_change_allowed"] = intent.AllowsMethodChange()
+	switch {
+	case intent.Problem == payments.CheckoutAmountMismatch:
+		dto["payment_notice"] = "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。"
+	case intent.State == "closed":
+		dto["payment_notice"] = "原通道已关闭本次付款，未收到款项。"
+	case intent.State == "executing" || intent.State == "outcome_unknown" || intent.State == "failed":
+		dto["payment_notice"] = "订单已建立，但付款指引暂时不可用。请保留原订单并联系经营方核实。"
+	}
+	if ch := intent.Checkout; ch != nil {
+		action := checkoutPaymentAction(intent, *ch)
+		if err := a.simplifyOfflineAction(ctx, o.OperatorID, intent.Driver, ch.FeeQuote, action); err != nil {
 			return nil, err
 		}
-		if hasReceipt {
-			dto["payment_notice"] = "通道已确认收到款项，系统正在核实并关联原订单。请勿重复付款。"
-		}
-	}
-	if e == nil && cr.MerchantID != nil && o.Status != "completed" {
-		intent, e := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
-		if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
-			return nil, e
-		}
-		if e == nil {
-			dto["payment_state"] = intent.State
-			dto["method_change_allowed"] = !hasReceipt && intent.AllowsMethodChange() && o.Status == "pending" && o.ExternalAllocatedMoney.IsZero() && time.Now().Before(o.ExpiresAt)
-			switch {
-			case intent.State == "awaiting_settlement":
-				dto["payment_notice"] = "原币实际款已保留，等待收款方核实本笔交易对应的订单清算金额，请勿重复付款。"
-			case !hasReceipt && intent.Problem == payments.CheckoutAmountMismatch:
-				dto["payment_notice"] = "支付通道返回的币种或金额与本单报价不一致，付款已暂停。请保留原订单并联系经营方核实。"
-			case !hasReceipt && intent.State == "closed" && o.Status == "pending":
-				dto["payment_notice"] = "原通道已关闭本次付款，未收到款项。"
-			case !hasReceipt && (intent.State == "executing" || intent.State == "outcome_unknown" || intent.State == "failed"):
-				dto["payment_notice"] = "订单已建立，但付款指引暂时不可用。请保留原订单并联系经营方核实。"
-			}
-		}
-		if e == nil && o.Status == "pending" && !hasReceipt && intent.Checkout != nil {
-			ch := intent.Checkout
-			action := checkoutPaymentAction(intent, *ch)
-			if err := a.simplifyOfflineAction(ctx, o.OperatorID, intent.Driver, ch.FeeQuote, action); err != nil {
-				return nil, err
-			}
-			dto["payment_action"] = action
-		}
+		dto["payment_action"] = action
 	}
 	return dto, nil
 }
@@ -417,7 +430,7 @@ func (a *Application) customerCheckoutDTO(ctx context.Context, o commerce.Order)
 		return nil, err
 	}
 	if checkoutErr != nil {
-		if errors.Is(checkoutErr, commerce.ErrOrderState) {
+		if errors.Is(checkoutErr, commerce.ErrOrderState) || errors.Is(checkoutErr, commerce.ErrOrderExpired) {
 			return dto, nil
 		}
 		if !errors.Is(checkoutErr, payments.ErrCheckoutMismatch) && !errors.Is(checkoutErr, payments.ErrOutcomeUnknown) && !errors.Is(checkoutErr, payments.ErrProvider) && !errors.Is(checkoutErr, payments.ErrPaymentClosed) && !errors.Is(checkoutErr, payments.ErrQuoteUnavailable) {
@@ -431,7 +444,13 @@ func (a *Application) customerCheckoutDTO(ctx context.Context, o commerce.Order)
 	return dto, nil
 }
 func (a *Application) orders(c *gin.Context) {
-	rows, e := a.Commerce.ListCustomerPurchaseOrdersPage(c.Request.Context(), nil, subject(c).Customer.Customer.ID, c.Query("cursor"), c.Query("q"), 51)
+	ctx, customerID := c.Request.Context(), subject(c).Customer.Customer.ID
+	query := a.DB
+	if search := c.Query("q"); search != "" {
+		term := "%" + search + "%"
+		query = query.Where("(id::text ILIKE ? OR kind ILIKE ? OR ("+customerOrderStatusSQL+") ILIKE ?)", term, term, term)
+	}
+	rows, e := a.Commerce.ListCustomerPurchaseOrdersPage(ctx, query, customerID, c.Query("cursor"), "", 51)
 	if e != nil {
 		handleError(c, e)
 		return
@@ -441,9 +460,14 @@ func (a *Application) orders(c *gin.Context) {
 		rows = rows[:50]
 		next = commerce.NextOrderCursor(rows[len(rows)-1])
 	}
+	paymentByOrder, e := a.customerOrderPayments(ctx, customerID, rows)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
 	items := []any{}
 	for _, o := range rows {
-		dto, e := a.orderDTO(c.Request.Context(), o)
+		dto, e := a.customerOrderDTO(ctx, o, paymentByOrder[o.ID])
 		if e != nil {
 			handleError(c, e)
 			return
@@ -497,6 +521,10 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		handleError(c, err)
 		return
 	}
+	if err = requireOpenCustomerOrder(ctx, a.DB, previous); err != nil {
+		handleError(c, err)
+		return
+	}
 	var previousCheckout checkoutRow
 	if err = a.DB.WithContext(ctx).First(&previousCheckout, "order_id=? AND customer_id=?", previous.ID, previous.CustomerID).Error; err != nil {
 		handleError(c, err)
@@ -522,7 +550,10 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 			return nil, e
 		}
 		due := o.DueMoney.Sub(o.InternalMoney).Sub(o.CommissionMoney)
-		if due.Sign() <= 0 || o.ExternalAllocatedMoney.Sign() > 0 || o.Status != "pending" || !o.ExpiresAt.After(time.Now()) {
+		if e = requireOpenCustomerOrder(ctx, tx, o); e != nil {
+			return nil, e
+		}
+		if due.Sign() <= 0 {
 			return nil, commerce.ErrOrderState
 		}
 		m, e := a.Payments.Merchant(ctx, o.OperatorID, in.Method)
@@ -597,15 +628,7 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 // instructions can still be withdrawn. An online checkout that is not a
 // confirmed failure keeps its reservation until the original payment is known.
 func (a *Application) customerOrderMayCancel(ctx context.Context, tx *gorm.DB, o commerce.Order) (bool, error) {
-	if o.Status != "pending" || o.ExternalAllocatedMoney.Sign() > 0 {
-		return false, nil
-	}
-	// An absent/failed checkout row never proves that another online attempt
-	// or a verified but not yet allocated receipt is unpaid.
-	if open, err := payments.HasOpenOnlinePayment(ctx, tx, o.OperatorID, o.ID); err != nil || open {
-		return false, err
-	}
-	if received, err := payments.HasOrderReceipt(ctx, tx, o.OperatorID, o.ID); err != nil || received {
+	if unpaid, err := customerOrderHasNoPayment(ctx, tx, o); err != nil || !unpaid {
 		return false, err
 	}
 	var cr checkoutRow
@@ -627,6 +650,18 @@ func (a *Application) customerOrderMayCancel(ctx context.Context, tx *gorm.DB, o
 	found = tx.WithContext(ctx).Table("payments_intents").Where("operator_id=? AND merchant_id=? AND order_id=?", o.OperatorID, *cr.MerchantID, o.ID).Limit(1).Find(&intent)
 	return found.RowsAffected == 1 && (intent.State == "failed" || intent.State == "closed"), found.Error
 }
+
+func customerOrderHasNoPayment(ctx context.Context, tx *gorm.DB, o commerce.Order) (bool, error) {
+	if o.Status != "pending" || !o.ExternalAllocatedMoney.IsZero() || o.InternalStatus == "captured" {
+		return false, nil
+	}
+	if open, err := payments.HasOpenOnlinePayment(ctx, tx, o.OperatorID, o.ID); err != nil || open {
+		return false, err
+	}
+	received, err := payments.HasOrderReceipt(ctx, tx, o.OperatorID, o.ID)
+	return !received, err
+}
+
 func (a *Application) cancelOrder(c *gin.Context) {
 	id := subject(c)
 	ctx := c.Request.Context()
@@ -640,6 +675,9 @@ func (a *Application) cancelOrder(c *gin.Context) {
 		}
 		if o.Status == "closed" {
 			return gin.H{"id": o.ID}, nil
+		}
+		if e = requireOpenCustomerOrder(ctx, tx, o); e != nil && !errors.Is(e, commerce.ErrOrderState) {
+			return nil, e
 		}
 		allowed, e := a.customerOrderMayCancel(ctx, tx, o)
 		if e != nil {
@@ -681,10 +719,9 @@ func (a *Application) expireUnpaidOrders(ctx context.Context, limit int) error {
 	}
 	var rows []struct{ ID, CustomerID string }
 	if err := a.DB.WithContext(ctx).Table("commerce_orders AS o").Select("o.id, o.customer_id").
-		Where("o.status='pending' AND o.external_allocated_money=0 AND o.expires_at<=clock_timestamp()").
+		Where("o.status='pending' AND o.external_allocated_money=0 AND o.internal_status<>'captured' AND o.expires_at<=clock_timestamp()").
 		Where("NOT EXISTS (SELECT 1 FROM payments_verified_facts f WHERE f.order_id=o.id::text AND f.operator_id=o.operator_id::text AND f.kind='receipt')").
 		Where("NOT EXISTS (SELECT 1 FROM payments_intents i JOIN payments_merchants m ON m.id=i.merchant_id WHERE i.order_id=o.id::text AND i.operator_id=o.operator_id::text AND m.driver<>'manual' AND i.state NOT IN ('failed','closed'))").
-		Where("NOT EXISTS (SELECT 1 FROM portal_order_checkout c JOIN payments_merchants m ON m.id=c.merchant_id::text WHERE c.order_id=o.id AND m.driver<>'manual' AND NOT EXISTS (SELECT 1 FROM payments_intents i WHERE i.merchant_id=c.merchant_id::text AND i.order_id=o.id::text AND i.state IN ('failed','closed')))").
 		Order("o.expires_at, o.id").Limit(limit).Find(&rows).Error; err != nil {
 		return err
 	}
@@ -697,11 +734,13 @@ func (a *Application) expireUnpaidOrders(ctx context.Context, limit int) error {
 			if err != nil {
 				return err
 			}
-			allowed, err := a.customerOrderMayCancel(ctx, tx, o)
-			if err != nil || !allowed {
+			// Checkout claims the intent under the same lock before contacting
+			// the provider. A selected merchant alone cannot have received money.
+			unpaid, err := customerOrderHasNoPayment(ctx, tx, o)
+			if err != nil || !unpaid {
 				return err
 			}
-			_, err = a.Commerce.CloseOrder(ctx, tx, row.CustomerID, row.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "付款期限已过且核实没有未完成的线上付款或到账记录，自动关闭订单"})
+			_, err = a.Commerce.CloseOrder(ctx, tx, row.CustomerID, row.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, PaymentExpired: true, EvidenceReference: paymentExpiryEvidence})
 			return err
 		})
 		if err != nil && !errors.Is(err, commerce.ErrOrderState) && !errors.Is(err, commerce.ErrPaymentUnknown) {
@@ -805,9 +844,26 @@ func (a *Application) reconcileOrder(c *gin.Context) {
 			return
 		}
 		if errors.Is(e, payments.ErrNotFinal) || errors.Is(e, payments.ErrUnpaid) {
-			message := "原通道尚未确认收款。未付款可继续原订单付款；已经付款请稍后刷新原订单，无须再次付款。"
-			if intent, err := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID); err == nil && intent.Driver == "kvoucher" && intent.KVoucherFormState != payments.KVoucherFormReady {
-				message = "原通道尚未确认这笔收款。请稍后再查询，不要另付一笔。"
+			paymentByOrder, err := a.customerOrderPayments(ctx, o.CustomerID, []commerce.Order{o})
+			if err != nil {
+				handleError(c, err)
+				return
+			}
+			payment := paymentByOrder[o.ID]
+			if payment.HasVerifiedReceipt {
+				c.JSON(200, commandResult(o.ID, "reconciliation_queued"))
+				return
+			}
+			if payment.Status == "expired" {
+				c.JSON(200, gin.H{"id": o.ID, "status": "expired", "message": "原通道尚未确认这笔收款。付款期限已过。若已付款，请稍后刷新原订单。"})
+				return
+			}
+			message := "原通道尚未确认这笔收款。请稍后再查询，不要另付一笔。"
+			if payment.Status == "pending" && !payment.DeadlinePassed {
+				intent, err := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
+				if err != nil || intent.Driver != "kvoucher" || intent.KVoucherFormState == payments.KVoucherFormReady {
+					message = "原通道尚未确认收款。未付款可继续原订单付款；已经付款请稍后刷新原订单，无须再次付款。"
+				}
 			}
 			c.JSON(200, gin.H{"id": o.ID, "status": "pending_payment", "message": message})
 			return
@@ -872,7 +928,7 @@ func (a *Application) topup(c *gin.Context) {
 		handleError(c, e)
 		return
 	}
-	response := gin.H{"id": o.ID, "status": o.Status, "order": dto}
+	response := gin.H{"id": o.ID, "status": dto["status"], "order": dto}
 	if notice, ok := dto["payment_notice"].(string); ok {
 		response["message"] = notice
 	}
@@ -1190,12 +1246,16 @@ type portalReceiptSink struct {
 
 func (s portalReceiptSink) RequireOpenCheckout(ctx context.Context, tx *gorm.DB, o payments.Order) error {
 	var checkout struct {
-		OperatorID, Status string
-		MerchantID         *string
+		OperatorID, Status                                        string
+		MerchantID                                                *string
+		DeadlinePassed, ClosedForPaymentExpiry, HasAllocatedFunds bool
 	}
-	q := tx.WithContext(ctx).Table("commerce_orders o").Select("o.operator_id,o.status,c.merchant_id").
-		Joins("LEFT JOIN portal_order_checkout c ON c.order_id=o.id").
-		Where("o.id=?", o.ID).Limit(1).Find(&checkout)
+	q := tx.WithContext(ctx).Table("commerce_orders").Select(`commerce_orders.operator_id,commerce_orders.status,c.merchant_id,
+ `+customerOrderClosedForExpirySQL+` AS closed_for_payment_expiry,
+ commerce_orders.expires_at<=clock_timestamp() AS deadline_passed,
+ (commerce_orders.external_allocated_money>0 OR commerce_orders.internal_status='captured') AS has_allocated_funds`).
+		Joins("LEFT JOIN portal_order_checkout c ON c.order_id=commerce_orders.id").
+		Where("commerce_orders.id=?", o.ID).Limit(1).Find(&checkout)
 	if q.Error != nil {
 		return q.Error
 	}
@@ -1203,7 +1263,13 @@ func (s portalReceiptSink) RequireOpenCheckout(ctx context.Context, tx *gorm.DB,
 	if q.RowsAffected == 0 {
 		return nil
 	}
-	if checkout.OperatorID != o.OperatorID || checkout.Status != "pending" || checkout.MerchantID == nil || *checkout.MerchantID != o.MerchantID {
+	if checkout.OperatorID != o.OperatorID || checkout.MerchantID == nil || *checkout.MerchantID != o.MerchantID {
+		return commerce.ErrOrderState
+	}
+	if (checkout.Status == "pending" && checkout.DeadlinePassed) || (checkout.Status == "closed" && checkout.ClosedForPaymentExpiry) {
+		return commerce.ErrOrderExpired
+	}
+	if checkout.Status != "pending" || checkout.HasAllocatedFunds {
 		return commerce.ErrOrderState
 	}
 	received, err := payments.HasOrderReceipt(ctx, tx, o.OperatorID, o.ID)

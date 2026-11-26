@@ -222,6 +222,7 @@ func ExportLabel(key, value string) string {
 		value = strings.SplitN(value, ":", 2)[0]
 	}
 	labels := map[string]string{"pending": "待付款", "awaiting_payment": "待付款", "paid": "已付款待交付", "completed": "已完成", "closed": "已关闭", "confirmed": "已核实", "settled": "已结算", "released": "已释放", "failed": "失败", "unknown": "待核实", "exception": "异常", "manual": "线下人工核实", "stripe": "Stripe", "alipay": "支付宝", "wechat": "微信支付", "topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费", "chat": "文本对话", "responses": "模型响应", "image_generation": "图片生成", "speech": "语音生成", "transcription": "语音转写", "video_generation": "视频生成", "embedding": "文本向量", "customer:money": "客户清算币种余额", "commission:available": "可用佣金", "commission:frozen": "冻结佣金", "procurement:atg": "采购余额", "control:merchant_fees": "收款手续费", "control:provider_receivable": "通道未结应收", "control:external_cash": "资金往来", "order:funds": "订单待交付资金", "wallet_topup": "余额充值", "package_payment": "套餐购买", "external_receipt": "实际收款", "wholesale_sale": "批发销售", "procurement": "采购入库", "commission_payout": "佣金提现", "request_settlement": "调用结算",
+		"expired":                     "已过期",
 		"grant":                       "权益发放",
 		"usage":                       "模型调用扣费",
 		"expiry":                      "权益到期",

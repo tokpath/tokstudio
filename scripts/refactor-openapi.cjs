@@ -63,6 +63,9 @@ function schema(zodSchema, depth = 0) {
   }
 }
 const schemas={};for(const[k,v]of Object.entries(out.exports))if(k.endsWith('Schema')||k==='Decimal'||k==='SignedDecimal')schemas[k.replace(/Schema$/,'')]=schema(v);
+schemas.Order.properties.status.description = 'Unpaid orders with an elapsed payment deadline have status expired. Actual receipts continue to be verified against their original order.';
+schemas.Order.properties.has_verified_receipt.description = 'A verified receipt or receipt fact exists for this order, including amounts awaiting settlement or matching.';
+schemas.Order.properties.can_reconcile_payment.description = 'The original online payment can still be checked with the provider after the payment deadline.';
 const ref=n=>({$ref:'#/components/schemas/'+n}),str={type:'string'},bool={type:'boolean'},uuid={type:'string',format:'uuid'},integer={type:'integer',minimum:0},decimal=ref('LedgerDecimal'),priceDecimal=ref('Decimal'),obj=(p,r=Object.keys(p))=>({type:'object',properties:p,required:r,additionalProperties:false}),array=s=>({type:'array',items:s}),collection=n=>obj({items:array(ref(n)),next_cursor:{type:['string','null']}},['items']);
 schemas.LedgerDecimal={type:'string',pattern:'^(0|[1-9][0-9]{0,19})(\\.[0-9]{1,18})?$',description:'Exact unsigned NUMERIC(38,18) ledger amount; never round incoming values.'};
 schemas.SignedLedgerDecimal={type:'string',pattern:'^-?(0|[1-9][0-9]{0,19})(\\.[0-9]{1,18})?$',description:'Exact signed NUMERIC(38,18) ledger quantity.'};
@@ -109,6 +112,9 @@ add('post','/v1/me/orders/quotes','Preview exact price and benefits without pers
 for(const pathname of ['/v1/me/orders/{id}/payment/open','/v1/operators/{operatorId}/procurement/{id}/open_payment']) {
   const open = add('post',pathname,'Open the original Gkash checkout','GkashOpenResult','GkashOpenRequest');
   open.description = 'Send the current gkash_generation from the selected checkout. Each eligible action issues its form once. Reopening after the first form requires the original KVoucher order to report pending_payment and return a fresh Cart ID. A replay, stale generation or concurrent open returns payment_already_opened with no form. The current generation is included in either success response.';
+}
+for (const pathname of ['/v1/me/orders/{id}/payment/open', '/v1/me/orders/{id}/payment-method']) {
+  paths[pathname].post.responses['409'].description += '. Expired orders return order_expired. A new payment requires a new order.';
 }
 add('get','/v1/me/requests/{id}','Own usage, exact billing components and source allocation','Request');add('post','/v1/me/requests/{id}/cancel','Request cancellation; does not promise upstream refund','CommandResult',obj({}));const result=add('get','/v1/me/requests/{id}/result','Read own private temporary result; expired result returns410',{});result.responses['200'].content={'application/json':{schema:{}},'application/octet-stream':{schema:{type:'string',contentEncoding:'binary'}}};add('post','/v1/me/playground','Execute through own private playground key and shared credits','PlaygroundResult','PlaygroundInput');
 add('get','/v1/me/notifications/unread-count','Count unread notifications addressed to the signed-in customer','UnreadCount');add('get','/v1/operators/{operatorId}/notifications/unread-count','Count unread notifications addressed to the signed-in staff member','UnreadCount');

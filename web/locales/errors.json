@@ -1,4 +1,12 @@
 {
+  "付款期限已过。请新建订单付款。": {
+    "en": "The payment deadline has passed. Create a new order to pay.",
+    "ja": "支払期限を過ぎています。支払うには新しい注文を作成してください。",
+    "ru": "Срок оплаты истёк. Чтобы оплатить, создайте новый заказ.",
+    "hi": "भुगतान की समयसीमा बीत चुकी है। भुगतान करने के लिए नया ऑर्डर बनाएं।",
+    "ms": "Tarikh akhir pembayaran telah berlalu. Buat pesanan baharu untuk membayar.",
+    "th": "พ้นกำหนดชำระเงินแล้ว โปรดสร้างคำสั่งซื้อใหม่เพื่อชำระเงิน"
+  },
   "The image dimensions do not meet the upload requirements.": {
     "zh": "图片尺寸不符合上传要求。",
     "en": "The image dimensions do not meet the upload requirements.",

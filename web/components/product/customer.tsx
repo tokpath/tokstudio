@@ -1,6 +1,7 @@
 "use client";
 import { useI18n } from "@/components/i18n";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { request } from "@/lib/api-client";
 import { collection, NotificationSchema, CommandResultSchema } from "@/lib/contracts";
@@ -10,7 +11,7 @@ import { CustomerKeys } from "./customer-keys";
 import { CustomerPlans } from "./customer-plans";
 import { CustomerModels } from "./customer-models";
 import { CustomerOverview } from "./customer-overview";
-import { CustomerOrders, CustomerRequests, CursorControls, RecordSearch, useCursor } from "./customer-records";
+import { CustomerOrders, CustomerRequests, CursorControls, OrderDetailDrawer, RecordSearch, useCursor, useCustomerOrderRecord } from "./customer-records";
 import { CustomerReferrals, CustomerCommissions } from "./customer-referrals";
 import { CustomerActivities } from "./customer-activities";
 import { ResourceScreen } from "./management";
@@ -36,10 +37,23 @@ export function CustomerPage({ section, initialPlan }: { section: string; initia
     case "commissions": content = <CustomerCommissions />; break;
     case "activities": content = <CustomerActivities />; break;
     case "notifications": content = <Notifications />; break;
-    case "withdrawals": case "refunds": case "invoices": case "account": case "topups": case "credit-sources": content = <ResourceScreen resource={`${section}/workspace`} customer />; break;
+    case "topups": content = <CustomerTopups />; break;
+    case "withdrawals": case "refunds": case "invoices": case "account": case "credit-sources": content = <ResourceScreen resource={`${section}/workspace`} customer />; break;
     default: content = <Empty title={t("页面不存在")}><Link href="/workspace" className="underline">{t("返回概览")}</Link></Empty>;
   }
   return <WorkspaceShell>{content}</WorkspaceShell>;
+}
+function CustomerTopups() {
+  const [record, setRecord] = useCustomerOrderRecord();
+  const createTopup = useSearchParams()?.get("create") === "1" && !record;
+  return <>
+    <ResourceScreen resource="topups/workspace" customer createTopup={createTopup} onCreateTopupOpen={() => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("create");
+      window.history.replaceState(null, "", url);
+    }} />
+    <OrderDetailDrawer section="topups" orderID={record} onClose={setRecord} />
+  </>;
 }
 export function Notifications() {
   const { t } = useI18n();

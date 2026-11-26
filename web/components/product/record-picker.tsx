@@ -3,10 +3,20 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { ErrorPanel } from "./shared";
 
-export type RecordChoice = { value: string; label: string; defaults?: Record<string, unknown> };
+const RecordChoiceSchema = z.object({
+  value: z.string(),
+  label: z.string(),
+  defaults: z.record(z.string(), z.unknown()).optional(),
+});
+export const ReferenceSchema = z.object({
+  items: z.array(RecordChoiceSchema),
+  next_cursor: z.string().optional(),
+});
+export type RecordChoice = z.infer<typeof RecordChoiceSchema>;
 
 // One field searches and chooses. Typing asks for matches; choosing a row keeps its id.
 export function RecordPicker({ label, required, invalid, disabled, ready = true, value, displayLabel, options, placeholder, emptyLabel, wildcardLabel, loading, error, onRetry, moreLabel, onMore, onQuery, onChoose }: {

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // Amounts cross the API as decimal strings. No asset or price decision may use
 // JavaScript Number. Integer counters/limits and timestamps have separate types.
-export const Decimal = z.string().regex(/^(0|[1-9]\d*)(\.\d{1,24})?$/, "请输入非负十进制金额，最多 24 位小数");
+export const Decimal = z.string().regex(/^(0|[1-9]\d*)(\.\d{1,24})?$/, { error: "请输入非负十进制金额，最多 24 位小数" });
 export type DecimalString = z.infer<typeof Decimal>;
 export const SignedDecimal = z.string().regex(/^-?(0|[1-9]\d*)(\.\d{1,24})?$/);
 const ID = z.string().min(1);
@@ -27,11 +27,11 @@ export const AvailabilitySchema = z.object({ capability: z.string(), enabled: z.
 export const FeeRuleSchema=z.object({driver:z.string().optional(),fee_rule_id:z.string(),flat_fee_money:Decimal,fee_rate:Decimal});
 export const PaymentMethodSchema = z.object({ fee_rule_id:z.string().optional(),flat_fee_money:Decimal.optional(),fee_rate:Decimal.optional(),display_name:z.string().optional(), settlement_currency: z.string().optional(), settlement_supported: z.boolean().optional(), unsupported_reason: z.string().optional(), requires_settlement_confirmation: z.boolean().optional(), id: ID, name: z.string(), kind: z.enum(["online", "offline"]), status: z.enum(["ready", "pending_configuration", "disabled"]), instructions: z.string().optional(), currency: z.string().optional() });
 export const PublicContextSchema = z.object({
-  monetary: MonetarySchema.default(defaultMonetary),
+  monetary: MonetarySchema.prefault(defaultMonetary),
   brand: BrandSchema, operator: OperatorSchema, brand_operator: OperatorSchema.optional(), theme: ThemeSchema,
   invitation: z.object({ code: z.string(), status: z.enum(["valid", "invalid", "disabled", "wrong_brand"]), type: z.enum(["user", "channel"]).optional(), operator: OperatorSchema.optional(), inviter_display_name: z.string().optional(), message: z.string().optional() }).optional(),
   availability: z.array(AvailabilitySchema), payment_methods: z.array(PaymentMethodSchema),
-  google_sign_in: z.boolean().optional(), staff_recovery_url: z.string().url().optional(),
+  google_sign_in: z.boolean().optional(), staff_recovery_url: z.url().optional(),
 });
 export type PublicContext = z.infer<typeof PublicContextSchema>;
 const PersonSchema = z.object({ id: ID, email: z.string(), display_name: z.string() });
@@ -69,7 +69,7 @@ export const RefundDestinationSchema = z.object({
   leg_id: ID, amount_money: Decimal, destination_required: z.boolean(), destination_mutable: z.boolean(),
   authorization_id: z.string().optional(), currency: z.string().optional(), proposal: z.object({ asset: z.string(), address: z.string() }).optional(),
 });
-export const OrderSchema = z.object({ receipt_voucher_available: z.boolean().optional(), refunds: z.array(RefundProgressSchema).optional(), fee_quote: CollectionFeeQuoteSchema.nullable().optional(), payment_state: z.string().optional(), payment_notice: z.string().optional(), monetary_snapshot: MonetarySnapshotSchema.optional(), method_change_allowed:z.boolean().optional(), cancel_allowed: z.boolean().optional(), id: ID, status: z.string(), kind: z.string(), operator_name: z.string(), amount_money: Decimal, paid_money: Decimal, delivered_at: z.string().nullable().optional(), created_at: z.string(), expires_at: z.string().nullable().optional(), plan_name: z.string().optional(), purchase_atg: Decimal.optional(), gift_atg: Decimal.optional(), payment_action: z.object({fee_quote:z.object({rule_id:z.string(),method_id:z.string(),method_name:z.string(),currency:z.string(),amount_money:Decimal,fee_money:Decimal,total_money:Decimal}).nullable().optional(), payment_quote: z.object({ id: z.string(), source:z.string(), source_url:z.string(), rate:Decimal, rate_date:z.string(), quoted_at:z.string(), expires_at:z.string(), pay_money:z.object({currency:z.string(),amount:Decimal}),settlement_money:z.object({currency:z.string(),amount:Decimal}) }).nullable().optional(), settlement_money: z.object({ currency: z.string(), amount: Decimal }).optional(), kind: z.enum(["redirect", "stripe", "offline", "form"]), url: z.string().optional(), client_secret: z.string().optional(), publishable_key: z.string().optional(), instructions: z.string().optional(), address: z.string().optional(), currency:z.string().optional(), amount: z.string().optional(), fields: z.record(z.string()).optional() }).nullable().optional() });
+export const OrderSchema = z.object({ receipt_voucher_available: z.boolean().optional(), refunds: z.array(RefundProgressSchema).optional(), fee_quote: CollectionFeeQuoteSchema.nullable().optional(), payment_state: z.string().optional(), payment_notice: z.string().optional(), monetary_snapshot: MonetarySnapshotSchema.optional(), method_change_allowed:z.boolean().optional(), cancel_allowed: z.boolean().optional(), id: ID, status: z.string(), kind: z.string(), operator_name: z.string(), amount_money: Decimal, paid_money: Decimal, delivered_at: z.string().nullable().optional(), created_at: z.string(), expires_at: z.string().nullable().optional(), plan_name: z.string().optional(), purchase_atg: Decimal.optional(), gift_atg: Decimal.optional(), payment_action: z.object({fee_quote:z.object({rule_id:z.string(),method_id:z.string(),method_name:z.string(),currency:z.string(),amount_money:Decimal,fee_money:Decimal,total_money:Decimal}).nullable().optional(), payment_quote: z.object({ id: z.string(), source:z.string(), source_url:z.string(), rate:Decimal, rate_date:z.string(), quoted_at:z.string(), expires_at:z.string(), pay_money:z.object({currency:z.string(),amount:Decimal}),settlement_money:z.object({currency:z.string(),amount:Decimal}) }).nullable().optional(), settlement_money: z.object({ currency: z.string(), amount: Decimal }).optional(), kind: z.enum(["redirect", "stripe", "offline", "form"]), url: z.string().optional(), client_secret: z.string().optional(), publishable_key: z.string().optional(), instructions: z.string().optional(), address: z.string().optional(), currency:z.string().optional(), amount: z.string().optional(), fields: z.record(z.string(), z.string()).optional() }).nullable().optional() });
 export type Order = z.infer<typeof OrderSchema>;
 export const QuoteSchema = z.object({ id: ID, plan_id: ID, plan_name: z.string(), operator_name: z.string(), amount_money: Decimal, purchase_atg: Decimal, plan_gift_atg: Decimal, operator_gift_atg: Decimal, kol_gift_atg: Decimal, total_atg: Decimal, validity: z.string(), terms_version: z.string(), terms_summary:z.string().optional(), expires_at: z.string(), warnings: z.array(z.string()) });
 export type Quote = z.infer<typeof QuoteSchema>;
@@ -88,10 +88,10 @@ export const UnreadCountSchema = z.object({ count: z.number().int().nonnegative(
 export const SettlementSchema = z.object({ id: ID, status: z.string(), amount_money: Decimal, fee_money: Decimal.optional(), net_money: Decimal.optional(), reason: z.string().optional(), created_at: z.string(), paid_at: z.string().nullable().optional(), reference: z.string().optional(), download_url: z.string().optional() });
 export const ActivitySchema = z.object({ id: ID, name: z.string(), plan_id: ID, status: z.string(), benefit_points: Decimal, starts_at: z.string(), ends_at: z.string(), per_customer_limit: z.number().int(), total_limit: z.number().int().nullable(), version: z.number().int() });
 
-export function collection<T extends z.ZodTypeAny>(item: T) { return z.object({ items: z.array(item), next_cursor: z.string().nullable().optional() }); }
+export function collection<T extends z.ZodType>(item: T) { return z.object({ items: z.array(item), next_cursor: z.string().nullable().optional() }); }
 export const SubscriptionVendorSchema = z.enum(["codex", "claude", "grok", "gemini", "antigravity"]);
 export type SubscriptionVendor = z.infer<typeof SubscriptionVendorSchema>;
-export const SubscriptionOAuthStartSchema = z.object({ url: z.string().url() });
+export const SubscriptionOAuthStartSchema = z.object({ url: z.url() });
 export const SubscriptionAccountSchema = z.object({
   id: ID, name: z.string(), enabled: z.boolean(), version: z.number().int(), status: z.string(),
   subscription_ends_at: z.string().optional(), cooldown_until: z.string().optional(),
@@ -103,8 +103,8 @@ export const SubscriptionPoolSchema = z.object({
 });
 export const SubscriptionPoolsSchema = collection(SubscriptionPoolSchema);
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue };
-export const JSONValueSchema: z.ZodType<JSONValue> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(JSONValueSchema), z.record(JSONValueSchema)]));
-export const EntitySchema = z.object({ presentation: z.object({ title: z.string().optional(), title_kind:z.string().optional(), subtitle: z.string().optional(), labels: z.record(z.string()) }).optional(), id: ID, status: z.string().optional(), version: z.number().int().optional(), values: z.record(JSONValueSchema), allowed_actions: z.array(z.string()).optional() });
+export const JSONValueSchema: z.ZodType<JSONValue> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(JSONValueSchema), z.record(z.string(), JSONValueSchema)]));
+export const EntitySchema = z.object({ presentation: z.object({ title: z.string().optional(), title_kind:z.string().optional(), subtitle: z.string().optional(), labels: z.record(z.string(), z.string()) }).optional(), id: ID, status: z.string().optional(), version: z.number().int().optional(), values: z.record(z.string(), JSONValueSchema), allowed_actions: z.array(z.string()).optional() });
 export type Entity = z.infer<typeof EntitySchema>;
 export const FieldSchema = z.object({ name: z.string(), label: z.string(), kind: z.enum(["text", "email", "password", "decimal", "integer", "boolean", "select", "datetime", "textarea", "json", "file", "csv", "hidden"]), lookup_url:z.string().optional(),visible_when:z.object({field:z.string(),values:z.array(z.string()),not:z.boolean().optional(),fallback_fields:z.array(z.string()).optional()}).optional(), required: z.boolean().optional(), help: z.string().optional(), options: z.array(z.object({ value: z.string(), label: z.string(),fee_rule:FeeRuleSchema.optional() })).optional(), default_value: JSONValueSchema.optional() });
 export type CommandField = z.infer<typeof FieldSchema>;
@@ -135,7 +135,7 @@ export const NotificationPreferencesSchema = z.object({ marketing: z.boolean(), 
 export const TakeoverSnapshotSchema = z.object({
  customers:z.record(z.string(),z.number().int()),
  assets:z.array(z.object({account_id:ID,customer_id:ID,purpose:z.string(),unit:z.string(),balance:SignedDecimal,held:Decimal,version:z.number().int()})),
- procurement:z.object({quantity:Decimal}).passthrough(),
+ procurement:z.looseObject({quantity:Decimal}),
  packages:z.array(z.object({id:ID,quote_id:ID,name:z.string(),price_money:Decimal,paid_atg:Decimal,gift_atg:Decimal,period:z.string()})),
  service_atg:Decimal,cash_money:Decimal,wallet_money:Decimal,commission_money:Decimal,
 });
@@ -151,9 +151,9 @@ export const TakeoversSchema=z.object({notices:z.array(ExitNoticeSchema).default
 export const FinancialReportSchema=z.object({operator_id:z.string(),from:z.string(),to:z.string(),captured_at:z.string(),status:z.string(),settlement_currency:z.string(),
  original_currency_totals:z.array(z.object({currency:z.string(),income:SignedDecimal,expense:SignedDecimal,receipt_fees:SignedDecimal,net_receipts:SignedDecimal,pending_receipt_fees:z.number().int(),supplier_reported_cost:SignedDecimal,supplier_reference_cost:SignedDecimal,supplier_actual_cost:SignedDecimal,subscription_actual_cost:SignedDecimal.optional()})).default([]),
  sales:z.object({completed_sales:z.number().int(),sales_money:SignedDecimal,wallet_top_ups:z.number().int(),wallet_top_up_money:SignedDecimal,pending_deliveries:z.number().int()}),
- procurement:z.object({purchase_orders:z.number().int(),purchases_money:SignedDecimal,wholesale_orders:z.number().int(),wholesale_sales_money:SignedDecimal,procurement_shortfall_atg:Decimal.default("0")}),
+ procurement:z.object({purchase_orders:z.number().int(),purchases_money:SignedDecimal,wholesale_orders:z.number().int(),wholesale_sales_money:SignedDecimal,procurement_shortfall_atg:Decimal.prefault("0")}),
  usage:z.object({completed_requests:z.number().int(),charged_atg:SignedDecimal,net_charged_atg:SignedDecimal,correction_atg:SignedDecimal,shortfall_atg:SignedDecimal}),
- revenue:z.object({collection_fees_money:SignedDecimal.default("0"),paid_invocation_money:SignedDecimal,expired_unused_paid_money:SignedDecimal,wholesale_consumed_money:SignedDecimal,withdrawal_fees_retained_money:SignedDecimal,total_money:SignedDecimal}),
+ revenue:z.object({collection_fees_money:SignedDecimal.prefault("0"),paid_invocation_money:SignedDecimal,expired_unused_paid_money:SignedDecimal,wholesale_consumed_money:SignedDecimal,withdrawal_fees_retained_money:SignedDecimal,total_money:SignedDecimal}),
  costs:z.object({fulfillment_money:SignedDecimal,retail_gift_subset_money:SignedDecimal,commission_money:SignedDecimal,payment_fees_money:SignedDecimal,exception_loss_money:SignedDecimal,total_money:SignedDecimal,pending_fees:z.number().int(),pending_supplier_costs:z.number().int()}),
  cash:z.object({recorded_in_money:SignedDecimal,recorded_out_money:SignedDecimal,procurement_payments_money:SignedDecimal,commission_payouts_money:SignedDecimal,takeover_in_money:SignedDecimal,takeover_out_money:SignedDecimal,provider_receivable_money:SignedDecimal}),
  liabilities:z.object({wholesale_prepayment_money:SignedDecimal,customer_wallet_money:SignedDecimal,outstanding_grant_paid_money:SignedDecimal,outstanding_grant_atg:SignedDecimal,commission_money:SignedDecimal,unfulfilled_order_funds_money:SignedDecimal,supplier_payable_money:SignedDecimal}),

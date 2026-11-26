@@ -4,7 +4,64 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{createRequire}=require('node:module');
 const root=path.resolve(__dirname,'..'),req=createRequire(path.join(root,'web/package.json')),ts=req('typescript');
 const source=fs.readFileSync(path.join(root,'web/lib/contracts.ts'),'utf8');const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;const out={exports:{}};vm.runInNewContext(compiled,{module:out,exports:out.exports,require:req});
-function schema(s,depth=0){if(depth>18)return {};const d=s._def,t=d.typeName;switch(t){case'ZodString':{const o={type:'string'};for(const c of d.checks||[]){if(c.kind==='regex')o.pattern=c.regex.source;if(c.kind==='min')o.minLength=c.value;if(c.kind==='max')o.maxLength=c.value;if(['email','uuid','datetime','url'].includes(c.kind))o.format=c.kind==='datetime'?'date-time':c.kind==='url'?'uri':c.kind}return o}case'ZodNumber':{const o={type:(d.checks||[]).some(c=>c.kind==='int')?'integer':'number'};return o}case'ZodBoolean':return{type:'boolean'};case'ZodLiteral':return{const:d.value,type:typeof d.value};case'ZodEnum':return{type:'string',enum:d.values};case'ZodNull':return{type:'null'};case'ZodArray':return{type:'array',items:schema(d.type,depth+1)};case'ZodObject':{const p={},required=[];for(const[k,v]of Object.entries(d.shape())){p[k]=schema(v,depth+1);if(!v.isOptional())required.push(k)}return{type:'object',properties:p,...(required.length?{required}:{}),additionalProperties:d.unknownKeys!=='strict'}}case'ZodOptional':case'ZodDefault':return schema(d.innerType,depth+1);case'ZodNullable':return{anyOf:[schema(d.innerType,depth+1),{type:'null'}]};case'ZodUnion':return{anyOf:d.options.map(v=>schema(v,depth+1))};case'ZodDiscriminatedUnion':return{oneOf:[...d.options.values()].map(v=>schema(v,depth+1)),discriminator:{propertyName:d.discriminator}};case'ZodRecord':return{type:'object',additionalProperties:schema(d.valueType,depth+1)};case'ZodLazy':return schema(d.getter(),depth+1);case'ZodEffects':return schema(d.schema,depth+1);default:return{}}}
+const stringFormats = new Map([['email', 'email'], ['uuid', 'uuid'], ['datetime', 'date-time'], ['url', 'uri']]);
+function schema(zodSchema, depth = 0) {
+  // Keep recursive JSON values inline at the same depth as the reviewed contract.
+  if (depth > 18) return {};
+  const definition = zodSchema.def;
+  const child = item => schema(item, depth + 1);
+  switch (definition.type) {
+    case 'string': {
+      const result = { type: 'string' };
+      const checks = [definition, ...(definition.checks ?? []).map(check => check._zod.def)];
+      for (const check of checks) {
+        if (check.format === 'regex') result.pattern = check.pattern.source;
+        if (check.check === 'min_length') result.minLength = check.minimum;
+        if (check.check === 'max_length') result.maxLength = check.maximum;
+        const format = stringFormats.get(check.format);
+        if (format) result.format = format;
+      }
+      return result;
+    }
+    case 'number':
+      return { type: zodSchema.format?.includes('int') ? 'integer' : 'number' };
+    case 'boolean':
+    case 'null':
+      return { type: definition.type };
+    case 'literal': {
+      if (definition.values.length !== 1) throw new Error('Expected a single OpenAPI literal value');
+      const [value] = definition.values;
+      return { const: value, type: typeof value };
+    }
+    case 'enum':
+      return { type: 'string', enum: zodSchema.options };
+    case 'array':
+      return { type: 'array', items: child(definition.element) };
+    case 'object': {
+      const fields = Object.entries(definition.shape);
+      const properties = Object.fromEntries(fields.map(([key, field]) => [key, child(field)]));
+      const required = fields.filter(([, field]) => !field.safeParse(undefined).success).map(([key]) => key);
+      return { type: 'object', properties, ...(required.length ? { required } : {}), additionalProperties: definition.catchall?.def.type !== 'never' };
+    }
+    case 'optional':
+    case 'default':
+    case 'prefault':
+      return child(definition.innerType);
+    case 'nullable':
+      return { anyOf: [child(definition.innerType), { type: 'null' }] };
+    case 'union': {
+      const options = definition.options.map(child);
+      if (definition.discriminator) return { oneOf: options, discriminator: { propertyName: definition.discriminator } };
+      return { anyOf: options };
+    }
+    case 'record':
+      return { type: 'object', additionalProperties: child(definition.valueType) };
+    case 'lazy':
+      return child(definition.getter());
+    default:
+      throw new Error(`Unsupported Zod schema type for OpenAPI: ${definition.type}`);
+  }
+}
 const schemas={};for(const[k,v]of Object.entries(out.exports))if(k.endsWith('Schema')||k==='Decimal'||k==='SignedDecimal')schemas[k.replace(/Schema$/,'')]=schema(v);
 const ref=n=>({$ref:'#/components/schemas/'+n}),str={type:'string'},bool={type:'boolean'},uuid={type:'string',format:'uuid'},integer={type:'integer',minimum:0},decimal=ref('LedgerDecimal'),priceDecimal=ref('Decimal'),obj=(p,r=Object.keys(p))=>({type:'object',properties:p,required:r,additionalProperties:false}),array=s=>({type:'array',items:s}),collection=n=>obj({items:array(ref(n)),next_cursor:{type:['string','null']}},['items']);
 schemas.LedgerDecimal={type:'string',pattern:'^(0|[1-9][0-9]{0,19})(\\.[0-9]{1,18})?$',description:'Exact unsigned NUMERIC(38,18) ledger amount; never round incoming values.'};

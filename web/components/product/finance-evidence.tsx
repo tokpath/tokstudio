@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorPanel, useCommand } from "./shared";
 
-const Evidence = z.object({ id: z.string().uuid(), status: z.literal("ready") });
+const Evidence = z.object({ id: z.guid(), status: z.literal("ready") });
 const marker = "tokenhub-evidence:";
 
 export function FinanceEvidenceUpload({ operatorID, disabled, attach, onPendingChange }: { operatorID: string; disabled: boolean; attach: (reference: string) => void; onPendingChange: (pending: boolean) => void }) {

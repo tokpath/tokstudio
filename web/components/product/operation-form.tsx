@@ -10,7 +10,6 @@ import { YesNoChoice } from "./yes-no";
 
 import { useQuery } from "@tanstack/react-query";
 import { Check, CheckCircle2, LockKeyhole, ShieldCheck } from "lucide-react";
-import { z } from "zod";
 import { useDeferredValue, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { request } from "@/lib/api-client";
 import { CommandResultSchema, Decimal, SignedDecimal, JSONValueSchema, type CommandField, type Entity, type Operation, type JSONValue } from "@/lib/contracts";
@@ -24,7 +23,7 @@ import { ProcurementPayment } from "./procurement-payment";
 import { closePaymentWindow, reservePaymentWindow, submitPaymentForm } from "@/lib/payment-window";
 import { ErrorPanel, Notice, useScrollIntoView, useCommand } from "./shared";
 import { configDefaults, configurationSchema, ConfigurationError, prepareConfiguration, presentSupplierConfiguration, retainKnownFields, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
-import { RecordPicker, type RecordChoice } from "./record-picker";
+import { RecordPicker, ReferenceSchema, type RecordChoice } from "./record-picker";
 import { PurchaseTiersEditor, PurchaseTierSummary, PurchasePreview, purchaseTiers, calculatePurchase } from "./purchase-tiers";
 import { ConfigurationEditor } from "./operation-config-editor";
 import { PriceRates } from "./pricing-cards";
@@ -348,7 +347,6 @@ function PermissionField({ field, value, disabled, change }: { field: CommandFie
   return <fieldset className="text-sm"><legend>{t(field.label)}{field.help && <FieldHelp title={t(field.label)}>{t(field.help)}</FieldHelp>}</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{options.map(option => <label key={option.value} className="flex min-h-11 items-center gap-2 rounded-control border border-hairline px-3 py-2"><input type="checkbox" aria-label={t(option.label)} checked={selected.includes(option.value)} disabled={disabled} onChange={event => change((event.target.checked ? [...selected, option.value] : selected.filter(item => item !== option.value)).join(","))} />{t(option.label)}</label>)}</div></fieldset>;
 }
 
-const ReferenceSchema = z.object({ items: z.array(z.object({ value: z.string(), label: z.string(), defaults: z.record(z.string(), z.unknown()).optional() })), next_cursor: z.string().optional() });
 function ReferenceField({ field, value, disabled, invalid, change, choose, onLabel, primary }: { field: CommandField; value: string; disabled: boolean; invalid: boolean; change: (value: string) => void; choose: (values: Record<string, unknown>) => void; onLabel: (label: string) => void; primary: boolean }) {
   const { t } = useI18n();
   const [search, setSearch] = useState(""); const deferred = useDeferredValue(search); const [cursor, setCursor] = useState(""); const [selectedLabel, setSelectedLabel] = useState(""); const path = field.lookup_url!; const separator = path.includes("?") ? "&" : "?";

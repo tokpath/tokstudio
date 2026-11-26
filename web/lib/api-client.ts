@@ -26,7 +26,7 @@ export function warmConnection() {
   void ping().then(() => ping());
 }
 
-async function readResponse<T extends z.ZodTypeAny>(response: Response, schema: T): Promise<z.infer<T>> {
+async function readResponse<Output>(response: Response, schema: z.ZodType<Output>): Promise<Output> {
   let body: unknown;
   try { body = await response.json(); }
   catch { throw new APIError("invalid_response", "服务返回了无法识别的结果，请稍后查询操作状态。", response.headers.get("X-Request-ID") || "", true, undefined, response.status); }
@@ -54,7 +54,7 @@ export async function downloadCSV(path: string, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function uploadWithProgress<T extends z.ZodTypeAny>(path: string, schema: T, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; actionKey?: string; onUploadProgress?: (loaded: number, total: number) => void }): Promise<z.infer<T>> {
+function uploadWithProgress<Output>(path: string, schema: z.ZodType<Output>, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; actionKey?: string; onUploadProgress?: (loaded: number, total: number) => void }): Promise<Output> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open(options.method || "POST", path);
@@ -78,7 +78,7 @@ function uploadWithProgress<T extends z.ZodTypeAny>(path: string, schema: T, opt
   });
 }
 
-export async function request<T extends z.ZodTypeAny>(path: string, schema: T, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; actionKey?: string; signal?: AbortSignal; onUploadProgress?: (loaded: number, total: number) => void } = {}): Promise<z.infer<T>> {
+export async function request<Output>(path: string, schema: z.ZodType<Output>, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; actionKey?: string; signal?: AbortSignal; onUploadProgress?: (loaded: number, total: number) => void } = {}): Promise<Output> {
   const method = options.method || "GET";
   if (!path.startsWith("/api/v1/")) throw new Error("Business API path must start with /api/v1/");
   const headers = new Headers({ Accept: "application/json", "Accept-Language": getClientLocale() });

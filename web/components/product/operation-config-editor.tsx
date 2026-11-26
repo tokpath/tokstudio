@@ -7,15 +7,14 @@ import { YesNoChoice } from "./yes-no";
 
 import { createContext, useContext, useDeferredValue, useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { z } from "zod";
 import { ArrowUp, ArrowDown, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { type JSONValue } from "@/lib/contracts";
+import type { JSONValue } from "@/lib/contracts";
 import { request } from "@/lib/api-client";
 import { subscriptionVendor } from "@/lib/subscription-vendors";
 import { configDefaults, groupResolutionPrices, nodeVisible, resolutionPriceable, retainKnownFields, type ConfigNode } from "./operation-config";
-import { RecordPicker, type RecordChoice } from "./record-picker";
+import { RecordPicker, ReferenceSchema, type RecordChoice } from "./record-picker";
 import { BillingTemplateEditor } from "./billing-template-editor";
 
 const control = "min-h-11 w-full min-w-0 rounded-control border border-hairline bg-canvas-raised px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
@@ -167,7 +166,6 @@ function ResolutionPrices({ fieldPath, help, rows, disabled, change }: { fieldPa
   return <section className="mt-4 space-y-3 border-t border-hairline pt-4"><div className="flex flex-wrap items-center justify-between gap-3"><h5 className="text-sm font-medium">{t("分辨率价格（可选）")}{help && <FieldHelp title={t("分辨率价格（可选）")}>{t(help)}</FieldHelp>}</h5><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => change([...rows, { size: "", rate: "" }])}><Plus aria-hidden="true" />{t("添加分辨率")}</Button></div>{rows.map((row, index) => { const item = asObject(row); const update = (key: string, next: string) => change(rows.map((previous, i) => i === index ? { ...asObject(previous), [key]: next } : previous)); return <div key={index} className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"><div data-config-path={`${fieldPath}.resolutions.${index}.size`}><label className="text-xs text-ink-secondary">{t("分辨率")}<Input aria-label={t("分辨率 {index}", { index: index + 1 })} className="mt-2" value={String(item.size || "")} disabled={disabled} placeholder="1024x1024" onChange={event => update("size", event.target.value)} /></label></div><div data-config-path={`${fieldPath}.resolutions.${index}.rate`}><label className="text-xs text-ink-secondary">{t("该分辨率的 ATG 单价")}<Input aria-label={t("该分辨率的 ATG 单价 {index}", { index: index + 1 })} className="mt-2" inputMode="decimal" value={String(item.rate || "")} disabled={disabled} onChange={event => update("rate", event.target.value)} /></label></div><Button type="button" variant="ghost" size="icon" aria-label={t("移除分辨率 {index}", { index: index + 1 })} disabled={disabled} onClick={() => change(rows.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></div>; })}</section>;
 }
 
-const ReferenceSchema = z.object({ items: z.array(z.object({ value: z.string(), label: z.string(), defaults: z.record(z.unknown()).optional() })), next_cursor: z.string().optional() });
 function useReferenceLabel(path: string, value: string, enabled: boolean, buyerID = "", extra = "") {
   return useQuery({
     queryKey: ["reference-label", path, value, buyerID, extra],

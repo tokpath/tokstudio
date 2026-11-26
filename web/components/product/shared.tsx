@@ -1,7 +1,7 @@
 "use client";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { z } from "zod";
+import type { z } from "zod";
 import { APIError, request, newActionKey } from "@/lib/api-client";
 import { previewDecimal, formatDecimal } from "@/lib/decimal";
 import { Button } from "@/components/ui/button";
@@ -46,10 +46,10 @@ export function Table<T>({ rows, columns, getID, empty, emptyTitle }: { rows: T[
 
 // A network-ambiguous attempt keeps its exact body and UUID until queried or
 // retried. Successful actions clear the attempt so the next action gets a new ID.
-export function useCommand<T extends z.ZodTypeAny>(path: string, schema: T, method: "POST" | "PATCH" | "DELETE" = "POST", hooks?: { onUploadProgress?: (loaded: number, total: number) => void }) {
+export function useCommand<Output>(path: string, schema: z.ZodType<Output>, method: "POST" | "PATCH" | "DELETE" = "POST", hooks?: { onUploadProgress?: (loaded: number, total: number) => void }) {
   const cache = useQueryClient();
   const attempt = useRef<{ key: string; fingerprint: string; body: unknown } | undefined>(undefined);
-  const [busy, setBusy] = useState(false), [error, setError] = useState<unknown>(), [result, setResult] = useState<z.infer<T>>();
+  const [busy, setBusy] = useState(false), [error, setError] = useState<unknown>(), [result, setResult] = useState<Output>();
   const unresolved = error instanceof APIError && (error.retryable || error.code === "contract_mismatch");
   async function run(body: unknown) {
     if (busy) return;

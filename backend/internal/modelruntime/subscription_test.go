@@ -45,13 +45,15 @@ func TestSubscriptionBifrostNativeContracts(t *testing.T) {
 		kind, provider, path, raw string
 		op                        Operation
 		configured                bool
+		modelLimit                int64
+		wantCap                   string
 	}{
-		{subscriptionauth.Codex, "openai", "/backend-api/codex/responses", `{"model":"public-model","input":"hello"}`, Responses, false},
-		{subscriptionauth.Codex, "openai", "/backend-api/codex/responses", `{"model":"public-model","input":"hello","stream":true}`, Responses, false},
-		{subscriptionauth.Claude, "anthropic", "/v1/messages", `{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`, Chat, false},
-		{subscriptionauth.Grok, "openai", "/v1/responses", `{"model":"public-model","input":"hello","max_output_tokens":20}`, Responses, true},
-		{subscriptionauth.Gemini, "openai", "/v1/chat/completions", `{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`, Chat, true},
-		{subscriptionauth.Antigravity, "openai", "/v1/chat/completions", `{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`, Chat, true},
+		{subscriptionauth.Codex, "openai", "/backend-api/codex/responses", `{"model":"public-model","input":"hello"}`, Responses, false, 20, ""},
+		{subscriptionauth.Codex, "openai", "/backend-api/codex/responses", `{"model":"public-model","input":"hello","stream":true}`, Responses, false, 20, ""},
+		{subscriptionauth.Claude, "anthropic", "/v1/messages", `{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`, Chat, false, 32_000, "32000"},
+		{subscriptionauth.Grok, "openai", "/v1/responses", `{"model":"public-model","input":"hello","max_output_tokens":20}`, Responses, true, 20, "20"},
+		{subscriptionauth.Gemini, "openai", "/v1/chat/completions", `{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`, Chat, true, 128_000, "50000"},
+		{subscriptionauth.Antigravity, "openai", "/v1/chat/completions", `{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":8000}`, Chat, true, 128_000, "8000"},
 	} {
 		t.Run(sample.kind+"/"+sample.raw, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -71,20 +73,20 @@ func TestSubscriptionBifrostNativeContracts(t *testing.T) {
 					}
 					w.Header().Set("Content-Type", "application/json")
 					if sample.op == Responses {
-						if string(body["max_output_tokens"]) != "20" {
+						if string(body["max_output_tokens"]) != sample.wantCap {
 							t.Error("Grok requested output cap was changed")
 						}
 						fmt.Fprint(w, `{"id":"resp_test","object":"response","model":"upstream-exact-model","status":"completed","output":[{"id":"msg_test","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"ok","annotations":[]}]}],"usage":{"input_tokens":2,"output_tokens":1,"total_tokens":3}}`)
 					} else {
-						if string(body["max_completion_tokens"]) != "20" {
-							t.Error("chat request had no output cap")
+						if string(body["max_completion_tokens"]) != sample.wantCap {
+							t.Errorf("chat output cap = %s, want %s", body["max_completion_tokens"], sample.wantCap)
 						}
 						fmt.Fprint(w, `{"id":"msg_test","object":"chat.completion","model":"upstream-exact-model","choices":[{"message":{"role":"assistant","content":"ok"},"index":0,"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":1,"total_tokens":3}}`)
 					}
 					return
 				}
 				if sample.kind == subscriptionauth.Claude {
-					if !strings.Contains(r.Header.Get("Anthropic-Beta"), "oauth-2025-04-20") || string(body["max_tokens"]) != "20" {
+					if !strings.Contains(r.Header.Get("Anthropic-Beta"), "oauth-2025-04-20") || string(body["max_tokens"]) != sample.wantCap {
 						t.Error("missing Claude authorization or token cap")
 					}
 					w.Header().Set("Content-Type", "application/json")
@@ -124,7 +126,7 @@ func TestSubscriptionBifrostNativeContracts(t *testing.T) {
 			}
 			capability := DefaultBilling(sample.op).Capability(sample.op, r.Stream)
 			a := testAttempt("", capability)
-			a.Provider, a.SubscriptionKind, a.SubscriptionAccountID, a.SubscriptionOutputLimit = sample.provider, sample.kind, "account", 20
+			a.Provider, a.SubscriptionKind, a.SubscriptionAccountID, a.SubscriptionOutputLimit = sample.provider, sample.kind, "account", sample.modelLimit
 			events := 0
 			out, err := b.Execute(ctx, a, r, func(_ context.Context, event Event) error {
 				events++

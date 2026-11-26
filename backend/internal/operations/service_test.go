@@ -302,9 +302,9 @@ func TestRealLedgerReconciliationExportAuthorizationAndRetention(t *testing.T) {
 			}
 		}
 	}
+	apply(organization.Migrations())
 	apply(cooperation.Migrations())
 	apply(usage.Migrations())
-	apply(organization.Migrations())
 	apply(commerce.Migrations())
 	us := usage.New(s.DB, usage.Dependencies{ResultStore: &operationBlobs{data: map[string][]byte{}}})
 	s.Source = DomainSource{Ledger: l, Cooperation: cooperation.New(s.DB, l, nil), Usage: us, Commerce: commerce.New(s.DB)}

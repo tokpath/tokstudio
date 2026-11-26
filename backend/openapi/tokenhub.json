@@ -49804,6 +49804,10 @@
               "wholesale_sales_money": {
                 "type": "string",
                 "pattern": "^-?(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
+              "procurement_shortfall_atg": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
               }
             },
             "required": [

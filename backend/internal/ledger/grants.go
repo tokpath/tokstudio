@@ -289,30 +289,38 @@ func (s *Service) ReserveCredits(ctx context.Context, tx *gorm.DB, in CreditRese
 		if e != nil {
 			return e
 		}
-		remaining := in.Estimate
-		amounts := []Line{}
-		for _, g := range grants {
-			if g.EffectiveAt.After(in.At) || (g.ExpiresAt != nil && !g.ExpiresAt.After(in.At)) {
-				continue
-			}
-			available := accounts[g.AccountID].Available()
-			take := minimum(available, remaining)
-			if take.Sign() > 0 {
-				amounts = append(amounts, Line{g.AccountID, take})
-				remaining = remaining.Sub(take)
-			}
-			if remaining.IsZero() {
-				break
-			}
-		}
-		if remaining.Sign() > 0 {
-			return ErrInsufficient
+		amounts, e := allocateGrantCredits(grants, accounts, in.At, in.Estimate)
+		if e != nil {
+			return e
 		}
 		result, e = s.Reserve(ctx, t, Reservation{in.OperatorID, in.BusinessKey, "model", in.ExpiresAt, amounts})
 		return e
 	})
 	return result, err
 }
+
+func allocateGrantCredits(grants []Grant, accounts map[string]Account, at time.Time, amount Decimal) ([]Line, error) {
+	remaining := amount
+	var amounts []Line
+	for _, g := range grants {
+		if g.EffectiveAt.After(at) || (g.ExpiresAt != nil && !g.ExpiresAt.After(at)) {
+			continue
+		}
+		take := minimum(accounts[g.AccountID].Available(), remaining)
+		if take.Sign() > 0 {
+			amounts = append(amounts, Line{g.AccountID, take})
+			remaining = remaining.Sub(take)
+		}
+		if remaining.IsZero() {
+			break
+		}
+	}
+	if remaining.Sign() > 0 {
+		return nil, ErrInsufficient
+	}
+	return amounts, nil
+}
+
 func minimum(a, b Decimal) Decimal {
 	if a.Cmp(b) < 0 {
 		return a
@@ -323,6 +331,22 @@ func minimum(a, b Decimal) Decimal {
 // SettleCredits returns the billable paid basis and merchant shortfall. It never
 // borrows another request's held amount and honors expired grants only up to this hold.
 func (s *Service) SettleCredits(ctx context.Context, tx *gorm.DB, operator, customer, holdID, businessKey string, actual Decimal, at time.Time) (CreditResult, error) {
+	if holdID == "" {
+		return CreditResult{}, ErrScope
+	}
+	return s.settleCredits(ctx, tx, operator, customer, holdID, businessKey, actual, at)
+}
+
+// SettleUnreservedCredits handles positive usage following a zero estimate.
+// The caller must lock its request and persist the result in this transaction.
+func (s *Service) SettleUnreservedCredits(ctx context.Context, tx *gorm.DB, operator, customer, businessKey string, actual Decimal, at time.Time) (CreditResult, error) {
+	if tx == nil || businessKey == "" {
+		return CreditResult{}, ErrScope
+	}
+	return s.settleCredits(ctx, tx, operator, customer, "", businessKey, actual, at)
+}
+
+func (s *Service) settleCredits(ctx context.Context, tx *gorm.DB, operator, customer, holdID, businessKey string, actual Decimal, at time.Time) (CreditResult, error) {
 	if actual.Sign() < 0 || !actual.Valid() {
 		return CreditResult{}, ErrAmount
 	}
@@ -333,27 +357,29 @@ func (s *Service) SettleCredits(ctx context.Context, tx *gorm.DB, operator, cust
 		if e := lockCustomer(t, operator, customer); e != nil {
 			return e
 		}
-		var existing creditResultRow
-		e := t.First(&existing, "hold_id=?", holdID).Error
-		if e == nil {
-			if existing.Fingerprint != fp {
-				return ErrConflict
-			}
-			return json.Unmarshal(existing.Result, &result)
-		}
-		if !errors.Is(e, gorm.ErrRecordNotFound) {
-			return e
-		}
-		var hold Hold
-		if e = t.Where("id=? AND operator_id=?", holdID, operator).First(&hold).Error; e != nil {
-			return e
-		}
-		if hold.Status != "active" {
-			return ErrHoldState
-		}
 		var held []HoldAllocation
-		if e = t.Where("hold_id=?", holdID).Find(&held).Error; e != nil {
-			return e
+		if holdID != "" {
+			var existing creditResultRow
+			e := t.First(&existing, "hold_id=?", holdID).Error
+			if e == nil {
+				if existing.Fingerprint != fp {
+					return ErrConflict
+				}
+				return json.Unmarshal(existing.Result, &result)
+			}
+			if !errors.Is(e, gorm.ErrRecordNotFound) {
+				return e
+			}
+			var hold Hold
+			if e = t.Where("id=? AND operator_id=?", holdID, operator).First(&hold).Error; e != nil {
+				return e
+			}
+			if hold.Status != "active" {
+				return ErrHoldState
+			}
+			if e = t.Where("hold_id=?", holdID).Find(&held).Error; e != nil {
+				return e
+			}
 		}
 		heldIDs := []string{}
 		heldTotal := Zero()
@@ -363,7 +389,7 @@ func (s *Service) SettleCredits(ctx context.Context, tx *gorm.DB, operator, cust
 		}
 		var grants []Grant
 		if len(heldIDs) > 0 {
-			if e = t.Where("operator_id=? AND customer_id=? AND account_id IN ?", operator, customer, heldIDs).Find(&grants).Error; e != nil {
+			if e := t.Where("operator_id=? AND customer_id=? AND account_id IN ?", operator, customer, heldIDs).Find(&grants).Error; e != nil {
 				return e
 			}
 		}
@@ -423,9 +449,10 @@ func (s *Service) SettleCredits(ctx context.Context, tx *gorm.DB, operator, cust
 		}
 		result = CreditResult{Requested: actual, Debited: actual.Sub(remaining), Shortfall: remaining, Events: []GrantEvent{}}
 		if result.Debited.IsZero() {
-			_, e = s.Release(ctx, t, operator, holdID, businessKey)
-			if e != nil {
-				return e
+			if holdID != "" {
+				if _, e = s.Release(ctx, t, operator, holdID, businessKey); e != nil {
+					return e
+				}
 			}
 		} else {
 			control, e := s.EnsureAccount(ctx, t, Account{OperatorID: operator, OwnerID: operator, Purpose: "control:credits", Unit: "ATG", AllowNegative: true})
@@ -442,7 +469,13 @@ func (s *Service) SettleCredits(ctx context.Context, tx *gorm.DB, operator, cust
 					}
 				}
 			}
-			j, e := s.Capture(ctx, t, holdID, p, extra)
+			var j Journal
+			if holdID == "" {
+				p.SourceID = businessKey
+				j, e = s.Post(ctx, t, p)
+			} else {
+				j, e = s.Capture(ctx, t, holdID, p, extra)
+			}
 			if e != nil {
 				return e
 			}
@@ -457,6 +490,9 @@ func (s *Service) SettleCredits(ctx context.Context, tx *gorm.DB, operator, cust
 					result.PaidMoney = result.PaidMoney.Add(event.PaidMoney)
 				}
 			}
+		}
+		if holdID == "" {
+			return nil
 		}
 		encoded, e := json.Marshal(result)
 		if e != nil {

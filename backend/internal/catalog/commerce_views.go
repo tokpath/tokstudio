@@ -109,7 +109,7 @@ func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at 
 }
 
 func (s CommerceCatalog) callableOperations(ctx context.Context, m PublicModel, offered []PublicCapability, retail ResolvedPrice, scopes []PriceScope, at time.Time) ([]PublicCapability, string, error) {
-	upstreams, e := s.eligibleUpstreams(ctx, m)
+	upstreams, e := s.eligibleUpstreams(ctx, m, false)
 	if e != nil {
 		return nil, "", e
 	}

@@ -3775,6 +3775,14 @@
     "ms": "Hasil bekalan borong yang digunakan",
     "th": "รายได้จากการจัดหาขายส่งที่ใช้แล้ว"
   },
+  "承担的采购差额": {
+    "en": "Procurement shortfall covered",
+    "ja": "負担した調達不足分",
+    "ru": "Покрытый дефицит закупок",
+    "hi": "वहन की गई खरीद की कमी",
+    "ms": "Kekurangan perolehan yang ditanggung",
+    "th": "ส่วนขาดการจัดซื้อที่รับผิดชอบ"
+  },
   "提现手续费保留": {
     "en": "Retained withdrawal fees",
     "ja": "留保した出金手数料",

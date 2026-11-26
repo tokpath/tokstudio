@@ -2382,6 +2382,14 @@
     "ms": "Akaun telah berubah. Muat semula halaman dan beri kebenaran sekali lagi.",
     "th": "บัญชีมีการเปลี่ยนแปลง รีเฟรชหน้าแล้วอนุญาตอีกครั้ง"
   },
+  "无法核实凭据属于原账号。请使用原账号授权，或添加新账号。": {
+    "en": "These credentials could not be verified for the original account. Authorize with that account or add a new one.",
+    "ja": "認証情報が元のアカウントに属することを確認できませんでした。元のアカウントで認証するか、新しいアカウントを追加してください。",
+    "ru": "Не удалось подтвердить, что данные относятся к исходному аккаунту. Авторизуйте этот аккаунт или добавьте новый.",
+    "hi": "इन क्रेडेंशियल का मूल खाते से संबंध सत्यापित नहीं हो सका। मूल खाते से अनुमति दें या नया खाता जोड़ें।",
+    "ms": "Bukti kelayakan ini tidak dapat disahkan untuk akaun asal. Beri kebenaran dengan akaun itu atau tambah akaun baharu.",
+    "th": "ตรวจสอบไม่ได้ว่าข้อมูลรับรองนี้เป็นของบัญชีเดิม โปรดอนุญาตด้วยบัญชีเดิมหรือเพิ่มบัญชีใหม่"
+  },
   "授权未完成，请在账号池中重试。": {
     "en": "Authorization did not complete. Try again from the account pool.",
     "ja": "認証が完了しませんでした。アカウントプールから再試行してください。",

@@ -188,8 +188,18 @@ func (s *Service) Release(ctx context.Context, tx *gorm.DB, operator, holdID, re
 
 // Capture releases the whole reservation and posts actual debits in one transaction.
 // allowExtra lists ONLY customer accounts explicitly eligible for unheld overage;
-// procurement accounts must never appear in it. All other held assets are bounded.
+// all other held assets are bounded by their reservation.
 func (s *Service) Capture(ctx context.Context, tx *gorm.DB, holdID string, p Posting, allowExtra map[string]bool) (Journal, error) {
+	return s.capture(ctx, tx, holdID, p, allowExtra, false)
+}
+
+// CaptureProcurement can use unheld procurement ATG of the account covered by
+// this reservation. Other account types remain bounded by their reservation.
+func (s *Service) CaptureProcurement(ctx context.Context, tx *gorm.DB, holdID string, p Posting) (Journal, error) {
+	return s.capture(ctx, tx, holdID, p, nil, true)
+}
+
+func (s *Service) capture(ctx context.Context, tx *gorm.DB, holdID string, p Posting, allowExtra map[string]bool, procurement bool) (Journal, error) {
 	p, e := normalizePosting(p)
 	if e != nil {
 		return Journal{}, e
@@ -233,7 +243,13 @@ func (s *Service) Capture(ctx context.Context, tx *gorm.DB, holdID string, p Pos
 				if a.Purpose != "customer:atg" && !strings.HasPrefix(a.Purpose, "customer:atg:") {
 					return ErrScope
 				}
-			} else if debit.Cmp(reserved[l.AccountID]) > 0 {
+				continue
+			}
+			if procurement && h.Purpose == "procurement" && a.Purpose == "procurement:atg" &&
+				a.Unit == "ATG" && a.OwnerID == p.OperatorID && reserved[l.AccountID].Sign() > 0 {
+				continue
+			}
+			if debit.Cmp(reserved[l.AccountID]) > 0 {
 				return ErrInsufficient
 			}
 		}

@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/maximhq/bifrost/core/schemas"
 	"math/big"
 	"strconv"
 	"unicode/utf8"
+
+	"github.com/maximhq/bifrost/core/schemas"
 )
 
 type billingStream struct {
@@ -23,8 +24,27 @@ func completedImageEvent(event *schemas.BifrostImageGenerationStreamResponse) bo
 	return event != nil && (event.Type == schemas.ImageGenerationEventTypeCompleted || event.Type == schemas.ImageEditEventTypeCompleted)
 }
 
+func responseStreamCompletion(event *schemas.BifrostResponsesStreamResponse) bool {
+	return event != nil && (event.Type == schemas.ResponsesStreamResponseTypeCompleted || event.Type == schemas.ResponsesStreamResponseTypeIncomplete)
+}
+
+func responseStreamTokenEvidence(event *schemas.BifrostResponsesStreamResponse) bool {
+	if event == nil || event.Response == nil || event.Response.Usage == nil {
+		return false
+	}
+	usage := event.Response.Usage
+	// Bifrost serializes any omitted count as zero. A provisional zero output
+	// on a nonterminal frame also cannot establish the turn's output usage.
+	return (usage.InputTokens > 0 || usage.InputTokensExplicitZero) &&
+		(usage.OutputTokens > 0 || usage.OutputTokensExplicitZero && responseStreamCompletion(event))
+}
+
 func (s *billingStream) measure(ctx context.Context, b *Bifrost, chunk *schemas.BifrostStreamChunk, c Capability, r Request) Usage {
+	tokenEvidence := len(r.WebSocketInput) == 0 || responseStreamTokenEvidence(chunk.BifrostResponsesStreamResponse)
 	if c.Billing == nil {
+		if !tokenEvidence {
+			return Usage{Source: "unknown"}
+		}
 		return extractUsage(chunk, c)
 	}
 	if r.Operation == Chat || r.Operation == Responses {
@@ -71,7 +91,10 @@ func (s *billingStream) measure(ctx context.Context, b *Bifrost, chunk *schemas.
 		if c.Billing.Has("output", "text", "characters") && s.textCharacters == 0 {
 			return Usage{Source: "unknown"}
 		}
-		tokens := readTokenFacts(chunk, c, body)
+		var tokens tokenFacts
+		if tokenEvidence {
+			tokens = readTokenFacts(chunk, c, body)
+		}
 		body["_meter_token_evidence"] = tokens.input != nil
 		if tokens.input != nil {
 			body["_meter_token_input"] = tokens.input.FloatString(24)

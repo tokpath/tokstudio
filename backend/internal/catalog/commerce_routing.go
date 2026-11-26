@@ -147,7 +147,7 @@ func (s CommerceCatalog) routeHealth(ctx context.Context, model string) (map[str
 	}
 	return out, now, e
 }
-func (s CommerceCatalog) rankRoutes(ctx context.Context, q *ModelQuote) error {
+func (s CommerceCatalog) rankRoutes(ctx context.Context, q *ModelQuote, dropsLimit map[string]bool) error {
 	p, e := s.RoutingPolicy(ctx, q.ModelID)
 	if e != nil {
 		return e
@@ -157,7 +157,7 @@ func (s CommerceCatalog) rankRoutes(ctx context.Context, q *ModelQuote) error {
 	}
 	if p.Strategy == "lowest_cost" {
 		for _, candidate := range q.Candidates {
-			if candidate.SubscriptionKind != "" {
+			if candidate.SubscriptionKind != "" && !dropsLimit[candidate.ID] {
 				return nil
 			}
 		}
@@ -178,6 +178,10 @@ func (s CommerceCatalog) rankRoutes(ctx context.Context, q *ModelQuote) error {
 	}
 	sort.SliceStable(q.Candidates, func(i, j int) bool {
 		a, b := q.Candidates[i], q.Candidates[j]
+		// A request can drop its cap after the candidates that honor it are exhausted.
+		if dropsLimit[a.ID] != dropsLimit[b.ID] {
+			return !dropsLimit[a.ID]
+		}
 		if p.Strategy == "lowest_cost" {
 			x, y := costs[a.ID], costs[b.ID]
 			if x != nil && y != nil {

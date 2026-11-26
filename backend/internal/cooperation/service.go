@@ -216,6 +216,9 @@ func (s *Service) ReserveProcurement(ctx context.Context, tx *gorm.DB, buyer, re
 			return e
 		}
 		p, e := s.Position(ctx, t, buyer)
+		if errors.Is(e, gorm.ErrRecordNotFound) {
+			return ledger.ErrInsufficient
+		}
 		if e != nil {
 			return e
 		}
@@ -226,15 +229,17 @@ func (s *Service) ReserveProcurement(ctx context.Context, tx *gorm.DB, buyer, re
 }
 
 type ProcurementSettlement struct {
-	RequestID         string          `json:"request_id"`
-	BuyerID           string          `json:"buyer_id"`
-	HoldID            string          `json:"hold_id"`
-	Actual            ledger.Decimal  `json:"actual"`
-	Deducted          ledger.Decimal  `json:"deducted"`
-	PlatformShortfall ledger.Decimal  `json:"platform_shortfall"`
-	CostMoney         ledger.Decimal  `json:"cost_money"`
-	SourceAllocations json.RawMessage `json:"source_allocations" gorm:"type:jsonb"`
-	CreatedAt         time.Time       `json:"created_at"`
+	RequestID           string          `json:"request_id"`
+	BuyerID             string          `json:"buyer_id"`
+	SupplierID          string          `json:"supplier_id"`
+	HoldID              *string         `json:"hold_id,omitempty"`
+	Actual              ledger.Decimal  `json:"actual"`
+	Deducted            ledger.Decimal  `json:"deducted"`
+	Shortfall           ledger.Decimal  `json:"shortfall"`
+	ShortfallOperatorID *string         `json:"shortfall_operator_id,omitempty"`
+	CostMoney           ledger.Decimal  `json:"cost_money"`
+	SourceAllocations   json.RawMessage `json:"source_allocations" gorm:"type:jsonb"`
+	CreatedAt           time.Time       `json:"created_at"`
 }
 
 func (ProcurementSettlement) TableName() string { return "cooperation_procurement_settlements" }
@@ -246,7 +251,7 @@ type SourceConsumption struct {
 }
 
 func (s *Service) SettleProcurement(ctx context.Context, tx *gorm.DB, buyer, request, holdID string, actual ledger.Decimal, at time.Time) (ProcurementSettlement, error) {
-	if actual.Sign() < 0 {
+	if actual.Sign() < 0 || !actual.Valid() {
 		return ProcurementSettlement{}, ledger.ErrAmount
 	}
 	var result ProcurementSettlement
@@ -256,7 +261,11 @@ func (s *Service) SettleProcurement(ctx context.Context, tx *gorm.DB, buyer, req
 		}
 		e := t.First(&result, "request_id=? AND buyer_id=?", request, buyer).Error
 		if e == nil {
-			if result.HoldID != holdID || result.Actual.Cmp(actual) != 0 {
+			previousHoldID := ""
+			if result.HoldID != nil {
+				previousHoldID = *result.HoldID
+			}
+			if previousHoldID != holdID || result.Actual.Cmp(actual) != 0 {
 				return ErrConflict
 			}
 			return nil
@@ -265,26 +274,54 @@ func (s *Service) SettleProcurement(ctx context.Context, tx *gorm.DB, buyer, req
 			return e
 		}
 		p, e := s.Position(ctx, t, buyer)
-		if e != nil {
-			return e
-		}
-		hold, heldAllocations, e := s.Ledger.HoldDetails(ctx, t, buyer, holdID)
-		if e != nil {
-			return e
-		}
-		if hold.Status != "active" || hold.BusinessKey != "procurement:"+request || len(heldAllocations) != 1 || heldAllocations[0].AccountID != p.AccountID {
-			return ErrConflict
-		}
-		allocation := heldAllocations[0]
-		deduct := actual
-		if deduct.Cmp(allocation.Amount) > 0 {
-			deduct = allocation.Amount
-		}
-		result = ProcurementSettlement{RequestID: request, BuyerID: buyer, HoldID: holdID, Actual: actual, Deducted: deduct, PlatformShortfall: actual.Sub(deduct), SourceAllocations: json.RawMessage("[]"), CreatedAt: at}
-		if deduct.IsZero() {
-			_, e = s.Ledger.Release(ctx, t, buyer, holdID, "usage:"+request)
+		if errors.Is(e, gorm.ErrRecordNotFound) && holdID == "" {
+			agreement, e := s.Organization.GetSupplyAgreement(ctx, t, buyer)
 			if e != nil {
 				return e
+			}
+			p.SupplierID = agreement.SupplierID
+		} else if e != nil {
+			return e
+		}
+		result = ProcurementSettlement{RequestID: request, BuyerID: buyer, SupplierID: p.SupplierID, Actual: actual, SourceAllocations: json.RawMessage("[]"), CreatedAt: at}
+		spendable := ledger.Zero()
+		if holdID != "" {
+			hold, allocations, e := s.Ledger.HoldDetails(ctx, t, buyer, holdID)
+			if e != nil {
+				return e
+			}
+			if hold.Status != "active" || hold.Purpose != "procurement" || hold.BusinessKey != "procurement:"+request || len(allocations) != 1 || allocations[0].AccountID != p.AccountID {
+				return ErrConflict
+			}
+			result.HoldID = &holdID
+			spendable = allocations[0].Amount
+		}
+		// The cooperation lock protects procurement stock and holds across
+		// purchases, admissions and settlements. Available excludes other holds.
+		if p.AccountID != "" && actual.Cmp(spendable) > 0 {
+			account, e := s.Ledger.AccountInTransaction(ctx, t, p.AccountID)
+			if e != nil {
+				return e
+			}
+			if account.OperatorID != buyer || account.OwnerID != buyer || account.Purpose != "procurement:atg" || account.Unit != "ATG" || account.AllowNegative {
+				return ErrConflict
+			}
+			spendable = spendable.Add(account.Available())
+		}
+		deduct := actual
+		if deduct.Cmp(spendable) > 0 {
+			deduct = spendable
+		}
+		result.Deducted = deduct
+		result.Shortfall = actual.Sub(deduct)
+		if result.Shortfall.Sign() > 0 {
+			result.ShortfallOperatorID = &result.SupplierID
+		}
+		if deduct.IsZero() {
+			if holdID != "" {
+				if _, e = s.Ledger.Release(ctx, t, buyer, holdID, "usage:"+request); e != nil {
+					return e
+				}
 			}
 			return t.Create(&result).Error
 		}
@@ -292,7 +329,12 @@ func (s *Service) SettleProcurement(ctx context.Context, tx *gorm.DB, buyer, req
 		if e != nil {
 			return e
 		}
-		_, e = s.Ledger.Capture(ctx, t, holdID, ledger.Posting{OperatorID: buyer, BusinessKey: "procurement:usage:" + request, Kind: "usage", SourceID: request, ActorID: "system:metering", Reason: "confirmed wholesale usage", Lines: []ledger.Line{{AccountID: p.AccountID, Amount: deduct.Neg()}, {AccountID: control.ID, Amount: deduct}}}, nil)
+		posting := ledger.Posting{OperatorID: buyer, BusinessKey: "procurement:usage:" + request, Kind: "usage", SourceID: request, ActorID: "system:metering", Reason: "confirmed wholesale usage", Lines: []ledger.Line{{AccountID: p.AccountID, Amount: deduct.Neg()}, {AccountID: control.ID, Amount: deduct}}}
+		if holdID == "" {
+			_, e = s.Ledger.Post(ctx, t, posting)
+		} else {
+			_, e = s.Ledger.CaptureProcurement(ctx, t, holdID, posting)
+		}
 		if e != nil {
 			return e
 		}

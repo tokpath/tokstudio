@@ -102,6 +102,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 400, "invalid_subscription_credential", "凭据格式无效，请使用所选供应商的订阅授权。", false
 	case errors.Is(err, catalog.ErrSubscriptionAccountExists):
 		status, code, msg, retry = 409, "subscription_account_exists", "此账号已在当前账号池中。", false
+	case errors.Is(err, catalog.ErrSubscriptionAccountIdentity):
+		status, code, msg, retry = 409, "subscription_account_identity_mismatch", "无法核实凭据属于原账号。请使用原账号授权，或添加新账号。", false
 	case errors.Is(err, modelpricing.ErrStatementExists):
 		status, code, msg, retry = 409, "subscription_statement_exists", "此订阅账单已登记，请在已有记录中修改。", false
 	case errors.Is(err, catalog.ErrSubscriptionModelLimits):

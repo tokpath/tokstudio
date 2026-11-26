@@ -54,10 +54,15 @@ func TestPostgresSubscriptionBrowserOAuth(t *testing.T) {
 	} {
 		t.Run(sample.kind, func(t *testing.T) {
 			var exchanges, discoveries atomic.Int64
+			var differentAccount atomic.Bool
 			supplier := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
+				subject := "supplier-account"
+				if differentAccount.Load() {
+					subject = "another-supplier-account"
+				}
 				if r.URL.Path == "/userinfo" && r.Header.Get("Authorization") == "Bearer private-access" {
-					fmt.Fprint(w, `{"sub":"supplier-account"}`)
+					fmt.Fprintf(w, `{"sub":%q}`, subject)
 					return
 				}
 				if r.Method == http.MethodGet && r.URL.Path == "/v1/models" &&
@@ -81,7 +86,7 @@ func TestPostgresSubscriptionBrowserOAuth(t *testing.T) {
 					return
 				}
 				now := time.Now()
-				claims, _ := json.Marshal(map[string]any{"sub": "supplier-account", "aud": "registered-client", "nonce": parts[2],
+				claims, _ := json.Marshal(map[string]any{"sub": subject, "aud": "registered-client", "nonce": parts[2],
 					"iss": "http://" + r.Host, "exp": now.Add(time.Hour).Unix(), "iat": now.Unix()})
 				_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "private-access", "refresh_token": "private-refresh",
 					"token_type": "Bearer", "expires_in": 3600, "id_token": "e30." + base64.RawURLEncoding.EncodeToString(claims) + ".provider"})
@@ -210,6 +215,43 @@ func TestPostgresSubscriptionBrowserOAuth(t *testing.T) {
 			post(base+"/routes", map[string]any{"route": map[string]any{
 				"public_model_id": public, "strategy": "priority", "bindings": []map[string]any{{"supplier_model_id": model, "enabled": true}},
 			}, "expected_version": policy.Version})
+			if sample.kind == subscriptionauth.Grok {
+				policy, err = f.a.Catalog.RoutingPolicy(t.Context(), public)
+				if err != nil {
+					t.Fatal(err)
+				}
+				post(base+"/routes", map[string]any{"route": map[string]any{
+					"public_model_id": public, "strategy": "priority", "bindings": []any{},
+				}, "expected_version": policy.Version})
+				var account struct {
+					ID      string
+					Name    string
+					Version uint64
+				}
+				if err := f.a.DB.Table("tokenhub_subscription_accounts").Where("pool_id=? AND jsonb_exists(discovered_models, ?)", pool, sample.model).
+					Take(&account).Error; err != nil {
+					t.Fatal(err)
+				}
+				draft["id"], draft["name"], draft["expected_version"] = account.ID, account.Name, account.Version
+				differentAccount.Store(true)
+				callback(f.client, sample.kind, start(), "identity_mismatch")
+				differentAccount.Store(false)
+				callback(f.client, sample.kind, start(), "saved")
+				updated, err := f.a.Catalog.AdminUpstreams(t.Context(), actor, public)
+				if err != nil || len(updated) != 1 || updated[0].Enabled || updated[0].ID != routes[0].ID || updated[0].SupplierModelID != model {
+					t.Fatalf("reauthorization did not prepare one disabled route from the existing supplier model: %+v, error %v", updated, err)
+				}
+				restored, err := f.a.Catalog.RoutingPolicy(t.Context(), public)
+				if err != nil {
+					t.Fatal(err)
+				}
+				draft["expected_version"] = account.Version + 1
+				callback(f.client, sample.kind, start(), "saved")
+				policy, err = f.a.Catalog.RoutingPolicy(t.Context(), public)
+				if err != nil || policy.Version != restored.Version {
+					t.Fatalf("another authorization rewrote the restored route: %+v, error %v", policy, err)
+				}
+			}
 			now := time.Now()
 			post(base+"/supplier-costs", map[string]any{"provider_id": pool, "statement_reference": "OAUTH-STATEMENT",
 				"starts_at": now.Add(-time.Hour), "ends_at": now, "currency": "EUR", "amount": "21.30"})

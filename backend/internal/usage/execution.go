@@ -11,9 +11,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	platformcrypto "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
-	"github.com/tokpath/tokstudio/backend/internal/platform/objectstore"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"gorm.io/gorm"
@@ -96,11 +96,7 @@ func (s *Service) ReplayResponseTurn(ctx context.Context, key Key, businessKey s
 	if !terminal(result.Request.Status) {
 		return result, true, ErrInProgress
 	}
-	result.Result, err = s.ReadResult(ctx, key.CustomerID, result.Request.ID)
-	if errors.Is(err, ErrResultUnavailable) && result.Request.Status == "completed" && result.Request.CompletedAt != nil &&
-		result.Request.CompletedAt.Add(shortResultRetention).After(s.wallNow()) {
-		err = objectstore.ErrUnavailable
-	}
+	result.Result, err = s.readResponseTurn(ctx, result.Request)
 	return result, true, err
 }
 
@@ -108,7 +104,11 @@ func (s *Service) executeAdmitted(ctx context.Context, req Request, input modelr
 	var e error
 	out := Execution{Request: req, Replay: replay}
 	if terminal(req.Status) {
-		out.Result, e = s.ReadResult(ctx, req.CustomerID, req.ID)
+		if len(input.WebSocketInput) > 0 {
+			out.Result, e = s.readResponseTurn(ctx, req)
+		} else {
+			out.Result, e = s.ReadResult(ctx, req.CustomerID, req.ID)
+		}
 		return out, e
 	}
 	if req.Operation == modelruntime.Responses && input.Operation != modelruntime.Responses {
@@ -143,7 +143,7 @@ func (s *Service) executeAdmitted(ctx context.Context, req Request, input modelr
 	// active request. The monitor reads only status, never model content.
 	monitorDone := make(chan struct{})
 	defer close(monitorDone)
-	go func() {
+	go func(requestID string) {
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
 		for {
@@ -157,13 +157,13 @@ func (s *Service) executeAdmitted(ctx context.Context, req Request, input modelr
 					CancelRequested bool
 					Status          string
 				}
-				if s.DB.WithContext(executionCtx).Model(&Request{}).Select("cancel_requested,status").Where("id=?", req.ID).Take(&state).Error == nil && (state.CancelRequested || terminal(state.Status)) {
+				if s.DB.WithContext(executionCtx).Model(&Request{}).Select("cancel_requested,status").Where("id=?", requestID).Take(&state).Error == nil && (state.CancelRequested || terminal(state.Status)) {
 					cancel()
 					return
 				}
 			}
 		}
-	}()
+	}(req.ID)
 	var acceptedQuote catalog.ModelQuote
 	if e = json.Unmarshal(req.PriceSnapshot, &acceptedQuote); e != nil {
 		return out, e
@@ -172,22 +172,22 @@ func (s *Service) executeAdmitted(ctx context.Context, req Request, input modelr
 	for _, price := range acceptedQuote.Supplier {
 		costs[price.UpstreamID] = price.Snapshot
 	}
-	billingParams := modelruntime.BillingParameters(input.Params)
 	var last modelruntime.Result
-	var lastErr error
+	var lastErr, reservationErr error
 	requiresSettlement := false
 	excluded := map[string][]string{}
 routes:
 	for _, upstream := range candidates {
-		capability, e := catalog.SelectCapability(upstream, input)
+		selected, e := catalog.SelectRoute(upstream, input)
 		if e != nil {
 			continue
 		}
+		billingParams := modelruntime.BillingParameters(selected.Request.Params)
 		for executionCtx.Err() == nil {
 			attempt := modelruntime.Attempt{
 				ID: uuid.NewString(), RequestID: req.ID, UpstreamID: upstream.ID, Provider: upstream.Provider,
 				UpstreamModel: upstream.Model, PublicModel: req.ModelID, CredentialID: upstream.CredentialID,
-				BaseURL: upstream.Endpoints[input.Operation], Deadline: req.UsageDeadline, Capability: capability,
+				BaseURL: upstream.Endpoints[input.Operation], Deadline: req.UsageDeadline, Capability: selected.Capability,
 				BillingParams: billingParams, CostSnapshot: costs[upstream.ID],
 				SubscriptionKind: upstream.SubscriptionKind, SubscriptionOutputLimit: upstream.SubscriptionOutputLimit,
 			}
@@ -197,7 +197,11 @@ routes:
 				row.CostStatus = "subscription"
 				row.CostObservation = json.RawMessage(`{"source":"subscription"}`)
 			}
+			updated := req
 			e = s.DB.WithContext(executionCtx).Transaction(func(t *gorm.DB) error {
+				if err := s.reserveSubscriptionRoute(executionCtx, t, &updated, acceptedQuote, selected); err != nil {
+					return err
+				}
 				cat := s.Catalog.WithDB(t)
 				if err := cat.ClaimRoute(executionCtx, upstream.ID, attempt.ID, req.ID, req.UsageDeadline); err != nil {
 					return err
@@ -215,10 +219,15 @@ routes:
 			if errors.Is(e, catalog.ErrRouteUnavailable) || errors.Is(e, catalog.ErrSubscriptionUnavailable) {
 				break
 			}
+			if errors.Is(e, ErrBudget) || errors.Is(e, ledger.ErrInsufficient) {
+				reservationErr = e
+				break
+			}
 			if e != nil {
 				return out, e
 			}
-			result, runtimeErr, recordErr := s.executeAttempt(executionCtx, req, attempt, input, emit, upstream.ProviderID)
+			req = updated
+			result, runtimeErr, recordErr := s.executeAttempt(executionCtx, req, attempt, selected.Request, emit, upstream.ProviderID)
 			if recordErr != nil {
 				return out, recordErr
 			}
@@ -236,17 +245,13 @@ routes:
 				}
 				continue
 			}
-			last, lastErr = result, runtimeErr
-			if last.State == "not_dispatched" {
-				finalCtx, finish := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
-				defer finish()
-				out.Request, e = s.failUndispatched(finalCtx, req.ID, failureReason(last))
-				out.Result = last
-				if e != nil {
-					return out, e
+			if result.State == "not_dispatched" && !result.OutputDelivered && !result.Usage.Reliable {
+				if !requiresSettlement {
+					last, lastErr = result, runtimeErr
 				}
-				return out, lastErr
+				break
 			}
+			last, lastErr = result, runtimeErr
 			requiresSettlement = true
 			if last.State == "submitted" || last.State == "outcome_unknown" || last.OutputDelivered || attempt.SubscriptionKind != "" && last.Usage.Reliable || lastErr == nil {
 				break routes
@@ -270,9 +275,16 @@ routes:
 		if lastErr != nil {
 			return out, lastErr
 		}
+		if reservationErr != nil {
+			return out, reservationErr
+		}
 		return out, catalog.ErrRouteUnavailable
 	}
-	if last.Usage.Reliable && (last.State == "completed" || last.OutputDelivered) {
+	settlesUsage := last.Usage.Reliable && (last.State == "completed" || last.OutputDelivered)
+	retainsResponseTurn := len(input.WebSocketInput) > 0 && settlesUsage
+	if retainsResponseTurn {
+		out.Request, e = s.finishResponseTurn(finishCtx, req, last)
+	} else if settlesUsage {
 		out.Request, e = s.Settle(finishCtx, nil, req.ID, last.Usage)
 	} else {
 		state := "awaiting_usage"
@@ -292,7 +304,7 @@ routes:
 	if e != nil {
 		return out, e
 	}
-	if out.Request.Status == "completed" && !retainsImage(req) && (len(last.Output) > 0 || len(last.Binary) > 0) {
+	if out.Request.Status == "completed" && !retainsResponseTurn && !retainsImage(req) && (len(last.Output) > 0 || len(last.Binary) > 0) {
 		if e = s.StoreResult(finishCtx, out.Request, last); e != nil && req.Operation == modelruntime.Video {
 			return out, e
 		}
@@ -449,11 +461,19 @@ func (s *Service) RecordAttempt(ctx context.Context, requestID, attemptID string
 	})
 }
 func (s *Service) StoreResult(ctx context.Context, r Request, result modelruntime.Result) error {
-	if s.ResultStore == nil {
-		return ErrNotReady
-	}
 	if r.Status != "completed" || r.CompletedAt == nil {
 		return ErrInProgress
+	}
+	ttl := shortResultRetention
+	if r.Operation == modelruntime.Video || r.AsyncImage || r.Operation.IsImage() && r.Streaming {
+		ttl = s.ResultRetention
+	}
+	return s.storeTemporaryResult(ctx, r, result, r.CompletedAt.Add(ttl))
+}
+
+func (s *Service) storeTemporaryResult(ctx context.Context, r Request, result modelruntime.Result, expiresAt time.Time) error {
+	if s.ResultStore == nil {
+		return ErrNotReady
 	}
 	if len(result.Output)+len(result.Binary) > 32<<20 {
 		return errors.New("temporary result exceeds storage limit")
@@ -472,12 +492,7 @@ func (s *Service) StoreResult(ctx context.Context, r Request, result modelruntim
 	if e != nil {
 		return e
 	}
-	ttl := shortResultRetention
-	if r.Operation == modelruntime.Video || r.AsyncImage || r.Operation.IsImage() && r.Streaming {
-		ttl = s.ResultRetention
-	}
 	now := s.wallNow()
-	expiresAt := r.CompletedAt.Add(ttl)
 	if !expiresAt.After(now) {
 		return ErrResultUnavailable
 	}
@@ -518,9 +533,28 @@ func (s *Service) StoreResult(ctx context.Context, r Request, result modelruntim
 	return nil
 }
 func (s *Service) ReadResult(ctx context.Context, customer, id string) (modelruntime.Result, error) {
-	if _, e := s.GetRequest(ctx, customer, id); e != nil {
+	request, e := s.GetRequest(ctx, customer, id)
+	if e != nil {
 		return modelruntime.Result{}, e
 	}
+	return s.readRequestResult(ctx, request)
+}
+
+func (s *Service) readRequestResult(ctx context.Context, request Request) (modelruntime.Result, error) {
+	if request.Status != "completed" || isResponseTurn(request) && !s.withinResponseReplayPeriod(request) {
+		return modelruntime.Result{}, ErrResultUnavailable
+	}
+	result, err := s.readObjectResult(ctx, request.ID)
+	if err == nil || !s.canReadResponseReplay(request) {
+		return result, err
+	}
+	if cached, ok := s.readCachedResponseTurn(ctx, request.ID); ok {
+		return cached, nil
+	}
+	return result, err
+}
+
+func (s *Service) readObjectResult(ctx context.Context, id string) (modelruntime.Result, error) {
 	var row resultRow
 	if e := s.DB.WithContext(ctx).First(&row, "request_id=? AND state='ready' AND expires_at>?", id, s.wallNow()).Error; e != nil {
 		if errors.Is(e, gorm.ErrRecordNotFound) {

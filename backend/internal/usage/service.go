@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
@@ -42,17 +43,18 @@ type GrantObserver interface {
 	ObserveGrantEvent(context.Context, *gorm.DB, ledger.Grant, ledger.GrantEvent) error
 }
 type Dependencies struct {
-	Ledger           *ledger.Service
-	Organization     *organization.Service
-	Cooperation      *cooperation.Service
-	Catalog          catalog.CommerceCatalog
-	Runtime          modelruntime.Adapter
-	GrantObserver    GrantObserver
-	EncryptionKey    string
-	UsageTimeout     time.Duration
-	ResultRetention  time.Duration
-	ResultStore      objectstore.BlobStore
-	AdmissionLimiter AdmissionLimiter
+	Ledger              *ledger.Service
+	Organization        *organization.Service
+	Cooperation         *cooperation.Service
+	Catalog             catalog.CommerceCatalog
+	Runtime             modelruntime.Adapter
+	GrantObserver       GrantObserver
+	EncryptionKey       string
+	UsageTimeout        time.Duration
+	ResultRetention     time.Duration
+	ResultStore         objectstore.BlobStore
+	ResponseReplayCache *redis.Client
+	AdmissionLimiter    AdmissionLimiter
 }
 type Service struct {
 	DB *gorm.DB

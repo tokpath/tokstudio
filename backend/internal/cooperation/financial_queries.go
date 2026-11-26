@@ -18,6 +18,7 @@ type FinancialSnapshot struct {
 	ProcurementCorrectionMoney       ledger.Decimal `json:"procurement_correction_money"`
 	WholesaleEarnedMoney             ledger.Decimal `json:"wholesale_earned_money"`
 	WholesaleCorrectionMoney         ledger.Decimal `json:"wholesale_correction_money"`
+	ProcurementShortfallATG          ledger.Decimal `json:"procurement_shortfall_atg"`
 	ClosingInventoryCostMoney        ledger.Decimal `json:"closing_inventory_cost_money"`
 	VerifiedProcurementPaymentsMoney ledger.Decimal `json:"verified_procurement_payments_money"`
 	ClosingProcurementPaymentsMoney  ledger.Decimal `json:"closing_procurement_payments_money"`
@@ -57,6 +58,7 @@ func (s *Service) FinancialFacts(ctx context.Context, tx *gorm.DB, operator stri
 			{`SELECT COALESCE(sum(cost_money),0)::text FROM cooperation_procurement_reversals WHERE buyer_id=? AND created_at>=? AND created_at<?`, &out.ProcurementCorrectionMoney},
 			{`SELECT COALESCE(sum(c.cost_money),0)::text FROM cooperation_procurement_settlements c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at>=? AND c.created_at<?`, &out.WholesaleEarnedMoney},
 			{`SELECT COALESCE(sum(c.cost_money),0)::text FROM cooperation_procurement_reversals c JOIN cooperation_procurement_positions p ON p.buyer_id=c.buyer_id WHERE p.supplier_id=? AND c.created_at>=? AND c.created_at<?`, &out.WholesaleCorrectionMoney},
+			{`SELECT COALESCE(sum(shortfall),0)::text FROM cooperation_procurement_settlements WHERE shortfall_operator_id=? AND created_at>=? AND created_at<?`, &out.ProcurementShortfallATG},
 		} {
 			if e := t.Raw(q.SQL, operator, from, to).Row().Scan(q.Target); e != nil {
 				return e

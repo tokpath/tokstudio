@@ -23714,6 +23714,15 @@
     "Pulihkan kata laluan",
     "กู้คืนรหัสผ่าน"
   ],
+  "承担的采购差额": [
+    "承担的采购差额",
+    "Procurement shortfall covered",
+    "負担した調達不足分",
+    "Покрытый дефицит закупок",
+    "वहन की गई खरीद की कमी",
+    "Kekurangan perolehan yang ditanggung",
+    "ส่วนขาดการจัดซื้อที่รับผิดชอบ"
+  ],
   "承接客户": [
     "承接客户",
     "Customers transferred",
@@ -27313,6 +27322,15 @@
     "{label} सत्यापित नहीं हो सका। व्यावसायिक रिकॉर्ड फिर चुनें और फिर प्रयास करें।",
     "Tidak dapat mengesahkan {label}. Pilih rekod perniagaan semula dan cuba semula.",
     "ไม่สามารถตรวจสอบ {label} ได้ เลือกบันทึกธุรกิจอีกครั้งและลองอีกครั้ง"
+  ],
+  "无法核实凭据属于原账号。请使用原账号授权，或添加新账号。": [
+    "无法核实凭据属于原账号。请使用原账号授权，或添加新账号。",
+    "These credentials could not be verified for the original account. Authorize with that account or add a new one.",
+    "認証情報が元のアカウントに属することを確認できませんでした。元のアカウントで認証するか、新しいアカウントを追加してください。",
+    "Не удалось подтвердить, что данные относятся к исходному аккаунту. Авторизуйте этот аккаунт или добавьте новый.",
+    "इन क्रेडेंशियल का मूल खाते से संबंध सत्यापित नहीं हो सका। मूल खाते से अनुमति दें या नया खाता जोड़ें।",
+    "Bukti kelayakan ini tidak dapat disahkan untuk akaun asal. Beri kebenaran dengan akaun itu atau tambah akaun baharu.",
+    "ตรวจสอบไม่ได้ว่าข้อมูลรับรองนี้เป็นของบัญชีเดิม โปรดอนุญาตด้วยบัญชีเดิมหรือเพิ่มบัญชีใหม่"
   ],
   "无法连接邮件服务器，请核对 SMTP 主机、端口和网络连接。": [
     "无法连接邮件服务器，请核对 SMTP 主机、端口和网络连接。",

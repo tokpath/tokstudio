@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 
@@ -38,31 +39,41 @@ func (s CommerceCatalog) prepareSubscriptionDrafts(ctx context.Context, actor st
 	for _, model := range prices {
 		priced[model] = true
 	}
-	var saved []string
-	if err := db.Raw("SELECT definition->>'model' FROM tokenhub_supplier_models WHERE provider_id=?", pool.ID).Scan(&saved).Error; err != nil {
+	var saved []catalogJSONRow
+	if err := db.Table("tokenhub_supplier_models").Select("definition").
+		Where("provider_id=? AND definition->>'model' IN ?", pool.ID, discovered).Order("id").Find(&saved).Error; err != nil {
 		return err
 	}
-	existing := make(map[string]bool, len(saved))
-	for _, model := range saved {
-		existing[model] = true
+	existing := make(map[string]SupplierModel, len(saved))
+	for _, row := range saved {
+		var model SupplierModel
+		if err := json.Unmarshal(row.Definition, &model); err != nil {
+			return err
+		}
+		if existing[model.Model].ID == "" {
+			existing[model.Model] = model
+		}
 	}
 	textOp := modelruntime.Operation(subscriptionauth.Operation(kind))
 	for _, model := range discovered {
-		if existing[model] || !priced[priceID(model)] {
+		if !priced[priceID(model)] {
 			continue
 		}
-		draft := SupplierModel{
-			ID: uuid.NewString(), CredentialID: pool.ID, Provider: subscriptionauth.Protocol(kind), Model: model,
-			Capabilities: []modelruntime.Capability{{Operation: textOp, Streaming: true}},
+		draft, exists := existing[model]
+		if !exists {
+			draft = SupplierModel{
+				ID: uuid.NewString(), CredentialID: pool.ID, Provider: subscriptionauth.Protocol(kind), Model: model,
+				Capabilities: []modelruntime.Capability{{Operation: textOp, Streaming: true}},
+			}
+			err := s.saveSupplierModel(ctx, actor, draft, 0)
+			if errors.Is(err, ErrSubscriptionModelLimits) || errors.Is(err, ErrInvalidInput) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			existing[model] = draft
 		}
-		err := s.saveSupplierModel(ctx, actor, draft, 0)
-		if errors.Is(err, ErrSubscriptionModelLimits) || errors.Is(err, ErrInvalidInput) {
-			continue
-		}
-		if err != nil {
-			return err
-		}
-		existing[model] = true
 		if err := s.prepareInitialSubscriptionRoute(ctx, actor, draft); err != nil {
 			return err
 		}
@@ -82,8 +93,13 @@ func (s CommerceCatalog) prepareInitialSubscriptionRoute(ctx context.Context, ac
 		return nil
 	}
 	routes, err := s.upstreams(ctx, model.ID)
-	if err != nil || len(routes) != 0 {
+	if err != nil {
 		return err
+	}
+	for _, route := range routes {
+		if !route.Detached {
+			return nil
+		}
 	}
 	policy, err := s.RoutingPolicy(ctx, model.ID)
 	if err != nil {

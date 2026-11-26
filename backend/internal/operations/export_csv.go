@@ -59,6 +59,7 @@ func financialExportRows(r FinancialReport) ([]json.RawMessage, error) {
 	add("销售与调用", "支付余额充值", r.Sales.WalletTopUpMoney, r.SettlementCurrency)
 	add("销售与调用", "已完成调用", r.Usage.CompletedRequests, "次")
 	add("销售与调用", "净扣费", r.Usage.NetChargedATG, "ATG")
+	add("销售与调用", "承担的采购差额", r.Procurement.ProcurementShortfallATG, "ATG")
 	add("清算币种业务事实", "收入合计", r.Revenue.TotalMoney, r.SettlementCurrency)
 	add("清算币种业务事实", "成本合计", r.Costs.TotalMoney, r.SettlementCurrency)
 	add("资金收支", "已核实流入", r.Cash.RecordedInMoney, r.SettlementCurrency)

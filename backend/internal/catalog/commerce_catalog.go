@@ -547,7 +547,7 @@ func (s CommerceCatalog) requireModelAuthorization(ctx context.Context, operator
 }
 
 // Routes checks brand, ancestor authorizations, self listing, public capability,
-// upstream identity, all requested parameters and a finite charging upper bound.
+// upstream identity, and the parameters each candidate can execute.
 // It does not inspect parent listings: authorizing supply is separate from retail.
 func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r modelruntime.Request) ([]UpstreamModel, error) {
 	return s.routes(ctx, brand, operator, &r)
@@ -589,20 +589,36 @@ func (s CommerceCatalog) routes(ctx context.Context, brand, operator string, r *
 		}
 		*r = converted
 	}
-	upstreams, e := s.eligibleUpstreams(ctx, m)
+	upstreams, e := s.eligibleUpstreams(ctx, m, false)
 	if e != nil {
 		return nil, e
 	}
 	out := upstreams[:0]
+	dropsLimit := make(map[string]bool)
 	for _, u := range upstreams {
-		if _, err := SelectCapability(u, *r); err == nil {
+		if selected, err := SelectRoute(u, *r); err == nil {
 			out = append(out, u)
+			dropsLimit[u.ID] = selected.DropsOutputLimit
 		}
 	}
 	if len(out) == 0 {
+		// An eligible subscription route may be waiting for its own circuit or
+		// its accounts to leave cooldown. Report temporary capacity in that case.
+		cooling, err := s.eligibleUpstreams(ctx, m, true)
+		if err != nil {
+			return nil, err
+		}
+		for _, u := range cooling {
+			if _, err := SelectRoute(u, *r); err == nil {
+				return nil, ErrRouteUnavailable
+			}
+		}
 		return nil, modelruntime.ErrUnsupported
 	}
 	sort.SliceStable(out, func(i, j int) bool {
+		if dropsLimit[out[i].ID] != dropsLimit[out[j].ID] {
+			return !dropsLimit[out[i].ID]
+		}
 		if out[i].Priority != out[j].Priority {
 			return out[i].Priority < out[j].Priority
 		}
@@ -612,15 +628,22 @@ func (s CommerceCatalog) routes(ctx context.Context, brand, operator string, r *
 }
 
 // eligibleUpstreams shares the operational route checks with the public catalog.
-func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel) ([]UpstreamModel, error) {
+func (s CommerceCatalog) eligibleUpstreams(ctx context.Context, m PublicModel, includeCooling bool) ([]UpstreamModel, error) {
 	var rows []struct {
 		Definition json.RawMessage
+	}
+	accountState := subscriptionSchedulable
+	routeReady := "(h.open_until IS NULL OR h.open_until<=clock_timestamp())"
+	if includeCooling {
+		accountState = subscriptionEligible
+		routeReady = "(c.subscription_kind<>'' OR " + routeReady + ")"
 	}
 	if e := s.DB.WithContext(ctx).Table("tokenhub_upstreams u").Select("u.definition").
 		Joins("JOIN tokenhub_provider_credentials c ON c.id=u.definition->>'credential_id' AND c.provider_id=u.provider_id AND c.enabled AND c.subscription_kind=COALESCE(u.definition->>'subscription_kind','')").
 		Joins("LEFT JOIN tokenhub_route_health h ON h.upstream_id=u.id").
-		Where("u.public_model_id=? AND u.definition->>'enabled'='true' AND u.definition->>'healthy'='true' AND u.definition->>'identity'=? AND (h.open_until IS NULL OR h.open_until<=clock_timestamp())", m.ID, m.Identity).
-		Where("c.subscription_kind='' OR EXISTS (SELECT 1 FROM tokenhub_subscription_accounts a WHERE a.pool_id=c.id AND " + subscriptionSchedulable + ")").
+		Where("u.public_model_id=? AND u.definition->>'enabled'='true' AND u.definition->>'healthy'='true' AND u.definition->>'identity'=?", m.ID, m.Identity).
+		Where(routeReady).
+		Where("c.subscription_kind='' OR EXISTS (SELECT 1 FROM tokenhub_subscription_accounts a WHERE a.pool_id=c.id AND " + accountState + ")").
 		Order("u.id").Scan(&rows).Error; e != nil {
 		return nil, e
 	}
@@ -668,6 +691,46 @@ func SelectCapability(u UpstreamModel, r modelruntime.Request) (modelruntime.Cap
 		}
 	}
 	return modelruntime.Capability{}, modelruntime.ErrUnsupported
+}
+
+type RouteSelection struct {
+	Capability               modelruntime.Capability
+	Request                  modelruntime.Request
+	DropsOutputLimit         bool
+	SubscriptionOutputTokens int64
+}
+
+// SelectRoute prepares parameters for one eligible candidate. The quote orders
+// candidates that can honor a client-supplied cap before candidates that drop it.
+func SelectRoute(u UpstreamModel, r modelruntime.Request) (RouteSelection, error) {
+	selection := RouteSelection{Request: r}
+	if u.SubscriptionKind != "" {
+		var params map[string]json.RawMessage
+		if len(r.Params) > 0 && json.Unmarshal(r.Params, &params) != nil {
+			return RouteSelection{}, modelruntime.ErrInvalidRequest
+		}
+		param := "max_output_tokens"
+		if r.Operation == modelruntime.Chat {
+			param = "max_completion_tokens"
+		}
+		selection.SubscriptionOutputTokens = modelruntime.SubscriptionDefaultOutputTokens
+		if raw, ok := params[param]; ok {
+			var limit int64
+			if json.Unmarshal(raw, &limit) != nil || limit < 1 {
+				return RouteSelection{}, modelruntime.ErrInvalidRequest
+			}
+			if u.SubscriptionKind == subscriptionauth.Codex && r.Operation == modelruntime.Responses {
+				delete(params, param)
+				selection.Request.Params, _ = json.Marshal(params)
+				selection.DropsOutputLimit = true
+			} else {
+				selection.SubscriptionOutputTokens = limit
+			}
+		}
+	}
+	var err error
+	selection.Capability, err = SelectCapability(u, selection.Request)
+	return selection, err
 }
 
 func subscriptionBounds(u UpstreamModel, c modelruntime.Capability) modelruntime.Capability {
@@ -732,16 +795,17 @@ func (s CommerceCatalog) HasPriceHistory(ctx context.Context, scope PriceScope, 
 }
 
 type ModelQuote struct {
-	Billing         modelruntime.Capability `json:"billing"`
-	CatalogVersion  uint64                  `json:"catalog_version"`
-	ModelID         string                  `json:"model_id"`
-	AcceptedAt      time.Time               `json:"accepted_at"`
-	Retail          ResolvedPrice           `json:"retail"`
-	Supply          []ResolvedPrice         `json:"supply"` // serving operator outward to platform
-	Supplier        []SupplierPriceSnapshot `json:"supplier"`
-	Bounds          map[string]string       `json:"bounds"`
-	Candidates      []UpstreamModel         `json:"-"`
-	PreparedRequest *modelruntime.Request   `json:"-"`
+	Billing                  modelruntime.Capability `json:"billing"`
+	CatalogVersion           uint64                  `json:"catalog_version"`
+	ModelID                  string                  `json:"model_id"`
+	AcceptedAt               time.Time               `json:"accepted_at"`
+	Retail                   ResolvedPrice           `json:"retail"`
+	Supply                   []ResolvedPrice         `json:"supply"` // serving operator outward to platform
+	Supplier                 []SupplierPriceSnapshot `json:"supplier"`
+	Bounds                   map[string]string       `json:"bounds"`
+	Candidates               []UpstreamModel         `json:"-"`
+	PreparedRequest          *modelruntime.Request   `json:"-"`
+	SubscriptionOutputTokens int64                   `json:"-"`
 }
 type SupplierPriceSnapshot struct {
 	EstimateMoney *string         `json:"estimate_money,omitempty"`
@@ -767,25 +831,25 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 	if e != nil {
 		return ModelQuote{}, e
 	}
-	active, e := SelectCapability(upstreams[0], r)
+	initial, e := SelectRoute(upstreams[0], r)
 	if e != nil {
 		return ModelQuote{}, e
 	}
-	retail = activePrice(retail, active.BillableBounds)
-	q := ModelQuote{Billing: active, CatalogVersion: revision, ModelID: r.PublicModel, AcceptedAt: at, Retail: retail, Bounds: map[string]string{}, Candidates: upstreams}
+	retail = activePrice(retail, initial.Capability.BillableBounds)
+	q := ModelQuote{CatalogVersion: revision, ModelID: r.PublicModel, AcceptedAt: at, Retail: retail, Bounds: map[string]string{}, Candidates: upstreams}
 	if r.Operation != originalOperation {
 		q.PreparedRequest = &r
 	}
-	if r.ClientProtocol == "" && upstreams[0].SubscriptionKind != "" && active.Billing != nil {
-		// Keep the normal customer estimate. Procurement still reserves the
-		// verified maximum from each candidate below.
-		q.Billing = active.Billing.Capability(active.Operation, active.Streaming)
-	}
+	selections := make(map[string]RouteSelection, len(upstreams))
+	dropsLimit := make(map[string]bool)
 	for _, u := range upstreams {
-		cap, e := SelectCapability(u, r)
+		selection, e := SelectRoute(u, r)
 		if e != nil {
 			return ModelQuote{}, e
 		}
+		selections[u.ID] = selection
+		dropsLimit[u.ID] = selection.DropsOutputLimit
+		cap := selection.Capability
 		if e = checkMeterPrices(retail, cap); e != nil {
 			return ModelQuote{}, e
 		}
@@ -815,9 +879,6 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 		}
 		q.Supplier = append(q.Supplier, SupplierPriceSnapshot{UpstreamID: u.ID, Snapshot: snapshot, EstimateMoney: estimate})
 	}
-	if r.ClientProtocol != "" {
-		q.Billing.BillableBounds = q.Bounds
-	}
 	if _, e = retail.MaximumCharge(q.Bounds); e != nil {
 		return ModelQuote{}, e
 	}
@@ -839,9 +900,11 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 		}
 		q.Supply = append(q.Supply, price)
 	}
-	if e = s.rankRoutes(ctx, &q); e != nil {
+	if e = s.rankRoutes(ctx, &q, dropsLimit); e != nil {
 		return ModelQuote{}, e
 	}
+	first := selections[q.Candidates[0].ID]
+	q.Billing, q.SubscriptionOutputTokens = first.Capability, first.SubscriptionOutputTokens
 	return q, nil
 }
 

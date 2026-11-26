@@ -42,7 +42,7 @@ func Estimate(q catalog.ModelQuote, r modelruntime.Request) (ledger.Decimal, err
 }
 
 // Admit atomically checks the current key and ownership, captures all prices,
-// and reserves the customer estimate and every upstream procurement maximum.
+// and reserves the customer estimate and each level's procurement estimate.
 // No network model request happens until this transaction commits.
 func (s *Service) Admit(ctx context.Context, authenticated Key, businessKey string, r modelruntime.Request) (Request, bool, error) {
 	return s.admit(ctx, nil, authenticated, businessKey, r, time.Time{})
@@ -210,26 +210,18 @@ func (s *Service) admit(ctx context.Context, tx *gorm.DB, authenticated Key, bus
 			}
 			out.CustomerHoldID = &hold.ID
 		}
-		holds := []SupplyHold{}
-		reserved := reservationQuantities(quote, r)
-		for _, price := range quote.Supply {
-			exact, e := reservationCharge(price, quote, r, reserved)
-			if e != nil {
-				return e
-			}
-			max, e := ceiling(exact)
-			if e != nil {
-				return e
-			}
-			row := SupplyHold{BuyerID: price.Scope.BuyerID, Maximum: max}
-			if max.Sign() > 0 {
-				h, e := s.Cooperation.ReserveProcurement(ctx, t, row.BuyerID, out.ID, max, out.UsageDeadline)
+		holds, e := estimateSupplyReservations(quote, r)
+		if e != nil {
+			return e
+		}
+		for i := range holds {
+			if holds[i].Maximum.Sign() > 0 {
+				h, e := s.Cooperation.ReserveProcurement(ctx, t, holds[i].BuyerID, out.ID, holds[i].Maximum, out.UsageDeadline)
 				if e != nil {
 					return e
 				}
-				row.HoldID = h.ID
+				holds[i].HoldID = h.ID
 			}
-			holds = append(holds, row)
 		}
 		out.SupplyHolds, _ = json.Marshal(holds)
 		out.PriceSnapshot, _ = json.Marshal(quote)

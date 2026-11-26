@@ -158,12 +158,23 @@ type ResultInfo struct {
 }
 
 func (s *Service) ResultMetadata(ctx context.Context, customer, id string) (*ResultInfo, error) {
-	if _, e := s.GetRequest(ctx, customer, id); e != nil {
+	request, e := s.GetRequest(ctx, customer, id)
+	if e != nil {
 		return nil, e
 	}
+	if request.Status != "completed" || isResponseTurn(request) && !s.withinResponseReplayPeriod(request) {
+		return nil, nil
+	}
 	var row resultRow
-	e := s.DB.WithContext(ctx).First(&row, "request_id=? AND state='ready' AND expires_at>?", id, s.wallNow()).Error
+	e = s.DB.WithContext(ctx).First(&row, "request_id=? AND state='ready' AND expires_at>?", id, s.wallNow()).Error
 	if errors.Is(e, gorm.ErrRecordNotFound) {
+		if s.canReadResponseReplay(request) {
+			cacheCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			defer cancel()
+			if found, err := s.ResponseReplayCache.Exists(cacheCtx, responseReplayKey(id)).Result(); err == nil && found == 1 {
+				return &ResultInfo{id, request.CompletedAt.Add(shortResultRetention), "application/json"}, nil
+			}
+		}
 		return nil, nil
 	}
 	if e != nil {

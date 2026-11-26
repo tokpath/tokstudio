@@ -60,6 +60,10 @@ func (s *Service) observe(ctx context.Context, t *gorm.DB, events []ledger.Grant
 // Settle uses the accepted price snapshot even after a price change or key
 // reset. All customer/procurement debits and incentive facts share one commit.
 func (s *Service) Settle(ctx context.Context, tx *gorm.DB, requestID string, usage modelruntime.Usage) (Request, error) {
+	return s.settle(ctx, tx, requestID, usage, nil)
+}
+
+func (s *Service) settle(ctx context.Context, tx *gorm.DB, requestID string, usage modelruntime.Usage, responseTurn *responseTurnOutcome) (Request, error) {
 	ctx, span := otel.Tracer("tokenhub/usage").Start(ctx, "usage.settle")
 	defer span.End()
 	var committedWork trace.Span
@@ -111,6 +115,9 @@ func (s *Service) Settle(ctx context.Context, tx *gorm.DB, requestID string, usa
 		if !now.Before(out.UsageDeadline) {
 			return s.release(t, ctx, &out, "usage_unverified_before_deadline", "free")
 		}
+		if responseTurn != nil && !responseTurn.stored {
+			return s.release(t, ctx, &out, "temporary_result_storage_unavailable", "free")
+		}
 		var quote catalog.ModelQuote
 		if e = json.Unmarshal(out.PriceSnapshot, &quote); e != nil {
 			return e
@@ -137,11 +144,11 @@ func (s *Service) Settle(ctx context.Context, tx *gorm.DB, requestID string, usa
 		result := Settlement{Procurement: []cooperation.ProcurementSettlement{}, Usage: usage}
 		if out.CustomerHoldID != nil {
 			result.Customer, e = s.Ledger.SettleCredits(ctx, t, out.OperatorID, out.CustomerID, *out.CustomerHoldID, "usage:"+out.ID, actual, now)
-			if e != nil {
-				return e
-			}
-		} else {
-			result.Customer = ledger.CreditResult{Requested: actual, Shortfall: actual}
+		} else if actual.Sign() > 0 {
+			result.Customer, e = s.Ledger.SettleUnreservedCredits(ctx, t, out.OperatorID, out.CustomerID, "usage:"+out.ID, actual, now)
+		}
+		if e != nil {
+			return e
 		}
 		if e = s.observe(ctx, t, result.Customer.Events); e != nil {
 			return e
@@ -168,10 +175,7 @@ func (s *Service) Settle(ctx context.Context, tx *gorm.DB, requestID string, usa
 			if e != nil {
 				return e
 			}
-			if hold.HoldID == "" {
-				if amount.Sign() > 0 {
-					return modelruntime.ErrBoundExceeded
-				}
+			if hold.HoldID == "" && amount.IsZero() {
 				continue
 			}
 			settled, e := s.Cooperation.SettleProcurement(ctx, t, hold.BuyerID, out.ID, hold.HoldID, amount, now)
@@ -203,6 +207,9 @@ func (s *Service) Settle(ctx context.Context, tx *gorm.DB, requestID string, usa
 		out.Settlement, _ = json.Marshal(result)
 		out.Status = "completed"
 		out.CompletedAt = &now
+		if responseTurn != nil {
+			out.CompletedAt = &responseTurn.completedAt
+		}
 		if e = t.Save(&out).Error; e != nil {
 			return e
 		}

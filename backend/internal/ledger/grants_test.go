@@ -174,3 +174,30 @@ func TestGrantFEFOAndUnfundedShortfall(t *testing.T) {
 		t.Fatal("not FEFO")
 	}
 }
+
+func TestUnreservedCreditSettlementUsesOnlyAvailableATG(t *testing.T) {
+	s := New(testDB(t))
+	ctx := context.Background()
+	op, customer := uuid.NewString(), uuid.NewString()
+	now := time.Now().UTC()
+	g, err := s.IssueGrant(ctx, nil, GrantInput{OperatorID: op, CustomerID: customer, BusinessKey: "credits", ActorID: "test", Reason: "order", PaidMoney: FromInt64(10), Sources: []GrantSource{{"paid", FromInt64(10)}}, EffectiveAt: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.ReserveCredits(ctx, nil, CreditReservation{op, customer, "other-request", FromInt64(5), now, now.Add(time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.Transaction(ctx, func(tx *gorm.DB) error {
+		r, err := s.SettleUnreservedCredits(ctx, tx, op, customer, "usage", FromInt64(8), now)
+		if err != nil || r.Debited.String() != "5" || r.Shortfall.String() != "3" || r.PaidMoney.String() != "5" {
+			t.Fatalf("unexpected settlement: %+v %v", r, err)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	a, err := s.GetAccount(ctx, g.AccountID)
+	if err != nil || a.Balance.String() != "5" || a.Held.String() != "5" {
+		t.Fatalf("another request's hold was used: %+v %v", a, err)
+	}
+}

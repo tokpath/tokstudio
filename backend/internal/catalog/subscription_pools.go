@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	ErrSubscriptionAccountExists = errors.New("subscription account already exists in pool")
-	ErrSubscriptionModelLimits   = errors.New("subscription model needs verified token limits")
-	ErrSubscriptionUnavailable   = errors.New("subscription pool has no available account")
+	ErrSubscriptionAccountExists   = errors.New("subscription account already exists in pool")
+	ErrSubscriptionAccountIdentity = errors.New("subscription authorization does not match the existing account")
+	ErrSubscriptionModelLimits     = errors.New("subscription model needs verified token limits")
+	ErrSubscriptionUnavailable     = errors.New("subscription pool has no available account")
 )
 
 type SubscriptionPool struct {
@@ -206,17 +207,21 @@ func (s CommerceCatalog) saveSubscriptionAccount(ctx context.Context, kind strin
 		}
 		grant = &credential
 	}
+	if grant != nil || kind == subscriptionauth.Codex && in.Enabled && in.ExpectedVersion > 0 {
+		identity, err := s.checkSubscriptionAccountIdentity(ctx, kind, in, grant)
+		if err != nil {
+			return err
+		}
+		if identity != "" {
+			fields["identity_hash"] = identity
+		}
+	}
 	if grant != nil {
 		cipher, err := s.sealSubscriptionCredential(*grant)
 		if err != nil {
 			return err
 		}
-		identity := grant.AccountID
-		if identity == "" {
-			identity = grant.AccessToken
-		}
 		fields["ciphertext"] = cipher
-		fields["identity_hash"] = platformcrypto.HashToken(identity)
 		if models == nil {
 			models = []string{}
 		}
@@ -228,18 +233,6 @@ func (s CommerceCatalog) saveSubscriptionAccount(ctx context.Context, kind strin
 		fields["cooldown_until"] = nil
 	}
 	accounts := s.DB.WithContext(ctx).Table("tokenhub_subscription_accounts")
-	// Account edits and claims take the same pool lock, so conflict checks and
-	// a replacement of rotating credentials are atomic across workers.
-	if identity, ok := fields["identity_hash"]; ok {
-		var duplicate bool
-		if err := s.DB.WithContext(ctx).Raw(`SELECT EXISTS (SELECT 1 FROM tokenhub_subscription_accounts
-		 WHERE pool_id=? AND identity_hash=? AND id<>?)`, in.PoolID, identity, in.ID).Scan(&duplicate).Error; err != nil {
-			return err
-		}
-		if duplicate {
-			return ErrSubscriptionAccountExists
-		}
-	}
 	if in.ExpectedVersion == 0 {
 		fields["id"], fields["pool_id"] = in.ID, in.PoolID
 		return accounts.Create(fields).Error

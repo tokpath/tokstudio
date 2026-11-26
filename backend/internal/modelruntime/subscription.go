@@ -12,9 +12,11 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 )
 
+const SubscriptionDefaultOutputTokens = 50_000
+
 // ValidateSubscriptionRequest preserves the public request contract on a
-// subscription route. The native Codex endpoint does not accept the public
-// API's requested output cap. Its verified model limit is reserved separately.
+// subscription route. The native Codex endpoint does not accept an output cap.
+// Routing prepares a request without that field only when necessary.
 func ValidateSubscriptionRequest(kind string, outputLimit int64, r Request) error {
 	if outputLimit <= 0 || string(r.Operation) != subscriptionauth.Operation(kind) {
 		return ErrUnsupported

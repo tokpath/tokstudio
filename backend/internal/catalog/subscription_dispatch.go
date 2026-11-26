@@ -2,21 +2,20 @@ package catalog
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
-	platformcrypto "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/subscriptionauth"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-const subscriptionSchedulable = `a.enabled AND NOT a.removed AND NOT a.reauth_required
+const subscriptionEligible = `a.enabled AND NOT a.removed AND NOT a.reauth_required AND a.identity_hash NOT LIKE 'duplicate:%'
  AND (a.subscription_ends_at IS NULL OR a.subscription_ends_at > clock_timestamp())
- AND (a.cooldown_until IS NULL OR a.cooldown_until <= clock_timestamp())
  AND (a.refreshable OR a.expires_at IS NULL OR a.expires_at > clock_timestamp())`
+
+const subscriptionSchedulable = subscriptionEligible + ` AND (a.cooldown_until IS NULL OR a.cooldown_until <= clock_timestamp())`
 
 // ClaimSubscriptionAccount runs in the same transaction as the route lease
 // and the attempt record. The pool lock serializes its short slot claims.
@@ -91,9 +90,8 @@ func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, atte
 	if err != nil {
 		return modelruntime.SubscriptionCredential{}, unavailable
 	}
-	plain, err := platformcrypto.Open(s.EncryptionKey, row.Ciphertext)
-	var credential subscriptionauth.Credential
-	if err != nil || json.Unmarshal([]byte(plain), &credential) != nil || credential.AccessToken == "" {
+	credential, err := s.openSubscriptionCredential(row.Ciphertext)
+	if err != nil {
 		return modelruntime.SubscriptionCredential{}, modelruntime.ErrSubscriptionReauth
 	}
 	var connection subscriptionauth.Connection
@@ -118,9 +116,8 @@ func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, atte
 				return unavailable
 			}
 			if current.Ciphertext != row.Ciphertext {
-				plain, err := platformcrypto.Open(s.EncryptionKey, current.Ciphertext)
-				var refreshed subscriptionauth.Credential
-				if err != nil || json.Unmarshal([]byte(plain), &refreshed) != nil || refreshed.AccessToken == "" {
+				refreshed, err := s.openSubscriptionCredential(current.Ciphertext)
+				if err != nil {
 					return modelruntime.ErrSubscriptionReauth
 				}
 				credential = refreshed
@@ -129,6 +126,7 @@ func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, atte
 				}
 			}
 			var refreshErr error
+			previousIdentity := stableSubscriptionIdentity(attempt.SubscriptionKind, credential)
 			if credential.Connection != "" {
 				credential, refreshErr = connection.Refresh(persist, credential, s.SubscriptionGuard)
 			} else {
@@ -139,6 +137,9 @@ func (s CommerceCatalog) ResolveSubscriptionCredential(ctx context.Context, atte
 			}
 			if refreshErr != nil || !credential.ExpiresAt.After(time.Now()) {
 				return unavailable
+			}
+			if stableSubscriptionIdentity(attempt.SubscriptionKind, credential) != previousIdentity {
+				return modelruntime.ErrSubscriptionReauth
 			}
 			cipher, err := s.sealSubscriptionCredential(credential)
 			if err != nil {

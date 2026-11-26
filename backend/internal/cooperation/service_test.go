@@ -40,14 +40,21 @@ type fixture struct {
 
 func setup(t *testing.T) fixture { return setupMonetary(t, "USD", "1") }
 func setupMonetary(t *testing.T, currency, ratio string) fixture {
+	return setupThroughProcurementMigration(t, currency, ratio, "")
+}
+
+func setupThroughProcurementMigration(t *testing.T, currency, ratio, last string) fixture {
 	t.Helper()
 	db := dbtest.New(t)
-	apply := func(_ string, files fs.FS) {
+	apply := func(module string, files fs.FS) {
 		entries, e := fs.ReadDir(files, ".")
 		if e != nil {
 			t.Fatal(e)
 		}
 		for _, entry := range entries {
+			if module == "cooperation" && last != "" && entry.Name() > last {
+				break
+			}
 			b, e := fs.ReadFile(files, entry.Name())
 			if e != nil {
 				t.Fatal(e)
@@ -88,7 +95,7 @@ func (f fixture) purchase(t *testing.T, key, usd, paid, gift string) Procurement
 	}
 	return lot
 }
-func TestPostgresProcurementMovingAverageBoundAndSourceConservation(t *testing.T) {
+func TestPostgresProcurementActualSettlementAndSourceConservation(t *testing.T) {
 	f := setup(t)
 	f.purchase(t, "p1", "80", "80", "20")
 	h, e := f.s.ReserveProcurement(f.ctx, nil, f.channel, "r1", amount("30"), time.Now().Add(time.Minute))
@@ -99,8 +106,8 @@ func TestPostgresProcurementMovingAverageBoundAndSourceConservation(t *testing.T
 	if e != nil {
 		t.Fatal(e)
 	}
-	if r.Deducted.String() != "30" || r.PlatformShortfall.String() != "10" || r.CostMoney.String() != "24" {
-		t.Fatalf("unexpected bound or cost: %+v", r)
+	if r.Deducted.String() != "40" || !r.Shortfall.IsZero() || r.ShortfallOperatorID != nil || r.CostMoney.String() != "32" {
+		t.Fatalf("unexpected debit or cost: %+v", r)
 	}
 	again, e := f.s.SettleProcurement(f.ctx, nil, f.channel, "r1", h.ID, amount("40"), time.Now())
 	if e != nil || again.CostMoney.Cmp(r.CostMoney) != 0 {
@@ -111,18 +118,18 @@ func TestPostgresProcurementMovingAverageBoundAndSourceConservation(t *testing.T
 	if e != nil {
 		t.Fatal(e)
 	}
-	if p.Quantity.String() != "170" || p.Cost.String() != "116" {
+	if p.Quantity.String() != "160" || p.Cost.String() != "108" {
 		t.Fatalf("moving average position: %+v", p)
 	}
-	h, e = f.s.ReserveProcurement(f.ctx, nil, f.channel, "r2", amount("170"), time.Now().Add(time.Minute))
+	h, e = f.s.ReserveProcurement(f.ctx, nil, f.channel, "r2", amount("160"), time.Now().Add(time.Minute))
 	if e != nil {
 		t.Fatal(e)
 	}
-	r, e = f.s.SettleProcurement(f.ctx, nil, f.channel, "r2", h.ID, amount("170"), time.Now())
+	r, e = f.s.SettleProcurement(f.ctx, nil, f.channel, "r2", h.ID, amount("160"), time.Now())
 	if e != nil {
 		t.Fatal(e)
 	}
-	if r.CostMoney.String() != "116" {
+	if r.CostMoney.String() != "108" {
 		t.Fatalf("final cost %s", r.CostMoney)
 	}
 	var lots []ProcurementLot
@@ -135,6 +142,165 @@ func TestPostgresProcurementMovingAverageBoundAndSourceConservation(t *testing.T
 		}
 	}
 }
+
+func createOEMChain(t *testing.T, f fixture) (string, string) {
+	t.Helper()
+	oem, err := f.org.CreateOperator(f.ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.owner, ParentOperatorID: f.platform, Kind: organization.OEM, Name: "OEM", BrandName: "OEM"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	oemID := oem.Operator.ID
+	invitation, err := f.org.InviteStaff(f.ctx, nil, f.owner, oemID, "owner@example.test", "owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.org.AcceptStaffInvitation(f.ctx, nil, invitation.Token, organization.VerifiedStaff{ID: f.owner, Email: "owner@example.test", EmailVerified: true}); err != nil {
+		t.Fatal(err)
+	}
+	if err = f.db.Exec("UPDATE organization_operators SET lifecycle='active' WHERE id=?", oemID).Error; err != nil {
+		t.Fatal(err)
+	}
+	channel, err := f.org.CreateOperator(f.ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.owner, ParentOperatorID: oemID, Kind: organization.Channel, Name: "OEM Channel"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return oemID, channel.Operator.ID
+}
+
+func TestPostgresProcurementShortfallBelongsToDirectSupplier(t *testing.T) {
+	f := setup(t)
+	oemID, channelID := createOEMChain(t, f)
+	now := time.Now().UTC()
+	for i, tc := range []struct{ buyer, supplier, stock, held, actual, deducted, shortfall string }{
+		{channelID, oemID, "100", "60", "48", "40", "8"},
+		{oemID, f.platform, "60", "24", "41", "36", "5"},
+	} {
+		orderID := uuid.NewString()
+		if _, err := f.s.DeliverPurchase(f.ctx, nil, PurchaseInput{BuyerID: tc.buyer, SupplierID: tc.supplier, OrderID: orderID, ReceiptReference: "verified:" + orderID, ActorID: f.owner, PaidMoney: amount(tc.stock), PaidATG: amount(tc.stock), ExitTerms: json.RawMessage(`{"voluntary_refund":false}`), At: now}); err != nil {
+			t.Fatal(err)
+		}
+		expires := now.Add(time.Minute)
+		if _, err := f.s.ReserveProcurement(f.ctx, nil, tc.buyer, "awaiting", amount(tc.held), expires); err != nil {
+			t.Fatal(err)
+		}
+		// The OEM's estimate was zero. Both layers still use their spendable ATG.
+		var holdID string
+		if i == 0 {
+			hold, err := f.s.ReserveProcurement(f.ctx, nil, tc.buyer, "actual", amount("30"), expires)
+			if err != nil {
+				t.Fatal(err)
+			}
+			holdID = hold.ID
+		}
+		r, err := f.s.SettleProcurement(f.ctx, nil, tc.buyer, "actual", holdID, amount(tc.actual), now)
+		if err != nil || r.Deducted.String() != tc.deducted || r.Shortfall.String() != tc.shortfall || r.SupplierID != tc.supplier || r.ShortfallOperatorID == nil || *r.ShortfallOperatorID != tc.supplier {
+			t.Fatalf("unexpected settlement for buyer %s: %+v %v", tc.buyer, r, err)
+		}
+		p, err := f.s.Position(f.ctx, nil, tc.buyer)
+		if err != nil {
+			t.Fatal(err)
+		}
+		a, err := f.l.GetAccount(f.ctx, p.AccountID)
+		if err != nil || a.Balance.String() != tc.held || a.Held.String() != tc.held {
+			t.Fatalf("another request's hold was used: %+v %v", a, err)
+		}
+	}
+	for _, tc := range []struct{ operator, expected string }{{channelID, "0"}, {oemID, "8"}, {f.platform, "5"}} {
+		r, err := f.s.FinancialFacts(f.ctx, nil, tc.operator, now.Add(-time.Minute), now.Add(time.Minute))
+		if err != nil || r.ProcurementShortfallATG.String() != tc.expected {
+			t.Fatalf("wrong shortfall responsibility for %s: %+v %v", tc.operator, r, err)
+		}
+	}
+}
+
+func TestPostgresProcurementShortfallMigrationKeepsOriginalResponsibility(t *testing.T) {
+	f := setupThroughProcurementMigration(t, "USD", "1", "0014_monetary_purchase_snapshot.sql")
+	oemID, channelID := createOEMChain(t, f)
+	now := time.Now().UTC()
+	if _, err := f.s.DeliverPurchase(f.ctx, nil, PurchaseInput{BuyerID: channelID, SupplierID: oemID, OrderID: "old-stock", ReceiptReference: "verified:old-stock", ActorID: f.owner, PaidMoney: amount("100"), PaidATG: amount("100"), ExitTerms: json.RawMessage(`{"voluntary_refund":false}`), At: now}); err != nil {
+		t.Fatal(err)
+	}
+	h, err := f.s.ReserveProcurement(f.ctx, nil, channelID, "old-request", amount("30"), now.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.db.Exec(`INSERT INTO cooperation_procurement_settlements
+ (request_id,buyer_id,hold_id,actual,deducted,platform_shortfall,cost_money,source_allocations,created_at)
+ VALUES ('old-request',?,?,40,30,10,30,'[]',?)`, channelID, h.ID, now).Error; err != nil {
+		t.Fatal(err)
+	}
+	_, files := Migrations()
+	sql, err := fs.ReadFile(files, "0015_procurement_actual_settlement.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.db.Exec(string(sql)).Error; err != nil {
+		t.Fatal(err)
+	}
+	r, err := f.s.SettleProcurement(f.ctx, nil, channelID, "old-request", h.ID, amount("40"), now.Add(time.Second))
+	if err != nil || r.Deducted.String() != "30" || r.Shortfall.String() != "10" || r.SupplierID != oemID || r.ShortfallOperatorID == nil || *r.ShortfallOperatorID != f.platform {
+		t.Fatalf("migration rewrote or lost prior responsibility: %+v %v", r, err)
+	}
+}
+
+func TestPostgresProcurementNoStockKeepsShortfallFinal(t *testing.T) {
+	f := setup(t)
+	now := time.Now().UTC()
+	r, err := f.s.SettleProcurement(f.ctx, nil, f.channel, "no-estimate", "", amount("1"), now)
+	if err != nil || !r.Deducted.IsZero() || r.Shortfall.String() != "1" || r.ShortfallOperatorID == nil || *r.ShortfallOperatorID != f.platform {
+		t.Fatalf("unexpected settlement: %+v %v", r, err)
+	}
+	f.purchase(t, "new-stock", "10", "10", "0")
+	if r, err = f.s.SettleProcurement(f.ctx, nil, f.channel, "no-estimate", "", amount("1"), now.Add(time.Second)); err != nil || !r.Deducted.IsZero() || r.Shortfall.String() != "1" {
+		t.Fatalf("retry changed settlement: %+v %v", r, err)
+	}
+	p, err := f.s.Position(f.ctx, nil, f.channel)
+	if err != nil || p.Quantity.String() != "10" {
+		t.Fatalf("newly purchased ATG was debited on replay: %+v %v", p, err)
+	}
+}
+
+func TestPostgresConcurrentProcurementSettlementsShareAvailableATG(t *testing.T) {
+	f := setup(t)
+	f.purchase(t, "stock", "100", "100", "0")
+	now := time.Now().UTC()
+	type outcome struct {
+		settlement ProcurementSettlement
+		err        error
+	}
+	settled := make(chan outcome, 2)
+	holds := map[string]string{}
+	for _, request := range []string{"one", "two"} {
+		h, err := f.s.ReserveProcurement(f.ctx, nil, f.channel, request, amount("30"), now.Add(time.Minute))
+		if err != nil {
+			t.Fatal(err)
+		}
+		holds[request] = h.ID
+	}
+	for request, holdID := range holds {
+		go func() {
+			s, err := f.s.SettleProcurement(f.ctx, nil, f.channel, request, holdID, amount("80"), now)
+			settled <- outcome{s, err}
+		}()
+	}
+	deducted, shortfall := ledger.Zero(), ledger.Zero()
+	for range 2 {
+		result := <-settled
+		if result.err != nil {
+			t.Fatal(result.err)
+		}
+		deducted = deducted.Add(result.settlement.Deducted)
+		shortfall = shortfall.Add(result.settlement.Shortfall)
+	}
+	if deducted.String() != "100" || shortfall.String() != "60" {
+		t.Fatalf("wrong totals after concurrent settlement: deducted %s, shortfall %s", deducted, shortfall)
+	}
+	p, err := f.s.Position(f.ctx, nil, f.channel)
+	if err != nil || !p.Quantity.IsZero() || !p.Cost.IsZero() {
+		t.Fatalf("unexpected procurement position: %+v %v", p, err)
+	}
+}
+
 func TestPostgresConcurrentSalesAndOversellNeverCreatesProcurementCredit(t *testing.T) {
 	f := setup(t)
 	f.purchase(t, "p", "100", "100", "0")

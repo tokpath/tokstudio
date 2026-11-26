@@ -149,6 +149,8 @@ func (a *Application) subscriptionOAuthCallback(c *gin.Context) {
 		finish("saved", draft.Account.PoolID)
 	case errors.Is(err, catalog.ErrSubscriptionAccountExists):
 		finish("duplicate", draft.Account.PoolID)
+	case errors.Is(err, catalog.ErrSubscriptionAccountIdentity):
+		finish("identity_mismatch", draft.Account.PoolID)
 	case errors.Is(err, catalog.ErrCatalogVersion):
 		finish("conflict", draft.Account.PoolID)
 	default:

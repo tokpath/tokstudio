@@ -4,13 +4,40 @@ import (
 	"encoding/json"
 	"maps"
 	"math/big"
+	"strconv"
+	"strings"
 
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 )
 
 func reservationQuantities(q catalog.ModelQuote, r modelruntime.Request) map[string]string {
-	return modelruntime.EstimateUsage(q.Billing, r)
+	quantities := modelruntime.EstimateUsage(q.Billing, r)
+	if q.SubscriptionOutputTokens > 0 {
+		for _, rule := range q.Billing.UsageRules {
+			if rule.Unit == "token" && strings.HasPrefix(rule.Component, "output") {
+				quantities[rule.Component] = strconv.FormatInt(q.SubscriptionOutputTokens, 10)
+			}
+		}
+	}
+	return quantities
+}
+
+func estimateSupplyReservations(quote catalog.ModelQuote, r modelruntime.Request) ([]SupplyHold, error) {
+	holds := make([]SupplyHold, 0, len(quote.Supply))
+	quantities := reservationQuantities(quote, r)
+	for _, price := range quote.Supply {
+		exact, err := reservationCharge(price, quote, r, quantities)
+		if err != nil {
+			return nil, err
+		}
+		maximum, err := ceiling(exact)
+		if err != nil {
+			return nil, err
+		}
+		holds = append(holds, SupplyHold{BuyerID: price.Scope.BuyerID, Maximum: maximum})
+	}
+	return holds, nil
 }
 
 func reservationCharge(price catalog.ResolvedPrice, q catalog.ModelQuote, r modelruntime.Request, quantities map[string]string) (*big.Rat, error) {

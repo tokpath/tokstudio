@@ -163,6 +163,9 @@ func newApplication(ctx context.Context, c Config, gdb *gorm.DB) (*Application, 
 		PlatformOperatorID: a.Installation.OperatorID, EncryptionKey: c.AppKey,
 		SubscriptionConnections: c.SubscriptionConnections, SubscriptionGuard: a.guardEndpoint,
 	}
+	if err := a.Catalog.ReconcileCodexAccountIdentities(ctx); err != nil {
+		return nil, err
+	}
 	a.Cooperation = cooperation.New(gdb, a.Ledger, a.Organization)
 	a.Cooperation.Rates = cooperation.CatalogRates{Catalog: a.Catalog, Organization: a.Organization}
 	a.Commerce = commerce.New(gdb)
@@ -180,7 +183,7 @@ func newApplication(ctx context.Context, c Config, gdb *gorm.DB) (*Application, 
 		return nil, err
 	}
 	a.Runtime = runtime
-	a.Usage = usage.New(gdb, usage.Dependencies{Ledger: a.Ledger, Organization: a.Organization, Cooperation: a.Cooperation, Catalog: a.Catalog, Runtime: runtime, GrantObserver: a.Incentives, EncryptionKey: c.AppKey, ResultStore: a.ObjectStore, AdmissionLimiter: usage.RedisLimiter{Client: a.Redis}})
+	a.Usage = usage.New(gdb, usage.Dependencies{Ledger: a.Ledger, Organization: a.Organization, Cooperation: a.Cooperation, Catalog: a.Catalog, Runtime: runtime, GrantObserver: a.Incentives, EncryptionKey: c.AppKey, ResultStore: a.ObjectStore, ResponseReplayCache: a.Redis, AdmissionLimiter: usage.RedisLimiter{Client: a.Redis}})
 	a.Operations = &operations.Service{DB: gdb, EncryptionKey: c.AppKey, Authorize: a.Organization, Recipients: recipientDirectory{a}, Mail: a.Mail, Source: operations.DomainSource{Payments: a.Payments, Ledger: a.Ledger, Cooperation: a.Cooperation, Usage: a.Usage}, Results: a.Usage, InvoiceStore: a.ObjectStore, ExportStore: a.ObjectStore}
 	a.Operations.Restrictions = a.Organization
 	a.Remediation = remediation.New(gdb, remediation.Dependencies{Ledger: a.Ledger, Organization: a.Organization, Commerce: a.Commerce, Cooperation: a.Cooperation, Incentives: a.Incentives, Payments: a.Payments})

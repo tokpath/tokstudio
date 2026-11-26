@@ -221,7 +221,7 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 			return out, err
 		}
 		if a.SubscriptionKind != "" && q.Params.MaxCompletionTokens == nil {
-			limit := int(min(a.SubscriptionOutputLimit, 4096))
+			limit := int(min(a.SubscriptionOutputLimit, SubscriptionDefaultOutputTokens))
 			q.Params.MaxCompletionTokens = &limit
 		}
 		if r.Stream {
@@ -480,12 +480,9 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 				}
 				if usage.Reliable {
 					out.Usage = usage
-					if len(r.WebSocketInput) > 0 && len(events) == 1 && chunk.BifrostResponsesStreamResponse != nil {
-						switch chunk.BifrostResponsesStreamResponse.Type {
-						case schemas.ResponsesStreamResponseTypeCompleted, schemas.ResponsesStreamResponseTypeIncomplete:
-							out.Output, out.ContentType = events[0].Data, "application/json"
-						}
-					}
+				}
+				if len(r.WebSocketInput) > 0 && len(events) == 1 && responseStreamCompletion(chunk.BifrostResponsesStreamResponse) {
+					out.Output, out.ContentType = events[0].Data, "application/json"
 				}
 				for _, event := range events {
 					if usage.Reliable {

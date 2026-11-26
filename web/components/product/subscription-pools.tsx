@@ -31,6 +31,7 @@ const oauthMessages: Record<string, string> = {
   saved: "账号已授权",
   cancelled: "已取消授权",
   duplicate: "此账号已在当前账号池中。",
+  identity_mismatch: "无法核实凭据属于原账号。请使用原账号授权，或添加新账号。",
   conflict: "账号已被修改，请刷新后重新授权。",
   failed: "授权未完成，请在账号池中重试。",
 };

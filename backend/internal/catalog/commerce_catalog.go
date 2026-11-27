@@ -94,7 +94,7 @@ type CommerceCatalog struct {
 	SubscriptionConnections subscriptionauth.Connections
 	SubscriptionGuard       subscriptionauth.DestinationGuard
 	Costs                   interface {
-		Snapshot(context.Context, string, string, time.Time) (json.RawMessage, error)
+		Snapshots(context.Context, *gorm.DB, []modelruntime.CostModel, time.Time) (map[modelruntime.CostModel]json.RawMessage, error)
 		Estimate(context.Context, json.RawMessage, modelruntime.Request, modelruntime.Capability) *string
 	}
 }
@@ -842,6 +842,7 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 	}
 	selections := make(map[string]RouteSelection, len(upstreams))
 	dropsLimit := make(map[string]bool)
+	var costModels []modelruntime.CostModel
 	for _, u := range upstreams {
 		selection, e := SelectRoute(u, r)
 		if e != nil {
@@ -863,21 +864,27 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 				q.Bounds[key] = raw
 			}
 		}
+		if s.Costs != nil && u.SubscriptionKind == "" {
+			costModels = append(costModels, modelruntime.CostModel{Provider: u.CostProvider, Model: u.CostModel})
+		}
+	}
+	var snapshots map[modelruntime.CostModel]json.RawMessage
+	if len(costModels) > 0 {
+		snapshots, e = s.Costs.Snapshots(ctx, s.DB, costModels, at)
+		if e != nil {
+			return ModelQuote{}, e
+		}
+	}
+	for _, u := range upstreams {
 		if u.SubscriptionKind != "" {
 			continue
 		}
-		var snapshot json.RawMessage
+		price := SupplierPriceSnapshot{UpstreamID: u.ID}
 		if s.Costs != nil {
-			snapshot, e = s.Costs.Snapshot(ctx, u.CostProvider, u.CostModel, at)
-			if e != nil {
-				return ModelQuote{}, e
-			}
+			price.Snapshot = snapshots[modelruntime.CostModel{Provider: u.CostProvider, Model: u.CostModel}]
+			price.EstimateMoney = s.Costs.Estimate(ctx, price.Snapshot, r, selections[u.ID].Capability)
 		}
-		var estimate *string
-		if s.Costs != nil {
-			estimate = s.Costs.Estimate(ctx, snapshot, r, cap)
-		}
-		q.Supplier = append(q.Supplier, SupplierPriceSnapshot{UpstreamID: u.ID, Snapshot: snapshot, EstimateMoney: estimate})
+		q.Supplier = append(q.Supplier, price)
 	}
 	if _, e = retail.MaximumCharge(q.Bounds); e != nil {
 		return ModelQuote{}, e

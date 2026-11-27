@@ -518,7 +518,7 @@ func (a *Application) procurementAction(c *gin.Context, op organization.Operator
 	raw, e := a.command(c, "procurement-action:"+op.ID+":"+id+":"+action, in, func(tx *gorm.DB) (any, error) {
 		switch action {
 		case "offline_purchase":
-			m, e := a.Payments.Merchant(ctx, op.ID, in.MethodID)
+			m, e := a.Payments.WithDB(tx).Merchant(ctx, op.ID, in.MethodID)
 			if e != nil {
 				return nil, e
 			}
@@ -712,29 +712,30 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		} else if received {
 			return commerce.ErrPaymentUnknown
 		}
+		svc := a.Payments.WithDB(tx)
 		if q.RowsAffected > 0 {
 			if saved.MerchantID == in.MerchantID {
 				return nil
 			}
-			intent, err := a.Payments.PaymentIntent(ctx, o.SupplierID, saved.MerchantID, id)
+			intent, err := svc.PaymentIntent(ctx, o.SupplierID, saved.MerchantID, id)
 			if err != nil || !intent.AllowsMethodChange() || (intent.State == "created" && !sameCheckedPayment(intent, unpaidCheckout)) {
 				return commerce.ErrPaymentUnknown
 			}
 		}
-		methods, e := a.Payments.PublicMethods(ctx, o.SupplierID)
+		methods, e := svc.PublicMethods(ctx, o.SupplierID)
 		if e != nil {
 			return e
 		}
-		currency, driver := "", ""
+		currency := ""
 		for _, method := range methods {
 			if method.ID == in.MerchantID {
-				currency, driver = method.Currency, method.Driver
+				currency = method.Currency
 			}
 		}
 		if currency == "" {
 			return payments.ErrNotConfigured
 		}
-		money, val, e := a.paymentValue(ctx, o.SupplierID, driver, currency, o.DueMoney, o.CreatedAt)
+		money, val, e := paymentValue(ctx, tx, currency, o.DueMoney)
 		if e != nil {
 			return e
 		}
@@ -743,7 +744,7 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		if e != nil {
 			return e
 		}
-		if original, err := a.Payments.PaymentIntent(ctx, o.SupplierID, in.MerchantID, id); err == nil {
+		if original, err := svc.PaymentIntent(ctx, o.SupplierID, in.MerchantID, id); err == nil {
 			fee = original.FeeQuote
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err

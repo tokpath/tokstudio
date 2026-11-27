@@ -45,6 +45,7 @@ func TestPostgresProcurementAuthorizationRevisionCASAndPaymentBoundaries(t *test
 	}
 	firstMerchant, secondMerchant := merchant(), merchant()
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	restorePool := f.useSinglePaymentConnection(t)
 	path := "/v1/operators/" + child.Operator.ID + "/procurement"
 	base := map[string]any{"action": "authorization", "amount_money": "10", "supplier_id": parent, "quote_id": quote.ID, "trigger_available_atg": "10.000000000000000001", "period_limit_money": "20", "period": "month", "mode": "automatic", "merchant_id": firstMerchant, "enabled": true}
 	body := func(id string, version int, consent string) map[string]any {
@@ -150,6 +151,7 @@ func TestPostgresProcurementAuthorizationRevisionCASAndPaymentBoundaries(t *test
 			t.Fatal(testCase.name, status, out)
 		}
 	}
+	restorePool()
 	var wg sync.WaitGroup
 	results := make(chan int, 2)
 	for i := 0; i < 2; i++ {

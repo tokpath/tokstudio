@@ -390,14 +390,22 @@ func TestExternalModelToLedgerHTTPIdempotencyAndMissingUsage(t *testing.T) {
 
 type testCostCatalog struct{ rate float64 }
 
-func (c *testCostCatalog) Snapshot(_ context.Context, provider, model string, at time.Time) (json.RawMessage, error) {
+func (c *testCostCatalog) Snapshots(_ context.Context, _ *gorm.DB, keys []modelruntime.CostModel, at time.Time) (map[modelruntime.CostModel]json.RawMessage, error) {
 	rate := c.rate
-	rows := []tables.TableModelPricing{{Provider: provider, Model: model, Mode: "chat", InputCostPerToken: &rate, OutputCostPerToken: &rate, CacheReadInputTokenCost: &rate}}
-	if strings.Contains(model, "video") {
-		videoRate := .01
-		rows = []tables.TableModelPricing{{Provider: provider, Model: model, Mode: "video_generation", OutputCostPerSecond: &videoRate}}
+	snapshots := make(map[modelruntime.CostModel]json.RawMessage, len(keys))
+	for _, key := range keys {
+		rows := []tables.TableModelPricing{{Provider: key.Provider, Model: key.Model, Mode: "chat", InputCostPerToken: &rate, OutputCostPerToken: &rate, CacheReadInputTokenCost: &rate}}
+		if strings.Contains(key.Model, "video") {
+			videoRate := .01
+			rows = []tables.TableModelPricing{{Provider: key.Provider, Model: key.Model, Mode: "video_generation", OutputCostPerSecond: &videoRate}}
+		}
+		raw, e := json.Marshal(modelpricing.Snapshot{Version: fmt.Sprint(rate), AcceptedAt: at, Rows: rows})
+		if e != nil {
+			return nil, e
+		}
+		snapshots[key] = raw
 	}
-	return json.Marshal(modelpricing.Snapshot{Version: fmt.Sprint(rate), AcceptedAt: at, Rows: rows})
+	return snapshots, nil
 }
 func (c *testCostCatalog) Estimate(ctx context.Context, snapshot json.RawMessage, r modelruntime.Request, cap modelruntime.Capability) *string {
 	return (&modelpricing.Service{}).Estimate(ctx, snapshot, r, cap)

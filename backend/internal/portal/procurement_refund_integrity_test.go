@@ -121,6 +121,7 @@ func TestPostgresOfflinePurchaseExcludesSharedPaymentFeeFromInventory(t *testing
 	}
 	body := map[string]any{"receipt_id": r.ID, "amount_money": "1000", "external_method_id": m.ID, "fee_rule_id": rule.ID}
 	key := uuid.NewString()
+	f.useSinglePaymentConnection(t)
 	status, out, _ := f.call(t, "POST", "/v1/operators/"+s.oem+"/procurement/"+s.quote.ID+"/offline_purchase", body, key)
 	mustOK(t, status, out)
 	order, e := f.a.Cooperation.GetPurchase(ctx, nil, owner, s.oem, out["id"].(string))

@@ -145,7 +145,7 @@ func (a *Application) allocateWholeRetailReceipt(ctx context.Context, tx *gorm.D
 			return commerce.Allocation{}, found.Error
 		}
 		if checkout.MerchantID != nil {
-			merchant, err := a.Payments.Merchant(ctx, operator, *checkout.MerchantID)
+			merchant, err := a.Payments.WithDB(tx).Merchant(ctx, operator, *checkout.MerchantID)
 			if err != nil {
 				return commerce.Allocation{}, err
 			}

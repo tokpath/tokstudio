@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -205,6 +206,86 @@ func TestPostgresPackageCheckoutFailureReturnsOriginalOrder(t *testing.T) {
 	}
 }
 
+func (f *testApp) useSinglePaymentConnection(t *testing.T) func() {
+	t.Helper()
+	pool, err := f.a.DB.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	previousLimit, previousTimeout := pool.Stats().MaxOpenConnections, f.client.Timeout
+	pool.SetMaxOpenConns(1)
+	f.client.Timeout = 5 * time.Second
+	return func() {
+		pool.SetMaxOpenConns(previousLimit)
+		f.client.Timeout = previousTimeout
+	}
+}
+
+func TestPostgresExternalPackageCheckoutWithOneConnection(t *testing.T) {
+	f, merchantID, ruleID, calls := setupCheckoutApp(t, "success")
+	ctx := t.Context()
+	operator, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
+	plan, err := f.a.Commerce.PublishPackage(ctx, nil, commerce.PublishPackageInput{ActorStaffID: owner, OperatorID: operator, Name: "External checkout", PriceMoney: ledger.FromInt64(2), PaidATG: ledger.FromInt64(2), Period: ledger.Month, Timezone: "UTC", NewPurchaseEnabled: true, TermsReference: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	disabled, err := f.a.Payments.SaveMerchant(ctx, owner, payments.Merchant{ID: uuid.NewString(), OperatorID: operator, Driver: "manual"}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: operator, Kind: organization.Channel, Name: "Other payment operator"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	invite, err := f.a.Organization.InviteStaff(ctx, nil, owner, child.Operator.ID, "owner@example.test", "owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.a.Organization.AcceptStaffInvitation(ctx, nil, invite.Token, organization.VerifiedStaff{ID: owner, Email: "owner@example.test", EmailVerified: true}); err != nil {
+		t.Fatal(err)
+	}
+	foreign, err := f.a.Payments.SaveMerchant(ctx, owner, payments.Merchant{ID: uuid.NewString(), OperatorID: child.Operator.ID, Driver: "manual", Enabled: true, Credentials: map[string]string{"currency": "USD", "instructions": "Test cash payment"}}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.useSinglePaymentConnection(t)
+	status, quote, _ := f.call(t, "POST", "/v1/me/orders/quotes", map[string]any{"plan_id": plan.PackageID}, uuid.NewString())
+	mustOK(t, status, quote)
+	funding := map[string]string{"fee_rule_id": ruleID}
+	input := map[string]any{"quote_id": quote["id"], "terms_version": quote["terms_version"], "funding": funding}
+	orderKey := uuid.NewString()
+	for _, rejected := range []struct {
+		merchant string
+		status   int
+		code     string
+	}{
+		{merchant: disabled.ID, status: http.StatusConflict, code: "pending_configuration"},
+		{merchant: foreign.ID, status: http.StatusNotFound, code: "not_found"},
+	} {
+		funding["external_method_id"] = rejected.merchant
+		status, order, _ := f.call(t, "POST", "/v1/me/orders", input, orderKey)
+		reason, _ := order["error"].(map[string]any)
+		if status != rejected.status || reason["code"] != rejected.code || calls.Load() != 0 {
+			t.Fatal("merchant rejection created a checkout or returned the wrong error", status, order, calls.Load())
+		}
+	}
+	for _, table := range []string{"commerce_orders", "cooperation_sales_commitments", "portal_order_checkout", "payments_intents"} {
+		var count int64
+		if err := f.a.DB.Table(table).Count(&count).Error; err != nil || count != 0 {
+			t.Fatal("rejected payment left persistent state", table, count, err)
+		}
+	}
+	funding["external_method_id"] = merchantID
+	status, order, _ := f.call(t, "POST", "/v1/me/orders", input, orderKey)
+	mustOK(t, status, order)
+	assertKVoucherPaymentSummary(t, order, false, 0)
+	status, replay, _ := f.call(t, "POST", "/v1/me/orders", input, orderKey)
+	mustOK(t, status, replay)
+	if replay["id"] != order["id"] || calls.Load() != 1 {
+		t.Fatal("retry did not reuse the original order and checkout", order, replay, calls.Load())
+	}
+}
+
 func TestCheckoutMismatchIsNotAVersionConflict(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
@@ -366,6 +447,7 @@ func TestPostgresCustomerKVoucherOpenRejectsVerifiedReceipt(t *testing.T) {
 
 func TestPostgresKVoucherProviderFeesAndVoucherReceiptDoNotChangeWalletCredit(t *testing.T) {
 	f, merchant, rule, _ := setupCheckoutApp(t, "paid")
+	f.useSinglePaymentConnection(t)
 	status, result, _ := f.call(t, "POST", "/v1/me/topups", map[string]any{"amount_money": "2", "external_method_id": merchant, "fee_rule_id": rule}, uuid.NewString())
 	mustOK(t, status, result)
 	id := result["id"].(string)
@@ -415,6 +497,7 @@ func TestPostgresUnpaidCheckoutCanChangeMethodButPaidCheckoutCannot(t *testing.T
 			if err != nil {
 				t.Fatal(err)
 			}
+			f.useSinglePaymentConnection(t)
 			status, result, _ := f.call(t, "POST", "/v1/me/topups", map[string]any{"amount_money": "2", "external_method_id": merchant, "fee_rule_id": rule}, uuid.NewString())
 			mustOK(t, status, result)
 			id := result["id"].(string)
@@ -486,6 +569,7 @@ func TestPostgresProcurementPaymentSwitchRequiresConfirmedUnpaid(t *testing.T) {
 				t.Fatal(err)
 			}
 			f.login(t, "staff", "owner@example.test", "owner-password-test")
+			f.useSinglePaymentConnection(t)
 			base := "/v1/operators/" + child.Operator.ID + "/procurement"
 			status, result, _ := f.call(t, "POST", base+"/"+order.ID+"/checkout", map[string]any{"merchant_id": merchant, "fee_rule_id": rule}, uuid.NewString())
 			mustOK(t, status, result)

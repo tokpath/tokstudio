@@ -132,9 +132,22 @@ func TestExternalTakenOverCustomerKeepsKeyAndFutureCostBelongsToBrand(t *testing
 	}
 }
 
-type takeoverCostSource struct{ modelpricing.Service }
+type takeoverCostSource struct{}
 
-func (takeoverCostSource) Snapshot(_ context.Context, provider, model string, at time.Time) (json.RawMessage, error) {
+func (takeoverCostSource) Snapshots(_ context.Context, _ *gorm.DB, keys []modelruntime.CostModel, at time.Time) (map[modelruntime.CostModel]json.RawMessage, error) {
 	rate := .001
-	return json.Marshal(modelpricing.Snapshot{Version: "takeover-cost-fixture", AcceptedAt: at, Rows: []tables.TableModelPricing{{Provider: provider, Model: model, Mode: "chat", InputCostPerToken: &rate, OutputCostPerToken: &rate, CacheReadInputTokenCost: &rate}}})
+	snapshots := make(map[modelruntime.CostModel]json.RawMessage, len(keys))
+	for _, key := range keys {
+		rows := []tables.TableModelPricing{{Provider: key.Provider, Model: key.Model, Mode: "chat", InputCostPerToken: &rate, OutputCostPerToken: &rate, CacheReadInputTokenCost: &rate}}
+		raw, err := json.Marshal(modelpricing.Snapshot{Version: "takeover-cost-fixture", AcceptedAt: at, Rows: rows})
+		if err != nil {
+			return nil, err
+		}
+		snapshots[key] = raw
+	}
+	return snapshots, nil
+}
+
+func (takeoverCostSource) Estimate(ctx context.Context, snapshot json.RawMessage, r modelruntime.Request, cap modelruntime.Capability) *string {
+	return (&modelpricing.Service{}).Estimate(ctx, snapshot, r, cap)
 }

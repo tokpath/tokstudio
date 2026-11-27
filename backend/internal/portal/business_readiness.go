@@ -60,7 +60,7 @@ func (a *Application) Check(ctx context.Context, tx *gorm.DB, op organization.Op
 		}
 		add("package", description, hasPackage)
 		if feature == organization.NewPurchase {
-			methods, err := a.Payments.PublicMethods(ctx, op.ID)
+			methods, err := a.Payments.WithDB(connection).PublicMethods(ctx, op.ID)
 			if err != nil {
 				return nil, err
 			}

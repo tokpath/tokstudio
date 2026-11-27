@@ -167,7 +167,7 @@ func (a *Application) createOrder(c *gin.Context) {
 			if in.Funding.ExternalMethodID == "" {
 				return nil, commerce.ErrNotPaid
 			}
-			m, e := a.Payments.Merchant(ctx, order.OperatorID, in.Funding.ExternalMethodID)
+			m, e := a.Payments.WithDB(tx).Merchant(ctx, order.OperatorID, in.Funding.ExternalMethodID)
 			if e != nil {
 				return nil, e
 			}
@@ -232,9 +232,8 @@ func (a *Application) fulfillCustomerOrder(ctx context.Context, tx *gorm.DB, o c
 	_, e := a.Commerce.EnableAutoRenewal(ctx, tx, o.CustomerID, o.ID, "customer explicit order consent:"+o.BusinessKey, cr.AllowCommission)
 	return e
 }
-func (a *Application) paymentValue(ctx context.Context, operator, driver, currency string, due ledger.Decimal, at time.Time) (payments.Money, payments.Valuation, error) {
-	_, _ = operator, at
-	settings, e := ledger.GetMonetary(ctx, a.DB)
+func paymentValue(ctx context.Context, tx *gorm.DB, currency string, due ledger.Decimal) (payments.Money, payments.Valuation, error) {
+	settings, e := ledger.GetMonetary(ctx, tx)
 	if e != nil {
 		return payments.Money{}, payments.Valuation{}, e
 	}
@@ -275,7 +274,8 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 		}
 		// Returning to a previously selected method reuses its original
 		// checkout, amount and quote rather than issuing another payment.
-		if _, err := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID); err == nil {
+		svc := a.Payments.WithDB(tx)
+		if _, err := svc.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID); err == nil {
 			reuse = true
 			return nil
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -284,21 +284,21 @@ func (a *Application) ensureCheckout(ctx context.Context, o commerce.Order) erro
 		if len(cr.PaymentOrder) > 0 {
 			return json.Unmarshal(cr.PaymentOrder, &paymentOrder)
 		}
-		methods, e := a.Payments.PublicMethods(ctx, o.OperatorID)
+		methods, e := svc.PublicMethods(ctx, o.OperatorID)
 		if e != nil {
 			return e
 		}
-		currency, driver := "", ""
+		currency := ""
 		for _, m := range methods {
 			if m.ID == *cr.MerchantID {
-				currency, driver = m.Currency, m.Driver
+				currency = m.Currency
 			}
 		}
 		if currency == "" {
 			return payments.ErrNotConfigured
 		}
 		due := o.DueMoney.Sub(o.InternalMoney).Sub(o.CommissionMoney)
-		money, value, e := a.paymentValue(ctx, o.OperatorID, driver, currency, due, o.CreatedAt)
+		money, value, e := paymentValue(ctx, tx, currency, due)
 		if e != nil {
 			return e
 		}
@@ -556,7 +556,8 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		if due.Sign() <= 0 {
 			return nil, commerce.ErrOrderState
 		}
-		m, e := a.Payments.Merchant(ctx, o.OperatorID, in.Method)
+		svc := a.Payments.WithDB(tx)
+		m, e := svc.Merchant(ctx, o.OperatorID, in.Method)
 		if e != nil {
 			return nil, e
 		}
@@ -575,7 +576,7 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 			return nil, e
 		}
 		if cr.MerchantID != nil && *cr.MerchantID != m.ID {
-			intent, err := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
+			intent, err := svc.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
 			if err != nil || !intent.AllowsMethodChange() || (intent.State == "created" && !sameCheckedPayment(intent, unpaidCheckout)) {
 				return nil, commerce.ErrPaymentUnknown
 			}
@@ -594,7 +595,7 @@ func (a *Application) replacePaymentMethod(c *gin.Context) {
 		if e != nil {
 			return nil, e
 		}
-		if original, err := a.Payments.PaymentIntent(ctx, o.OperatorID, m.ID, o.ID); err == nil {
+		if original, err := svc.PaymentIntent(ctx, o.OperatorID, m.ID, o.ID); err == nil {
 			fee = original.FeeQuote
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
@@ -890,7 +891,7 @@ func (a *Application) topup(c *gin.Context) {
 		if e != nil {
 			return nil, e
 		}
-		m, e := a.Payments.Merchant(ctx, o.OperatorID, in.Method)
+		m, e := a.Payments.WithDB(tx).Merchant(ctx, o.OperatorID, in.Method)
 		if e != nil {
 			return nil, e
 		}

@@ -64,7 +64,7 @@ func (a *Application) validateCollectionReceipt(ctx context.Context, tx *gorm.DB
 		return e
 	}
 	if fact.MerchantID != "" {
-		intent, err := a.Payments.PaymentIntent(ctx, op, fact.MerchantID, order)
+		intent, err := a.Payments.WithDB(tx).PaymentIntent(ctx, op, fact.MerchantID, order)
 		if err != nil {
 			return err
 		}

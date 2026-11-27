@@ -198,6 +198,13 @@ type Money struct {
 	Currency string `json:"currency"`
 	Amount   string `json:"amount"`
 }
+
+// CostModel identifies a model in the supplier price sheet.
+type CostModel struct {
+	Provider string `json:"provider"`
+	Model    string `json:"model"`
+}
+
 type CostObservation struct {
 	ReferenceCost *Money `json:"reference_cost,omitempty"`
 	ReportedCost  *Money `json:"reported_cost,omitempty"`

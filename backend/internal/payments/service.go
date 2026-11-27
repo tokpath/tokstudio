@@ -115,6 +115,12 @@ func NewService(db *gorm.DB, key string, auth Authorizer, http *Transport, sink 
 	return &Service{FXTransport: http, DB: db, EncryptionKey: key, Authorize: auth, Drivers: map[string]Driver{"stripe": Stripe{http}, "alipay": Alipay{http}, "wechat": Wechat{http}, "manual": Manual{}, "kvoucher": KVoucher{http}}, Sink: sink}
 }
 
+// WithDB returns a service bound to the supplied database handle.
+func (s Service) WithDB(db *gorm.DB) *Service {
+	s.DB = db
+	return &s
+}
+
 type MerchantView struct {
 	Merchant
 	MissingFields []string `json:"missing_fields"`

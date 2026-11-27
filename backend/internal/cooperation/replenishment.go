@@ -154,7 +154,7 @@ func (r *Replenisher) SaveAuthorization(ctx context.Context, actor string, in Re
 			if a.MerchantID == nil || !strings.HasPrefix(in.Payment.PaymentMethod, "pm_") || !strings.HasPrefix(in.Payment.CustomerRef, "cus_") {
 				return ErrReplenishment
 			}
-			m, e := r.Payments.Merchant(ctx, a.SupplierID, *a.MerchantID)
+			m, e := r.Payments.WithDB(t).Merchant(ctx, a.SupplierID, *a.MerchantID)
 			if e != nil {
 				return e
 			}

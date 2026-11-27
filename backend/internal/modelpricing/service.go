@@ -5,7 +5,6 @@ package modelpricing
 import (
 	"context"
 	"crypto/sha256"
-	"database/sql"
 	"embed"
 	"encoding/hex"
 	"encoding/json"
@@ -31,6 +30,7 @@ import (
 	"github.com/maximhq/bifrost/framework/configstore/tables"
 	"github.com/maximhq/bifrost/framework/modelcatalog/datasheet"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"gorm.io/gorm"
 )
 
@@ -282,29 +282,56 @@ func (s *Service) Rows(ctx context.Context, search string) ([]Row, error) {
 	return rows, e
 }
 func (s *Service) Snapshot(ctx context.Context, provider, model string, at time.Time) (json.RawMessage, error) {
-	var raw json.RawMessage
-	e := s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var rows []Row
-		if e := tx.Where("provider=? AND model=?", provider, model).Find(&rows).Error; e != nil {
-			return e
+	key := modelruntime.CostModel{Provider: provider, Model: model}
+	snapshots, e := s.Snapshots(ctx, s.DB, []modelruntime.CostModel{key}, at)
+	return snapshots[key], e
+}
+
+// Snapshots reads all requested models from one price sheet using the caller's
+// database handle. One statement keeps the version and rows consistent even
+// inside a read-committed transaction while a price sheet refresh commits.
+func (s *Service) Snapshots(ctx context.Context, db *gorm.DB, models []modelruntime.CostModel, at time.Time) (map[modelruntime.CostModel]json.RawMessage, error) {
+	if len(models) == 0 {
+		return nil, nil
+	}
+	requested, e := json.Marshal(models)
+	if e != nil {
+		return nil, e
+	}
+	var rows []struct {
+		Provider, Model, SheetVersion string
+		Definitions                   []byte
+	}
+	e = db.WithContext(ctx).Raw(`
+WITH requested AS (
+	SELECT DISTINCT provider, model
+	FROM jsonb_to_recordset(?::jsonb) AS pairs(provider text, model text)
+)
+SELECT requested.provider, requested.model, settings.sheet_version,
+	(SELECT jsonb_agg(prices.definition ORDER BY prices.id)
+	 FROM model_pricing_rows prices
+	 WHERE prices.provider=requested.provider AND prices.model=requested.model) AS definitions
+FROM model_pricing_settings settings CROSS JOIN requested
+WHERE settings.id='platform'`, string(requested)).Scan(&rows).Error
+	if e != nil {
+		return nil, e
+	}
+	if len(rows) == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+	snapshots := make(map[modelruntime.CostModel]json.RawMessage, len(rows))
+	for _, row := range rows {
+		snapshot := Snapshot{Version: row.SheetVersion, AcceptedAt: at}
+		if row.Definitions != nil && json.Unmarshal(row.Definitions, &snapshot.Rows) != nil {
+			return nil, ErrInput
 		}
-		var cfg Settings
-		if e := tx.First(&cfg, "id='platform'").Error; e != nil {
-			return e
+		raw, e := json.Marshal(snapshot)
+		if e != nil {
+			return nil, e
 		}
-		out := Snapshot{Version: cfg.SheetVersion, AcceptedAt: at}
-		for _, r := range rows {
-			var row tables.TableModelPricing
-			if json.Unmarshal(r.Definition, &row) != nil {
-				return ErrInput
-			}
-			out.Rows = append(out.Rows, row)
-		}
-		var e error
-		raw, e = json.Marshal(out)
-		return e
-	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
-	return raw, e
+		snapshots[modelruntime.CostModel{Provider: row.Provider, Model: row.Model}] = raw
+	}
+	return snapshots, nil
 }
 func validCurrency(currency string) bool {
 	if len(currency) < 2 || len(currency) > 12 {

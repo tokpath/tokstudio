@@ -11,8 +11,17 @@ func (s *Service) PendingRequestsPage(ctx context.Context, cursor string, limit 
 	if limit < 1 || limit > 200 {
 		return nil, ErrKey
 	}
-	q := s.DB.WithContext(ctx).Select("id", "customer_id", "async_image").Where("status IN ('accepted','executing','submitted','awaiting_usage') OR (status='completed' AND operation=? AND completed_at>? AND NOT EXISTS(SELECT 1 FROM usage_results result WHERE result.request_id=usage_requests.id AND result.state='ready'))",
-		modelruntime.Video, s.wallNow().Add(-s.ResultRetention))
+	// The worker can advance media tasks before the deadline. Other requests
+	// only need discovery when their usage deadline is due.
+	q := s.DB.WithContext(ctx).Select("id", "customer_id", "async_image").Where(`(
+		(status IN ('accepted','executing','submitted','awaiting_usage')
+			AND (async_image OR operation=? OR usage_deadline<=statement_timestamp()))
+		OR (status='completed' AND operation=? AND completed_at>?
+			AND NOT EXISTS (
+				SELECT 1 FROM usage_results result
+				WHERE result.request_id=usage_requests.id AND result.state='ready'
+			))
+	)`, modelruntime.Video, modelruntime.Video, s.wallNow().Add(-s.ResultRetention))
 	if cursor != "" {
 		if _, e := uuid.Parse(cursor); e != nil {
 			return nil, e
